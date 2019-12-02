@@ -1,0 +1,36 @@
+{
+	"name" : "Genesis8-female",
+	"hd-morphs" : true,
+	"units" : {
+		"prefix" : ["ectrl", "ctrl", "phm", "ephm"],
+		"include" : "units",
+		"exclude" : [],
+		"path" : "data/DAZ 3D/Genesis 8/Female/Morphs/DAZ 3D/Base Pose Head/"
+	},
+	"expressions" : {
+		"prefix" : "ectrl",
+		"include" : ["ectrl"],
+		"exclude" : ["ectrlv"],
+		"exclude2" : "ectrlunits",
+		"path" : "data/DAZ 3D/Genesis 8/Female/Morphs/DAZ 3D/Expressions/"
+	},
+	"visemes" : {
+		"prefix" : "ectrlv",
+		"include" : ["ectrlv"],
+		"exclude" : [],
+		"path" : "data/DAZ 3D/Genesis 8/Female/Morphs/DAZ 3D/Base Pose Head/"
+	},
+	"correctives" : {
+		"prefix" : "pjcm",
+		"include" : ["pjcm"],
+		"exclude" : [],
+		"path" : "data/DAZ 3D/Genesis 8/Female/Morphs/DAZ 3D/Base Correctives/"
+	},
+	"hands" : {
+		"prefix" : "ctrl",
+		"include" : "pctrlhands",
+		"exclude" : "pctrltoes",
+		"path" : "data/DAZ 3D/Genesis 8/Female/Morphs/DAZ 3D/Base Pose/"
+	}
+}	
+		
