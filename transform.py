@@ -93,12 +93,13 @@ class Transform:
             return self.rot*D
 
     def evalScale(self):
+        unit = Vector((1,1,1))
         if self.scale is None:
-            scale = Vector((1,1,1))
+            scale = unit
         else:
-            scale = self.scale
+            scale = unit + self.scale
         if self.general is not None:
-            scale *= self.general
+            scale *= (unit + self.general)
         return scale
 
 
