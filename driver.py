@@ -43,7 +43,7 @@ def isBoneDriven(rig, pb):
 def getBoneDrivers(rig, pb):
     fcus = []
     if rig.animation_data:
-        for channel in ["rotation_euler", "rotation_quaternion", "location"]:
+        for channel in ["rotation_euler", "rotation_quaternion", "location", "scale"]:
             path = 'pose.bones["%s"].%s' % (pb.name, channel)
             fcus += [fcu for fcu in rig.animation_data.drivers if path == fcu.data_path]
     return fcus
