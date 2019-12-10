@@ -87,7 +87,9 @@ def setupMorphPaths(scn, force):
 
     folder = os.path.join(os.path.dirname(__file__), "data/paths/")
     charPaths = {}
-    for file in os.listdir(folder):
+    files = list(os.listdir(folder))
+    files.sort()
+    for file in files:
         path = os.path.join(folder, file)
         struct = loadJson(path)
         charPaths[struct["name"]] = struct
@@ -121,7 +123,9 @@ def setupMorphPaths(scn, force):
                 if not os.path.exists(folderpath):
                     folderpath = fixBrokenPath(folderpath)
                 if os.path.exists(folderpath):
-                    for file in os.listdir(folderpath):
+                    files = list(os.listdir(folderpath))
+                    files.sort()
+                    for file in files:
                         fname,ext = os.path.splitext(file)
                         if ext not in [".duf", ".dsf"]:
                             continue
