@@ -165,15 +165,18 @@ def makeDriver(name, rna, channel, idx, attr, factor, rig):
 #   Bone drivers
 #-------------------------------------------------------------
 
+def varnames(n):
+    if n == 0:
+        return ["A", "B", "C"]
+    else:
+        return [chr(ord("A")+3*n), chr(ord("B")+3*n), chr(ord("C")+3*n)] 
+
+
 def makeDriverString(vec, n):
     string = "("
     nonzero = False
     first = True
-    if n == 0:
-        suffix = ""
-    else:
-        suffix = str(n)
-    for j,comp in enumerate(["A"+suffix, "B"+suffix, "C"+suffix]):
+    for j,comp in enumerate(varnames(n)):
         x = int(1000*vec[j])
         if x != 0:
             if first:
@@ -252,19 +255,25 @@ def makeBoneDriver(string, rna, channel, rig, ob, bname, idx, n):
         fcu = rna.driver_add(channel, idx)
         fcu.driver.type = 'SCRIPTED'
         fcu.driver.expression = string
-        suffix = ""
     elif isinstance(rna, bpy.types.ShapeKey):
         path = ('key_blocks["%s"].value' % rna.name)
         for fcu in ob.data.shape_keys.animation_data.drivers:
             if fcu.data_path == path:
-                fcu.driver.expression += " + " + string
+                if string[1] == "-":
+                    plus = ""
+                else:
+                    plus = "+"
+                string = fcu.driver.expression[:-6] + plus + string[1:]
                 print("Driver %d for shapekey %s" % (n, rna.name))
+                print(string)
+                fcu.driver.expression = string
                 break
-        suffix = str(n)
     else:
         raise RuntimeError("BUG: makeBoneDriver")
-    for vname,ttype in [("A"+suffix, "ROT_X"), ("B"+suffix, "ROT_Y"), ("C"+suffix, "ROT_Z")]:
-        addTransformVar(fcu, vname, ttype, rig, bname)
+    vnames = varnames(n)
+    ttypes = ["ROT_X", "ROT_Y", "ROT_Z"]
+    for j,vname in enumerate(vnames):
+        addTransformVar(fcu, vname, ttypes[j], rig, bname)
     return fcu
 
 
