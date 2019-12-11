@@ -309,7 +309,7 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
                 else:
                     umat = convertDualMatrix(rot, pbDriver, pbDriven)
                     for idx in range(3):
-                        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, driver, idx, 0)
+                        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, None, driver, idx, 0)
 
 #-------------------------------------------------------------
 #   Build shape formula
