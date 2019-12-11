@@ -173,30 +173,18 @@ class Formula:
             pb = rig.pose.bones[bname]
 
         path,idx,default = parseChannel(channel)
-        if not useBone:
-            value = default
-        elif pb is None:
-            value = Vector((default, default, default))
-        else:
-            try:
-                value = Matrix((default, default, default))
-                error = False
-            except:
-                value = Matrix()
-                error = True
-            if error:
-                raiseOrReportError("formula.py >> evalFormula()\n Failed to set value with default     \n %s" % default, 0, 3, False)
-
         if bname not in exprs.keys():
             exprs[bname] = {}
         if path not in exprs[bname].keys():
-            exprs[bname][path] = {"value" : None, "others" : [], "prop" : None, "bone" : None}
-        expr = exprs[bname][path]
-        if expr["value"] is not None:            
+            value = self.getDefaultValue(useBone, pb, default)
+            exprs[bname][path] = {"value" : value, "others" : [], "prop" : None, "bone" : None}
+        elif path == "value":
+            expr = exprs[bname][path]
             other = {"value" : expr["value"], "prop" : expr["prop"], "bone" : expr["bone"]}
             expr["others"].append(other)
-        expr["value"] = value            
+            expr["value"] = self.getDefaultValue(useBone, pb, default)
 
+        expr = exprs[bname][path]
         nops = 0
         type = None
         ops = formula["operations"]
@@ -266,6 +254,20 @@ class Formula:
                 #self.multiplyStages(props, proplist)
 
         return True
+
+
+    def getDefaultValue(self, useBone, pb, default):            
+        if not useBone:
+            return default
+        elif pb is None:
+            return Vector((default, default, default))
+        else:
+            try:
+                return Matrix((default, default, default))
+            except:
+                pass
+            raiseOrReportError("formula.py >> evalFormula()\n Failed to set value with default     \n %s" % default, 0, 3, False)
+        return Matrix()
 
 
     def multiplyStages(self, exprs, exprlist):
