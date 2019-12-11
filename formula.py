@@ -173,24 +173,29 @@ class Formula:
             pb = rig.pose.bones[bname]
 
         path,idx,default = parseChannel(channel)
+        if not useBone:
+            value = default
+        elif pb is None:
+            value = Vector((default, default, default))
+        else:
+            try:
+                value = Matrix((default, default, default))
+                error = False
+            except:
+                value = Matrix()
+                error = True
+            if error:
+                raiseOrReportError("formula.py >> evalFormula()\n Failed to set value with default     \n %s" % default, 0, 3, False)
+
         if bname not in exprs.keys():
             exprs[bname] = {}
         if path not in exprs[bname].keys():
-            if not useBone:
-                value = default
-            elif pb is None:
-                value = Vector((default, default, default))
-            else:
-                try:
-                    value = Matrix((default, default, default))
-                    error = False
-                except:
-                    value = Matrix()
-                    error = True
-                if error:
-                    raiseOrReportError("formula.py >> evalFormula()\n Failed to set value with default     \n %s" % default, 0, 3, False)
-            exprs[bname][path] = {"value" : value, "prop" : None, "bone" : None}
+            exprs[bname][path] = {"value" : None, "others" : [], "prop" : None, "bone" : None}
         expr = exprs[bname][path]
+        if expr["value"] is not None:            
+            other = {"value" : expr["value"], "prop" : expr["prop"], "bone" : expr["bone"]}
+            expr["others"].append(other)
+        expr["value"] = value            
 
         nops = 0
         type = None
@@ -208,22 +213,23 @@ class Formula:
                 return False
             expr["prop"] = prop
             props[prop] = True
-        elif expr["bone"] is None:
+        else:
             expr["bone"] = prop
 
         # Main operation
         last = ops[-1]
         op = last["op"]
         if op == "mult" and len(ops) == 3:
+            value = ops[1]["val"]
             if not useBone:
                 if isinstance(expr["value"], Vector):
-                    expr["value"][idx] = ops[1]["val"]
+                    expr["value"][idx] = value
                 else:
-                    expr["value"] = ops[1]["val"]
+                    expr["value"] = value
             elif pb is None:
-                expr["value"][comp] = ops[1]["val"]
+                expr["value"][comp] = value
             else:
-                expr["value"][idx][comp] = ops[1]["val"]
+                expr["value"][idx][comp] = value
         elif op == "push" and len(ops) == 1 and useStages:
             bone,string = last["url"].split(":")
             url,channel = string.split("?")
@@ -270,8 +276,7 @@ class Formula:
                 evalue = expr["value"]
                 vectors.append(evalue["value"])
             struct = exprs[key] = exprlist[0]
-            svalue = struct["value"]
-            svalue["value"] = vectors
+            struct["value"]["value"] = vectors
 
 
 def getRefKey(string):
@@ -304,72 +309,80 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
                 else:
                     umat = convertDualMatrix(rot, pbDriver, pbDriven)
                     for idx in range(3):
-                        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, driver, idx)
+                        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, driver, idx, 0)
 
 #-------------------------------------------------------------
 #   Build shape formula
 #   For corrective shapekeys
 #-------------------------------------------------------------
 
-def buildShapeFormula(asset, scn, rig, mesh):
-    from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
-    from .bone import BoneAlternatives
-
-    if mesh is None or mesh.data.shape_keys is None:
+def buildShapeFormula(asset, scn, rig, ob):
+    if ob is None or ob.data.shape_keys is None:
         return
 
     exprs = {}
     props = {}
-    if not asset.evalFormulas(exprs, props, rig, mesh, True, useStages=True, verbose=True):
+    if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=True, verbose=True):
         return False
 
     for sname,expr in exprs.items():
         if sname in rig.data.bones.keys():
             continue
-        elif sname not in mesh.data.shape_keys.key_blocks.keys():
+        elif sname not in ob.data.shape_keys.key_blocks.keys():
             print("No such shapekey:", sname)
             return False
-        skey = mesh.data.shape_keys.key_blocks[sname]
+        skey = ob.data.shape_keys.key_blocks[sname]
         if "value" in expr.keys():
-            value = expr["value"]
-            bname = value["bone"]
-            if bname is None:
-                continue
-            if bname not in rig.pose.bones.keys():
-                if bname in BoneAlternatives.keys():
-                    bname = BoneAlternatives[bname]
-                else:
-                    print("Missing bone:", bname)
-                    continue
-            pb = rig.pose.bones[bname]
+            n = 0
+            buildSingleShapeFormula(expr["value"], rig, ob, skey, n)
+            for other in expr["value"]["others"]:
+                n += 1
+                buildSingleShapeFormula(other, rig, ob, skey, n)
+    return True           
+                        
+            
+def buildSingleShapeFormula(expr, rig, ob, skey, n):
+    from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
+    from .bone import BoneAlternatives
+    
+    bname = expr["bone"]
+    if bname is None:
+        return
+    if bname not in rig.pose.bones.keys():
+        if bname in BoneAlternatives.keys():
+            bname = BoneAlternatives[bname]
+        else:
+            print("Missing bone:", bname)
+            return
+    pb = rig.pose.bones[bname]
 
-            if "comp" in value.keys():
-                j = value["comp"]
-                points = value["points"]
-                n = len(points)
-                if (points[0][0] > points[n-1][0]):
-                    points.reverse()
+    if "comp" in expr.keys():
+        j = expr["comp"]
+        points = expr["points"]
+        n = len(points)
+        if (points[0][0] > points[n-1][0]):
+            points.reverse()
 
-                diff = points[n-1][0] - points[0][0]
-                vec = Vector((0,0,0))
-                vec[j] = 1/(diff*D)
-                uvec = convertDualVector(vec, pb, False)
-                xys = []
-                for k in range(n):
-                    x = points[k][0]/diff
-                    y = points[k][1]
-                    xys.append((x, y))
-                makeSplineBoneDriver(uvec, xys, skey, "value", rig, bname, -1)
-            elif isinstance(value["value"], list):
-                uvecs = []
-                for vec in value["value"]:
-                    uvec = convertDualVector(vec/D, pb, False)
-                    uvecs.append(uvec)
-                makeProductBoneDriver(uvecs, skey, "value", rig, bname, -1)
-            else:
-                vec = value["value"]
-                uvec = convertDualVector(vec/D, pb, False)
-                makeSimpleBoneDriver(uvec, skey, "value", rig, bname, -1)
+        diff = points[n-1][0] - points[0][0]
+        vec = Vector((0,0,0))
+        vec[j] = 1/(diff*D)
+        uvec = convertDualVector(vec, pb, False)
+        xys = []
+        for k in range(n):
+            x = points[k][0]/diff
+            y = points[k][1]
+            xys.append((x, y))
+        makeSplineBoneDriver(uvec, xys, skey, "value", rig, ob, bname, -1, n)
+    elif isinstance(expr["value"], list):
+        uvecs = []
+        for vec in expr["value"]:
+            uvec = convertDualVector(vec/D, pb, False)
+            uvecs.append(uvec)
+        makeProductBoneDriver(uvecs, skey, "value", rig, ob, bname, -1, n)
+    else:
+        vec = expr["value"]
+        uvec = convertDualVector(vec/D, pb, False)
+        makeSimpleBoneDriver(uvec, skey, "value", rig, ob, bname, -1, n)
     return True
 
 

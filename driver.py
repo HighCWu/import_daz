@@ -165,11 +165,15 @@ def makeDriver(name, rna, channel, idx, attr, factor, rig):
 #   Bone drivers
 #-------------------------------------------------------------
 
-def makeDriverString(vec):
+def makeDriverString(vec, n):
     string = "("
     nonzero = False
     first = True
-    for j,comp in enumerate(["A", "B", "C"]):
+    if n == 0:
+        suffix = ""
+    else:
+        suffix = str(n)
+    for j,comp in enumerate(["A"+suffix, "B"+suffix, "C"+suffix]):
         x = int(1000*vec[j])
         if x != 0:
             if first:
@@ -187,23 +191,23 @@ def makeDriverString(vec):
         return ""
 
 
-def makeSimpleBoneDriver(vec, rna, channel, rig, bname, idx):
-    string = makeDriverString(vec)
+def makeSimpleBoneDriver(vec, rna, channel, rig, ob, bname, idx, n):
+    string = makeDriverString(vec, n)
     if string:
-        makeBoneDriver(string, rna, channel, rig, bname, idx)
+        makeBoneDriver(string, rna, channel, rig, ob, bname, idx, n)
 
 
-def makeProductBoneDriver(vecs, rna, channel, rig, bname, idx):
+def makeProductBoneDriver(vecs, rna, channel, rig, ob, bname, idx, n):
     string = ""
     for vec in vecs:
-        string1 = makeDriverString(vec)
+        string1 = makeDriverString(vec, n)
         if string1:
             string += ("*min(1,max(0,%s))" % string1)
     if string:
-        makeBoneDriver(string[1:], rna, channel, rig, bname, idx)
+        makeBoneDriver(string[1:], rna, channel, rig, ob, bname, idx, n)
 
 
-def makeSplineBoneDriver(uvec, points, rna, channel, rig, bname, idx):
+def makeSplineBoneDriver(uvec, points, rna, channel, rig, ob, bname, idx, n):
     n = len(points)
     xi,yi = points[0]
     string = "[%s if x< %s" % (getPrint(yi), getPrint(xi))
@@ -225,7 +229,7 @@ def makeSplineBoneDriver(uvec, points, rna, channel, rig, bname, idx):
             msg += "%s         \n" % (string[30*n, 30*(n+1)])
         raise DazError(msg)
 
-    makeBoneDriver(string, rna, channel, rig, bname, idx)
+    makeBoneDriver(string, rna, channel, rig, ob, bname, idx, n)
 
 
 def getPrint(x):
@@ -242,12 +246,24 @@ def getSign(u):
         return "+", u
 
 
-def makeBoneDriver(string, rna, channel, rig, bname, idx):
-    rna.driver_remove(channel, idx)
-    fcu = rna.driver_add(channel, idx)
-    fcu.driver.type = 'SCRIPTED'
-    fcu.driver.expression = string
-    for vname,ttype in [("A","ROT_X"), ("B","ROT_Y"), ("C","ROT_Z")]:
+def makeBoneDriver(string, rna, channel, rig, ob, bname, idx, n):
+    if n == 0:
+        rna.driver_remove(channel, idx)
+        fcu = rna.driver_add(channel, idx)
+        fcu.driver.type = 'SCRIPTED'
+        fcu.driver.expression = string
+        suffix = ""
+    elif isinstance(rna, bpy.types.ShapeKey):
+        path = ('key_blocks["%s"].value' % rna.name)
+        for fcu in ob.data.shape_keys.animation_data.drivers:
+            if fcu.data_path == path:
+                fcu.driver.expression += " + " + string
+                print("Driver %d for shapekey %s" % (n, rna.name))
+                break
+        suffix = str(n)
+    else:
+        raise RuntimeError("BUG: makeBoneDriver")
+    for vname,ttype in [("A"+suffix, "ROT_X"), ("B"+suffix, "ROT_Y"), ("C"+suffix, "ROT_Z")]:
         addTransformVar(fcu, vname, ttype, rig, bname)
     return fcu
 
