@@ -178,6 +178,8 @@ class Formula:
         if path not in exprs[bname].keys():
             value = self.getDefaultValue(useBone, pb, default)
             exprs[bname][path] = {"value" : value, "others" : [], "prop" : None, "bone" : None}
+        elif "stage" in formula.keys():
+            pass
         elif path == "value":
             expr = exprs[bname][path]
             other = {"value" : expr["value"], "prop" : expr["prop"], "bone" : expr["bone"]}
