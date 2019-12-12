@@ -315,15 +315,16 @@ class LoadMorph:
             return self.mesh
 
 
-    def getSingleMorph(self, filepath, scn):
+    def getSingleMorph(self, filepath, scn, occur=0):
         from .modifier import Morph, FormulaAsset
         from .readfile import readDufFile
         from .files import parseAssetFile
         from .driver import makeShapekeyDriver
 
+        miss = False
         ob = self.getObject()
         if ob is None:
-            return []
+            return [],miss
 
         struct = readDufFile(filepath)
         asset = parseAssetFile(struct)
@@ -335,7 +336,7 @@ class LoadMorph:
                     print(msg)
                 else:
                     raise DazError(msg)
-            return []
+            return [],miss
 
         skey = None
         prop = None
@@ -347,7 +348,7 @@ class LoadMorph:
                         print(msg)
                     else:
                         raise DazError(msg)
-                return []
+                return [],miss
             asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits)
             skey,ob,sname = asset.rna
             if self.rig and theSettings.useDrivers:
@@ -367,16 +368,18 @@ class LoadMorph:
                 props = buildPropFormula(asset, scn, self.rig, self.type, self.prefix, self.errors)
                 props = list(props)
             if self.useShapekeys:
-                success = buildShapeFormula(asset, scn, self.rig, self.mesh)
+                success = buildShapeFormula(asset, scn, self.rig, self.mesh, occur=occur)
                 if self.useShapekeysOnly and not success and skey:
                     print("Could not build shape formula", skey.name)
+                if not success:
+                    miss = True
 
         if props:
-            return props
+            return props,miss
         elif skey:
-            return [skey.name]
+            return [skey.name],miss
         else:
-            return []
+            return [],miss
 
 
 def propFromName(key, type, prefix, rig):
@@ -452,12 +455,27 @@ class LoadAllMorphs(LoadMorph):
         t1 = time.clock()
         print("\n--------------------\n%s" % self.type)
         snames = []
+        missing = []
         for name,filepath in files.items():
             if hasattr(scn, "Daz"+name) and getattr(scn, "Daz"+name):
-                print("*", name)
-                snames += self.getSingleMorph(filepath, scn)
+                sname,miss = self.getSingleMorph(filepath, scn)
+                if miss:
+                    print("?", name)
+                    missing.append((name,filepath))
+                else:
+                    snames += sname
+                    print("*", name)
             else:
                 print("-", name)
+
+        for name,filepath in missing:
+            sname,miss = self.getSingleMorph(filepath, scn, occur=1)
+            if miss:
+                print("-", name)
+            else:
+                snames += sname
+                print("*", name)
+
         updateDrivers(self.mesh)
         updateDrivers(self.rig)
         finishMain(filepath, t1)
@@ -579,16 +597,29 @@ class DAZ_OT_ImportMorph(bpy.types.Operator, LoadMorph, DazImageFile, MultiFile,
         t1 = time.clock()
         print("\n--------------------")
         snames = []
+        missing = []
         paths = getMultiFiles(self, ["duf", "dsf"])
         self.suppressError = (len(paths) > 1)
         for path in paths:
             file = os.path.basename(path)
-            names = self.getSingleMorph(path, scn)
-            if names:
+            names,miss = self.getSingleMorph(path, scn)
+            if miss:
+                print("?", file)
+                missing.append(path)
+            elif names:
                 print("*", file)
                 snames += names
             else:
                 print("-", file)
+
+        for path in missing:
+            names,miss = self.getSingleMorph(path, scn, occur=1)
+            if names and not miss:
+                print("*", file)
+                snames += names
+            elif names:
+                print("-", file)
+
         updateDrivers(self.rig)
         updateDrivers(self.mesh)
         finishMain(filepath, t1)

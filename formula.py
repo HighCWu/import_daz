@@ -318,9 +318,9 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
 #   For corrective shapekeys
 #-------------------------------------------------------------
 
-def buildShapeFormula(asset, scn, rig, ob):
+def buildShapeFormula(asset, scn, rig, ob, occur=0):
     if ob is None or ob.data.shape_keys is None:
-        return
+        return False
 
     exprs = {}
     props = {}
@@ -332,23 +332,26 @@ def buildShapeFormula(asset, scn, rig, ob):
             continue
         elif sname not in ob.data.shape_keys.key_blocks.keys():
             print("No such shapekey:", sname)
-            return False
+            if occur == 0:
+                return False
+            else:
+                continue
         skey = ob.data.shape_keys.key_blocks[sname]
         if "value" in expr.keys():
-            n = 0
-            buildSingleShapeFormula(expr["value"], rig, ob, skey, n)
+            buildSingleShapeFormula(expr["value"], rig, ob, skey, occur)
             for other in expr["value"]["others"]:
-                n += 1
-                buildSingleShapeFormula(other, rig, ob, skey, n)
+                occur += 1
+                buildSingleShapeFormula(other, rig, ob, skey, occur)
     return True           
                         
             
-def buildSingleShapeFormula(expr, rig, ob, skey, n):
+def buildSingleShapeFormula(expr, rig, ob, skey, occur):
     from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
     from .bone import BoneAlternatives
     
     bname = expr["bone"]
     if bname is None:
+        print("BSSF", expr, skey.name, occur)
         return
     if bname not in rig.pose.bones.keys():
         if bname in BoneAlternatives.keys():
@@ -374,17 +377,17 @@ def buildSingleShapeFormula(expr, rig, ob, skey, n):
             x = points[k][0]/diff
             y = points[k][1]
             xys.append((x, y))
-        makeSplineBoneDriver(uvec, xys, skey, "value", rig, ob, bname, -1, n)
+        makeSplineBoneDriver(uvec, xys, skey, "value", rig, ob, bname, -1, occur)
     elif isinstance(expr["value"], list):
         uvecs = []
         for vec in expr["value"]:
             uvec = convertDualVector(vec/D, pb, False)
             uvecs.append(uvec)
-        makeProductBoneDriver(uvecs, skey, "value", rig, ob, bname, -1, n)
+        makeProductBoneDriver(uvecs, skey, "value", rig, ob, bname, -1, occur)
     else:
         vec = expr["value"]
         uvec = convertDualVector(vec/D, pb, False)
-        makeSimpleBoneDriver(uvec, skey, "value", rig, ob, bname, -1, n)
+        makeSimpleBoneDriver(uvec, skey, "value", rig, ob, bname, -1, occur)
     return True
 
 
