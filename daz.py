@@ -72,6 +72,7 @@ class ImportDAZ(bpy.types.Operator, DazImageFile, SingleFile, DazOptions):
         layout.separator()
         layout.prop(self, "skinColor")
         layout.prop(self, "clothesColor")
+        layout.prop(self, "brightenEyes")
 
 #-------------------------------------------------------------
 #   Property groups, for drivers

@@ -193,6 +193,12 @@ class DazOptions:
         default = (0.09, 0.01, 0.015, 1.0)
     )
 
+    brightenEyes = FloatProperty(
+        name = "Brighten Eyes",
+        description = "Brighten eye textures with this factor\nto avoid dark eyes problem for Genesis 8",
+        default = 1.8,
+        min = 0.1, max = 10)        
+
     fitMeshes = EnumProperty(
         items = [('SHARED', "Unmorphed Shared", "Don't fit meshes. All objects share the same mesh."),
              ('UNIQUE', "Unmorped Unique", "Don't fit meshes. Each object has unique mesh instance."),

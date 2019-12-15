@@ -53,6 +53,7 @@ class Settings:
         self.autoMaterials = True
         self.handleOpaque = 'BSDF'
         self.handleRefractive = 'BSDF'
+        self.brightenEyes = 1.0
         self.useEnvironment = False
         self.renderMethod = 'PBR'
         self.fps = 30
@@ -170,6 +171,7 @@ class Settings:
 
         self.skinColor = btn.skinColor
         self.clothesColor = btn.clothesColor
+        self.brightenEyes = btn.brightenEyes
         self.renderMethod = scn.render.engine
 
         self.useStrict = True

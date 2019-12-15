@@ -30,6 +30,7 @@ import bpy
 from bpy.props import *
 import os
 import copy
+import math
 from collections import OrderedDict
 
 from .asset import Asset
@@ -283,7 +284,19 @@ class Material(Asset):
 #-------------------------------------------------------------
 
     def getChannelDiffuse(self):
-        return self.getChannel(["diffuse", "Diffuse Color"])
+        channel = self.getChannel(["diffuse", "Diffuse Color"])
+        if (theSettings.brightenEyes != 1.0 and
+            self.name[0:6].lower() in ["irises", "sclera"]):
+            if bpy.app.version < (2,80,0):
+                factor = theSettings.brightenEyes
+            else:
+                factor = math.sqrt(theSettings.brightenEyes)
+            if "value" in channel.keys():
+                channel["value"] = factor*Vector(channel["value"])
+            if "current_value" in channel.keys():
+                channel["current_value"] = factor*Vector(channel["current_value"])
+        return channel
+
 
     def getChannelDiffuseStrength(self):
         return self.getChannel(["diffuse_strength", "Diffuse Strength"])
