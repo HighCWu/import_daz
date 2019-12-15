@@ -29,6 +29,8 @@
 import bpy
 from bpy.props import *
 
+class DazBoolGroup(bpy.types.PropertyGroup):
+    b : BoolProperty()
 
 class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
     bl_idname = "daz.make_udim_materials"
@@ -36,9 +38,39 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
     bl_description = "Combine materials of selected mesh into a single UDIM material"
     bl_options = {'UNDO'}
 
+    use : CollectionProperty(type = DazBoolGroup)
+    active : EnumProperty(items=[], name="")
+    
     @classmethod
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
+
+    def draw(self, context):
+        from .guess import getSkinMaterial
+        ob = context.object
+        enums = []
+        active = None
+        for mat in ob.data.materials:
+            item = self.use.add()
+            item.b = (getSkinMaterial(mat)[0] in ["Skin", "Red"])
+            if item.b and active is None:
+                active = mat
+            enums.append((mat.name,mat.name,mat.name))        
+            
+        self.layout.label(text="Materials To Merge")
+        for n,mat in enumerate(ob.data.materials):
+            row = self.layout.row()
+            row.label(text=mat.name)
+            row.prop(self.use[n], "b", text="")
+
+        self.layout.separator()
+        self.layout.label(text="Active Material: %s" % active.name)  
+        return
+        prop = EnumProperty(items=enums)  
+        scn = context.scene
+        setattr(bpy.types.Scene, "DazUdimActive", prop)
+        self.layout.prop(scn, "active")
+
 
     def execute(self, context):
         try:
@@ -48,14 +80,22 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
         return{'FINISHED'}
 
     def invoke(self, context, event):
-        self.properties.filepath = texpath
-        context.window_manager.fileselect_add(self)
+        context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
 
-    def udimize(context):
+    def udimize(self, context):
         ob = context.object
         print("UDIM", ob)
+        mats = []
+        active = None
+        for n,mat in enumerate(ob.data.materials):
+            if self.use[n].b:            
+                mats.append(mat)
+                if active is None:
+                    active = mat
+        print("Use", mats)
+        print("Active", active)
         
         
 #----------------------------------------------------------
@@ -63,6 +103,7 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
 #----------------------------------------------------------
 
 classes = [
+    DazBoolGroup,
     DAZ_OT_UdimizeMaterials,
 ]
 
