@@ -86,7 +86,6 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
 
     def udimize(self, context):
         ob = context.object
-        print("UDIM", ob)
         mats = []
         active = None
         for n,mat in enumerate(ob.data.materials):
@@ -96,6 +95,42 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
                     active = mat
         print("Use", mats)
         print("Active", active)
+
+        self.channels = {}
+        for mat in mats:
+            self.channels[mat.name] = self.getChannels(mat)
+
+        self.udimMaterial(active, active)
+        for mat in mats:
+            if mat != active:
+                self.udimMaterial(mat, active)
+
+    def getChannels(self, mat):
+        channels = {}
+        for node in mat.node_tree.nodes:
+            if node.type == "TEX_IMAGE":
+                channel = self.getChannel(node, mat.node_tree.links)
+                channels[channel] = node
+        return channels              
+
+
+    def getChannel(self, node, links):
+        for link in links:
+            if link.from_node == node:
+                if link.to_node.type in ["MIX_RGB", "MATH"]:
+                    return self.getChannel(link.to_node, links)
+                elif link.to_node.type == "BSDF_PRINCIPLED":
+                    return ("PBR_%s" % link.to_socket.name)
+                else:
+                    return link.to_node.type
+        return None
+                            
+
+    def udimMaterial(self, mat, active):
+        du = 1000 + mat.DazUDim
+        dv = 1000 + mat.DazVDim
+        print("\nMAT", mat.name, du, dv)
+        
         
         
 #----------------------------------------------------------
