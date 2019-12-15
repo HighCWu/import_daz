@@ -68,6 +68,8 @@ def importModules():
                     "morphing", "tables", "proxy", "rigify", "merge", "hide",
                     "load_json", "mhx", "layers", "fkik", "hair",
                     "transfer", "poser", "addon", "addons"]
+        if bpy.app.version >= (2,82,0):
+            modnames.append("udim")                    
         anchor = os.path.basename(__file__[0:-12])
         theModules = []
         for modname in modnames:
@@ -134,6 +136,8 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.update_for_engine", text=("Update for %s" % scn.render.engine))
 
             box.separator()
+            if bpy.app.version >= (2,82,0):
+                box.operator("daz.make_udim_materials")
             box.operator("daz.collapse_udims")
             box.operator("daz.restore_udims")
 
@@ -1276,6 +1280,8 @@ def register():
     rigify.initialize()
     transfer.initialize()
     addon.initialize()
+    if bpy.app.version >= (2,82,0):
+        udim.initialize()
 
     initialize()
     from .fileutils import loadSettingsDefaults
@@ -1315,6 +1321,8 @@ def unregister():
     rigify.uninitialize()
     transfer.uninitialize()
     addon.uninitialize()
+    if bpy.app.version >= (2,82,0):
+        udim.uninitialize()
 
     for cls in classes:
         bpy.utils.unregister_class(cls)

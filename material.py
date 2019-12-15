@@ -279,6 +279,29 @@ class Material(Asset):
             gamma = channel["default_image_gamma"]
         return gamma
 
+
+def addUdim(mat, udim, vdim):
+    if mat.node_tree:
+        addUdimTree(mat.node_tree, udim, vdim)
+    else:
+        for mtex in mat.texture_slots:
+            if mtex and mtex.texture and mtex.texture.extension == 'CLIP':
+                mtex.offset[0] += udim
+                mtex.offset[1] += vdim
+
+
+def addUdimTree(tree, udim, vdim):
+    for node in tree.nodes:
+        if node.type == 'MAPPING':
+            if hasattr(node, "translation"):
+                slot = node.translation
+            else:
+                slot = node.inputs["Location"].default_value
+            slot[0] += udim
+            slot[1] += vdim
+        elif node.type == 'GROUP':
+            addUdimTree(node.node_tree, udim, vdim)
+
 #-------------------------------------------------------------
 #   Get channels
 #-------------------------------------------------------------
@@ -889,29 +912,6 @@ class Texture:
             rz = 90*D
 
         return (dx,dy,sx,sy,rz)
-
-
-def addUdim(mat, udim, vdim):
-    if mat.node_tree:
-        addUdimTree(mat.node_tree, udim, vdim)
-    else:
-        for mtex in mat.texture_slots:
-            if mtex and mtex.texture and mtex.texture.extension == 'CLIP':
-                mtex.offset[0] += udim
-                mtex.offset[1] += vdim
-
-
-def addUdimTree(tree, udim, vdim):
-    for node in tree.nodes:
-        if node.type == 'MAPPING':
-            if hasattr(node, "translation"):
-                slot = node.translation
-            else:
-                slot = node.inputs["Location"].default_value
-            slot[0] += udim
-            slot[1] += vdim
-        elif node.type == 'GROUP':
-            addUdimTree(node.node_tree, udim, vdim)
 
 #-------------------------------------------------------------z
 #
