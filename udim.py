@@ -28,6 +28,7 @@
 
 import bpy
 from bpy.props import *
+from .error import *
 
 class DazBoolGroup(bpy.types.PropertyGroup):
     b : BoolProperty()
@@ -40,6 +41,11 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
 
     use : CollectionProperty(type = DazBoolGroup)
     active : EnumProperty(items=[], name="")
+    name : StringProperty(
+        name = "Name",
+        description = "Name of resulting material",
+        default = "Skin"
+        )
     
     @classmethod
     def poll(self, context):
@@ -64,6 +70,7 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
             row.prop(self.use[n], "b", text="")
 
         self.layout.separator()
+        self.layout.prop(self, "name")
         self.layout.label(text="Active Material: %s" % active.name)  
         return
         prop = EnumProperty(items=enums)  
@@ -87,23 +94,47 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
     def udimize(self, context):
         ob = context.object
         mats = []
+        mnums = []
         active = None
-        for n,mat in enumerate(ob.data.materials):
-            if self.use[n].b:            
+        for mn,mat in enumerate(ob.data.materials):
+            if self.use[mn].b:            
                 mats.append(mat)
                 if active is None:
                     active = mat
+                    mnum = mn
+                else:
+                    mnums.append(mn)
+                    
         print("Use", mats)
-        print("Active", active)
+        print("Active", active, mnum)
+        print("Mnums", mnums)
+        
+        if active is None:
+            raise DazError("No materials selected")
 
-        self.channels = {}
+        self.nodes = {}
         for mat in mats:
-            self.channels[mat.name] = self.getChannels(mat)
+            self.nodes[mat.name] = self.getChannels(mat)
 
-        self.udimMaterial(active, active)
-        for mat in mats:
-            if mat != active:
-                self.udimMaterial(mat, active)
+        for key,anode in self.nodes[active.name].items():
+            anode.image.source = "TILED"
+            basename = self.getBaseName(anode.name, active.DazUDim)
+            for mat in mats:
+                nodes = self.nodes[mat.name]
+                if mat != active and key in nodes.keys():
+                    mname = self.makeNewName(basename, mat.DazUDim)
+                    node = nodes[key]                    
+                    node.image.name = mname
+
+        for f in ob.data.polygons:
+            if f.material_index in mnums:
+                f.material_index = mnum
+
+        mnums.reverse()
+        for mn in mnums:
+            if mn != mnum:
+                ob.data.materials.pop(index=mn)
+
 
     def getChannels(self, mat):
         channels = {}
@@ -126,12 +157,17 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
         return None
                             
 
-    def udimMaterial(self, mat, active):
-        du = 1000 + mat.DazUDim
-        dv = 1000 + mat.DazVDim
-        print("\nMAT", mat.name, du, dv)
-        
-        
+    def getBaseName(self, string, udim):
+        du = str(1001 + udim)
+        if string[-4:] == du:
+            return string[:-4]
+        else:
+            return string
+               
+
+    def makeNewName(self, string, udim):
+        du = str(1001 + udim)
+        return string + du    
         
 #----------------------------------------------------------
 #   Initialize
