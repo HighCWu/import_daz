@@ -25,13 +25,16 @@
 # of the authors and should not be interpreted as representing official policies,
 # either expressed or implied, of the FreeBSD Project.
 
-
 import bpy
+import os
 from bpy.props import *
 from .error import *
 
-class DazBoolGroup(bpy.types.PropertyGroup):
-    b : BoolProperty()
+
+class DazUdimGroup(bpy.types.PropertyGroup):
+    name : StringProperty()
+    bool : BoolProperty()
+
 
 class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
     bl_idname = "daz.make_udim_materials"
@@ -39,8 +42,8 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
     bl_description = "Combine materials of selected mesh into a single UDIM material"
     bl_options = {'UNDO'}
 
-    use : CollectionProperty(type = DazBoolGroup)
-    active : EnumProperty(items=[], name="")
+    umats : CollectionProperty(type = DazUdimGroup)
+    #active : EnumProperty(items=[], name="Active")
     name : StringProperty(
         name = "Name",
         description = "Name of resulting material",
@@ -51,32 +54,14 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def draw(self, context):
-        from .guess import getSkinMaterial
-        ob = context.object
-        enums = []
-        active = None
-        for mat in ob.data.materials:
-            item = self.use.add()
-            item.b = (getSkinMaterial(mat)[0] in ["Skin", "Red"])
-            if item.b and active is None:
-                active = mat
-            enums.append((mat.name,mat.name,mat.name))        
-            
-        self.layout.label(text="Materials To Merge")
-        for n,mat in enumerate(ob.data.materials):
-            row = self.layout.row()
-            row.label(text=mat.name)
-            row.prop(self.use[n], "b", text="")
 
+    def draw(self, context):            
+        self.layout.label(text="Materials To Merge")
+        for umat in self.umats:
+            self.layout.prop(umat, "bool", text=umat.name)
         self.layout.separator()
         self.layout.prop(self, "name")
-        self.layout.label(text="Active Material: %s" % active.name)  
-        return
-        prop = EnumProperty(items=enums)  
-        scn = context.scene
-        setattr(bpy.types.Scene, "DazUdimActive", prop)
-        self.layout.prop(scn, "active")
+        self.layout.label(text="Target Material: %s" % self.trgmat.name)
 
 
     def execute(self, context):
@@ -86,53 +71,79 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
             handleDazError(context)
         return{'FINISHED'}
 
+
     def invoke(self, context, event):
+        ob = context.object
+        enums = []
+        self.trgmat = None
+        for mat in ob.data.materials:
+            item = self.umats.add()
+            item.name = mat.name
+            item.bool = self.isUdimMaterial(mat)
+            if self.trgmat is None:
+                self.trgmat = mat
+            enums.append((mat.name,mat.name,mat.name))  
+        #self.active = EnumProperty(items=enums, name="Active")     
         context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
 
+    def isUdimMaterial(self, mat):
+        du = str(1001 + mat.DazUDim)
+        for node in mat.node_tree.nodes:
+            if node.type == "TEX_IMAGE":
+                print("II", mat.name, node.image.name, du)
+                return (node.image.name[-4:] == du)
+        return False
+
+
     def udimize(self, context):
+        from shutil import copyfile
+
         ob = context.object
         mats = []
         mnums = []
-        active = None
-        for mn,mat in enumerate(ob.data.materials):
-            if self.use[mn].b:            
+        amat = None
+        for mn,umat in enumerate(self.umats):
+            if umat.bool:
+                mat = ob.data.materials[umat.name]
                 mats.append(mat)
-                if active is None:
-                    active = mat
-                    mnum = mn
+                if amat is None:
+                    amat = mat
+                    amnum = mn
                 else:
                     mnums.append(mn)
                     
         print("Use", mats)
-        print("Active", active, mnum)
+        print("Active", amat, amnum)
         print("Mnums", mnums)
         
-        if active is None:
+        if amat is None:
             raise DazError("No materials selected")
 
         self.nodes = {}
         for mat in mats:
             self.nodes[mat.name] = self.getChannels(mat)
 
-        for key,anode in self.nodes[active.name].items():
+        for key,anode in self.nodes[amat.name].items():
             anode.image.source = "TILED"
-            basename = self.getBaseName(anode.name, active.DazUDim)
+            anode.extension = "CLIP"
+            basename = "T_" + self.getBaseName(anode.name, amat.DazUDim)
             for mat in mats:
                 nodes = self.nodes[mat.name]
-                if mat != active and key in nodes.keys():
-                    mname = self.makeNewName(basename, mat.DazUDim)
-                    node = nodes[key]                    
-                    node.image.name = mname
+                if key in nodes.keys():
+                    img = nodes[key].image
+                    self.updateImage(img, basename, mat.DazUDim)
+                    if mat == amat:
+                        img.name = basename + "1001" + os.path.splitext(img.name)[1]
 
         for f in ob.data.polygons:
             if f.material_index in mnums:
-                f.material_index = mnum
+                f.material_index = amnum
 
         mnums.reverse()
         for mn in mnums:
-            if mn != mnum:
+            if mn != amnum:
                 ob.data.materials.pop(index=mn)
 
 
@@ -165,16 +176,30 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
             return string
                
 
-    def makeNewName(self, string, udim):
+    def updateImage(self, img, basename, udim):
+        from shutil import copyfile
         du = str(1001 + udim)
-        return string + du    
+        src = bpy.path.abspath(img.filepath)
+        src = bpy.path.reduce_dirs([src])[0]
+        folder = os.path.dirname(src)        
+        fname,ext = os.path.splitext(bpy.path.basename(src))
+        trg = os.path.join(folder, basename + du + ext)
+        print("\nUPD", img.name, img.filepath)
+        print("S", src)
+        print("B", basename)
+        print("T", trg)
+        if src != trg and not os.path.exists(trg):
+            print("Copy %s\n => %s" % (src, trg))
+            copyfile(src, trg)
+        img.filepath = bpy.path.relpath(trg)
+        print("F", img.filepath)
         
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
 classes = [
-    DazBoolGroup,
+    DazUdimGroup,
     DAZ_OT_UdimizeMaterials,
 ]
 
