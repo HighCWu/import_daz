@@ -962,6 +962,7 @@ def saveLocalTextureCopies(context):
                             tex = mtex.texture
                             if hasattr(tex, "image") and tex.image:
                                 images.append(tex.image)
+            ob.DazLocalTextures = True
 
     for img in images:
         src = bpy.path.abspath(img.filepath)
@@ -1689,7 +1690,7 @@ class DAZ_OT_ChangeResolution(bpy.types.Operator, ResizeOptions, ChangeResolutio
 
     @classmethod
     def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
+        return (context.object and context.object.DazLocalTextures)
 
     def draw(self, context):
         self.layout.prop(self, "steps")
@@ -1745,7 +1746,7 @@ class DAZ_OT_ResizeTextures(bpy.types.Operator, ImageFile, MultiFile, ResizeOpti
 
     @classmethod
     def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
+        return (context.object and context.object.DazLocalTextures)
 
     def execute(self, context):
         try:
@@ -1849,6 +1850,7 @@ def initialize():
 
     bpy.types.Object.DazChannelFactors = CollectionProperty(type = DazChannelFactor)
     bpy.types.Object.DazChannelValues = CollectionProperty(type = DazChannelFactor)
+    bpy.types.Object.DazLocalTextures = BoolProperty(default = False)
     
 
 def uninitialize():

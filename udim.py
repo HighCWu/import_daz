@@ -52,7 +52,7 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
     
     @classmethod
     def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
+        return (context.object and context.object.DazLocalTextures)
 
 
     def draw(self, context):            
