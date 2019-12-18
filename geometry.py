@@ -639,7 +639,7 @@ def addUdimsToUVs(ob, restore, udim, vdim):
 
 class DAZ_OT_CollapseUDims(bpy.types.Operator):
     bl_idname = "daz.collapse_udims"
-    bl_label = "Collapse UDims"
+    bl_label = "Collapse UDIMs"
     bl_description = "Restrict UV coordinates to the [0:1] range"
     bl_options = {'UNDO'}
 
@@ -661,7 +661,7 @@ class DAZ_OT_CollapseUDims(bpy.types.Operator):
 
 class DAZ_OT_RestoreUDims(bpy.types.Operator):
     bl_idname = "daz.restore_udims"
-    bl_label = "Restore UDims"
+    bl_label = "Restore UDIMs"
     bl_description = "Restore original UV coordinates outside the [0:1] range"
     bl_options = {'UNDO'}
 

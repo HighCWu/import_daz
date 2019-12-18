@@ -138,10 +138,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.separator()
             box.operator("daz.collapse_udims")
             box.operator("daz.restore_udims")
-            box.separator()
-            if bpy.app.version >= (2,82,0):
-                box.operator("daz.set_udims")
-                box.operator("daz.make_udim_materials")
 
             box.separator()
             box.label(text="Material Editor")
@@ -176,7 +172,11 @@ class DAZ_PT_Setup(bpy.types.Panel):
         box = layout.box()
         box.prop(scn, "DazShowFinish")
         if scn.DazShowFinish:
+            if bpy.app.version >= (2,82,0):
+                box.operator("daz.set_udims")
             box.operator("daz.merge_anatomy")
+            if bpy.app.version >= (2,82,0):
+                box.operator("daz.make_udim_materials")
             box.operator("daz.merge_shapekeys")
             box.operator("daz.merge_uv_layers")
             if scn.DazUseHidden:

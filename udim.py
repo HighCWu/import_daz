@@ -38,7 +38,7 @@ class DazUdimGroup(bpy.types.PropertyGroup):
 
 class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
     bl_idname = "daz.make_udim_materials"
-    bl_label = "Make Udim Materials"
+    bl_label = "Make UDIM Materials"
     bl_description = "Combine materials of selected mesh into a single UDIM material"
     bl_options = {'UNDO'}
 
@@ -138,7 +138,6 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
                         img.name = basename + "1001" + os.path.splitext(img.name)[1]
 
             img = anode.image
-            print("IMG", img.name)
             tile = img.tiles[0]
             tile.number = 1001 + amat.DazUDim
             tile.label = amat.name
@@ -207,7 +206,7 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
 
 class DAZ_OT_SetUDims(bpy.types.Operator):
     bl_idname = "daz.set_udims"
-    bl_label = "Set UDims"
+    bl_label = "Set UDIM Tile"
     bl_description = (
         "Move all UV coordinates to specified UV tile\n" +
         "Do this on geografts before merging.")
