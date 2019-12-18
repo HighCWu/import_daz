@@ -599,7 +599,7 @@ def collapseUDims(ob):
     if ob.DazUDimsCollapsed:
         return
     ob.DazUDimsCollapsed = True
-    addUdimsToUVs(ob, -1)
+    addUdimsToUVs(ob, False, 0, 0)
     for mn,mat in enumerate(ob.data.materials):
         if mat.DazUDimsCollapsed:
             continue
@@ -612,7 +612,7 @@ def restoreUDims(ob):
     if not ob.DazUDimsCollapsed:
         return
     ob.DazUDimsCollapsed = False
-    addUdimsToUVs(ob, 1)
+    addUdimsToUVs(ob, True, 0, 0)
     for mn,mat in enumerate(ob.data.materials):
         if not mat.DazUDimsCollapsed:
             continue
@@ -620,16 +620,20 @@ def restoreUDims(ob):
         addUdim(mat, mat.DazUDim, mat.DazVDim)
 
 
-def addUdimsToUVs(ob, sign):
+def addUdimsToUVs(ob, restore, udim, vdim):
     for uvloop in ob.data.uv_layers:
         m = 0
         for fn,f in enumerate(ob.data.polygons):
             mat = ob.data.materials[f.material_index]
-            udim = sign*mat.DazUDim
-            vdim = sign*mat.DazVDim
+            if restore:
+                ushift = mat.DazUDim
+                vshift = mat.DazVDim
+            else:
+                ushift = udim - mat.DazUDim
+                vshift = vdim - mat.DazVDim            
             for n in range(len(f.vertices)):
-                uvloop.data[m].uv[0] += udim
-                uvloop.data[m].uv[1] += vdim
+                uvloop.data[m].uv[0] += ushift
+                uvloop.data[m].uv[1] += vshift
                 m += 1
 
 

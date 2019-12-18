@@ -52,7 +52,8 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
     
     @classmethod
     def poll(self, context):
-        return (context.object and context.object.DazLocalTextures)
+        ob = context.object
+        return (ob and ob.DazLocalTextures and len(ob.data.materials) > 0)
 
 
     def draw(self, context):            
@@ -84,6 +85,8 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
             if self.trgmat is None and mat.DazUDim == 0:
                 self.trgmat = mat
             enums.append((mat.name,mat.name,mat.name))  
+        if self.trgmat is None:
+            self.trgmat = ob.data.materials[0]
         #self.active = EnumProperty(items=enums, name="Active")     
         context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
@@ -105,18 +108,25 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
         mats = []
         mnums = []
         amat = None
+        tile0 = False
         for mn,umat in enumerate(self.umats):
             if umat.bool:
                 mat = ob.data.materials[umat.name]
                 mats.append(mat)
-                if amat is None and mat.DazUDim == 0:
+                if amat is None:
                     amat = mat
                     amnum = mn
+                    tile0 = (mat.DazUDim == 0)
+                elif not tile0 and mat.DazUDim == 0:
+                    mnums.append(amnum)
+                    amat = mat
+                    amnum = mn
+                    tile0 = True
                 else:
                     mnums.append(mn)
                     
         print("Use", mats)
-        print("Active", amat, amnum)
+        print("Active", amat, amnum, tile0)
         print("Mnums", mnums)
         
         if amat is None:
@@ -204,6 +214,54 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
             copyfile(src, trg)
         img.filepath = bpy.path.relpath(trg)
         
+        
+#----------------------------------------------------------
+#   Set Udims to given tile
+#----------------------------------------------------------
+
+class DAZ_OT_SetUDims(bpy.types.Operator):
+    bl_idname = "daz.set_udims"
+    bl_label = "Set UDims"
+    bl_description = (
+        "Move all UV coordinates to specified UV tile\n" +
+        "Do this on geografts before merging.")
+    bl_options = {'UNDO'}
+
+    tile : IntProperty(name="Tile", min=1001, max=1010, default=1001)
+    
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'MESH' and not ob.DazUDimsCollapsed)
+
+    def draw(self, context):            
+        self.layout.prop(self, "tile")
+        
+    def execute(self, context):
+        try:
+            bpy.ops.object.mode_set(mode='OBJECT')
+            for ob in context.view_layer.objects:
+                if ob.type == 'MESH' and ob.select_get():
+                    self.setUDims(ob)
+        except DazError:
+            handleDazError(context)
+        return {'FINISHED'}
+        
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_props_dialog(self)
+        return {'RUNNING_MODAL'}        
+
+    def setUDims(self, ob):
+        from .material import addUdim
+        from .geometry import addUdimsToUVs
+        udim = self.tile - 1001
+        addUdimsToUVs(ob, False, udim, 0)
+        for mn,mat in enumerate(ob.data.materials):
+            addUdim(mat, udim - mat.DazUDim, 0)
+            mat.DazUDim = udim
+            mat.DazVDim = 0
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -211,6 +269,7 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
 classes = [
     DazUdimGroup,
     DAZ_OT_UdimizeMaterials,
+    DAZ_OT_SetUDims,
 ]
 
 def initialize():

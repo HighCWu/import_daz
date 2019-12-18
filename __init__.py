@@ -136,10 +136,12 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.update_for_engine", text=("Update for %s" % scn.render.engine))
 
             box.separator()
-            if bpy.app.version >= (2,82,0):
-                box.operator("daz.make_udim_materials")
             box.operator("daz.collapse_udims")
             box.operator("daz.restore_udims")
+            box.separator()
+            if bpy.app.version >= (2,82,0):
+                box.operator("daz.set_udims")
+                box.operator("daz.make_udim_materials")
 
             box.separator()
             box.label(text="Material Editor")
