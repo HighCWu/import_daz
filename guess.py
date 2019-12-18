@@ -51,7 +51,7 @@ SkinMaterials = {
     "tongue" : ("Red", ),
     "innermouth" : ("Red", ),
     "gums" : ("Red", ),
-    "teeth" : ("White", ),
+    "teeth" : ("Teeth", ),
     "pupil" : ("Black", ),
     "pupils" : ("Black", ),
     "sclera" : ("White", ),
@@ -151,6 +151,8 @@ def guessColor(ob, scn, flag, skinColor, clothesColor, enforce):
                         setDiffuse(mat, (1.0,0,0,1))
                     elif color == "Blue":
                         setDiffuse(mat, (0,0,1,1))
+                    elif color == "Teeth":
+                        setDiffuse(mat, (1,1,1,1))
                     elif color == "White":
                         setDiffuse(mat, (1,1,1,1))
                     elif color == "Black":

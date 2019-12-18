@@ -44,11 +44,6 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
 
     umats : CollectionProperty(type = DazUdimGroup)
     #active : EnumProperty(items=[], name="Active")
-    name : StringProperty(
-        name = "Name",
-        description = "Name of resulting material",
-        default = "Skin"
-        )
     
     @classmethod
     def poll(self, context):
@@ -61,7 +56,6 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
         for umat in self.umats:
             self.layout.prop(umat, "bool", text=umat.name)
         self.layout.separator()
-        self.layout.prop(self, "name")
         self.layout.label(text="Target Material: %s" % self.trgmat.name)
 
 
@@ -93,12 +87,8 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
 
 
     def isUdimMaterial(self, mat):
-        du = str(1001 + mat.DazUDim)
-        for node in mat.node_tree.nodes:
-            if node.type == "TEX_IMAGE":
-                print("II", mat.name, node.image.name, du)
-                return (node.image.name[-4:] == du)
-        return False
+        from .guess import getSkinMaterial
+        return (getSkinMaterial(mat)[0] in ["Skin", "Red", "Teeth"])
 
 
     def udimize(self, context):
@@ -125,10 +115,6 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
                 else:
                     mnums.append(mn)
                     
-        print("Use", mats)
-        print("Active", amat, amnum, tile0)
-        print("Mnums", mnums)
-        
         if amat is None:
             raise DazError("No materials selected")
 
