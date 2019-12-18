@@ -76,11 +76,12 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
         ob = context.object
         enums = []
         self.trgmat = None
+        self.umats.clear()
         for mat in ob.data.materials:
             item = self.umats.add()
             item.name = mat.name
             item.bool = self.isUdimMaterial(mat)
-            if self.trgmat is None:
+            if self.trgmat is None and mat.DazUDim == 0:
                 self.trgmat = mat
             enums.append((mat.name,mat.name,mat.name))  
         #self.active = EnumProperty(items=enums, name="Active")     
@@ -108,7 +109,7 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
             if umat.bool:
                 mat = ob.data.materials[umat.name]
                 mats.append(mat)
-                if amat is None:
+                if amat is None and mat.DazUDim == 0:
                     amat = mat
                     amnum = mn
                 else:
@@ -129,13 +130,27 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
             anode.image.source = "TILED"
             anode.extension = "CLIP"
             basename = "T_" + self.getBaseName(anode.name, amat.DazUDim)
+            udims = {}
             for mat in mats:
                 nodes = self.nodes[mat.name]
                 if key in nodes.keys():
                     img = nodes[key].image
                     self.updateImage(img, basename, mat.DazUDim)
+                    if mat.DazUDim not in udims.keys():
+                        udims[mat.DazUDim] = mat.name
                     if mat == amat:
                         img.name = basename + "1001" + os.path.splitext(img.name)[1]
+
+            img = anode.image
+            print("IMG", img.name)
+            tile = img.tiles[0]
+            tile.number = 1001 + amat.DazUDim
+            tile.label = amat.name
+            for udim,mname in udims.items():
+                print("  UDIM", udim, mname)
+                if udim != amat.DazUDim:
+                    tile = img.tiles.new(tile_number=1001+udim, label=mname)
+            
 
         for f in ob.data.polygons:
             if f.material_index in mnums:
@@ -184,15 +199,10 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
         folder = os.path.dirname(src)        
         fname,ext = os.path.splitext(bpy.path.basename(src))
         trg = os.path.join(folder, basename + du + ext)
-        print("\nUPD", img.name, img.filepath)
-        print("S", src)
-        print("B", basename)
-        print("T", trg)
         if src != trg and not os.path.exists(trg):
-            print("Copy %s\n => %s" % (src, trg))
+            #print("Copy %s\n => %s" % (src, trg))
             copyfile(src, trg)
         img.filepath = bpy.path.relpath(trg)
-        print("F", img.filepath)
         
 #----------------------------------------------------------
 #   Initialize
