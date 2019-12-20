@@ -276,7 +276,6 @@ def getHairAndHuman(context, strict):
 def makeHair(context):
     scn = context.scene
     hair,hum = getHairAndHuman(context, True)
-    print("HH", hair, hum)
     #vgrp = createSkullGroup(hum, scn)
 
     setActiveObject(context, hum)
@@ -374,11 +373,10 @@ def makeHair(context):
         hsystems = {scn.DazHairSize: nstrands}
 
     print("Make particle hair")
-    setActiveObject(context, hum)
-    addHair(hum, hsystems, scn)
-    setActiveObject(context, hair)
+    activateObject(context, hum)
+    addHair(hum, hsystems, context)
     print("Done")
-
+    
 # ---------------------------------------------------------------------
 #
 # ---------------------------------------------------------------------
@@ -411,7 +409,8 @@ def createSkullGroup(hum, scn):
         return None
 
 
-def addHair(hum, hsystems, scn, useHairDynamics=False):
+def addHair(hum, hsystems, context, useHairDynamics=False):
+    scn = context.scene
     vgrp = createSkullGroup(hum, scn)
     for strands in hsystems.values():
         hlen = int(len(strands[0]))
@@ -457,16 +456,23 @@ def addHair(hum, hsystems, scn, useHairDynamics=False):
             ccset.tip_radius = 0
         ccset.radius_scale = 0.1*hum.DazScale
 
-        bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
-        pedit = scn.tool_settings.particle_edit
-        pedit.use_emitter_deflect = False
-        pedit.use_preserve_length = False
-        pedit.use_preserve_root = False
-        hum.data.use_mirror_x = False
-        pedit.select_mode = 'POINT'
-        bpy.ops.transform.translate()
-
         bpy.ops.object.mode_set(mode='OBJECT')
+        if not useHairDynamics:
+            psys.use_hair_dynamics = False
+        else:
+            psys.use_hair_dynamics = True
+            cset = psys.cloth.settings
+            cset.pin_stiffness = 1.0
+            cset.mass = 0.05
+            deflector = findDeflector(hum)
+
+        if bpy.app.version < (2,80,0):        
+            bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
+            bpy.ops.object.mode_set(mode='OBJECT')
+        else:
+            dg = context.evaluated_depsgraph_get()
+            psys = hum.evaluated_get(dg).particle_systems.active
+        
         for m,hair in enumerate(psys.particles):
             verts = strands[m]
             hair.location = verts[0]
@@ -478,17 +484,24 @@ def addHair(hum, hsystems, scn, useHairDynamics=False):
                 #print("  ", n, verts[n], v.co)
                 pass
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        if bpy.app.version >= (2,80,0):        
+            dg = context.evaluated_depsgraph_get()
+            psys = hum.evaluated_get(dg).particle_systems.active
+        setEditProperties(context, hum)    
 
-        if not useHairDynamics:
-            psys.use_hair_dynamics = False
-        else:
-            psys.use_hair_dynamics = True
-            cset = psys.cloth.settings
-            cset.pin_stiffness = 1.0
-            cset.mass = 0.05
-            deflector = findDeflector(hum)
 
+def setEditProperties(context, hum):
+    scn = context.scene
+    activateObject(context, hum)    
+    bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
+    pedit = scn.tool_settings.particle_edit
+    pedit.use_emitter_deflect = False
+    pedit.use_preserve_length = False
+    pedit.use_preserve_root = False
+    hum.data.use_mirror_x = False
+    pedit.select_mode = 'POINT'
+    bpy.ops.transform.translate()
+    bpy.ops.object.mode_set(mode='OBJECT')
 
 # ---------------------------------------------------------------------
 #   Hair settings
