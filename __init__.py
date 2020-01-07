@@ -123,7 +123,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.change_resolution")
 
             box.separator()
-            box.prop(scn, "DazNewColor")
             box.operator("daz.change_colors")
             box.operator("daz.change_skin_color")
             box.operator("daz.merge_materials")

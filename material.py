@@ -1730,15 +1730,6 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
         
-    bpy.types.Scene.DazNewColor = FloatVectorProperty(
-        name = "New Color",
-        subtype = "COLOR",
-        size = 4,
-        min = 0.0,
-        max = 1.0,
-        default = (0.1, 0.1, 0.5, 1)
-    )
-
     bpy.types.Scene.DazColorFactor = FloatVectorProperty(
         name = "Color Factor/Value",
         subtype = "COLOR",

@@ -204,51 +204,58 @@ def hasDiffuseTexture(mat, scn, enforce):
 #   Change colors
 #-------------------------------------------------------------
 
-def changeColors(context, color, guess):
-    scn = context.scene
-    for ob in getSceneObjects(context):
-        if getSelected(ob):
-            if ob.type == 'ARMATURE':
-                for child in ob.children:
-                    if child.type == 'MESH':
-                        changeMeshColor(child, scn, color, guess)
-            elif ob.type == 'MESH':
-                changeMeshColor(ob, scn, color, guess)
+class ColorChanger:
+    color = bpy.props.FloatVectorProperty(
+        name = "Color",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.1, 0.1, 0.5, 1)
+    )
+
+    def draw(self, context):
+        self.layout.prop(self, "color")
 
 
-def changeMeshColor(ob, scn, color, guess):
-    if guess:
-        guessColor(ob, scn, 'GUESS', color, color, True)
-    else:
-        if scn.render.engine in ['BLENDER_RENDER', 'BLENDER_GAME']:
-            for mat in ob.data.materials:
-                for mtex in mat.texture_slots:
-                    if mtex and mtex.use_map_color_diffuse:
-                        setDiffuse(mat, color)
-                        break
-        else:
-            for mat in ob.data.materials:
-                setDiffuse(mat, color)
+    def run(self, context):
+        scn = context.scene
+        for ob in getSceneObjects(context):
+            if getSelected(ob):
+                if ob.type == 'ARMATURE':
+                    for child in ob.children:
+                        if child.type == 'MESH':
+                            self.changeMeshColor(child, scn)
+                elif ob.type == 'MESH':
+                    self.changeMeshColor(ob, scn)
 
 
-class DAZ_OT_ChangeColors(DazOperator, IsMesh):
+class DAZ_OT_ChangeColors(DazPropsOperator, ColorChanger, IsMesh):
     bl_idname = "daz.change_colors"
     bl_label = "Change Colors"
     bl_description = "Change viewport colors of all materials of this object"
     bl_options = {'UNDO'}
 
-    def run(self, context):
-        changeColors(context, context.scene.DazNewColor, False)
+    def changeMeshColor(self, ob, scn):
+        if scn.render.engine in ['BLENDER_RENDER', 'BLENDER_GAME']:
+            for mat in ob.data.materials:
+                for mtex in mat.texture_slots:
+                    if mtex and mtex.use_map_color_diffuse:
+                        setDiffuse(mat, self.color)
+                        break
+        else:
+            for mat in ob.data.materials:
+                setDiffuse(mat, self.color)
 
 
-class DAZ_OT_ChangeSkinColor(DazOperator, IsMesh):
+class DAZ_OT_ChangeSkinColor(DazPropsOperator, ColorChanger, IsMesh):
     bl_idname = "daz.change_skin_color"
     bl_label = "Change Skin Colors"
     bl_description = "Change viewport colors of all materials of this object"
     bl_options = {'UNDO'}
 
-    def run(self, context):
-        changeColors(context, context.scene.DazNewColor, True)
+    def changeMeshColor(self, ob, scn):
+        guessColor(ob, scn, 'GUESS', self.color, self.color, True)
 
 #----------------------------------------------------------
 #   Initialize
