@@ -648,16 +648,11 @@ class DAZ_OT_ChangeCategoryCancel(DazOperator, CatGroupString):
         setattr(context.scene, attr, False)
 
 
-class DAZ_OT_ChangeCategory(DazOperator, CatGroupString, ActionString):
+class DAZ_OT_ChangeCategory(DazOperator, CatGroupString, ActionString, IsArmature):
     bl_idname = "daz.change_category"
     bl_label = "Change Category"
     bl_description = "Rename or remove category"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'ARMATURE')
 
     def run(self, context):
         ob = context.object
@@ -868,15 +863,11 @@ def nameFromKey(key, names, rig):
     return None
 
 
-class DAZ_OT_ClearMorphs(DazOperator, TypePrefixCat):
+class DAZ_OT_ClearMorphs(DazOperator, TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.clear_morphs"
     bl_label = "Clear"
     bl_description = "Set all morphs of specified type to zero"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object)
 
     def run(self, context):
         rig = getRigFromObject(context.object)
@@ -888,15 +879,11 @@ class DAZ_OT_ClearMorphs(DazOperator, TypePrefixCat):
                 updateScene(context)
 
 
-class DAZ_OT_UpdateMorphs(DazOperator, KeyString, TypePrefixCat):
+class DAZ_OT_UpdateMorphs(DazOperator, KeyString, TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.update_morphs"
     bl_label = "Update"
     bl_description = "Set keys at current frame for all props of specified type with keys"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type in ['MESH', 'ARMATURE'])
 
     def run(self, context):
         rig = getRigFromObject(context.object)
@@ -936,15 +923,11 @@ def addKeySet(rig, type, prefix, catgroup, scn, frame):
                 aks.paths.add(rig.id_data, path)
 
 
-class DAZ_OT_AddKeysets(DazOperator, TypePrefixCat):
+class DAZ_OT_AddKeysets(DazOperator, TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.add_keyset"
     bl_label = "Keyset"
     bl_description = "Add category morphs to active custom keying set, or make new one"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object)
 
     def run(self, context):
         from .finger import getFingeredCharacter
@@ -979,15 +962,11 @@ def keyMorphs(rig, type, prefix, catgroup, scn, frame):
                 keyProp(rig, key, frame)
 
 
-class DAZ_OT_KeyMorphs(DazOperator, TypePrefixCat):
+class DAZ_OT_KeyMorphs(DazOperator, TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.key_morphs"
     bl_label = "Set Keys"
     bl_description = "Set keys for all morphs of specified type at current frame"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object)
 
     def run(self, context):
         rig = getRigFromObject(context.object)
@@ -1021,15 +1000,11 @@ def unkeyMorphs(rig, type, prefix, catgroup, scn, frame):
                 unkeyProp(rig, key, frame)
 
 
-class DAZ_OT_UnkeyMorphs(DazOperator, TypePrefixCat):
+class DAZ_OT_UnkeyMorphs(DazOperator, TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.unkey_morphs"
     bl_label = "Remove Keys"
     bl_description = "Remove keys from all morphs of specified type at current frame"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object)
 
     def run(self, context):
         rig = getRigFromObject(context.object)
@@ -1073,15 +1048,11 @@ def updatePropLimits(rig, context):
     print("Property limits updated")
 
 
-class DAZ_OT_UpdatePropLimits(DazOperator):
+class DAZ_OT_UpdatePropLimits(DazOperator, IsMeshArmature):
     bl_idname = "daz.update_prop_limits"
     bl_label = "Update Property Limits"
     bl_description = "Update min and max value for properties"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object
 
     def run(self, context):
         rig = getRigFromObject(context.object)
@@ -1138,15 +1109,11 @@ def removeProps(ob, prefix):
             del ob[key]
 
 
-class DAZ_OT_RemoveMorphDrivers(DazOperator):
+class DAZ_OT_RemoveMorphDrivers(DazOperator, IsMeshArmature):
     bl_idname = "daz.remove_morph_drivers"
     bl_label = "Remove Morph Drivers"
     bl_description = "Remove drivers associated with morphs (not corrective shapekeys)"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object
 
     def run(self, context):
         rig = getRigFromObject(context.object)
@@ -1168,15 +1135,11 @@ def getActiveShapeKey(ob):
     return skey
 
 
-class DAZ_OT_AddDriver(DazOperator):
+class DAZ_OT_AddDriver(DazOperator, IsMesh):
     bl_idname = "daz.add_shapekey_driver"
     bl_label = "Add Driver"
     bl_description = "Add rig driver to active shapekey"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         from .driver import makeShapekeyDriver
@@ -1191,15 +1154,11 @@ class DAZ_OT_AddDriver(DazOperator):
             rig.DazCustomMorphs = True
 
 
-class DAZ_OT_RemoveDriver(DazOperator):
+class DAZ_OT_RemoveDriver(DazOperator, IsMesh):
     bl_idname = "daz.remove_shapekey_driver"
     bl_label = "Remove Driver"
     bl_description = "Remove rig driver from active shapekey"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, ob):
         skey = getActiveShapeKey(ob)
@@ -1235,15 +1194,11 @@ def getRigFromObject(ob):
         return ob
 
 
-class DAZ_OT_ToggleAllCats(DazOperator, UseOpenBool):
+class DAZ_OT_ToggleAllCats(DazOperator, UseOpenBool, IsMeshArmature):
     bl_idname = "daz.toggle_all_cats"
     bl_label = "Toggle All Categories"
     bl_description = "Toggle all morph categories on and off"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object)
 
     def run(self, context):
         rig = getRigFromObject(context.object)
@@ -1293,15 +1248,11 @@ def pinProp(rig, scn, key, type, prefix, catgroup, frame):
         autoKeyProp(rig, key, scn, frame, True)
 
 
-class DAZ_OT_PinProp(DazOperator, KeyString, TypePrefixCat):
+class DAZ_OT_PinProp(DazOperator, KeyString, TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.pin_prop"
     bl_label = ""
     bl_description = "Pin property"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type in ['MESH', 'ARMATURE'])
 
     def run(self, context):
         rig = getRigFromObject(context.object)
@@ -1440,15 +1391,11 @@ class DAZ_OT_DeleteLipsync(DazOperator):
 #   Convert pose to shapekey
 #-------------------------------------------------------------
 
-class DAZ_OT_ConvertMorphsToShapes(DazOperator, MorphTypes):
+class DAZ_OT_ConvertMorphsToShapes(DazOperator, MorphTypes, IsMesh):
     bl_idname = "daz.convert_morphs_to_shapes"
     bl_label = "Convert Morphs To Shapes"
     bl_description = "Convert face rig poses to shapekeys"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def draw(self, context):
         self.layout.prop(self, "units")

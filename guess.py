@@ -231,29 +231,21 @@ def changeMeshColor(ob, scn, color, guess):
                 setDiffuse(mat, color)
 
 
-class DAZ_OT_ChangeColors(DazOperator):
+class DAZ_OT_ChangeColors(DazOperator, IsMesh):
     bl_idname = "daz.change_colors"
     bl_label = "Change Colors"
     bl_description = "Change viewport colors of all materials of this object"
     bl_options = {'UNDO'}
 
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
-
     def run(self, context):
         changeColors(context, context.scene.DazNewColor, False)
 
 
-class DAZ_OT_ChangeSkinColor(DazOperator):
+class DAZ_OT_ChangeSkinColor(DazOperator, IsMesh):
     bl_idname = "daz.change_skin_color"
     bl_label = "Change Skin Colors"
     bl_description = "Change viewport colors of all materials of this object"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         changeColors(context, context.scene.DazNewColor, True)

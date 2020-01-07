@@ -1203,15 +1203,11 @@ def doHardUpdate(context, rig):
     updateDrivers(rig)
 
 
-class DAZ_OT_ConvertMhx(DazOperator):
+class DAZ_OT_ConvertMhx(DazOperator, IsArmature):
     bl_idname = "daz.convert_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         convert2Mhx(context)

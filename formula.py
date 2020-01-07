@@ -321,7 +321,7 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
 #-------------------------------------------------------------
 
 def buildShapeFormula(asset, scn, rig, ob, occur=0):
-    if ob is None or ob.data.shape_keys is None:
+    if ob is None or ob.type != 'MESH' or ob.data.shape_keys is None:
         return False
 
     exprs = {}

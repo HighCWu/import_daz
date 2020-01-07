@@ -623,46 +623,31 @@ def findDeflector(human):
 #
 #------------------------------------------------------------------------
 
-class DAZ_OT_MakeHair(DazOperator):
+class DAZ_OT_MakeHair(DazOperator, IsMesh):
     bl_idname = "daz.make_hair"
     bl_label = "Make Hair"
     bl_description = "Make particle hair from mesh hair"
     bl_options = {'UNDO'}
 
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH')
-
     def run(self, context):
         makeHair(context)
 
 
-class DAZ_OT_UpdateHair(DazOperator):
+class DAZ_OT_UpdateHair(DazOperator, IsMesh):
     bl_idname = "daz.update_hair"
     bl_label = "Update Hair"
     bl_description = "Change settings for particle hair"
     bl_options = {'UNDO'}
 
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH')
-
     def run(self, context):
         updateHair(context)
 
 
-class DAZ_OT_ColorHair(DazOperator):
+class DAZ_OT_ColorHair(DazOperator, IsMesh):
     bl_idname = "daz.color_hair"
     bl_label = "Color Hair"
     bl_description = "Change particle hair color"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH')
 
     def run(self, context):
         colorHair(context)
@@ -688,16 +673,11 @@ def connectHair(context):
         bpy.ops.particle.particle_edit_toggle()
 
 
-class DAZ_OT_ConnectHair(DazOperator):
+class DAZ_OT_ConnectHair(DazOperator, IsMesh):
     bl_idname = "daz.connect_hair"
     bl_label = "Connect Hair"
     bl_description = "(Re)connect hair"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH')
 
     def run(self, context):
         connectHair(context)
@@ -871,16 +851,11 @@ def meshAddPinning(context):
         m += len(f.vertices)
 
 
-class DAZ_OT_MeshAddPinning(DazOperator):
+class DAZ_OT_MeshAddPinning(DazOperator, IsMesh):
     bl_idname = "daz.mesh_add_pinning"
     bl_label = "Add Pinning Group"
     bl_description = "Add HairPin group to mesh hair"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH')
 
     def run(self, context):
         meshAddPinning(context)
@@ -891,16 +866,11 @@ def hairAddPinning(context):
     x0,x1,w0,w1,k = pinCoeffs(context.scene)
 
 
-class DAZ_OT_HairAddPinning(DazOperator):
+class DAZ_OT_HairAddPinning(DazOperator, IsMesh):
     bl_idname = "daz.hair_add_pinning"
     bl_label = "Hair Add Pinning"
     bl_description = "Add HairPin group to hair strands"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH')
 
     def run(self, context):
         hairAddPinning(context)

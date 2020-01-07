@@ -53,14 +53,10 @@ def saveStringToFile(filepath, string):
     print("Saved to %s" % filepath)
 
 
-class DAZ_OT_SaveCurrentPose(DazOperator, JsonExportFile, SkelPoseBool):
+class DAZ_OT_SaveCurrentPose(DazOperator, JsonExportFile, SkelPoseBool, IsArmature):
     bl_idname = "daz.save_current_pose"
     bl_label = "Save Current Pose"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -211,14 +207,10 @@ def loadBonePose(pb, pose):
             loadBonePose(child, pose)
 
 
-class DAZ_OT_LoadPose(DazOperator, JsonFile, SingleFile):
+class DAZ_OT_LoadPose(DazOperator, JsonFile, SingleFile, IsArmature):
     bl_idname = "daz.load_pose"
     bl_label = "Load Pose"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         folder = os.path.dirname(self.filepath)
@@ -246,15 +238,11 @@ def optimizePose(context):
     loadPose(rig, char, IkPoses, False)
 
 
-class DAZ_OT_OptimizePoses(DazOperator):
+class DAZ_OT_OptimizePoses(DazOperator, IsArmature):
     bl_idname = "daz.optimize_pose"
     bl_label = "Optimize Pose For IK"
     bl_description = "Optimize rest pose for IK. Incompatible with pose loading."
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         optimizePose(context)

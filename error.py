@@ -194,3 +194,23 @@ class DazPropsOperator(DazOperator):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
 
+class IsObject:
+    @classmethod
+    def poll(self, context):
+        return context.object
+
+class IsMesh:
+    @classmethod
+    def poll(self, context):
+        return (context.object and context.object.type == 'MESH')
+
+class IsArmature:
+    @classmethod
+    def poll(self, context):
+        return (context.object and context.object.type == 'ARMATURE')
+
+class IsMeshArmature:
+    @classmethod
+    def poll(self, context):
+        return (context.object and context.object.type in ['MESH', 'ARMATURE'])
+

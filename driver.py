@@ -628,15 +628,11 @@ def restoreShapekeyDrivers(ob):
                 trg.data_path = '["%s"]' % sname
 
 
-class DAZ_OT_RestoreDrivers(DazOperator):
+class DAZ_OT_RestoreDrivers(DazOperator, IsMesh):
     bl_idname = "daz.restore_shapekey_drivers"
     bl_label = "Restore Drivers"
     bl_description = "Restore corrupt shapekey drivers, or change driver target"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         restoreShapekeyDrivers(context.object)
@@ -678,15 +674,11 @@ def removeTypedDrivers(rna, type):
                 rna.driver_remove(fcu.data_path)
 
 
-class DAZ_OT_RemoveUnusedDrivers(DazOperator):
+class DAZ_OT_RemoveUnusedDrivers(DazOperator, IsObject):
     bl_idname = "daz.remove_unused_drivers"
     bl_label = "Remove Unused Drivers"
     bl_description = "Remove unused drivers"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object
 
     def run(self, context):
         for ob in getSceneObjects(context):
@@ -717,15 +709,11 @@ def retargetRna(rna, rig):
                     trg.id = rig
 
 
-class DAZ_OT_RetargetDrivers(DazOperator):
+class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
     bl_idname = "daz.retarget_mesh_drivers"
     bl_label = "Retarget Mesh Drivers"
     bl_description = "Retarget drivers of selected objects to active object"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         rig = context.object
@@ -737,15 +725,11 @@ class DAZ_OT_RetargetDrivers(DazOperator):
 #   Copy props
 #----------------------------------------------------------
 
-class DAZ_OT_CopyProps(DazOperator):
+class DAZ_OT_CopyProps(DazOperator, IsObject):
     bl_idname = "daz.copy_props"
     bl_label = "Copy Props"
     bl_description = "Copy properties from selected objects to active object"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object)
 
     def run(self, context):
         rig = context.object
@@ -781,15 +765,11 @@ def copyBoneDrivers(rig1, rig2):
                 copyPropGroups(rig1, rig2, pb2)
 
 
-class DAZ_OT_CopyBoneDrivers(DazOperator):
+class DAZ_OT_CopyBoneDrivers(DazOperator, IsArmature):
     bl_idname = "daz.copy_bone_drivers"
     bl_label = "Copy Bone Drivers"
     bl_description = "Copy bone drivers from selected rig to active rig"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         rig = context.object

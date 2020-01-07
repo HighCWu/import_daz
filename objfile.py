@@ -310,15 +310,11 @@ def fitToMesh(context):
         v.co = src.data.vertices[v.index].co
 
 
-class DAZ_OT_FitToObject(DazOperator):
+class DAZ_OT_FitToObject(DazOperator, IsMesh):
     bl_idname = "daz.fit_mesh_to_other"
     bl_label = "Fit Mesh To Other"
     bl_description = "Fit current mesh to selected mesh"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         fitToMesh(context)
@@ -327,16 +323,11 @@ class DAZ_OT_FitToObject(DazOperator):
 #   Initialize
 #----------------------------------------------------------
 
-class DAZ_OT_ImportJson(DazOperator, JsonFile, MultiFile):
+class DAZ_OT_ImportJson(DazOperator, JsonFile, MultiFile, IsMesh):
     bl_idname = "daz.import_json"
     bl_label = "Import JSON Morph(s)"
     bl_description = "Import JSON file(s) (*.json) as morphs"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
-
 
     def run(self, context):
         from .fileutils import getMultiFiles

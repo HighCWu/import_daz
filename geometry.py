@@ -569,16 +569,11 @@ def pruneUvMaps(ob):
             getUvTextures(ob.data).remove(uvtex)
             
 
-class DAZ_OT_PruneUvMaps(DazOperator):
+class DAZ_OT_PruneUvMaps(DazOperator, IsMesh):
     bl_idname = "daz.prune_uv_maps"
     bl_label = "Prune UV Maps"
     bl_description = "Remove unused UV maps"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH')
 
     def run(self, context):
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -672,16 +667,11 @@ class DAZ_OT_RestoreUDims(DazOperator):
 #   Solidify thin walls
 #-------------------------------------------------------------
 
-class DAZ_OT_SolidifyThinWalls(DazOperator):
+class DAZ_OT_SolidifyThinWalls(DazOperator, IsMesh):
     bl_idname = "daz.solidify_thin_walls"
     bl_label = "Solidify Thin Walls"
     bl_description = "Create solidify modifiers for materials with thin wall refraction"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH')
 
     def run(self, context):
         for ob in getSceneObjects(context):
@@ -735,16 +725,11 @@ class DAZ_OT_SolidifyThinWalls(DazOperator):
 #   Load UVs
 #-------------------------------------------------------------
 
-class DAZ_OT_LoadUV(DazOperator, DazFile, SingleFile):
+class DAZ_OT_LoadUV(DazOperator, DazFile, SingleFile, IsMesh):
     bl_idname = "daz.load_uv"
     bl_label = "Load UV Set"
     bl_description = "Load a UV set to the active mesh"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH')
 
     def invoke(self, context, event):
         from .fileutils import getFolder
@@ -806,15 +791,11 @@ def shareMyMesh(mesh, context):
             ob.data = mesh
 
 
-class DAZ_OT_ShareMeshes(DazOperator):
+class DAZ_OT_ShareMeshes(DazOperator, IsMesh):
     bl_idname = "daz.share_meshes"
     bl_label = "Share Meshes"
     bl_description = "Share meshes of all selected objects to active mesh"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         for ob in getSceneObjects(context):

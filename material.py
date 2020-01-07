@@ -988,10 +988,6 @@ class DAZ_OT_SaveLocalTextures(DazOperator):
     bl_description = "Copy textures to the textures subfolder in the blend file's directory"
     bl_options = {'UNDO'}
 
-    @classmethod
-    def poll(self, context):
-        return context.object
-
     def run(self, context):
         saveLocalTextureCopies(context)
 
@@ -1205,15 +1201,11 @@ def areSameInternal(mtexs1, mtexs2):
     return True
 
 
-class DAZ_OT_MergeMaterials(DazOperator):
+class DAZ_OT_MergeMaterials(DazOperator, IsMesh):
     bl_idname = "daz.merge_materials"
     bl_label = "Merge Materials"
     bl_description = "Merge identical materials"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         for ob in getSceneObjects(context):
@@ -1380,15 +1372,11 @@ class ChannelChanger:
                     socket.default_value[n] *= scn.DazColorFactor[n]
          
     
-class DAZ_OT_ChangeChannel(DazOperator, ChannelChanger, SlotString, UseInternalBool):
+class DAZ_OT_ChangeChannel(DazOperator, ChannelChanger, SlotString, UseInternalBool, IsMesh):
     bl_idname = "daz.change_channel"
     bl_label = "Change Channel"
     bl_description = "Multiply active channel of all selected meshes"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         scn = context.scene
@@ -1400,15 +1388,11 @@ class DAZ_OT_ChangeChannel(DazOperator, ChannelChanger, SlotString, UseInternalB
                 self.setChannel(ob, key, item, scn)
 
 
-class DAZ_OT_ResetMaterial(DazOperator, ChannelChanger):
+class DAZ_OT_ResetMaterial(DazOperator, ChannelChanger, IsMesh):
     bl_idname = "daz.reset_material"
     bl_label = "Reset Material"
     bl_description = "Reset material to original"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         scn = context.scene
@@ -1424,15 +1408,11 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelChanger):
 #   Toggle SSS and displacement for BI
 # ---------------------------------------------------------------------
 
-class DAZ_OT_ToggleSSS(DazOperator):
+class DAZ_OT_ToggleSSS(DazOperator, IsMesh):
     bl_idname = "daz.toggle_sss"
     bl_label = "Toggle SSS"
     bl_description = "Toggle subsurface scattering on/off for selected meshes"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         value = 0 if context.object.DazUseSSS else 1
@@ -1451,15 +1431,11 @@ class DAZ_OT_ToggleSSS(DazOperator):
                 ob.DazUseSSS = value
 
 
-class DAZ_OT_ToggleDisplacement(DazOperator):
+class DAZ_OT_ToggleDisplacement(DazOperator, IsMesh):
     bl_idname = "daz.toggle_displacement"
     bl_label = "Toggle Displacement"
     bl_description = "Toggle displacement on/off for selected meshes"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         value = False if context.object.DazUseDisplacement else True
@@ -1478,15 +1454,11 @@ class DAZ_OT_ToggleDisplacement(DazOperator):
 #   Share materials
 # ---------------------------------------------------------------------
 
-class DAZ_OT_ShareMaterials(DazOperator):
+class DAZ_OT_ShareMaterials(DazOperator, IsMesh):
     bl_idname = "daz.share_materials"
     bl_label = "Share Materials"
     bl_description = "Share material of all selected meshes to active material"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         ob = context.object
@@ -1500,15 +1472,11 @@ class DAZ_OT_ShareMaterials(DazOperator):
 #   Share materials
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LoadMaterial(DazOperator, DazImageFile, MultiFile):
+class DAZ_OT_LoadMaterial(DazOperator, DazImageFile, MultiFile, IsMesh):
     bl_idname = "daz.load_materials"
     bl_label = "Load Material(s)"
     bl_description = "Load materials to active mesh"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         self.loadMaterials(context)

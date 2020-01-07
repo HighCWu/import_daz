@@ -373,15 +373,11 @@ def pruneVertexGroups(ob):
                 vgrp.remove([vn])
 
 
-class DAZ_OT_PruneVertexGroups(DazOperator):
+class DAZ_OT_PruneVertexGroups(DazOperator, IsMesh):
     bl_idname = "daz.prune_vertex_groups"
     bl_label = "Prune Vertex Groups"
     bl_description = "Remove vertices and groups with zero weights"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         for ob in getSceneObjects(context):
@@ -428,15 +424,11 @@ def addIkGoals(rig):
         cns.use_rotation = True
 
 
-class DAZ_OT_AddIkGoals(DazOperator):
+class DAZ_OT_AddIkGoals(DazOperator, IsArmature):
     bl_idname = "daz.add_ik_goals"
     bl_label = "Add IK goals"
     bl_description = "Add IK goals"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         addIkGoals(context.object)
@@ -502,15 +494,11 @@ def addWinder(context):
         #cns2.influence = infl
 
 
-class DAZ_OT_AddWinder(DazOperator):
+class DAZ_OT_AddWinder(DazOperator, IsArmature):
     bl_idname = "daz.add_winder"
     bl_label = "Add Winder"
     bl_description = "Add winder to active posebone"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         addWinder(context)

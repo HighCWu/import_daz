@@ -1158,14 +1158,10 @@ def listBones(context):
         print('    "%s" : ("", "%s"),' % (pb.name, pb.rotation_mode))
 
 
-class DAZ_OT_ListBones(DazOperator):
+class DAZ_OT_ListBones(DazOperator, IsArmature):
     bl_idname = "daz.list_bones"
     bl_label = "List Bones"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         listBones(context)

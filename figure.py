@@ -311,14 +311,10 @@ class LegacyFigure(Figure):
 #   Print bone matrix
 #-------------------------------------------------------------
 
-class DAZ_OT_PrintMatrix(DazOperator):
+class DAZ_OT_PrintMatrix(DazOperator, IsArmature):
     bl_idname = "daz.print_matrix"
     bl_label = "Print Bone Matrix"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         pb = context.active_pose_bone
@@ -330,15 +326,11 @@ class DAZ_OT_PrintMatrix(DazOperator):
         print(mat)
 
 
-class DAZ_OT_RotateBones(DazOperator):
+class DAZ_OT_RotateBones(DazOperator, IsArmature):
     bl_idname = "daz.rotate_bones"
     bl_label = "Rotate Bones"
     bl_description = "Rotate selected bones the same angle"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         rig = context.object
@@ -491,29 +483,21 @@ def addExtraBones(rig, getBoneNames, type, attr):
                     vgrp.name = vgrp.name[:-3]
 
 
-class DAZ_OT_SetAddExtraFaceBones(DazOperator):
+class DAZ_OT_SetAddExtraFaceBones(DazOperator, IsArmature):
     bl_idname = "daz.add_extra_face_bones"
     bl_label = "Add Extra Face Bones"
     bl_description = "Add an extra layer of face bones, which can be both driven and posed"
     bl_options = {'UNDO'}
 
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
-
     def run(self, context):
         addExtraBones(context.object, getFaceBoneNames, "face", "DazExtraFaceBones")
 
 
-class DAZ_OT_MakeAllBonesPosable(DazOperator):
+class DAZ_OT_MakeAllBonesPosable(DazOperator, IsArmature):
     bl_idname = "daz.make_all_bones_posable"
     bl_label = "Make All Bones Posable"
     bl_description = "Add an extra layer of driven bones, to make them posable"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         addExtraBones(context.object, getDrivenBoneNames, "driven", "DazExtraDrivenBones")
@@ -529,15 +513,11 @@ def getRnaName(string):
         return string
 
 
-class DAZ_OT_ToggleRotLocks(DazOperator):
+class DAZ_OT_ToggleRotLocks(DazOperator, IsArmature):
     bl_idname = "daz.toggle_rot_locks"
     bl_label = "Toggle Rotation Locks"
     bl_description = "Toggle rotation locks"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         rig = context.object
@@ -552,15 +532,11 @@ class DAZ_OT_ToggleRotLocks(DazOperator):
             rig.DazUseRotLocks = True
 
 
-class DAZ_OT_ToggleLocLocks(DazOperator):
+class DAZ_OT_ToggleLocLocks(DazOperator, IsArmature):
     bl_idname = "daz.toggle_loc_locks"
     bl_label = "Toggle Location Locks"
     bl_description = "Toggle location locks"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         rig = context.object
@@ -575,15 +551,11 @@ class DAZ_OT_ToggleLocLocks(DazOperator):
             rig.DazUseLocLocks = True
 
 
-class DAZ_OT_ToggleLimits(DazOperator):
+class DAZ_OT_ToggleLimits(DazOperator, IsArmature):
     bl_idname = "daz.toggle_limits"
     bl_label = "Toggle Limits"
     bl_description = "Toggle rotation limits"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         rig = context.object

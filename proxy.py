@@ -194,14 +194,10 @@ def findPolys(context):
                 hf.select = True
 
 
-class DAZ_OT_FindPolys(DazOperator):
+class DAZ_OT_FindPolys(DazOperator, IsMeshArmature):
     bl_idname = "daz.find_polys"
     bl_label = "Find Polys"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object
 
     def run(self, context):
         checkObjectMode(context)
@@ -893,11 +889,7 @@ def deselectEverything(ob, context):
 #   Make Proxy
 #-------------------------------------------------------------
 
-class MakeProxy():
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
+class MakeProxy(IsMesh):
 
     def run(self, context):
         checkObjectMode(context)
@@ -948,15 +940,11 @@ class DAZ_OT_MakeFaithfulProxy(MakeProxy, DazOperator):
 #   Quadify
 #-------------------------------------------------------------
 
-class DAZ_OT_Quadify(MakeProxy, DazOperator):
+class DAZ_OT_Quadify(MakeProxy, DazOperator, IsMesh):
     bl_idname = "daz.quadify"
     bl_label = "Quadify Triangles"
     bl_description = "Join triangles to quads"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         meshes,active = getSelectedObjects(context, 'MESH')
@@ -1053,15 +1041,11 @@ def splitNgons(ob, context):
     printStatistics(ob)
 
 
-class DAZ_OT_SplitNgons(DazOperator):
+class DAZ_OT_SplitNgons(DazOperator, IsMesh):
     bl_idname = "daz.split_ngons"
     bl_label = "Split n-gons"
     bl_description = "Split all polygons with five or more corners into triangles"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object and context.object.type == 'MESH'
 
     def run(self, context):
         meshes,active = getSelectedObjects(context, 'MESH')
@@ -1127,15 +1111,11 @@ def findSeams(ob):
     return  faceverts, vertfaces, neighbors,seams
 
 
-class DAZ_OT_FindSeams(DazOperator):
+class DAZ_OT_FindSeams(DazOperator, IsMesh):
     bl_idname = "daz.find_seams"
     bl_label = "Find Seams"
     bl_description = "Create seams based on existing UVs"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object and context.object.type == 'MESH'
 
     def run(self, context):
         checkObjectMode(context)
@@ -1145,15 +1125,11 @@ class DAZ_OT_FindSeams(DazOperator):
 #   Select random strands
 #-------------------------------------------------------------
 
-class DAZ_OT_SelectRandomStrands(DazOperator):
+class DAZ_OT_SelectRandomStrands(DazOperator, IsMesh):
     bl_idname = "daz.select_random_strands"
     bl_label = "Select Random Strands"
     bl_description = "Select random subset of strands selected in UV space"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object and context.object.type == 'MESH'
 
     def run(self, context):
         checkObjectMode(context)
@@ -1179,15 +1155,11 @@ def applyShapeKeys(ob):
             v.co = coords[v.index]
 
 
-class DAZ_OT_ApplyMorphs(DazOperator):
+class DAZ_OT_ApplyMorphs(DazOperator, IsMesh):
     bl_idname = "daz.apply_morphs"
     bl_label = "Apply Morphs"
     bl_description = "Apply all shapekeys"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object and context.object.type == 'MESH'
 
     def run(self, context):
         checkObjectMode(context)
@@ -1204,14 +1176,10 @@ def printStatistics(ob):
         (len(ob.data.vertices), len(ob.data.edges), len(ob.data.polygons)))
 
 
-class DAZ_OT_PrintStatistics(DazOperator):
+class DAZ_OT_PrintStatistics(DazOperator, IsMesh):
     bl_idname = "daz.print_statistics"
     bl_label = "Print Statistics"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object and context.object.type == 'MESH'
 
     def run(self, context):
         checkObjectMode(context)
@@ -1391,15 +1359,11 @@ def addMannequin(ob, context, rig, coll, mangrp):
     return nobs
 
 
-class DAZ_OT_AddMannequin(DazOperator):
+class DAZ_OT_AddMannequin(DazOperator, IsMesh):
     bl_idname = "daz.add_mannequin"
     bl_label = "Add Mannequins"
     bl_description = "Add mannequins to selected meshes. Don't change rig after this."
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object and context.object.type == 'MESH'
 
     def run(self, context):
         checkObjectMode(context)
@@ -1427,15 +1391,11 @@ def addPush(context):
         raise DazError(msg, True)
 
 
-class DAZ_OT_AddPush(DazOperator):
+class DAZ_OT_AddPush(DazOperator, IsMesh):
     bl_idname = "daz.add_push"
     bl_label = "Add Push"
     bl_description = "Add a push shapekey"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object and context.object.type == 'MESH'
 
     def run(self, context):
         checkObjectMode(context)
@@ -1453,15 +1413,11 @@ def addSubsurf(context):
             mod.render_levels = 1
 
 
-class DAZ_OT_AddSubsurf(DazOperator):
+class DAZ_OT_AddSubsurf(DazOperator, IsMesh):
     bl_idname = "daz.add_subsurf"
     bl_label = "Add Subsurf"
     bl_description = "Add a subsurf modifier"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object and context.object.type == 'MESH'
 
     def run(self, context):
         checkObjectMode(context)
@@ -1471,15 +1427,11 @@ class DAZ_OT_AddSubsurf(DazOperator):
 #   Make deflection
 #-------------------------------------------------------------
 
-class DAZ_OT_MakeDeflection(DazOperator):
+class DAZ_OT_MakeDeflection(DazOperator, IsMesh):
     bl_idname = "daz.make_deflection"
     bl_label = "Make Deflection"
     bl_description = "Make a deflection object"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return context.object and context.object.type == 'MESH'
 
     def run(self, context):
         from .load_json import loadJson

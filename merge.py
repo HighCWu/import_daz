@@ -218,15 +218,11 @@ def moveGraftVerts(aob, cob):
                     askey.data[pair.a].co = cskey.data[pair.b].co
 
 
-class DAZ_OT_MergeAnatomy(DazOperator):
+class DAZ_OT_MergeAnatomy(DazOperator, IsMesh):
     bl_idname = "daz.merge_anatomy"
     bl_label = "Merge Anatomy"
     bl_description = "Merge selected anatomy to selected character"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         mergeAnatomy(context)
@@ -299,15 +295,11 @@ def joinActiveToRender(me):
     print("UV layers joined")
 
 
-class DAZ_OT_MergeUVLayers(DazOperator):
+class DAZ_OT_MergeUVLayers(DazOperator, IsMesh):
     bl_idname = "daz.merge_uv_layers"
     bl_label = "Merge UV Layers"
     bl_description = "Merge active UV layer with render UV layer"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         joinActiveToRender(context.object.data)
@@ -383,15 +375,11 @@ def getSelectedRigs(context):
 #   Copy poses
 #-------------------------------------------------------------
 
-class DAZ_OT_CopyPoses(DazOperator):
+class DAZ_OT_CopyPoses(DazOperator, IsArmature):
     bl_idname = "daz.copy_poses"
     bl_label = "Copy Poses"
     bl_description = "Copy selected rig poses to active rig"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         rig,subrigs,_groups = getSelectedRigs(context)
@@ -424,15 +412,11 @@ class DAZ_OT_CopyPoses(DazOperator):
 #   Merge rigs
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeRigs(DazOperator):
+class DAZ_OT_MergeRigs(DazOperator, IsArmature):
     bl_idname = "daz.merge_rigs"
     bl_label = "Merge Rigs"
     bl_description = "Merge selected rigs to active rig"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         rig,subrigs,groups = getSelectedRigs(context)
@@ -568,15 +552,11 @@ def copyBones(rig, subrigs, context):
     bpy.ops.object.mode_set(mode='POSE')
 
 
-class DAZ_OT_CopyBones(DazOperator):
+class DAZ_OT_CopyBones(DazOperator, IsArmature):
     bl_idname = "daz.copy_bones"
     bl_label = "Copy Bones"
     bl_description = "Copy selected rig bone locations to active rig"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         rig,subrigs,groups = getSelectedRigs(context)
@@ -587,15 +567,11 @@ class DAZ_OT_CopyBones(DazOperator):
 #-------------------------------------------------------------
 
 
-class DAZ_OT_ApplyRestPoses(DazOperator):
+class DAZ_OT_ApplyRestPoses(DazOperator, IsArmature):
     bl_idname = "daz.apply_rest_pose"
     bl_label = "Apply Rest Pose"
     bl_description = "Apply current pose at rest pose to selected rigs and children"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         applyRestPoses(context)
@@ -649,15 +625,11 @@ def reparentToes(rig, context):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-class DAZ_OT_ReparentToes(DazOperator):
+class DAZ_OT_ReparentToes(DazOperator, IsArmature):
     bl_idname = "daz.reparent_toes"
     bl_label = "Reparent Toes"
     bl_description = "Parent small toes to big toe bone"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         reparentToes(context.object, context)
@@ -718,15 +690,11 @@ def mergeBonesAndVgroups(rig, mergers, parents, context):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-class DAZ_OT_MergeToes(DazOperator):
+class DAZ_OT_MergeToes(DazOperator, IsArmature):
     bl_idname = "daz.merge_toes"
     bl_label = "Merge Toes"
     bl_description = "Merge all toes"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         rig = context.object

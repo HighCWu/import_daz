@@ -196,14 +196,10 @@ def showPropGroups(rig):
                     print("    ", pg.index, pg.prop, pg.factor, pg.default)
 
 
-class DAZ_OT_ShowPropGroupsColor(DazOperator):
+class DAZ_OT_ShowPropGroupsColor(DazOperator, IsArmature):
     bl_idname = "daz.show_prop_groups"
     bl_label = "Show Prop Groups"
     bl_description = "Show the property groups for the selected posebones."
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'ARMATURE')
 
     def run(self, context):
         showPropGroups(context.object)

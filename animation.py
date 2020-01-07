@@ -301,12 +301,8 @@ class FrameConverter:
 #   AnimatorBase class
 #-------------------------------------------------------------
 
-class AnimatorBase(AnimatorFile, MultiFile, FrameConverter):
+class AnimatorBase(AnimatorFile, MultiFile, FrameConverter, IsMeshArmature):
     lockMeshes = False
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type in ['MESH', 'ARMATURE'])
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)

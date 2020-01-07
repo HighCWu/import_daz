@@ -304,29 +304,21 @@ def createMaskModifiers(context, useSelectedOnly):
     print("Masks created")
 
 
-class DAZ_OT_CreateMasks(DazOperator):
+class DAZ_OT_CreateMasks(DazOperator, IsMesh):
     bl_idname = "daz.create_all_masks"
     bl_label = "Create All Masks"
     bl_description = "Create vertex groups and mask modifiers in active mesh for all meshes belonging to same character"
     bl_options = {'UNDO'}
 
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
-
     def run(self, context):
         createMaskModifiers(context, False)
 
 
-class DAZ_OT_CreateSelectedMasks(DazOperator):
+class DAZ_OT_CreateSelectedMasks(DazOperator, IsMesh):
     bl_idname = "daz.create_selected_masks"
     bl_label = "Create Selected Masks"
     bl_description = "Create vertex groups and mask modifiers in active mesh for selected meshes"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.type == 'MESH')
 
     def run(self, context):
         createMaskModifiers(context, True)
