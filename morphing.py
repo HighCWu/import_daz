@@ -167,116 +167,27 @@ def isRightType(fname, prefixes, includes, excludes):
     return False, name
 
 
-class DAZ_OT_Update(bpy.types.Operator):
+class DAZ_OT_Update(DazOperator):
     bl_idname = "daz.update_morph_paths"
     bl_label = "Update Morph Paths"
     bl_description = "Update paths to predefined morphs"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         setupMorphPaths(context.scene, True)
-        return{'FINISHED'}
 
 
-class DAZ_OT_SelectAll(bpy.types.Operator, TypeString, ValueBool):
+class DAZ_OT_SelectAll(DazOperator, TypeString, ValueBool):
     bl_idname = "daz.select_all_morphs"
     bl_label = "Select All"
     bl_description = "Select/Deselect all morphs in this section"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         scn = context.scene
         names = theMorphNames[self.type]
         for name in names.values():
             scn["Daz"+name] = self.value
-        return{'FINISHED'}
-
-#------------------------------------------------------------------
-#   Favorites
-#------------------------------------------------------------------
-
-def saveFavorites(context):
-    from .finger import getFingeredCharacter
-    from .fileutils import safeOpen
-    rig,_mesh,char = getFingeredCharacter(context.object)
-    scn = context.scene
-    favlist = []
-    if char in theMorphFiles.keys():
-        for type in ["Units", "Expressions", "Visemes", "Correctives"]:
-            for name in theMorphFiles[char][type].keys():
-                if (hasattr(scn, "Daz"+name) and
-                    getattr(scn, "Daz"+name)):
-                    favlist.append(name)
-
-    folder = os.path.join(os.path.dirname(__file__), "data", "favorites")
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-    filepath = os.path.join(folder, utils.tolower(rig.DazMesh)+".txt")
-    with safeOpen(filepath, "w") as fp:
-        fp.write("\n".join(favlist))
-    print("Favorites saved to", filepath)
-
-
-class DAZ_OT_SaveFavorites(bpy.types.Operator):
-    bl_idname = "daz.save_favorite_morphs"
-    bl_label = "Save Favorites"
-    bl_description = "Save favorite morphs"
-    bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.DazId)
-
-    def execute(self, context):
-        try:
-            saveFavorites(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-
-def loadFavorites(context):
-    from .finger import getFingeredCharacter
-    from .fileutils import safeOpen
-    rig,_mesh,char = getFingeredCharacter(context.object)
-    folder = os.path.join(os.path.dirname(__file__), "data", "favorites")
-    favlist = []
-    if os.path.exists(folder):
-        filepath = os.path.join(folder, utils.tolower(rig.DazMesh)+".txt")
-        if os.path.exists(filepath):
-            with safeOpen(filepath, "rU") as fp:
-                favlist = [line.split()[0] for line in fp]
-    if favlist == []:
-        print("No favorites found for", rig.DazMesh)
-        return
-
-    scn = context.scene
-    if char in theMorphFiles.keys():
-        for type in ["Units", "Expressions", "Visemes", "Correctives"]:
-            for name in theMorphFiles[char][type].keys():
-                if hasattr(scn, "Daz"+name):
-                    setattr(scn, "Daz"+name, (name in favlist))
-    print("Favorites loaded from", filepath)
-
-
-class DAZ_OT_LoadFavorites(bpy.types.Operator):
-    bl_idname = "daz.load_favorite_morphs"
-    bl_label = "Load Favorites"
-    bl_description = "Load favorite morphs"
-    bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.DazId)
-
-    def execute(self, context):
-        try:
-            loadFavorites(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
 
 #------------------------------------------------------------------
 #   LoadMorph base class
@@ -406,15 +317,7 @@ class LoadAllMorphs(LoadMorph):
 
     suppressError = True
 
-    def execute(self, context):
-        try:
-            self.loadAllMorphs(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-
-    def loadAllMorphs(self, context):
+    def run(self, context):
         import time
         from .main import finishMain
         from .finger import getFingeredCharacter
@@ -487,7 +390,7 @@ class LoadAllMorphs(LoadMorph):
                 print("  Bones: %s" % struct["bones"])
 
 
-class DAZ_OT_LoadAllUnits(bpy.types.Operator, LoadAllMorphs):
+class DAZ_OT_LoadAllUnits(DazOperator, LoadAllMorphs):
     bl_idname = "daz.load_all_units"
     bl_label = "Load Face Units"
     bl_description = "Load all face unit morphs"
@@ -497,7 +400,7 @@ class DAZ_OT_LoadAllUnits(bpy.types.Operator, LoadAllMorphs):
     prefix = "DzU"
 
 
-class DAZ_OT_LoadAllExpressions(bpy.types.Operator, LoadAllMorphs):
+class DAZ_OT_LoadAllExpressions(DazOperator, LoadAllMorphs):
     bl_idname = "daz.load_all_expressions"
     bl_label = "Load Expressions"
     bl_description = "Load all expression morphs"
@@ -507,7 +410,7 @@ class DAZ_OT_LoadAllExpressions(bpy.types.Operator, LoadAllMorphs):
     prefix = "DzE"
 
 
-class DAZ_OT_LoadAllVisemes(bpy.types.Operator, LoadAllMorphs):
+class DAZ_OT_LoadAllVisemes(DazOperator, LoadAllMorphs):
     bl_idname = "daz.load_all_visemes"
     bl_label = "Load Visemes"
     bl_description = "Load all viseme morphs"
@@ -517,7 +420,7 @@ class DAZ_OT_LoadAllVisemes(bpy.types.Operator, LoadAllMorphs):
     prefix = "DzV"
 
 
-class DAZ_OT_LoadAllCorrectives(bpy.types.Operator, LoadAllMorphs):
+class DAZ_OT_LoadAllCorrectives(DazOperator, LoadAllMorphs):
     bl_idname = "daz.load_all_correctives"
     bl_label = "Load Correctives"
     bl_description = "Load all corrective morphs"
@@ -532,7 +435,7 @@ class DAZ_OT_LoadAllCorrectives(bpy.types.Operator, LoadAllMorphs):
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class DAZ_OT_ImportMorph(bpy.types.Operator, LoadMorph, DazImageFile, MultiFile, MorphStrings):
+class DAZ_OT_ImportMorph(DazOperator, LoadMorph, DazImageFile, MultiFile, MorphStrings):
     bl_idname = "daz.import_morph"
     bl_label = "Import Morph(s)"
     bl_description = "Import morph(s) from native DAZ file(s) (*.duf, *.dsf)"
@@ -548,14 +451,6 @@ class DAZ_OT_ImportMorph(bpy.types.Operator, LoadMorph, DazImageFile, MultiFile,
         self.layout.prop(self, "catname")
 
 
-    def execute(self, context):
-        try:
-            self.importMorphs(context.scene)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-
     def invoke(self, context, event):
         from .fileutils import getFolder
         from .finger import getFingeredCharacter
@@ -567,7 +462,7 @@ class DAZ_OT_ImportMorph(bpy.types.Operator, LoadMorph, DazImageFile, MultiFile,
         return {'RUNNING_MODAL'}
 
 
-    def importMorphs(self, scn):
+    def run(self, scn):
         from .driver import setBoolProp
         snames = self.getMorphs(self.filepath, scn)
         addToCategories(self.rig, snames, self.catname, self.catgroup)
@@ -742,19 +637,18 @@ class DAZ_OT_RemoveCategoryOK(bpy.types.Operator, ChangeCategory):
             del ob[key]
 
 
-class DAZ_OT_ChangeCategoryCancel(bpy.types.Operator, CatGroupString):
+class DAZ_OT_ChangeCategoryCancel(DazOperator, CatGroupString):
     bl_idname = "daz.change_category_cancel"
     bl_label = "Cancel"
     bl_description = "Cancel category change"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         attr = getOpenAttr(self.catgroup)
         setattr(context.scene, attr, False)
-        return {'FINISHED'}
 
 
-class DAZ_OT_ChangeCategory(bpy.types.Operator, CatGroupString, ActionString):
+class DAZ_OT_ChangeCategory(DazOperator, CatGroupString, ActionString):
     bl_idname = "daz.change_category"
     bl_label = "Change Category"
     bl_description = "Rename or remove category"
@@ -765,7 +659,7 @@ class DAZ_OT_ChangeCategory(bpy.types.Operator, CatGroupString, ActionString):
         ob = context.object
         return (ob and ob.type == 'ARMATURE')
 
-    def execute(self, context):
+    def run(self, context):
         ob = context.object
         scn = context.scene
         categories = getattr(ob, self.catgroup)
@@ -776,7 +670,6 @@ class DAZ_OT_ChangeCategory(bpy.types.Operator, CatGroupString, ActionString):
 
         attr = getOpenAttr(self.catgroup)
         setattr(context.scene, attr, True)
-        return {'FINISHED'}
 
 #------------------------------------------------------------------------
 #   Apply morphs
@@ -833,7 +726,7 @@ def removeDrivingProps(rig, props):
 #------------------------------------------------------------------------
 
 class Activator(PrefixString, TypeString, CatGroupString):
-    def execute(self, context):
+    def run(self, context):
         from .driver import setBoolProp
         rig = getRigFromObject(context.object)
         keys = getRelevantMorphs(rig, self.type, self.prefix, self.catgroup)
@@ -843,10 +736,9 @@ class Activator(PrefixString, TypeString, CatGroupString):
         else:
             for key in keys:
                 setBoolProp(rig, "DzA"+key, self.activate)
-        return{'FINISHED'}
 
 
-class DAZ_OT_ActivateAll(bpy.types.Operator, Activator):
+class DAZ_OT_ActivateAll(DazOperator, Activator):
     bl_idname = "daz.activate_all"
     bl_label = "Select All"
     bl_description = "Select all morphs of this type"
@@ -855,7 +747,7 @@ class DAZ_OT_ActivateAll(bpy.types.Operator, Activator):
     activate = True
 
 
-class DAZ_OT_DeactivateAll(bpy.types.Operator, Activator):
+class DAZ_OT_DeactivateAll(DazOperator, Activator):
     bl_idname = "daz.deactivate_all"
     bl_label = "Unselect All"
     bl_description = "Unselect all morphs of this type"
@@ -878,7 +770,7 @@ def prettifyAll(context):
                     setattr(bpy.types.Object, prop, BoolProperty(default=True))                            
 
 
-class DAZ_OT_Prettify(bpy.types.Operator):
+class DAZ_OT_Prettify(DazOperator):
     bl_idname = "daz.prettify"
     bl_label = "Prettify Panels"
     bl_description = (
@@ -887,26 +779,24 @@ class DAZ_OT_Prettify(bpy.types.Operator):
         )
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         prettifyAll(context)
-        return{'FINISHED'}
 
 #------------------------------------------------------------------
 #   Update scene
 #------------------------------------------------------------------
 
-class DAZ_OT_ForceUpdate(bpy.types.Operator):
+class DAZ_OT_ForceUpdate(DazOperator):
     bl_idname = "daz.force_update"
     bl_label = "Update"
     bl_description = "Force all morphs to update"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         updateScene(context)
         rig = getRigFromObject(context.object)
         updateRig(rig, context)
         updateDrivers(context.object)
-        return {'FINISHED'}
 
 #------------------------------------------------------------------
 #   Clear morphs
@@ -978,7 +868,7 @@ def nameFromKey(key, names, rig):
     return None
 
 
-class DAZ_OT_ClearMorphs(bpy.types.Operator, TypePrefixCat):
+class DAZ_OT_ClearMorphs(DazOperator, TypePrefixCat):
     bl_idname = "daz.clear_morphs"
     bl_label = "Clear"
     bl_description = "Set all morphs of specified type to zero"
@@ -988,22 +878,17 @@ class DAZ_OT_ClearMorphs(bpy.types.Operator, TypePrefixCat):
     def poll(self, context):
         return (context.object)
 
-    def execute(self, context):
-        try:
-            rig = getRigFromObject(context.object)
-            if rig:
-                scn = context.scene
-                clearMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current, False)
-                updateRig(rig, context)
-                if scn.tool_settings.use_keyframe_insert_auto:
-                    updateScene(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        rig = getRigFromObject(context.object)
+        if rig:
+            scn = context.scene
+            clearMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current, False)
+            updateRig(rig, context)
+            if scn.tool_settings.use_keyframe_insert_auto:
+                updateScene(context)
 
 
-
-class DAZ_OT_UpdateMorphs(bpy.types.Operator, KeyString, TypePrefixCat):
+class DAZ_OT_UpdateMorphs(DazOperator, KeyString, TypePrefixCat):
     bl_idname = "daz.update_morphs"
     bl_label = "Update"
     bl_description = "Set keys at current frame for all props of specified type with keys"
@@ -1013,19 +898,13 @@ class DAZ_OT_UpdateMorphs(bpy.types.Operator, KeyString, TypePrefixCat):
     def poll(self, context):
         return (context.object and context.object.type in ['MESH', 'ARMATURE'])
 
-    def execute(self, context):
-        try:
-            rig = getRigFromObject(context.object)
-            if rig:
-                scn = context.scene
-                updateMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
-                updateScene(context)
-                updateRig(rig, context)
-        except DazError:
-            handleDazError(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        rig = getRigFromObject(context.object)
+        if rig:
+            scn = context.scene
+            updateMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
+            updateScene(context)
+            updateRig(rig, context)
 
 #------------------------------------------------------------------
 #   Add morphs to keyset
@@ -1057,7 +936,7 @@ def addKeySet(rig, type, prefix, catgroup, scn, frame):
                 aks.paths.add(rig.id_data, path)
 
 
-class DAZ_OT_AddKeysets(bpy.types.Operator, TypePrefixCat):
+class DAZ_OT_AddKeysets(DazOperator, TypePrefixCat):
     bl_idname = "daz.add_keyset"
     bl_label = "Keyset"
     bl_description = "Add category morphs to active custom keying set, or make new one"
@@ -1067,18 +946,14 @@ class DAZ_OT_AddKeysets(bpy.types.Operator, TypePrefixCat):
     def poll(self, context):
         return (context.object)
 
-    def execute(self, context):
+    def run(self, context):
         from .finger import getFingeredCharacter
-        try:
-            rig = getRigFromObject(context.object)
-            if rig:
-                scn = context.scene
-                addKeySet(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
-                updateScene(context)
-                updateRig(rig, context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        rig = getRigFromObject(context.object)
+        if rig:
+            scn = context.scene
+            addKeySet(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
+            updateScene(context)
+            updateRig(rig, context)
 
 #------------------------------------------------------------------
 #   Set morph keys
@@ -1104,7 +979,7 @@ def keyMorphs(rig, type, prefix, catgroup, scn, frame):
                 keyProp(rig, key, frame)
 
 
-class DAZ_OT_KeyMorphs(bpy.types.Operator, TypePrefixCat):
+class DAZ_OT_KeyMorphs(DazOperator, TypePrefixCat):
     bl_idname = "daz.key_morphs"
     bl_label = "Set Keys"
     bl_description = "Set keys for all morphs of specified type at current frame"
@@ -1114,17 +989,13 @@ class DAZ_OT_KeyMorphs(bpy.types.Operator, TypePrefixCat):
     def poll(self, context):
         return (context.object)
 
-    def execute(self, context):
-        try:
-            rig = getRigFromObject(context.object)
-            if rig:
-                scn = context.scene
-                keyMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
-                updateScene(context)
-                updateRig(rig, context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        rig = getRigFromObject(context.object)
+        if rig:
+            scn = context.scene
+            keyMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
+            updateScene(context)
+            updateRig(rig, context)
 
 #------------------------------------------------------------------
 #   Remove morph keys
@@ -1150,7 +1021,7 @@ def unkeyMorphs(rig, type, prefix, catgroup, scn, frame):
                 unkeyProp(rig, key, frame)
 
 
-class DAZ_OT_UnkeyMorphs(bpy.types.Operator, TypePrefixCat):
+class DAZ_OT_UnkeyMorphs(DazOperator, TypePrefixCat):
     bl_idname = "daz.unkey_morphs"
     bl_label = "Remove Keys"
     bl_description = "Remove keys from all morphs of specified type at current frame"
@@ -1160,17 +1031,13 @@ class DAZ_OT_UnkeyMorphs(bpy.types.Operator, TypePrefixCat):
     def poll(self, context):
         return (context.object)
 
-    def execute(self, context):
-        try:
-            rig = getRigFromObject(context.object)
-            if rig:
-                scn = context.scene
-                unkeyMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
-                updateScene(context)
-                updateRig(rig, context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        rig = getRigFromObject(context.object)
+        if rig:
+            scn = context.scene
+            unkeyMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
+            updateScene(context)
+            updateRig(rig, context)
 
 #------------------------------------------------------------------
 #   Update property limits
@@ -1206,7 +1073,7 @@ def updatePropLimits(rig, context):
     print("Property limits updated")
 
 
-class DAZ_OT_UpdatePropLimits(bpy.types.Operator):
+class DAZ_OT_UpdatePropLimits(DazOperator):
     bl_idname = "daz.update_prop_limits"
     bl_label = "Update Property Limits"
     bl_description = "Update min and max value for properties"
@@ -1216,14 +1083,10 @@ class DAZ_OT_UpdatePropLimits(bpy.types.Operator):
     def poll(self, context):
         return context.object
 
-    def execute(self, context):
-        try:
-            rig = getRigFromObject(context.object)
-            if rig:
-                updatePropLimits(rig, context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        rig = getRigFromObject(context.object)
+        if rig:
+            updatePropLimits(rig, context)
 
 #------------------------------------------------------------------
 #   Remove morphs
@@ -1275,7 +1138,7 @@ def removeProps(ob, prefix):
             del ob[key]
 
 
-class DAZ_OT_RemoveMorphDrivers(bpy.types.Operator):
+class DAZ_OT_RemoveMorphDrivers(DazOperator):
     bl_idname = "daz.remove_morph_drivers"
     bl_label = "Remove Morph Drivers"
     bl_description = "Remove drivers associated with morphs (not corrective shapekeys)"
@@ -1285,16 +1148,12 @@ class DAZ_OT_RemoveMorphDrivers(bpy.types.Operator):
     def poll(self, context):
         return context.object
 
-    def execute(self, context):
-        try:
-            rig = getRigFromObject(context.object)
-            if rig:
-                removeAllMorphDrivers(rig, context.scene, "Dz")
-                updateScene(context)
-                updateRig(rig, context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        rig = getRigFromObject(context.object)
+        if rig:
+            removeAllMorphDrivers(rig, context.scene, "Dz")
+            updateScene(context)
+            updateRig(rig, context)
 
 #-------------------------------------------------------------
 #   Add and remove driver
@@ -1309,7 +1168,7 @@ def getActiveShapeKey(ob):
     return skey
 
 
-class DAZ_OT_AddDriver(bpy.types.Operator):
+class DAZ_OT_AddDriver(DazOperator):
     bl_idname = "daz.add_shapekey_driver"
     bl_label = "Add Driver"
     bl_description = "Add rig driver to active shapekey"
@@ -1319,14 +1178,7 @@ class DAZ_OT_AddDriver(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            self.addDriver(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-    def addDriver(self, context):
+    def run(self, context):
         from .driver import makeShapekeyDriver
         ob = context.object
         skey = getActiveShapeKey(ob)
@@ -1339,7 +1191,7 @@ class DAZ_OT_AddDriver(bpy.types.Operator):
             rig.DazCustomMorphs = True
 
 
-class DAZ_OT_RemoveDriver(bpy.types.Operator):
+class DAZ_OT_RemoveDriver(DazOperator):
     bl_idname = "daz.remove_shapekey_driver"
     bl_label = "Remove Driver"
     bl_description = "Remove rig driver from active shapekey"
@@ -1349,14 +1201,7 @@ class DAZ_OT_RemoveDriver(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            self.removeDriver(context.object)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-    def removeDriver(self, ob):
+    def run(self, ob):
         skey = getActiveShapeKey(ob)
         removeShapekeyDriver(ob, skey)
         rig = ob.parent
@@ -1390,7 +1235,7 @@ def getRigFromObject(ob):
         return ob
 
 
-class DAZ_OT_ToggleAllCats(bpy.types.Operator, UseOpenBool):
+class DAZ_OT_ToggleAllCats(DazOperator, UseOpenBool):
     bl_idname = "daz.toggle_all_cats"
     bl_label = "Toggle All Categories"
     bl_description = "Toggle all morph categories on and off"
@@ -1400,16 +1245,12 @@ class DAZ_OT_ToggleAllCats(bpy.types.Operator, UseOpenBool):
     def poll(self, context):
         return (context.object)
 
-    def execute(self, context):
-        try:
-            ob = getRigFromObject(context.object)
-            if ob:
-                for key in ob.keys():
-                    if key[0:7] == "DazShow":
-                        ob[key] = self.useOpen
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        rig = getRigFromObject(context.object)
+        if rig:
+            for key in rig.keys():
+                if key[0:7] == "DazShow":
+                    rig[key] = self.useOpen
 
 #-------------------------------------------------------------
 #
@@ -1452,7 +1293,7 @@ def pinProp(rig, scn, key, type, prefix, catgroup, frame):
         autoKeyProp(rig, key, scn, frame, True)
 
 
-class DAZ_OT_PinProp(bpy.types.Operator, KeyString, TypePrefixCat):
+class DAZ_OT_PinProp(DazOperator, KeyString, TypePrefixCat):
     bl_idname = "daz.pin_prop"
     bl_label = ""
     bl_description = "Pin property"
@@ -1462,17 +1303,13 @@ class DAZ_OT_PinProp(bpy.types.Operator, KeyString, TypePrefixCat):
     def poll(self, context):
         return (context.object and context.object.type in ['MESH', 'ARMATURE'])
 
-    def execute(self, context):
-        try:
-            rig = getRigFromObject(context.object)
-            scn = context.scene
-            setupMorphPaths(scn, False)
-            pinProp(rig, scn, self.key, self.type, self.prefix, self.catgroup, scn.frame_current)
-            updateScene(context)
-            updateRig(rig, context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        rig = getRigFromObject(context.object)
+        scn = context.scene
+        setupMorphPaths(scn, False)
+        pinProp(rig, scn, self.key, self.type, self.prefix, self.catgroup, scn.frame_current)
+        updateScene(context)
+        updateRig(rig, context)
 
 # ---------------------------------------------------------------------
 #   Load Moho
@@ -1538,15 +1375,14 @@ def loadMoho(context, filepath, offs):
     print("Moho file %s loaded" % filepath)
 
 
-class DAZ_OT_LoadMoho(bpy.types.Operator, DatFile, SingleFile):
+class DAZ_OT_LoadMoho(DazOperator, DatFile, SingleFile):
     bl_idname = "daz.load_moho"
     bl_label = "Load Moho"
     bl_description = "Load Moho (.dat) file"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         loadMoho(context, self.filepath, 1.0)
-        return{'FINISHED'}
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -1587,25 +1423,24 @@ def deleteLipsync(rig):
                     pb.location[idx] = 0.0
 
 
-class DAZ_OT_DeleteLipsync(bpy.types.Operator):
+class DAZ_OT_DeleteLipsync(DazOperator):
     bl_idname = "daz.delete_lipsync"
     bl_label = "Delete Lipsync"
     bl_description = "Delete F-curves associated with lipsync"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         rig = getArmature(context.object)
         if rig:
             deleteLipsync(rig)
         updateScene(context)
         updateRig(rig, context)
-        return{'FINISHED'}
 
 #-------------------------------------------------------------
 #   Convert pose to shapekey
 #-------------------------------------------------------------
 
-class DAZ_OT_ConvertMorphsToShapes(bpy.types.Operator, MorphTypes):
+class DAZ_OT_ConvertMorphsToShapes(DazOperator, MorphTypes):
     bl_idname = "daz.convert_morphs_to_shapes"
     bl_label = "Convert Morphs To Shapes"
     bl_description = "Convert face rig poses to shapekeys"
@@ -1621,15 +1456,11 @@ class DAZ_OT_ConvertMorphsToShapes(bpy.types.Operator, MorphTypes):
         self.layout.prop(self, "visemes")
         self.layout.prop(self, "other")
 
-    def execute(self, context):
-        try:
-            ob = context.object
-            rig = ob.parent
-            if rig and rig.type == 'ARMATURE':
-                self.convertToShapes(context, rig, ob)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        ob = context.object
+        rig = ob.parent
+        if rig and rig.type == 'ARMATURE':
+            self.convertToShapes(context, rig, ob)
 
     def invoke(self, context, event):
         context.window_manager.invoke_props_dialog(self)
@@ -1700,8 +1531,6 @@ class DAZ_OT_ConvertMorphsToShapes(bpy.types.Operator, MorphTypes):
 classes = [
     DAZ_OT_Update,
     DAZ_OT_SelectAll,
-    DAZ_OT_SaveFavorites,
-    DAZ_OT_LoadFavorites,
     DAZ_OT_LoadAllUnits,
     DAZ_OT_LoadAllExpressions,
     DAZ_OT_LoadAllVisemes,

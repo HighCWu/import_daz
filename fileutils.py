@@ -225,34 +225,25 @@ def saveSettings(filepath, scn):
     print("Settings file %s saved" % filepath)
 
 
-class DAZ_OT_SaveDefaultSettings(bpy.types.Operator):
+class DAZ_OT_SaveDefaultSettings(DazOperator):
     bl_idname = "daz.save_default_settings"
     bl_label = "Save Default Settings"
     bl_description = "Save current settings as default"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            filepath = getSettingsFile()
-            saveSettings(filepath, context.scene)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        filepath = getSettingsFile()
+        saveSettings(filepath, context.scene)
 
 
-class DAZ_OT_SaveSettingsFile(bpy.types.Operator, SingleFile, JsonExportFile):
+class DAZ_OT_SaveSettingsFile(DazOperator, SingleFile, JsonExportFile):
     bl_idname = "daz.save_settings_file"
     bl_label = "Save Settings File"
     bl_description = "Save current settings to file"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            saveSettings(self.filepath, context.scene)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
-
+    def run(self, context):
+        saveSettings(self.filepath, context.scene)
 
     def invoke(self, context, event):
         self.properties.filepath = os.path.dirname(getSettingsFile()) + "/"
@@ -375,46 +366,33 @@ def getPropType(struct, value):
         return None
 
 
-class DAZ_OT_LoadFactorySettings(bpy.types.Operator):
+class DAZ_OT_LoadFactorySettings(DazOperator):
     bl_idname = "daz.load_factory_settings"
     bl_label = "Load Factory Settings"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            clearSettings(context.scene)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        clearSettings(context.scene)
 
 
-class DAZ_OT_LoadDefaultSettings(bpy.types.Operator):
+class DAZ_OT_LoadDefaultSettings(DazOperator):
     bl_idname = "daz.load_default_settings"
     bl_label = "Load Default Settings"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            filepath = getSettingsFile()
-            loadSettings(filepath, context.scene)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        filepath = getSettingsFile()
+        loadSettings(filepath, context.scene)
 
 
-class DAZ_OT_LoadSettingsFile(bpy.types.Operator, SingleFile, JsonFile):
+class DAZ_OT_LoadSettingsFile(DazOperator, SingleFile, JsonFile):
     bl_idname = "daz.load_settings_file"
     bl_label = "Load Settings File"
     bl_description = "Load settings from file"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            loadSettings(self.filepath, context.scene)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
-
+    def run(self, context):
+        loadSettings(self.filepath, context.scene)
 
     def invoke(self, context, event):
         self.properties.filepath = os.path.dirname(getSettingsFile()) + "/"

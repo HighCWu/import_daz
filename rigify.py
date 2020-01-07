@@ -40,7 +40,7 @@ from collections import OrderedDict
 from bpy.props import *
 from mathutils import Vector
 
-from .error import DazError, handleDazError
+from .error import *
 from .utils import *
 
 R_FACE = 1
@@ -1085,7 +1085,7 @@ def setBoneName(bone, gen):
 #  Buttons
 #-------------------------------------------------------------
 
-class DAZ_OT_RigifyDaz(bpy.types.Operator):
+class DAZ_OT_RigifyDaz(DazOperator):
     bl_idname = "daz.rigify_daz"
     bl_label = "Convert To Rigify"
     bl_description = "Convert active rig to rigify"
@@ -1096,16 +1096,7 @@ class DAZ_OT_RigifyDaz(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and not ob.DazRigifyType)
 
-    def execute(self, context):
-        try:
-            self.rigifyDaz(context)
-        except DazError as err:
-            print("\nError when rigifying Daz rig:    \n%s" % err)
-            handleDazError(context)
-        return{'FINISHED'}
-
-
-    def rigifyDaz(self, context):
+    def run(self, context):
         import time
         t1 = time.clock()
         print("Modifying DAZ rig to Rigify")
@@ -1117,7 +1108,7 @@ class DAZ_OT_RigifyDaz(bpy.types.Operator):
         print("DAZ rig %s successfully rigified in %.3f seconds" % (rname, t2-t1))
 
 
-class DAZ_OT_CreateMeta(bpy.types.Operator):
+class DAZ_OT_CreateMeta(DazOperator):
     bl_idname = "daz.create_meta"
     bl_label = "Create Metarig"
     bl_description = "Create a metarig from the active rig"
@@ -1128,15 +1119,11 @@ class DAZ_OT_CreateMeta(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and not ob.DazRigifyType)
 
-    def execute(self, context):
-        try:
-            createMeta(context)
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        createMeta(context)
 
 
-class DAZ_OT_RigifyMetaRig(bpy.types.Operator):
+class DAZ_OT_RigifyMetaRig(DazOperator):
     bl_idname = "daz.rigify_meta"
     bl_label = "Rigify Metarig"
     bl_description = "Convert metarig to rigify"
@@ -1146,12 +1133,8 @@ class DAZ_OT_RigifyMetaRig(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.DazRigifyType)
 
-    def execute(self, context):
-        try:
-            rigifyMeta(context)
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        rigifyMeta(context)
 
 #-------------------------------------------------------------
 #   Rigify action
@@ -1175,7 +1158,7 @@ def listBones(context):
         print('    "%s" : ("", "%s"),' % (pb.name, pb.rotation_mode))
 
 
-class DAZ_OT_ListBones(bpy.types.Operator):
+class DAZ_OT_ListBones(DazOperator):
     bl_idname = "daz.list_bones"
     bl_label = "List Bones"
     bl_options = {'UNDO'}
@@ -1184,13 +1167,8 @@ class DAZ_OT_ListBones(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            listBones(context)
-        except DazError as err:
-            print("Error when listing bones: %s" % err)
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        listBones(context)
 
 #----------------------------------------------------------
 #   Initialize

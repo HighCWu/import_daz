@@ -310,7 +310,7 @@ def fitToMesh(context):
         v.co = src.data.vertices[v.index].co
 
 
-class DAZ_OT_FitToObject(bpy.types.Operator):
+class DAZ_OT_FitToObject(DazOperator):
     bl_idname = "daz.fit_mesh_to_other"
     bl_label = "Fit Mesh To Other"
     bl_description = "Fit current mesh to selected mesh"
@@ -320,18 +320,14 @@ class DAZ_OT_FitToObject(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            fitToMesh(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        fitToMesh(context)
 
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
-class DAZ_OT_ImportJson(bpy.types.Operator, JsonFile, MultiFile):
+class DAZ_OT_ImportJson(DazOperator, JsonFile, MultiFile):
     bl_idname = "daz.import_json"
     bl_label = "Import JSON Morph(s)"
     bl_description = "Import JSON file(s) (*.json) as morphs"
@@ -342,15 +338,7 @@ class DAZ_OT_ImportJson(bpy.types.Operator, JsonFile, MultiFile):
         return (context.object and context.object.type == 'MESH')
 
 
-    def execute(self, context):
-        try:
-            self.buildMorphs(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
-
-
-    def buildMorphs(self, context):
+    def run(self, context):
         from .fileutils import getMultiFiles
         objects = [ob for ob in getSceneObjects(context)
                    if getSelected(ob) and ob.type == 'MESH']

@@ -982,7 +982,7 @@ def saveNodesInTree(tree, images):
             saveNodesInTree(node.node_tree, images)
 
 
-class DAZ_OT_SaveLocalTextures(bpy.types.Operator):
+class DAZ_OT_SaveLocalTextures(DazOperator):
     bl_idname = "daz.save_local_textures"
     bl_label = "Save Local Textures"
     bl_description = "Copy textures to the textures subfolder in the blend file's directory"
@@ -992,12 +992,8 @@ class DAZ_OT_SaveLocalTextures(bpy.types.Operator):
     def poll(self, context):
         return context.object
 
-    def execute(self, context):
-        try:
-            saveLocalTextureCopies(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        saveLocalTextureCopies(context)
 
 #-------------------------------------------------------------
 #   Merge identical materials
@@ -1209,7 +1205,7 @@ def areSameInternal(mtexs1, mtexs2):
     return True
 
 
-class DAZ_OT_MergeMaterials(bpy.types.Operator):
+class DAZ_OT_MergeMaterials(DazOperator):
     bl_idname = "daz.merge_materials"
     bl_label = "Merge Materials"
     bl_description = "Merge identical materials"
@@ -1219,14 +1215,10 @@ class DAZ_OT_MergeMaterials(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            for ob in getSceneObjects(context):
-                if getSelected(ob):
-                    mergeMaterials(ob)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        for ob in getSceneObjects(context):
+           if getSelected(ob):
+               mergeMaterials(ob)
 
 # ---------------------------------------------------------------------
 #   Tweak bump strength and height
@@ -1388,7 +1380,7 @@ class ChannelChanger:
                     socket.default_value[n] *= scn.DazColorFactor[n]
          
     
-class DAZ_OT_ChangeChannel(bpy.types.Operator, ChannelChanger, SlotString, UseInternalBool):
+class DAZ_OT_ChangeChannel(DazOperator, ChannelChanger, SlotString, UseInternalBool):
     bl_idname = "daz.change_channel"
     bl_label = "Change Channel"
     bl_description = "Multiply active channel of all selected meshes"
@@ -1398,21 +1390,17 @@ class DAZ_OT_ChangeChannel(bpy.types.Operator, ChannelChanger, SlotString, UseIn
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            scn = context.scene
-            self.reset = False
-            for ob in getSceneObjects(context):
-                if getSelected(ob) and ob.type == 'MESH':
-                    key = scn.DazTweakableChannel
-                    item = self.getNewChannelFactor(ob, key)
-                    self.setChannel(ob, key, item, scn)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        scn = context.scene
+        self.reset = False
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob.type == 'MESH':
+                key = scn.DazTweakableChannel
+                item = self.getNewChannelFactor(ob, key)
+                self.setChannel(ob, key, item, scn)
 
 
-class DAZ_OT_ResetMaterial(bpy.types.Operator, ChannelChanger):
+class DAZ_OT_ResetMaterial(DazOperator, ChannelChanger):
     bl_idname = "daz.reset_material"
     bl_label = "Reset Material"
     bl_description = "Reset material to original"
@@ -1422,25 +1410,21 @@ class DAZ_OT_ResetMaterial(bpy.types.Operator, ChannelChanger):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            scn = context.scene
-            self.reset = True
-            for ob in getSceneObjects(context):
-                if getSelected(ob) and ob.type == 'MESH':
-                    for item in ob.DazChannelFactors:
-                        nodetype, slot, useAttr, factorAttr, ncomps = TweakableChannels[item.key]
-                        self.setChannel(ob, item.key, item, scn)
-                        item.new = True
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        scn = context.scene
+        self.reset = True
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob.type == 'MESH':
+                for item in ob.DazChannelFactors:
+                    nodetype, slot, useAttr, factorAttr, ncomps = TweakableChannels[item.key]
+                    self.setChannel(ob, item.key, item, scn)
+                    item.new = True
 
 # ---------------------------------------------------------------------
 #   Toggle SSS and displacement for BI
 # ---------------------------------------------------------------------
 
-class DAZ_OT_ToggleSSS(bpy.types.Operator):
+class DAZ_OT_ToggleSSS(DazOperator):
     bl_idname = "daz.toggle_sss"
     bl_label = "Toggle SSS"
     bl_description = "Toggle subsurface scattering on/off for selected meshes"
@@ -1450,7 +1434,7 @@ class DAZ_OT_ToggleSSS(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
+    def run(self, context):
         value = 0 if context.object.DazUseSSS else 1
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':
@@ -1465,10 +1449,9 @@ class DAZ_OT_ToggleSSS(bpy.types.Operator):
                         else:
                             mat.subsurface_scattering.use = value
                 ob.DazUseSSS = value
-        return{'FINISHED'}
 
 
-class DAZ_OT_ToggleDisplacement(bpy.types.Operator):
+class DAZ_OT_ToggleDisplacement(DazOperator):
     bl_idname = "daz.toggle_displacement"
     bl_label = "Toggle Displacement"
     bl_description = "Toggle displacement on/off for selected meshes"
@@ -1478,7 +1461,7 @@ class DAZ_OT_ToggleDisplacement(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
+    def run(self, context):
         value = False if context.object.DazUseDisplacement else True
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':
@@ -1490,13 +1473,12 @@ class DAZ_OT_ToggleDisplacement(bpy.types.Operator):
                             if mtex and mtex.use_map_displacement:
                                 mat.use_textures[n] = value
                 ob.DazUseDisplacement = value
-        return{'FINISHED'}
 
 # ---------------------------------------------------------------------
 #   Share materials
 # ---------------------------------------------------------------------
 
-class DAZ_OT_ShareMaterials(bpy.types.Operator):
+class DAZ_OT_ShareMaterials(DazOperator):
     bl_idname = "daz.share_materials"
     bl_label = "Share Materials"
     bl_description = "Share material of all selected meshes to active material"
@@ -1506,23 +1488,19 @@ class DAZ_OT_ShareMaterials(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            ob = context.object
-            mat = ob.data.materials[ob.active_material_index]
-            for ob in getSceneObjects(context):
-                if getSelected(ob) and ob.type == 'MESH':
-                    ob.data.materials.clear()
-                    ob.data.materials.append(mat)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        ob = context.object
+        mat = ob.data.materials[ob.active_material_index]
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob.type == 'MESH':
+                ob.data.materials.clear()
+                ob.data.materials.append(mat)
 
 # ---------------------------------------------------------------------
 #   Share materials
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LoadMaterial(bpy.types.Operator, DazImageFile, MultiFile):
+class DAZ_OT_LoadMaterial(DazOperator, DazImageFile, MultiFile):
     bl_idname = "daz.load_materials"
     bl_label = "Load Material(s)"
     bl_description = "Load materials to active mesh"
@@ -1532,13 +1510,8 @@ class DAZ_OT_LoadMaterial(bpy.types.Operator, DazImageFile, MultiFile):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            self.loadMaterials(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
-
+    def run(self, context):
+        self.loadMaterials(context)
 
     def invoke(self, context, event):
         from .fileutils import getFolder
@@ -1680,7 +1653,7 @@ class ChangeResolution:
         return newname, newpath
 
 
-class DAZ_OT_ChangeResolution(bpy.types.Operator, ResizeOptions, ChangeResolution):
+class DAZ_OT_ChangeResolution(DazOperator, ResizeOptions, ChangeResolution):
     bl_idname = "daz.change_resolution"
     bl_label = "Change Resolution"
     bl_description = (
@@ -1695,19 +1668,11 @@ class DAZ_OT_ChangeResolution(bpy.types.Operator, ResizeOptions, ChangeResolutio
     def draw(self, context):
         self.layout.prop(self, "steps")
 
-    def execute(self, context):
-        try:
-            self.changeResolution(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
-
     def invoke(self, context, event):
         context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
-
-    def changeResolution(self, context):
+    def run(self, context):
         self.overwrite = False
         self.getAllTextures(context)
         self.getFileNames(self.paths.keys())
@@ -1736,7 +1701,7 @@ class DAZ_OT_ChangeResolution(bpy.types.Operator, ResizeOptions, ChangeResolutio
                 self.resizeTree(node.node_tree)
 
 
-class DAZ_OT_ResizeTextures(bpy.types.Operator, ImageFile, MultiFile, ResizeOptions, ChangeResolution):
+class DAZ_OT_ResizeTextures(DazOperator, ImageFile, MultiFile, ResizeOptions, ChangeResolution):
     bl_idname = "daz.resize_textures"
     bl_label = "Resize Textures"
     bl_description = (
@@ -1748,20 +1713,13 @@ class DAZ_OT_ResizeTextures(bpy.types.Operator, ImageFile, MultiFile, ResizeOpti
     def poll(self, context):
         return (context.object and context.object.DazLocalTextures)
 
-    def execute(self, context):
-        try:
-            self.resizeTextures(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
-
     def invoke(self, context, event):
         texpath = os.path.join(os.path.dirname(bpy.data.filepath), "textures/")
         self.properties.filepath = texpath
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
-    def resizeTextures(self, context):
+    def run(self, context):
         from .fileutils import getMultiFiles
         from .globvars import theImageExtensions
         paths = getMultiFiles(self, theImageExtensions)

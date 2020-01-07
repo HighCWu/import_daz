@@ -311,7 +311,7 @@ class LegacyFigure(Figure):
 #   Print bone matrix
 #-------------------------------------------------------------
 
-class DAZ_OT_PrintMatrix(bpy.types.Operator):
+class DAZ_OT_PrintMatrix(DazOperator):
     bl_idname = "daz.print_matrix"
     bl_label = "Print Bone Matrix"
     bl_options = {'UNDO'}
@@ -320,7 +320,7 @@ class DAZ_OT_PrintMatrix(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
+    def run(self, context):
         pb = context.active_pose_bone
         print(pb.name)
         mat = pb.bone.matrix_local
@@ -328,10 +328,9 @@ class DAZ_OT_PrintMatrix(bpy.types.Operator):
         print(euler)
         print(Vector(euler)/D)
         print(mat)
-        return{'FINISHED'}
 
 
-class DAZ_OT_RotateBones(bpy.types.Operator):
+class DAZ_OT_RotateBones(DazOperator):
     bl_idname = "daz.rotate_bones"
     bl_label = "Rotate Bones"
     bl_description = "Rotate selected bones the same angle"
@@ -341,7 +340,7 @@ class DAZ_OT_RotateBones(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
+    def run(self, context):
         rig = context.object
         rot = Vector(rig.DazGlobalRotation)*D
         quat = Euler(rot).to_quaternion()
@@ -351,7 +350,6 @@ class DAZ_OT_RotateBones(bpy.types.Operator):
                     pb.rotation_quaternion = quat
                 else:
                     pb.rotation_euler = rot
-        return{'FINISHED'}
 
 #-------------------------------------------------------------
 #   Add extra face bones
@@ -493,7 +491,7 @@ def addExtraBones(rig, getBoneNames, type, attr):
                     vgrp.name = vgrp.name[:-3]
 
 
-class DAZ_OT_SetAddExtraFaceBones(bpy.types.Operator):
+class DAZ_OT_SetAddExtraFaceBones(DazOperator):
     bl_idname = "daz.add_extra_face_bones"
     bl_label = "Add Extra Face Bones"
     bl_description = "Add an extra layer of face bones, which can be both driven and posed"
@@ -503,15 +501,11 @@ class DAZ_OT_SetAddExtraFaceBones(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            addExtraBones(context.object, getFaceBoneNames, "face", "DazExtraFaceBones")
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        addExtraBones(context.object, getFaceBoneNames, "face", "DazExtraFaceBones")
 
 
-class DAZ_OT_MakeAllBonesPosable(bpy.types.Operator):
+class DAZ_OT_MakeAllBonesPosable(DazOperator):
     bl_idname = "daz.make_all_bones_posable"
     bl_label = "Make All Bones Posable"
     bl_description = "Add an extra layer of driven bones, to make them posable"
@@ -521,13 +515,8 @@ class DAZ_OT_MakeAllBonesPosable(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            addExtraBones(context.object, getDrivenBoneNames, "driven", "DazExtraDrivenBones")
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
-
+    def run(self, context):
+        addExtraBones(context.object, getDrivenBoneNames, "driven", "DazExtraDrivenBones")
 
 #-------------------------------------------------------------
 #   Toggle locks and constraints
@@ -540,7 +529,7 @@ def getRnaName(string):
         return string
 
 
-class DAZ_OT_ToggleRotLocks(bpy.types.Operator):
+class DAZ_OT_ToggleRotLocks(DazOperator):
     bl_idname = "daz.toggle_rot_locks"
     bl_label = "Toggle Rotation Locks"
     bl_description = "Toggle rotation locks"
@@ -550,7 +539,7 @@ class DAZ_OT_ToggleRotLocks(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
+    def run(self, context):
         rig = context.object
         if rig.DazUseRotLocks:
             for pb in rig.pose.bones:
@@ -561,10 +550,9 @@ class DAZ_OT_ToggleRotLocks(bpy.types.Operator):
             for pb in rig.pose.bones:
                 pb.lock_rotation = pb.DazRotLocks
             rig.DazUseRotLocks = True
-        return{'FINISHED'}
 
 
-class DAZ_OT_ToggleLocLocks(bpy.types.Operator):
+class DAZ_OT_ToggleLocLocks(DazOperator):
     bl_idname = "daz.toggle_loc_locks"
     bl_label = "Toggle Location Locks"
     bl_description = "Toggle location locks"
@@ -574,7 +562,7 @@ class DAZ_OT_ToggleLocLocks(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
+    def run(self, context):
         rig = context.object
         if rig.DazUseLocLocks:
             for pb in rig.pose.bones:
@@ -585,10 +573,9 @@ class DAZ_OT_ToggleLocLocks(bpy.types.Operator):
             for pb in rig.pose.bones:
                 pb.lock_location = pb.DazLocLocks
             rig.DazUseLocLocks = True
-        return{'FINISHED'}
 
 
-class DAZ_OT_ToggleLimits(bpy.types.Operator):
+class DAZ_OT_ToggleLimits(DazOperator):
     bl_idname = "daz.toggle_limits"
     bl_label = "Toggle Limits"
     bl_description = "Toggle rotation limits"
@@ -598,14 +585,13 @@ class DAZ_OT_ToggleLimits(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
+    def run(self, context):
         rig = context.object
         for pb in rig.pose.bones:
             for cns in pb.constraints:
                 if cns.type[0:5] == "LIMIT":
                     cns.mute = rig.DazUseLimits
         rig.DazUseLimits = not rig.DazUseLimits
-        return{'FINISHED'}
 
 #----------------------------------------------------------
 #   Initialize

@@ -194,7 +194,7 @@ def findPolys(context):
                 hf.select = True
 
 
-class DAZ_OT_FindPolys(bpy.types.Operator):
+class DAZ_OT_FindPolys(DazOperator):
     bl_idname = "daz.find_polys"
     bl_label = "Find Polys"
     bl_options = {'UNDO'}
@@ -203,13 +203,9 @@ class DAZ_OT_FindPolys(bpy.types.Operator):
     def poll(self, context):
         return context.object
 
-    def execute(self, context):
+    def run(self, context):
         checkObjectMode(context)
-        try:
-            findPolys(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        findPolys(context)
 
 #-------------------------------------------------------------
 #   Make faithful proxy
@@ -903,15 +899,8 @@ class MakeProxy():
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
+    def run(self, context):
         checkObjectMode(context)
-        try:
-            self.makeProxies(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-    def makeProxies(self, context):
         meshes,active = getSelectedObjects(context, 'MESH')
         print("-----")
         errors = []
@@ -927,7 +916,7 @@ class MakeProxy():
             raise DazError(msg)
 
 
-class DAZ_OT_MakeQuickProxy(MakeProxy, bpy.types.Operator):
+class DAZ_OT_MakeQuickProxy(MakeProxy, DazOperator):
     bl_idname = "daz.make_quick_proxy"
     bl_label = "Make Quick Low-poly"
     bl_description = "Replace all selected meshes by low-poly versions, using a quick algorithm that does not preserve UV seams"
@@ -945,7 +934,7 @@ class DAZ_OT_MakeQuickProxy(MakeProxy, bpy.types.Operator):
         return ob
 
 
-class DAZ_OT_MakeFaithfulProxy(MakeProxy, bpy.types.Operator):
+class DAZ_OT_MakeFaithfulProxy(MakeProxy, DazOperator):
     bl_idname = "daz.make_faithful_proxy"
     bl_label = "Make Faithful Low-poly"
     bl_description = "Replace all selected meshes by low-poly versions, using a experimental algorithm that does preserve UV seams"
@@ -959,7 +948,7 @@ class DAZ_OT_MakeFaithfulProxy(MakeProxy, bpy.types.Operator):
 #   Quadify
 #-------------------------------------------------------------
 
-class DAZ_OT_Quadify(MakeProxy, bpy.types.Operator):
+class DAZ_OT_Quadify(MakeProxy, DazOperator):
     bl_idname = "daz.quadify"
     bl_label = "Quadify Triangles"
     bl_description = "Join triangles to quads"
@@ -969,7 +958,7 @@ class DAZ_OT_Quadify(MakeProxy, bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
+    def run(self, context):
         meshes,active = getSelectedObjects(context, 'MESH')
         print("-----")
         errors = []
@@ -984,7 +973,6 @@ class DAZ_OT_Quadify(MakeProxy, bpy.types.Operator):
             bpy.ops.object.mode_set(mode='OBJECT')
             printStatistics(ob)
         restoreSelectedObjects(context, meshes, active)
-        return {'FINISHED'}
 
 
 def getSelectedObjects(context, type):
@@ -1034,19 +1022,15 @@ def proxifyAll(context):
     bpy.data.meshes.remove(dummy)
 
 
-class DAZ_OT_ProxifyAll(bpy.types.Operator, UseAllBool):
+class DAZ_OT_ProxifyAll(DazOperator, UseAllBool):
     bl_idname = "daz.proxify_all"
     bl_label = "Make All Low-Poly"
     bl_description = "Replace all (selected) meshes by low-poly versions"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         checkObjectMode(context)
-        try:
-            proxifyAll(context, self.useAll)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        proxifyAll(context, self.useAll)
 
 #-------------------------------------------------------------
 #   Split n-gons
@@ -1069,7 +1053,7 @@ def splitNgons(ob, context):
     printStatistics(ob)
 
 
-class DAZ_OT_SplitNgons(bpy.types.Operator):
+class DAZ_OT_SplitNgons(DazOperator):
     bl_idname = "daz.split_ngons"
     bl_label = "Split n-gons"
     bl_description = "Split all polygons with five or more corners into triangles"
@@ -1079,16 +1063,12 @@ class DAZ_OT_SplitNgons(bpy.types.Operator):
     def poll(self, context):
         return context.object and context.object.type == 'MESH'
 
-    def execute(self, context):
-        try:
-            meshes,active = getSelectedObjects(context, 'MESH')
-            for ob in meshes:
-                print("\nSplit n-gons of %s" % ob.name)
-                splitNgons(ob, context)
-            restoreSelectedObjects(context, meshes, active)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        meshes,active = getSelectedObjects(context, 'MESH')
+        for ob in meshes:
+            print("\nSplit n-gons of %s" % ob.name)
+            splitNgons(ob, context)
+        restoreSelectedObjects(context, meshes, active)
 
 #-------------------------------------------------------------
 #   Find seams
@@ -1147,7 +1127,7 @@ def findSeams(ob):
     return  faceverts, vertfaces, neighbors,seams
 
 
-class DAZ_OT_FindSeams(bpy.types.Operator):
+class DAZ_OT_FindSeams(DazOperator):
     bl_idname = "daz.find_seams"
     bl_label = "Find Seams"
     bl_description = "Create seams based on existing UVs"
@@ -1157,19 +1137,15 @@ class DAZ_OT_FindSeams(bpy.types.Operator):
     def poll(self, context):
         return context.object and context.object.type == 'MESH'
 
-    def execute(self, context):
+    def run(self, context):
         checkObjectMode(context)
-        try:
-            findSeams(context.object)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        findSeams(context.object)
 
 #-------------------------------------------------------------
 #   Select random strands
 #-------------------------------------------------------------
 
-class DAZ_OT_SelectRandomStrands(bpy.types.Operator):
+class DAZ_OT_SelectRandomStrands(DazOperator):
     bl_idname = "daz.select_random_strands"
     bl_label = "Select Random Strands"
     bl_description = "Select random subset of strands selected in UV space"
@@ -1179,14 +1155,10 @@ class DAZ_OT_SelectRandomStrands(bpy.types.Operator):
     def poll(self, context):
         return context.object and context.object.type == 'MESH'
 
-    def execute(self, context):
+    def run(self, context):
         checkObjectMode(context)
-        try:
-            ob = context.object
-            Proxifier(ob).selectRandomComponents(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        ob = context.object
+        Proxifier(ob).selectRandomComponents(context)
 
 #-------------------------------------------------------------
 #  Apply morphs
@@ -1207,7 +1179,7 @@ def applyShapeKeys(ob):
             v.co = coords[v.index]
 
 
-class DAZ_OT_ApplyMorphs(bpy.types.Operator):
+class DAZ_OT_ApplyMorphs(DazOperator):
     bl_idname = "daz.apply_morphs"
     bl_label = "Apply Morphs"
     bl_description = "Apply all shapekeys"
@@ -1217,15 +1189,11 @@ class DAZ_OT_ApplyMorphs(bpy.types.Operator):
     def poll(self, context):
         return context.object and context.object.type == 'MESH'
 
-    def execute(self, context):
+    def run(self, context):
         checkObjectMode(context)
-        try:
-            for ob in getSceneObjects(context):
-                if getSelected(ob):
-                    applyShapeKeys(ob)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        for ob in getSceneObjects(context):
+            if getSelected(ob):
+                applyShapeKeys(ob)
 
 #-------------------------------------------------------------
 #   Print statistics
@@ -1236,7 +1204,7 @@ def printStatistics(ob):
         (len(ob.data.vertices), len(ob.data.edges), len(ob.data.polygons)))
 
 
-class DAZ_OT_PrintStatistics(bpy.types.Operator):
+class DAZ_OT_PrintStatistics(DazOperator):
     bl_idname = "daz.print_statistics"
     bl_label = "Print Statistics"
     bl_options = {'UNDO'}
@@ -1245,17 +1213,13 @@ class DAZ_OT_PrintStatistics(bpy.types.Operator):
     def poll(self, context):
         return context.object and context.object.type == 'MESH'
 
-    def execute(self, context):
+    def run(self, context):
         checkObjectMode(context)
         print("--------- Statistics ------------")
-        try:
-            for ob in getSceneObjects(context):
-                if getSelected(ob) and ob.type == 'MESH':
-                    print("Object: %s" % ob.name)
-                    printStatistics(ob)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob.type == 'MESH':
+                print("Object: %s" % ob.name)
+                printStatistics(ob)
 
 #-------------------------------------------------------------
 #   Add mannequin
@@ -1427,7 +1391,7 @@ def addMannequin(ob, context, rig, coll, mangrp):
     return nobs
 
 
-class DAZ_OT_AddMannequin(bpy.types.Operator):
+class DAZ_OT_AddMannequin(DazOperator):
     bl_idname = "daz.add_mannequin"
     bl_label = "Add Mannequins"
     bl_description = "Add mannequins to selected meshes. Don't change rig after this."
@@ -1437,13 +1401,9 @@ class DAZ_OT_AddMannequin(bpy.types.Operator):
     def poll(self, context):
         return context.object and context.object.type == 'MESH'
 
-    def execute(self, context):
+    def run(self, context):
         checkObjectMode(context)
-        try:
-            addMannequins(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        addMannequins(context)
 
 #-------------------------------------------------------------
 #   Add push
@@ -1467,7 +1427,7 @@ def addPush(context):
         raise DazError(msg, True)
 
 
-class DAZ_OT_AddPush(bpy.types.Operator):
+class DAZ_OT_AddPush(DazOperator):
     bl_idname = "daz.add_push"
     bl_label = "Add Push"
     bl_description = "Add a push shapekey"
@@ -1477,13 +1437,9 @@ class DAZ_OT_AddPush(bpy.types.Operator):
     def poll(self, context):
         return context.object and context.object.type == 'MESH'
 
-    def execute(self, context):
+    def run(self, context):
         checkObjectMode(context)
-        try:
-            addPush(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        addPush(context)
 
 #-------------------------------------------------------------
 #   Add subsurf
@@ -1497,7 +1453,7 @@ def addSubsurf(context):
             mod.render_levels = 1
 
 
-class DAZ_OT_AddSubsurf(bpy.types.Operator):
+class DAZ_OT_AddSubsurf(DazOperator):
     bl_idname = "daz.add_subsurf"
     bl_label = "Add Subsurf"
     bl_description = "Add a subsurf modifier"
@@ -1507,19 +1463,15 @@ class DAZ_OT_AddSubsurf(bpy.types.Operator):
     def poll(self, context):
         return context.object and context.object.type == 'MESH'
 
-    def execute(self, context):
+    def run(self, context):
         checkObjectMode(context)
-        try:
-            addSubsurf(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        addSubsurf(context)
 
 #-------------------------------------------------------------
 #   Make deflection
 #-------------------------------------------------------------
 
-class DAZ_OT_MakeDeflection(bpy.types.Operator):
+class DAZ_OT_MakeDeflection(DazOperator):
     bl_idname = "daz.make_deflection"
     bl_label = "Make Deflection"
     bl_description = "Make a deflection object"
@@ -1529,14 +1481,7 @@ class DAZ_OT_MakeDeflection(bpy.types.Operator):
     def poll(self, context):
         return context.object and context.object.type == 'MESH'
 
-    def execute(self, context):
-        try:
-            self.make(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-    def make(self, context):
+    def run(self, context):
         from .load_json import loadJson
         ob = context.object
         coll = getCollection(context)

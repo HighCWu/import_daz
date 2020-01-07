@@ -340,18 +340,14 @@ def updateCyclesInternal(context):
     print("Materials updated for %s" % scn.render.engine)
 
 
-class DAZ_OT_UpdateForEngine(bpy.types.Operator):
+class DAZ_OT_UpdateForEngine(DazOperator):
     bl_idname = "daz.update_for_engine"
     bl_label = "Update For Engine"
     bl_description = "Update all materials for the current render engine"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            updateForEngine(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        updateForEngine(context)
 
 #----------------------------------------------------------
 #   Initialize

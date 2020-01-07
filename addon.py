@@ -29,6 +29,7 @@ import os
 import importlib
 import sys
 import bpy
+from .error import *
 if bpy.app.version < (2,80,0):
     from .buttons27 import NameString
 else:
@@ -134,12 +135,12 @@ def unregisterAddon(module):
         print("Could not unregister addon %s because %s" % (module.__name__, value))
 
 
-class DAZ_OT_EnableAddon(bpy.types.Operator, NameString):
+class DAZ_OT_EnableAddon(DazOperator, NameString):
     bl_idname = "daz.enable_addon"
     bl_label = ""
     bl_description = "Enable/Disable add-on"
 
-    def execute(self, context):
+    def run(self, context):
         global theAddons
         module,enabled,show,bl_info = theAddons[self.name]
         if enabled:
@@ -150,30 +151,28 @@ class DAZ_OT_EnableAddon(bpy.types.Operator, NameString):
             theAddons[self.name] = module,True,show,bl_info
             registerAddon(module)
             print("Add-on %s enabled" % self.name)
-        return{'FINISHED'}
 
 
-class DAZ_OT_ShowAddon(bpy.types.Operator, NameString):
+class DAZ_OT_ShowAddon(DazOperator, NameString):
     bl_idname = "daz.show_addon"
     bl_label = ""
     bl_description = "Show/Hide add-on"
 
-    def execute(self, context):
+    def run(self, context):
         global theAddons
         module,enabled,show,bl_info = theAddons[self.name]
         if show:
             theAddons[self.name] = module,enabled,False,bl_info
         else:
             theAddons[self.name] = module,enabled,True,bl_info
-        return{'FINISHED'}
 
 
-class DAZ_OT_SaveAddons(bpy.types.Operator, NameString):
+class DAZ_OT_SaveAddons(DazOperator, NameString):
     bl_idname = "daz.save_addons"
     bl_label = "Save Settings"
     bl_description = "Save add-ons settings"
 
-    def execute(self, context):
+    def run(self, context):
         import json
         from .fileutils import getHomeDir, safeOpen
         addons = []
@@ -187,17 +186,15 @@ class DAZ_OT_SaveAddons(bpy.types.Operator, NameString):
         with safeOpen(filepath, "w", dirMustExist=True, mustOpen=True) as fp:
             fp.write(string)
         print("Settings file %s saved" % filepath)
-        return{'FINISHED'}
 
 
-class DAZ_OT_RefreshAddons(bpy.types.Operator, NameString):
+class DAZ_OT_RefreshAddons(DazOperator, NameString):
     bl_idname = "daz.refresh_addons"
     bl_label = "Refresh"
     bl_description = "Reload add-ons"
 
-    def execute(self, context):
+    def run(self, context):
         loadAllAddons()
-        return{'FINISHED'}
 
 #----------------------------------------------------------
 #   Initialize

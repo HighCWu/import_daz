@@ -83,7 +83,6 @@ def fixCustomShape(rig, bnames, factor, offset=0):
     for bname in bnames:
         if bname in rig.pose.bones.keys():
             pb = rig.pose.bones[bname] 
-            print("UU", bname)
             if pb.custom_shape:
                 pb.custom_shape_scale = factor
                 if offset:
@@ -374,7 +373,7 @@ def pruneVertexGroups(ob):
                 vgrp.remove([vn])
 
 
-class DAZ_OT_PruneVertexGroups(bpy.types.Operator):
+class DAZ_OT_PruneVertexGroups(DazOperator):
     bl_idname = "daz.prune_vertex_groups"
     bl_label = "Prune Vertex Groups"
     bl_description = "Remove vertices and groups with zero weights"
@@ -384,14 +383,10 @@ class DAZ_OT_PruneVertexGroups(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            for ob in getSceneObjects(context):
-                if getSelected(ob) and ob.type == 'MESH':
-                    pruneVertexGroups(ob)
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob.type == 'MESH':
+                pruneVertexGroups(ob)
 
 #-------------------------------------------------------------
 #   Add IK goals
@@ -433,7 +428,7 @@ def addIkGoals(rig):
         cns.use_rotation = True
 
 
-class DAZ_OT_AddIkGoals(bpy.types.Operator):
+class DAZ_OT_AddIkGoals(DazOperator):
     bl_idname = "daz.add_ik_goals"
     bl_label = "Add IK goals"
     bl_description = "Add IK goals"
@@ -443,13 +438,8 @@ class DAZ_OT_AddIkGoals(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            addIkGoals(context.object)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
-
+    def run(self, context):
+        addIkGoals(context.object)
 
 #-------------------------------------------------------------
 #   Add Winder
@@ -512,7 +502,7 @@ def addWinder(context):
         #cns2.influence = infl
 
 
-class DAZ_OT_AddWinder(bpy.types.Operator):
+class DAZ_OT_AddWinder(DazOperator):
     bl_idname = "daz.add_winder"
     bl_label = "Add Winder"
     bl_description = "Add winder to active posebone"
@@ -522,13 +512,8 @@ class DAZ_OT_AddWinder(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            addWinder(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
-
+    def run(self, context):
+        addWinder(context)
 
 #-------------------------------------------------------------
 #   Add To Group
@@ -546,18 +531,14 @@ def addToGroup(context):
             group.objects.link(ob)
 
 
-class DAZ_OT_AddToGroup(bpy.types.Operator):
+class DAZ_OT_AddToGroup(DazOperator):
     bl_idname = "daz.add_to_group"
     bl_label = "Add To Group"
     bl_description = "Add all selected objects to group"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            addToGroup(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        addToGroup(context)
 
 #-------------------------------------------------------------
 #   Remove from groups
@@ -578,18 +559,14 @@ def removeFromGroups(context):
                 group.objects.unlink(ob)
 
 
-class DAZ_OT_RemoveFromGroups(bpy.types.Operator):
+class DAZ_OT_RemoveFromGroups(DazOperator):
     bl_idname = "daz.remove_from_groups"
     bl_label = "Remove From Group(s)"
     bl_description = "Remove selected objects from group (or all groups if none given)"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            removeFromGroups(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        removeFromGroups(context)
 
 #----------------------------------------------------------
 #   Initialize

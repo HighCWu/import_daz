@@ -569,7 +569,7 @@ def pruneUvMaps(ob):
             getUvTextures(ob.data).remove(uvtex)
             
 
-class DAZ_OT_PruneUvMaps(bpy.types.Operator):
+class DAZ_OT_PruneUvMaps(DazOperator):
     bl_idname = "daz.prune_uv_maps"
     bl_label = "Prune UV Maps"
     bl_description = "Remove unused UV maps"
@@ -580,15 +580,11 @@ class DAZ_OT_PruneUvMaps(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            bpy.ops.object.mode_set(mode='OBJECT')
-            for ob in getSceneObjects(context):
-                if ob.type == 'MESH' and getSelected(ob):
-                    pruneUvMaps(ob)                    
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}   
+    def run(self, context):
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for ob in getSceneObjects(context):
+            if ob.type == 'MESH' and getSelected(ob):
+                pruneUvMaps(ob)                    
         
 #-------------------------------------------------------------
 #   Collaps UDims
@@ -637,7 +633,7 @@ def addUdimsToUVs(ob, restore, udim, vdim):
                 m += 1
 
 
-class DAZ_OT_CollapseUDims(bpy.types.Operator):
+class DAZ_OT_CollapseUDims(DazOperator):
     bl_idname = "daz.collapse_udims"
     bl_label = "Collapse UDIMs"
     bl_description = "Restrict UV coordinates to the [0:1] range"
@@ -648,18 +644,14 @@ class DAZ_OT_CollapseUDims(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH' and not ob.DazUDimsCollapsed)
 
-    def execute(self, context):
-        try:
-            bpy.ops.object.mode_set(mode='OBJECT')
-            for ob in getSceneObjects(context):
-                if ob.type == 'MESH' and getSelected(ob):
-                    collapseUDims(ob)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for ob in getSceneObjects(context):
+            if ob.type == 'MESH' and getSelected(ob):
+                collapseUDims(ob)
 
 
-class DAZ_OT_RestoreUDims(bpy.types.Operator):
+class DAZ_OT_RestoreUDims(DazOperator):
     bl_idname = "daz.restore_udims"
     bl_label = "Restore UDIMs"
     bl_description = "Restore original UV coordinates outside the [0:1] range"
@@ -670,21 +662,17 @@ class DAZ_OT_RestoreUDims(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH' and ob.DazUDimsCollapsed)
 
-    def execute(self, context):
-        try:
-            bpy.ops.object.mode_set(mode='OBJECT')
-            for ob in getSceneObjects(context):
-                if ob.type == 'MESH' and getSelected(ob):
-                    restoreUDims(ob)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for ob in getSceneObjects(context):
+            if ob.type == 'MESH' and getSelected(ob):
+                restoreUDims(ob)
 
 #-------------------------------------------------------------
 #   Solidify thin walls
 #-------------------------------------------------------------
 
-class DAZ_OT_SolidifyThinWalls(bpy.types.Operator):
+class DAZ_OT_SolidifyThinWalls(DazOperator):
     bl_idname = "daz.solidify_thin_walls"
     bl_label = "Solidify Thin Walls"
     bl_description = "Create solidify modifiers for materials with thin wall refraction"
@@ -695,15 +683,7 @@ class DAZ_OT_SolidifyThinWalls(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            self.solidify(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-
-    def solidify(self, context):
+    def run(self, context):
         for ob in getSceneObjects(context):
             setSelected(ob, False)
         ob = context.object
@@ -755,7 +735,7 @@ class DAZ_OT_SolidifyThinWalls(bpy.types.Operator):
 #   Load UVs
 #-------------------------------------------------------------
 
-class DAZ_OT_LoadUV(bpy.types.Operator, DazFile, SingleFile):
+class DAZ_OT_LoadUV(DazOperator, DazFile, SingleFile):
     bl_idname = "daz.load_uv"
     bl_label = "Load UV Set"
     bl_description = "Load a UV set to the active mesh"
@@ -766,14 +746,6 @@ class DAZ_OT_LoadUV(bpy.types.Operator, DazFile, SingleFile):
         ob = context.object
         return (ob and ob.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            self.loadUV(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-
     def invoke(self, context, event):
         from .fileutils import getFolder
         folder = getFolder(context.object, context.scene, ["UV Sets/", ""])
@@ -783,7 +755,7 @@ class DAZ_OT_LoadUV(bpy.types.Operator, DazFile, SingleFile):
         return {'RUNNING_MODAL'}
 
 
-    def loadUV(self, context):
+    def run(self, context):
         from .readfile import readDufFile
         from .files import parseAssetFile
 
@@ -834,7 +806,7 @@ def shareMyMesh(mesh, context):
             ob.data = mesh
 
 
-class DAZ_OT_ShareMeshes(bpy.types.Operator):
+class DAZ_OT_ShareMeshes(DazOperator):
     bl_idname = "daz.share_meshes"
     bl_label = "Share Meshes"
     bl_description = "Share meshes of all selected objects to active mesh"
@@ -844,15 +816,11 @@ class DAZ_OT_ShareMeshes(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            for ob in getSceneObjects(context):
-                if getSelected(ob) and ob.type == 'MESH':
-                    print("Share with", ob.name)
-                    shareMyMesh(ob.data, context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob.type == 'MESH':
+                print("Share with", ob.name)
+                shareMyMesh(ob.data, context)
 
 #----------------------------------------------------------
 #   Initialize

@@ -28,6 +28,7 @@
 
 import bpy
 from .utils import *
+from .error import *
 
 #-------------------------------------------------------------
 #   Fingerprints
@@ -89,28 +90,24 @@ def isCharacter(node):
     return False
 
 
-class DAZ_OT_GetFingerPrint(bpy.types.Operator):
+class DAZ_OT_GetFingerPrint(DazOperator):
     bl_idname = "daz.get_finger_print"
     bl_label = "Get Fingerprint"
     bl_description = "Get fingerprint of active character"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            ob = context.object
-            print("------ Fingerprint for %s" % ob.name)
-            rig,mesh,char = getFingeredCharacter(ob)
-            if mesh:
-                finger = getFingerPrint(mesh)
-            else:
-                finger = None
-            print("Rig: ", rig)
-            print("Mesh: ", mesh)
-            print("Char: ", char)
-            print("Finger: ", finger)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        ob = context.object
+        print("------ Fingerprint for %s" % ob.name)
+        rig,mesh,char = getFingeredCharacter(ob)
+        if mesh:
+            finger = getFingerPrint(mesh)
+        else:
+            finger = None
+        print("Rig: ", rig)
+        print("Mesh: ", mesh)
+        print("Char: ", char)
+        print("Finger: ", finger)
 
 
 def getRigMeshes(context):

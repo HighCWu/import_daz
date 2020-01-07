@@ -594,18 +594,14 @@ def updateAll(context):
             restoreBoneDrivers(ob, drivers, "")
 
 
-class DAZ_OT_UpdateAll(bpy.types.Operator):
+class DAZ_OT_UpdateAll(DazOperator):
     bl_idname = "daz.update_all"
     bl_label = "Update All"
     bl_description = "Update everything. Try this if driven bones are messed up"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            updateAll(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        updateAll(context)
 
 #-------------------------------------------------------------
 #   Restore shapekey drivers
@@ -632,7 +628,7 @@ def restoreShapekeyDrivers(ob):
                 trg.data_path = '["%s"]' % sname
 
 
-class DAZ_OT_RestoreDrivers(bpy.types.Operator):
+class DAZ_OT_RestoreDrivers(DazOperator):
     bl_idname = "daz.restore_shapekey_drivers"
     bl_label = "Restore Drivers"
     bl_description = "Restore corrupt shapekey drivers, or change driver target"
@@ -642,12 +638,8 @@ class DAZ_OT_RestoreDrivers(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            restoreShapekeyDrivers(context.object)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        restoreShapekeyDrivers(context.object)
 
 #----------------------------------------------------------
 #   Transfer and remove drivers
@@ -686,7 +678,7 @@ def removeTypedDrivers(rna, type):
                 rna.driver_remove(fcu.data_path)
 
 
-class DAZ_OT_RemoveUnusedDrivers(bpy.types.Operator):
+class DAZ_OT_RemoveUnusedDrivers(DazOperator):
     bl_idname = "daz.remove_unused_drivers"
     bl_label = "Remove Unused Drivers"
     bl_description = "Remove unused drivers"
@@ -696,14 +688,10 @@ class DAZ_OT_RemoveUnusedDrivers(bpy.types.Operator):
     def poll(self, context):
         return context.object
 
-    def execute(self, context):
-        try:
-            for ob in getSceneObjects(context):
-                if getSelected(ob):
-                    removeUnusedDrivers(context, ob)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        for ob in getSceneObjects(context):
+            if getSelected(ob):
+                removeUnusedDrivers(context, ob)
 
 #----------------------------------------------------------
 #   Retarget drivers
@@ -729,7 +717,7 @@ def retargetRna(rna, rig):
                     trg.id = rig
 
 
-class DAZ_OT_RetargetDrivers(bpy.types.Operator):
+class DAZ_OT_RetargetDrivers(DazOperator):
     bl_idname = "daz.retarget_mesh_drivers"
     bl_label = "Retarget Mesh Drivers"
     bl_description = "Retarget drivers of selected objects to active object"
@@ -739,21 +727,17 @@ class DAZ_OT_RetargetDrivers(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            rig = context.object
-            for ob in getSceneObjects(context):
-                if getSelected(ob):
-                    retargetDrivers(context, ob, rig)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        rig = context.object
+        for ob in getSceneObjects(context):
+            if getSelected(ob):
+                retargetDrivers(context, ob, rig)
 
 #----------------------------------------------------------
 #   Copy props
 #----------------------------------------------------------
 
-class DAZ_OT_CopyProps(bpy.types.Operator):
+class DAZ_OT_CopyProps(DazOperator):
     bl_idname = "daz.copy_props"
     bl_label = "Copy Props"
     bl_description = "Copy properties from selected objects to active object"
@@ -763,17 +747,13 @@ class DAZ_OT_CopyProps(bpy.types.Operator):
     def poll(self, context):
         return (context.object)
 
-    def execute(self, context):
-        try:
-            rig = context.object
-            for ob in getSceneObjects(context):
-                if getSelected(ob) and ob != rig:
-                    for key in ob.keys():
-                        if key not in rig.keys():
-                            rig[key] = ob[key]
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        rig = context.object
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob != rig:
+                for key in ob.keys():
+                    if key not in rig.keys():
+                        rig[key] = ob[key]
 
 #----------------------------------------------------------
 #   Copy drivers
@@ -801,7 +781,7 @@ def copyBoneDrivers(rig1, rig2):
                 copyPropGroups(rig1, rig2, pb2)
 
 
-class DAZ_OT_CopyBoneDrivers(bpy.types.Operator):
+class DAZ_OT_CopyBoneDrivers(DazOperator):
     bl_idname = "daz.copy_bone_drivers"
     bl_label = "Copy Bone Drivers"
     bl_description = "Copy bone drivers from selected rig to active rig"
@@ -811,17 +791,13 @@ class DAZ_OT_CopyBoneDrivers(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            rig = context.object
-            for ob in getSceneObjects(context):
-                if getSelected(ob) and ob != rig and ob.type == 'ARMATURE':
-                    copyBoneDrivers(ob, rig)
-                    return {'FINISHED'}
-            raise DazError("Need two selected armatures")
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+    def run(self, context):
+        rig = context.object
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob != rig and ob.type == 'ARMATURE':
+                copyBoneDrivers(ob, rig)
+                return
+        raise DazError("Need two selected armatures")
 
 #----------------------------------------------------------
 #   Initialize

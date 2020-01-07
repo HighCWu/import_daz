@@ -1355,7 +1355,7 @@ class PoserBase(PoserFile, SingleFile):
         return getFilePath(self.filepath, thePoserExtensions)
 
 
-class DAZ_OT_LoadAssets(bpy.types.Operator, PoserBase, ScaleLock):
+class DAZ_OT_LoadAssets(DazOperator, PoserBase, ScaleLock):
     bl_idname = "daz.import_poser"
     bl_label = "Import Poser File"
     bl_description = "Import a native DAZ file (%s)" % thePoserDefaults
@@ -1378,15 +1378,11 @@ class DAZ_OT_LoadAssets(bpy.types.Operator, PoserBase, ScaleLock):
         self.layout.prop(self, "lockMeshes")
 
 
-    def execute(self, context):
+    def run(self, context):
         global the
-        try:
-            the = The(self, context.scene, False)
-            filepath = self.getPoserFilePath()
-            loadPoserFiles(filepath, context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+        the = The(self, context.scene, False)
+        filepath = self.getPoserFilePath()
+        loadPoserFiles(filepath, context)
 
 #----------------------------------------------------------
 #   Initialize

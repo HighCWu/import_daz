@@ -308,15 +308,6 @@ class AnimatorBase(AnimatorFile, MultiFile, FrameConverter):
     def poll(self, context):
         return (context.object and context.object.type in ['MESH', 'ARMATURE'])
 
-
-    def execute(self, context):
-        try:
-            self.getAnimations(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
@@ -714,7 +705,7 @@ def nameAction(self, ob, scn):
 
 class StandardAnimation:
 
-    def getAnimations(self, context):
+    def run(self, context):
         import time
         from .main import finishMain
         from .poser import loadPoserAnimation
@@ -768,7 +759,7 @@ class StandardAnimation:
                 "Check results carefully.", warning=True)
 
 
-class DAZ_OT_ImportNodePoses(bpy.types.Operator, AffectOptions, ConvertOptions, ActionOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportNodePoses(DazOperator, AffectOptions, ConvertOptions, ActionOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_node_poses"
     bl_label = "Import Node Poses"
     bl_description = "Import node poses from native DAZ file(s) (*.duf, *.dsf)"
@@ -783,7 +774,7 @@ class DAZ_OT_ImportNodePoses(bpy.types.Operator, AffectOptions, ConvertOptions, 
         ActionOptions.draw(self, context)
 
 
-class DAZ_OT_ImportAction(bpy.types.Operator, AffectOptions, ConvertOptions, ActionOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportAction(DazOperator, AffectOptions, ConvertOptions, ActionOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_action"
     bl_label = "Import Action"
     bl_description = "Import poses from native DAZ file(s) (*.duf, *.dsf) to action"
@@ -797,11 +788,11 @@ class DAZ_OT_ImportAction(bpy.types.Operator, AffectOptions, ConvertOptions, Act
         ConvertOptions.draw(self, context)
         ActionOptions.draw(self, context)
 
-    def execute(self, context):
-        return AnimatorBase.execute(self, context)
+    def run(self, context):
+        StandardAnimation.run(self, context)
 
 
-class DAZ_OT_ImportPoseLib(bpy.types.Operator, AffectOptions, ConvertOptions, PoseLibOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportPoseLib(DazOperator, AffectOptions, ConvertOptions, PoseLibOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_poselib"
     bl_label = "Import Pose Library"
     bl_description = "Import poses from native DAZ file(s) (*.duf, *.dsf) to pose library"
@@ -816,11 +807,11 @@ class DAZ_OT_ImportPoseLib(bpy.types.Operator, AffectOptions, ConvertOptions, Po
         ConvertOptions.draw(self, context)
         PoseLibOptions.draw(self, context)
 
-    def execute(self, context):
-        return AnimatorBase.execute(self, context)
+    def run(self, context):
+        StandardAnimation.run(self, context)
 
 
-class DAZ_OT_ImportSinglePose(bpy.types.Operator, AffectOptions, ConvertOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportSinglePose(DazOperator, AffectOptions, ConvertOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_single_pose"
     bl_label = "Import Pose"
     bl_description = "Import a pose from native DAZ file(s) (*.duf, *.dsf)"
@@ -836,8 +827,8 @@ class DAZ_OT_ImportSinglePose(bpy.types.Operator, AffectOptions, ConvertOptions,
         AffectOptions.draw(self, context)
         ConvertOptions.draw(self, context)
 
-    def execute(self, context):
-        return AnimatorBase.execute(self, context)
+    def run(self, context):
+        StandardAnimation.run(self, context)
 
 
 def getCommonStart(seq):
@@ -867,21 +858,13 @@ def findAction(aname):
     return None
 
 
-class DAZ_OT_SaveCurrentFrame(bpy.types.Operator):
+class DAZ_OT_SaveCurrentFrame(DazOperator):
     bl_idname = "daz.save_current_frame"
     bl_label = "Save Current Frame"
     bl_description = "Save all poses for current frame in new actions"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            self.saveCurrentFrame(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-
-    def saveCurrentFrame(self, context):
+    def run(self, context):
         scn = context.scene
         frame = scn.frame_current
         for ob in getSceneObjects(context):
@@ -931,21 +914,13 @@ class DAZ_OT_SaveCurrentFrame(bpy.types.Operator):
                     pb.scale = (1,1,1)
 
 
-class DAZ_OT_RestoreCurrentFrame(bpy.types.Operator):
+class DAZ_OT_RestoreCurrentFrame(DazOperator):
     bl_idname = "daz.restore_current_frame"
     bl_label = "Restore Current Frame"
     bl_description = "Restore all poses for current frame from stored actions"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            self.restoreCurrentFrame(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-
-    def restoreCurrentFrame(self, context):
+    def run(self, context):
         scn = context.scene
         frame = scn.frame_current
         for ob in getSceneObjects(context):
@@ -965,13 +940,12 @@ class DAZ_OT_RestoreCurrentFrame(bpy.types.Operator):
         for ob in getSceneObjects(context):
             if ob.animation_data:
                 ob.animation_data.action = None
-        return{'FINISHED'}
 
 #----------------------------------------------------------
 #   Clear action
 #----------------------------------------------------------
 
-class DAZ_OT_PruneAction(bpy.types.Operator):
+class DAZ_OT_PruneAction(DazOperator):
     bl_idname = "daz.prune_action"
     bl_label = "Prune Action"
     bl_description = "Remove F-curves with a single zero key"
@@ -982,14 +956,7 @@ class DAZ_OT_PruneAction(bpy.types.Operator):
         ob = context.object
         return (ob and ob.animation_data and ob.animation_data.action)
 
-    def execute(self, context):
-        try:
-            self.pruneAction(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-    def pruneAction(self, context):
+    def run(self, context):
         act = context.object.animation_data.action
         deletes = []
         for fcu in act.fcurves:

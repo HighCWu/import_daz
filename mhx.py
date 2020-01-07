@@ -1203,7 +1203,7 @@ def doHardUpdate(context, rig):
     updateDrivers(rig)
 
 
-class DAZ_OT_ConvertMhx(bpy.types.Operator):
+class DAZ_OT_ConvertMhx(DazOperator):
     bl_idname = "daz.convert_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
@@ -1213,12 +1213,8 @@ class DAZ_OT_ConvertMhx(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            convert2Mhx(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        convert2Mhx(context)
 
 #-------------------------------------------------------------
 #   Init MHX props. Same as mhx2 importer

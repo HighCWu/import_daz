@@ -218,7 +218,7 @@ def moveGraftVerts(aob, cob):
                     askey.data[pair.a].co = cskey.data[pair.b].co
 
 
-class DAZ_OT_MergeAnatomy(bpy.types.Operator):
+class DAZ_OT_MergeAnatomy(DazOperator):
     bl_idname = "daz.merge_anatomy"
     bl_label = "Merge Anatomy"
     bl_description = "Merge selected anatomy to selected character"
@@ -228,18 +228,14 @@ class DAZ_OT_MergeAnatomy(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            mergeAnatomy(context)
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        mergeAnatomy(context)
 
 #-------------------------------------------------------------
 #   Create graft and mask vertex groups
 #-------------------------------------------------------------
 
-class DAZ_OT_CreateGraftGroups(bpy.types.Operator):
+class DAZ_OT_CreateGraftGroups(DazOperator):
     bl_idname = "daz.create_graft_groups"
     bl_label = "Greate Graft Groups"
     bl_description = "Create vertex groups from graft information"
@@ -250,15 +246,7 @@ class DAZ_OT_CreateGraftGroups(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH' and ob.data.DazGraftGroup)
 
-    def execute(self, context):
-        try:
-            self.createGroups(context)
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
-
-
-    def createGroups(self, context):
+    def run(self, context):
         aob = context.object
         objects = []
         for ob in getSceneObjects(context):
@@ -311,7 +299,7 @@ def joinActiveToRender(me):
     print("UV layers joined")
 
 
-class DAZ_OT_MergeUVLayers(bpy.types.Operator):
+class DAZ_OT_MergeUVLayers(DazOperator):
     bl_idname = "daz.merge_uv_layers"
     bl_label = "Merge UV Layers"
     bl_description = "Merge active UV layer with render UV layer"
@@ -321,16 +309,11 @@ class DAZ_OT_MergeUVLayers(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            joinActiveToRender(context.object.data)
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.mesh.select_all(action='DESELECT')
-            bpy.ops.object.mode_set(mode='OBJECT')
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
-
+    def run(self, context):
+        joinActiveToRender(context.object.data)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
 
 #-------------------------------------------------------------
 #   Merge armatures
@@ -400,7 +383,7 @@ def getSelectedRigs(context):
 #   Copy poses
 #-------------------------------------------------------------
 
-class DAZ_OT_CopyPoses(bpy.types.Operator):
+class DAZ_OT_CopyPoses(DazOperator):
     bl_idname = "daz.copy_poses"
     bl_label = "Copy Poses"
     bl_description = "Copy selected rig poses to active rig"
@@ -410,15 +393,7 @@ class DAZ_OT_CopyPoses(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            self.copyPoses(context)
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
-
-
-    def copyPoses(self, context):
+    def run(self, context):
         rig,subrigs,_groups = getSelectedRigs(context)
         if rig is None:
             print("No poses to copy")
@@ -449,7 +424,7 @@ class DAZ_OT_CopyPoses(bpy.types.Operator):
 #   Merge rigs
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeRigs(bpy.types.Operator):
+class DAZ_OT_MergeRigs(DazOperator):
     bl_idname = "daz.merge_rigs"
     bl_label = "Merge Rigs"
     bl_description = "Merge selected rigs to active rig"
@@ -459,17 +434,9 @@ class DAZ_OT_MergeRigs(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            rig,subrigs,groups = getSelectedRigs(context)
-            theSettings.forAnimation(None, rig, context.scene)
-            self.mergeRigs(rig, subrigs, context, groups)
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
-
-
-    def mergeRigs(self, rig, subrigs, context, groups):
+    def run(self, context):
+        rig,subrigs,groups = getSelectedRigs(context)
+        theSettings.forAnimation(None, rig, context.scene)
         if rig is None:
             print("No rigs to merge")
             return
@@ -601,7 +568,7 @@ def copyBones(rig, subrigs, context):
     bpy.ops.object.mode_set(mode='POSE')
 
 
-class DAZ_OT_CopyBones(bpy.types.Operator):
+class DAZ_OT_CopyBones(DazOperator):
     bl_idname = "daz.copy_bones"
     bl_label = "Copy Bones"
     bl_description = "Copy selected rig bone locations to active rig"
@@ -611,20 +578,16 @@ class DAZ_OT_CopyBones(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            rig,subrigs,groups = getSelectedRigs(context)
-            copyBones(rig, subrigs, context)
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        rig,subrigs,groups = getSelectedRigs(context)
+        copyBones(rig, subrigs, context)
 
 #-------------------------------------------------------------
 #   Apply rest pose
 #-------------------------------------------------------------
 
 
-class DAZ_OT_ApplyRestPoses(bpy.types.Operator):
+class DAZ_OT_ApplyRestPoses(DazOperator):
     bl_idname = "daz.apply_rest_pose"
     bl_label = "Apply Rest Pose"
     bl_description = "Apply current pose at rest pose to selected rigs and children"
@@ -634,12 +597,8 @@ class DAZ_OT_ApplyRestPoses(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            applyRestPoses(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        applyRestPoses(context)
 
 
 def applyRestPoses(context):
@@ -690,7 +649,7 @@ def reparentToes(rig, context):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-class DAZ_OT_ReparentToes(bpy.types.Operator):
+class DAZ_OT_ReparentToes(DazOperator):
     bl_idname = "daz.reparent_toes"
     bl_label = "Reparent Toes"
     bl_description = "Parent small toes to big toe bone"
@@ -700,12 +659,8 @@ class DAZ_OT_ReparentToes(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            reparentToes(context.object, context)
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        reparentToes(context.object, context)
 
 
 def mergeBonesAndVgroups(rig, mergers, parents, context):
@@ -763,7 +718,7 @@ def mergeBonesAndVgroups(rig, mergers, parents, context):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-class DAZ_OT_MergeToes(bpy.types.Operator):
+class DAZ_OT_MergeToes(DazOperator):
     bl_idname = "daz.merge_toes"
     bl_label = "Merge Toes"
     bl_description = "Merge all toes"
@@ -773,14 +728,9 @@ class DAZ_OT_MergeToes(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            rig = context.object
-            mergeBonesAndVgroups(rig, GenesisToes, NewParent, context)
-        except DazError as err:
-            handleDazError(context)
-        return{'FINISHED'}
-
+    def run(self, context):
+        rig = context.object
+        mergeBonesAndVgroups(rig, GenesisToes, NewParent, context)
 
 #-------------------------------------------------------------
 #   EditBoneStorage

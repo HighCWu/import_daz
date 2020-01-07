@@ -623,7 +623,7 @@ def findDeflector(human):
 #
 #------------------------------------------------------------------------
 
-class DAZ_OT_MakeHair(bpy.types.Operator):
+class DAZ_OT_MakeHair(DazOperator):
     bl_idname = "daz.make_hair"
     bl_label = "Make Hair"
     bl_description = "Make particle hair from mesh hair"
@@ -634,15 +634,11 @@ class DAZ_OT_MakeHair(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            makeHair(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        makeHair(context)
 
 
-class DAZ_OT_UpdateHair(bpy.types.Operator):
+class DAZ_OT_UpdateHair(DazOperator):
     bl_idname = "daz.update_hair"
     bl_label = "Update Hair"
     bl_description = "Change settings for particle hair"
@@ -653,15 +649,11 @@ class DAZ_OT_UpdateHair(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            updateHair(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        updateHair(context)
 
 
-class DAZ_OT_ColorHair(bpy.types.Operator):
+class DAZ_OT_ColorHair(DazOperator):
     bl_idname = "daz.color_hair"
     bl_label = "Color Hair"
     bl_description = "Change particle hair color"
@@ -672,12 +664,8 @@ class DAZ_OT_ColorHair(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            colorHair(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        colorHair(context)
 
 #------------------------------------------------------------------------
 #   Connect
@@ -700,7 +688,7 @@ def connectHair(context):
         bpy.ops.particle.particle_edit_toggle()
 
 
-class DAZ_OT_ConnectHair(bpy.types.Operator):
+class DAZ_OT_ConnectHair(DazOperator):
     bl_idname = "daz.connect_hair"
     bl_label = "Connect Hair"
     bl_description = "(Re)connect hair"
@@ -711,9 +699,8 @@ class DAZ_OT_ConnectHair(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH')
 
-    def execute(self, context):
+    def run(self, context):
         connectHair(context)
-        return{'FINISHED'}
 
 #------------------------------------------------------------------------
 #   Materials
@@ -884,7 +871,7 @@ def meshAddPinning(context):
         m += len(f.vertices)
 
 
-class DAZ_OT_MeshAddPinning(bpy.types.Operator):
+class DAZ_OT_MeshAddPinning(DazOperator):
     bl_idname = "daz.mesh_add_pinning"
     bl_label = "Add Pinning Group"
     bl_description = "Add HairPin group to mesh hair"
@@ -895,9 +882,8 @@ class DAZ_OT_MeshAddPinning(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH')
 
-    def execute(self, context):
+    def run(self, context):
         meshAddPinning(context)
-        return{'FINISHED'}
 
 
 def hairAddPinning(context):
@@ -905,7 +891,7 @@ def hairAddPinning(context):
     x0,x1,w0,w1,k = pinCoeffs(context.scene)
 
 
-class DAZ_OT_HairAddPinning(bpy.types.Operator):
+class DAZ_OT_HairAddPinning(DazOperator):
     bl_idname = "daz.hair_add_pinning"
     bl_label = "Hair Add Pinning"
     bl_description = "Add HairPin group to hair strands"
@@ -916,9 +902,8 @@ class DAZ_OT_HairAddPinning(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'MESH')
 
-    def execute(self, context):
+    def run(self, context):
         hairAddPinning(context)
-        return{'FINISHED'}
 
 # ---------------------------------------------------------------------
 #   Initialize

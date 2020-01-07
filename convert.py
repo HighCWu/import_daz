@@ -27,10 +27,10 @@
 
 
 import bpy
-from .error import handleDazError, DazError
 from .utils import *
 import os
 from mathutils import *
+from .error import *
 if bpy.app.version < (2,80,0):
     from .buttons27 import JsonExportFile, JsonFile, SingleFile, SkelPoseBool
 else:
@@ -53,7 +53,7 @@ def saveStringToFile(filepath, string):
     print("Saved to %s" % filepath)
 
 
-class DAZ_OT_SaveCurrentPose(bpy.types.Operator, JsonExportFile, SkelPoseBool):
+class DAZ_OT_SaveCurrentPose(DazOperator, JsonExportFile, SkelPoseBool):
     bl_idname = "daz.save_current_pose"
     bl_label = "Save Current Pose"
     bl_options = {'UNDO'}
@@ -62,15 +62,12 @@ class DAZ_OT_SaveCurrentPose(bpy.types.Operator, JsonExportFile, SkelPoseBool):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        self.save(context.object, self.filepath)
-        return{'FINISHED'}
-
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
-    def save(self, rig, filepath):
+    def run(self, rig):
+        filepath = self.filepath
         rolls = {}
         bpy.ops.object.mode_set(mode='EDIT')
         for eb in rig.data.edit_bones:
@@ -214,7 +211,7 @@ def loadBonePose(pb, pose):
             loadBonePose(child, pose)
 
 
-class DAZ_OT_LoadPose(bpy.types.Operator, JsonFile, SingleFile):
+class DAZ_OT_LoadPose(DazOperator, JsonFile, SingleFile):
     bl_idname = "daz.load_pose"
     bl_label = "Load Pose"
     bl_options = {'UNDO'}
@@ -223,14 +220,13 @@ class DAZ_OT_LoadPose(bpy.types.Operator, JsonFile, SingleFile):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
+    def run(self, context):
         folder = os.path.dirname(self.filepath)
         character = os.path.splitext(os.path.basename(self.filepath))[0]
         table = {}
         loadRestPoseEntry(character, table, folder)
         loadPose(context.object, character, table, False)
         print("Pose %s loaded" % self.filepath)
-        return{'FINISHED'}
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -250,7 +246,7 @@ def optimizePose(context):
     loadPose(rig, char, IkPoses, False)
 
 
-class DAZ_OT_OptimizePoses(bpy.types.Operator):
+class DAZ_OT_OptimizePoses(DazOperator):
     bl_idname = "daz.optimize_pose"
     bl_label = "Optimize Pose For IK"
     bl_description = "Optimize rest pose for IK. Incompatible with pose loading."
@@ -260,12 +256,8 @@ class DAZ_OT_OptimizePoses(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
-        try:
-            optimizePose(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        optimizePose(context)
 
 #-------------------------------------------------------------
 #   Convert Rig
@@ -333,7 +325,7 @@ def renameBones(rig, conv):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-class DAZ_OT_ConvertRigPose(bpy.types.Operator):
+class DAZ_OT_ConvertRigPose(DazOperator):
     bl_idname = "daz.convert_rig"
     bl_label = "Convert DAZ Rig"
     bl_description = "Convert current DAZ rig to other DAZ rig"
@@ -344,12 +336,8 @@ class DAZ_OT_ConvertRigPose(bpy.types.Operator):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and ob.DazRig[0:7] == "genesis")
 
-    def execute(self, context):
-        try:
-            convertRig(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        convertRig(context)
 
 #-------------------------------------------------------------
 #   Bone conversion

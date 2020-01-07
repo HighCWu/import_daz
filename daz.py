@@ -38,20 +38,16 @@ else:
 #   Import DAZ
 #------------------------------------------------------------------
 
-class ImportDAZ(bpy.types.Operator, DazImageFile, SingleFile, DazOptions):
+class ImportDAZ(DazOperator, DazImageFile, SingleFile, DazOptions):
     """Import a DAZ DUF/DSF File"""
     bl_idname = "daz.import_daz"
     bl_label = "Import DAZ File"
     bl_description = "Import a native DAZ file (*.duf, *.dsf, *.dse)"
     bl_options = {'PRESET', 'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         from .main import getMainAsset
-        try:
-            getMainAsset(self.filepath, context, self)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
+        getMainAsset(self.filepath, context, self)
 
 
     def invoke(self, context, event):
@@ -200,7 +196,7 @@ def showPropGroups(rig):
                     print("    ", pg.index, pg.prop, pg.factor, pg.default)
 
 
-class DAZ_OT_ShowPropGroupsColor(bpy.types.Operator):
+class DAZ_OT_ShowPropGroupsColor(DazOperator):
     bl_idname = "daz.show_prop_groups"
     bl_label = "Show Prop Groups"
     bl_description = "Show the property groups for the selected posebones."
@@ -209,9 +205,8 @@ class DAZ_OT_ShowPropGroupsColor(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'ARMATURE')
 
-    def execute(self, context):
+    def run(self, context):
         showPropGroups(context.object)
-        return{'FINISHED'}
 
 #-------------------------------------------------------------
 #   Initialize

@@ -205,49 +205,34 @@ def finishMain(filepath, t1):
 #   Reparent extra bones
 #------------------------------------------------------------------
 
-def reparentBones(rig):
-    par = rig.data.edit_bones.active
-    for eb in rig.data.edit_bones:
-        if eb.select and eb != par:
-            eb.parent = par
-
-
-class DAZ_OT_ReparentBones(bpy.types.Operator):
+class DAZ_OT_ReparentBones(DazOperator):
     bl_idname = "daz.reparent_bones"
     bl_label = "Reparent Bones"
     bl_description = "Reparent selected bones to active"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            reparentBones(context.object)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        rig = context.object
+        par = rig.data.edit_bones.active
+        for eb in rig.data.edit_bones:
+            if eb.select and eb != par:
+                eb.parent = par
 
 #------------------------------------------------------------------
 #   Decode file
 #------------------------------------------------------------------
 
-class DAZ_OT_DecodeFile(bpy.types.Operator, DazFile, SingleFile):
+class DAZ_OT_DecodeFile(DazOperator, DazFile, SingleFile):
     bl_idname = "daz.decode_file"
     bl_label = "Decode File"
     bl_description = "Decode a gzipped DAZ file (*.duf, *.dsf) to a text file"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        import gzip
-        try:
-            self.decodeFile()
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
-
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
-    def decodeFile(self):
+    def run(self, context):
         import gzip
         from .asset import getDazPath
         from .fileutils import safeOpen

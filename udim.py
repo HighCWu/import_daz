@@ -36,7 +36,7 @@ class DazUdimGroup(bpy.types.PropertyGroup):
     bool : BoolProperty()
 
 
-class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
+class DAZ_OT_UdimizeMaterials(DazOperator):
     bl_idname = "daz.make_udim_materials"
     bl_label = "Make UDIM Materials"
     bl_description = "Combine materials of selected mesh into a single UDIM material"
@@ -57,14 +57,6 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
             self.layout.prop(umat, "bool", text=umat.name)
         self.layout.separator()
         self.layout.label(text="Target Material: %s" % self.trgmat.name)
-
-
-    def execute(self, context):
-        try:
-            self.udimize(context)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
 
 
     def invoke(self, context, event):
@@ -91,7 +83,7 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
         return (getSkinMaterial(mat)[0] in ["Skin", "Red", "Teeth"])
 
 
-    def udimize(self, context):
+    def run(self, context):
         from shutil import copyfile
 
         ob = context.object
@@ -204,7 +196,7 @@ class DAZ_OT_UdimizeMaterials(bpy.types.Operator):
 #   Set Udims to given tile
 #----------------------------------------------------------
 
-class DAZ_OT_SetUDims(bpy.types.Operator):
+class DAZ_OT_SetUDims(DazOperator):
     bl_idname = "daz.set_udims"
     bl_label = "Set UDIM Tile"
     bl_description = (
@@ -222,16 +214,11 @@ class DAZ_OT_SetUDims(bpy.types.Operator):
     def draw(self, context):            
         self.layout.prop(self, "tile")
         
-    def execute(self, context):
-        try:
-            bpy.ops.object.mode_set(mode='OBJECT')
-            for ob in context.view_layer.objects:
-                if ob.type == 'MESH' and ob.select_get():
-                    self.setUDims(ob)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-        
+    def run(self, context):
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for ob in context.view_layer.objects:
+            if ob.type == 'MESH' and ob.select_get():
+                self.setUDims(ob)
 
     def invoke(self, context, event):
         context.window_manager.invoke_props_dialog(self)

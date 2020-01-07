@@ -28,6 +28,7 @@
 
 import bpy
 from .mhx import *
+from .error import *
 
 MhxLayers = [
     ((L_MAIN,       'Root', 'MhxRoot'),
@@ -72,27 +73,26 @@ OtherLayers = [
 ]
 
 
-class DAZ_OT_MhxEnableAllLayers(bpy.types.Operator):
+class DAZ_OT_MhxEnableAllLayers(DazOperator):
     bl_idname = "daz.pose_enable_all_layers"
     bl_label = "Enable all layers"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         from .finger import getRigMeshes
         rig,_meshes = getRigMeshes(context)
         for (left,right) in MhxLayers:
             if type(left) != str:
                 for (n, name, prop) in [left,right]:
                     rig.data.layers[n] = True
-        return{'FINISHED'}
 
 
-class DAZ_OT_MhxDisableAllLayers(bpy.types.Operator):
+class DAZ_OT_MhxDisableAllLayers(DazOperator):
     bl_idname = "daz.pose_disable_all_layers"
     bl_label = "Disable all layers"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         from .finger import getRigMeshes
         rig,_meshes = getRigMeshes(context)
         layers = 32*[False]
@@ -106,7 +106,6 @@ class DAZ_OT_MhxDisableAllLayers(bpy.types.Operator):
             layers[0] = True
         if rig:
             rig.data.layers = layers
-        return{'FINISHED'}
 
 #----------------------------------------------------------
 #   Initialize

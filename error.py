@@ -178,26 +178,19 @@ def handleDazError(context):
 theUseDumpErrors = False
 
 #-------------------------------------------------------------
-#   Debug logging
+#   Execute
 #-------------------------------------------------------------
 
-theLogFp = None
+class DazOperator(bpy.types.Operator):
+    def execute(self, context):
+        try:
+            self.run(context)
+        except DazError:
+            handleDazError(context)
+        return{'FINISHED'}    
 
-def logOpen(scn):
-    global theLogFp
-    if scn.DazLogging:
-        theLogFp = safeOpen("/home/dazlog.txt", "w")
-    else:
-        theLogFp = None
-
-def logClose():
-    global theLogFp
-    if theLogFp:
-        theLogFp.close()
-        theLogFp = None
-
-def logLine(line):
-    global theLogFp
-    if theLogFp:
-        theLogFp.write(line)
+class DazPropsOperator(DazOperator):
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
 

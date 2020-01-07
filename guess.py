@@ -231,7 +231,7 @@ def changeMeshColor(ob, scn, color, guess):
                 setDiffuse(mat, color)
 
 
-class DAZ_OT_ChangeColors(bpy.types.Operator):
+class DAZ_OT_ChangeColors(DazOperator):
     bl_idname = "daz.change_colors"
     bl_label = "Change Colors"
     bl_description = "Change viewport colors of all materials of this object"
@@ -241,15 +241,11 @@ class DAZ_OT_ChangeColors(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            changeColors(context, context.scene.DazNewColor, False)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        changeColors(context, context.scene.DazNewColor, False)
 
 
-class DAZ_OT_ChangeSkinColor(bpy.types.Operator):
+class DAZ_OT_ChangeSkinColor(DazOperator):
     bl_idname = "daz.change_skin_color"
     bl_label = "Change Skin Colors"
     bl_description = "Change viewport colors of all materials of this object"
@@ -259,12 +255,8 @@ class DAZ_OT_ChangeSkinColor(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            changeColors(context, context.scene.DazNewColor, True)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        changeColors(context, context.scene.DazNewColor, True)
 
 #----------------------------------------------------------
 #   Initialize

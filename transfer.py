@@ -56,14 +56,6 @@ class MorphTransferer(DazImageFile, SingleFile, TransferOptions):
         layout.prop(self, "ignoreRigidity")
 
 
-    def execute(self, context):
-        try:
-            self.transferAllMorphs(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-
     def invoke(self, context, event):
         from .asset import setDazPaths
         from .fileutils import getFolder
@@ -75,6 +67,18 @@ class MorphTransferer(DazImageFile, SingleFile, TransferOptions):
                 self.properties.filepath = folder
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
+
+
+    def run(self, context):
+        import time
+        t1 = time.clock()
+        hum = context.object
+        if not hum.data.shape_keys:
+            raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (hum.name))
+        for ob in self.getClothes(hum, context):
+            self.transferMorphs(hum, ob, context)
+        t2 = time.clock()
+        print("Morphs transferred in %.1f seconds" % (t2-t1))
 
 
     def transferMorphs(self, hum, clo, context):
@@ -260,18 +264,6 @@ class MorphTransferer(DazImageFile, SingleFile, TransferOptions):
         return objects
 
 
-    def transferAllMorphs(self, context):
-        import time
-        t1 = time.clock()
-        hum = context.object
-        if not hum.data.shape_keys:
-            raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (hum.name))
-        for ob in self.getClothes(hum, context):
-            self.transferMorphs(hum, ob, context)
-        t2 = time.clock()
-        print("Morphs transferred in %.1f seconds" % (t2-t1))
-
-
     def getMorphPath(self, sname, ob, scn):
         from .fileutils import getFolder
         file = sname + ".dsf"
@@ -363,7 +355,7 @@ def findVertsInGroup(ob, vgrp):
     return verts
 
 
-class DAZ_OT_TransferExpressions(bpy.types.Operator, MorphTransferer):
+class DAZ_OT_TransferExpressions(DazOperator, MorphTransferer):
     bl_idname = "daz.transfer_expressions"
     bl_label = "Transfer Expressions"
     bl_description = "Transfer facial expressions shapekeys with drivers from active to selected"
@@ -376,7 +368,7 @@ class DAZ_OT_TransferExpressions(bpy.types.Operator, MorphTransferer):
     useIgnore = False
 
 
-class DAZ_OT_TransferShapekeys(bpy.types.Operator, MorphTransferer):
+class DAZ_OT_TransferShapekeys(DazOperator, MorphTransferer):
     bl_idname = "daz.transfer_other_shapekeys"
     bl_label = "Transfer Other Shapekeys"
     bl_description = "Transfer all shapekeys except correctives and facial expressions with drivers from active to selected"
@@ -389,7 +381,7 @@ class DAZ_OT_TransferShapekeys(bpy.types.Operator, MorphTransferer):
     useIgnore = False
 
 
-class DAZ_OT_TransferCorrectives(bpy.types.Operator, MorphTransferer):
+class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
     bl_idname = "daz.transfer_correctives"
     bl_label = "Transfer Correctives"
     bl_description = "Transfer corrective shapekeys and drivers from active to selected"
@@ -405,7 +397,7 @@ class DAZ_OT_TransferCorrectives(bpy.types.Operator, MorphTransferer):
 #   Merge Shapekeys
 #----------------------------------------------------------
 
-class DAZ_OT_MergeShapekeys(bpy.types.Operator, MergeShapekeysOptions):
+class DAZ_OT_MergeShapekeys(DazOperator, MergeShapekeysOptions):
     bl_idname = "daz.merge_shapekeys"
     bl_label = "Merge Shapekeys"
     bl_description = "Merge shapekeys"
@@ -422,20 +414,12 @@ class DAZ_OT_MergeShapekeys(bpy.types.Operator, MergeShapekeysOptions):
         self.layout.prop(self, "shape2")
 
 
-    def execute(self, context):
-        try:
-            self.merge(context)
-        except DazError:
-            handleDazError(context)
-        return {'FINISHED'}
-
-
     def invoke(self, context, event):
         context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
 
-    def merge(self, context):
+    def run(self, context):
         ob = context.object
         skeys = ob.data.shape_keys.key_blocks
         if self.shape1 == self.shape2:

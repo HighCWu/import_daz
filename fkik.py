@@ -29,7 +29,7 @@
 import bpy
 from bpy.props import StringProperty
 from mathutils import *
-from .error import DazError
+from .error import *
 from .utils import *
 if bpy.app.version < (2,80,0):
     from .buttons27 import DataString, ToggleString
@@ -352,34 +352,32 @@ def muteConstraints(constraints, value):
         cns.mute = value
 
 
-class DAZ_OT_MhxSnapFk2Ik(bpy.types.Operator, DataString):
+class DAZ_OT_MhxSnapFk2Ik(DazOperator, DataString):
     bl_idname = "daz.snap_fk_ik"
     bl_label = "Snap FK"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         bpy.ops.object.mode_set(mode='POSE')
         rig = context.object
         if self.data[:6] == "MhaArm":
             snapFkArm(context, self.data)
         elif self.data[:6] == "MhaLeg":
             snapFkLeg(context, self.data)
-        return{'FINISHED'}
 
 
-class DAZ_OT_MhxSnapIk2Fk(bpy.types.Operator, DataString):
+class DAZ_OT_MhxSnapIk2Fk(DazOperator, DataString):
     bl_idname = "daz.snap_ik_fk"
     bl_label = "Snap IK"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         bpy.ops.object.mode_set(mode='POSE')
         rig = context.object
         if self.data[:6] == "MhaArm":
             snapIkArm(context, self.data)
         elif self.data[:6] == "MhaLeg":
             snapIkLeg(context, self.data)
-        return{'FINISHED'}
 
 
 def setSnapProp(rig, data, value, context, isIk):
@@ -420,12 +418,12 @@ def restoreSnapProp(rig, prop, old, context):
     return
 
 
-class DAZ_OT_MhxToggleFkIk(bpy.types.Operator, ToggleString):
+class DAZ_OT_MhxToggleFkIk(DazOperator, ToggleString):
     bl_idname = "daz.toggle_fk_ik"
     bl_label = "FK - IK"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         words = self.toggle.split()
         rig = context.object
         prop = words[0]
@@ -439,11 +437,10 @@ class DAZ_OT_MhxToggleFkIk(bpy.types.Operator, ToggleString):
         #if context.tool_settings.use_keyframe_insert_auto:
         #    rig.keyframe_insert('["%s"]' % prop, frame=scn.frame_current)
         updatePose(context)
-        return{'FINISHED'}
 
 #
 #   updatePose(context):
-#   class DAZ_OT_MhxUpdate(bpy.types.Operator):
+#   class DAZ_OT_MhxUpdate(DazOperator):
 #
 
 def updatePose(context):
@@ -453,21 +450,20 @@ def updatePose(context):
     bpy.ops.object.posemode_toggle()
 
 
-class DAZ_OT_MhxUpdate(bpy.types.Operator):
+class DAZ_OT_MhxUpdate(DazOperator):
     bl_idname = "daz.update"
     bl_label = "Update"
 
-    def execute(self, context):
+    def run(self, context):
         updatePose(context)
-        return{'FINISHED'}
 
 
-class DAZ_OT_MhxToggleHints(bpy.types.Operator):
+class DAZ_OT_MhxToggleHints(DazOperator):
     bl_idname = "daz.toggle_hints"
     bl_label = "Toggle Hints"
     bl_description = "Toggle hints for elbow and knee bending. It may be necessary to turn these off for correct FK->IK snapping."
 
-    def execute(self, context):
+    def run(self, context):
         rig = context.object
         for pb in rig.pose.bones:
             for cns in pb.constraints:
@@ -475,7 +471,6 @@ class DAZ_OT_MhxToggleHints(bpy.types.Operator):
                     cns.mute = not cns.mute
         rig.DazHintsOn = not rig.DazHintsOn
         updatePose(context)
-        return{'FINISHED'}
 
 #----------------------------------------------------------
 #   Initialize

@@ -52,7 +52,7 @@ def getHideMannequinName():
 
 class HidersHandler:
     
-    def execute(self, context):
+    def run(self, context):
         from .morphing import prettifyAll
         from .driver import updateAll
         rig = context.object
@@ -63,7 +63,6 @@ class HidersHandler:
         prettifyAll(context)
         updateAll(context)
         setActiveObject(context, rig)
-        return{'FINISHED'}
 
 
     def getMeshesInGroup(self, context, rig):        
@@ -95,7 +94,7 @@ class HidersHandler:
                     self.handleMod(prop, rig, mod)
 
 
-class DAZ_OT_AddHiders(bpy.types.Operator, HidersHandler):
+class DAZ_OT_AddHiders(DazOperator, HidersHandler):
     bl_idname = "daz.add_hide_drivers"
     bl_label = "Add Visibility Drivers"
     bl_description = "Control visibility with rig property. For file linking."
@@ -134,7 +133,7 @@ class DAZ_OT_AddHiders(bpy.types.Operator, HidersHandler):
         makePropDriver(prop, mod, "show_render", rig, expr="x")
 
 
-class DAZ_OT_RemoveHiders(bpy.types.Operator, HidersHandler):
+class DAZ_OT_RemoveHiders(DazOperator, HidersHandler):
     bl_idname = "daz.remove_hide_drivers"
     bl_label = "Remove Visibility Drivers"
     bl_description = "Remove ability to control visibility from rig property"
@@ -164,7 +163,7 @@ class DAZ_OT_RemoveHiders(bpy.types.Operator, HidersHandler):
 
 if bpy.app.version >= (2,80,0):
     
-    class DAZ_OT_AddHiderCollections(bpy.types.Operator, HidersHandler):
+    class DAZ_OT_AddHiderCollections(DazOperator, HidersHandler):
         bl_idname = "daz.add_hide_collections"
         bl_label = "Add Visibility Collections"
         bl_description = "Control visibility with rig property. For file linking."
@@ -195,7 +194,7 @@ if bpy.app.version >= (2,80,0):
             return
     
     
-    class DAZ_OT_RemoveHiderCollections(bpy.types.Operator, HidersHandler):
+    class DAZ_OT_RemoveHiderCollections(DazOperator, HidersHandler):
         bl_idname = "daz.remove_hide_collections"
         bl_label = "Remove Visibility Collections"
         bl_description = "Remove ability to control visibility from rig property"
@@ -245,28 +244,26 @@ def setAllVisibility(context, prefix, value):
     updateScene(context)
 
 
-class DAZ_OT_ShowAll(bpy.types.Operator, PrefixString):
+class DAZ_OT_ShowAll(DazOperator, PrefixString):
     bl_idname = "daz.show_all"
     bl_label = "Show All"
     bl_description = "Show all meshes/makeup of this rig"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         scn = context.scene
         setAllVisibility(context, self.prefix, True)
-        return{'FINISHED'}
 
 
-class DAZ_OT_HideAll(bpy.types.Operator, PrefixString):
+class DAZ_OT_HideAll(DazOperator, PrefixString):
     bl_idname = "daz.hide_all"
     bl_label = "Hide All"
     bl_description = "Hide all meshes/makeup of this rig"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
+    def run(self, context):
         scn = context.scene
         setAllVisibility(context, self.prefix, False)
-        return{'FINISHED'}
 
 #------------------------------------------------------------------------
 #   Mask modifiers
@@ -307,7 +304,7 @@ def createMaskModifiers(context, useSelectedOnly):
     print("Masks created")
 
 
-class DAZ_OT_CreateMasks(bpy.types.Operator):
+class DAZ_OT_CreateMasks(DazOperator):
     bl_idname = "daz.create_all_masks"
     bl_label = "Create All Masks"
     bl_description = "Create vertex groups and mask modifiers in active mesh for all meshes belonging to same character"
@@ -317,15 +314,11 @@ class DAZ_OT_CreateMasks(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            createMaskModifiers(context, False)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        createMaskModifiers(context, False)
 
 
-class DAZ_OT_CreateSelectedMasks(bpy.types.Operator):
+class DAZ_OT_CreateSelectedMasks(DazOperator):
     bl_idname = "daz.create_selected_masks"
     bl_label = "Create Selected Masks"
     bl_description = "Create vertex groups and mask modifiers in active mesh for selected meshes"
@@ -335,35 +328,27 @@ class DAZ_OT_CreateSelectedMasks(bpy.types.Operator):
     def poll(self, context):
         return (context.object and context.object.type == 'MESH')
 
-    def execute(self, context):
-        try:
-            createMaskModifiers(context, True)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        createMaskModifiers(context, True)
 
 #----------------------------------------------------------
 #   Create collections
 #----------------------------------------------------------
 
-class DAZ_OT_CreateCollections(bpy.types.Operator):
+class DAZ_OT_CreateCollections(DazOperator):
     bl_idname = "daz.create_collections"
     bl_label = "Create Collections"
     bl_description = "Create collections for each empty in scene"
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        try:
-            coll = context.collection
-            for ob in list(coll.objects):
-                if ob.type == 'EMPTY':
-                    subcoll = bpy.data.collections.new(ob.name)
-                    coll.children.link(subcoll)
-                    coll.objects.unlink(ob)
-                    subcoll.objects.link(ob)
-        except DazError:
-            handleDazError(context)
-        return{'FINISHED'}
+    def run(self, context):
+        coll = context.collection
+        for ob in list(coll.objects):
+            if ob.type == 'EMPTY':
+                subcoll = bpy.data.collections.new(ob.name)
+                coll.children.link(subcoll)
+                coll.objects.unlink(ob)
+                subcoll.objects.link(ob)
         
 #----------------------------------------------------------
 #   Initialize
