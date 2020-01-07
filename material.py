@@ -1280,10 +1280,10 @@ class ChannelChanger:
         return item
    
    
-    def setChannel(self, ob, key, item, scn):
+    def setChannel(self, ob, key, item):
         from .guess import getSkinMaterial
         nodetype, slot, useAttr, factorAttr, ncomps = TweakableChannels[key]
-        tweaktype = scn.DazTweakMaterials
+        tweaktype = self.tweakMaterials
         for mat in ob.data.materials:            
             if mat and mat.use_nodes:
 
@@ -1301,7 +1301,7 @@ class ChannelChanger:
                     if node.type == nodetype:
                         socket = node.inputs[slot]
                         self.setOriginal(socket, ncomps, item)
-                        self.setSocket(socket, ncomps, item, scn)
+                        self.setSocket(socket, ncomps, item)
                         fromnode = None
                         for link in mat.node_tree.links.values():
                             if link.to_node == node and link.to_socket == socket:
@@ -1310,16 +1310,20 @@ class ChannelChanger:
                                 break
                         if fromnode:
                             if fromnode.type == "MIX_RGB":
-                                self.setSocket(fromnode.inputs[1], ncomps, item, scn)
+                                self.setSocket(fromnode.inputs[1], ncomps, item)
                             elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY':
-                                self.setSocket(fromnode.inputs[0], 1, item, scn)
+                                self.setSocket(fromnode.inputs[0], 1, items)
                             elif fromnode.type == "TEX_IMAGE":
-                                mix = self.addMixRGB(scn.DazColorFactor, fromsocket, socket, mat.node_tree)
+                                mix = self.addMixRGB(self.colorFactor, fromsocket, socket, mat.node_tree)
             elif mat and useAttr:
-                for mtex in mat.texture_slots:
-                    if mtex and getattr(mtex, useAttr):
-                        value = getattr(mtex, factorAttr)
-                        setattr(mtex, factorAttr, DazFactor*value)
+                self.setChannelInternal(mat, useAttr, factorAttr)
+
+                
+    def setChannelInternal(self, mat, useAttr, factorAttr):                 
+        for mtex in mat.texture_slots:
+            if mtex and getattr(mtex, useAttr):
+                value = getattr(mtex, factorAttr)
+                setattr(mtex, factorAttr, self.factor*value)
     
     
     def addMixRGB(self, color, fromsocket, tosocket, tree):
@@ -1345,22 +1349,16 @@ class ChannelChanger:
             item.new = False
             
 
-    def setSocket(self, socket, ncomps, item, scn):
-        fac = scn.DazFactor
-        if self.reset:
-            if ncomps == 1:
-                socket.default_value = item.value
-            else:
-                for n in range(ncomps):
-                    socket.default_value[n] = item.color[n]        
-        elif scn.DazAbsoluteTweak:
+    def setSocket(self, socket, ncomps, item):
+        fac = self.factor
+        if self.useAbsoluteTweak:
             if ncomps == 1:
                 socket.default_value = fac
             elif ncomps == 3:
                 socket.default_value = (fac,fac,fac)
             else:
                 for n in range(ncomps):
-                    socket.default_value[n] = scn.DazColorFactor[n]
+                    socket.default_value[n] = self.colorFactor[n]
         else:
             if ncomps == 1:
                 socket.default_value *= fac
@@ -1369,23 +1367,63 @@ class ChannelChanger:
                     socket.default_value[n] *= fac
             else:
                 for n in range(ncomps):
-                    socket.default_value[n] *= scn.DazColorFactor[n]
+                    socket.default_value[n] *= self.colorFactor[n]
          
     
-class DAZ_OT_ChangeChannel(DazOperator, ChannelChanger, SlotString, UseInternalBool, IsMesh):
-    bl_idname = "daz.change_channel"
-    bl_label = "Change Channel"
-    bl_description = "Multiply active channel of all selected meshes"
+class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelChanger, SlotString, UseInternalBool, IsMesh):
+    bl_idname = "daz.launch_editor"
+    bl_label = "Launch Material Editor"
+    bl_description = "Edit materials of selected meshes"
     bl_options = {'UNDO'}
 
+    colorFactor : FloatVectorProperty(
+        name = "Color Factor/Value",
+        subtype = "COLOR",
+        size = 4,
+        min = 0,
+        default = (1, 1, 1, 1)
+    )        
+
+    tweakableChannel : EnumProperty(
+        items = [(key,key,key) for key in TweakableChannels.keys()],
+        name = "Active Channel",
+        description = "Active channel to be tweaked",
+        default = "Bump Strength")
+
+    factor : FloatProperty(
+        name = "Factor/Value",
+        description = "Set/Multiply active channel with this factor",
+        min = 0,
+        default = 1.0)
+
+    useAbsoluteTweak : BoolProperty(
+        name = "Absolute Values",
+        description = "Tweak channels with absolute values",
+        default = False)
+
+    tweakMaterials : EnumProperty(
+        items = [("Skin", "Skin", "Skin"),
+                 ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
+                 ("Opaque", "Opaque", "Opaque"),
+                 ("Refractive", "Refractive", "Refractive"),
+                 ("All", "All", "All")],
+        name = "Material Type",
+        description = "Type of materials to tweak",
+        default = "Skin")
+
+    def draw(self, context):
+        self.layout.prop(self, "tweakableChannel")
+        self.layout.prop(self, "factor")
+        self.layout.prop(self, "colorFactor")
+        self.layout.prop(self, "useAbsoluteTweak")
+        self.layout.prop(self, "tweakMaterials")
+
     def run(self, context):
-        scn = context.scene
-        self.reset = False
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':
-                key = scn.DazTweakableChannel
+                key = self.tweakableChannel
                 item = self.getNewChannelFactor(ob, key)
-                self.setChannel(ob, key, item, scn)
+                self.setChannel(ob, key, item)
 
 
 class DAZ_OT_ResetMaterial(DazOperator, ChannelChanger, IsMesh):
@@ -1395,14 +1433,31 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelChanger, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        scn = context.scene
-        self.reset = True
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':
                 for item in ob.DazChannelFactors:
-                    nodetype, slot, useAttr, factorAttr, ncomps = TweakableChannels[item.key]
-                    self.setChannel(ob, item.key, item, scn)
+                    self.setChannel(ob, item)
                     item.new = True
+
+
+    def setChannel(self, ob, item):    
+        nodetype, slot, useAttr, factorAttr, ncomps = TweakableChannels[item.key]
+        for mat in ob.data.materials:            
+            if mat and mat.use_nodes:
+               for node in mat.node_tree.nodes.values():
+                    if node.type == nodetype:
+                        socket = node.inputs[slot]
+                        self.setSocket(socket, ncomps, item)
+            elif mat and useAttr:
+                self.setChannelInternal(mat, useAttr, factorAttr)
+
+
+    def setSocket(self, socket, ncomps, item):
+        if ncomps == 1:
+            socket.default_value = item.value
+        else:
+            for n in range(ncomps):
+                socket.default_value[n] = item.color[n]        
 
 # ---------------------------------------------------------------------
 #   Toggle SSS and displacement for BI
@@ -1716,7 +1771,7 @@ classes = [
     DazChannelFactor,
     DAZ_OT_SaveLocalTextures,
     DAZ_OT_MergeMaterials,
-    DAZ_OT_ChangeChannel,
+    DAZ_OT_LaunchEditor,
     DAZ_OT_ResetMaterial,
     DAZ_OT_ToggleSSS,
     DAZ_OT_ToggleDisplacement,
@@ -1730,41 +1785,6 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
         
-    bpy.types.Scene.DazColorFactor = FloatVectorProperty(
-        name = "Color Factor/Value",
-        subtype = "COLOR",
-        size = 4,
-        min = 0,
-        default = (1, 1, 1, 1)
-    )        
-
-    bpy.types.Scene.DazTweakableChannel = EnumProperty(
-        items = [(key,key,key) for key in TweakableChannels.keys()],
-        name = "Active Channel",
-        description = "Active channel to be tweaked",
-        default = "Bump Strength")
-
-    bpy.types.Scene.DazFactor = FloatProperty(
-        name = "Factor/Value",
-        description = "Set/Multiply active channel with this factor",
-        min = 0,
-        default = 1.0)
-
-    bpy.types.Scene.DazAbsoluteTweak = BoolProperty(
-        name = "Absolute Values",
-        description = "Tweak channels with absolute values",
-        default = False)
-
-    bpy.types.Scene.DazTweakMaterials = EnumProperty(
-        items = [("Skin", "Skin", "Skin"),
-                 ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
-                 ("Opaque", "Opaque", "Opaque"),
-                 ("Refractive", "Refractive", "Refractive"),
-                 ("All", "All", "All")],
-        name = "Material Type",
-        description = "Type of materials to tweak",
-        default = "Skin")
-
     bpy.types.Object.DazChannelFactors = CollectionProperty(type = DazChannelFactor)
     bpy.types.Object.DazChannelValues = CollectionProperty(type = DazChannelFactor)
     bpy.types.Object.DazLocalTextures = BoolProperty(default = False)

@@ -205,7 +205,7 @@ def hasDiffuseTexture(mat, scn, enforce):
 #-------------------------------------------------------------
 
 class ColorChanger:
-    color = bpy.props.FloatVectorProperty(
+    color : bpy.props.FloatVectorProperty(
         name = "Color",
         subtype = "COLOR",
         size = 4,
@@ -216,7 +216,6 @@ class ColorChanger:
 
     def draw(self, context):
         self.layout.prop(self, "color")
-
 
     def run(self, context):
         scn = context.scene

@@ -139,13 +139,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.restore_udims")
 
             box.separator()
-            box.label(text="Material Editor")
-            box.prop(scn, "DazTweakableChannel")
-            box.prop(scn, "DazFactor")
-            box.prop(scn, "DazColorFactor")
-            box.prop(scn, "DazAbsoluteTweak")
-            box.prop(scn, "DazTweakMaterials")
-            box.operator("daz.change_channel")
+            box.operator("daz.launch_editor")
             box.operator("daz.reset_material")
 
         layout.separator()
