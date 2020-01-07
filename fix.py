@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2019, Thomas Larsson
+# Copyright (c) 2016-2020, Thomas Larsson
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
