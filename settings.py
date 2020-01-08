@@ -138,10 +138,6 @@ class Settings:
         self.propMax = scn.DazPropMax
         self.useDazPropLimits = scn.DazUsePropLimits
         self.useDazPropDefault = scn.DazUsePropDefault
-        self.autoMaterials = scn.DazAutoMaterials
-        self.handleOpaque = scn.DazHandleOpaque
-        self.handleRefractive = scn.DazHandleRefractive
-        self.useEnvironment = scn.DazUseEnvironment
         self.chooseColors = scn.DazChooseColors
 
         self.useLockRot = (scn.DazUseLockRot or scn.DazUseLimitRot)
@@ -173,6 +169,11 @@ class Settings:
         self.clothesColor = btn.clothesColor
         self.brightenEyes = btn.brightenEyes
         self.renderMethod = scn.render.engine
+
+        self.autoMaterials = btn.useAutoMaterials
+        self.handleOpaque = btn.handleOpaque
+        self.handleRefractive = btn.handleRefractive
+        self.useEnvironment = btn.useEnvironment
 
         self.useStrict = True
         self.singleUser = True

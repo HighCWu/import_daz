@@ -458,9 +458,6 @@ class DAZ_PT_Settings(bpy.types.Panel):
         box = layout.box()
         box.prop(scn, "DazShowMaterialSettings")
         if scn.DazShowMaterialSettings:
-            box.prop(scn, "DazAutoMaterials")
-            box.prop(scn, "DazHandleOpaque")
-            box.prop(scn, "DazHandleRefractive")
             box.prop(scn, "DazUseEnvironment")
             box.prop(scn, "DazChooseColors")
             box.prop(scn, "DazMergeShells")

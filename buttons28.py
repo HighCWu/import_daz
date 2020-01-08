@@ -209,6 +209,35 @@ class DazOptions:
         description = "Mesh fitting method",
         default = 'JSONFILE')
 
+    useAutoMaterials : BoolProperty(
+        name = "Auto Material Method",
+        description = "Use best shaders for material, independent of the settings below",
+        default = True)
+
+    handleOpaque : EnumProperty(
+        items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
+                 ('PRINCIPLED', "Principled", "Node setup with principled node"),
+                 ('EEVEE', "Eevee", "Simple opaque material that works with Eevee"),
+                 ],
+        name = "Opaque Materials",
+        description = "Default method used for opaque materials.\nIgnored by some materials.",
+        default = 'EEVEE')
+
+    handleRefractive : EnumProperty(
+        items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
+                 ('PRINCIPLED', "Principled", "Node setup with principled node"),
+                 ('GUESS', "Guess", "Guess material properties, suitable for eyes. Turn on caustics."),
+                 ('EEVEE', "Eevee", "Simple transparent material that works with Eevee"),
+                 ],
+        name = "Refractive Materials",
+        description = "Default method used for refractive materials.\nIgnored by some materials.",
+        default = 'EEVEE')
+
+    useEnvironment : BoolProperty(
+        name = "Environment",
+        description = "Load environment",
+        default = True)
+
 #-------------------------------------------------------------
 #   material.py
 #-------------------------------------------------------------

@@ -69,6 +69,11 @@ class ImportDAZ(DazOperator, DazImageFile, SingleFile, DazOptions):
         layout.prop(self, "skinColor")
         layout.prop(self, "clothesColor")
         layout.prop(self, "brightenEyes")
+        layout.separator()
+        layout.prop(self, "useAutoMaterials")
+        layout.prop(self, "handleOpaque")
+        layout.prop(self, "handleRefractive")
+        layout.prop(self, "useEnvironment")
 
 #-------------------------------------------------------------
 #   Property groups, for drivers
@@ -232,47 +237,6 @@ def initialize():
     #    default = 0.1,
     #    precision = 3,
     #    min = 0.001, max = 10.0)
-
-    bpy.types.Scene.DazAutoMaterials = BoolProperty(
-        name = "Auto Material Method",
-        description = "Use best shaders for material, independent of the settings below",
-        default = True)
-
-    if bpy.app.version < (2,80,0):
-        default = 'PRINCIPLED'
-    else:
-        default = 'EEVEE'
-
-    bpy.types.Scene.DazHandleOpaque = EnumProperty(
-        items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
-                 ('PRINCIPLED', "Principled", "Node setup with principled node"),
-                 ('EEVEE', "Eevee", "Simple opaque material that works with Eevee"),
-                 ],
-        name = "Opaque Materials",
-        description = "Default method used for opaque materials.\nIgnored by some materials.",
-        default = default)
-
-    if bpy.app.version < (2,80,0):
-        default = 'GUESS'
-    else:
-        default = 'EEVEE'
-
-    bpy.types.Scene.DazHandleRefractive = EnumProperty(
-        items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
-                 ('PRINCIPLED', "Principled", "Node setup with principled node"),
-                 ('GUESS', "Guess", "Guess material properties, suitable for eyes. Turn on caustics."),
-                 ('EEVEE', "Eevee", "Simple transparent material that works with Eevee"),
-                 #('CUSTOM', "Custom Shader", "Use custom glass shader"),
-                 #('COMPLEX', "Custom Shader (Unstable)", "Use custom glass shader in development"),
-                 ],
-        name = "Refractive Materials",
-        description = "Default method used for refractive materials.\nIgnored by some materials.",
-        default = default)
-
-    bpy.types.Scene.DazUseEnvironment = BoolProperty(
-        name = "Environment",
-        description = "Load environment",
-        default = True)
 
     bpy.types.Scene.DazChooseColors = EnumProperty(
         items = [('WHITE', "White", "Default diffuse color"),
