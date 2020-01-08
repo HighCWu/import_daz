@@ -143,8 +143,16 @@ class PbrTree(CyclesTree):
             for n in range(3):
                 vec[n] *= theSettings.scale
 
+        # Anisotropic
+        anisotropy = self.getValue(["Glossy Anisotropy"], 0)
+        if anisotropy > 0:  
+            self.setPBRValue("Anisotropic", anisotropy, 0)      
+            anirot = self.getValue(["Glossy Anisotropy Rotations"], 0)
+            self.setPBRValue("Anisotropic Rotation", 0.75 - anirot, 0)      
+            
         # Roughness
         channel,invert,value,roughness = self.getGlossyRoughness()
+        roughness *= (1 + anisotropy)
         self.addSlot(channel, self.pbr, "Roughness", roughness, value, invert, theSettings.useTextures)
 
         # Specular
@@ -209,11 +217,6 @@ class PbrTree(CyclesTree):
         # Sheen
         if self.material.isActive("Backscattering"):
             self.addToPBR("Sheen", ["Backscattering Weight"], 0.0, theSettings.useTextures)
-
-        # Anisotropic
-        if self.material.isActive("Anisotropic"):
-            self.addToPBR("Anisotropic", ["Glossy Anisotropy"], 0.0, theSettings.useTextures)
-            self.addToPBR("Anisotropic Rotation", ["Glossy Anisotropy Rotations"], 0.0, theSettings.useTextures)
 
 
     def setPbrSlot(self, slot, value):
