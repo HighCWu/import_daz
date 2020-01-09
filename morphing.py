@@ -462,9 +462,9 @@ class DAZ_OT_ImportMorph(DazOperator, LoadMorph, DazImageFile, MultiFile, MorphS
         return {'RUNNING_MODAL'}
 
 
-    def run(self, scn):
+    def run(self, context):
         from .driver import setBoolProp
-        snames = self.getMorphs(self.filepath, scn)
+        snames = self.getMorphs(self.filepath, context.scene)
         addToCategories(self.rig, snames, self.catname, self.catgroup)
         if self.rig:
             setBoolProp(self.rig, self.custom, True)
