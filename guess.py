@@ -31,6 +31,12 @@ from random import random
 from .utils import *
 from .error import *
 
+if bpy.app.version < (2,80,0):
+    from .buttons27 import ColorProp
+else:
+    from .buttons28 import ColorProp
+
+
 SkinMaterials = {
     "eyelash" : (0, ),
     "eyelashes" : (0, ),
@@ -204,16 +210,7 @@ def hasDiffuseTexture(mat, scn, enforce):
 #   Change colors
 #-------------------------------------------------------------
 
-class ColorChanger:
-    color : bpy.props.FloatVectorProperty(
-        name = "Color",
-        subtype = "COLOR",
-        size = 4,
-        min = 0.0,
-        max = 1.0,
-        default = (0.1, 0.1, 0.5, 1)
-    )
-
+class ColorChanger(ColorProp):
     def draw(self, context):
         self.layout.prop(self, "color")
 

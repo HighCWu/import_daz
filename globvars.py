@@ -56,4 +56,40 @@ for file in os.listdir(theRestPoseFolder):
     fname = os.path.splitext(file)[0]
     name = fname.replace("_", " ").capitalize()
     theRestPoseItems.append((fname, name, name))
+    
+# ---------------------------------------------------------------------
+#   material.py   
+#   Tweak bump strength and height
+#
+#   (node type, socket, BI use, BI factor, isColor)
+# ---------------------------------------------------------------------
+
+TweakableChannels = OrderedDict([
+    ("Bump Strength", ("BUMP", "Strength", "use_map_normal", "normal_factor", 1)),
+    ("Bump Distance", ("BUMP", "Distance", None, None, 1)),
+    ("Normal Strength", ("NORMAL_MAP", "Strength", "use_map_normal", "normal_factor", 1)),
+
+    ("Diffuse Color", ("BSDF_DIFFUSE", "Color", None, None, 4)),
+    ("Diffuse Roughness", ("BSDF_DIFFUSE", "Roughness", None, None, 1)),
+
+    ("Glossy Color", ("BSDF_GLOSSY", "Color", None, None, 4)),
+    ("Glossy Roughness", ("BSDF_GLOSSY", "Roughness", None, None, 1)),
+
+    ("Translucency Color", ("BSDF_TRANSLUCENT", "Color", "use_map_translucency", "translucency_factor", 4)),
+
+    ("Subsurface Color", ("SUBSURFACE_SCATTERING", "Color", None, None, 4)),
+    ("Subsurface Scale", ("SUBSURFACE_SCATTERING", "Scale", None, None, 1)),
+    ("Subsurface Radius", ("SUBSURFACE_SCATTERING", "Radius", None, None, 3)),
+
+    ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4)),
+    ("Principled Metallic", ("BSDF_PRINCIPLED", "Metallic", None, None, 1)),
+    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", None, None, 1)),
+    ("Principled Subsurface", ("BSDF_PRINCIPLED", "Subsurface", None, None, 1)),
+    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", None, None, 4)),
+    ("Principled Subsurface Radius", ("BSDF_PRINCIPLED", "Subsurface Radius", None, None, 3)),
+    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", None, None, 1)),
+    ("Principled Clearcoat", ("BSDF_PRINCIPLED", "Clearcoat", None, None, 1)),
+    ("Principled Clearcoat Roughness", ("BSDF_PRINCIPLED", "Clearcoat Roughness", None, None, 1)),
+])
+    
 

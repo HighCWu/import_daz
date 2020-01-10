@@ -260,6 +260,71 @@ class ResizeOptions:
         description = "Overwrite the original image files.",
         default = False)
 
+class ColorProp:
+    color : bpy.props.FloatVectorProperty(
+        name = "Color",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.1, 0.1, 0.5, 1)
+    )
+
+from .globvars import TweakableChannels
+
+class LaunchEditor:
+    colorFactor : FloatVectorProperty(
+        name = "Color Factor/Value",
+        subtype = "COLOR",
+        size = 4,
+        min = 0,
+        default = (1, 1, 1, 1)
+    )        
+
+    tweakableChannel : EnumProperty(
+        items = [(key,key,key) for key in TweakableChannels.keys()],
+        name = "Active Channel",
+        description = "Active channel to be tweaked",
+        default = "Bump Strength")
+
+    factor : FloatProperty(
+        name = "Factor/Value",
+        description = "Set/Multiply active channel with this factor",
+        min = 0,
+        default = 1.0)
+
+    useAbsoluteTweak : BoolProperty(
+        name = "Absolute Values",
+        description = "Tweak channels with absolute values",
+        default = False)
+
+    tweakMaterials : EnumProperty(
+        items = [("Skin", "Skin", "Skin"),
+                 ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
+                 ("Opaque", "Opaque", "Opaque"),
+                 ("Refractive", "Refractive", "Refractive"),
+                 ("All", "All", "All")],
+        name = "Material Type",
+        description = "Type of materials to tweak",
+        default = "Skin")
+
+#-------------------------------------------------------------
+#   figure.py
+#-------------------------------------------------------------
+
+class BoneLayers:
+    poseLayer : IntProperty(
+        name = "Posable Bone Layer",
+        description = "Put the posable bones on this layer.",
+        min = 1, max = 32,
+        default = 8)
+
+    drivenLayer : IntProperty(
+        name = "Driven Bone Layer",
+        description = "Put the driven bones on this layer.",
+        min = 1, max = 32,
+        default = 32)
+
 #-------------------------------------------------------------
 #   merge.py
 #-------------------------------------------------------------

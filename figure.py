@@ -29,11 +29,17 @@
 import bpy
 import math
 from mathutils import *
+from bpy.props import IntProperty
 from .asset import *
 from .utils import *
 from .settings import theSettings
 from .error import *
 from .node import Node, Instance
+
+if bpy.app.version < (2,80,0):
+    from .buttons27 import BoneLayers
+else:
+    from .buttons28 import BoneLayers
 
 #-------------------------------------------------------------
 #   FigureInstance
@@ -392,115 +398,117 @@ def copyBoneInfo(srcbone, trgbone):
     trgbone.DazNormal = srcbone.DazNormal
 
 
-def addExtraBones(rig, getBoneNames, type, attr):
-    from .driver import getBoneDrivers, removeDriverBoneSuffix, storeBoneDrivers, restoreBoneDrivers
-    if rig is None:
-        return
-    if rig.type == 'MESH':
-        if rig.parent and rig.parent.type == 'ARMATURE':
-            rig = rig.parent
-        else:
+class ExtraBones(BoneLayers):
+    def draw(self, context):
+        self.layout.prop(self, "poseLayer")
+        self.layout.prop(self, "drivenLayer")
+        
+        
+    def addExtraBones(self, rig, getBoneNames, type, attr):
+        from .driver import getBoneDrivers, removeDriverBoneSuffix, storeBoneDrivers, restoreBoneDrivers
+        if rig is None:
             return
+        if rig.type == 'MESH':
+            if rig.parent and rig.parent.type == 'ARMATURE':
+                rig = rig.parent
+            else:
+                return
 
-    if getattr(rig.data, attr):
-        msg = "Rig %s already has extra %s bones" % (rig.name, type)
-        print(msg)
-        #raise DazError(msg)
+        if getattr(rig.data, attr):
+            msg = "Rig %s already has extra %s bones" % (rig.name, type)
+            print(msg)
+            #raise DazError(msg)
 
-    if rig.DazRig[0:6] == "rigify":
-        raise DazError("Cannot add extra bones to Rigify rig")
-    elif rig.DazRig == "mhx":
-        raise DazError("Cannot add extra bones to MHX rig")
-    else:
-        from .mhx import L_FACE
-        faceLayer = L_FACE
-        helpLayer = 31
-    faceLayers = faceLayer*[False] + [True] + (31-faceLayer)*[False]
-    helpLayers = helpLayer*[False] + [True] + (31-helpLayer)*[False]
+        if rig.DazRig[0:6] == "rigify":
+            raise DazError("Cannot add extra bones to Rigify rig")
+        elif rig.DazRig == "mhx":
+            raise DazError("Cannot add extra bones to MHX rig")
+        poseLayers = (self.poseLayer-1)*[False] + [True] + (32-self.poseLayer)*[False]
+        drivenLayers = (self.drivenLayer-1)*[False] + [True] + (32-self.drivenLayer)*[False]
 
-    bones = getBoneNames(rig)
-    drivers = storeBoneDrivers(rig, bones)
-    bpy.ops.object.mode_set(mode='EDIT')
-    for bname in bones:
-        eb = rig.data.edit_bones[bname]
-        eb.name = bname+"Drv"
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    bpy.ops.object.mode_set(mode='EDIT')
-    for bname in bones:
-        eb = rig.data.edit_bones.new(bname)
-        par = rig.data.edit_bones[bname+"Drv"]
-        eb.head = par.head
-        eb.tail = par.tail
-        eb.roll = par.roll
-        eb.parent = par
-        eb.layers = faceLayers
-        par.layers = helpLayers
-        eb.use_deform = True
-        par.use_deform = False
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    bpy.ops.object.mode_set(mode='EDIT')
-    for bname in bones:
-        if bname+"Drv" in rig.data.edit_bones.keys():
-            eb = rig.data.edit_bones[bname+"Drv"]
-            for cb in eb.children:
-                if cb.name != bname:
-                    cb.parent = rig.data.edit_bones[bname]
-
-    bpy.ops.object.mode_set(mode='POSE')
-    for bname in bones:
-        if (bname in rig.pose.bones.keys() and
-            bname+"Drv" in rig.pose.bones.keys()):
-            pb = rig.pose.bones[bname]
-            par = rig.pose.bones[bname+"Drv"]
-            pb.rotation_mode = par.rotation_mode
-            pb.lock_location = par.lock_location
-            pb.lock_rotation = par.lock_rotation
-            pb.lock_scale = par.lock_scale
-            pb.DazRotLocks = par.DazRotLocks
-            pb.DazLocLocks = par.DazLocLocks
-            copyBoneInfo(par.bone, pb.bone)
-
-    restoreBoneDrivers(rig, drivers, "Drv")
+        bones = getBoneNames(rig)
+        drivers = storeBoneDrivers(rig, bones)
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname in bones:
+            eb = rig.data.edit_bones[bname]
+            eb.name = bname+"Drv"
+        bpy.ops.object.mode_set(mode='OBJECT')
     
-    for pb in rig.pose.bones:
-        fcus = getBoneDrivers(rig, pb)
-        if fcus:
-            pb.bone.layers = helpLayers
-            for fcu in fcus:
-                removeDriverBoneSuffix(fcu, "Drv")
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname in bones:
+            eb = rig.data.edit_bones.new(bname)
+            par = rig.data.edit_bones[bname+"Drv"]
+            eb.head = par.head
+            eb.tail = par.tail
+            eb.roll = par.roll
+            eb.parent = par
+            eb.layers = poseLayers
+            par.layers = drivenLayers
+            eb.use_deform = True
+            par.use_deform = False
+        bpy.ops.object.mode_set(mode='OBJECT')
 
-    setattr(rig.data, attr, True)
-    updateDrivers(rig)
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname in bones:
+            if bname+"Drv" in rig.data.edit_bones.keys():
+                eb = rig.data.edit_bones[bname+"Drv"]
+                for cb in eb.children:
+                    if cb.name != bname:
+                        cb.parent = rig.data.edit_bones[bname]
 
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for ob in rig.children:
-        if ob.type == 'MESH':
-            for vgrp in ob.vertex_groups:
-                if (vgrp.name[-3:] == "Drv" and
-                    vgrp.name[:-3] in bones):
-                    vgrp.name = vgrp.name[:-3]
+        bpy.ops.object.mode_set(mode='POSE')
+        for bname in bones:
+            if (bname in rig.pose.bones.keys() and
+                bname+"Drv" in rig.pose.bones.keys()):
+                pb = rig.pose.bones[bname]
+                par = rig.pose.bones[bname+"Drv"]
+                pb.rotation_mode = par.rotation_mode
+                pb.lock_location = par.lock_location
+                pb.lock_rotation = par.lock_rotation
+                pb.lock_scale = par.lock_scale
+                pb.DazRotLocks = par.DazRotLocks
+                pb.DazLocLocks = par.DazLocLocks
+                copyBoneInfo(par.bone, pb.bone)
+
+        restoreBoneDrivers(rig, drivers, "Drv")
+    
+        for pb in rig.pose.bones:
+            fcus = getBoneDrivers(rig, pb)
+            if fcus:
+                pb.bone.layers = drivenLayers
+                for fcu in fcus:
+                    removeDriverBoneSuffix(fcu, "Drv")
+
+        setattr(rig.data, attr, True)
+        updateDrivers(rig)
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for ob in rig.children:
+            if ob.type == 'MESH':
+                for vgrp in ob.vertex_groups:
+                    if (vgrp.name[-3:] == "Drv" and
+                        vgrp.name[:-3] in bones):
+                        vgrp.name = vgrp.name[:-3]
 
 
-class DAZ_OT_SetAddExtraFaceBones(DazOperator, IsArmature):
+class DAZ_OT_SetAddExtraFaceBones(DazPropsOperator, ExtraBones, IsArmature):
     bl_idname = "daz.add_extra_face_bones"
     bl_label = "Add Extra Face Bones"
     bl_description = "Add an extra layer of face bones, which can be both driven and posed"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        addExtraBones(context.object, getFaceBoneNames, "face", "DazExtraFaceBones")
+        self.addExtraBones(context.object, getFaceBoneNames, "face", "DazExtraFaceBones")
 
 
-class DAZ_OT_MakeAllBonesPosable(DazOperator, IsArmature):
+class DAZ_OT_MakeAllBonesPosable(DazPropsOperator, ExtraBones, IsArmature):
     bl_idname = "daz.make_all_bones_posable"
     bl_label = "Make All Bones Posable"
     bl_description = "Add an extra layer of driven bones, to make them posable"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        addExtraBones(context.object, getDrivenBoneNames, "driven", "DazExtraDrivenBones")
+        self.addExtraBones(context.object, getDrivenBoneNames, "driven", "DazExtraDrivenBones")
 
 #-------------------------------------------------------------
 #   Toggle locks and constraints

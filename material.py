@@ -39,9 +39,9 @@ from .settings import theSettings
 from .error import *
 from mathutils import Vector, Matrix
 if bpy.app.version < (2,80,0):
-    from .buttons27 import SlotString, UseInternalBool, ImageFile, DazImageFile, MultiFile, ResizeOptions, DazChannelFactor
+    from .buttons27 import SlotString, UseInternalBool, ImageFile, DazImageFile, MultiFile, ResizeOptions, DazChannelFactor, LaunchEditor
 else:
-    from .buttons28 import SlotString, UseInternalBool, ImageFile, DazImageFile, MultiFile, ResizeOptions, DazChannelFactor
+    from .buttons28 import SlotString, UseInternalBool, ImageFile, DazImageFile, MultiFile, ResizeOptions, DazChannelFactor, LaunchEditor
 
 WHITE = Vector((1.0,1.0,1.0))
 GREY = Vector((0.5,0.5,0.5))
@@ -1213,38 +1213,10 @@ class DAZ_OT_MergeMaterials(DazOperator, IsMesh):
                mergeMaterials(ob)
 
 # ---------------------------------------------------------------------
-#   Tweak bump strength and height
-#
-#   (node type, socket, BI use, BI factor, isColor)
+#   Mini material editor
 # ---------------------------------------------------------------------
 
-TweakableChannels = OrderedDict([
-    ("Bump Strength", ("BUMP", "Strength", "use_map_normal", "normal_factor", 1)),
-    ("Bump Distance", ("BUMP", "Distance", None, None, 1)),
-    ("Normal Strength", ("NORMAL_MAP", "Strength", "use_map_normal", "normal_factor", 1)),
-
-    ("Diffuse Color", ("BSDF_DIFFUSE", "Color", None, None, 4)),
-    ("Diffuse Roughness", ("BSDF_DIFFUSE", "Roughness", None, None, 1)),
-
-    ("Glossy Color", ("BSDF_GLOSSY", "Color", None, None, 4)),
-    ("Glossy Roughness", ("BSDF_GLOSSY", "Roughness", None, None, 1)),
-
-    ("Translucency Color", ("BSDF_TRANSLUCENT", "Color", "use_map_translucency", "translucency_factor", 4)),
-
-    ("Subsurface Color", ("SUBSURFACE_SCATTERING", "Color", None, None, 4)),
-    ("Subsurface Scale", ("SUBSURFACE_SCATTERING", "Scale", None, None, 1)),
-    ("Subsurface Radius", ("SUBSURFACE_SCATTERING", "Radius", None, None, 3)),
-
-    ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4)),
-    ("Principled Metallic", ("BSDF_PRINCIPLED", "Metallic", None, None, 1)),
-    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", None, None, 1)),
-    ("Principled Subsurface", ("BSDF_PRINCIPLED", "Subsurface", None, None, 1)),
-    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", None, None, 4)),
-    ("Principled Subsurface Radius", ("BSDF_PRINCIPLED", "Subsurface Radius", None, None, 3)),
-    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", None, None, 1)),
-    ("Principled Clearcoat", ("BSDF_PRINCIPLED", "Clearcoat", None, None, 1)),
-    ("Principled Clearcoat Roughness", ("BSDF_PRINCIPLED", "Clearcoat Roughness", None, None, 1)),
-])
+from .globvars import TweakableChannels
 
 def printItem(string, item):
     print(string, "<Factor %s %.4f (%.4f %.4f %.4f %.4f) %s>" % (item.key, item.value, item.color[0], item.color[1], item.color[2], item.color[3], item.new))
@@ -1305,46 +1277,12 @@ class ChannelChanger:
                 setattr(mtex, factorAttr, self.factor*value)
                
             
-class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelChanger, SlotString, UseInternalBool, IsMesh):
+class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelChanger, LaunchEditor, SlotString, UseInternalBool, IsMesh):
     bl_idname = "daz.launch_editor"
     bl_label = "Launch Material Editor"
     bl_description = "Edit materials of selected meshes"
     bl_options = {'UNDO'}
 
-    colorFactor : FloatVectorProperty(
-        name = "Color Factor/Value",
-        subtype = "COLOR",
-        size = 4,
-        min = 0,
-        default = (1, 1, 1, 1)
-    )        
-
-    tweakableChannel : EnumProperty(
-        items = [(key,key,key) for key in TweakableChannels.keys()],
-        name = "Active Channel",
-        description = "Active channel to be tweaked",
-        default = "Bump Strength")
-
-    factor : FloatProperty(
-        name = "Factor/Value",
-        description = "Set/Multiply active channel with this factor",
-        min = 0,
-        default = 1.0)
-
-    useAbsoluteTweak : BoolProperty(
-        name = "Absolute Values",
-        description = "Tweak channels with absolute values",
-        default = False)
-
-    tweakMaterials : EnumProperty(
-        items = [("Skin", "Skin", "Skin"),
-                 ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
-                 ("Opaque", "Opaque", "Opaque"),
-                 ("Refractive", "Refractive", "Refractive"),
-                 ("All", "All", "All")],
-        name = "Material Type",
-        description = "Type of materials to tweak",
-        default = "Skin")
 
     def draw(self, context):
         self.layout.prop(self, "tweakableChannel")
