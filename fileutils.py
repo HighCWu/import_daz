@@ -30,10 +30,7 @@ import os
 from bpy.props import *
 from .settings import theSettings
 from .error import *
-if bpy.app.version < (2,80,0):
-    from .buttons27 import SingleFile, JsonFile, JsonExportFile
-else:
-    from .buttons28 import SingleFile, JsonFile, JsonExportFile
+from .utils import B
 
 #-------------------------------------------------------------
 #   Open and check for case change
@@ -236,7 +233,7 @@ class DAZ_OT_SaveDefaultSettings(DazOperator):
         saveSettings(filepath, context.scene)
 
 
-class DAZ_OT_SaveSettingsFile(DazOperator, SingleFile, JsonExportFile):
+class DAZ_OT_SaveSettingsFile(DazOperator, B.SingleFile, B.JsonExportFile):
     bl_idname = "daz.save_settings_file"
     bl_label = "Save Settings File"
     bl_description = "Save current settings to file"
@@ -385,7 +382,7 @@ class DAZ_OT_LoadDefaultSettings(DazOperator):
         loadSettings(filepath, context.scene)
 
 
-class DAZ_OT_LoadSettingsFile(DazOperator, SingleFile, JsonFile):
+class DAZ_OT_LoadSettingsFile(DazOperator, B.SingleFile, B.JsonFile):
     bl_idname = "daz.load_settings_file"
     bl_label = "Load Settings File"
     bl_description = "Load settings from file"

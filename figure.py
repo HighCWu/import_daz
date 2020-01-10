@@ -36,11 +36,6 @@ from .settings import theSettings
 from .error import *
 from .node import Node, Instance
 
-if bpy.app.version < (2,80,0):
-    from .buttons27 import BoneLayers
-else:
-    from .buttons28 import BoneLayers
-
 #-------------------------------------------------------------
 #   FigureInstance
 #-------------------------------------------------------------
@@ -398,7 +393,7 @@ def copyBoneInfo(srcbone, trgbone):
     trgbone.DazNormal = srcbone.DazNormal
 
 
-class ExtraBones(BoneLayers):
+class ExtraBones(B.BoneLayers):
     def draw(self, context):
         self.layout.prop(self, "poseLayer")
         self.layout.prop(self, "drivenLayer")

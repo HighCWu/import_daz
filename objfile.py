@@ -33,11 +33,6 @@ from .error import *
 from .utils import *
 from .settings import theSettings
 
-if bpy.app.version < (2,80,0):
-    from .buttons27 import JsonFile, MultiFile
-else:
-    from .buttons28 import JsonFile, MultiFile
-
 #------------------------------------------------------------------
 #   JSON fitting
 #------------------------------------------------------------------
@@ -323,7 +318,7 @@ class DAZ_OT_FitToObject(DazOperator, IsMesh):
 #   Initialize
 #----------------------------------------------------------
 
-class DAZ_OT_ImportJson(DazOperator, JsonFile, MultiFile, IsMesh):
+class DAZ_OT_ImportJson(DazOperator, B.JsonFile, B.MultiFile, IsMesh):
     bl_idname = "daz.import_json"
     bl_label = "Import JSON Morph(s)"
     bl_description = "Import JSON file(s) (*.json) as morphs"

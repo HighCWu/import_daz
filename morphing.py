@@ -35,10 +35,6 @@ from .error import *
 from .utils import *
 from . import utils
 from .settings import theSettings
-if bpy.app.version < (2,80,0):
-    from .buttons27 import DazImageFile, MultiFile, MorphStrings, PoseStrings, PrefixString, TypeString, ValueBool, KeyString, CatGroupString, CatGroupString, ActionString, TypePrefixCat, UseOpenBool, DatFile, SingleFile, DazCustomGroup, DazCategory, MorphTypes
-else:
-    from .buttons28 import DazImageFile, MultiFile, MorphStrings, PoseStrings, PrefixString, TypeString, ValueBool, KeyString, CatGroupString, CatGroupString, ActionString, TypePrefixCat, UseOpenBool, DatFile, SingleFile, DazCustomGroup, DazCategory, MorphTypes
 
 #------------------------------------------------------------------
 #   Global lists of morph paths
@@ -177,7 +173,7 @@ class DAZ_OT_Update(DazOperator):
         setupMorphPaths(context.scene, True)
 
 
-class DAZ_OT_SelectAll(DazOperator, TypeString, ValueBool):
+class DAZ_OT_SelectAll(DazOperator, B.TypeString, B.ValueBool):
     bl_idname = "daz.select_all_morphs"
     bl_label = "Select All"
     bl_description = "Select/Deselect all morphs in this section"
@@ -435,7 +431,7 @@ class DAZ_OT_LoadAllCorrectives(DazOperator, LoadAllMorphs):
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class DAZ_OT_ImportMorph(DazOperator, LoadMorph, DazImageFile, MultiFile, MorphStrings):
+class DAZ_OT_ImportMorph(DazOperator, LoadMorph, B.DazImageFile, B.MultiFile, B.MorphStrings):
     bl_idname = "daz.import_morph"
     bl_label = "Import Morph(s)"
     bl_description = "Import morph(s) from native DAZ file(s) (*.duf, *.dsf)"
@@ -566,7 +562,7 @@ def getOpenAttr(catgroup):
     return ("%sOpen" % catgroup)
 
 
-class ChangeCategory(CatGroupString):
+class ChangeCategory(B.CatGroupString):
     def execute(self, context):
         try:
             rig = context.object
@@ -637,7 +633,7 @@ class DAZ_OT_RemoveCategoryOK(bpy.types.Operator, ChangeCategory):
             del ob[key]
 
 
-class DAZ_OT_ChangeCategoryCancel(DazOperator, CatGroupString):
+class DAZ_OT_ChangeCategoryCancel(DazOperator, B.CatGroupString):
     bl_idname = "daz.change_category_cancel"
     bl_label = "Cancel"
     bl_description = "Cancel category change"
@@ -648,7 +644,7 @@ class DAZ_OT_ChangeCategoryCancel(DazOperator, CatGroupString):
         setattr(context.scene, attr, False)
 
 
-class DAZ_OT_ChangeCategory(DazOperator, CatGroupString, ActionString, IsArmature):
+class DAZ_OT_ChangeCategory(DazOperator, B.CatGroupString, B.ActionString, IsArmature):
     bl_idname = "daz.change_category"
     bl_label = "Change Category"
     bl_description = "Rename or remove category"
@@ -720,7 +716,7 @@ def removeDrivingProps(rig, props):
 #   Select and unselect all
 #------------------------------------------------------------------------
 
-class Activator(PrefixString, TypeString, CatGroupString):
+class Activator(B.PrefixString, B.TypeString, B.CatGroupString):
     def run(self, context):
         from .driver import setBoolProp
         rig = getRigFromObject(context.object)
@@ -863,7 +859,7 @@ def nameFromKey(key, names, rig):
     return None
 
 
-class DAZ_OT_ClearMorphs(DazOperator, TypePrefixCat, IsMeshArmature):
+class DAZ_OT_ClearMorphs(DazOperator, B.TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.clear_morphs"
     bl_label = "Clear"
     bl_description = "Set all morphs of specified type to zero"
@@ -879,7 +875,7 @@ class DAZ_OT_ClearMorphs(DazOperator, TypePrefixCat, IsMeshArmature):
                 updateScene(context)
 
 
-class DAZ_OT_UpdateMorphs(DazOperator, KeyString, TypePrefixCat, IsMeshArmature):
+class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.update_morphs"
     bl_label = "Update"
     bl_description = "Set keys at current frame for all props of specified type with keys"
@@ -923,7 +919,7 @@ def addKeySet(rig, type, prefix, catgroup, scn, frame):
                 aks.paths.add(rig.id_data, path)
 
 
-class DAZ_OT_AddKeysets(DazOperator, TypePrefixCat, IsMeshArmature):
+class DAZ_OT_AddKeysets(DazOperator, B.TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.add_keyset"
     bl_label = "Keyset"
     bl_description = "Add category morphs to active custom keying set, or make new one"
@@ -962,7 +958,7 @@ def keyMorphs(rig, type, prefix, catgroup, scn, frame):
                 keyProp(rig, key, frame)
 
 
-class DAZ_OT_KeyMorphs(DazOperator, TypePrefixCat, IsMeshArmature):
+class DAZ_OT_KeyMorphs(DazOperator, B.TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.key_morphs"
     bl_label = "Set Keys"
     bl_description = "Set keys for all morphs of specified type at current frame"
@@ -1000,7 +996,7 @@ def unkeyMorphs(rig, type, prefix, catgroup, scn, frame):
                 unkeyProp(rig, key, frame)
 
 
-class DAZ_OT_UnkeyMorphs(DazOperator, TypePrefixCat, IsMeshArmature):
+class DAZ_OT_UnkeyMorphs(DazOperator, B.TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.unkey_morphs"
     bl_label = "Remove Keys"
     bl_description = "Remove keys from all morphs of specified type at current frame"
@@ -1194,7 +1190,7 @@ def getRigFromObject(ob):
         return ob
 
 
-class DAZ_OT_ToggleAllCats(DazOperator, UseOpenBool, IsMeshArmature):
+class DAZ_OT_ToggleAllCats(DazOperator, B.UseOpenBool, IsMeshArmature):
     bl_idname = "daz.toggle_all_cats"
     bl_label = "Toggle All Categories"
     bl_description = "Toggle all morph categories on and off"
@@ -1248,7 +1244,7 @@ def pinProp(rig, scn, key, type, prefix, catgroup, frame):
         autoKeyProp(rig, key, scn, frame, True)
 
 
-class DAZ_OT_PinProp(DazOperator, KeyString, TypePrefixCat, IsMeshArmature):
+class DAZ_OT_PinProp(DazOperator, B.KeyString, B.TypePrefixCat, IsMeshArmature):
     bl_idname = "daz.pin_prop"
     bl_label = ""
     bl_description = "Pin property"
@@ -1326,7 +1322,7 @@ def loadMoho(context, filepath, offs):
     print("Moho file %s loaded" % filepath)
 
 
-class DAZ_OT_LoadMoho(DazOperator, DatFile, SingleFile):
+class DAZ_OT_LoadMoho(DazOperator, B.DatFile, B.SingleFile):
     bl_idname = "daz.load_moho"
     bl_label = "Load Moho"
     bl_description = "Load Moho (.dat) file"
@@ -1391,7 +1387,7 @@ class DAZ_OT_DeleteLipsync(DazOperator):
 #   Convert pose to shapekey
 #-------------------------------------------------------------
 
-class DAZ_OT_ConvertMorphsToShapes(DazOperator, MorphTypes, IsMesh):
+class DAZ_OT_ConvertMorphsToShapes(DazOperator, B.MorphTypes, IsMesh):
     bl_idname = "daz.convert_morphs_to_shapes"
     bl_label = "Convert Morphs To Shapes"
     bl_description = "Convert face rig poses to shapekeys"
@@ -1506,8 +1502,8 @@ classes = [
     DAZ_OT_DeleteLipsync,
     DAZ_OT_ConvertMorphsToShapes,
 
-    #DazCategory,
-    #DazCustomGroup,
+    #B.DazCategory,
+    #B.DazCustomGroup,
 ]
 
 def initialize():
@@ -1517,11 +1513,11 @@ def initialize():
     bpy.types.Object.DazCustomMorphs = BoolProperty(default = False)
     bpy.types.Object.DazCustomPoses = BoolProperty(default = False)
 
-    bpy.utils.register_class(DazCustomGroup)
-    bpy.utils.register_class(DazCategory)
+    bpy.utils.register_class(B.DazCustomGroup)
+    bpy.utils.register_class(B.DazCategory)
 
-    bpy.types.Object.DazMorphCats = CollectionProperty(type = DazCategory)
-    bpy.types.Object.DazPoseCats = CollectionProperty(type = DazCategory)
+    bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory)
+    bpy.types.Object.DazPoseCats = CollectionProperty(type = B.DazCategory)
 
     bpy.types.Scene.DazMorphCatsOpen = BoolProperty(default = False)
     bpy.types.Scene.DazPoseCatsOpen = BoolProperty(default = False)
@@ -1543,5 +1539,5 @@ def uninitialize():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
-    bpy.utils.unregister_class(DazCustomGroup)
-    bpy.utils.unregister_class(DazCategory)
+    bpy.utils.unregister_class(B.DazCustomGroup)
+    bpy.utils.unregister_class(B.DazCategory)

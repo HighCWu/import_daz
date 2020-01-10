@@ -31,10 +31,6 @@ import bpy
 from .settings import theSettings
 from .error import *
 from .utils import *
-if bpy.app.version < (2,80,0):
-    from .buttons27 import DazFile, SingleFile
-else:
-    from .buttons28 import DazFile, SingleFile
 
 #------------------------------------------------------------------
 #   Import file
@@ -222,7 +218,7 @@ class DAZ_OT_ReparentBones(DazOperator):
 #   Decode file
 #------------------------------------------------------------------
 
-class DAZ_OT_DecodeFile(DazOperator, DazFile, SingleFile):
+class DAZ_OT_DecodeFile(DazOperator, B.DazFile, B.SingleFile):
     bl_idname = "daz.decode_file"
     bl_label = "Decode File"
     bl_description = "Decode a gzipped DAZ file (*.duf, *.dsf) to a text file"

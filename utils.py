@@ -36,6 +36,8 @@ from .settings import theSettings
 
 if bpy.app.version < (2,80,0):
 
+    from . import buttons27 as B
+
     HideViewport = "hide"
     DrawType = "draw_type"
     ShowXRay = "show_x_ray"
@@ -125,6 +127,8 @@ if bpy.app.version < (2,80,0):
         del ob
 
 else:
+
+    from . import buttons28 as B
 
     HideViewport = "hide_viewport"
     DrawType = "display_type"

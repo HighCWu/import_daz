@@ -29,16 +29,13 @@ import os
 import bpy
 from bpy.props import *
 from .error import *
-if bpy.app.version < (2,80,0):
-    from .buttons27 import DazImageFile, SingleFile, DazOptions, DazPropGroup, DazFormula, DazStringGroup
-else:
-    from .buttons28 import DazImageFile, SingleFile, DazOptions, DazPropGroup, DazFormula, DazStringGroup
+from .utils import B
 
 #------------------------------------------------------------------
 #   Import DAZ
 #------------------------------------------------------------------
 
-class ImportDAZ(DazOperator, DazImageFile, SingleFile, DazOptions):
+class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
     """Import a DAZ DUF/DSF File"""
     bl_idname = "daz.import_daz"
     bl_label = "Import DAZ File"
@@ -223,9 +220,9 @@ def updateHandler(scn):
 
 classes = [
     ImportDAZ,
-    DazPropGroup,
-    DazFormula,
-    DazStringGroup,
+    B.DazPropGroup,
+    B.DazFormula,
+    B.DazStringGroup,
     DAZ_OT_ShowPropGroupsColor,
 ]
 
@@ -443,11 +440,11 @@ def initialize():
 
     for cls in classes:
         bpy.utils.register_class(cls)
-    bpy.types.PoseBone.DazLocProps = CollectionProperty(type = DazPropGroup)
-    bpy.types.PoseBone.DazRotProps = CollectionProperty(type = DazPropGroup)
-    bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = DazPropGroup)
-    bpy.types.Object.DazFormulas = CollectionProperty(type = DazFormula)
-    bpy.types.Object.DazHiddenProps = CollectionProperty(type = DazStringGroup)
+    bpy.types.PoseBone.DazLocProps = CollectionProperty(type = B.DazPropGroup)
+    bpy.types.PoseBone.DazRotProps = CollectionProperty(type = B.DazPropGroup)
+    bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = B.DazPropGroup)
+    bpy.types.Object.DazFormulas = CollectionProperty(type = B.DazFormula)
+    bpy.types.Object.DazHiddenProps = CollectionProperty(type = B.DazStringGroup)
 
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
     bpy.app.handlers.load_post.append(updateHandler)

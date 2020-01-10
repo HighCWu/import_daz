@@ -34,11 +34,6 @@ from .utils import *
 from .error import *
 from .settings import theSettings
 
-if bpy.app.version < (2,80,0):
-    from .buttons27 import ClothesLayer
-else:
-    from .buttons28 import ClothesLayer
-
 #-------------------------------------------------------------
 #   Merge meshes
 #-------------------------------------------------------------
@@ -417,7 +412,7 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
 #   Merge rigs
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, ClothesLayer):
+class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
     bl_idname = "daz.merge_rigs"
     bl_label = "Merge Rigs"
     bl_description = "Merge selected rigs to active rig"

@@ -31,10 +31,6 @@ from bpy.props import StringProperty
 from mathutils import *
 from .error import *
 from .utils import *
-if bpy.app.version < (2,80,0):
-    from .buttons27 import DataString, ToggleString
-else:
-    from .buttons28 import DataString, ToggleString
 
 #------------------------------------------------------------------
 #   FK-IK snapping.
@@ -352,7 +348,7 @@ def muteConstraints(constraints, value):
         cns.mute = value
 
 
-class DAZ_OT_MhxSnapFk2Ik(DazOperator, DataString):
+class DAZ_OT_MhxSnapFk2Ik(DazOperator, B.DataString):
     bl_idname = "daz.snap_fk_ik"
     bl_label = "Snap FK"
     bl_options = {'UNDO'}
@@ -366,7 +362,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, DataString):
             snapFkLeg(context, self.data)
 
 
-class DAZ_OT_MhxSnapIk2Fk(DazOperator, DataString):
+class DAZ_OT_MhxSnapIk2Fk(DazOperator, B.DataString):
     bl_idname = "daz.snap_ik_fk"
     bl_label = "Snap IK"
     bl_options = {'UNDO'}
@@ -418,7 +414,7 @@ def restoreSnapProp(rig, prop, old, context):
     return
 
 
-class DAZ_OT_MhxToggleFkIk(DazOperator, ToggleString):
+class DAZ_OT_MhxToggleFkIk(DazOperator, B.ToggleString):
     bl_idname = "daz.toggle_fk_ik"
     bl_label = "FK - IK"
     bl_options = {'UNDO'}

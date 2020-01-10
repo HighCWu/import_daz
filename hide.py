@@ -31,10 +31,6 @@ from bpy.props import *
 #from .drivers import *
 from .utils import *
 from .error import *
-if bpy.app.version < (2,80,0):
-    from .buttons27 import PrefixString
-else:
-    from .buttons28 import PrefixString
 
 
 def getMaskName(string):
@@ -244,7 +240,7 @@ def setAllVisibility(context, prefix, value):
     updateScene(context)
 
 
-class DAZ_OT_ShowAll(DazOperator, PrefixString):
+class DAZ_OT_ShowAll(DazOperator, B.PrefixString):
     bl_idname = "daz.show_all"
     bl_label = "Show All"
     bl_description = "Show all meshes/makeup of this rig"
@@ -255,7 +251,7 @@ class DAZ_OT_ShowAll(DazOperator, PrefixString):
         setAllVisibility(context, self.prefix, True)
 
 
-class DAZ_OT_HideAll(DazOperator, PrefixString):
+class DAZ_OT_HideAll(DazOperator, B.PrefixString):
     bl_idname = "daz.hide_all"
     bl_label = "Hide All"
     bl_description = "Hide all meshes/makeup of this rig"

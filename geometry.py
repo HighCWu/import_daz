@@ -34,10 +34,6 @@ from .utils import *
 from .error import *
 from .settings import theSettings
 from .node import Node, Instance
-if bpy.app.version < (2,80,0):
-    from .buttons27 import DazFile, SingleFile, DazIntGroup, DazPairGroup, DazRigidityGroup
-else:
-    from .buttons28 import DazFile, SingleFile, DazIntGroup, DazPairGroup, DazRigidityGroup
 
 #-------------------------------------------------------------
 #   Geometry
@@ -725,7 +721,7 @@ class DAZ_OT_SolidifyThinWalls(DazOperator, IsMesh):
 #   Load UVs
 #-------------------------------------------------------------
 
-class DAZ_OT_LoadUV(DazOperator, DazFile, SingleFile, IsMesh):
+class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
     bl_idname = "daz.load_uv"
     bl_label = "Load UV Set"
     bl_description = "Load a UV set to the active mesh"
@@ -814,18 +810,18 @@ classes = [
     DAZ_OT_SolidifyThinWalls,
     DAZ_OT_LoadUV,
     DAZ_OT_ShareMeshes,
-    DazIntGroup,
-    DazPairGroup,
-    DazRigidityGroup,
+    B.DazIntGroup,
+    B.DazPairGroup,
+    B.DazRigidityGroup,
 ]
 
 def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = DazRigidityGroup)
-    bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = DazPairGroup)
-    bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = DazIntGroup)
+    bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = B.DazRigidityGroup)
+    bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = B.DazPairGroup)
+    bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)
 
 
 def uninitialize():

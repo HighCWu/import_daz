@@ -37,12 +37,6 @@ from .utils import *
 from .transform import Transform
 from .settings import theSettings
 from .globvars import thePoserExtensions, thePoserUpcaseExtensions, thePoserDefaults, theImagedPoserDefaults
-if bpy.app.version < (2,80,0):
-    from .buttons27 import AffectOptions, ActionOptions, PoseLibOptions, ConvertOptions
-    from .buttons27 import PoserFile, SingleFile, ScaleLock
-else:
-    from .buttons28 import AffectOptions, ActionOptions, PoseLibOptions, ConvertOptions
-    from .buttons28 import PoserFile, SingleFile, ScaleLock
 from .animation import addToPoseLib
 from .animation import FrameConverter
 
@@ -1341,7 +1335,7 @@ def loadPoserAnimation(self, context, filepaths):
         selectAll(rig, selected)
 
 
-class PoserBase(PoserFile, SingleFile):
+class PoserBase(PoserFile, B.SingleFile):
     zup = "Poser"
     fitMeshes = 'UNIQUE'
 
@@ -1355,7 +1349,7 @@ class PoserBase(PoserFile, SingleFile):
         return getFilePath(self.filepath, thePoserExtensions)
 
 
-class DAZ_OT_LoadAssets(DazOperator, PoserBase, ScaleLock):
+class DAZ_OT_LoadAssets(DazOperator, PoserBase, B.ScaleLock):
     bl_idname = "daz.import_poser"
     bl_label = "Import Poser File"
     bl_description = "Import a native DAZ file (%s)" % thePoserDefaults

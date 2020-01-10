@@ -32,16 +32,10 @@ from mathutils import Vector
 from .error import *
 from .tables import *
 from .utils import *
-if bpy.app.version < (2,80,0):
-    from .buttons27 import UseAllBool
-else:
-    from .buttons28 import UseAllBool
-
 
 #-------------------------------------------------------------
 #   Make proxy
 #-------------------------------------------------------------
-
 
 def makeProxy1(context, iterations):
     ob = context.object
@@ -1010,7 +1004,7 @@ def proxifyAll(context):
     bpy.data.meshes.remove(dummy)
 
 
-class DAZ_OT_ProxifyAll(DazOperator, UseAllBool):
+class DAZ_OT_ProxifyAll(DazOperator, B.UseAllBool):
     bl_idname = "daz.proxify_all"
     bl_label = "Make All Low-Poly"
     bl_description = "Replace all (selected) meshes by low-poly versions"

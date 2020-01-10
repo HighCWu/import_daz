@@ -38,10 +38,6 @@ from .utils import *
 from .settings import theSettings
 from .error import *
 from mathutils import Vector, Matrix
-if bpy.app.version < (2,80,0):
-    from .buttons27 import SlotString, UseInternalBool, ImageFile, DazImageFile, MultiFile, ResizeOptions, DazChannelFactor, LaunchEditor
-else:
-    from .buttons28 import SlotString, UseInternalBool, ImageFile, DazImageFile, MultiFile, ResizeOptions, DazChannelFactor, LaunchEditor
 
 WHITE = Vector((1.0,1.0,1.0))
 GREY = Vector((0.5,0.5,0.5))
@@ -1277,7 +1273,7 @@ class ChannelChanger:
                 setattr(mtex, factorAttr, self.factor*value)
                
             
-class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelChanger, LaunchEditor, SlotString, UseInternalBool, IsMesh):
+class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelChanger, B.LaunchEditor, B.SlotString, B.UseInternalBool, IsMesh):
     bl_idname = "daz.launch_editor"
     bl_label = "Launch Material Editor"
     bl_description = "Edit materials of selected meshes"
@@ -1468,7 +1464,7 @@ class DAZ_OT_ShareMaterials(DazOperator, IsMesh):
 #   Share materials
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LoadMaterial(DazOperator, DazImageFile, MultiFile, IsMesh):
+class DAZ_OT_LoadMaterial(DazOperator, B.DazImageFile, B.MultiFile, IsMesh):
     bl_idname = "daz.load_materials"
     bl_label = "Load Material(s)"
     bl_description = "Load materials to active mesh"
@@ -1617,7 +1613,7 @@ class ChangeResolution:
         return newname, newpath
 
 
-class DAZ_OT_ChangeResolution(DazOperator, ResizeOptions, ChangeResolution):
+class DAZ_OT_ChangeResolution(DazOperator, B.ResizeOptions, ChangeResolution):
     bl_idname = "daz.change_resolution"
     bl_label = "Change Resolution"
     bl_description = (
@@ -1665,7 +1661,7 @@ class DAZ_OT_ChangeResolution(DazOperator, ResizeOptions, ChangeResolution):
                 self.resizeTree(node.node_tree)
 
 
-class DAZ_OT_ResizeTextures(DazOperator, ImageFile, MultiFile, ResizeOptions, ChangeResolution):
+class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, B.MultiFile, B.ResizeOptions, ChangeResolution):
     bl_idname = "daz.resize_textures"
     bl_label = "Resize Textures"
     bl_description = (
@@ -1709,7 +1705,7 @@ class DAZ_OT_ResizeTextures(DazOperator, ImageFile, MultiFile, ResizeOptions, Ch
 #----------------------------------------------------------
 
 classes = [
-    DazChannelFactor,
+    B.DazChannelFactor,
     DAZ_OT_SaveLocalTextures,
     DAZ_OT_MergeMaterials,
     DAZ_OT_LaunchEditor,
@@ -1726,8 +1722,8 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
         
-    bpy.types.Object.DazChannelFactors = CollectionProperty(type = DazChannelFactor)
-    bpy.types.Object.DazChannelValues = CollectionProperty(type = DazChannelFactor)
+    bpy.types.Object.DazChannelFactors = CollectionProperty(type = B.DazChannelFactor)
+    bpy.types.Object.DazChannelValues = CollectionProperty(type = B.DazChannelFactor)
     bpy.types.Object.DazLocalTextures = BoolProperty(default = False)
     
 

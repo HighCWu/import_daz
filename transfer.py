@@ -29,13 +29,9 @@ import os
 import bpy
 from .error import *
 from .utils import *
-if bpy.app.version < (2,80,0):
-    from .buttons27 import DazImageFile, SingleFile, TransferOptions, MergeShapekeysOptions
-else:
-    from .buttons28 import DazImageFile, SingleFile, TransferOptions, MergeShapekeysOptions
 
 
-class MorphTransferer(DazImageFile, SingleFile, TransferOptions):
+class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
     @classmethod
     def poll(self, context):
         ob = context.object
@@ -397,7 +393,7 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
 #   Merge Shapekeys
 #----------------------------------------------------------
 
-class DAZ_OT_MergeShapekeys(DazOperator, MergeShapekeysOptions):
+class DAZ_OT_MergeShapekeys(DazOperator, B.MergeShapekeysOptions):
     bl_idname = "daz.merge_shapekeys"
     bl_label = "Merge Shapekeys"
     bl_description = "Merge shapekeys"

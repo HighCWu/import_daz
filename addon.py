@@ -30,10 +30,7 @@ import importlib
 import sys
 import bpy
 from .error import *
-if bpy.app.version < (2,80,0):
-    from .buttons27 import NameString
-else:
-    from .buttons28 import NameString
+from .utils import B
 
 #----------------------------------------------------------
 #   Load addons
@@ -135,7 +132,7 @@ def unregisterAddon(module):
         print("Could not unregister addon %s because %s" % (module.__name__, value))
 
 
-class DAZ_OT_EnableAddon(DazOperator, NameString):
+class DAZ_OT_EnableAddon(DazOperator, B.NameString):
     bl_idname = "daz.enable_addon"
     bl_label = ""
     bl_description = "Enable/Disable add-on"
@@ -153,7 +150,7 @@ class DAZ_OT_EnableAddon(DazOperator, NameString):
             print("Add-on %s enabled" % self.name)
 
 
-class DAZ_OT_ShowAddon(DazOperator, NameString):
+class DAZ_OT_ShowAddon(DazOperator, B.NameString):
     bl_idname = "daz.show_addon"
     bl_label = ""
     bl_description = "Show/Hide add-on"
@@ -167,7 +164,7 @@ class DAZ_OT_ShowAddon(DazOperator, NameString):
             theAddons[self.name] = module,enabled,True,bl_info
 
 
-class DAZ_OT_SaveAddons(DazOperator, NameString):
+class DAZ_OT_SaveAddons(DazOperator, B.NameString):
     bl_idname = "daz.save_addons"
     bl_label = "Save Settings"
     bl_description = "Save add-ons settings"
@@ -188,7 +185,7 @@ class DAZ_OT_SaveAddons(DazOperator, NameString):
         print("Settings file %s saved" % filepath)
 
 
-class DAZ_OT_RefreshAddons(DazOperator, NameString):
+class DAZ_OT_RefreshAddons(DazOperator, B.NameString):
     bl_idname = "daz.refresh_addons"
     bl_label = "Refresh"
     bl_description = "Reload add-ons"

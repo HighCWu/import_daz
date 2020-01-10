@@ -36,10 +36,6 @@ from .utils import *
 from .transform import Transform
 from .settings import theSettings
 from .globvars import theDazExtensions, thePoserExtensions, theRestPoseItems
-if bpy.app.version < (2,80,0):
-    from .buttons27 import AnimatorFile, MultiFile, ConvertOptions, AffectOptions, ActionOptions, PoseLibOptions
-else:
-    from .buttons28 import AnimatorFile, MultiFile, ConvertOptions, AffectOptions, ActionOptions, PoseLibOptions
 
 
 def framesToVectors(frames):
@@ -301,7 +297,7 @@ class FrameConverter:
 #   AnimatorBase class
 #-------------------------------------------------------------
 
-class AnimatorBase(AnimatorFile, MultiFile, FrameConverter, IsMeshArmature):
+class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, IsMeshArmature):
     lockMeshes = False
 
     def invoke(self, context, event):
@@ -755,7 +751,7 @@ class StandardAnimation:
                 "Check results carefully.", warning=True)
 
 
-class DAZ_OT_ImportNodePoses(DazOperator, AffectOptions, ConvertOptions, ActionOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportNodePoses(DazOperator, B.AffectOptions, B.ConvertOptions, B.ActionOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_node_poses"
     bl_label = "Import Node Poses"
     bl_description = "Import node poses from native DAZ file(s) (*.duf, *.dsf)"
@@ -765,12 +761,12 @@ class DAZ_OT_ImportNodePoses(DazOperator, AffectOptions, ConvertOptions, ActionO
     verbose = False
 
     def draw(self, context):
-        AffectOptions.draw(self, context)
-        ConvertOptions.draw(self, context)
-        ActionOptions.draw(self, context)
+        B.AffectOptions.draw(self, context)
+        B.ConvertOptions.draw(self, context)
+        B.ActionOptions.draw(self, context)
 
 
-class DAZ_OT_ImportAction(DazOperator, AffectOptions, ConvertOptions, ActionOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportAction(DazOperator, B.AffectOptions, B.ConvertOptions, B.ActionOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_action"
     bl_label = "Import Action"
     bl_description = "Import poses from native DAZ file(s) (*.duf, *.dsf) to action"
@@ -780,15 +776,15 @@ class DAZ_OT_ImportAction(DazOperator, AffectOptions, ConvertOptions, ActionOpti
     verbose = False
 
     def draw(self, context):
-        AffectOptions.draw(self, context)
-        ConvertOptions.draw(self, context)
-        ActionOptions.draw(self, context)
+        B.AffectOptions.draw(self, context)
+        B.ConvertOptions.draw(self, context)
+        B.ActionOptions.draw(self, context)
 
     def run(self, context):
         StandardAnimation.run(self, context)
 
 
-class DAZ_OT_ImportPoseLib(DazOperator, AffectOptions, ConvertOptions, PoseLibOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportPoseLib(DazOperator, B.AffectOptions, B.ConvertOptions, B.PoseLibOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_poselib"
     bl_label = "Import Pose Library"
     bl_description = "Import poses from native DAZ file(s) (*.duf, *.dsf) to pose library"
@@ -799,15 +795,15 @@ class DAZ_OT_ImportPoseLib(DazOperator, AffectOptions, ConvertOptions, PoseLibOp
     verbose = False
 
     def draw(self, context):
-        AffectOptions.draw(self, context)
-        ConvertOptions.draw(self, context)
-        PoseLibOptions.draw(self, context)
+        B.AffectOptions.draw(self, context)
+        B.ConvertOptions.draw(self, context)
+        B.PoseLibOptions.draw(self, context)
 
     def run(self, context):
         StandardAnimation.run(self, context)
 
 
-class DAZ_OT_ImportSinglePose(DazOperator, AffectOptions, ConvertOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportSinglePose(DazOperator, B.AffectOptions, B.ConvertOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_single_pose"
     bl_label = "Import Pose"
     bl_description = "Import a pose from native DAZ file(s) (*.duf, *.dsf)"
@@ -820,8 +816,8 @@ class DAZ_OT_ImportSinglePose(DazOperator, AffectOptions, ConvertOptions, Animat
     usePoseLib = False
 
     def draw(self, context):
-        AffectOptions.draw(self, context)
-        ConvertOptions.draw(self, context)
+        B.AffectOptions.draw(self, context)
+        B.ConvertOptions.draw(self, context)
 
     def run(self, context):
         StandardAnimation.run(self, context)

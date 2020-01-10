@@ -27,14 +27,10 @@
 
 
 import bpy
-from .utils import *
 import os
 from mathutils import *
 from .error import *
-if bpy.app.version < (2,80,0):
-    from .buttons27 import JsonExportFile, JsonFile, SingleFile, SkelPoseBool
-else:
-    from .buttons28 import JsonExportFile, JsonFile, SingleFile, SkelPoseBool
+from .utils import *
 
 Converters = {}
 TwistBones = {}
@@ -53,7 +49,7 @@ def saveStringToFile(filepath, string):
     print("Saved to %s" % filepath)
 
 
-class DAZ_OT_SaveCurrentPose(DazOperator, JsonExportFile, SkelPoseBool, IsArmature):
+class DAZ_OT_SaveCurrentPose(DazOperator, B.JsonExportFile, B.SkelPoseBool, IsArmature):
     bl_idname = "daz.save_current_pose"
     bl_label = "Save Current Pose"
     bl_options = {'UNDO'}
@@ -207,7 +203,7 @@ def loadBonePose(pb, pose):
             loadBonePose(child, pose)
 
 
-class DAZ_OT_LoadPose(DazOperator, JsonFile, SingleFile, IsArmature):
+class DAZ_OT_LoadPose(DazOperator, B.JsonFile, B.SingleFile, IsArmature):
     bl_idname = "daz.load_pose"
     bl_label = "Load Pose"
     bl_options = {'UNDO'}
