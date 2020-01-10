@@ -444,21 +444,17 @@ class DAZ_PT_Settings(bpy.types.Panel):
         box.prop(scn, "DazShowRiggingSettings")
         if scn.DazShowRiggingSettings:
             box.prop(scn, "DazAddFaceDrivers")
-            box.prop(scn, "DazClothesLayer")
-            box.prop(scn, "DazUseConnect")
             box.prop(scn, "DazUseLockRot")
             box.prop(scn, "DazUseLockLoc")
             #box.prop(scn, "DazUseLimitRot")
             #box.prop(scn, "DazUseLimitLoc")
             box.prop(scn, "DazDeleteMeta")
-            box.label(text = "Make Drivers For Formulas:")
-            box.prop(scn, "DazMakeDrivers", expand=True)
+            box.prop(scn, "DazMakeDrivers")
 
         layout.separator()
         box = layout.box()
         box.prop(scn, "DazShowMaterialSettings")
         if scn.DazShowMaterialSettings:
-            box.prop(scn, "DazUseEnvironment")
             box.prop(scn, "DazChooseColors")
             box.prop(scn, "DazMergeShells")
             box.prop(scn, "DazMaxBump")
@@ -469,11 +465,12 @@ class DAZ_PT_Settings(bpy.types.Panel):
             box.prop(scn, "DazUseSSS")
             box.prop(scn, "DazUseEmission")
             box.prop(scn, "DazUseReflection")
-            box.separator()
-            box.prop(scn, "DazDiffuseShader")
-            box.prop(scn, "DazSpecularShader")
-            box.prop(scn, "DazDiffuseRoughness")
-            box.prop(scn, "DazSpecularRoughness")
+            if bpy.app.version < (2,80,0):
+                box.separator()
+                box.prop(scn, "DazDiffuseShader")
+                box.prop(scn, "DazSpecularShader")
+                box.prop(scn, "DazDiffuseRoughness")
+                box.prop(scn, "DazSpecularRoughness")
 
 
 class DAZ_PT_Utils(bpy.types.Panel):
@@ -1054,12 +1051,6 @@ def initialize():
         name = "Load All Morphs",
         description = "Load all morphs in selected directory",
         default = False)
-
-    bpy.types.Scene.DazClothesLayer = IntProperty(
-        name = "Clothes Layer",
-        description = "Bone layer used for extra bones when merging clothes",
-        min = 1, max = 32,
-        default = 3)
 
     bpy.types.Scene.DazIterations = IntProperty(
         name = "Iterations",

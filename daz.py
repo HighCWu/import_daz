@@ -303,11 +303,6 @@ def initialize():
         description = "Add all objects to the same group",
         default = True)
 
-    bpy.types.Scene.DazUseConnect = BoolProperty(
-        name = "Connect Bones",
-        description = "Connect bones to parent if head coincides with parent tail.",
-        default = True)
-
     bpy.types.Scene.DazAddFaceDrivers = BoolProperty(
         name = "Add Face Drivers",
         description = "Add drivers to facial morphs. Only for Genesis 1 and 2.",

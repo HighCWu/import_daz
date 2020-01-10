@@ -34,6 +34,11 @@ from .utils import *
 from .error import *
 from .settings import theSettings
 
+if bpy.app.version < (2,80,0):
+    from .buttons27 import ClothesLayer
+else:
+    from .buttons28 import ClothesLayer
+
 #-------------------------------------------------------------
 #   Merge meshes
 #-------------------------------------------------------------
@@ -412,11 +417,15 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
 #   Merge rigs
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeRigs(DazOperator, IsArmature):
+class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, ClothesLayer):
     bl_idname = "daz.merge_rigs"
     bl_label = "Merge Rigs"
     bl_description = "Merge selected rigs to active rig"
     bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "clothesLayer")
+
 
     def run(self, context):
         rig,subrigs,groups = getSelectedRigs(context)
@@ -427,13 +436,13 @@ class DAZ_OT_MergeRigs(DazOperator, IsArmature):
         oldvis = list(rig.data.layers)
         rig.data.layers = 32*[True]
         try:
-            self.mergeRigs1(rig, subrigs, context, groups)
+            self.mergeRigs(rig, subrigs, context, groups)
         finally:
             rig.data.layers = oldvis
             setActiveObject(context, rig)
 
 
-    def mergeRigs1(self, rig, subrigs, context, groups):
+    def mergeRigs(self, rig, subrigs, context, groups):
         from .proxy import stripName
         from .node import clearParent
         scn = context.scene
@@ -505,7 +514,7 @@ class DAZ_OT_MergeRigs(DazOperator, IsArmature):
             bpy.ops.object.mode_set(mode='OBJECT')
 
             setActiveObject(context, rig)
-            layers = (scn.DazClothesLayer-1)*[False] + [True] + (32-scn.DazClothesLayer)*[False]
+            layers = (self.clothesLayer-1)*[False] + [True] + (32-self.clothesLayer)*[False]
             bpy.ops.object.mode_set(mode='EDIT')
             for bname in extras:
                 eb = storage[bname].createBone(rig, storage, parbone)

@@ -260,6 +260,17 @@ class ResizeOptions:
         default = False)
 
 #-------------------------------------------------------------
+#   merge.py
+#-------------------------------------------------------------
+
+class ClothesLayer:
+    clothesLayer = IntProperty(
+        name = "Clothes Layer",
+        description = "Bone layer used for extra bones when merging clothes",
+        min = 1, max = 32,
+        default = 3)
+
+#-------------------------------------------------------------
 #   morphing.py
 #-------------------------------------------------------------
 

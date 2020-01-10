@@ -133,7 +133,6 @@ class Settings:
         self.caseSensitivePaths = scn.DazCaseSensitivePaths
         self.group = scn.DazUseGroup
         self.makeDrivers = scn.DazMakeDrivers
-        self.useConnect = scn.DazUseConnect
         self.propMin = scn.DazPropMin
         self.propMax = scn.DazPropMax
         self.useDazPropLimits = scn.DazUsePropLimits
