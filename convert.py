@@ -64,7 +64,7 @@ class DAZ_OT_SaveCurrentPose(DazOperator, B.JsonExportFile, B.SkelPoseBool, IsAr
         bpy.ops.object.mode_set(mode='EDIT')
         for eb in rig.data.edit_bones:
             rolls[eb.name] = eb.roll
-        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode='OBJECT')
 
         string = ('{\n' +
             '\t"character":\t"%s",\n' % rig.name +
@@ -159,7 +159,7 @@ def modifySkeleton(rig, skel):
         bname = getBoneName(eb.name, skel)
         if bname in skel.keys():
             eb.roll = skel[bname][1]
-    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.object.mode_set(mode='OBJECT')
     for pb in rig.pose.bones:
         bname = getBoneName(pb.name, skel)
         if bname in skel.keys():
@@ -196,7 +196,7 @@ def loadBonePose(pb, pose):
             if pb.lock_rotation[n]:
                 pb.rotation_euler[n] = 0
         bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode='OBJECT')
 
     if pb.name != "head":
         for child in pb.children:
@@ -257,59 +257,7 @@ SourceRig = {
     "genesis_8_male" : "genesis8",
 }
 
-def convertRig(context):
-    from .merge import applyRestPoses
-    from .globvars import theRestPoseFolder
-    global RestPoses
-
-    rig = context.object
-    scn = context.scene
-    loadRestPoseEntry(scn.DazNewRig, RestPoses, theRestPoseFolder)
-    scale = 1.0
-    if scn.DazNewRig in SourceRig.keys():
-        modify = False
-        src = SourceRig[scn.DazNewRig]
-        conv,twists = getConverter(src, rig)
-        if conv:
-            renameBones(rig, conv)
-    else:
-        modify = True
-        src = scn.DazNewRig
-        table = RestPoses[src]
-        if "translate" in table.keys():
-            renameBones(rig, table["translate"])
-        if "scale" in table.keys():
-            scale = table["scale"] * rig.DazScale
-    loadPose(rig, scn.DazNewRig, RestPoses, modify)
-    #applyRestPoses(context)
-    rig.DazRig = src
-    print("Rig converted to %s" % scn.DazNewRig)
-    if scale != 1.0:
-        raise DazError("Use scale = %.5f when loading BVH files.       " % scale, True)
-
-
-def renameBones(rig, conv):
-    print(conv.items())
-    bpy.ops.object.mode_set(mode='EDIT')
-    for eb in rig.data.edit_bones:
-        if eb.name in conv.keys():
-            data = conv[eb.name]
-            if isinstance(data, list):
-                eb.name = data[0]
-                if data[1] == "reverse":
-                    head = tuple(eb.head)
-                    tail = tuple(eb.tail)
-                    eb.head = (1,2,3)
-                    eb.tail = head
-                    eb.head = tail
-                    #bpy.ops.object.mode_set(mode='OBJECT')
-                    #bpy.ops.object.mode_set(mode='EDIT')
-            else:
-                eb.name = data
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-
-class DAZ_OT_ConvertRigPose(DazOperator):
+class DAZ_OT_ConvertRigPose(DazPropsOperator, B.NewRig):
     bl_idname = "daz.convert_rig"
     bl_label = "Convert DAZ Rig"
     bl_description = "Convert current DAZ rig to other DAZ rig"
@@ -320,8 +268,59 @@ class DAZ_OT_ConvertRigPose(DazOperator):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and ob.DazRig[0:7] == "genesis")
 
+    def draw(self, context):
+        self.layout.prop(self, "newRig")        
+
     def run(self, context):
-        convertRig(context)
+        from .merge import applyRestPoses
+        from .globvars import theRestPoseFolder
+        global RestPoses
+
+        rig = context.object
+        scn = context.scene
+        loadRestPoseEntry(self.newRig, RestPoses, theRestPoseFolder)
+        scale = 1.0
+        if self.newRig in SourceRig.keys():
+            modify = False
+            src = SourceRig[self.newRig]
+            conv,twists = getConverter(src, rig)
+            if conv:
+                self.renameBones(rig, conv)
+        else:
+            modify = True
+            src = self.newRig
+            table = RestPoses[src]
+            if "translate" in table.keys():
+                self.renameBones(rig, table["translate"])
+            if "scale" in table.keys():
+                scale = table["scale"] * rig.DazScale
+        loadPose(rig, self.newRig, RestPoses, modify)
+        #applyRestPoses(context)
+        rig.DazRig = src
+        print("Rig converted to %s" % self.newRig)
+        if scale != 1.0:
+            raise DazError("Use scale = %.5f when loading BVH files.       " % scale, True)
+
+
+    def renameBones(self, rig, conv):
+        bpy.ops.object.mode_set(mode='EDIT')
+        for eb in rig.data.edit_bones:
+            if eb.name in conv.keys():
+                data = conv[eb.name]
+                if isinstance(data, list):
+                    eb.name = data[0]
+                    if data[1] == "reverse":
+                        head = tuple(eb.head)
+                        tail = tuple(eb.tail)
+                        eb.head = (1,2,3)
+                        eb.tail = head
+                        eb.head = tail
+                        #bpy.ops.object.mode_set(mode='OBJECT')
+                        #bpy.ops.object.mode_set(mode='EDIT')
+                else:
+                    eb.name = data
+        bpy.ops.object.mode_set(mode='OBJECT')
+
 
 #-------------------------------------------------------------
 #   Bone conversion

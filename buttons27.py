@@ -363,6 +363,17 @@ class MorphTypes:
     other = BoolProperty(name = "Other", default = False)    
 
 #-------------------------------------------------------------
+#   convert.py
+#-------------------------------------------------------------
+
+class NewRig:
+    newRig = EnumProperty(
+        items = theRestPoseItems,
+        name = "New Rig",
+        description = "Convert active rig to this",
+        default = "genesis_3_female")
+
+#-------------------------------------------------------------
 #   hide.py
 #-------------------------------------------------------------
 

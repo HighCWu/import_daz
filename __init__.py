@@ -290,7 +290,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         box.prop(scn, "DazShowRigging")
         if scn.DazShowRigging:
             box.operator("daz.convert_rig")
-            box.prop(scn, "DazNewRig")
             box.separator()
             box.operator("daz.apply_rest_pose")
             box.operator("daz.copy_bones")
@@ -1190,13 +1189,6 @@ def initialize():
         description = "Delete intermediate rig after Rigify",
         default = False
     )
-
-    from .globvars import theRestPoseItems
-    bpy.types.Scene.DazNewRig = EnumProperty(
-        items = theRestPoseItems,
-        name = "New Rig",
-        description = "Convert active rig to this",
-        default = "genesis_3_female")
 
 
 classes = [
