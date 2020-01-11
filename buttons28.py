@@ -364,6 +364,16 @@ class MorphTypes:
     other : BoolProperty(name = "Other", default = False)
 
 #-------------------------------------------------------------
+#   hide.py
+#-------------------------------------------------------------
+
+class HideOnlyMasked:
+    hideOnlyMasked : BoolProperty(
+        name = "Hide Only Masked",
+        description = "Create visibility drivers only for masked meshes",
+        default = False)
+
+#-------------------------------------------------------------
 #   proxy.py
 #-------------------------------------------------------------
 

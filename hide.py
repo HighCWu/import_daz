@@ -90,7 +90,7 @@ class HidersHandler:
                     self.handleMod(prop, rig, mod)
 
 
-class DAZ_OT_AddHiders(DazOperator, HidersHandler):
+class DAZ_OT_AddHiders(DazPropsOperator, HidersHandler, B.HideOnlyMasked):
     bl_idname = "daz.add_hide_drivers"
     bl_label = "Add Visibility Drivers"
     bl_description = "Control visibility with rig property. For file linking."
@@ -99,6 +99,9 @@ class DAZ_OT_AddHiders(DazOperator, HidersHandler):
     flag = "DazVisibilityDrivers"
     value = True
 
+    def draw(self, context):
+        self.layout.prop(self, "hideOnlyMasked")
+    
     @classmethod
     def poll(self, context):
         ob = context.object
@@ -107,7 +110,7 @@ class DAZ_OT_AddHiders(DazOperator, HidersHandler):
 
     def handleProp(self, prop, clo, rig, context):
         from .driver import setBoolProp, makePropDriver
-        if context.scene.DazHideOnlyMasked:
+        if self.hideOnlyMasked:
             masked = False
             for ob in rig.children:
                 if ob.type == 'MESH':
@@ -361,11 +364,6 @@ if bpy.app.version >= (2,80,0):
 def initialize():
     bpy.types.Object.DazVisibilityDrivers = BoolProperty(default = False)
     bpy.types.Object.DazVisibilityCollections = BoolProperty(default = False)
-
-    bpy.types.Scene.DazHideOnlyMasked = BoolProperty(
-        name = "Hide Only Masked",
-        description = "Create visibility drivers only for masked meshes",
-        default = False)
 
     for cls in classes:
         bpy.utils.register_class(cls)
