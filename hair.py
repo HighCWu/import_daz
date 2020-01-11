@@ -125,15 +125,6 @@ def selectFaces(ob, faces):
     for fn in faces:
         ob.data.polygons[fn].select = True
 
-
-def quadsOnly(ob, faces):
-    for fn in faces:
-        f = ob.data.polygons[fn]
-        if len(f.vertices) != 4:
-            print("  Face %d has %s corners" % (fn, len(f.vertices)))
-            return False
-    return True
-
 #-------------------------------------------------------------
 #
 #-------------------------------------------------------------
@@ -273,121 +264,148 @@ def getHairAndHuman(context, strict):
     return hair,hum
 
 
-def makeHair(self, context):
-    scn = context.scene
-    hair,hum = getHairAndHuman(context, True)
-    #vgrp = createSkullGroup(hum, scn)
-
-    setActiveObject(context, hum)
-    clearHair(hum, hair, self.color, scn)
-    hsystems = {}
-
-    setActiveObject(context, hair)
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.select_mode(type='FACE')
-    bpy.ops.mesh.select_all(action='DESELECT')
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    print("Find neighbors")
-    faceverts,vertfaces = getVertFaces(hair)
-    nfaces = len(hair.data.polygons)
-    neighbors = findNeighbors(range(nfaces), faceverts, vertfaces)
-    centers,uvcenters = findCenters(hair)
-
-    print("Collect rects")
-    ordfaces = [(f.index,f.vertices) for f in hair.data.polygons]
-    rects1,_,_ = collectRects(ordfaces, neighbors)
-
-    print("Find texverts")
-    texverts,texfaces = findTexVerts(hair, vertfaces)
-    print("Find tex neighbors", len(texverts), nfaces, len(texfaces))
-    # Improve
-    _,texvertfaces = getVertFaces(hair, texverts, None, texfaces)
-    neighbors = findNeighbors(range(nfaces), texfaces, texvertfaces)
-
-    rects = []
-    print("Collect texrects")
-    for verts1,faces1 in rects1:
-        texfaces1 = [(fn,texfaces[fn]) for fn in faces1]
-        nn = [(fn,neighbors[fn]) for fn in faces1]
-        rects2,clusters,fclusters = collectRects(texfaces1, neighbors, True)
-        for rect in rects2:
-            rects.append(rect)
-
-    print("Sort columns")
-    haircount = -1
-    setActiveObject(context, hair)
-    verts = range(len(hair.data.vertices))
-    count = 0
-    for _,faces in rects:
-        if count % 10 == 0:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-        count += 1
-        if not quadsOnly(hair, faces):
-            continue
-        _,vertfaces = getVertFaces(None, verts, faces, faceverts)
-        neighbors = findNeighbors(faces, faceverts, vertfaces)
-        if neighbors is None:
-            continue
-        first, corner, boundary, bulk = findStartingPoint(hair, neighbors, uvcenters)
-        if first is None:
-            continue
-        selectFaces(hair, faces)
-        columns = sortColumns(first, corner, boundary, bulk, neighbors, uvcenters)
-        if columns:
-            strands = getColumnCoords(columns, centers)
-            for strand in strands:
-                haircount += 1
-                if haircount % self.sparsity != 0:
-                    continue
-                n = len(strand)
-                if n not in hsystems.keys():
-                    hsystems[n] = []
-                hsystems[n].append(strand)
-
-    print("Total number of strands: %d" % (haircount+1))
-
-    if self.resizeInBlocks:
-        print("Resize hair in blocks of ten")
-        nsystems = {}
-        for strands in hsystems.values():
-            for strand in strands:
-                n = 10*((len(strand)+5)//10)
-                if n < 10:
-                    n = 10
-                nstrand = resizeStrand(strand, n)
-                if n in nsystems.keys():
-                    nsystems[n].append(nstrand)
-                else:
-                    nsystems[n] = [nstrand]
-        hsystems = nsystems
-
-    elif self.resizeHair:
-        print("Resize hair")
-        nstrands = []
-        for strands in hsystems.values():
-            for strand in strands:
-                nstrand = resizeStrand(strand, self.size)
-                nstrands.append(nstrand)
-        hsystems = {self.size: nstrands}
-
-    print("Make particle hair")
-    activateObject(context, hum)
-    addHair(hum, hsystems, context, self.skullType)
-    print("Done")
+class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
+    bl_idname = "daz.make_hair"
+    bl_label = "Make Hair"
+    bl_description = "Make particle hair from mesh hair"
+    bl_options = {'UNDO'}
     
-# ---------------------------------------------------------------------
-#
-# ---------------------------------------------------------------------
+    def draw(self, context):
+        self.layout.prop(self, "color")
+        self.layout.prop(self, "resizeHair")
+        self.layout.prop(self, "size")
+        self.layout.prop(self, "resizeInBlocks")
+        self.layout.prop(self, "sparsity")
+        self.layout.prop(self, "skullType")
+            
+    def run(self, context):
+        self.nonquads = []
+        scn = context.scene
+        hair,hum = getHairAndHuman(context, True)
+        #vgrp = createSkullGroup(hum, scn)
 
-def clearHair(hum, hair, color, scn):
-    nsys = len(hum.particle_systems)
-    for n in range(nsys):
-        bpy.ops.object.particle_system_remove()
-    mat = bpy.data.materials.new("Hair")
-    buildHairMaterial(mat, color, scn)
-    hum.data.materials.append(mat)
+        setActiveObject(context, hum)
+        self.clearHair(hum, hair, self.color, scn)
+        hsystems = {}
+
+        setActiveObject(context, hair)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_mode(type='FACE')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        print("Find neighbors")
+        faceverts,vertfaces = getVertFaces(hair)
+        nfaces = len(hair.data.polygons)
+        neighbors = findNeighbors(range(nfaces), faceverts, vertfaces)
+        centers,uvcenters = findCenters(hair)
+
+        print("Collect rects")
+        ordfaces = [(f.index,f.vertices) for f in hair.data.polygons]
+        rects1,_,_ = collectRects(ordfaces, neighbors)
+
+        print("Find texverts")
+        texverts,texfaces = findTexVerts(hair, vertfaces)
+        print("Find tex neighbors", len(texverts), nfaces, len(texfaces))
+        # Improve
+        _,texvertfaces = getVertFaces(hair, texverts, None, texfaces)
+        neighbors = findNeighbors(range(nfaces), texfaces, texvertfaces)
+
+        rects = []
+        print("Collect texrects")
+        for verts1,faces1 in rects1:
+            texfaces1 = [(fn,texfaces[fn]) for fn in faces1]
+            nn = [(fn,neighbors[fn]) for fn in faces1]
+            rects2,clusters,fclusters = collectRects(texfaces1, neighbors, True)
+            for rect in rects2:
+                rects.append(rect)
+
+        print("Sort columns")
+        haircount = -1
+        setActiveObject(context, hair)
+        verts = range(len(hair.data.vertices))
+        count = 0
+        for _,faces in rects:
+            if count % 10 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+            count += 1
+            if not self.quadsOnly(hair, faces):
+                continue
+            _,vertfaces = getVertFaces(None, verts, faces, faceverts)
+            neighbors = findNeighbors(faces, faceverts, vertfaces)
+            if neighbors is None:
+                continue
+            first, corner, boundary, bulk = findStartingPoint(hair, neighbors, uvcenters)
+            if first is None:
+                continue
+            selectFaces(hair, faces)
+            columns = sortColumns(first, corner, boundary, bulk, neighbors, uvcenters)
+            if columns:
+                strands = getColumnCoords(columns, centers)
+                for strand in strands:
+                    haircount += 1
+                    if haircount % self.sparsity != 0:
+                        continue
+                    n = len(strand)
+                    if n not in hsystems.keys():
+                        hsystems[n] = []
+                    hsystems[n].append(strand)
+
+        print("Total number of strands: %d" % (haircount+1))
+
+        if self.resizeInBlocks:
+            print("Resize hair in blocks of ten")
+            nsystems = {}
+            for strands in hsystems.values():
+                for strand in strands:
+                    n = 10*((len(strand)+5)//10)
+                    if n < 10:
+                        n = 10
+                    nstrand = resizeStrand(strand, n)
+                    if n in nsystems.keys():
+                        nsystems[n].append(nstrand)
+                    else:
+                        nsystems[n] = [nstrand]
+            hsystems = nsystems
+
+        elif self.resizeHair:
+            print("Resize hair")
+            nstrands = []
+            for strands in hsystems.values():
+                for strand in strands:
+                    nstrand = resizeStrand(strand, self.size)
+                    nstrands.append(nstrand)
+            hsystems = {self.size: nstrands}
+
+        print("Make particle hair")
+        activateObject(context, hum)
+        addHair(hum, hsystems, context, self.skullType)
+        print("Done")
+
+        if self.nonquads:
+            #print("The following non-quad faces were ignored: %s" % self.nonquads)
+            print("Ignored %d non-quad faces out of %d faces" % (len(self.nonquads), len(hair.data.polygons)))
+    
+
+    def clearHair(self, hum, hair, color, scn):
+        nsys = len(hum.particle_systems)
+        for n in range(nsys):
+            bpy.ops.object.particle_system_remove()
+        mat = bpy.data.materials.new("Hair")
+        buildHairMaterial(mat, color, scn)
+        hum.data.materials.append(mat)
+
+
+    def quadsOnly(self, ob, faces):
+        for fn in faces:
+            f = ob.data.polygons[fn]
+            if len(f.vertices) != 4:
+                #print("  Face %d has %s corners" % (fn, len(f.vertices)))
+                self.nonquads.append(fn)
+                return False
+        return True
+
 
 
 def createSkullGroup(hum, skullType):
@@ -590,24 +608,6 @@ def findDeflector(human):
 #------------------------------------------------------------------------
 #   Buttons
 #------------------------------------------------------------------------
-
-class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
-    bl_idname = "daz.make_hair"
-    bl_label = "Make Hair"
-    bl_description = "Make particle hair from mesh hair"
-    bl_options = {'UNDO'}
-
-    def draw(self, context):
-        self.layout.prop(self, "color")
-        self.layout.prop(self, "resizeHair")
-        self.layout.prop(self, "size")
-        self.layout.prop(self, "resizeInBlocks")
-        self.layout.prop(self, "sparsity")
-        self.layout.prop(self, "skullType")
-            
-    def run(self, context):
-        makeHair(self, context)
-
 
 class IsHair:
     @classmethod

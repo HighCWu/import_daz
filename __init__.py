@@ -284,6 +284,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.find_seams")
             box.operator("daz.prune_vertex_groups")
             box.operator("daz.get_finger_print")
+            box.operator("daz.mesh_add_pinning")
 
         layout.separator()
         box = layout.box()
@@ -353,12 +354,9 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             hair,hum = getHairAndHuman(context, False)
             box.label(text = "  Hair:  %s" % (hair.name if hair else None))
             box.label(text = "  Human: %s" % (hum.name if hum else None))
-            box.separator()
-            box.operator("daz.update_hair")
-            box.operator("daz.color_hair")
-            box.operator("daz.connect_hair")
-            box.separator()
-            box.operator("daz.mesh_add_pinning")
+            #box.operator("daz.update_hair")
+            #box.operator("daz.color_hair")
+            #box.operator("daz.connect_hair")
 
 
 class DAZ_PT_Settings(bpy.types.Panel):

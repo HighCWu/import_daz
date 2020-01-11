@@ -1412,7 +1412,6 @@ classes = [
     DAZ_OT_MakeQuickProxy,
     DAZ_OT_MakeFaithfulProxy,
     DAZ_OT_Quadify,
-    DAZ_OT_ProxifyAll,
     DAZ_OT_SplitNgons,
     DAZ_OT_FindSeams,
     DAZ_OT_SelectRandomStrands,

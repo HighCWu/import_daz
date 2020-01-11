@@ -422,6 +422,95 @@ class Mannequin:
         default = "Mannequin")
 
 #-------------------------------------------------------------
+#   hair.py
+#-------------------------------------------------------------
+
+class Hair:
+    color = FloatVectorProperty(
+        name = "Hair Color",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.5, 0.05, 0.1, 1)
+    )
+
+    sparsity = IntProperty(
+        name = "Sparsity",
+        min = 1,
+        max = 50,
+        default = 1,
+        description = "Only use every n:th hair"
+    )
+
+    size = IntProperty(
+        name = "Hair Length",
+        min = 5,
+        max = 100,
+        default = 20,
+        description = "Hair length"
+    )
+
+    resizeHair = BoolProperty(
+        name = "Resize Hair",
+        default = False,
+        description = "Resize hair afterwards"
+    )
+
+    resizeInBlocks = BoolProperty(
+        name = "Resize In Blocks",
+        default = False,
+        description = "Resize hair in blocks of ten afterwards"
+    )
+
+    skullType = EnumProperty(
+        items = [('NONE', "None", "No Skull group"),
+                 ('TOP', "Top", "Assign only top vertex to Skull group"),
+                 ('ALL', "All", "Assign all vertices to Skull group"),
+                 ],
+        name = "Skull Group",
+        description = "Vertex group to control hair density",
+        default = 'TOP')
+
+
+class Pinning:
+    pinningX0 = FloatProperty(
+        name = "Pin X0",
+        min = 0.0,
+        max = 1.0,
+        default = 0.25,
+        precision = 3,
+        description = ""
+    )
+
+    pinningX1 = FloatProperty(
+        name = "Pin X1",
+        min = 0.0,
+        max = 1.0,
+        default = 0.75,
+        precision = 3,
+        description = ""
+    )
+
+    pinningW0 = FloatProperty(
+        name = "Pin W0",
+        min = 0.0,
+        max = 1.0,
+        default = 1.0,
+        precision = 3,
+        description = ""
+    )
+
+    pinningW1 = FloatProperty(
+        name = "Pin W1",
+        min = 0.0,
+        max = 1.0,
+        default = 0.0,
+        precision = 3,
+        description = ""
+    )
+
+#-------------------------------------------------------------
 #   poser.py
 #-------------------------------------------------------------
 
