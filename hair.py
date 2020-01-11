@@ -273,13 +273,13 @@ def getHairAndHuman(context, strict):
     return hair,hum
 
 
-def makeHair(context):
+def makeHair(self, context):
     scn = context.scene
     hair,hum = getHairAndHuman(context, True)
     #vgrp = createSkullGroup(hum, scn)
 
     setActiveObject(context, hum)
-    clearHair(hum, hair, scn.DazHairColor, scn)
+    clearHair(hum, hair, self.color, scn)
     hsystems = {}
 
     setActiveObject(context, hair)
@@ -339,7 +339,7 @@ def makeHair(context):
             strands = getColumnCoords(columns, centers)
             for strand in strands:
                 haircount += 1
-                if haircount % scn.DazHairSparsity != 0:
+                if haircount % self.sparsity != 0:
                     continue
                 n = len(strand)
                 if n not in hsystems.keys():
@@ -348,7 +348,7 @@ def makeHair(context):
 
     print("Total number of strands: %d" % (haircount+1))
 
-    if scn.DazResizeInBlocks:
+    if self.resizeInBlocks:
         print("Resize hair in blocks of ten")
         nsystems = {}
         for strands in hsystems.values():
@@ -363,18 +363,18 @@ def makeHair(context):
                     nsystems[n] = [nstrand]
         hsystems = nsystems
 
-    elif scn.DazResizeHair:
+    elif self.resizeHair:
         print("Resize hair")
         nstrands = []
         for strands in hsystems.values():
             for strand in strands:
-                nstrand = resizeStrand(strand, scn.DazHairSize)
+                nstrand = resizeStrand(strand, self.size)
                 nstrands.append(nstrand)
-        hsystems = {scn.DazHairSize: nstrands}
+        hsystems = {self.size: nstrands}
 
     print("Make particle hair")
     activateObject(context, hum)
-    addHair(hum, hsystems, context)
+    addHair(hum, hsystems, context, self.skullType)
     print("Done")
     
 # ---------------------------------------------------------------------
@@ -390,8 +390,8 @@ def clearHair(hum, hair, color, scn):
     hum.data.materials.append(mat)
 
 
-def createSkullGroup(hum, scn):
-    if scn.DazSkullGroup == 'TOP':
+def createSkullGroup(hum, skullType):
+    if skullType == 'TOP':
         maxheight = -1e4
         for v in hum.data.vertices:
             if v.co[2] > maxheight:
@@ -400,7 +400,7 @@ def createSkullGroup(hum, scn):
         vgrp = hum.vertex_groups.new(name="Skull")
         vgrp.add([top], 1.0, 'REPLACE')
         return vgrp
-    elif scn.DazSkullGroup == 'ALL':
+    elif skullType == 'ALL':
         vgrp = hum.vertex_groups.new(name="Skull")
         for vn in range(len(hum.data.vertices)):
             vgrp.add([vn], 1.0, 'REPLACE')
@@ -409,9 +409,8 @@ def createSkullGroup(hum, scn):
         return None
 
 
-def addHair(hum, hsystems, context, useHairDynamics=False):
-    scn = context.scene
-    vgrp = createSkullGroup(hum, scn)
+def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
+    vgrp = createSkullGroup(hum, skullType)
     for strands in hsystems.values():
         hlen = int(len(strands[0]))
         if hlen < 3:
@@ -425,7 +424,7 @@ def addHair(hum, hsystems, context, useHairDynamics=False):
         pset = psys.settings
         pset.type = 'HAIR'
         pset.use_strand_primitive = True
-        useEmitter = (scn.DazSkullGroup == 'TOP')
+        useEmitter = (skullType == 'TOP')
         if hasattr(pset, "use_render_emitter"):
             pset.use_render_emitter = useEmitter
         elif hasattr(hum, "show_instancer_for_render"):
@@ -507,21 +506,6 @@ def setEditProperties(context, hum):
 #   Hair settings
 # ---------------------------------------------------------------------
 
-def updateHair(context):
-    hum = context.object
-    psys0 = hum.particle_systems.active
-    psettings = getSettings(psys0.settings)
-    hdyn0 = psys0.use_hair_dynamics
-    csettings = getSettings(psys0.cloth.settings)
-    for psys in hum.particle_systems:
-        if psys == psys0:
-            continue
-        hum.particle_systems.active = psys
-        setSettings(psys.settings, psettings)
-        psys.use_hair_dynamics = hdyn0
-        #setSettings(psys.cloth.settings, csettings)
-    hum.particle_systems.active = psys0
-
 
 def getSettings(pset):
     settings = {}
@@ -548,22 +532,6 @@ def setSettings(pset, settings):
             setattr(pset, key, value)
         except AttributeError:
             pass
-
-
-def colorHair(context):
-    scn = context.scene
-    hum = context.object
-    mnames = []
-    for psys in hum.particle_systems:
-        pset = psys.settings
-        mname = pset.material_slot
-        if mname not in mnames:
-            for mat in hum.data.materials:
-                if mat.name == mname:
-                    buildHairMaterial(mat, scn.DazHairColor, scn)
-                    mnames.append(mname)
-                    break
-    toggleEditMode()
 
 
 #------------------------------------------------------------------------
@@ -620,67 +588,99 @@ def findDeflector(human):
     return None
 
 #------------------------------------------------------------------------
-#
+#   Buttons
 #------------------------------------------------------------------------
 
-class DAZ_OT_MakeHair(DazOperator, IsMesh):
+class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
     bl_idname = "daz.make_hair"
     bl_label = "Make Hair"
     bl_description = "Make particle hair from mesh hair"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "color")
+        self.layout.prop(self, "resizeHair")
+        self.layout.prop(self, "size")
+        self.layout.prop(self, "resizeInBlocks")
+        self.layout.prop(self, "sparsity")
+        self.layout.prop(self, "skullType")
+            
     def run(self, context):
-        makeHair(context)
+        makeHair(self, context)
 
 
-class DAZ_OT_UpdateHair(DazOperator, IsMesh):
+class IsHair:
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'MESH' and ob.particle_systems.active)
+            
+
+class DAZ_OT_UpdateHair(DazOperator, IsHair):
     bl_idname = "daz.update_hair"
     bl_label = "Update Hair"
     bl_description = "Change settings for particle hair"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        updateHair(context)
+        hum = context.object
+        psys0 = hum.particle_systems.active
+        psettings = getSettings(psys0.settings)
+        hdyn0 = psys0.use_hair_dynamics
+        csettings = getSettings(psys0.cloth.settings)
+        for psys in hum.particle_systems:
+            if psys == psys0:
+                continue
+            hum.particle_systems.active = psys
+            setSettings(psys.settings, psettings)
+            psys.use_hair_dynamics = hdyn0
+            #setSettings(psys.cloth.settings, csettings)
+        hum.particle_systems.active = psys0
 
 
-class DAZ_OT_ColorHair(DazOperator, IsMesh):
+class DAZ_OT_ColorHair(DazPropsOperator, IsHair, B.ColorProp):
     bl_idname = "daz.color_hair"
     bl_label = "Color Hair"
     bl_description = "Change particle hair color"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        colorHair(context)
-
-#------------------------------------------------------------------------
-#   Connect
-#------------------------------------------------------------------------
-
-def connectHair(context):
-    hum = context.object
-    for mod in hum.modifiers:
-        if isinstance(mod, bpy.types.ParticleSystemModifier):
-            print(mod)
-
-    nparticles = len(hum.particle_systems)
-    for n in range(nparticles):
-        hum.particle_systems.active_index = n
-        print(hum.particle_systems.active_index, hum.particle_systems.active)
-        bpy.ops.particle.particle_edit_toggle()
-        bpy.ops.particle.disconnect_hair()
-        bpy.ops.particle.particle_edit_toggle()
-        bpy.ops.particle.connect_hair()
-        bpy.ops.particle.particle_edit_toggle()
+        scn = context.scene
+        hum = context.object
+        mnames = []
+        for psys in hum.particle_systems:
+            pset = psys.settings
+            mname = pset.material_slot
+            if mname not in mnames:
+                for mat in hum.data.materials:
+                    if mat.name == mname:
+                        buildHairMaterial(mat, self.color, scn)
+                        mnames.append(mname)
+                        break
+        toggleEditMode()
 
 
-class DAZ_OT_ConnectHair(DazOperator, IsMesh):
+class DAZ_OT_ConnectHair(DazOperator, IsHair):
     bl_idname = "daz.connect_hair"
     bl_label = "Connect Hair"
     bl_description = "(Re)connect hair"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        connectHair(context)
+        hum = context.object
+        for mod in hum.modifiers:
+            if isinstance(mod, bpy.types.ParticleSystemModifier):
+                print(mod)
+
+        nparticles = len(hum.particle_systems)
+        for n in range(nparticles):
+            hum.particle_systems.active_index = n
+            print(hum.particle_systems.active_index, hum.particle_systems.active)
+            bpy.ops.particle.particle_edit_toggle()
+            bpy.ops.particle.disconnect_hair()
+            bpy.ops.particle.particle_edit_toggle()
+            bpy.ops.particle.connect_hair()
+            bpy.ops.particle.particle_edit_toggle()
 
 #------------------------------------------------------------------------
 #   Materials
@@ -821,59 +821,58 @@ def buildHairMaterialCycles(mat, rgb):
 #   Pinning
 # ---------------------------------------------------------------------
 
-def pinCoeffs(scn):
-    x0 = scn.DazHairPinningX0
-    x1 = scn.DazHairPinningX1
-    w0 = scn.DazHairPinningW0
-    w1 = scn.DazHairPinningW1
-    k = (w1-w0)/(x1-x0)
-    return x0,x1,w0,w1,k
+class Pinning(B.Pinning):
+    def pinCoeffs(self):
+        x0 = self.pinningX0
+        x1 = self.pinningX1
+        w0 = self.pinningW0
+        w1 = self.pinningW1
+        k = (w1-w0)/(x1-x0)
+        return x0,x1,w0,w1,k
+
+    def draw(self, context):
+        self.layout.prop(self, "pinningX0")
+        self.layout.prop(self, "pinningX1")
+        self.layout.prop(self, "pinningW0")
+        self.layout.prop(self, "pinningW1")
 
 
-def meshAddPinning(context):
-    ob = context.object
-    x0,x1,w0,w1,k = pinCoeffs(context.scene)
-
-    if "HairPinning" in ob.vertex_groups.keys():
-        vgrp = ob.vertex_groups["HairPinning"]
-        ob.vertex_groups.remove(vgrp)
-
-    vgrp = ob.vertex_groups.new(name="HairPinning")
-    uvs = ob.data.uv_layers.active.data
-    m = 0
-    for f in ob.data.polygons:
-        for n,vn in enumerate(f.vertices):
-            x = 1-uvs[m+n].uv[1]
-            if x < x0:  w = w0
-            elif x > x1: w = w1
-            else: w = w0 + k*(x-x0)
-            vgrp.add([vn], w, 'REPLACE')
-        m += len(f.vertices)
-
-
-class DAZ_OT_MeshAddPinning(DazOperator, IsMesh):
+class DAZ_OT_MeshAddPinning(DazPropsOperator, IsMesh, Pinning):
     bl_idname = "daz.mesh_add_pinning"
     bl_label = "Add Pinning Group"
     bl_description = "Add HairPin group to mesh hair"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        meshAddPinning(context)
+        ob = context.object
+        x0,x1,w0,w1,k = self.pinCoeffs()
+
+        if "HairPinning" in ob.vertex_groups.keys():
+            vgrp = ob.vertex_groups["HairPinning"]
+            ob.vertex_groups.remove(vgrp)
+
+        vgrp = ob.vertex_groups.new(name="HairPinning")
+        uvs = ob.data.uv_layers.active.data
+        m = 0
+        for f in ob.data.polygons:
+            for n,vn in enumerate(f.vertices):
+                x = 1-uvs[m+n].uv[1]
+                if x < x0:  w = w0
+                elif x > x1: w = w1
+                else: w = w0 + k*(x-x0)
+                vgrp.add([vn], w, 'REPLACE')
+            m += len(f.vertices)
 
 
-def hairAddPinning(context):
-    ob = context.object
-    x0,x1,w0,w1,k = pinCoeffs(context.scene)
-
-
-class DAZ_OT_HairAddPinning(DazOperator, IsMesh):
+class DAZ_OT_HairAddPinning(DazPropsOperator, IsMesh, Pinning):
     bl_idname = "daz.hair_add_pinning"
     bl_label = "Hair Add Pinning"
     bl_description = "Add HairPin group to hair strands"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        hairAddPinning(context)
+        ob = context.object
+        x0,x1,w0,w1,k = self.pinCoeffs()
 
 # ---------------------------------------------------------------------
 #   Initialize
@@ -889,85 +888,6 @@ classes = [
 ]
 
 def initialize():
-    bpy.types.Scene.DazHairColor = FloatVectorProperty(
-        name = "Hair Color",
-        subtype = "COLOR",
-        size = 4,
-        min = 0.0,
-        max = 1.0,
-        default = (0.5, 0.05, 0.1, 1)
-    )
-
-    bpy.types.Scene.DazHairSparsity = IntProperty(
-        name = "Sparsity",
-        min = 1,
-        max = 50,
-        default = 1,
-        description = "Only use every n:th hair"
-    )
-    bpy.types.Scene.DazHairSize = IntProperty(
-        name = "Hair Length",
-        min = 5,
-        max = 100,
-        default = 20,
-        description = "Hair length"
-    )
-    bpy.types.Scene.DazResizeHair = BoolProperty(
-        name = "Resize Hair",
-        default = False,
-        description = "Resize hair afterwards"
-    )
-    bpy.types.Scene.DazResizeInBlocks = BoolProperty(
-        name = "Resize In Blocks",
-        default = False,
-        description = "Resize hair in blocks of ten afterwards"
-    )
-
-    bpy.types.Scene.DazSkullGroup = EnumProperty(
-        items = [('NONE', "None", "No Skull group"),
-                 ('TOP', "Top", "Assign only top vertex to Skull group"),
-                 ('ALL', "All", "Assign all vertices to Skull group"),
-                 ],
-        name = "Skull Group",
-        description = "Vertex group to control hair density",
-        default = 'TOP')
-
-    bpy.types.Scene.DazHairPinningX0 = FloatProperty(
-        name = "Pin X0",
-        min = 0.0,
-        max = 1.0,
-        default = 0.25,
-        precision = 3,
-        description = ""
-    )
-
-    bpy.types.Scene.DazHairPinningX1 = FloatProperty(
-        name = "Pin X1",
-        min = 0.0,
-        max = 1.0,
-        default = 0.75,
-        precision = 3,
-        description = ""
-    )
-
-    bpy.types.Scene.DazHairPinningW0 = FloatProperty(
-        name = "Pin W0",
-        min = 0.0,
-        max = 1.0,
-        default = 1.0,
-        precision = 3,
-        description = ""
-    )
-
-    bpy.types.Scene.DazHairPinningW1 = FloatProperty(
-        name = "Pin W1",
-        min = 0.0,
-        max = 1.0,
-        default = 0.0,
-        precision = 3,
-        description = ""
-    )
-
     for cls in classes:
         bpy.utils.register_class(cls)
 

@@ -349,36 +349,16 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         box.prop(scn, "DazShowHair")
         if scn.DazShowHair:
             from .hair import getHairAndHuman
-            box.prop(scn, "DazHairColor")
-            box.prop(scn, "DazResizeHair")
-            box.prop(scn, "DazHairSize")
-            box.prop(scn, "DazResizeInBlocks")
-            box.prop(scn, "DazHairSparsity")
-            box.prop(scn, "DazSkullGroup")
-            box.separator()
             box.operator("daz.make_hair")
             hair,hum = getHairAndHuman(context, False)
             box.label(text = "  Hair:  %s" % (hair.name if hair else None))
             box.label(text = "  Human: %s" % (hum.name if hum else None))
-
             box.separator()
             box.operator("daz.update_hair")
             box.operator("daz.color_hair")
             box.operator("daz.connect_hair")
             box.separator()
             box.operator("daz.mesh_add_pinning")
-            split = utils.splitLayout(layout, 0.1)
-            split.label(text = "")
-            split.prop(scn, "DazHairPinningX0")
-            split = utils.splitLayout(layout, 0.1)
-            split.label(text = "")
-            split.prop(scn, "DazHairPinningX1")
-            split = utils.splitLayout(layout, 0.1)
-            split.label(text = "")
-            split.prop(scn, "DazHairPinningW0")
-            split = utils.splitLayout(layout, 0.1)
-            split.label(text = "")
-            split.prop(scn, "DazHairPinningW1")
 
 
 class DAZ_PT_Settings(bpy.types.Panel):
