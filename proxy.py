@@ -1131,13 +1131,13 @@ class DAZ_OT_PrintStatistics(DazOperator, IsMesh):
 #   Add mannequin
 #-------------------------------------------------------------
 
-def remapBones(bone, scn, vgrps, majors, remap):
+def remapBones(bone, headType, vgrps, majors, remap):
     special = {
         'SOLID' : ["head"],
         'JAW' : ["head", "lowerjaw", "leye", "reye"],
         'FULL' : []
           }
-    if bone.name.lower() in special[scn.DazMannequinHead]:
+    if bone.name.lower() in special[headType]:
         if bone.name in vgrps.keys():
             remap = vgrps[bone.name].index
     elif remap is not None:
@@ -1147,10 +1147,10 @@ def remapBones(bone, scn, vgrps, majors, remap):
                 majors[remap] += majors[gn]
                 del majors[gn]
     for child in bone.children:
-        remapBones(child, scn, vgrps, majors, remap)
+        remapBones(child, headType, vgrps, majors, remap)
 
 
-def addMannequins(context):
+def addMannequins(self, context):
     objects = getSceneObjects(context)
     selected = [ob for ob in objects if getSelected(ob)]
     ob = context.object
@@ -1166,25 +1166,25 @@ def addMannequins(context):
     mangrp = None
     scn = context.scene
     coll = getCollection(context)
-    if not scn.DazUseMannequinGroup:
+    if not self.useGroup:
         pass
     elif bpy.app.version <= (2,80,0):
         for grp in bpy.data.groups:
-            if grp.name == scn.DazMannequinGroup:
+            if grp.name == self.group:
                 mangrp = grp
                 break
         if mangrp is None:
-            mangrp = bpy.data.groups.new(scn.DazMannequinGroup)
+            mangrp = bpy.data.groups.new(self.group)
         if rig.name not in mangrp.objects.keys():
             mangrp.objects.link(rig)
     else:
         coll = None
         for coll1 in scn.collection.children:
-            if coll1.name == scn.DazMannequinGroup:
+            if coll1.name == self.group:
                 coll = coll1
                 break
         if coll is None:
-            coll = bpy.data.collections.new(name=scn.DazMannequinGroup)
+            coll = bpy.data.collections.new(name=self.group)
             scn.collection.children.link(coll)
         if rig.name not in coll.objects.keys():
             coll.objects.link(rig)
@@ -1192,7 +1192,7 @@ def addMannequins(context):
     # Add mannequin objects for selected meshes
     meshes = [ob for ob in objects if (getSelected(ob) and ob.type == 'MESH')]
     for ob in meshes:
-        addMannequin(ob, context, rig, coll, mangrp)
+        addMannequin(ob, context, rig, coll, mangrp, self.headType)
         
     for ob in getSceneObjects(context):
         if ob in selected:
@@ -1202,12 +1202,11 @@ def addMannequins(context):
     rig.data.layers = oldlayers
 
 
-def addMannequin(ob, context, rig, coll, mangrp):
+def addMannequin(ob, context, rig, coll, mangrp, headType):
     from random import random
     from .node import setParent
     from .guess import getSkinMaterial
 
-    scn = context.scene
     mat = bpy.data.materials.new("%sMannequin" % ob.name)
     mat.diffuse_color[0:3] = (random(), random(), random())
     for omat in ob.data.materials:
@@ -1237,7 +1236,7 @@ def addMannequin(ob, context, rig, coll, mangrp):
 
     roots = [bone for bone in rig.data.bones if bone.parent is None]
     for bone in roots:
-        remapBones(bone, scn, ob.vertex_groups, majors, None)
+        remapBones(bone, headType, ob.vertex_groups, majors, None)
 
     obverts = ob.data.vertices
     vmax = 0.49
@@ -1297,15 +1296,20 @@ def addMannequin(ob, context, rig, coll, mangrp):
     return nobs
 
 
-class DAZ_OT_AddMannequin(DazOperator, IsMesh):
+class DAZ_OT_AddMannequin(DazPropsOperator, IsMesh, B.Mannequin):
     bl_idname = "daz.add_mannequin"
     bl_label = "Add Mannequins"
     bl_description = "Add mannequins to selected meshes. Don't change rig after this."
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "headType")
+        self.layout.prop(self, "useGroup")
+        self.layout.prop(self, "group")
+
     def run(self, context):
         checkObjectMode(context)
-        addMannequins(context)
+        addMannequins(self, context)
 
 #-------------------------------------------------------------
 #   Add push
@@ -1424,36 +1428,6 @@ def initialize():
     from bpy.props import BoolProperty, EnumProperty, StringProperty
 
     bpy.types.Object.DazMannequin = BoolProperty(default = False)
-
-    bpy.types.Scene.DazMannequinHead = EnumProperty(
-        items = [('SOLID', "Solid", "Solid head"),
-                 ('JAW', "Jaw", "Head with jaws and eyes"),
-                 ('FULL', "Full", "Head with all face bones"),
-                 ],
-        name = "Head",
-        description = "How to make the mannequin head",
-        default = 'JAW')
-
-    if bpy.app.version <= (2,80,0):
-        usename = "Add To Group"
-        usedesc = "Add mannequin to group"
-        grpname = "Group"
-        grpdesc = "Add mannequin to this group"
-    else:
-        usename = "Add To Collection"
-        usedesc = "Add mannequin to collection"
-        grpname = "Collection"
-        grpdesc = "Add mannequin to this collection"
-
-    bpy.types.Scene.DazUseMannequinGroup = BoolProperty(
-        name = usename,
-        description = usedesc,
-        default = True)
-
-    bpy.types.Scene.DazMannequinGroup = StringProperty(
-        name = grpname,
-        description = grpdesc,
-        default = "Mannequin")
 
     for cls in classes:
         bpy.utils.register_class(cls)

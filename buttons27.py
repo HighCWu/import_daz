@@ -401,6 +401,26 @@ class IterationsInt:
         min = 0, max = 10,
         default = 2)
 
+class Mannequin:
+    headType = EnumProperty(
+        items = [('SOLID', "Solid", "Solid head"),
+                 ('JAW', "Jaw", "Head with jaws and eyes"),
+                 ('FULL', "Full", "Head with all face bones"),
+                 ],
+        name = "Head Type",
+        description = "How to make the mannequin head",
+        default = 'JAW')
+
+    useGroup = BoolProperty(
+        name = "Add To Group",
+        description = "Add mannequin to group",
+        default = True)
+
+    group = StringProperty(
+        name = "Group",
+        description = "Add mannequin to this group",
+        default = "Mannequin")
+
 #-------------------------------------------------------------
 #   poser.py
 #-------------------------------------------------------------
