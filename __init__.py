@@ -176,7 +176,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.solidify_thin_walls")
 
             box.separator()
-            box.label(text = "Rigging")
             box.operator("daz.optimize_pose")
             box.operator("daz.apply_rest_pose")
             box.operator("daz.convert_mhx")
@@ -249,14 +248,12 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.print_statistics")
             box.separator()
             box.operator("daz.apply_morphs")
-            box.prop(scn, "DazIterations")
             box.operator("daz.make_quick_proxy")
             box.separator()
             box.operator("daz.make_faithful_proxy")
             box.operator("daz.split_ngons")
             box.operator("daz.quadify")
             box.separator()
-            box.prop(scn, "DazRandomKeepFraction")
             box.operator("daz.select_random_strands")
             box.separator()
             box.operator("daz.add_push")
@@ -1051,18 +1048,6 @@ def initialize():
         name = "Load All Morphs",
         description = "Load all morphs in selected directory",
         default = False)
-
-    bpy.types.Scene.DazIterations = IntProperty(
-        name = "Iterations",
-        description = "Number of iterations when ",
-        min = 0, max = 10,
-        default = 2)
-
-    bpy.types.Scene.DazRandomKeepFraction = FloatProperty(
-        name = "Random Keep Fraction",
-        description = "Fraction of hair strands to keep",
-        min = 0.0, max = 1.0,
-        default = 0.5)
 
     bpy.types.Scene.DazPropMin = FloatProperty(
         name = "Property Minima",

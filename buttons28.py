@@ -364,6 +364,24 @@ class MorphTypes:
     other : BoolProperty(name = "Other", default = False)
 
 #-------------------------------------------------------------
+#   proxy.py
+#-------------------------------------------------------------
+
+class FractionFloat:
+    fraction : FloatProperty(
+        name = "Keep Fraction",
+        description = "Fraction of strands to keep",
+        min = 0.0, max = 1.0,
+        default = 0.5)
+    
+class IterationsInt:
+    iterations : IntProperty(
+        name = "Iterations",
+        description = "Number of iterations when ",
+        min = 0, max = 10,
+        default = 2)
+
+#-------------------------------------------------------------
 #   poser.py
 #-------------------------------------------------------------
 

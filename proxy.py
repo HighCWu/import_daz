@@ -37,19 +37,6 @@ from .utils import *
 #   Make proxy
 #-------------------------------------------------------------
 
-def makeProxy1(context, iterations):
-    ob = context.object
-    bpy.ops.object.duplicate()
-    pxy = context.object
-    makeRawProxy(pxy, iterations)
-    pxy.name = stripName(ob.name) + ("_Lod%d" % iterations)
-    if bpy.app.version < (2,80,0):
-        pxy.layers = list(ob.layers)
-    insertSeams(ob, pxy)
-    print("Low-poly %s created" % pxy.name)
-    return pxy
-
-
 def stripName(string):
     if string[-5:] == "_Mesh":
         return string[:-5]
@@ -59,14 +46,6 @@ def stripName(string):
         return string[:-4]
     else:
         return string
-
-
-def makeRawProxy(pxy, iterations):
-    mod = pxy.modifiers.new("Proxy", 'DECIMATE')
-    mod.decimate_type = 'UNSUBDIV'
-    mod.iterations = iterations
-    bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mod.name)
-
 
 #-------------------------------------------------------------
 #   Find polys
@@ -667,7 +646,7 @@ class Proxifier:
                     me.materials.append(mat)
 
 
-    def selectRandomComponents(self, context):
+    def selectRandomComponents(self, context, fraction):
         import random
         ob = context.object
         scn = context.scene
@@ -676,7 +655,7 @@ class Proxifier:
         self.neighbors = findNeighbors(range(self.nfaces), self.faceverts, self.vertfaces)
         comps,taken = self.getConnectedComponents()
         for comp in comps.values():
-            if random.random() > scn.DazRandomKeepFraction:
+            if random.random() > fraction:
                 for fn in comp:
                     f = ob.data.polygons[fn]
                     if not f.hide:
@@ -902,7 +881,7 @@ class MakeProxy(IsMesh):
             raise DazError(msg)
 
 
-class DAZ_OT_MakeQuickProxy(MakeProxy, DazOperator):
+class DAZ_OT_MakeQuickProxy(MakeProxy, DazPropsOperator, B.IterationsInt):
     bl_idname = "daz.make_quick_proxy"
     bl_label = "Make Quick Low-poly"
     bl_description = "Replace all selected meshes by low-poly versions, using a quick algorithm that does not preserve UV seams"
@@ -915,7 +894,10 @@ class DAZ_OT_MakeQuickProxy(MakeProxy, DazOperator):
             return None
         applyShapeKeys(ob)
         printStatistics(ob)
-        makeRawProxy(ob, scn.DazIterations)
+        mod = ob.modifiers.new("Proxy", 'DECIMATE')
+        mod.decimate_type = 'UNSUBDIV'
+        mod.iterations = self.iterations
+        bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mod.name)
         printStatistics(ob)
         return ob
 
@@ -972,47 +954,6 @@ def restoreSelectedObjects(context, meshes, active):
     for ob in meshes:
         setSelected(ob, True)
     setActiveObject(context, active)
-
-#-------------------------------------------------------------
-#   Find seams
-#-------------------------------------------------------------
-
-def proxifyAll(context):
-    duplets = {}
-    dummy = bpy.data.meshes.new("Dummy")
-    for ob in getSceneObjects(context):
-        if ob.type == 'MESH':
-            if ob.data.name in duplets.keys():
-                duplets[ob.data.name].append(ob)
-                ob.data = dummy
-            else:
-                duplets[ob.data.name] = []
-    print("Making low-poly versions:")
-    for ob in getSceneObjects(context):
-        if (ob.type == 'MESH' and
-            ob.data != dummy and
-            getSelected(ob)):
-            setActiveObject(context, ob)
-            print("  %s: %d verts" % (ob.name, len(ob.data.vertices)))
-            applyShapeKeys(ob)
-            makeRawProxy(ob, scn.DazIterations)
-    print("Restoring duplets")
-    for mname,obs in duplets.items():
-        me = bpy.data.meshes[mname]
-        for ob in obs:
-            ob.data = me
-    bpy.data.meshes.remove(dummy)
-
-
-class DAZ_OT_ProxifyAll(DazOperator, B.UseAllBool):
-    bl_idname = "daz.proxify_all"
-    bl_label = "Make All Low-Poly"
-    bl_description = "Replace all (selected) meshes by low-poly versions"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        checkObjectMode(context)
-        proxifyAll(context, self.useAll)
 
 #-------------------------------------------------------------
 #   Split n-gons
@@ -1119,16 +1060,19 @@ class DAZ_OT_FindSeams(DazOperator, IsMesh):
 #   Select random strands
 #-------------------------------------------------------------
 
-class DAZ_OT_SelectRandomStrands(DazOperator, IsMesh):
+class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
     bl_idname = "daz.select_random_strands"
     bl_label = "Select Random Strands"
     bl_description = "Select random subset of strands selected in UV space"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "fraction")
+        
     def run(self, context):
         checkObjectMode(context)
         ob = context.object
-        Proxifier(ob).selectRandomComponents(context)
+        Proxifier(ob).selectRandomComponents(context, self.fraction)
 
 #-------------------------------------------------------------
 #  Apply morphs
