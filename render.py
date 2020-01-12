@@ -33,6 +33,7 @@ from .cycles import CyclesMaterial, CyclesTree
 from .settings import theSettings
 from .utils import *
 
+
 #-------------------------------------------------------------
 #   Render Options
 #-------------------------------------------------------------
@@ -181,11 +182,11 @@ def parseRenderOptions(struct, fileref):
     if theSettings.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
         return None
     else:
-        if "render_options" in struct.keys():
-            ostruct = struct["render_options"]
-            if "render_elements" in ostruct.keys():
-                asset = RenderOptions(fileref)
-                for estruct in ostruct["render_elements"]:
-                    asset.parse(estruct)
-                return asset
+        print("PRR", struct.keys())
+        if "render_elements" in struct.keys():
+            asset = RenderOptions(fileref)
+            for element in struct["render_elements"]:
+                asset.parse(element)
+            return asset
     return None
+    

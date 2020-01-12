@@ -100,7 +100,9 @@ def getMainAsset(filepath, context, btn):
         asset.postbuild(context, inst)
 
     for extra in main.extras:
-        extra.build(context)
+        print("EX", extra)
+        if extra:
+            extra.build(context)
 
     if (theSettings.useMaterials and
         theSettings.chooseColors != 'WHITE'):

@@ -119,22 +119,9 @@ class ExtraAsset(Modifier):
         if ob is None or rig is None:
             return
         for etype,extra in self.extras.items():
-            print("BEX", etype)
             if etype == "studio/modifier/dynamic_simulation":
-                pass
-            if etype == "studio_modifier_channels":
-                for channels in extra["channels"]:
-                    channel = channels["channel"]
-                    if channel["id"] == "Simulation Object Type":
-                        # [ "Static Surface", "Dynamic Surface", "Dynamic Surface Add-On" ]
-                        pass
-                    elif channel["id"] == "Simulation Base Shape":
-                        # [ "Use Simulation Start Frame", "Use Scene Frame 0", 
-                        #   "Use Shape from Simulation Start Frame", "Use Shape from Scene Frame 0" ]
-                        pass
-                    elif channel["id"] == "Freeze Simulation":
-                        pass
-
+                from .dforce import buildSimulation
+                buildSimulation(rig, ob, self.extras)
 
 #-------------------------------------------------------------
 #   Channel

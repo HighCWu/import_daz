@@ -151,10 +151,15 @@ class FileAsset(Asset):
 
             if self.toplevel and "extra" in scene.keys():
                 for extra in scene["extra"]:
-                    if "render_options" in extra.keys():
-                        from .render import parseRenderOptions
-                        renderOptions = parseRenderOptions(extra, self.fileref)
-                        self.extras.append(renderOptions)
+                    for key,estruct in extra.items():
+                        if key == "render_options":
+                            from .render import parseRenderOptions
+                            options = parseRenderOptions(estruct, self.fileref)
+                            self.extras.append(options)
+                        elif key == "simulation_options":
+                            from .dforce import parseSimulationOptions
+                            options = parseSimulationOptions(estruct, self.fileref)
+                            self.extras.append(options)
                 
 
         msg = ("-FILE %s" % self.fileref)

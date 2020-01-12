@@ -27,5 +27,75 @@
 ##
 
 import bpy
+from .asset import Asset
+
+#-------------------------------------------------------------
+#   
+#-------------------------------------------------------------
+
+def buildSimulation(rig, ob, extras):
+    objtype = 0
+    baseshape = 0
+    freeze = 0
+    if "studio_modifier_channels" in extras.keys():
+        struct = extras["studio_modifier_channels"]
+        for channels in struct["channels"]:
+            channel = channels["channel"]
+            if channel["id"] == "Simulation Object Type":
+                # [ "Static Surface", "Dynamic Surface", "Dynamic Surface Add-On" ]
+                objtype = channel["value"]
+            elif channel["id"] == "Simulation Base Shape":
+                # [ "Use Simulation Start Frame", "Use Scene Frame 0", 
+                #   "Use Shape from Simulation Start Frame", "Use Shape from Scene Frame 0" ]
+                baseshape = channel["value"]
+            elif channel["id"] == "Freeze Simulation":
+                freeze = channel["value"]
+    
+    if "studio/modifier/dynamic_simulation" in extras.keys():
+        struct = extras["studio/modifier/dynamic_simulation"]
+        print("SIM", ob, objtype, baseshape, freeze)
+        if objtype > 0:
+            mod = ob.modifiers.new("Cloth", 'CLOTH')
+            cset = mod.settings
+            if "vertex_count" in struct.keys():       
+                print("VCOU", struct["vertex_count"]) 
+                pass
 
 
+#-------------------------------------------------------------
+#   Simulation Options
+#-------------------------------------------------------------
+
+class SimulationOptions(Asset):
+    def __init__(self, fileref):
+        Asset.__init__(self, fileref)
+        self.channels = {}
+
+
+    def __repr__(self):
+        return ("<SimulationOptions %s>" % (self.fileref))
+
+
+    def parse(self, struct):
+        if struct["id"] == "dForce Simulation Options":
+            self.channels = struct["channels"]
+
+                
+    def build(self, context):
+        for cstruct in self.channels:
+            channel = cstruct["channel"]
+            print(" C", channel["id"], channel["current_value"])         
+
+#-------------------------------------------------------------
+#
+#-------------------------------------------------------------
+
+def parseSimulationOptions(struct, fileref):
+    print("PSIM", struct.keys())
+    if "simulation_elements" in struct.keys():
+        asset = SimulationOptions(fileref)
+        for element in struct["simulation_elements"]:
+            asset.parse(element)
+        return asset
+    return None
+    
