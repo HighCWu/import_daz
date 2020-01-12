@@ -41,7 +41,7 @@ class FileAsset(Asset):
         self.materials = []
         self.animations = []
         self.instances = {}
-        self.renderOptions = None
+        self.extras = []
         self.toplevel = toplevel
         if toplevel:
             self.caller = self
@@ -149,11 +149,13 @@ class FileAsset(Asset):
                     self.modifiers.append((asset,inst))
                     asset.addModifier(inst)
 
-            if theSettings.useMaterials and "extra" in scene.keys():
-                for estruct in scene["extra"]:
-                    if "render_options" in estruct.keys():
+            if self.toplevel and "extra" in scene.keys():
+                for extra in scene["extra"]:
+                    if "render_options" in extra.keys():
                         from .render import parseRenderOptions
-                        self.renderOptions = parseRenderOptions(estruct, self.fileref)
+                        renderOptions = parseRenderOptions(extra, self.fileref)
+                        self.extras.append(renderOptions)
+                
 
         msg = ("-FILE %s" % self.fileref)
         theTrace.append(msg)

@@ -51,7 +51,7 @@ def parseModifierAsset(asset, struct):
     elif "dform" in struct.keys():
         return asset.parseTypedAsset(struct, DForm)
     elif "extra" in struct.keys():
-        return parseExtra(asset, struct)
+        return asset.parseTypedAsset(struct, ExtraAsset)
     elif "channel" in struct.keys():
         channel = struct["channel"]
         if channel["type"] == "alias":
@@ -88,34 +88,53 @@ class DForm(Modifier):
 #   Extra
 #-------------------------------------------------------------
 
-def parseExtra(asset, struct):
-    extra = struct["extra"]
-    if isinstance(extra, list):
-        first = extra[0]
-    else:
-        first = extra
-
-    return asset.parseTypedAsset(struct, ExtraAsset)
-
-
 class ExtraAsset(Modifier):
     def __init__(self, fileref):
         Modifier.__init__(self, fileref)
-        self.extra = None
-        self.rest = []
+        self.extras = {}
 
     def __repr__(self):
         return ("<Extra %s %s>" % (self.id, self.type))
 
     def parse(self, struct):
         Modifier.parse(self, struct)
-        extra = struct["extra"]
-        if isinstance(extra, list):
-            self.extra = extra[0]
-            self.rest = extra[1:]
-        else:
-            self.extra = extra
-            self.rest = []
+        for extra in struct["extra"]:
+            if "type" in extra.keys():
+                self.extras[extra["type"]] = extra
+
+    def update(self, struct):
+        Modifier.update(self, struct)
+        for extra in struct["extra"]:
+            if "type" in extra.keys():
+                self.extras[extra["type"]] = extra
+
+
+    def build(self, context, inst):
+        rig = inst.rna
+        ob = None
+        for child in rig.children:
+            if child.type == 'MESH':
+                ob = child
+                break
+        if ob is None or rig is None:
+            return
+        for etype,extra in self.extras.items():
+            print("BEX", etype)
+            if etype == "studio/modifier/dynamic_simulation":
+                pass
+            if etype == "studio_modifier_channels":
+                for channels in extra["channels"]:
+                    channel = channels["channel"]
+                    if channel["id"] == "Simulation Object Type":
+                        # [ "Static Surface", "Dynamic Surface", "Dynamic Surface Add-On" ]
+                        pass
+                    elif channel["id"] == "Simulation Base Shape":
+                        # [ "Use Simulation Start Frame", "Use Scene Frame 0", 
+                        #   "Use Shape from Simulation Start Frame", "Use Shape from Scene Frame 0" ]
+                        pass
+                    elif channel["id"] == "Freeze Simulation":
+                        pass
+
 
 #-------------------------------------------------------------
 #   Channel
@@ -190,14 +209,30 @@ class SkinBinding(Modifier):
                 reportError(msg)
 
 
-    def getGeoRig(self, inst):
+    def build(self, context, inst):
+        ob,rig,geonode = self.getGeoRig(inst, self.skin["geometry"])
+        if ob is None or rig is None:
+            return
+        mod = ob.modifiers.new(self.name, 'ARMATURE')
+        mod.object = rig
+        mod.use_deform_preserve_volume = True
+        activateObject(context, ob)
+        for n in range(len(ob.modifiers)-1):
+            bpy.ops.object.modifier_move_up(modifier=mod.name)
+        ob.lock_location = (True,True,True)
+        ob.lock_rotation = (True,True,True)
+        ob.lock_scale = (True,True,True)
+        self.addVertexGroups(ob, geonode, rig)
+
+
+    def getGeoRig(self, inst, geoname):        
         from .geometry import GeoNode
         from .figure import FigureInstance
         if isinstance(inst, FigureInstance):
             rig = inst.rna
-            if not self.skin["geometry"]:
+            if not geoname:
                 return None,rig,None
-            geo = self.getAsset(self.skin["geometry"])
+            geo = self.getAsset(geoname)
             if geo:
                 geonode = geo.getNode(0)
             else:
@@ -212,29 +247,13 @@ class SkinBinding(Modifier):
             rig = ob.parent
             return ob, rig, inst
         else:
-            msg = ("SKIN: Expected geonode but got:\n  %s" % inst)
+            msg = ("Expected geonode but got:\n  %s" % inst)
             if theSettings.verbosity > 1:
                 print(msg)
             if theSettings.verbosity > 2:
                 reportError(msg)
             else:
                 return None,None,None
-
-
-    def build(self, context, inst):
-        ob,rig,geonode = self.getGeoRig(inst)
-        if ob is None or rig is None:
-            return
-        mod = ob.modifiers.new(self.name, 'ARMATURE')
-        mod.object = rig
-        mod.use_deform_preserve_volume = True
-        activateObject(context, ob)
-        for n in range(len(ob.modifiers)-1):
-            bpy.ops.object.modifier_move_up(modifier=mod.name)
-        ob.lock_location = (True,True,True)
-        ob.lock_rotation = (True,True,True)
-        ob.lock_scale = (True,True,True)
-        self.addVertexGroups(ob, geonode, rig)
 
 
     def addVertexGroups(self, ob, geonode, rig):

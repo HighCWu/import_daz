@@ -99,8 +99,8 @@ def getMainAsset(filepath, context, btn):
     for asset,inst in main.modifiers:
         asset.postbuild(context, inst)
 
-    if main.renderOptions:
-        main.renderOptions.build(context)
+    for extra in main.extras:
+        extra.build(context)
 
     if (theSettings.useMaterials and
         theSettings.chooseColors != 'WHITE'):
