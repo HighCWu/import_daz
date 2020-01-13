@@ -111,15 +111,18 @@ class ExtraAsset(Modifier):
 
     def build(self, context, inst):
         rig = inst.rna
+        if rig is None:
+            return
         ob = None
         for child in rig.children:
             if child.type == 'MESH':
                 ob = child
                 break
-        if ob is None or rig is None:
+        if ob is None:
             return
         for etype,extra in self.extras.items():
-            if etype == "studio/modifier/dynamic_simulation":
+            if (etype == "studio/modifier/dynamic_simulation" and
+                theSettings.useSimulation):
                 from .dforce import buildSimulation
                 buildSimulation(rig, ob, self.extras)
 

@@ -238,6 +238,11 @@ class DazOptions:
         description = "Load environment",
         default = True)
 
+    useSimulation : BoolProperty(
+        name = "Simulations",
+        description = "Load dForce simulations",
+        default = False)
+
 #-------------------------------------------------------------
 #   material.py
 #-------------------------------------------------------------

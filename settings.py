@@ -55,6 +55,7 @@ class Settings:
         self.handleRefractive = 'BSDF'
         self.brightenEyes = 1.0
         self.useEnvironment = False
+        self.useSimulations = False
         self.renderMethod = 'PBR'
         self.fps = 30
         self.integerFrames = True
@@ -173,6 +174,7 @@ class Settings:
         self.handleOpaque = btn.handleOpaque
         self.handleRefractive = btn.handleRefractive
         self.useEnvironment = btn.useEnvironment
+        self.useSimulation = btn.useSimulation
 
         self.useStrict = True
         self.singleUser = True

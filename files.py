@@ -156,7 +156,8 @@ class FileAsset(Asset):
                             from .render import parseRenderOptions
                             options = parseRenderOptions(estruct, self.fileref)
                             self.extras.append(options)
-                        elif key == "simulation_options":
+                        elif (key == "simulation_options" and
+                              theSettings.useSimulations):
                             from .dforce import parseSimulationOptions
                             options = parseSimulationOptions(estruct, self.fileref)
                             self.extras.append(options)

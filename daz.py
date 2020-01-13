@@ -71,6 +71,7 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         layout.prop(self, "handleOpaque")
         layout.prop(self, "handleRefractive")
         layout.prop(self, "useEnvironment")
+        layout.prop(self, "useSimulation")
 
 #-------------------------------------------------------------
 #   Property groups, for drivers
