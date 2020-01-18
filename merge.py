@@ -591,7 +591,7 @@ def applyRestPoses(context):
             if ob.type == 'MESH':
                 setRestPose(ob, subrig, context)
         setActiveObject(context, subrig)
-        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.pose.armature_apply()
     setActiveObject(context, rig)
 

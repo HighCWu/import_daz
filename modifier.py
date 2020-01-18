@@ -106,9 +106,6 @@ class ExtraAsset(Modifier):
                         self.extras[etype][key] = value
                 else:
                     self.extras[etype] = extra
-        print("PP", self)
-        from .dforce import getChannels        
-        print("  ", [channel["id"] for channel in getChannels(self.extras)])
 
 
     def update(self, struct):
@@ -122,7 +119,6 @@ class ExtraAsset(Modifier):
                         self.extras[etype][key] = value
                 else:
                     self.extras[etype] = extra
-        print("UU", self)
                 
 
     def build(self, context, inst):

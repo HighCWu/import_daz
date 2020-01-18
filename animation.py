@@ -234,7 +234,7 @@ class FrameConverter:
             nanims.append((nbanim,vanim))
 
         if self.convertPoses:
-            nanims = self.convertAllFrames(nanims, rig, bonemap)
+            self.convertAllFrames(nanims, rig, bonemap)
         return nanims, locks
 
 
@@ -261,9 +261,10 @@ class FrameConverter:
                 if nname in banim.keys() and nname in ntransmats.keys() and bname in transmats.keys():
                     frames = banim[nname]
                     if "rotation" in frames.keys():
-                        nframes = self.convertFrames(ntransmats[nname].inverted(), transmats[bname], xyzs[bname], nxyzs[nname], frames["rotation"])
-
-        return anims
+                        amat = ntransmats[nname].inverted()
+                        bmat = transmats[bname]                        
+                        nframes = self.convertFrames(amat, bmat, xyzs[bname], nxyzs[nname], frames["rotation"])
+                        banim[nname]["rotation"] = nframes
 
 
     def getMatrices(self, bname, rig, char, parents, restmats, transmats, xyzs):
