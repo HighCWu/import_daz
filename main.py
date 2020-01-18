@@ -100,7 +100,6 @@ def getMainAsset(filepath, context, btn):
         asset.postbuild(context, inst)
 
     for extra in main.extras:
-        print("EX", extra)
         if extra:
             extra.build(context)
 

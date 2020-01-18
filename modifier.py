@@ -94,37 +94,72 @@ class ExtraAsset(Modifier):
         self.extras = {}
 
     def __repr__(self):
-        return ("<Extra %s %s>" % (self.id, self.type))
+        return ("<Extra %s %s>" % (self.id, list(self.extras.keys())))
 
     def parse(self, struct):
         Modifier.parse(self, struct)
         for extra in struct["extra"]:
             if "type" in extra.keys():
-                self.extras[extra["type"]] = extra
+                etype = extra["type"]
+                if etype in self.extras.keys():
+                    for key,value in extra.items():
+                        self.extras[etype][key] = value
+                else:
+                    self.extras[etype] = extra
+        print("PP", self)
+        from .dforce import getChannels        
+        print("  ", [channel["id"] for channel in getChannels(self.extras)])
+
 
     def update(self, struct):
         Modifier.update(self, struct)
+
         for extra in struct["extra"]:
             if "type" in extra.keys():
-                self.extras[extra["type"]] = extra
-
+                etype = extra["type"]
+                if etype in self.extras.keys():
+                    for key,value in extra.items():
+                        self.extras[etype][key] = value
+                else:
+                    self.extras[etype] = extra
+        print("UU", self)
+                
 
     def build(self, context, inst):
-        rig = inst.rna
-        if rig is None:
-            return
-        ob = None
-        for child in rig.children:
-            if child.type == 'MESH':
-                ob = child
-                break
-        if ob is None:
-            return
+        rig, ob = getRigMesh(inst)
+        print("\nEXTRA", self, rig, ob)
         for etype,extra in self.extras.items():
             if (etype == "studio/modifier/dynamic_simulation" and
                 theSettings.useSimulation):
-                from .dforce import buildSimulation
-                buildSimulation(rig, ob, self.extras)
+                from .dforce import buildSimulationModifier
+                buildSimulationModifier(rig, ob, self.extras)
+            if (etype == "studio/simulation_settings/dynamic_simulation" and
+                theSettings.useSimulation):
+                from .dforce import buildSimulationSettings
+                buildSimulationSettings(rig, ob, self.extras)
+            if (etype == "studio/modifier/smoothing" and
+                theSettings.useSimulation):
+                from .dforce import buildSmoothingModifier
+                buildSmoothingModifier(rig, ob, self.extras)
+
+
+def getRigMesh(inst):
+    from .figure import FigureInstance
+    from .geometry import GeoNode
+    if isinstance(inst, FigureInstance):
+        rig = inst.rna
+        if rig is not None:
+            for ob in rig.children:
+                if ob.type == 'MESH':
+                    return rig, ob
+        return rig,None
+    elif isinstance(inst, GeoNode):
+        ob = inst.rna
+        if ob:
+            rig = ob.parent
+            if rig and rig.type == 'ARMATURE':
+                return rig,ob
+        return None,ob
 
 #-------------------------------------------------------------
 #   Channel

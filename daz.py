@@ -44,6 +44,7 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
 
     def run(self, context):
         from .main import getMainAsset
+        self.useSimulation = False
         getMainAsset(self.filepath, context, self)
 
 
@@ -71,7 +72,7 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         layout.prop(self, "handleOpaque")
         layout.prop(self, "handleRefractive")
         layout.prop(self, "useEnvironment")
-        layout.prop(self, "useSimulation")
+        #layout.prop(self, "useSimulation")
 
 #-------------------------------------------------------------
 #   Property groups, for drivers

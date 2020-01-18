@@ -182,7 +182,6 @@ def parseRenderOptions(struct, fileref):
     if theSettings.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
         return None
     else:
-        print("PRR", struct.keys())
         if "render_elements" in struct.keys():
             asset = RenderOptions(fileref)
             for element in struct["render_elements"]:
