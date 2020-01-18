@@ -98,20 +98,22 @@ class ExtraAsset(Modifier):
 
     def parse(self, struct):
         Modifier.parse(self, struct)
-        for extra in struct["extra"]:
+        extras = struct["extra"]
+        if not isinstance(extras, list):
+            extras = [extras]
+        for extra in extras:
             if "type" in extra.keys():
                 etype = extra["type"]
-                if etype in self.extras.keys():
-                    for key,value in extra.items():
-                        self.extras[etype][key] = value
-                else:
-                    self.extras[etype] = extra
+                self.extras[etype] = extra
 
 
     def update(self, struct):
         Modifier.update(self, struct)
 
-        for extra in struct["extra"]:
+        extras = struct["extra"]
+        if not isinstance(extras, list):
+            extras = [extras]
+        for extra in extras:
             if "type" in extra.keys():
                 etype = extra["type"]
                 if etype in self.extras.keys():

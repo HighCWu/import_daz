@@ -244,16 +244,25 @@ class FrameConverter:
         trgCharacter = getCharacter(rig)
         if trgCharacter is None:
             return anims
+
+        nparents = dict([(bone.name, bone.parent.name) for bone in rig.data.bones if bone.parent])
+        invmap = dict([(nname,bname) for bname,nname in bonemap.items()])
+        parents = {}
+        for bname,pname in nparents.items():
+            if bname in invmap.keys() and pname in invmap.keys():
+                parents[invmap[bname]] = invmap[pname]
+        print("PPP", parents.items())
+
         restmats = {}
         nrestmats = {}
         transmats = {}
         ntransmats = {}
         xyzs = {}
         nxyzs = {}
-        parents = dict([(bone.name, bone.parent.name) for bone in rig.data.bones if bone.parent])
+
         for bname,nname in bonemap.items():
             self.getMatrices(bname, None, self.srcCharacter, parents, restmats, transmats, xyzs)
-            self.getMatrices(nname, rig, trgCharacter, parents, nrestmats, ntransmats, nxyzs)
+            self.getMatrices(nname, rig, trgCharacter, nparents, nrestmats, ntransmats, nxyzs)
 
         for banim,vanim in anims:
             nbanim = {}
@@ -281,6 +290,8 @@ class FrameConverter:
             if orient:
                 parmat = Euler(Vector(orient)*D, 'XYZ').to_matrix()
                 transmats[bname] = Mult2(restmats[bname], parmat.inverted())
+        else:
+            print("No par", bname)
         if orient is None:
             transmats[bname] = Matrix().to_3x3()
 
