@@ -127,7 +127,6 @@ class ExtraAsset(Modifier):
 
     def build(self, context, inst):
         rig, ob = getRigMesh(inst)
-        print("\nEXTRA", self, rig, ob)
         for etype,extra in self.extras.items():
             if (etype == "studio/modifier/dynamic_simulation" and
                 theSettings.useSimulation):
@@ -160,7 +159,9 @@ def getRigMesh(inst):
             if rig and rig.type == 'ARMATURE':
                 return rig,ob
         return None,ob
-
+    else:
+        return None,None
+        
 #-------------------------------------------------------------
 #   Channel
 #-------------------------------------------------------------

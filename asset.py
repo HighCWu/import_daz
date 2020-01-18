@@ -493,6 +493,15 @@ def fixBrokenPath(path):
             corrected = [f for f in os.listdir(check) if f.lower() == pc.lower()]
             if len(corrected) > 0:
                 cand = os.path.join(check, corrected[0])
+            elif theSettings.verbosity > 1:
+                msg = ("Broken path: '%s'\n" % path +
+                       "  Folder: '%s'\n" % check +
+                       "  File: '%s'\n" % pc +
+                       "  Files: %s" % os.listdir(check))
+                if theSettings.verbosity > 4:
+                    reportError(msg)
+                else:
+                    print(msg)
         check = cand
 
     return check
