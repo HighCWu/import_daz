@@ -114,7 +114,7 @@ def addSelfRef(rig, pb):
         if cns.name == "Do Not Touch":
             return
         else:
-            raise(DazError, "Inconsistent self reference constraint")
+            raise DazError("Inconsistent self reference constraint\n for bone '%s'" % pb.name)
     cns = pb.constraints.new('COPY_LOCATION')
     cns.name = "Do Not Touch"
     cns.target = rig

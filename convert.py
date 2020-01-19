@@ -35,6 +35,7 @@ from .utils import *
 Converters = {}
 TwistBones = {}
 RestPoses = {}
+Parents = {}
 IkPoses = {}
 
 #-------------------------------------------------------------
@@ -129,6 +130,7 @@ def loadRestPoseEntry(character, table, folder):
 
 def getOrientation(character, bname, rig):
     from .globvars import theRestPoseFolder
+    global RestPoses
     if rig and bname in rig.pose.bones.keys():
         pb = rig.pose.bones[bname]
         return pb.bone.DazOrientation, pb.DazRotMode
@@ -140,6 +142,17 @@ def getOrientation(character, bname, rig):
         return orient, xyz
     else:
         return None, "XYZ"
+
+
+def getParent(character, bname):
+    from .globvars import theParentsFolder
+    global Parents
+    loadRestPoseEntry(character, Parents, theParentsFolder)
+    parents = Parents[character]["parents"]
+    if bname in parents.keys() and parents[bname]:
+        return parents[bname]
+    else:
+        return None
 
 
 def loadPose(rig, character, table, modify):

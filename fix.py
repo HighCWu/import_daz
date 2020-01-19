@@ -164,7 +164,6 @@ def joinBendTwists(rig, bendTwists, renames, keep=True):
         rotmodes[bname] = pb.DazRotMode
 
     bpy.ops.object.mode_set(mode='EDIT')
-    props = []
     for bname,tname in bendTwists:
         bendname,twistname = getBendTwistNames(bname)
         if not (bendname in rig.data.edit_bones.keys() and
@@ -172,8 +171,6 @@ def joinBendTwists(rig, bendTwists, renames, keep=True):
             continue
         eb = rig.data.edit_bones.new(bname)
         bend = rig.data.edit_bones[bendname]
-        bone = rig.data.bones[bendname]
-        props.append((bname, bone))
         twist = rig.data.edit_bones[twistname]
         target = rig.data.edit_bones[tname]
         eb.head = bend.head
@@ -185,29 +182,43 @@ def joinBendTwists(rig, bendTwists, renames, keep=True):
         children = [eb for eb in bend.children if eb != twist] + list(twist.children)
         for child in children:
             child.parent = eb
-        if keep:
-            bend.layers = hiddenLayer
-            twist.layers = hiddenLayer
-        else:
-            rig.data.edit_bones.remove(bend)
-            rig.data.edit_bones.remove(twist)
 
     for bname3,bname2 in renames.items():
         eb = rig.data.edit_bones[bname3]
         eb.name = bname2
 
-    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.object.mode_set(mode='OBJECT')
     for bname,rotmode in rotmodes.items():
         if bname in rig.pose.bones.keys():
             pb = rig.pose.bones[bname]
             pb.DazRotMode = rotmode
 
     from .figure import copyBoneInfo
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for bname,srcbone in props:
+    for bname,tname in bendTwists:
+        bendname,twistname = getBendTwistNames(bname)
+        if not bendname in rig.data.bones.keys():
+            continue
+        srcbone = rig.data.bones[bendname]
         trgbone = rig.data.bones[bname]
         copyBoneInfo(srcbone, trgbone)
 
+    bpy.ops.object.mode_set(mode='EDIT')
+    for bname,tname in bendTwists:
+        bendname,twistname = getBendTwistNames(bname)
+        if bendname in rig.data.edit_bones.keys():
+            eb = rig.data.edit_bones[bendname]
+            if keep:
+                eb.layers = hiddenLayer
+            else:
+                rig.data.edit_bones.remove(eb)
+        if twistname in rig.data.edit_bones.keys():
+            eb = rig.data.edit_bones[twistname]
+            if keep:
+                eb.layers = hiddenLayer
+            else:
+                rig.data.edit_bones.remove(eb)
+
+    bpy.ops.object.mode_set(mode='OBJECT')
     for ob in rig.children:
         for bname,tname in bendTwists:
             bend,twist = getBendTwistNames(bname)

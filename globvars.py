@@ -49,6 +49,7 @@ theImagedPoserDefaults = theImagedDefaults + thePoserDefaults
 #-------------------------------------------------------------
 
 theRestPoseFolder = os.path.join(os.path.dirname(__file__), "data", "restposes")
+theParentsFolder = os.path.join(os.path.dirname(__file__), "data", "parents")
 theIkPoseFolder = os.path.join(os.path.dirname(__file__), "data", "ikposes")
 
 theRestPoseItems = []

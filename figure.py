@@ -386,11 +386,11 @@ def getDrivenBoneNames(rig):
 
 
 def copyBoneInfo(srcbone, trgbone):
-    trgbone.DazOrientation = srcbone.DazOrientation
-    trgbone.DazHead = srcbone.DazHead
-    trgbone.DazTail = srcbone.DazTail
+    trgbone.DazOrientation = Vector(srcbone.DazOrientation)
+    trgbone.DazHead = Vector(srcbone.DazHead)
+    trgbone.DazTail = Vector(srcbone.DazTail)
     trgbone.DazAngle = srcbone.DazAngle
-    trgbone.DazNormal = srcbone.DazNormal
+    trgbone.DazNormal = Vector(srcbone.DazNormal)
 
 
 class ExtraBones(B.BoneLayers):

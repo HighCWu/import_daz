@@ -198,7 +198,8 @@ class FrameConverter:
         conv,twists = getConverter(stype, rig)
         if not conv:
             conv = {}
-        bonemap = OrderedDict([(bname,bname) for bname in rig.pose.bones.keys()])
+        #bonemap = OrderedDict([(bname,bname) for bname in rig.pose.bones.keys()])
+        bonemap = OrderedDict()
         return conv, twists, bonemap
 
 
@@ -220,17 +221,21 @@ class FrameConverter:
         conv,twists,bonemap = self.getConv(anims[0][0], rig)
         locks = self.getLocks(rig, conv)
 
+        for banim,vanim in anims:
+            bonenames = list(banim.keys())
+            bonenames.reverse()
+            for bname in bonenames:
+                if bname in conv.keys():
+                    bonemap[bname] = conv[bname]
+                else:
+                    bonemap[bname] = bname
+
         nanims = []
         for banim,vanim in anims:
             #combineBendTwistAnimations(banim, twists)
             nbanim = {}
             for bname,frames in banim.items():
-                if bname in conv.keys():
-                    nname = conv[bname]
-                else:
-                    nname = bname
-                bonemap[bname] = nname
-                nbanim[nname] = frames
+                nbanim[bonemap[bname]] = frames
             nanims.append((nbanim,vanim))
 
         if self.convertPoses:
@@ -239,19 +244,11 @@ class FrameConverter:
 
 
     def convertAllFrames(self, anims, rig, bonemap):
-        from .convert import getCharacter
+        from .convert import getCharacter, getParent
 
         trgCharacter = getCharacter(rig)
         if trgCharacter is None:
             return anims
-
-        nparents = dict([(bone.name, bone.parent.name) for bone in rig.data.bones if bone.parent])
-        invmap = dict([(nname,bname) for bname,nname in bonemap.items()])
-        parents = {}
-        for bname,pname in nparents.items():
-            if bname in invmap.keys() and pname in invmap.keys():
-                parents[invmap[bname]] = invmap[pname]
-        print("PPP", parents.items())
 
         restmats = {}
         nrestmats = {}
@@ -259,10 +256,20 @@ class FrameConverter:
         ntransmats = {}
         xyzs = {}
         nxyzs = {}
-
         for bname,nname in bonemap.items():
-            self.getMatrices(bname, None, self.srcCharacter, parents, restmats, transmats, xyzs)
-            self.getMatrices(nname, rig, trgCharacter, nparents, nrestmats, ntransmats, nxyzs)
+            bparname = getParent(self.srcCharacter, bname)
+            self.getMatrices(bname, None, self.srcCharacter, bparname, restmats, transmats, xyzs)
+            if nname[0:6] == "TWIST-":
+                continue
+            if bparname in bonemap.keys():
+                nparname = bonemap[bparname]
+                if nparname[0:6] == "TWIST-":
+                    nparname = nparname[6:]
+            elif bparname is None:
+                nparname = None
+            else:
+                continue            
+            self.getMatrices(nname, rig, trgCharacter, nparname, nrestmats, ntransmats, nxyzs)
 
         for banim,vanim in anims:
             nbanim = {}
@@ -276,7 +283,7 @@ class FrameConverter:
                         banim[nname]["rotation"] = nframes
 
 
-    def getMatrices(self, bname, rig, char, parents, restmats, transmats, xyzs):
+    def getMatrices(self, bname, rig, char, parname, restmats, transmats, xyzs):
         from .convert import getOrientation
 
         orient,xyzs[bname] = getOrientation(char, bname, rig)
@@ -285,13 +292,11 @@ class FrameConverter:
         restmats[bname] = Euler(Vector(orient)*D, 'XYZ').to_matrix()
 
         orient = None
-        if bname in parents.keys():
-            orient,xyz = getOrientation(char, parents[bname], rig)
+        if parname:
+            orient,xyz = getOrientation(char, parname, rig)
             if orient:
                 parmat = Euler(Vector(orient)*D, 'XYZ').to_matrix()
                 transmats[bname] = Mult2(restmats[bname], parmat.inverted())
-        else:
-            print("No par", bname)
         if orient is None:
             transmats[bname] = Matrix().to_3x3()
 
