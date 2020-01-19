@@ -590,6 +590,8 @@ def addUdim(mat, udim, vdim):
 
 
 def addUdimTree(tree, udim, vdim):
+    if tree is None:
+        return
     for node in tree.nodes:
         if node.type == 'MAPPING':
             if hasattr(node, "translation"):
@@ -917,11 +919,10 @@ class Texture:
 #-------------------------------------------------------------
 
 def clearMaterials():
-    global theImages, theTextures, theGammas, theNodeGroups
+    global theImages, theTextures, theGammas
     theImages = {}
     theTextures = {}
     theGammas = {}
-    theNodeGroups = {}
 
 
 clearMaterials()
