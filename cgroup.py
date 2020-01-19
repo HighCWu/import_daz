@@ -52,6 +52,9 @@ class CyclesGroup(MaterialGroup, CyclesTree):
         CyclesTree.__init__(self, parent.material)
         MaterialGroup.__init__(self, node, name, parent, ncols)
 
+    def __repr__(self):
+        return ("<NodeGroup %s>" % self.group)
+    
 # ---------------------------------------------------------------------
 #   Shell Group
 # ---------------------------------------------------------------------
@@ -98,8 +101,8 @@ class ShellPbrGroup(ShellGroup, PbrTree):
 
 class FresnelGroup(CyclesGroup):
 
-    def __init__(self, node, parent):
-        CyclesGroup.__init__(self, node, "Fresnel", parent, 4)
+    def __init__(self, node, name, parent):
+        CyclesGroup.__init__(self, node, name, parent, 4)
         self.group.inputs.new("NodeSocketFloat", "IOR")
         self.group.inputs.new("NodeSocketFloat", "Roughness")
         self.group.inputs.new("NodeSocketVector", "Normal")
@@ -134,8 +137,8 @@ class FresnelGroup(CyclesGroup):
 
 class DualLobeGroup(CyclesGroup):
 
-    def __init__(self, node, parent):
-        CyclesGroup.__init__(self, node, "Dual Lobe BSDF", parent, 4)
+    def __init__(self, node, name, parent):
+        CyclesGroup.__init__(self, node, name, parent, 4)
         self.group.inputs.new("NodeSocketShader", "Shader")
         self.group.inputs.new("NodeSocketColor", "Color")
         self.group.inputs.new("NodeSocketFloat", "IOR")
@@ -181,8 +184,8 @@ class DualLobeGroup(CyclesGroup):
 
 class DisplacementGroup(CyclesGroup):
 
-    def __init__(self, node, parent):
-        CyclesGroup.__init__(self, node, "Diplacement Converter", parent, 4)
+    def __init__(self, node, name, parent):
+        CyclesGroup.__init__(self, node, name, parent, 4)
         self.group.inputs.new("NodeSocketFloat", "Texture")
         self.group.inputs.new("NodeSocketFloat", "Strength")
         self.group.inputs.new("NodeSocketFloat", "Difference")
@@ -214,8 +217,8 @@ class DisplacementGroup(CyclesGroup):
 
 class GlassGroup(CyclesGroup):
 
-    def __init__(self, node, parent):
-        CyclesGroup.__init__(self, node, "MultiGlass", parent, 6)
+    def __init__(self, node, name, parent):
+        CyclesGroup.__init__(self, node, name, parent, 6)
         self.group.inputs.new("NodeSocketFloat", "ThinWall")
         self.group.inputs.new("NodeSocketColor", "RefractionColor")
         self.group.inputs.new("NodeSocketColor", "TransmissionColor")
@@ -303,8 +306,8 @@ class GlassGroup(CyclesGroup):
 
 class ComplexGlassGroup(CyclesGroup):
 
-    def __init__(self, node, parent):
-        CyclesGroup.__init__(self, node, "Complex MultiGlass", parent, 7)
+    def __init__(self, node, name, parent):
+        CyclesGroup.__init__(self, node, name, parent, 7)
         self.group.inputs.new("NodeSocketShader", "BaseShader")
 
         self.group.inputs.new("NodeSocketFloat", "RefractionWeight")

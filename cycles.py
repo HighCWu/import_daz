@@ -216,6 +216,7 @@ class CyclesTree(FromCycles):
         self.texnodes = {}
         self.nodes = None
         self.links = None
+        self.groups = {}
 
         self.diffuse = None
         self.diffuseTex = None
@@ -278,6 +279,18 @@ class CyclesTree(FromCycles):
         return self.texcos[key]
 
 
+    def addGroup(self, classdef, name, node):
+        from .material import theNodeGroups
+        #print("MAT", self.material.name, name, bpy.data.node_groups.keys())
+        if False and name in bpy.data.node_groups.keys():
+            print("OLD", name, bpy.data.node_groups[name])
+            return bpy.data.node_groups[name]
+        else:
+            group = classdef(node, name, self)
+            #print("NEW", name, group, bpy.data.node_groups[name])
+            return group
+        
+
     def build(self, context):
         scn = context.scene
         self.makeTree()
@@ -288,10 +301,10 @@ class CyclesTree(FromCycles):
             node = self.addNode(7, "ShaderNodeGroup")
             if self.type == 'CYCLES':
                 from .cgroup import ShellCyclesGroup
-                group = ShellCyclesGroup(node, "Shell", self)
+                group = self.addGroup(ShellCyclesGroup, "DAZ Shell", node)
             elif self.type == 'PBR':
                 from .cgroup import ShellPbrGroup
-                group = ShellPbrGroup(node, "PBR Shell", self)
+                group = self.addGroup(ShellPbrGroup, "DAZ PBR Shell", node)
             else:
                 raise RuntimeError("Bug Cycles type %s" % self.type)
             group.addNodes(context, shell)
@@ -534,7 +547,7 @@ class CyclesTree(FromCycles):
     def buildDualLobe(self):
         from .cgroup import DualLobeGroup
         self.dualLobe = self.addNode(7, "ShaderNodeGroup")
-        group = DualLobeGroup(self.dualLobe, self)
+        group = self.addGroup(DualLobeGroup, "DAZ Dual Lobe", self.dualLobe)
         group.addNodes()
 
         value,tex = self.getColorTex(["Dual Lobe Specular Reflectivity"], "NONE", 0.5, False)
@@ -591,7 +604,7 @@ class CyclesTree(FromCycles):
 
         from .cgroup import FresnelGroup
         fresnel = self.addNode(5, "ShaderNodeGroup")
-        group = FresnelGroup(fresnel, self)
+        group = self.addGroup(FresnelGroup, "DAZ Fresnel", fresnel)
         group.addNodes()
 
         ior,iortex = self.getFresnelIOR()
@@ -933,7 +946,7 @@ class CyclesTree(FromCycles):
             
             node = self.addNode(7, "ShaderNodeGroup")
             from .cgroup import DisplacementGroup
-            group = DisplacementGroup(node, self)
+            group = self.addGroup(DisplacementGroup, "DAZ Displacement", node)
             group.addNodes()
             self.links.new(tex.outputs[0], node.inputs["Texture"])
             node.inputs["Strength"].default_value = theSettings.scale * strength

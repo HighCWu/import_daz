@@ -917,10 +917,11 @@ class Texture:
 #-------------------------------------------------------------
 
 def clearMaterials():
-    global theImages, theTextures, theGammas
+    global theImages, theTextures, theGammas, theNodeGroups
     theImages = {}
     theTextures = {}
     theGammas = {}
+    theNodeGroups = {}
 
 
 clearMaterials()
