@@ -165,7 +165,7 @@ class DualLobeGroup(CyclesGroup):
         self.links.new(self.inputs.outputs[roughness], glossy.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
 
-        fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 1, force=True)
+        fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 1)
         self.links.new(self.inputs.outputs["IOR"], fresnel.inputs["IOR"])
         self.links.new(self.inputs.outputs[roughness], fresnel.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
@@ -413,7 +413,7 @@ class ComplexGlassGroup(CyclesGroup):
         self.links.new(transColor.outputs[0], transColorMulti.inputs[1])
         self.links.new(refrAdj.outputs[0], transColorMulti.inputs[2])
 
-        fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 3, force=True)
+        fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 3)
         self.links.new(self.inputs.outputs["IOR"], fresnel.inputs["IOR"])
         self.links.new(fresnelRough.outputs[0], fresnel.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])

@@ -279,9 +279,9 @@ class CyclesTree(FromCycles):
         return self.texcos[key]
 
 
-    def addGroup(self, classdef, name, col, force=False):
+    def addGroup(self, classdef, name, col):
         node = self.addNode(col, "ShaderNodeGroup")
-        if not force and name in bpy.data.node_groups.keys():
+        if name in bpy.data.node_groups.keys():
             node.node_tree = bpy.data.node_groups[name]
         else:
             group = classdef(node, name, self)
