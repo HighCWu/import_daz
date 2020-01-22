@@ -435,8 +435,8 @@ class Material(Asset):
                     channel["visible"]):
                     return channel
         return None
-
-
+                            
+                
     def getTexChannel(self, channels):
         for key in channels:
             channel = self.getChannel([key])
@@ -495,6 +495,14 @@ class Material(Asset):
                 l = ((s+0.055)/1.055)**2.4
             lin.append(l)
         return Vector(lin)
+
+
+    def equalChannels(self, mat):
+        for key,value in self.channels.items():
+            if (key not in mat.channels.keys() or
+                mat.channels[key] != value):
+                return False
+        return True
 
 
     def getTextures(self, channel):
@@ -919,10 +927,11 @@ class Texture:
 #-------------------------------------------------------------
 
 def clearMaterials():
-    global theImages, theTextures, theGammas
+    global theImages, theTextures, theGammas, theShellGroups
     theImages = {}
     theTextures = {}
     theGammas = {}
+    theShellGroups = []
 
 
 clearMaterials()

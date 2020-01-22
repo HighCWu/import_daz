@@ -289,6 +289,26 @@ class CyclesTree(FromCycles):
         return node
         
 
+    def addShellGroup(self, context, shell):
+        from .material import theShellGroups
+        node = self.addNode(7, "ShaderNodeGroup")
+        for shell1,group in theShellGroups:
+            if shell.equalChannels(shell1):
+                node.node_tree = group
+                return node
+        if self.type == 'CYCLES':
+            from .cgroup import ShellCyclesGroup
+            group = ShellCyclesGroup(node, "DAZ Shell", self)
+        elif self.type == 'PBR':
+            from .cgroup import ShellPbrGroup
+            group = ShellPbrGroup(node, "DAZ PBR Shell", self)
+        else:
+            raise RuntimeError("Bug Cycles type %s" % self.type)
+        group.addNodes(context, shell)
+        theShellGroups.append((shell, node.node_tree))
+        return node
+        
+
     def build(self, context):
         scn = context.scene
         self.makeTree()
@@ -296,16 +316,7 @@ class CyclesTree(FromCycles):
             return
         self.buildLayer(context)
         for shell,uvs in self.material.shells:
-            node = self.addNode(7, "ShaderNodeGroup")
-            if self.type == 'CYCLES':
-                from .cgroup import ShellCyclesGroup
-                group = ShellCyclesGroup(node, "DAZ Shell", self)
-            elif self.type == 'PBR':
-                from .cgroup import ShellPbrGroup
-                group = ShellPbrGroup(node, "DAZ PBR Shell", self)
-            else:
-                raise RuntimeError("Bug Cycles type %s" % self.type)
-            group.addNodes(context, shell)
+            node = self.addShellGroup(context, shell)
             self.links.new(self.active.outputs[0], node.inputs["Shader"])
             self.links.new(self.getTexco(uvs), node.inputs["UV"])
             self.active = node
