@@ -311,12 +311,6 @@ class DAZ_OT_MergeUVLayers(DazOperator, IsMesh):
 #   Merge armatures
 #-------------------------------------------------------------
 
-def addToGroups(ob, groups):
-    for grp in groups:
-        if ob.name not in grp.objects:
-            grp.objects.link(ob)
-
-
 def changeArmatureModifier(ob, rig, context):
     from .node import setParent
     setParent(context, ob, rig)
@@ -368,8 +362,7 @@ def getSelectedRigs(context):
     for ob in getSceneObjects(context):
         if getSelected(ob) and ob.type == 'ARMATURE' and ob != rig:
             subrigs.append(ob)
-    groups = getGroups(context, rig)
-    return rig, subrigs, groups
+    return rig, subrigs
 
 #-------------------------------------------------------------
 #   Copy poses
@@ -382,7 +375,7 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig,subrigs,_groups = getSelectedRigs(context)
+        rig,subrigs = getSelectedRigs(context)
         if rig is None:
             print("No poses to copy")
             return
@@ -423,7 +416,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
 
 
     def run(self, context):
-        rig,subrigs,groups = getSelectedRigs(context)
+        rig,subrigs = getSelectedRigs(context)
         theSettings.forAnimation(None, rig, context.scene)
         if rig is None:
             print("No rigs to merge")
@@ -431,13 +424,13 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
         oldvis = list(rig.data.layers)
         rig.data.layers = 32*[True]
         try:
-            self.mergeRigs(rig, subrigs, context, groups)
+            self.mergeRigs(rig, subrigs, context)
         finally:
             rig.data.layers = oldvis
             setActiveObject(context, rig)
 
 
-    def mergeRigs(self, rig, subrigs, context, groups):
+    def mergeRigs(self, rig, subrigs, context):
         from .proxy import stripName
         from .node import clearParent
         scn = context.scene
@@ -451,10 +444,24 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
                     meshes.append(ob.data)
 
         print("Merge rigs to %s:" % rig.name)
+        adds = []
+        removes = []
+        if bpy.app.version < (2,80,0):
+            for grp in bpy.data.groups:
+                if ob.name in grp.objects:
+                    adds.append(grp)
+        else:
+            mcoll = bpy.data.collections.new(name= rig.name + " Meshes")
+            for coll in bpy.data.collections:
+                if rig in coll.objects.values():
+                    coll.children.link(mcoll)  
+                    removes.append(coll)
+            adds = [mcoll]
+
         for ob in rig.children:
             if ob.type == 'MESH':
                 changeArmatureModifier(ob, rig, context)
-                addToGroups(ob, groups)
+                self.addToGroups(ob, adds, removes)
 
         self.mainBones = [bone.name for bone in rig.data.bones]
         for subrig in subrigs:
@@ -474,7 +481,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
                     if ob.type == 'MESH':
                         changeArmatureModifier(ob, rig, context)
                         changeVertexGroupNames(ob, storage)
-                        addToGroups(ob, groups)
+                        self.addToGroups(ob, adds, removes)
                         ob.name = stripName(ob.name)
                         ob.data.name = stripName(ob.data.name)
                         ob.parent = rig
@@ -485,6 +492,15 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='OBJECT')
 
+
+    def addToGroups(self, ob, adds, removes):
+        for grp in adds:
+            if ob.name not in grp.objects:
+                grp.objects.link(ob)
+        for grp in removes:
+            if ob.name in grp.objects:
+                grp.objects.unlink(ob)
+    
 
     def addExtraBones(self, ob, rig, context, scn, parbone):
         from .figure import copyBoneInfo
@@ -563,7 +579,7 @@ class DAZ_OT_CopyBones(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig,subrigs,groups = getSelectedRigs(context)
+        rig,subrigs = getSelectedRigs(context)
         copyBones(rig, subrigs, context)
 
 #-------------------------------------------------------------
@@ -583,7 +599,7 @@ class DAZ_OT_ApplyRestPoses(DazOperator, IsArmature):
 
 def applyRestPoses(context):
     scn = context.scene
-    rig,subrigs,_groups = getSelectedRigs(context)
+    rig,subrigs = getSelectedRigs(context)
     theSettings.forAnimation(None, rig, scn)
     rigs = [rig] + subrigs
     for subrig in rigs:

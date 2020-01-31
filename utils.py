@@ -93,13 +93,6 @@ if bpy.app.version < (2,80,0):
             print("Could not activate", ob)
         context.scene.objects.active = ob
 
-    def getGroups(context, ob):
-        groups = []
-        for grp in bpy.data.groups:
-            if ob.name in grp.objects:
-                groups.append(grp)
-        return groups
-
     def Mult2(x, y):
         return x * y
 
@@ -194,13 +187,6 @@ else:
         except RuntimeError:
             print("Could not activate", context.object)
         context.view_layer.objects.active = ob
-
-    def getGroups(context, ob):
-        groups = []
-        for coll in bpy.data.collections:
-            if ob in coll.objects.values():
-                groups.append(coll)
-        return groups
 
     def printActive(name, context):
         coll = context.collection
