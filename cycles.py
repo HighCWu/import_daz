@@ -446,11 +446,15 @@ class CyclesTree(FromCycles):
             tex = self.addTexImageNode(channel, "NONE")
             #_,tex = self.getColorTex("getChannelNormal", "NONE", BLACK)
             if tex:
-                self.normal = self.addNode(3, "ShaderNodeNormalMap")
-                self.normal.space = "TANGENT"
-                if self.material.uv_set:
-                    self.normal.uv_map = self.material.uv_set.name
-                self.normal.inputs["Strength"].default_value = self.material.getChannelValue(channel, 1.0, warn=False)
+                if self.material.eevee:
+                    from .cgroup import NormalGroup
+                    self.normal = self.addGroup(NormalGroup, "DAZ Normal", 3)
+                else:
+                    self.normal = self.addNode(3, "ShaderNodeNormalMap")
+                    self.normal.space = "TANGENT"
+                    if self.material.uv_set:
+                        self.normal.uv_map = self.material.uv_set.name
+                    self.normal.inputs["Strength"].default_value = self.material.getChannelValue(channel, 1.0, warn=False)
                 self.links.new(tex.outputs[0], self.normal.inputs["Color"])
 
         # Bump map

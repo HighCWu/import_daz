@@ -177,6 +177,99 @@ class DualLobeGroup(CyclesGroup):
         return mix
 
 # ---------------------------------------------------------------------
+#   Normal Group
+#
+#   https://blenderartists.org/t/way-faster-normal-map-node-for-realtime-animation-playback-with-tangent-space-normals/1175379
+# ---------------------------------------------------------------------
+
+class NormalGroup(CyclesGroup):
+
+    def __init__(self, node, name, parent):
+        CyclesGroup.__init__(self, node, name, parent, 8)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.outputs.new("NodeSocketVector", "Normal")
+
+
+    def addNodes(self):
+        # Generate TBN from Bump Node
+        uvmap = self.addNode(1, "ShaderNodeUVMap")
+        
+        uvgrads = self.addNode(2, "ShaderNodeSeparateXYZ")
+        uvgrads.label = "UV Gradients"
+        self.links.new(uvmap.outputs["UV"], uvgrads.inputs[0])
+
+        tangent = self.addNode(3, "ShaderNodeBump")
+        tangent.label = "Tangent"
+        tangent.invert = True
+        self.links.new(uvgrads.outputs[0], tangent.inputs["Height"])
+
+        bitangent = self.addNode(3, "ShaderNodeBump")
+        bitangent.label = "Bi-Tangent"
+        bitangent.invert = True
+        self.links.new(uvgrads.outputs[1], bitangent.inputs["Height"])
+
+        geo = self.addNode(3, "ShaderNodeNewGeometry")
+        geo.label = "Normal"
+
+        # Transpose Matrix
+        sep1 = self.addNode(4, "ShaderNodeSeparateXYZ")
+        self.links.new(tangent.outputs["Normal"], sep1.inputs[0])
+        
+        sep2 = self.addNode(4, "ShaderNodeSeparateXYZ")
+        self.links.new(bitangent.outputs["Normal"], sep2.inputs[0])
+
+        sep3 = self.addNode(4, "ShaderNodeSeparateXYZ")
+        self.links.new(geo.outputs["Normal"], sep3.inputs[0])
+        
+        comb1 = self.addNode(5, "ShaderNodeCombineXYZ")
+        self.links.new(sep1.outputs[0], comb1.inputs[0])
+        self.links.new(sep2.outputs[0], comb1.inputs[1])
+        self.links.new(sep3.outputs[0], comb1.inputs[2])
+        
+        comb2 = self.addNode(5, "ShaderNodeCombineXYZ")
+        self.links.new(sep1.outputs[1], comb2.inputs[0])
+        self.links.new(sep2.outputs[1], comb2.inputs[1])
+        self.links.new(sep3.outputs[1], comb2.inputs[2])
+        
+        comb3 = self.addNode(5, "ShaderNodeCombineXYZ")
+        self.links.new(sep1.outputs[2], comb3.inputs[0])
+        self.links.new(sep2.outputs[2], comb3.inputs[1])
+        self.links.new(sep3.outputs[2], comb3.inputs[2])
+        
+        # Normal Map Processing
+        sub = self.addNode(4, "ShaderNodeVectorMath")
+        sub.operation = 'SUBTRACT'
+        self.links.new(self.inputs.outputs["Color"], sub.inputs[1])
+
+        add = self.addNode(5, "ShaderNodeVectorMath")
+        add.operation = 'ADD'
+        self.links.new(sub.outputs[0], add.inputs[0])
+        self.links.new(sub.outputs[0], add.inputs[1])
+
+        # Matrix * Normal Map
+        dot1 = self.addNode(6, "ShaderNodeVectorMath")
+        dot1.operation = 'DOT_PRODUCT'
+        self.links.new(comb1.outputs[0], dot1.inputs[0])
+        self.links.new(add.outputs[0], dot1.inputs[1])
+
+        dot2 = self.addNode(6, "ShaderNodeVectorMath")
+        dot2.operation = 'DOT_PRODUCT'
+        self.links.new(comb2.outputs[0], dot2.inputs[0])
+        self.links.new(add.outputs[0], dot2.inputs[1])
+
+        dot3 = self.addNode(6, "ShaderNodeVectorMath")
+        dot3.operation = 'DOT_PRODUCT'
+        self.links.new(comb3.outputs[0], dot3.inputs[0])
+        self.links.new(add.outputs[0], dot3.inputs[1])
+  
+        comb = self.addNode(7, "ShaderNodeCombineXYZ")
+        self.links.new(dot1.outputs["Value"], comb.inputs[0])
+        self.links.new(dot2.outputs["Value"], comb.inputs[1])
+        self.links.new(dot3.outputs["Value"], comb.inputs[2])
+
+        self.links.new(comb.outputs[0], self.outputs.inputs["Normal"])
+
+# ---------------------------------------------------------------------
 #   Displacement Group
 # ---------------------------------------------------------------------
 
