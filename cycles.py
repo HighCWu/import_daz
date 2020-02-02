@@ -243,12 +243,14 @@ class CyclesTree(FromCycles):
         return self.material.getValue(channel, default)
 
 
-    def addNode(self, n, stype, label=None):
+    def addNode(self, n, stype, label=None, parent=None):
         node = self.nodes.new(type = stype)
         node.location = (n*250-500, self.ycoords[n])
         self.ycoords[n] -= 250
         if label:
             node.label = label
+        if parent:
+            node.parent = parent
         return node
 
 
@@ -279,13 +281,13 @@ class CyclesTree(FromCycles):
         return self.texcos[key]
 
 
-    def addGroup(self, classdef, name, col):
+    def addGroup(self, classdef, name, col, args=[]):
         node = self.addNode(col, "ShaderNodeGroup")
         if name in bpy.data.node_groups.keys():
             node.node_tree = bpy.data.node_groups[name]
         else:
             group = classdef(node, name, self)
-            group.addNodes()
+            group.addNodes(args)
         return node
         
 
@@ -445,16 +447,20 @@ class CyclesTree(FromCycles):
         if channel and self.material.isActive("Normal") and theSettings.useTextures:
             tex = self.addTexImageNode(channel, "NONE")
             #_,tex = self.getColorTex("getChannelNormal", "NONE", BLACK)
+            if self.material.uv_set:
+                uvname = self.material.uv_set.name
+            else:
+                uvname = ""
             if tex:
                 if self.material.eevee:
                     from .cgroup import NormalGroup
-                    self.normal = self.addGroup(NormalGroup, "DAZ Normal", 3)
+                    self.normal = self.addGroup(NormalGroup, "DAZ Normal", 3, args=[uvname])
                 else:
                     self.normal = self.addNode(3, "ShaderNodeNormalMap")
                     self.normal.space = "TANGENT"
-                    if self.material.uv_set:
-                        self.normal.uv_map = self.material.uv_set.name
-                    self.normal.inputs["Strength"].default_value = self.material.getChannelValue(channel, 1.0, warn=False)
+                    if uvname:
+                        self.normal.uv_map = uvname
+                self.normal.inputs["Strength"].default_value = self.material.getChannelValue(channel, 1.0, warn=False)
                 self.links.new(tex.outputs[0], self.normal.inputs["Color"])
 
         # Bump map

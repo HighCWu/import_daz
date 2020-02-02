@@ -109,7 +109,7 @@ class FresnelGroup(CyclesGroup):
         self.group.outputs.new("NodeSocketFloat", "Fac")
 
 
-    def addNodes(self):
+    def addNodes(self, args=None):
         geo = self.addNode(1, "ShaderNodeNewGeometry")
 
         bump = self.addNode(1, "ShaderNodeBump")
@@ -149,7 +149,7 @@ class DualLobeGroup(CyclesGroup):
         self.group.outputs.new("NodeSocketShader", "BSDF")
 
 
-    def addNodes(self):
+    def addNodes(self, args=None):
         glossy1 = self.addGlossy("Roughness 1")
         glossy2 = self.addGlossy("Roughness 2")
         mix = self.addNode(3, "ShaderNodeMixShader")
@@ -186,83 +186,109 @@ class NormalGroup(CyclesGroup):
 
     def __init__(self, node, name, parent):
         CyclesGroup.__init__(self, node, name, parent, 8)
-        self.group.inputs.new("NodeSocketColor", "Color")
+
+        strength = self.group.inputs.new("NodeSocketFloat", "Strength")
+        strength.default_value = 1.0
+        strength.min_value = 0.0
+        strength.max_value = 1.0
+
+        color = self.group.inputs.new("NodeSocketColor", "Color")
+        color.default_value = ((0.5, 0.5, 1.0, 1.0))
+        
         self.group.outputs.new("NodeSocketVector", "Normal")
 
 
-    def addNodes(self):
+    def addNodes(self, args):
         # Generate TBN from Bump Node
-        uvmap = self.addNode(1, "ShaderNodeUVMap")
+        frame = self.nodes.new("NodeFrame")
+        frame.label = "Generate TBN from Bump Node"
+    
+        uvmap = self.addNode(1, "ShaderNodeUVMap", parent=frame)
+        if args[0]:
+            uvmap.uv_map = args[0]
         
-        uvgrads = self.addNode(2, "ShaderNodeSeparateXYZ")
-        uvgrads.label = "UV Gradients"
+        uvgrads = self.addNode(2, "ShaderNodeSeparateXYZ", label="UV Gradients", parent=frame)
         self.links.new(uvmap.outputs["UV"], uvgrads.inputs[0])
 
-        tangent = self.addNode(3, "ShaderNodeBump")
-        tangent.label = "Tangent"
+        tangent = self.addNode(3, "ShaderNodeBump", label="Tangent", parent=frame)
         tangent.invert = True
+        tangent.inputs["Distance"].default_value = 1
         self.links.new(uvgrads.outputs[0], tangent.inputs["Height"])
 
-        bitangent = self.addNode(3, "ShaderNodeBump")
-        bitangent.label = "Bi-Tangent"
+        bitangent = self.addNode(3, "ShaderNodeBump", label="Bi-Tangent", parent=frame)
         bitangent.invert = True
+        bitangent.inputs["Distance"].default_value = 1000
         self.links.new(uvgrads.outputs[1], bitangent.inputs["Height"])
 
-        geo = self.addNode(3, "ShaderNodeNewGeometry")
-        geo.label = "Normal"
+        geo = self.addNode(3, "ShaderNodeNewGeometry", label="Normal", parent=frame)
 
         # Transpose Matrix
-        sep1 = self.addNode(4, "ShaderNodeSeparateXYZ")
+        frame = self.nodes.new("NodeFrame")
+        frame.label = "Transpose Matrix"
+
+        sep1 = self.addNode(4, "ShaderNodeSeparateXYZ", parent=frame)
         self.links.new(tangent.outputs["Normal"], sep1.inputs[0])
         
-        sep2 = self.addNode(4, "ShaderNodeSeparateXYZ")
+        sep2 = self.addNode(4, "ShaderNodeSeparateXYZ", parent=frame)
         self.links.new(bitangent.outputs["Normal"], sep2.inputs[0])
 
-        sep3 = self.addNode(4, "ShaderNodeSeparateXYZ")
+        sep3 = self.addNode(4, "ShaderNodeSeparateXYZ", parent=frame)
         self.links.new(geo.outputs["Normal"], sep3.inputs[0])
         
-        comb1 = self.addNode(5, "ShaderNodeCombineXYZ")
+        comb1 = self.addNode(5, "ShaderNodeCombineXYZ", parent=frame)
         self.links.new(sep1.outputs[0], comb1.inputs[0])
         self.links.new(sep2.outputs[0], comb1.inputs[1])
         self.links.new(sep3.outputs[0], comb1.inputs[2])
         
-        comb2 = self.addNode(5, "ShaderNodeCombineXYZ")
+        comb2 = self.addNode(5, "ShaderNodeCombineXYZ", parent=frame)
         self.links.new(sep1.outputs[1], comb2.inputs[0])
         self.links.new(sep2.outputs[1], comb2.inputs[1])
         self.links.new(sep3.outputs[1], comb2.inputs[2])
         
-        comb3 = self.addNode(5, "ShaderNodeCombineXYZ")
+        comb3 = self.addNode(5, "ShaderNodeCombineXYZ", parent=frame)
         self.links.new(sep1.outputs[2], comb3.inputs[0])
         self.links.new(sep2.outputs[2], comb3.inputs[1])
         self.links.new(sep3.outputs[2], comb3.inputs[2])
         
         # Normal Map Processing
-        sub = self.addNode(4, "ShaderNodeVectorMath")
-        sub.operation = 'SUBTRACT'
-        self.links.new(self.inputs.outputs["Color"], sub.inputs[1])
+        frame = self.nodes.new("NodeFrame")
+        frame.label = "Normal Map Processing"
 
-        add = self.addNode(5, "ShaderNodeVectorMath")
+        rgb = self.addNode(3, "ShaderNodeMixRGB", parent=frame)
+        self.links.new(self.inputs.outputs["Strength"], rgb.inputs[0])
+        rgb.inputs[1].default_value = (0.5, 0.5, 1.0, 1.0)
+        self.links.new(self.inputs.outputs["Color"], rgb.inputs[2])
+
+        sub = self.addNode(4, "ShaderNodeVectorMath", parent=frame)
+        sub.operation = 'SUBTRACT'
+        self.links.new(rgb.outputs["Color"], sub.inputs[0])
+        sub.inputs[1].default_value = (0.5, 0.5, 0.5)
+
+        add = self.addNode(5, "ShaderNodeVectorMath", parent=frame)
         add.operation = 'ADD'
         self.links.new(sub.outputs[0], add.inputs[0])
         self.links.new(sub.outputs[0], add.inputs[1])
 
         # Matrix * Normal Map
-        dot1 = self.addNode(6, "ShaderNodeVectorMath")
+        frame = self.nodes.new("NodeFrame")
+        frame.label = "Matrix * Normal Map"
+
+        dot1 = self.addNode(6, "ShaderNodeVectorMath", parent=frame)
         dot1.operation = 'DOT_PRODUCT'
         self.links.new(comb1.outputs[0], dot1.inputs[0])
         self.links.new(add.outputs[0], dot1.inputs[1])
 
-        dot2 = self.addNode(6, "ShaderNodeVectorMath")
+        dot2 = self.addNode(6, "ShaderNodeVectorMath", parent=frame)
         dot2.operation = 'DOT_PRODUCT'
         self.links.new(comb2.outputs[0], dot2.inputs[0])
         self.links.new(add.outputs[0], dot2.inputs[1])
 
-        dot3 = self.addNode(6, "ShaderNodeVectorMath")
+        dot3 = self.addNode(6, "ShaderNodeVectorMath", parent=frame)
         dot3.operation = 'DOT_PRODUCT'
         self.links.new(comb3.outputs[0], dot3.inputs[0])
         self.links.new(add.outputs[0], dot3.inputs[1])
   
-        comb = self.addNode(7, "ShaderNodeCombineXYZ")
+        comb = self.addNode(7, "ShaderNodeCombineXYZ", parent=frame)
         self.links.new(dot1.outputs["Value"], comb.inputs[0])
         self.links.new(dot2.outputs["Value"], comb.inputs[1])
         self.links.new(dot3.outputs["Value"], comb.inputs[2])
@@ -284,7 +310,7 @@ class DisplacementGroup(CyclesGroup):
         self.group.outputs.new("NodeSocketFloat", "Height")
 
 
-    def addNodes(self):
+    def addNodes(self, args=None):
         mult1 = self.addNode(1, "ShaderNodeMath")
         mult1.operation = 'MULTIPLY'
         self.links.new(self.inputs.outputs["Texture"], mult1.inputs[0])
@@ -325,7 +351,7 @@ class GlassGroup(CyclesGroup):
         self.group.outputs.new("NodeSocketShader", "Volume")
 
 
-    def addNodes(self):
+    def addNodes(self, args=None):
         transColor = self.addNode(2, "ShaderNodeMixRGB", "Trans Color")
         transColor.name = "TransColor"
         transColor.blend_type = 'MULTIPLY'
@@ -425,7 +451,7 @@ class ComplexGlassGroup(CyclesGroup):
         self.group.outputs.new("NodeSocketShader", "Volume")
 
 
-    def addNodes(self):
+    def addNodes(self, args=None):
         thick = self.addNode(1, "ShaderNodeMath", "Thick")
         thick.operation = 'SUBTRACT'
         thick.inputs[0].default_value = 1.0
