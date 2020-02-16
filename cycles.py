@@ -705,6 +705,9 @@ class CyclesTree(FromCycles):
         if self.normal:
             self.links.new(self.normal.outputs["Normal"], luc.inputs["Normal"])
         fac = self.getValue("getChannelTranslucencyWeight", 0)
+        effect = self.getValue(["Base Color Effect"], 0)
+        if effect == 1: # Scatter and transmit
+            fac = 0.5 + fac/2
         self.mixWithActive(fac, tex, luc)
 
 #-------------------------------------------------------------
