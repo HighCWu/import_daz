@@ -119,7 +119,11 @@ class PbrTree(CyclesTree):
 
     def buildPBRNode(self, scn):
         # Basic
-        _,self.diffuseTex = self.addToPBR("Base Color", "getChannelDiffuse", WHITE, True, colorSpace='COLOR')
+        color,tex = self.getDiffuseColor()
+        self.diffuseTex = tex
+        self.setPBRValue("Base Color", color, WHITE)
+        if tex:
+            self.linkColor(tex, self.pbr, color, "Base Color")
 
         # Metallic Weight
         metallicity,_ = self.addToPBR("Metallic", ["Metallic Weight"], 0.0, True)

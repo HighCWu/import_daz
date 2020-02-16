@@ -217,22 +217,6 @@ else:
         bpy.ops.object.delete(use_global=False)
         del ob
 
-
-def getColorSpace(node):
-    if hasattr(node, "color_space"):
-        return node.color_space
-    elif hasattr(node, "image") and node.image:
-        settings = node.image.colorspace_settings
-        if settings.name == "Non-Color":
-            return "NONE"
-        elif settings.name == "sRGB":
-            return "COLOR"
-        else:
-            return settings.name
-    else:
-        return None
-
-
 #-------------------------------------------------------------
 #
 #-------------------------------------------------------------

@@ -483,15 +483,24 @@ class CyclesTree(FromCycles):
 #   Diffuse and Diffuse Overlay
 #-------------------------------------------------------------
 
+    def getDiffuseColor(self):
+        color,tex = self.getColorTex("getChannelDiffuse", "COLOR", WHITE)
+        effect = self.getValue(["Base Color Effect"], 0)
+        if effect > 0:  # Scatter Transmit, Scatter Transmit Intensity
+            tint = self.getValue(["SSS Reflectance Tint"], WHITE)
+            color = compProd(color, tint)
+        return color,tex
+
+    
     def buildDiffuse(self, scn):
         channel = self.material.getChannelDiffuse()
         if channel:
-            color,tex = self.getColorTex("getChannelDiffuse", "COLOR", WHITE)
+            color,tex = self.getDiffuseColor()
             self.diffuseTex = tex
             self.diffuse = self.active = self.addNode(5, "ShaderNodeBsdfDiffuse")
             self.diffuse.inputs["Color"].default_value[0:3] = color
             if tex:
-                self.links.new(tex.outputs[0], self.diffuse.inputs[0])
+                self.linkColor(tex, self.diffuse, color, "Color")
             roughness = clamp( self.getValue(["Diffuse Roughness"], scn.DazDiffuseRoughness) )
             self.addSlot(channel, self.diffuse, "Roughness", roughness, roughness, False, True)
             if self.normal:
@@ -542,7 +551,7 @@ class CyclesTree(FromCycles):
 
 #-------------------------------------------------------------
 #   Glossiness
-#   https://bitbucket.org/Diffeomorphic/import-daz/issues/134/ultimate-specularity-matching-fresnel
+#   https://bitbucket.org/Diffeomorphic/import-daz-archive/issues/134/ultimate-specularity-matching-fresnel
 #-------------------------------------------------------------
 
     def getGlossyColor(self):
