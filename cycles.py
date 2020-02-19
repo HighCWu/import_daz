@@ -704,12 +704,18 @@ class CyclesTree(FromCycles):
             self.links.new(tex.outputs[0], luc.inputs[0])
         if self.normal:
             self.links.new(self.normal.outputs["Normal"], luc.inputs["Normal"])
-        fac = self.getValue("getChannelTranslucencyWeight", 0)
+        fac,factex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         effect = self.getValue(["Base Color Effect"], 0)
         if effect == 1: # Scatter and transmit
             fac = 0.5 + fac/2
-        self.mixWithActive(fac, tex, luc)
+            self.setMultiplier(factex, fac)
+        self.mixWithActive(fac, factex, luc)
 
+
+    def setMultiplier(self, node, fac):
+        if node and node.type == 'MATH':
+            node.inputs[0].default_value = fac
+        
 #-------------------------------------------------------------
 #   Subsurface
 #-------------------------------------------------------------
@@ -720,6 +726,7 @@ class CyclesTree(FromCycles):
             not self.material.sssActive()):
             return
         wt = self.getValue("getChannelSSSAmount", 0)
+        wt,wttex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
         if wt > 0:
             mat = self.material.rna
             mat.DazUseSSS = True
@@ -738,7 +745,7 @@ class CyclesTree(FromCycles):
             if self.normal:
                 self.links.new(self.normal.outputs["Normal"], sss.inputs["Normal"])             
             fac = clamp(wt/(1+wt))
-            self.mixWithActive(wt, None, sss)
+            self.mixWithActive(wt, wttex, sss)
 
 #-------------------------------------------------------------
 #   Transparency
@@ -1131,9 +1138,12 @@ class CyclesTree(FromCycles):
         if self.active:
             mix = self.addNode(col, "ShaderNodeMixShader")
             mix.inputs[0].default_value = fac
-            if fac == 1 and tex:
+            if tex:
                 if "Alpha" in tex.outputs.keys():
-                    self.links.new(tex.outputs["Alpha"], mix.inputs[0])
+                    slot = "Alpha"
+                else:
+                    slot = 0
+                self.links.new(tex.outputs[slot], mix.inputs[0])
             self.links.new(self.active.outputs[0], mix.inputs[1])
             self.links.new(shader.outputs[0], mix.inputs[2])
             self.active = mix
