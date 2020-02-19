@@ -429,7 +429,8 @@ for c in range(0x20, 0x80):
         CharTable[c] = chr(c)
 
 def normalizeRef(id):
-    words = ("A"+lowerPath(id)).split("%")
+    id = lowerPath(id).replace("\%", "%25")
+    words = ("A"+id).split("%")
     strlist = [("%" + word[0:2] + normref(word[2:])) for word in words[1:]]
     ref = normref(words[0][1:]) + "".join(strlist)
     return ref.replace("//", "/")
