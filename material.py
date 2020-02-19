@@ -492,7 +492,8 @@ class Material(Asset):
             if s < 0.04045:
                 l = s/12.92
             else:
-                l = ((s+0.055)/1.055)**2.4
+                #l = ((s+0.055)/1.055)**2.4
+                l = round(s**2.2, 6)
             lin.append(l)
         return Vector(lin)
 
