@@ -409,9 +409,8 @@ def lowerPath(path):
     else:
         return path
 
-
+'''
 def normalizeRef(id):
-    #return quote(unquote(id))
     id = lowerPath(id)
     ref = id.replace(" ", "%20").replace("!", "%21").replace("\"", "%22").replace("$", "%24").replace("\%", "%25")
     ref = ref.replace("&","%26").replace("'","%27").replace("(","%28").replace(")","%29").replace("+","%2B").replace(",","%2C")
@@ -419,6 +418,25 @@ def normalizeRef(id):
     ref = ref.replace("[", "%5B").replace("]", "%5D").replace("^", "%5E").replace("`", "%60")
     ref = ref.replace("{", "%7B").replace("}", "%7D")
     return ref.replace("//", "/")
+'''
+
+CharTable = dict([(c, "%" + ("%02X" % c)) for c in range(256)])
+for c in range(0x20, 0x80):
+    if ((c >= ord("A") and c <= ord("Z")) or
+        (c >= ord("a") and c <= ord("z")) or
+        (c >= ord("0") and c <= ord("9")) or 
+        (chr(c) in ["_", "-", "/", "\\", "#", "|", "?", "."])):
+        CharTable[c] = chr(c)
+
+def normalizeRef(id):
+    words = ("A"+lowerPath(id)).split("%")
+    strlist = [("%" + word[0:2] + normref(word[2:])) for word in words[1:]]
+    ref = normref(words[0][1:]) + "".join(strlist)
+    return ref.replace("//", "/")
+
+def normref(word):
+    strlist = [CharTable[ord(c)] for c in word]
+    return "".join(strlist)
 
 
 def clearAssets():
@@ -506,7 +524,7 @@ def fixBrokenPath(path):
 
     return check
 
-
+'''
 def normalizePath(ref):
     path = ref.replace("%20"," ").replace("%21","!").replace("%22","\"").replace("%24","$").replace("%25","\%")
     path = path.replace("%26", "&").replace("%27", "'").replace("%28", "(").replace("%29", ")").replace("%2B", "+").replace("%2C", ",")
@@ -514,6 +532,12 @@ def normalizePath(ref):
     path = path.replace("%5B", "[").replace("%5C", "/").replace("%5D", "]").replace("%5E", "^").replace("%60", "`")
     path = path.replace("%7B", "{").replace("%7D", "}")
     return path
+'''
+
+def normalizePath(ref):    
+    words = ("A"+ref).split("%")
+    strlist = ["".join(([chr(int(word[0:2], 16))] + list(word[2:]))) for word in words[1:]]
+    return (words[0][1:] + "".join(strlist))
 
 
 def getRelativeRef(ref):
@@ -555,7 +579,7 @@ def getDazPath(ref):
 
     theSettings.missingAssets = True
     if theSettings.verbosity > 1:
-        msg = ("Did not find path:\n\"%s\"" % path)
+        msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (path, ref))
         if theSettings.verbosity > 3:
             reportError(msg)
         else:
