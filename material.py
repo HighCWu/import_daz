@@ -489,11 +489,13 @@ class Material(Asset):
     def srgbToLinear(self, srgb):
         lin = []
         for s in srgb:
-            if s < 0.04045:
-                l = s/12.92
-            else:
-                #l = ((s+0.055)/1.055)**2.4
-                l = round(s**2.2, 6)
+            #   this is the correct linear function used by cycles
+            # if s < 0.04045:
+            #     l = s/12.92
+            # else:
+            #     l = ((s+0.055)/1.055)**2.4
+            #   this is the gamma 2.2 approximation used by iray
+            l = round(s**2.2, 6)
             lin.append(l)
         return Vector(lin)
 
