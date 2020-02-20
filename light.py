@@ -120,7 +120,7 @@ class LightMaterial:
         light = self.light
         lgeo = self.getValue(["Light Geometry"], -1)
         usePhoto = self.getValue(["Photometric Mode"], False)
-        light.twosided = self.getValue(["Two Sided"], False)
+        light.twosided = self.getValue(["Two Sided"], False)       
 
         height = self.getValue(["Height"], 0) * theSettings.scale
         width = self.getValue(["Width"], 0) * theSettings.scale
@@ -135,19 +135,28 @@ class LightMaterial:
             lamp.shape = 'RECTANGLE'
             lamp.size = width
             lamp.size_y = height
+        elif lgeo == 2 and bpy.app.version >= (2,80,0):
+            lamp = bpydatalamps.new(light.name, "AREA")
+            lamp.shape = 'DISK'
+            lamp.size = height
         elif lgeo > 1:
             lamp = bpydatalamps.new(light.name, "POINT")
             lamp.shadow_soft_size = height/2
+            light.twosided = False
         elif light.type == 'SPOT':
             lamp = bpydatalamps.new(light.name, "SPOT")
             lamp.shadow_soft_size = height/2
+            light.twosided = False
         elif light.type == 'POINT':
             lamp = bpydatalamps.new(light.name, "POINT")
             lamp.shadow_soft_size = 0
-            self.fluxFactor = 5
+            if bpy.app.version < (2,80,0):
+                self.fluxFactor = 5
+            light.twosided = False
         elif light.type == 'DIRECTIONAL':
             lamp = bpydatalamps.new(light.name, "SUN")
             lamp.shadow_soft_size = height/2
+            light.twosided = False
         elif light.type == 'light':
             lamp = bpydatalamps.new(light.name, "AREA")
         else:
@@ -158,10 +167,10 @@ class LightMaterial:
                 print(msg)
                 lamp = bpydatalamps.new(light.name, "SPOT")
                 lamp.shadow_soft_size = height/2
+                light.twosided = False
 
         self.setLampProps(lamp, light.info, context)
         self.setChannels(lamp)
-
         self.rna = light.data = lamp
 
 

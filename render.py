@@ -154,7 +154,10 @@ class WorldTree(CyclesTree):
     def addMapping(self, rot):
         mapping = self.addNode(2, "ShaderNodeMapping")
         mapping.vector_type = 'TEXTURE'
-        mapping.rotation = rot
+        if hasattr(mapping, "rotation"):
+            mapping.rotation = rot
+        else:
+            mapping.inputs['Rotation'].default_value = rot
         self.links.new(self.texco, mapping.inputs["Vector"])
         self.texco = mapping.outputs["Vector"]
 
