@@ -498,9 +498,7 @@ class CyclesTree(FromCycles):
             color,tex = self.getDiffuseColor()
             self.diffuseTex = tex
             self.diffuse = self.active = self.addNode(5, "ShaderNodeBsdfDiffuse")
-            self.diffuse.inputs["Color"].default_value[0:3] = color
-            if tex:
-                self.linkColor(tex, self.diffuse, color, "Color")
+            self.linkColor(tex, self.diffuse, color, "Color")
             roughness = clamp( self.getValue(["Diffuse Roughness"], scn.DazDiffuseRoughness) )
             self.addSlot(channel, self.diffuse, "Roughness", roughness, roughness, False, True)
             if self.normal:
@@ -514,10 +512,10 @@ class CyclesTree(FromCycles):
             square = self.getValue(["Diffuse Overlay Weight Squared"], False)
             if square:
                 weight = weight * weight
+
             color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE)
-            node.inputs["Color"].default_value[0:3] = color
-            if tex:
-                self.links.new(tex.outputs[0], node.inputs[0])
+            self.linkColor(tex, node, color, "Color")
+
             roughness,roughtex = self.getColorTex(["Diffuse Overlay Roughness"], "NONE", 0, False)
             self.setRoughness(node, "Roughness", roughness, roughtex)
             if self.normal:
@@ -884,16 +882,15 @@ class CyclesTree(FromCycles):
             color = self.material.getChannelColor(channel, BLACK)
             if (color != BLACK): 
                 emit = self.addNode(6, "ShaderNodeEmission")
-                emit.inputs["Color"].default_value[0:3] = color
                 tex = self.addTexImageNode(channel, "COLOR")
+                emit.inputs["Color"].default_value[0:3] = color
                 if tex:
                     self.linkColor(tex, emit, color)
                 else:
                     channel = self.material.getChannel(["Luminance"])
                     if channel:
                         tex = self.addTexImageNode(channel, "COLOR")
-                        if tex:
-                            self.linkColor(tex, emit, color)
+                        self.linkColor(tex, emit, color)
 
                 lum = self.getValue(["Luminance"], 1500)
                 # "cd/m^2", "kcd/m^2", "cd/ft^2", "cd/cm^2", "lm", "W"
@@ -923,14 +920,13 @@ class CyclesTree(FromCycles):
             self.material.thinWalled or 
             self.material.eevee):
             return
-        color = self.getValue(["Transmitted Color"], BLACK)
+        color = self.getValue(["Transmitted Color"], "COLOR", BLACK)
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
         if not (isBlack(color) or dist == 0.0):
             color,tex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
+            dist,disttex = self.getColorTex(["Transmitted Measurement Distance"], "NONE", 0.0)
             vol = self.addNode(6, "ShaderNodeVolumeAbsorption")
-            vol.inputs["Color"].default_value[0:3] = color
-            if tex:
-                self.links.new(tex.outputs[0], vol.inputs["Color"])
+            self.linkColor(tex, vol, color, "Color")
             self.mixWithVolume(1, vol)
 
 
@@ -1152,15 +1148,16 @@ class CyclesTree(FromCycles):
 
     def linkColor(self, tex, node, color, slot=0):
         node.inputs[slot].default_value[0:3] = color
-        tex = self.multiplyVectorTex(color, tex)
         if tex:
+            tex = self.multiplyVectorTex(color, tex)
             self.links.new(tex.outputs[0], node.inputs[slot])
         return tex
 
 
     def linkScalar(self, tex, node, value, slot):
-        tex = self.multiplyScalarTex(value, tex)
+        node.inputs[slot].default_value = value
         if tex:
+            tex = self.multiplyScalarTex(value, tex)
             self.links.new(tex.outputs[0], node.inputs[slot])
         return tex
 

@@ -157,11 +157,17 @@ class PbrTree(CyclesTree):
                 self.linkColor(radtex, self.pbr, rad, "Subsurface Radius")
 
         # Anisotropic
-        anisotropy = self.getValue(["Glossy Anisotropy"], 0)
+        anisotropy,tex = self.getColorTex(["Glossy Anisotropy"], "NONE", 0)
         if anisotropy > 0:  
-            self.setPBRValue("Anisotropic", anisotropy, 0)      
-            anirot = self.getValue(["Glossy Anisotropy Rotations"], 0)
-            self.setPBRValue("Anisotropic Rotation", 0.75 - anirot, 0)      
+            self.setPBRValue("Anisotropic", anisotropy, 0.0)
+            if tex:
+                self.linkScalar(tex, self.pbr, anisotropy, "Anisotropic")
+
+            anirot,tex = self.getColorTex(["Glossy Anisotropy Rotations"], "NONE", 0)
+            value = 0.75 - anirot
+            self.setPBRValue("Anisotropic Rotation", value, 0)      
+            if tex:
+                self.linkScalar(tex, self.pbr, value, "Anisotropic Rotation")
             
         # Roughness
         channel,invert,value,roughness = self.getGlossyRoughness()
