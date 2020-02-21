@@ -920,7 +920,7 @@ class CyclesTree(FromCycles):
             self.material.thinWalled or 
             self.material.eevee):
             return
-        color = self.getValue(["Transmitted Color"], "COLOR", BLACK)
+        color = self.getValue(["Transmitted Color"], BLACK)
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
         if not (isBlack(color) or dist == 0.0):
             color,tex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
