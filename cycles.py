@@ -725,7 +725,6 @@ class CyclesTree(FromCycles):
             not theSettings.useSSS or 
             not self.material.sssActive()):
             return
-        wt = self.getValue("getChannelSSSAmount", 0)
         wt,wttex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
         if wt > 0:
             mat = self.material.rna

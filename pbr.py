@@ -126,7 +126,10 @@ class PbrTree(CyclesTree):
             self.linkColor(tex, self.pbr, color, "Base Color")
 
         # Metallic Weight
-        metallicity,_ = self.addToPBR("Metallic", ["Metallic Weight"], 0.0, True)
+        metallicity,tex = self.getColorTex(["Metallic Weight"], "NONE", 0.0)
+        self.setPBRValue("Metallic", metallicity, 0.0)
+        if tex and theSettings.useTextures:
+            self.linkScalar(tex, self.pbr, metallicity, "Metallic")
         useTex = not (self.material.shader == 'IRAY' and self.material.basemix == 0 and metallicity > 0.5)
 
         # Subsurface scattering
@@ -134,18 +137,24 @@ class PbrTree(CyclesTree):
             self.material.sssActive() and
             not self.material.thinWalled and
             not self.material.refractive):
-            self.addToPBR("Subsurface", "getChannelSSSAmount", 0.0, True)
+
+            wt,wttex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
+            self.setPBRValue("Subsurface", wt, 0.0)
+            if wttex:
+                self.linkScalar(wttex, self.pbr, wt, "Base Color")
+            
             color,tex = self.getColorTex("getChannelSSSColor", "COLOR", WHITE)
+            self.setPBRValue("Subsurface Color", color, WHITE)
             if tex:
                 self.linkColor(tex, self.pbr, color, "Subsurface Color")
             elif self.diffuseTex:
                 self.linkColor(self.diffuseTex, self.pbr, color, "Subsurface Color")                   
-            else:
-                self.pbr.inputs["Subsurface Color"].default_value[0:3] = color
-            self.addToPBR("Subsurface Radius", "getChannelSSSRadius", WHITE, False)
-            vec = self.pbr.inputs["Subsurface Radius"].default_value
-            for n in range(3):
-                vec[n] *= theSettings.scale
+
+            rad,radtex = self.getColorTex("getChannelSSSRadius", "NONE", WHITE)
+            rad *= theSettings.scale
+            self.setPBRValue("Subsurface Radius", rad, WHITE)
+            if radtex:
+                self.linkColor(radtex, self.pbr, rad, "Subsurface Radius")
 
         # Anisotropic
         anisotropy = self.getValue(["Glossy Anisotropy"], 0)
@@ -195,7 +204,10 @@ class PbrTree(CyclesTree):
         if self.material.thinWalled:
             self.pbr.inputs["IOR"].default_value = 1.0
         else:
-            self.addToPBR("IOR", "getChannelIOR", 1.45, True)
+            ior,tex = self.getColorTex("getChannelIOR", "NONE", 1.45)
+            self.setPBRValue("IOR", ior, 1.45)
+            if tex:
+                self.linkScalar(tex, self.pbr, ior, "IOR")
 
         # Clearcoat
         top,toptex = self.getColorTex(["Top Coat Weight"], "NONE", 1.0, False)
@@ -216,11 +228,17 @@ class PbrTree(CyclesTree):
             if tex:
                 self.links.new(tex.outputs[0], self.pbr.inputs["Clearcoat"])
 
-        self.addToPBR("Clearcoat Roughness", ["Top Coat Roughness"], 0.0, theSettings.useTextures, maxval=1)
+        rough,tex = self.getColorTex(["Top Coat Roughness"], "NONE", 1.45)
+        self.setPBRValue("Clearcoat Roughness", rough, 1.45)
+        if tex and theSettings.useTextures:
+            self.linkScalar(tex, self.pbr, rough, "Clearcoat Roughness")
 
         # Sheen
         if self.material.isActive("Backscattering"):
-            self.addToPBR("Sheen", ["Backscattering Weight"], 0.0, theSettings.useTextures)
+            sheen,tex = self.getColorTex(["Backscattering Weight"], "NONE", 0.0)
+            self.setPBRValue("Sheen", sheen, 0.0)
+            if tex and theSettings.useTextures:
+                self.linkScalar(tex, self.pbr, sheen, "Sheen")
 
 
     def setPbrSlot(self, slot, value):
@@ -232,12 +250,19 @@ class PbrTree(CyclesTree):
         channel = self.material.getChannelRefractionStrength()
         value = 0
         if channel:
-            value,tex = self.addToPBR("Transmission", "getChannelRefractionStrength", 0.0, True)
+            value,tex = self.getColorTex("getChannelRefractionStrength", "NONE", 0.0)
+            self.setPBRValue("Transmission", value, 0.0)
+            if tex:
+                self.linkScalar(tex, self.pbr, value, "Transmission")
         else:
             channel = self.material.getChannelOpacity()
             if channel:
-                value,tex = self.addToPBR("Transmission", "getChannelOpacity", 1.0, True, invert=True)
-                value = 1 - value
+                value,tex = self.getColorTex("getChannelOpacity", "NONE", 1.0)
+                tex = self.fixTex(tex, value, True)
+                value = 1-value
+                self.setPBRValue("Transmission", value, 0.0)
+                if tex:
+                    self.linkScalar(tex, self.pbr, value, "Transmission")
         if value > 0:
             self.material.alphaBlend(1-value, tex)
             color,tex,_roughness,_roughtex = self.getRefractionColor()
@@ -316,24 +341,6 @@ class PbrTree(CyclesTree):
         self.removeLink(self.pbr, "Subsurface")
         self.removeLink(self.pbr, "Subsurface Color")
         self.tintSpecular()
-
-
-    def addToPBR(self, slot, attr, default, useTex, colorSpace='NONE', invert=False, maxval=0):
-        value0,tex = self.getColorTex(attr, colorSpace, default, False, True, maxval)
-        if not useTex:
-            tex = None
-        if invert:
-            value = 1 - value0
-        else:
-            value = value0
-
-        self.setPBRValue(slot, value, default)
-        if tex:
-            tex = self.fixTex(tex, value0, invert)
-            if tex:
-                self.links.new(tex.outputs[0], self.pbr.inputs[slot])
-
-        return value,tex
 
 
     def setPBRValue(self, slot, value, default, maxval=0):
