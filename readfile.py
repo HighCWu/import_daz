@@ -29,7 +29,7 @@ import os
 import json
 import gzip
 from .settings import theSettings
-from .error import DazError
+from .error import reportError
 
 
 def readAssetFile(filepath):
@@ -53,7 +53,6 @@ def readDufFile(filepath, haltOnFail=True):
 
     if bytes:
         string = bytes.decode("utf-8")
-        struct = json.loads(string)
     else:
         fp = safeOpen(filepath, "rU")
         if fp is None:
@@ -64,29 +63,22 @@ def readDufFile(filepath, haltOnFail=True):
                 path = "/".join(paths[0:n])
                 print(path, os.path.isdir(path))
             msg = ("File not found:\n%s      " % filepath)
-            if theSettings.verbosity > 2:
-                raise DazError(msg)
+            reportError(msg)
             return {}
 
         try:
             string = "".join(list(fp))
             fp.close()
-            cannotDecode = False
-        except UnicodeDecodeError:
-            cannotDecode = True
+            unierr = None
+        except UnicodeDecodeError as err:
+            unierr = err
+        if unierr:
+            return corruptError(unierr, filepath)
 
-        if cannotDecode:
-            msg = ("This file is corrupt:\n  '%s'" % filepath)
-            if theSettings.verbosity > 1:
-                print(msg)
-            elif theSettings.verbosity > 2:
-                raise DazError(msg)
-            return {}
-
-        try:
-            struct = json.loads(string)
-        except json.JSONDecodeError:
-            struct = {}
+    try:
+        struct = json.loads(string)
+    except json.JSONDecodeError:
+        struct = {}
 
     # Try removing stray characters in beginning and end of file
     if not struct:
@@ -96,12 +88,20 @@ def readDufFile(filepath, haltOnFail=True):
             string = string[:-1]
         try:
             struct = json.loads(string)
-        except json.JSONDecodeError:
-            struct = {}
-
-    if not struct and haltOnFail:
-        print(string[0:100])
-        raise DazError("Could not load duf %s" % filepath)
+            jsonerr = None
+        except json.JSONDecodeError as err:
+            jsonerr = err
+        if jsonerr:
+            return corruptError(jsonerr, filepath)
 
     return struct
+
+
+def corruptError(error, filepath):
+    msg = ('This file is corrupt:\n  "%s"' % filepath +
+           '\nError: "%s"' % error)
+    if theSettings.verbosity == 2:
+        theSettings.verbosity = 3
+    reportError(msg)
+    return {}
 
