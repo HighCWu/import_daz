@@ -700,9 +700,8 @@ def loadImage(url):
     global theImages
     filepath = getDazPath(url)
     if filepath is None:
+        reportError('Image not found:  \n"%s"' % filepath, trigger=(2,4))
         img = None
-        if theSettings.verbosity > 2:
-            print('Image not found:  \n"%s"' % filepath)
     else:
         img = bpy.data.images.load(filepath)
         img.name = os.path.splitext(os.path.basename(filepath))[0]
@@ -1324,7 +1323,7 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelChanger, B.LaunchEditor, B.Sl
         from .guess import getSkinMaterial
         if isRefractive(mat):
             return (self.tweakMaterials not in ["Refractive", "All"])
-        mattype, = getSkinMaterial(mat)
+        mattype = getSkinMaterial(mat)
         if self.tweakMaterials == "Skin":
             return (mattype != "Skin")
         elif self.tweakMaterials == "Skin-Lips-Nails":

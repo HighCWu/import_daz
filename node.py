@@ -440,11 +440,8 @@ class Node(Asset, Formula):
             except KeyError:
                 msg = ("Did not find instance %s in %s" % (iref, self))
                 insts = self.instances
-        if strict and theSettings.verbosity > 1:
-            if theSettings.verbosity > 2:
-                reportError(msg, insts)
-            else:
-                print(msg)
+        if strict:
+            reportError(msg, insts, trigger=(1,2))
         return None
 
 

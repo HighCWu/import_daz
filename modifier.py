@@ -227,10 +227,7 @@ class SkinBinding(Modifier):
         if not (isinstance(self.parent, Geometry) or
                 isinstance(self.parent, Figure)):
             msg = "Parent of %s\nshould be a geometry or a figure but is\n%s" % (self, self.parent)
-            if theSettings.verbosity > 1:
-                print(msg)
-            if theSettings.verbosity > 2:
-                reportError(msg)
+            reportError(msg, trigger=(1,2))
 
 
     def build(self, context, inst):
@@ -272,12 +269,8 @@ class SkinBinding(Modifier):
             return ob, rig, inst
         else:
             msg = ("Expected geonode but got:\n  %s" % inst)
-            if theSettings.verbosity > 1:
-                print(msg)
-            if theSettings.verbosity > 2:
-                reportError(msg)
-            else:
-                return None,None,None
+            reportError(msg, trigger=(1,2))
+            return None,None,None
 
 
     def addVertexGroups(self, ob, geonode, rig):
@@ -305,8 +298,7 @@ class SkinBinding(Modifier):
             elif "scale_weights" in joint.keys():
                 weights = joint["scale_weights"]
             else:
-                if theSettings.verbosity > 1:
-                    print("No weights for %s in %s" % (bname, ob.name))
+                reportError("No weights for %s in %s" % (bname, ob.name), trigger=(1,4))
                 continue
 
             buildVertexGroup(ob, vgname, weights)
@@ -499,8 +491,7 @@ class Morph(FormulaAsset):
             if ref in parent.nodes:
                 geonode = parent.nodes[ref]
             else:
-                if theSettings.verbosity > 3:
-                    print("Missing geonode %s in\n %s" %(ref, parent))
+                reportError("Missing geonode %s in\n %s" %(ref, parent), trigger=(2,4))
                 return
         elif isinstance(parent, GeoNode):
             geonode = parent
@@ -549,10 +540,7 @@ class Morph(FormulaAsset):
 
         if inst is None:
             msg = ("Morph not found:\n  %s\n  %s\n  %s" % (self.id, self.parent, asset))
-            if theSettings.verbosity > 2:
-                reportError(msg)
-            elif theSettings.verbosity > 1:
-                print(msg)
+            reportError(msg, trigger=(1,2))
             return None
         cscale = inst.getCharacterScale()
 

@@ -96,16 +96,16 @@ SkinMaterials = {
 def getSkinMaterial(mat):
     mname = mat.name.lower().split("-")[0].split(".")[0].split(" ")[0].split("&")[0]
     if mname in SkinMaterials.keys():
-        return SkinMaterials[mname]
+        return SkinMaterials[mname][0]
     mname2 = mname.rsplit("_", 2)[-1]
     if mname2 in SkinMaterials.keys():
-        return SkinMaterials[mname2]
+        return SkinMaterials[mname2][0]
     return None
 
 
 def castsShadow(mat):
-    info = getSkinMaterial(mat)
-    return (not (info and isinstance(info[0], int)))
+    mattype = getSkinMaterial(mat)
+    return (not isinstance(mattype, int))
 
 
 def getMeshFromObject(ob):
@@ -139,9 +139,8 @@ def guessColor(ob, scn, flag, skinColor, clothesColor, enforce):
             setDiffuse(mat, color)
 
         elif flag in ['GUESS', 'GUESSRANDOM']:
-            data = getSkinMaterial(mat)
-            if data:
-                color, = data
+            color = getSkinMaterial(mat)
+            if color is not None:
                 if isinstance(color, int):
                     setDiffuse(mat, (color,color,color,1))
                 else:

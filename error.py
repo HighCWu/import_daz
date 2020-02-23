@@ -72,10 +72,13 @@ class DazError(Exception):
         return repr(theMessage)
 
 
-def reportError(msg, instances={}, warnPaths=False):
+def reportError(msg, instances={}, warnPaths=False, trigger=(1,2), force=False):
     global theUseDumpErrors, theInstances
     from .settings import theSettings
-    if theSettings.verbosity > 2:
+    trigWarning,trigError = trigger
+    if theSettings.verbosity > trigWarning or force:
+        print(msg)
+    if theSettings.verbosity > trigError or force:
         theUseDumpErrors = True
         theInstances = instances
         if warnPaths:
@@ -83,20 +86,7 @@ def reportError(msg, instances={}, warnPaths=False):
                     "See https://diffeomorphic.blogspot.se/p/setting-up-daz-library-paths.html         ")
         msg += ("\nFor details see\n'%s'" % getErrorPath())
         raise DazError(msg)
-    elif theSettings.verbosity > 1:
-        print(msg)
     return None
-
-
-def raiseOrReportError(msg, vraise, vrep, error=True):
-    from .settings import theSettings
-    if theSettings.verbosity > vrep:
-        reportError(msg)
-    elif theSettings.verbosity > vraise:
-        if error:
-            raise DazError(msg)
-        else:
-            print(msg)
 
 
 def getErrorPath():

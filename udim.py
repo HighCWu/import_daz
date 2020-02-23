@@ -80,7 +80,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
 
     def isUdimMaterial(self, mat):
         from .guess import getSkinMaterial
-        return (getSkinMaterial(mat)[0] in ["Skin", "Red", "Teeth"])
+        return (getSkinMaterial(mat) in ["Skin", "Red", "Teeth"])
 
 
     def run(self, context):

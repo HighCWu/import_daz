@@ -1211,8 +1211,7 @@ def addMannequin(ob, context, rig, coll, mangrp, headType):
     mat.diffuse_color[0:3] = (random(), random(), random())
     for omat in ob.data.materials:
         mat.diffuse_color = omat.diffuse_color
-        data = getSkinMaterial(omat)
-        if data and data[0] == 'Skin':
+        if getSkinMaterial(omat) == 'Skin':
             break
 
     faceverts, vertfaces = getVertFaces(ob)

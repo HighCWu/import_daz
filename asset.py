@@ -98,26 +98,18 @@ class Accessor:
                 return theAssets[ref]
             except KeyError:
                 pass
-        elif theSettings.verbosity > 1:
-            msg = ("Cannot open file:\n '%s'            " % normalizePath(fileref))
-            if theSettings.verbosity > 2:
-                return reportError(msg, warnPaths=True)
-            else:
-                print(msg)
-                return None
         else:
+            msg = ("Cannot open file:\n '%s'            " % normalizePath(fileref))
+            reportError(msg, warnPaths=True, trigger=(1,2))
             return None
 
         theSettings.missingAssets = True
-        if strict and theSettings.useStrict and theSettings.verbosity > 1:
+        if strict and theSettings.useStrict:
             msg =("Missing asset:\n  '%s'\n" % ref +
                   "Fileref\n   %s\n" % fileref +
                   "Filepath:\n  '%s'\n" % filepath +
                   "File asset:\n  %s\n" % file )
-            if theSettings.verbosity > 2:
-                return reportError(msg, warnPaths=True)
-            else:
-                print(msg)
+            reportError(msg, warnPaths=True, trigger=(1,2))
         return None
 
 
@@ -275,10 +267,7 @@ class Asset(Accessor):
         else:
             self.id = ""
             msg = ("Asset without id:\n%s    " % struct)
-            if theSettings.verbosity > 2:
-                reportError(msg)
-            elif theSettings.verbosity > 1:
-                print(msg)
+            reportError(msg, trigger=(1,2))
 
         if "url" in struct.keys():
             self.url = struct["url"]
@@ -512,15 +501,12 @@ def fixBrokenPath(path):
             corrected = [f for f in os.listdir(check) if f.lower() == pc.lower()]
             if len(corrected) > 0:
                 cand = os.path.join(check, corrected[0])
-            elif theSettings.verbosity > 1:
+            else:
                 msg = ("Broken path: '%s'\n" % path +
                        "  Folder: '%s'\n" % check +
                        "  File: '%s'\n" % pc +
                        "  Files: %s" % os.listdir(check))
-                if theSettings.verbosity > 4:
-                    reportError(msg)
-                else:
-                    print(msg)
+                reportError(msg, trigger=(1,3))
         check = cand
 
     return check
@@ -579,10 +565,6 @@ def getDazPath(ref):
         return filepath
 
     theSettings.missingAssets = True
-    if theSettings.verbosity > 1:
-        msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (path, ref))
-        if theSettings.verbosity > 3:
-            reportError(msg)
-        else:
-            print(msg)
+    msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (path, ref))
+    reportError(msg, trigger=(1,3))
     return None

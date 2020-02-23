@@ -600,10 +600,7 @@ class Bone(Node):
             len(self.instances.values()) > 0):
             return list(self.instances.values())[0]
         msg = ("Did not find instance %s in %s" % (iref, list(self.instances.keys())))
-        if theSettings.verbosity > 3:
-            reportError(msg)
-        else:
-            print(msg)
+        reportError(msg, trigger=(1,3))
         return None
 
 

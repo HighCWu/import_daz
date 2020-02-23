@@ -63,11 +63,8 @@ def safeOpen(filepath, rw, dirMustExist=False, fileMustExist=False, mustOpen=Fal
         msg = ("Could not open file for %s:   \n" % mode +
                "%s          " % filepath)
         if mustOpen:
-            raise DazError(msg)
-        elif theSettings.verbosity > 4:
-            return reportError(msg, warnPaths=True)
-        elif theSettings.verbosity > 2:
-            print(msg)
+            raise DazError(msg)            
+        reportError(msg, warnPaths=True, trigger=(2,4))
     return fp
 
 #-------------------------------------------------------------

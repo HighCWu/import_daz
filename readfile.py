@@ -63,7 +63,7 @@ def readDufFile(filepath, haltOnFail=True):
                 path = "/".join(paths[0:n])
                 print(path, os.path.isdir(path))
             msg = ("File not found:\n%s      " % filepath)
-            reportError(msg)
+            reportError(msg, trigger=(1,2))
             return {}
 
         try:
@@ -100,8 +100,6 @@ def readDufFile(filepath, haltOnFail=True):
 def corruptError(error, filepath):
     msg = ('This file is corrupt:\n  "%s"' % filepath +
            '\nError: "%s"' % error)
-    if theSettings.verbosity == 2:
-        theSettings.verbosity = 3
-    reportError(msg)
+    reportError(msg, trigger=(0,1))
     return {}
 

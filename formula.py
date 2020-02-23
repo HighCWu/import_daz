@@ -30,7 +30,7 @@ import bpy
 from bpy.props import *
 import math
 from mathutils import *
-from .error import DazError, raiseOrReportError
+from .error import DazError, reportError
 from .asset import *
 from .utils import *
 from .settings import theSettings
@@ -121,13 +121,13 @@ class Formula:
                     data = struct["val"]
                     stack.append(data)
                 else:
-                    raiseOrReportError("Cannot push %s" % struct.keys(), 0, 4)
+                    reportError("Cannot push %s" % struct.keys(), trigger=(0,4), force=True)
             elif op == "mult":
                 x = stack[-2]*stack[-1]
                 stack = stack[:-2]
                 stack.append(x)
             else:
-                raiseOrReportError("Unknown formula %s" % struct.items(), 0, 4)
+                reportError("Unknown formula %s" % struct.items(), trigger=(0,4), force=True)
 
         if len(stack) == 1:
             ref,key = getRefKey(formula["output"])
@@ -234,7 +234,7 @@ class Formula:
             expr["points"] = [ops[n]["val"] for n in range(1,len(ops)-2)]
             expr["comp"] = comp
         else:
-            #raiseOrReportError("Unknown formula %s" % ops, 3, 5, False)
+            #reportError("Unknown formula %s" % ops, trigger=(1,5))
             return False
 
         if "stage" in formula.keys() and len(stages) > 1:
@@ -268,7 +268,8 @@ class Formula:
                 return Matrix((default, default, default))
             except:
                 pass
-            raiseOrReportError("formula.py >> evalFormula()\n Failed to set value with default     \n %s" % default, 0, 3, False)
+            msg = ("formula.py >> evalFormula()\n Failed to set value with default     \n %s" % default)
+            reportError(msg, trigger=(0,3))
         return Matrix()
 
 

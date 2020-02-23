@@ -33,6 +33,7 @@ from .utils import *
 from .cycles import Material, CyclesMaterial, CyclesTree
 from .material import WHITE, BLACK
 from .settings import theSettings
+from .error import reportError
 
 #-------------------------------------------------------------
 #   Light base class
@@ -161,13 +162,10 @@ class LightMaterial:
             lamp = bpydatalamps.new(light.name, "AREA")
         else:
             msg = ("Unknown light type: %s" % light.type)
-            if theSettings.verbosity > 2:
-                raise DazError(msg)
-            else:
-                print(msg)
-                lamp = bpydatalamps.new(light.name, "SPOT")
-                lamp.shadow_soft_size = height/2
-                light.twosided = False
+            reportError(msg, trigger=(0,2))
+            lamp = bpydatalamps.new(light.name, "SPOT")
+            lamp.shadow_soft_size = height/2
+            light.twosided = False
 
         self.setLampProps(lamp, light.info, context)
         self.setChannels(lamp)
