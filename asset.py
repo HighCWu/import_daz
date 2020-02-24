@@ -398,35 +398,15 @@ def lowerPath(path):
     else:
         return path
 
-'''
-def normalizeRef(id):
-    id = lowerPath(id)
-    ref = id.replace(" ", "%20").replace("!", "%21").replace("\"", "%22").replace("$", "%24").replace("\%", "%25")
-    ref = ref.replace("&","%26").replace("'","%27").replace("(","%28").replace(")","%29").replace("+","%2B").replace(",","%2C")
-    ref = ref.replace(":","%3A").replace(";","%3B").replace("<","%3C").replace("=","%3D").replace(">","%3E").replace("@","%40")
-    ref = ref.replace("[", "%5B").replace("]", "%5D").replace("^", "%5E").replace("`", "%60")
-    ref = ref.replace("{", "%7B").replace("}", "%7D")
-    return ref.replace("//", "/")
-'''
-
-CharTable = dict([(c, "%" + ("%02X" % c)) for c in range(256)])
-for c in range(0x20, 0x80):
-    if ((c >= ord("A") and c <= ord("Z")) or
-        (c >= ord("a") and c <= ord("z")) or
-        (c >= ord("0") and c <= ord("9")) or 
-        (chr(c) in ["_", "-", "/", "\\", "#", "|", "?", "."])):
-        CharTable[c] = chr(c)
 
 def normalizeRef(id):
-    id = lowerPath(id).replace("\%", "%25")
-    words = ("A"+id).split("%")
-    strlist = [("%" + word[0:2] + normref(word[2:])) for word in words[1:]]
-    ref = normref(words[0][1:]) + "".join(strlist)
+    from urllib.parse import quote
+    ref= lowerPath(undoQuote(quote(id)))
     return ref.replace("//", "/")
 
-def normref(word):
-    strlist = [CharTable[ord(c)] for c in word]
-    return "".join(strlist)
+def undoQuote(ref):
+    ref = ref.replace("%23","#").replace("%25","%").replace("%2D", "-").replace("%2E", ".").replace("%2F", "/").replace("%3F", "?")
+    return ref.replace("%5C", "/").replace("%5F", "_").replace("%7C", "|")
 
 
 def clearAssets():
@@ -511,20 +491,10 @@ def fixBrokenPath(path):
 
     return check
 
-'''
-def normalizePath(ref):
-    path = ref.replace("%20"," ").replace("%21","!").replace("%22","\"").replace("%24","$").replace("%25","\%")
-    path = path.replace("%26", "&").replace("%27", "'").replace("%28", "(").replace("%29", ")").replace("%2B", "+").replace("%2C", ",")
-    path = path.replace("%3A", ":").replace("%3B", ";").replace("%3C", "<").replace("%3D", "=").replace("%3E", ">").replace("%40", "@")
-    path = path.replace("%5B", "[").replace("%5C", "/").replace("%5D", "]").replace("%5E", "^").replace("%60", "`")
-    path = path.replace("%7B", "{").replace("%7D", "}")
-    return path
-'''
 
-def normalizePath(ref):    
-    words = ("A"+ref).split("%")
-    strlist = ["".join(([chr(int(word[0:2], 16))] + list(word[2:]))) for word in words[1:]]
-    return (words[0][1:] + "".join(strlist))
+def normalizePath(ref):
+    from urllib.parse import unquote
+    return unquote(ref)
 
 
 def getRelativeRef(ref):

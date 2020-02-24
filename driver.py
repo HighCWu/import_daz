@@ -79,7 +79,7 @@ def getShapekeyPropDriver(skeys, sname):
 
 
 def getRnaDriver(rna, path, type):
-    if rna.animation_data:
+    if rna and rna.animation_data:
         for fcu in rna.animation_data.drivers:
             if path == fcu.data_path:
                 if not type:
