@@ -944,7 +944,6 @@ def getSelectedObjects(context, type):
     for ob in getSceneObjects(context):
         if (getSelected(ob) and
             ob.type == type and
-            not getattr(ob, HideViewport) and
             inSceneLayer(context, ob)):
             objects.append(ob)
     return objects, context.object

@@ -70,6 +70,8 @@ if bpy.app.version < (2,80,0):
         return me.uv_textures
 
     def inSceneLayer(context, ob):
+        if ob.hide:
+            return False
         scn = context.scene
         for n in range(len(scn.layers)):
             if (ob.layers[n] and scn.layers[n]):
@@ -165,14 +167,19 @@ else:
         return me.uv_layers
 
     def inSceneLayer(context, ob):
-        scncoll = context.scene.collection
-        if ob in scncoll.objects.values():
+        if ob.hide_viewport:
+            return False
+        return inCollection(context.view_layer.layer_collection, ob)
+        
+    def inCollection(layer, ob):
+        if layer.hide_viewport:
+            return False
+        elif not layer.exclude and ob in layer.collection.objects.values():
             return True
-        for coll in scncoll.children:
-            if (not coll.hide_viewport and
-                ob in coll.objects.values()):
+        for child in layer.children:
+            if inCollection(child, ob):
                 return True
-        return False
+        return False            
 
     def showSceneLayer(context, ob):
         coll = context.collection
