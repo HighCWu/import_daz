@@ -162,7 +162,7 @@ class LightMaterial:
             lamp = bpydatalamps.new(light.name, "AREA")
         else:
             msg = ("Unknown light type: %s" % light.type)
-            reportError(msg, trigger=(0,2))
+            reportError(msg, trigger=(1,3))
             lamp = bpydatalamps.new(light.name, "SPOT")
             lamp.shadow_soft_size = height/2
             light.twosided = False

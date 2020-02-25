@@ -252,7 +252,7 @@ class FileAsset(Asset):
             if asset:
                 if isinstance(asset, Geometry):
                     msg = ("Duplicate geometry definition:\n  %s" % asset)
-                    reportError(msg, trigger=(1,3))
+                    reportError(msg, trigger=(2,4))
                 return asset
             else:
                 asset = typedAsset(self.fileref)

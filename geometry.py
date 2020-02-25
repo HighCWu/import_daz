@@ -406,7 +406,7 @@ class Geometry(Asset):
             if mat:
                 if mat.rna is None:
                     msg = ("Material without rna:\n  %s" % self)
-                    reportError(msg, trigger=(1,2))
+                    reportError(msg, trigger=(2,3))
                     return None
                 me.materials.append(mat.rna)
                 if mat.uv_set and mat.uv_set.checkSize(me):
@@ -426,7 +426,7 @@ class Geometry(Asset):
                 uv_set.build(me, self, setActive)
             else:
                 msg = ("Incompatible UV set\n  %s\n  %s" % (me, uv_set))
-                reportError(msg, trigger=(1,2))
+                reportError(msg, trigger=(2,3))
 
 
     def buildRigidity(self, ob):

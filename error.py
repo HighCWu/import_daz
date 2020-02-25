@@ -72,13 +72,13 @@ class DazError(Exception):
         return repr(theMessage)
 
 
-def reportError(msg, instances={}, warnPaths=False, trigger=(1,2), force=False):
+def reportError(msg, instances={}, warnPaths=False, trigger=(2,3), force=False):
     global theUseDumpErrors, theInstances
     from .settings import theSettings
     trigWarning,trigError = trigger
-    if theSettings.verbosity > trigWarning or force:
+    if theSettings.verbosity >= trigWarning or force:
         print(msg)
-    if theSettings.verbosity > trigError or force:
+    if theSettings.verbosity >= trigError or force:
         theUseDumpErrors = True
         theInstances = instances
         if warnPaths:

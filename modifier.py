@@ -227,7 +227,7 @@ class SkinBinding(Modifier):
         if not (isinstance(self.parent, Geometry) or
                 isinstance(self.parent, Figure)):
             msg = "Parent of %s\nshould be a geometry or a figure but is\n%s" % (self, self.parent)
-            reportError(msg, trigger=(1,2))
+            reportError(msg, trigger=(2,3))
 
 
     def build(self, context, inst):
@@ -269,7 +269,7 @@ class SkinBinding(Modifier):
             return ob, rig, inst
         else:
             msg = ("Expected geonode but got:\n  %s" % inst)
-            reportError(msg, trigger=(1,2))
+            reportError(msg, trigger=(2,3))
             return None,None,None
 
 
@@ -298,7 +298,7 @@ class SkinBinding(Modifier):
             elif "scale_weights" in joint.keys():
                 weights = joint["scale_weights"]
             else:
-                reportError("No weights for %s in %s" % (bname, ob.name), trigger=(1,4))
+                reportError("No weights for %s in %s" % (bname, ob.name), trigger=(2,5))
                 continue
 
             buildVertexGroup(ob, vgname, weights)
@@ -540,7 +540,7 @@ class Morph(FormulaAsset):
 
         if inst is None:
             msg = ("Morph not found:\n  %s\n  %s\n  %s" % (self.id, self.parent, asset))
-            reportError(msg, trigger=(1,2))
+            reportError(msg, trigger=(2,3))
             return None
         cscale = inst.getCharacterScale()
 

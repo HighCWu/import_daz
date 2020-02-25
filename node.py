@@ -441,7 +441,7 @@ class Node(Asset, Formula):
                 msg = ("Did not find instance %s in %s" % (iref, self))
                 insts = self.instances
         if strict:
-            reportError(msg, insts, trigger=(1,2))
+            reportError(msg, insts, trigger=(2,3))
         return None
 
 

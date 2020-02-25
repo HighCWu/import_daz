@@ -100,7 +100,7 @@ class Accessor:
                 pass
         else:
             msg = ("Cannot open file:\n '%s'            " % normalizePath(fileref))
-            reportError(msg, warnPaths=True, trigger=(1,2))
+            reportError(msg, warnPaths=True, trigger=(2,3))
             return None
 
         theSettings.missingAssets = True
@@ -109,7 +109,7 @@ class Accessor:
                   "Fileref\n   %s\n" % fileref +
                   "Filepath:\n  '%s'\n" % filepath +
                   "File asset:\n  %s\n" % file )
-            reportError(msg, warnPaths=True, trigger=(1,2))
+            reportError(msg, warnPaths=True, trigger=(2,3))
         return None
 
 
@@ -267,7 +267,7 @@ class Asset(Accessor):
         else:
             self.id = ""
             msg = ("Asset without id:\n%s    " % struct)
-            reportError(msg, trigger=(1,2))
+            reportError(msg, trigger=(2,3))
 
         if "url" in struct.keys():
             self.url = struct["url"]
@@ -486,7 +486,7 @@ def fixBrokenPath(path):
                        "  Folder: '%s'\n" % check +
                        "  File: '%s'\n" % pc +
                        "  Files: %s" % os.listdir(check))
-                reportError(msg, trigger=(1,3))
+                reportError(msg, trigger=(2,4))
         check = cand
 
     return check
@@ -536,5 +536,5 @@ def getDazPath(ref):
 
     theSettings.missingAssets = True
     msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (path, ref))
-    reportError(msg, trigger=(1,3))
+    reportError(msg, trigger=(2,4))
     return None

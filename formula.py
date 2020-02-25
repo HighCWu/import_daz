@@ -121,13 +121,13 @@ class Formula:
                     data = struct["val"]
                     stack.append(data)
                 else:
-                    reportError("Cannot push %s" % struct.keys(), trigger=(0,4), force=True)
+                    reportError("Cannot push %s" % struct.keys(), trigger=(1,5), force=True)
             elif op == "mult":
                 x = stack[-2]*stack[-1]
                 stack = stack[:-2]
                 stack.append(x)
             else:
-                reportError("Unknown formula %s" % struct.items(), trigger=(0,4), force=True)
+                reportError("Unknown formula %s" % struct.items(), trigger=(1,5), force=True)
 
         if len(stack) == 1:
             ref,key = getRefKey(formula["output"])
@@ -234,7 +234,7 @@ class Formula:
             expr["points"] = [ops[n]["val"] for n in range(1,len(ops)-2)]
             expr["comp"] = comp
         else:
-            #reportError("Unknown formula %s" % ops, trigger=(1,5))
+            #reportError("Unknown formula %s" % ops, trigger=(2,6))
             return False
 
         if "stage" in formula.keys() and len(stages) > 1:
@@ -269,7 +269,7 @@ class Formula:
             except:
                 pass
             msg = ("formula.py >> evalFormula()\n Failed to set value with default     \n %s" % default)
-            reportError(msg, trigger=(0,3))
+            reportError(msg, trigger=(2,5))
         return Matrix()
 
 
