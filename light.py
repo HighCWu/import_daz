@@ -144,15 +144,17 @@ class LightMaterial:
             lamp = bpydatalamps.new(light.name, "POINT")
             lamp.shadow_soft_size = height/2
             light.twosided = False
-        elif light.type == 'SPOT':
-            lamp = bpydatalamps.new(light.name, "SPOT")
-            lamp.shadow_soft_size = height/2
-            light.twosided = False
         elif light.type == 'POINT':
             lamp = bpydatalamps.new(light.name, "POINT")
             lamp.shadow_soft_size = 0
             if bpy.app.version < (2,80,0):
                 self.fluxFactor = 5
+            else:
+                self.fluxFactor = 3
+            light.twosided = False
+        elif light.type == 'SPOT':
+            lamp = bpydatalamps.new(light.name, "SPOT")
+            lamp.shadow_soft_size = height/2
             light.twosided = False
         elif light.type == 'DIRECTIONAL':
             lamp = bpydatalamps.new(light.name, "SUN")
@@ -225,8 +227,8 @@ class LightMaterial:
             lamp.use_specular = (value in [2,3])
 
         lamp.color = self.getValue(["Color"], WHITE)
-        flux = self.getValue(["Flux"], 1500)
-        lamp.energy = flux / 15000 * self.fluxFactor
+        flux = self.getValue(["Flux"], 15000)
+        lamp.energy = flux / 15000
         lamp.shadow_color = self.getValue(["Shadow Color"], BLACK)
         if hasattr(lamp, "shadow_buffer_soft"):
             lamp.shadow_buffer_soft = self.getValue(["Shadow Softness"], False)
@@ -276,11 +278,11 @@ class LightTree(CyclesTree):
     def build(self, context):
         self.makeTree()
         color = self.getValue(["Color"], WHITE)
-        flux = self.getValue(["Flux"], 15000) * self.material.fluxFactor
+        #flux = self.getValue(["Flux"], 15000)
 
         emit = self.addNode(1, "ShaderNodeEmission")
         emit.inputs["Color"].default_value[0:3] = color
-        emit.inputs["Strength"].default_value = 1
+        emit.inputs["Strength"].default_value = self.material.fluxFactor
         if bpy.app.version < (2,80,0):
             output = self.addNode(2, "ShaderNodeOutputLamp")
         else:
