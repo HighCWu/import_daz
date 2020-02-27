@@ -203,13 +203,15 @@ def saveSettings(filepath, scn):
     filepath = os.path.splitext(filepath)[0] + ".json"
     settings = {}
     for attr in dir(scn):
-        if attr[0:3] == "Daz":
+        if (attr[0:3] == "Daz" and
+            attr not in ["DazMorphCatsContent", "DazPoseCatsContent"]):
             value = getattr(scn, attr)
             if (isinstance(value, int) or
                 isinstance(value, float) or
                 isinstance(value, str) or
                 isinstance(value, bool)):
                 settings[attr] = value
+    settings["DazShowSettings"] = False
     struct = {"daz-settings" : settings}
     string = json.dumps(struct, sort_keys=True, indent=2, ensure_ascii=False)
     string = string.replace("\\\\", "/")
