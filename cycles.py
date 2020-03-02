@@ -404,7 +404,7 @@ class CyclesTree(FromCycles):
                 mapping.inputs['Scale'].default_value = (sx,sy,1)
                 if rz != 0:
                     mapping.inputs['Rotation'].default_value = (0,0,rz)            
-            if map and not map.invert:
+            if map and not map.invert and hasattr(mapping, "use_min"):
                 mapping.use_min = mapping.use_max = 1
             return mapping
         return None
