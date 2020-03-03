@@ -119,7 +119,6 @@ class CyclesMaterial(Material):
 
 
     def hideVerts(self, nodes, me, mnum):
-        print("HIDE", self.name, mnum)
         ob = nodes[0].rna
         hname = "HiddenEevee"
         if hname in ob.vertex_groups.keys():
@@ -1150,7 +1149,8 @@ class CyclesTree(FromCycles):
         node.inputs[slot].default_value[0:3] = color
         if tex:
             tex = self.multiplyVectorTex(color, tex)
-            self.links.new(tex.outputs[0], node.inputs[slot])
+            if tex:
+                self.links.new(tex.outputs[0], node.inputs[slot])
         return tex
 
 
@@ -1158,7 +1158,8 @@ class CyclesTree(FromCycles):
         node.inputs[slot].default_value = value
         if tex:
             tex = self.multiplyScalarTex(value, tex)
-            self.links.new(tex.outputs[0], node.inputs[slot])
+            if tex:
+                self.links.new(tex.outputs[0], node.inputs[slot])
         return tex
 
 
