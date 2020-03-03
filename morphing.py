@@ -351,7 +351,7 @@ class LoadAllMorphs(LoadMorph):
 
         theSettings.forMorphLoad(self.mesh, scn, addDrivers)
         self.errors = {}
-        t1 = time.clock()
+        t1 = time.perf_counter()
         print("\n--------------------\n%s" % self.type)
         snames = []
         missing = []
@@ -485,7 +485,7 @@ class DAZ_OT_ImportMorph(DazOperator, LoadMorph, B.DazImageFile, B.MultiFile, B.
         theSettings.forMorphLoad(ob, scn, self.useDrivers)
 
         self.errors = {}
-        t1 = time.clock()
+        t1 = time.perf_counter()
         print("\n--------------------")
         snames = []
         missing = []

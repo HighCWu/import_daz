@@ -43,7 +43,7 @@ def getMainAsset(filepath, context, btn):
     scn = context.scene
     theSettings.forImport(btn, scn)
     print("Scale", theSettings.scale)
-    t1 = time.clock()
+    t1 = time.perf_counter()
 
     from .fileutils import getFilePath
     path = getFilePath(filepath, ["duf", "dsf", "dse"])
@@ -194,7 +194,7 @@ def finishMain(filepath, t1):
     import time
     from .asset import clearAssets
 
-    t2 = time.clock()
+    t2 = time.perf_counter()
     print("File %s loaded in %.3f seconds" % (filepath, t2-t1))
     clearAssets()
 

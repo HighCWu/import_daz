@@ -1098,13 +1098,13 @@ class DAZ_OT_RigifyDaz(DazOperator):
 
     def run(self, context):
         import time
-        t1 = time.clock()
+        t1 = time.perf_counter()
         print("Modifying DAZ rig to Rigify")
         rig = context.object
         rname = rig.name
         createMeta(context)
         gen = rigifyMeta(context)
-        t2 = time.clock()
+        t2 = time.perf_counter()
         print("DAZ rig %s successfully rigified in %.3f seconds" % (rname, t2-t1))
 
 

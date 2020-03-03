@@ -734,7 +734,7 @@ class StandardAnimation:
         missing = []
         startframe = offset = scn.frame_current
         props = []
-        t1 = time.clock()
+        t1 = time.perf_counter()
         print("\n--------------------")
 
         dazfiles = getMultiFiles(self, theDazExtensions)

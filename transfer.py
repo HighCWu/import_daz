@@ -67,13 +67,13 @@ class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
 
     def run(self, context):
         import time
-        t1 = time.clock()
+        t1 = time.perf_counter()
         hum = context.object
         if not hum.data.shape_keys:
             raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (hum.name))
         for ob in self.getClothes(hum, context):
             self.transferMorphs(hum, ob, context)
-        t2 = time.clock()
+        t2 = time.perf_counter()
         print("Morphs transferred in %.1f seconds" % (t2-t1))
 
 
