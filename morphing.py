@@ -271,18 +271,18 @@ class LoadMorph:
             asset.formulas and
             self.rig):
             from .formula import buildShapeFormula, buildPropFormula
-            if not self.useShapekeysOnly:
-                props = buildPropFormula(asset, scn, self.rig, self.type, self.prefix, self.errors)
-                props = list(props)
             if self.useShapekeys:
                 success = buildShapeFormula(asset, scn, self.rig, self.mesh, occur=occur)
                 if self.useShapekeysOnly and not success and skey:
                     print("Could not build shape formula", skey.name)
                 if not success:
                     miss = True
+            if not self.useShapekeysOnly:
+                props = buildPropFormula(asset, scn, self.rig, self.type, self.prefix, self.errors)
+                props = list(props)
 
         if props:
-            return props,miss
+            return props,False
         elif skey:
             return [skey.name],miss
         else:
