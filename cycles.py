@@ -915,42 +915,59 @@ class CyclesTree(FromCycles):
 
 
     def buildVolume(self):
-        if (not self.material.refractive or
-            self.material.thinWalled or 
+        if (self.material.thinWalled or 
             self.material.eevee):
             return
+
+        absorb = None
         color = self.getValue(["Transmitted Color"], BLACK)
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
-        if not (isBlack(color) or dist == 0.0):
+        if not (isBlack(color) or isWhite(color) or dist == 0.0):
             color,tex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
-            dist,disttex = self.getColorTex(["Transmitted Measurement Distance"], "NONE", 0.0)
-            vol = self.addNode(6, "ShaderNodeVolumeAbsorption")
-            self.linkColor(tex, vol, color, "Color")
-            self.mixWithVolume(1, vol)
+            density = 200/dist
+            absorb = self.addNode(6, "ShaderNodeVolumeAbsorption")
+            self.linkColor(tex, absorb, color, "Color")
+            absorb.inputs["Density"].default_value = density
 
+        scatter = None
+        color = self.getValue(["SSS Color", "Subsurface Color"], BLACK)
+        sss = self.getValue(["SSS Amount"], 0.0)
+        dist = self.getValue(["Scattering Measurement Distance"], 0.0)
+        if not (isBlack(color) or isWhite(color) or dist == 0.0):
+            scatter = self.addNode(6, "ShaderNodeVolumeScatter")
+            color,tex = self.getColorTex(["SSS Color", "Subsurface Color"], "COLOR", BLACK)
+            inverse = (1-color[0], 1-color[1], 1-color[2])
+            scatter.inputs["Color"].default_value[0:3] = inverse
+            if tex:
+                invert = self.addNode(6, "ShaderNodeInvert")
+                self.links.new(tex.outputs[0], invert.inputs["Color"])
+                self.links.new(invert.outputs[0], scatter.inputs["Color"])
+            scatter.inputs["Density"].default_value = 100/dist
+            scatter.inputs["Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
+        elif sss > 0 and dist > 0.0:
+            scatter = self.addNode(6, "ShaderNodeVolumeScatter")
+            sss,tex = self.getColorTex(["SSS Amount"], "NONE", 0.0)
+            color = (sss,sss,sss)
+            self.linkColor(tex, scatter, color, "Color")
+            scatter.inputs["Density"].default_value = 100/dist
+            scatter.inputs["Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
 
-    def mixWithVolume(self, fac, shader, col=6):
-        if fac == 0 or shader is None:
-            return
-        elif fac == 1:
-            self.volume = shader
-            return
-        if self.volume:
-            mix = self.addNode(col, "ShaderNodeMixShader")
-            mix.inputs[0].default_value = fac
-            self.links.new(self.volume.outputs[0], mix.inputs[1])
-            self.links.new(shader.outputs[0], mix.inputs[2])
-            self.volume = mix
-        else:
-            self.volume = shader
-
+        if absorb and scatter:
+            self.volume = self.addNode(7, "ShaderNodeAddShader")
+            self.links.new(absorb.outputs[0], self.volume.inputs[0])
+            self.links.new(scatter.outputs[0], self.volume.inputs[1])
+        elif absorb:
+            self.volume = absorb
+        elif scatter:
+            self.volume = scatter
+            
 
     def buildOutput(self):
         output = self.addNode(8, "ShaderNodeOutputMaterial")
         if self.active:
             self.links.new(self.active.outputs[0], output.inputs["Surface"])
         if self.volume:
-            self.links.new(self.volume.outputs["Volume"], output.inputs["Volume"])
+            self.links.new(self.volume.outputs[0], output.inputs["Volume"])
         if self.displacement:
             self.links.new(self.displacement.outputs[0], output.inputs["Displacement"])
 
