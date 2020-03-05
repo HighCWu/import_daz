@@ -177,12 +177,12 @@ class Formula:
             exprs[bname] = {}
         if path not in exprs[bname].keys():
             value = self.getDefaultValue(useBone, pb, default)
-            exprs[bname][path] = {"value" : value, "others" : [], "prop" : None, "bone" : None}
+            exprs[bname][path] = {"value" : value, "others" : [], "prop" : None, "bone" : None, "output" : formula["output"]}
         elif "stage" in formula.keys():
             pass
         elif path == "value":
             expr = exprs[bname][path]
-            other = {"value" : expr["value"], "prop" : expr["prop"], "bone" : expr["bone"]}
+            other = {"value" : expr["value"], "prop" : expr["prop"], "bone" : expr["bone"], "output" : formula["output"]}
             expr["others"].append(other)
             expr["value"] = self.getDefaultValue(useBone, pb, default)
 
@@ -450,22 +450,15 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
             print(asset.formulas)
 
     propmap = {}
-    for prop in props.keys():
-        propmap[prop] = prop
+    nprops = {}
+    for prop,value in props.items():
+        nprop = getExprProp(prop, prefix, rig)
+        nprops[nprop] = value
+        propmap[prop] = propmap[nprop] = nprop
     for prop in exprs.keys():
-        propmap[prop] = prop
-
-    if prefix:
-        from .morphing import propFromName
-        nprops = {}
-        for prop,value in props.items():
-            nprop = propFromName(prop, type, prefix, rig)
-            nprops[nprop] = value
-            propmap[prop] = nprop
-        for prop in exprs.keys():
-            nprop = propFromName(prop, type, prefix, rig)
-            propmap[prop] = nprop
-        props = nprops
+        nprop = getExprProp(prop, prefix, rig)
+        propmap[prop] = propmap[nprop] = nprop
+    props = nprops
 
     # By default, use 0.0 for value and the configured min and max (usually -1.0...1.0) for sliders
     value = 0.0
@@ -483,26 +476,40 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
             setBoolProp(rig, "DzA"+prop, True)
 
     success = False
+    
+    opencoded = []
+    for bname,expr in exprs.items():    
+        bname1 = getTargetName(bname, rig.pose.bones)
+        if bname1 is None:
+            struct = expr["value"]
+            key = propmap[struct["prop"]]
+            val = struct["value"]
+            words = struct["output"].rsplit("?", 1)
+            if not (len(words) == 2 and words[1] == "value"):
+                print("MISS", words)
+                continue
+            path = words[0].split(":")[-1]
+            subasset = asset.parseUrlAsset({"url" : path}, Formula)
+            if subasset is None:
+                continue
+            subexprs = {}
+            subprops = {}
+            subasset.evalFormulas(subexprs, subprops, rig, None, False)
+            opencoded.append((key,val,subexprs,subprops))
+    
+    for key,val,subexprs,subprops in opencoded:
+        combineExpressions(subexprs, exprs, rig, key, val)
+            
     for bname,expr in exprs.items():
         if rig.data.DazExtraFaceBones or rig.data.DazExtraDrivenBones:
             dname = bname + "Drv"
             if dname in rig.pose.bones.keys():
                 bname = dname
 
-        bname1 = getTargetName(bname, rig.pose.bones)
-        if bname1 is None:
-            key = propmap[expr["value"]["prop"]]
-            prop = propmap[bname]
-            dform = getNewFormula(rig, key, prop)
-            dform.value = expr["value"]["value"]
-            if dform.prop in [key+"L", key+"R"]:
-                print("  ->", key[3:], dform.prop[3:], dform.value)
-                addToStringGroup(rig.DazHiddenProps, key)
-            if dform.value < 0:
-                setFloatProp(rig, key, -value, min=-max, max=max)
+        bname = getTargetName(bname, rig.pose.bones)
+        if bname is None:
             continue
-        bname = bname1
-
+        
         pb = rig.pose.bones[bname]
         tfm = Transform()
         nonzero = False
@@ -530,6 +537,47 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
     else:
         return []
 
+
+def getExprProp(prop, prefix, rig):
+    if prop in rig.data.bones.keys():
+        return prop
+    lprop = prop.lower()
+    if lprop[0:5] == "ectrl":
+        prop0 = prop[5:]
+    elif lprop[0:4] == "ctrl":
+        prop0 = prop[4:]
+    else:
+        prop0 = prop
+    for pfx in ["DzU", "DzV", "DzE"]:
+        if pfx+prop0 in rig.keys():
+            return pfx+prop0        
+    return prefix+prop0
+    
+
+def combineExpressions(subexprs, exprs, rig, key, value):
+    from .bone import getTargetName
+    for bname,subexpr in subexprs.items():
+        bname1 = getTargetName(bname, rig.pose.bones)
+        if bname1 is not None:
+            addValue("translation", bname1, key, exprs, subexpr, value)
+            addValue("rotation", bname1, key, exprs, subexpr, value)
+            addValue("scale", bname1, key, exprs, subexpr, value)
+            addValue("general_scale", bname1, key, exprs, subexpr, value)
+
+
+def addValue(slot, bname, prop, exprs, subexpr, value):
+    if slot not in subexpr.keys():
+        return    
+    delta = value * subexpr[slot]["value"]
+    if bname in exprs.keys():
+        expr = exprs[bname]
+    else:
+        expr = exprs[bname] = {}
+    if slot in expr.keys():
+        expr[slot]["value"] += delta
+    else:
+        expr[slot] = {"value" : delta, "prop" : prop}
+        
 
 def getNewFormula(rig, key, prop):
     for item in rig.DazFormulas:

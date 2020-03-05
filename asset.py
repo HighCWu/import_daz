@@ -100,7 +100,7 @@ class Accessor:
                 pass
         else:
             msg = ("Cannot open file:\n '%s'            " % normalizePath(fileref))
-            reportError(msg, warnPaths=True, trigger=(2,3))
+            reportError(msg, warnPaths=True, trigger=(3,4))
             return None
 
         theSettings.missingAssets = True
@@ -109,7 +109,7 @@ class Accessor:
                   "Fileref\n   %s\n" % fileref +
                   "Filepath:\n  '%s'\n" % filepath +
                   "File asset:\n  %s\n" % file )
-            reportError(msg, warnPaths=True, trigger=(2,3))
+            reportError(msg, warnPaths=True, trigger=(3,4))
         return None
 
 
@@ -153,7 +153,8 @@ class Accessor:
                    "File ref:\n  '%s'\n" % self.fileref +
                    "Id: '%s'\n" % struct["id"] +
                    "Keys:\n %s\n" % list(struct.keys()))
-            return reportError(msg, warnPaths=True)
+            reportError(msg, warnPaths=True, trigger=(2,3))
+            return None
         asset = self.getTypedAsset(struct["url"], type)
         if isinstance(asset, Asset):
             asset.caller = self
@@ -170,7 +171,7 @@ class Accessor:
                    "Type: %s\n" % type +
                    "File ref:\n  '%s'\n" % self.fileref +
                    "Found asset:\n %s\n" % asset)
-            return reportError(msg, warnPaths=True)
+            return reportError(msg, warnPaths=True, trigger=(3,4))
         return None
 
 
@@ -486,7 +487,7 @@ def fixBrokenPath(path):
                        "  Folder: '%s'\n" % check +
                        "  File: '%s'\n" % pc +
                        "  Files: %s" % os.listdir(check))
-                reportError(msg, trigger=(2,4))
+                reportError(msg, trigger=(3,4))
         check = cand
 
     return check
@@ -535,6 +536,6 @@ def getDazPath(ref):
         return filepath
 
     theSettings.missingAssets = True
-    msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (path, ref))
-    reportError(msg, trigger=(2,4))
+    msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (filepath, ref))
+    reportError(msg, trigger=(3,4))
     return None
