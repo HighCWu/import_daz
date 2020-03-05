@@ -60,7 +60,8 @@ class PbrTree(CyclesTree):
         self.active = self.pbr
         self.buildBumpNodes(scn)
         self.buildPBRNode(scn)
-        if self.material.thinWalled:
+        if (self.material.thinWalled or
+            self.material.translucent):
             self.buildTranslucency()        
         if self.material.dualLobeWeight > 0:
             self.buildDualLobe()
@@ -132,6 +133,7 @@ class PbrTree(CyclesTree):
         if (theSettings.useSSS and
             self.material.sssActive() and
             not self.material.thinWalled and
+            not self.material.translucent and
             not self.material.refractive):
 
             wt,tex = self.getColorTex("getChannelSSSAmount", "NONE", 0)

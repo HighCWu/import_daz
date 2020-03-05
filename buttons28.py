@@ -221,7 +221,7 @@ class DazOptions:
                  ],
         name = "Opaque Materials",
         description = "Default method used for opaque materials.\nIgnored by some materials.",
-        default = 'EEVEE')
+        default = 'BSDF')
 
     handleRefractive : EnumProperty(
         items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
@@ -231,7 +231,7 @@ class DazOptions:
                  ],
         name = "Refractive Materials",
         description = "Default method used for refractive materials.\nIgnored by some materials.",
-        default = 'EEVEE')
+        default = 'GUESS')
 
     useEnvironment : BoolProperty(
         name = "Environment",

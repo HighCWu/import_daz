@@ -315,6 +315,7 @@ class CyclesTree(FromCycles):
         self.makeTree()
         if self.buildEeveeGlass():
             return
+        self.buildVolume()
         self.buildLayer(context)
         for shell,uvs in self.material.shells:
             node = self.addShellGroup(context, shell)
@@ -323,7 +324,6 @@ class CyclesTree(FromCycles):
             self.active = node
         self.buildCutout()
         self.buildDisplacementNodes()
-        self.buildVolume()
         self.buildOutput()
         self.prune()
 
@@ -332,7 +332,9 @@ class CyclesTree(FromCycles):
         scn = context.scene
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
-        if self.material.thinWalled:
+        if (self.material.thinWalled or
+            self.volume or
+            self.material.translucent):
             self.buildTranslucency()
         else:
             self.buildSubsurface()
@@ -959,7 +961,7 @@ class CyclesTree(FromCycles):
         elif absorb:
             self.volume = absorb
         elif scatter:
-            self.volume = scatter
+            self.volume = scatter  
             
 
     def buildOutput(self):
