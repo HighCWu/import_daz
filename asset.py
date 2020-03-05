@@ -179,6 +179,8 @@ class Accessor:
         global theAssets, theOtherAssets
         ref = ref2 = normalizeRef(asset.id)
         if self.caller:
+            if "id" not in struct.keys():
+                print(struct.keys())
             ref = getId(struct["id"], self.caller.fileref)
 
         try:

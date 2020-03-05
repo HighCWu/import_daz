@@ -486,10 +486,10 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
             val = struct["value"]
             words = struct["output"].rsplit("?", 1)
             if not (len(words) == 2 and words[1] == "value"):
-                print("MISS", words)
                 continue
             path = words[0].split(":")[-1]
-            subasset = asset.parseUrlAsset({"url" : path}, Formula)
+            url = {"url" : path, "id" : struct["output"]}
+            subasset = asset.parseUrlAsset(url, Formula)
             if subasset is None:
                 continue
             subexprs = {}
