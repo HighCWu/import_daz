@@ -60,6 +60,7 @@ class PbrTree(CyclesTree):
         self.active = self.pbr
         self.buildBumpNodes(scn)
         self.buildPBRNode(scn)
+        self.buildOverlay()
         if (self.material.thinWalled or
             self.material.translucent):
             self.buildTranslucency()        
@@ -76,7 +77,6 @@ class PbrTree(CyclesTree):
                 self.buildRefraction()
         else:
             self.buildEmission()
-            self.buildOverlay()
         return self.active        
     
     

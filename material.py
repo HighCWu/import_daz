@@ -132,7 +132,8 @@ class Material(Asset):
         self.shareGlossy = self.getValue(["Share Glossy Inputs"], False)
         self.metallic = (self.getValue(["Metallic Weight"], 0) > 0.5)
         self.dualLobeWeight = self.getValue(["Dual Lobe Specular Weight"], 0)
-        self.translucent = (self.getValue("getChannelTranslucencyWeight", 0) > 0.01)
+        self.translucent = (self.getValue("getChannelTranslucencyWeight", 0) > 0.01 and
+                            theSettings.handleOpaque != 'EEVEE')
 
 
     def set(self, struct):

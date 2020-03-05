@@ -332,6 +332,7 @@ class CyclesTree(FromCycles):
         scn = context.scene
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
+        self.buildOverlay()
         if (self.material.thinWalled or
             self.volume or
             self.material.translucent):
@@ -348,7 +349,6 @@ class CyclesTree(FromCycles):
         self.buildRefraction()
         self.linkGlossy()
         self.buildEmission()
-        self.buildOverlay()
         return self.active
 
 
@@ -509,7 +509,7 @@ class CyclesTree(FromCycles):
     def buildOverlay(self):
         weight = self.getValue(["Diffuse Overlay Weight"], 0)
         if weight:
-            node = self.addNode(7, "ShaderNodeBsdfDiffuse")
+            node = self.addNode(5, "ShaderNodeBsdfDiffuse")
             square = self.getValue(["Diffuse Overlay Weight Squared"], False)
             if square:
                 weight = weight * weight
@@ -521,7 +521,7 @@ class CyclesTree(FromCycles):
             self.setRoughness(node, "Roughness", roughness, roughtex)
             if self.normal:
                 self.links.new(self.normal.outputs["Normal"], node.inputs["Normal"])
-            self.mixWithActive(weight, tex, node, col=7)
+            self.mixWithActive(weight, tex, node, col=6)
 
 
     def getColorTex(self, attr, colorSpace, default, useFactor=True, useTex=True, maxval=0):
