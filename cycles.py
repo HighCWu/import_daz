@@ -242,6 +242,10 @@ class CyclesTree(FromCycles):
         return self.material.getValue(channel, default)
 
 
+    def getColor(self, channel, default):
+        return self.material.getColor(channel, default)
+
+
     def addNode(self, n, stype, label=None, parent=None):
         node = self.nodes.new(type = stype)
         node.location = (n*250-500, self.ycoords[n])
@@ -488,7 +492,7 @@ class CyclesTree(FromCycles):
         color,tex = self.getColorTex("getChannelDiffuse", "COLOR", WHITE)
         effect = self.getValue(["Base Color Effect"], 0)
         if effect > 0:  # Scatter Transmit, Scatter Transmit Intensity
-            tint = self.getValue(["SSS Reflectance Tint"], WHITE)
+            tint = self.getColor(["SSS Reflectance Tint"], WHITE)
             color = compProd(color, tint)
         return color,tex
 
@@ -922,7 +926,7 @@ class CyclesTree(FromCycles):
             return
 
         absorb = None
-        color = self.getValue(["Transmitted Color"], BLACK)
+        color = self.getColor(["Transmitted Color"], BLACK)
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
         if not (isBlack(color) or isWhite(color) or dist == 0.0):
             color,tex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
@@ -932,7 +936,7 @@ class CyclesTree(FromCycles):
             absorb.inputs["Density"].default_value = density
 
         scatter = None
-        color = self.getValue(["SSS Color", "Subsurface Color"], BLACK)
+        color = self.getColor(["SSS Color", "Subsurface Color"], BLACK)
         sss = self.getValue(["SSS Amount"], 0.0)
         dist = self.getValue(["Scattering Measurement Distance"], 0.0)
         if not (isBlack(color) or isWhite(color) or dist == 0.0):

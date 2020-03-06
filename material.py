@@ -426,6 +426,10 @@ class Material(Asset):
         return self.getChannelValue(self.getChannel(attr), default)
 
 
+    def getColor(self, attr, default):
+        return self.getChannelColor(self.getChannel(attr), default)
+
+
     def getChannel(self, attr):
         if isinstance(attr, str):
             return getattr(self, attr)()
