@@ -478,27 +478,8 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
     success = False
     
     opencoded = []
-    for bname,expr in exprs.items():    
-        bname1 = getTargetName(bname, rig.pose.bones)
-        if bname1 is None:
-            struct = expr["value"]
-            key = propmap[struct["prop"]]
-            val = struct["value"]
-            words = struct["output"].rsplit("?", 1)
-            if not (len(words) == 2 and words[1] == "value"):
-                continue
-            path = words[0].split(":")[-1]
-            url = {"url" : path, "id" : struct["output"]}
-            subasset = asset.parseUrlAsset(url, Formula)
-            if subasset is None:
-                continue
-            subexprs = {}
-            subprops = {}
-            subasset.evalFormulas(subexprs, subprops, rig, None, False)
-            opencoded.append((key,val,subexprs,subprops))
-    
-    for key,val,subexprs,subprops in opencoded:
-        combineExpressions(subexprs, exprs, rig, key, val)
+    opencode(exprs, propmap, rig, asset, opencoded, 0)
+    combineExpressions(opencoded, props, exprs, rig, 1.0)
             
     for bname,expr in exprs.items():
         if rig.data.DazExtraFaceBones or rig.data.DazExtraDrivenBones:
@@ -514,16 +495,16 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
         tfm = Transform()
         nonzero = False
         if "translation" in expr.keys():
-            tfm.setTrans(expr["translation"]["value"], propmap[expr["translation"]["prop"]])
+            tfm.setTrans(expr["translation"]["value"], getProp(expr["translation"]["prop"], propmap, rig))
             nonzero = True
         if "rotation" in expr.keys():
-            tfm.setRot(expr["rotation"]["value"], propmap[expr["rotation"]["prop"]])
+            tfm.setRot(expr["rotation"]["value"], getProp(expr["rotation"]["prop"], propmap, rig))
             nonzero = True
         if "scale" in expr.keys():
-            tfm.setScale(expr["scale"]["value"], propmap[expr["scale"]["prop"]])
+            tfm.setScale(expr["scale"]["value"], getProp(expr["scale"]["prop"], propmap, rig))
             nonzero = True
         if "general_scale" in expr.keys():
-            tfm.setGeneral(expr["general_scale"]["value"], propmap[expr["general_scale"]["prop"]])
+            tfm.setGeneral(expr["general_scale"]["value"], getProp(expr["general_scale"]["prop"], propmap, rig))
             nonzero = True
         if nonzero:
             # Fix: don't assume that the rest pose is at slider value 0.0.
@@ -537,6 +518,39 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
     else:
         return []
 
+
+def getProp(prop, propmap, rig):
+    if prop in propmap.keys():
+        return propmap[prop]
+    else:
+        return prop
+            
+    
+def opencode(exprs, propmap, rig, asset, opencoded, level): 
+    from .bone import getTargetName
+    if level > 5:
+        raise DazError("Recursion too deep")
+    for bname,expr in exprs.items():    
+        bname1 = getTargetName(bname, rig.pose.bones)
+        if bname1 is None:
+            struct = expr["value"]
+            key = getProp(struct["prop"], propmap, rig)
+            val = struct["value"]
+            words = struct["output"].rsplit("?", 1)
+            if not (len(words) == 2 and words[1] == "value"):
+                continue
+            path = words[0].split(":")[-1]
+            url = {"url" : path, "id" : struct["output"]}
+            subasset = asset.parseUrlAsset(url, Formula)
+            if subasset is None:
+                continue
+            subexprs = {}
+            subprops = {}
+            subasset.evalFormulas(subexprs, subprops, rig, None, False)
+            subopen = []
+            opencode(subexprs, propmap, rig, asset, subopen, level+1)
+            opencoded.append((key,val,subexprs,subprops,subopen))
+    
 
 def getExprProp(prop, prefix, rig):
     if prop in rig.data.bones.keys():
@@ -554,15 +568,20 @@ def getExprProp(prop, prefix, rig):
     return prefix+prop0
     
 
-def combineExpressions(subexprs, exprs, rig, key, value):
+def combineExpressions(opencoded, props, exprs, rig, value):
     from .bone import getTargetName
-    for bname,subexpr in subexprs.items():
-        bname1 = getTargetName(bname, rig.pose.bones)
-        if bname1 is not None:
-            addValue("translation", bname1, key, exprs, subexpr, value)
-            addValue("rotation", bname1, key, exprs, subexpr, value)
-            addValue("scale", bname1, key, exprs, subexpr, value)
-            addValue("general_scale", bname1, key, exprs, subexpr, value)
+    for _,val,subexprs,subprops,subopen in opencoded:
+        if subopen:
+            combineExpressions(subopen, props, exprs, rig, val*value)
+        else:
+            prop = list(props.keys())[0]
+            for bname,subexpr in subexprs.items():
+                bname1 = getTargetName(bname, rig.pose.bones)
+                if bname1 is not None:
+                    addValue("translation", bname1, prop, exprs, subexpr, value)
+                    addValue("rotation", bname1, prop, exprs, subexpr, value)
+                    addValue("scale", bname1, prop, exprs, subexpr, value)
+                    addValue("general_scale", bname1, prop, exprs, subexpr, value)
 
 
 def addValue(slot, bname, prop, exprs, subexpr, value):
