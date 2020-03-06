@@ -540,6 +540,9 @@ def opencode(exprs, propmap, rig, asset, opencoded, level):
             if not (len(words) == 2 and words[1] == "value"):
                 continue
             path = words[0].split(":")[-1]
+            if path[0] == "#" and path[1:] == bname:
+                print("Recursive definition:", bname)
+                continue
             url = {"url" : path, "id" : struct["output"]}
             subasset = asset.parseUrlAsset(url, Formula)
             if subasset is None:
@@ -571,17 +574,18 @@ def getExprProp(prop, prefix, rig):
 def combineExpressions(opencoded, props, exprs, rig, value):
     from .bone import getTargetName
     for _,val,subexprs,subprops,subopen in opencoded:
+        value1 = val*value
         if subopen:
-            combineExpressions(subopen, props, exprs, rig, val*value)
+            combineExpressions(subopen, props, exprs, rig, value1)
         else:
             prop = list(props.keys())[0]
             for bname,subexpr in subexprs.items():
                 bname1 = getTargetName(bname, rig.pose.bones)
                 if bname1 is not None:
-                    addValue("translation", bname1, prop, exprs, subexpr, value)
-                    addValue("rotation", bname1, prop, exprs, subexpr, value)
-                    addValue("scale", bname1, prop, exprs, subexpr, value)
-                    addValue("general_scale", bname1, prop, exprs, subexpr, value)
+                    addValue("translation", bname1, prop, exprs, subexpr, value1)
+                    addValue("rotation", bname1, prop, exprs, subexpr, value1)
+                    addValue("scale", bname1, prop, exprs, subexpr, value1)
+                    addValue("general_scale", bname1, prop, exprs, subexpr, value1)
 
 
 def addValue(slot, bname, prop, exprs, subexpr, value):
