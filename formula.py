@@ -77,7 +77,7 @@ class Formula:
         if rig.pose is None:
             return
         errors = {}
-        props = buildPropFormula(self, scn, rig, "Imported", "", errors)
+        props = buildPropFormula(self, scn, rig, "", errors)
         addToCategories(rig, props, "Imported")
         for prop in props:
             setFloatProp(rig, prop, self.value)
@@ -434,7 +434,7 @@ def convertDualMatrix(umat, pbDriver, pbDriven):
 #   For prop drivers
 #-------------------------------------------------------------
 
-def buildPropFormula(asset, scn, rig, type, prefix, errors):
+def buildPropFormula(asset, scn, rig, prefix, errors):
     from .bone import getTargetName
     from .driver import setFloatProp, setBoolProp
     from .transform import Transform
@@ -470,6 +470,9 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
         min = asset.min
         max = asset.max
 
+    selfname = asset.id.rsplit("#")[-1]
+    selfref = "#" + selfname
+    print("SPROP", selfref, props)
     for prop in props.keys():
         if prop not in rig.keys():
             setFloatProp(rig, prop, value, min=min, max=max)
@@ -477,9 +480,14 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
 
     success = False
     
-    opencoded = []
-    opencode(exprs, propmap, rig, asset, opencoded, 0)
-    combineExpressions(opencoded, props, exprs, rig, 1.0)
+    opencoded = dict([(prop, []) for prop in props.keys()])
+    others = dict([(prop, []) for prop in props.keys()])
+    opencode(exprs, propmap, rig, asset, selfref, opencoded, others, 0)
+    for prop in props.keys():
+        print("COMB", prop, opencoded[prop])
+        combineExpressions(opencoded[prop], prop, exprs, rig, 1.0)
+    for prop,expr in others.items():
+        print("OTH", prop, expr)
             
     for bname,expr in exprs.items():
         if rig.data.DazExtraFaceBones or rig.data.DazExtraDrivenBones:
@@ -495,22 +503,22 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
         tfm = Transform()
         nonzero = False
         if "translation" in expr.keys():
-            tfm.setTrans(expr["translation"]["value"], getProp(expr["translation"]["prop"], propmap, rig))
+            tfm.setTrans(expr["translation"]["value"], getProp(expr["translation"]["prop"], propmap))
             nonzero = True
         if "rotation" in expr.keys():
-            tfm.setRot(expr["rotation"]["value"], getProp(expr["rotation"]["prop"], propmap, rig))
+            tfm.setRot(expr["rotation"]["value"], getProp(expr["rotation"]["prop"], propmap))
             nonzero = True
         if "scale" in expr.keys():
-            tfm.setScale(expr["scale"]["value"], getProp(expr["scale"]["prop"], propmap, rig))
+            tfm.setScale(expr["scale"]["value"], getProp(expr["scale"]["prop"], propmap))
             nonzero = True
         if "general_scale" in expr.keys():
-            tfm.setGeneral(expr["general_scale"]["value"], getProp(expr["general_scale"]["prop"], propmap, rig))
+            tfm.setGeneral(expr["general_scale"]["value"], getProp(expr["general_scale"]["prop"], propmap))
             nonzero = True
         if nonzero:
             # Fix: don't assume that the rest pose is at slider value 0.0.
             # For example: for 'default pose' (-1.0...1.0, default 1.0), use 1.0 for the rest pose, not 0.0.
             default = value if theSettings.useDazPropDefault else 0.0
-            if addPoseboneDriver(scn, rig, pb, tfm, type, errors, default=default):
+            if addPoseboneDriver(scn, rig, pb, tfm, errors, default=default):
                 success = True
 
     if success:
@@ -519,27 +527,34 @@ def buildPropFormula(asset, scn, rig, type, prefix, errors):
         return []
 
 
-def getProp(prop, propmap, rig):
+def getProp(prop, propmap):
     if prop in propmap.keys():
         return propmap[prop]
     else:
         return prop
             
     
-def opencode(exprs, propmap, rig, asset, opencoded, level): 
+def opencode(exprs, propmap, rig, asset, selfref, opencoded, others, level): 
     from .bone import getTargetName
     if level > 5:
         raise DazError("Recursion too deep")
     for bname,expr in exprs.items():    
         bname1 = getTargetName(bname, rig.pose.bones)
         if bname1 is None:
+            prop = getProp(bname, propmap)
             struct = expr["value"]
-            key = getProp(struct["prop"], propmap, rig)
+            key = getProp(struct["prop"], propmap)
+            print("LVLV", level, bname, prop, key)
             val = struct["value"]
             words = struct["output"].rsplit("?", 1)
             if not (len(words) == 2 and words[1] == "value"):
                 continue
             path = words[0].split(":")[-1]
+            if path == selfref:
+                print("Selfref", path, prop)
+                print("EE", expr)
+                others[key].append(expr)
+                continue
             if path[0] == "#" and path[1:] == bname:
                 print("Recursive definition:", bname)
                 continue
@@ -551,8 +566,8 @@ def opencode(exprs, propmap, rig, asset, opencoded, level):
             subprops = {}
             subasset.evalFormulas(subexprs, subprops, rig, None, False)
             subopen = []
-            opencode(subexprs, propmap, rig, asset, subopen, level+1)
-            opencoded.append((key,val,subexprs,subprops,subopen))
+            opencode(subexprs, propmap, rig, asset, selfref, subopen, others, level+1)
+            opencoded[key].append((key,val,subexprs,subprops,subopen))
     
 
 def getExprProp(prop, prefix, rig):
@@ -571,14 +586,13 @@ def getExprProp(prop, prefix, rig):
     return prefix+prop0
     
 
-def combineExpressions(opencoded, props, exprs, rig, value):
+def combineExpressions(opencoded, prop, exprs, rig, value):
     from .bone import getTargetName
     for _,val,subexprs,subprops,subopen in opencoded:
         value1 = val*value
         if subopen:
-            combineExpressions(subopen, props, exprs, rig, value1)
+            combineExpressions(subopen, prop, exprs, rig, value1)
         else:
-            prop = list(props.keys())[0]
             for bname,subexpr in subexprs.items():
                 bname1 = getTargetName(bname, rig.pose.bones)
                 if bname1 is not None:
@@ -635,14 +649,14 @@ def addToStringGroup(items, string):
     item.s = string
 
 
-def addPoseboneDriver(scn, rig, pb, tfm, type, errors, default=0.0):
+def addPoseboneDriver(scn, rig, pb, tfm, errors, default=0.0):
     from .node import getBoneMatrix
     mat = getBoneMatrix(tfm, pb)
     loc,quat,scale = mat.decompose()
     scale -= Vector((1,1,1))
     success = False
     if (tfm.transProp and loc.length > 0.01*rig.DazScale):
-        setFcurves(scn, rig, pb, "", loc, tfm.transProp, "location", type, errors, default)
+        setFcurves(scn, rig, pb, "", loc, tfm.transProp, "location", errors, default)
         success = True
     if tfm.rotProp:
         if Vector(quat.to_euler()).length < 1e-4:
@@ -650,22 +664,22 @@ def addPoseboneDriver(scn, rig, pb, tfm, type, errors, default=0.0):
         elif pb.rotation_mode == 'QUATERNION':
             value = Vector(quat)
             value[0] = 1.0 - value[0]
-            setFcurves(scn, rig, pb, "1.0-", value, tfm.rotProp, "rotation_quaternion", type, errors, default)
+            setFcurves(scn, rig, pb, "1.0-", value, tfm.rotProp, "rotation_quaternion", errors, default)
             success = True
         else:
             value = mat.to_euler(pb.rotation_mode)
-            setFcurves(scn, rig, pb, "", value, tfm.rotProp, "rotation_euler", type, errors, default)
+            setFcurves(scn, rig, pb, "", value, tfm.rotProp, "rotation_euler", errors, default)
             success = True
     if (tfm.scaleProp and scale.length > 1e-4):
-        setFcurves(scn, rig, pb, "", scale, tfm.scaleProp, "scale", type, errors, default)
+        setFcurves(scn, rig, pb, "", scale, tfm.scaleProp, "scale", errors, default)
         success = True
     elif tfm.generalProp:
-        setFcurves(scn, rig, pb, "", scale, tfm.generalProp, "scale", type, errors, default)
+        setFcurves(scn, rig, pb, "", scale, tfm.generalProp, "scale", errors, default)
         success = True
     return success
 
 
-def setFcurves(scn, rig, pb, init, value, prop, channel, type, errors, default=0.0):
+def setFcurves(scn, rig, pb, init, value, prop, channel, errors, default=0.0):
     from .daz import addCustomDriver
     path = '["%s"]' % prop
     key = channel[0:3].capitalize()

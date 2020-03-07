@@ -170,18 +170,6 @@ class FileAsset(Asset):
         return self
 
 
-    def parseMorph(self, struct):
-        from .modifier import Morph, FormulaAsset
-
-        if "modifier_library" in struct.keys():
-            for mstruct in struct["modifier_library"]:
-                if "morph" in mstruct.keys():
-                    return self.parseTypedAsset(mstruct, Morph)
-                elif "formulas" in mstruct.keys():
-                    return self.parseTypedAsset(mstruct, FormulaAsset)
-        return None
-
-
     def getModifierType(self, name):
          if (name[0:3] in ["PHM", "CTR", "MCM"]):
             return name[0:3]
@@ -287,6 +275,7 @@ def parseAssetFile(struct, toplevel=False, fileref=None):
     if asset is None:
         return None
     elif theSettings.useMorph:
-        return asset.parseMorph(struct)
+        from .modifier import parseMorph
+        return parseMorph(asset, struct)
     else:
         return asset.parse(struct)

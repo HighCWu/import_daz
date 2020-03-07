@@ -223,7 +223,7 @@ class LoadMorph:
 
 
     def getSingleMorph(self, filepath, scn, occur=0):
-        from .modifier import Morph, FormulaAsset
+        from .modifier import Morph, FormulaAsset, Channel
         from .readfile import readDufFile
         from .files import parseAssetFile
         from .driver import makeShapekeyDriver
@@ -266,20 +266,20 @@ class LoadMorph:
                 makeShapekeyDriver(ob, prop, skey.value, self.rig, prop, min=min, max=max)
                 props = [prop]
 
-        if (self.useDrivers and
-            isinstance(asset, FormulaAsset) and
-            asset.formulas and
-            self.rig):
-            from .formula import buildShapeFormula, buildPropFormula
-            if self.useShapekeys:
-                success = buildShapeFormula(asset, scn, self.rig, self.mesh, occur=occur)
-                if self.useShapekeysOnly and not success and skey:
-                    print("Could not build shape formula", skey.name)
-                if not success:
-                    miss = True
-            if not self.useShapekeysOnly:
-                props = buildPropFormula(asset, scn, self.rig, self.type, self.prefix, self.errors)
-                props = list(props)
+        if self.useDrivers and self.rig:
+            if isinstance(asset, FormulaAsset) and asset.formulas:
+                from .formula import buildShapeFormula, buildPropFormula
+                if self.useShapekeys:
+                    success = buildShapeFormula(asset, scn, self.rig, self.mesh, occur=occur)
+                    if self.useShapekeysOnly and not success and skey:
+                        print("Could not build shape formula", skey.name)
+                    if not success:
+                        miss = True
+                if not self.useShapekeysOnly:
+                    props = buildPropFormula(asset, scn, self.rig, self.prefix, self.errors)
+                    props = list(props)
+            elif isinstance(asset, Channel):
+                print("USE", asset)            
 
         if props:
             return props,False

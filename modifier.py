@@ -53,17 +53,34 @@ def parseModifierAsset(asset, struct):
     elif "extra" in struct.keys():
         return asset.parseTypedAsset(struct, ExtraAsset)
     elif "channel" in struct.keys():
-        channel = struct["channel"]
-        if channel["type"] == "alias":
-            return asset.parseTypedAsset(struct, Alias)
-        else:
-            return asset.parseTypedAsset(struct, Channel)
+        return parseChannelAsset(asset, struct)
     else:
         #print("WARNING: Modifier asset %s not implemented" % asset.fileref)
         #asset = Modifier(asset.fileref)
         raise NotImplementedError("Modifier asset not implemented in file %s:\n  %s" %
             (asset.fileref, list(struct.keys())))
+        
+        
+def parseChannelAsset(asset, struct):        
+    channel = struct["channel"]
+    print("PCA", channel)
+    if channel["type"] == "alias":
+        return asset.parseTypedAsset(struct, Alias)
+    else:
+        return asset.parseTypedAsset(struct, Channel)
 
+
+def parseMorph(asset, struct):
+    if "modifier_library" in struct.keys():
+        for mstruct in struct["modifier_library"]:
+            if "morph" in mstruct.keys():
+                return asset.parseTypedAsset(mstruct, Morph)
+            elif "formulas" in mstruct.keys():
+                return asset.parseTypedAsset(mstruct, FormulaAsset)
+            elif "channel" in mstruct.keys():
+                channel = parseChannelAsset(asset, mstruct)
+                print("KKK", channel)
+                return channel
 
 #-------------------------------------------------------------
 #   Modifier Assets
@@ -169,10 +186,37 @@ class Channel(Modifier):
     def __init__(self, fileref):
         Modifier.__init__(self, fileref)
         self.type = "channel"
+        self.value = 0
+        self.min = None
+        self.max = None
 
     def __repr__(self):
         return ("<Channel %s %s>" % (self.id, self.type))
 
+    def parse(self, struct):
+        Modifier.parse(self, struct)
+        if not theSettings.useMorph:
+            return
+        if "channel" in struct.keys():
+            channel = struct["channel"]
+            if "value" in channel.keys():
+                self.value = channel["value"]
+            if "min" in channel.keys():
+                self.min = channel["min"]
+            if "max" in channel.keys():
+                self.max = channel["max"]
+
+    def update(self, struct):
+        Modifier.update(self, struct)
+        if ("channel" in struct.keys() and
+            "current_value" in struct["channel"].keys()):
+            self.value = struct["channel"]["current_value"]
+
+    def build(self, context, inst):
+        if not theSettings.useMorph:
+            return
+        print("BUCH", self.id)
+            
 
 class Alias(Channel):
 
@@ -390,33 +434,20 @@ class LegacySkinBinding(SkinBinding):
 #   Formula
 #-------------------------------------------------------------
 
-class FormulaAsset(Formula, Modifier):
+class FormulaAsset(Formula, Channel):
 
     def __init__(self, fileref):
-        Modifier.__init__(self, fileref)
+        Channel.__init__(self, fileref)
         Formula.__init__(self)
-        self.value = 0
-        self.min = None
-        self.max = None
         self.group = ""
-
 
     def __repr__(self):
         return ("<Formula %s %f>" % (self.id, self.value))
 
-
     def parse(self, struct):
-        Modifier.parse(self, struct)
+        Channel.parse(self, struct)
         if not theSettings.useMorph:
             return
-        if "channel" in struct.keys():
-            channel = struct["channel"]
-            if "value" in channel.keys():
-                self.value = channel["value"]
-            if "min" in channel.keys():
-                self.min = channel["min"]
-            if "max" in channel.keys():
-                self.max = channel["max"]
         if "group" in struct.keys():
             words = struct["group"].split("/")
             if (len(words) > 2 and
@@ -424,14 +455,6 @@ class FormulaAsset(Formula, Modifier):
                 words[1] == "Pose Controls"):
                 self.group = words[2]
         Formula.parse(self, struct)
-
-
-    def update(self, struct):
-        Modifier.update(self, struct)
-        if ("channel" in struct.keys() and
-            "current_value" in struct["channel"].keys()):
-            self.value = struct["channel"]["current_value"]
-
 
     def build(self, context, inst):
         if not theSettings.useMorph:
@@ -443,7 +466,6 @@ class FormulaAsset(Formula, Modifier):
         else:
             if theSettings.makeDrivers in ['PROPS', 'ALL']:
                 Formula.build(self, context, inst)
-
 
     def postbuild(self, context, inst):
         if not theSettings.useMorph:
