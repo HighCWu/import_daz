@@ -189,6 +189,7 @@ class ChannelAsset(Modifier):
         self.min = None
         self.max = None
         self.propmap = {}
+        self.base = None
 
     def __repr__(self):
         return ("<Channel %s %s>" % (self.id, self.type))
@@ -220,7 +221,7 @@ class ChannelAsset(Modifier):
             path,id = self.id.rsplit("#", 2)
             file,ext = os.path.splitext(path)
             ref = ("%s%s%s#%s%s" % (file, suffix, ext, id, suffix))
-            subasset = self.getTypedAsset(ref, ChannelAsset) 
+            subasset = self.getTypedAsset(ref, ChannelAsset)
             if subasset:
                 assets.append(subasset)
         return assets
@@ -231,9 +232,10 @@ class ChannelAsset(Modifier):
         self.rig = rig
         self.prop = self.id.rsplit("#",2)[-1]
         props.append(self.prop)
-        for prop in props:
-            nprop = self.getExprProp(prop)
-            self.propmap[prop] = nprop
+        for prop in props:        
+            self.propmap[prop] = self.getExprProp(prop)
+        if self.base:
+            self.propmap[self.prop] = self.base.propmap[self.base.prop]
 
 
     def getProp(self, prop):

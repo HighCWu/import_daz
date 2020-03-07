@@ -76,8 +76,8 @@ class Formula:
         rig = inst.rna
         if rig.pose is None:
             return
-        errors = {}
-        props = buildPropFormula(self, scn, rig, "", errors)
+        formulas = PropFormulas(rig)
+        props = formulas.buildPropFormula(self, scn)
         addToCategories(rig, props, "Imported")
         for prop in props:
             setFloatProp(rig, prop, self.value)
@@ -434,142 +434,144 @@ def convertDualMatrix(umat, pbDriver, pbDriven):
 #   For prop drivers
 #-------------------------------------------------------------
 
-def buildPropFormula(asset, scn, rig, prefix, errors):
-    from .bone import getTargetName
-    from .transform import Transform
+class PropFormulas:
+    def __init__(self, rig):
+        self.rig = rig
+        self.others = {}
+        self.errors = {}
+        if not hasattr(self, "prefix"):
+            self.prefix = ""
 
-    exprs = {}
-    props = {}
-    asset.evalFormulas(exprs, props, rig, None, False)
+    
+    def buildPropFormula(self, asset, scn):
+        from .bone import getTargetName
+        from .transform import Transform
 
-    if not props:
-        if theSettings.verbosity > 3:
-            print("Cannot evaluate formula")
-        if theSettings.verbosity > 4:
-            print(asset.formulas)
+        exprs = {}
+        props = {}
+        asset.evalFormulas(exprs, props, self.rig, None, False)
 
-    asset.setupPropmap(list(props.keys()) + list(exprs.keys()), prefix, rig)
-    default = asset.clearProp(None)    
-    for prop in props.keys():
-        nprop = asset.getProp(prop)
-        if nprop not in rig.keys():
-            asset.clearProp(nprop)
+        if not props:
+            if theSettings.verbosity > 3:
+                print("Cannot evaluate formula")
+            if theSettings.verbosity > 4:
+                print(asset.formulas)
+
+        asset.setupPropmap(list(props.keys()) + list(exprs.keys()), self.prefix, self.rig)
+        default = asset.clearProp(None)    
+        for prop in props.keys():
+            nprop = asset.getProp(prop)
+            if nprop not in self.rig.keys():
+                asset.clearProp(nprop)
         
-    nprops = {}
-    for prop,value in props.items():
-        nprop = asset.getProp(prop)
-        nprops[nprop] = value
-    props = nprops
+        nprops = {}
+        for prop,value in props.items():
+            nprop = asset.getProp(prop)
+            nprops[nprop] = value
+        props = nprops
 
-    success = False
+        success = False
     
-    opencoded = {}
-    others = {}
-    opencode(exprs, rig, asset, opencoded, others, 0)
-    for prop,openlist in opencoded.items():
-        combineExpressions(openlist, prop, exprs, rig, 1.0)
-    for prop,expr in others.items():
-        continue
-        if expr:
-            print("OTH", prop, expr)
+        opencoded = {}
+        self.opencode(exprs, asset, opencoded, 0)
+        for prop,openlist in opencoded.items():
+            self.combineExpressions(openlist, prop, exprs, 1.0)
             
-    for bname,expr in exprs.items():
-        if rig.data.DazExtraFaceBones or rig.data.DazExtraDrivenBones:
-            dname = bname + "Drv"
-            if dname in rig.pose.bones.keys():
-                bname = dname
+        for bname,expr in exprs.items():
+            if self.rig.data.DazExtraFaceBones or self.rig.data.DazExtraDrivenBones:
+                dname = bname + "Drv"
+                if dname in self.rig.pose.bones.keys():
+                    bname = dname
 
-        bname = getTargetName(bname, rig.pose.bones)
-        if bname is None:
-            continue
+            bname = getTargetName(bname, self.rig.pose.bones)
+            if bname is None:
+                continue
         
-        pb = rig.pose.bones[bname]
-        tfm = Transform()
-        nonzero = False
-        if "translation" in expr.keys():
-            tfm.setTrans(expr["translation"]["value"], asset.getProp(expr["translation"]["prop"]))
-            nonzero = True
-        if "rotation" in expr.keys():
-            tfm.setRot(expr["rotation"]["value"], asset.getProp(expr["rotation"]["prop"]))
-            nonzero = True
-        if "scale" in expr.keys():
-            tfm.setScale(expr["scale"]["value"], asset.getProp(expr["scale"]["prop"]))
-            nonzero = True
-        if "general_scale" in expr.keys():
-            tfm.setGeneral(expr["general_scale"]["value"], asset.getProp(expr["general_scale"]["prop"]))
-            nonzero = True
-        if nonzero:
-            # Fix: don't assume that the rest pose is at slider value 0.0.
-            # For example: for 'default pose' (-1.0...1.0, default 1.0), use 1.0 for the rest pose, not 0.0.
-            if addPoseboneDriver(scn, rig, pb, tfm, errors, default):
-                success = True
+            pb = self.rig.pose.bones[bname]
+            tfm = Transform()
+            nonzero = False
+            if "translation" in expr.keys():
+                tfm.setTrans(expr["translation"]["value"], asset.getProp(expr["translation"]["prop"]))
+                nonzero = True
+            if "rotation" in expr.keys():
+                tfm.setRot(expr["rotation"]["value"], asset.getProp(expr["rotation"]["prop"]))
+                nonzero = True
+            if "scale" in expr.keys():
+                tfm.setScale(expr["scale"]["value"], asset.getProp(expr["scale"]["prop"]))
+                nonzero = True
+            if "general_scale" in expr.keys():
+                tfm.setGeneral(expr["general_scale"]["value"], asset.getProp(expr["general_scale"]["prop"]))
+                nonzero = True
+            if nonzero:
+                # Fix: don't assume that the rest pose is at slider value 0.0.
+                # For example: for 'default pose' (-1.0...1.0, default 1.0), use 1.0 for the rest pose, not 0.0.
+                if addPoseboneDriver(scn, self.rig, pb, tfm, self.errors, default):
+                    success = True
 
-    if success:
-        return props
-    else:
-        return []
-            
-    
-def opencode(exprs, rig, asset, opencoded, others, level): 
-    from .bone import getTargetName
-    from .modifier import ChannelAsset
-    if level > 5:
-        raise DazError("Recursion too deep")
-    for bname,expr in exprs.items():    
-        bname1 = getTargetName(bname, rig.pose.bones)
-        if bname1 is None:
-            prop = asset.getProp(bname)
-            struct = expr["value"]
-            key = asset.getProp(struct["prop"])
-            val = struct["value"]
-            words = struct["output"].rsplit("?", 1)
-            if not (len(words) == 2 and words[1] == "value"):
-                continue
-            path = words[0].split(":")[-1]
-            if path == asset.selfref():
-                if key not in others.keys():
-                    others[key] = []
-                others[key].append(expr)
-                continue
-            if path[0] == "#" and path[1:] == bname:
-                print("Recursive definition:", bname)
-                continue
-            url = {"url" : path, "id" : struct["output"]}
-            subasset = asset.parseUrlAsset(url, ChannelAsset)
-            if subasset is None:
-                continue
-            if isinstance(subasset, Formula):
-                subassets = [subasset]
-            else:
-                print("SUBS", subasset)
-                subassets = asset.guessBaseAssets()
-            for subasset in subassets:
-                subexprs = {}
-                subprops = {}
-                subasset.evalFormulas(subexprs, subprops, rig, None, False)
-                subopen = {}
-                opencode(subexprs, rig, asset, subopen, others, level+1)
-                if key not in opencoded.keys():
-                    opencoded[key] = []
-                opencoded[key].append((val,subexprs,subprops,subopen))
-    
-
-def combineExpressions(openlist, prop, exprs, rig, value):
-    from .bone import getTargetName
-    for val,subexprs,subprops,subopen in openlist:
-        value1 = val*value
-        if subopen:
-            print("SUB", prop, subopen.keys())
-            for subprop,sublist in subopen.items():
-                combineExpressions(sublist, prop, exprs, rig, value1)
+        if success:
+            return props
         else:
-            for bname,subexpr in subexprs.items():
-                bname1 = getTargetName(bname, rig.pose.bones)
-                if bname1 is not None:
-                    addValue("translation", bname1, prop, exprs, subexpr, value1)
-                    addValue("rotation", bname1, prop, exprs, subexpr, value1)
-                    addValue("scale", bname1, prop, exprs, subexpr, value1)
-                    addValue("general_scale", bname1, prop, exprs, subexpr, value1)
+            return []
+            
+    
+    def opencode(self, exprs, asset, opencoded, level): 
+        from .bone import getTargetName
+        from .modifier import ChannelAsset
+        if level > 5:
+            raise DazError("Recursion too deep")
+        for bname,expr in exprs.items():    
+            bname1 = getTargetName(bname, self.rig.pose.bones)
+            if bname1 is None:
+                prop = asset.getProp(bname)
+                struct = expr["value"]
+                key = asset.getProp(struct["prop"])
+                val = struct["value"]
+                words = struct["output"].rsplit("?", 1)
+                if not (len(words) == 2 and words[1] == "value"):
+                    continue
+                url = words[0].split(":")[-1]
+                if url == asset.selfref():
+                    if key not in self.others.keys():
+                        self.others[key] = []
+                    self.others[key].append(expr)
+                    continue
+                if url[0] == "#" and url[1:] == bname:
+                    print("Recursive definition:", bname)
+                    continue
+                subasset = asset.getTypedAsset(url, ChannelAsset)
+                if isinstance(subasset, Formula):
+                    subassets = [subasset]
+                elif isinstance(subasset, ChannelAsset):
+                    subassets = subasset.guessBaseAssets()
+                else:
+                    subassets = []
+                for subasset in subassets:
+                    subexprs = {}
+                    subprops = {}
+                    subasset.evalFormulas(subexprs, subprops, self.rig, None, False)
+                    subopen = {}
+                    self.opencode(subexprs, asset, subopen, level+1)
+                    if key not in opencoded.keys():
+                        opencoded[key] = []
+                    opencoded[key].append((val,subexprs,subprops,subopen))
+    
+
+    def combineExpressions(self, openlist, prop, exprs, value):
+        from .bone import getTargetName
+        for val,subexprs,subprops,subopen in openlist:
+            value1 = val*value
+            if subopen:
+                print("SUB", prop, subopen.keys())
+                for subprop,sublist in subopen.items():
+                    self.combineExpressions(sublist, prop, exprs, value1)
+            else:
+                for bname,subexpr in subexprs.items():
+                    bname1 = getTargetName(bname, self.rig.pose.bones)
+                    if bname1 is not None:
+                        addValue("translation", bname1, prop, exprs, subexpr, value1)
+                        addValue("rotation", bname1, prop, exprs, subexpr, value1)
+                        addValue("scale", bname1, prop, exprs, subexpr, value1)
+                        addValue("general_scale", bname1, prop, exprs, subexpr, value1)
 
 
 def addValue(slot, bname, prop, exprs, subexpr, value):

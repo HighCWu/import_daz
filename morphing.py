@@ -196,7 +196,9 @@ due to Blender limitations.
 See console for details.
 ''')
 
-class LoadMorph:
+from .formula import PropFormulas
+
+class LoadMorph(PropFormulas):
 
     useSoftLimits = True
     useShapekeysOnly = False
@@ -205,8 +207,8 @@ class LoadMorph:
     suppressError = False
 
     def __init__(self, mesh=None, rig=None):
+        PropFormulas.__init__(self, rig)
         self.mesh = mesh
-        self.rig = rig
 
 
     @classmethod
@@ -267,9 +269,8 @@ class LoadMorph:
                 props = [prop]
 
         if self.useDrivers and self.rig:
-            from .formula import buildShapeFormula, buildPropFormula
+            from .formula import buildShapeFormula
             if isinstance(asset, FormulaAsset) and asset.formulas:
-                print("FORM", asset)
                 if self.useShapekeys:
                     success = buildShapeFormula(asset, scn, self.rig, self.mesh, occur=occur)
                     if self.useShapekeysOnly and not success and skey:
@@ -277,15 +278,15 @@ class LoadMorph:
                     if not success:
                         miss = True
                 if not self.useShapekeysOnly:
-                    props = buildPropFormula(asset, scn, self.rig, self.prefix, self.errors)
+                    props = self.buildPropFormula(asset, scn)
                     props = list(props)
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
-                print("CHC", asset)
-                subassets = asset.guessBaseAssets()
                 props = []
-                for subasset in subassets:
-                    subprops = buildPropFormula(subasset, scn, self.rig, self.prefix, self.errors)
-                    props += list(subprops)
+                asset.setupPropmap([], self.prefix, self.rig)
+                for subasset in asset.guessBaseAssets():
+                    subasset.base = asset
+                    props1 = self.buildPropFormula(subasset, scn)
+                    props += list(props1)
 
         if props:
             return props,False
@@ -356,7 +357,6 @@ class LoadAllMorphs(LoadMorph):
             raise DazError("No morph files:\nCharacter: %s\nMorph type: %s" % (char, self.type))
 
         theSettings.forMorphLoad(self.mesh, scn, addDrivers)
-        self.errors = {}
         t1 = time.perf_counter()
         print("\n--------------------\n%s" % self.type)
         snames = []
@@ -373,6 +373,7 @@ class LoadAllMorphs(LoadMorph):
             else:
                 print("-", name)
 
+        print("Second pass:")
         for name,filepath in missing:
             sname,miss = self.getSingleMorph(filepath, scn, occur=1)
             if miss:
