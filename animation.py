@@ -567,7 +567,7 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, IsMeshArmature):
                 if not self.useGeneral:
                     tfm.noGeneral()
                 if not twist:
-                    addPoseboneDriver(scn, rig, pb, tfm, errors)
+                    addPoseboneDriver(rig, pb, tfm, errors)
             else:
                 if twist:
                     setBoneTwist(tfm, pb)

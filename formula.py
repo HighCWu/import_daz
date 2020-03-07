@@ -77,7 +77,7 @@ class Formula:
         if rig.pose is None:
             return
         formulas = PropFormulas(rig)
-        props = formulas.buildPropFormula(self, scn)
+        props = formulas.buildPropFormula(self, None)
         addToCategories(rig, props, "Imported")
         for prop in props:
             setFloatProp(rig, prop, self.value)
@@ -443,10 +443,8 @@ class PropFormulas:
             self.prefix = ""
 
     
-    def buildPropFormula(self, asset, scn):
-        from .bone import getTargetName
-        from .transform import Transform
-
+    def buildPropFormula(self, asset, filepath):
+        self.filepath = filepath
         exprs = {}
         props = {}
         asset.evalFormulas(exprs, props, self.rig, None, False)
@@ -458,7 +456,6 @@ class PropFormulas:
                 print(asset.formulas)
 
         asset.setupPropmap(list(props.keys()) + list(exprs.keys()), self.prefix, self.rig)
-        default = asset.clearProp(None)    
         for prop in props.keys():
             nprop = asset.getProp(prop)
             if nprop not in self.rig.keys():
@@ -470,13 +467,35 @@ class PropFormulas:
             nprops[nprop] = value
         props = nprops
 
-        success = False
-    
         opencoded = {}
         self.opencode(exprs, asset, opencoded, 0)
         for prop,openlist in opencoded.items():
             self.combineExpressions(openlist, prop, exprs, 1.0)
-            
+
+        if self.buildBoneFormulas(asset, exprs):
+            return props
+        else:
+            return []
+
+
+    def buildOthers(self, key, data):
+        exprs = {}
+        openlist = []
+        for prop,value,asset in data:
+            subexprs = {}
+            subprops = {}
+            asset.evalFormulas(subexprs, subprops, self.rig, None, False)
+            openlist.append((value,subexprs,subprops,{}))
+        self.combineExpressions(openlist, prop, exprs, 1.0)
+        return self.buildBoneFormulas(asset, exprs)
+                   
+
+    def buildBoneFormulas(self, asset, exprs):            
+        from .bone import getTargetName
+        from .transform import Transform
+
+        success = False    
+        default = asset.clearProp(None)    
         for bname,expr in exprs.items():
             if self.rig.data.DazExtraFaceBones or self.rig.data.DazExtraDrivenBones:
                 dname = bname + "Drv"
@@ -505,13 +524,9 @@ class PropFormulas:
             if nonzero:
                 # Fix: don't assume that the rest pose is at slider value 0.0.
                 # For example: for 'default pose' (-1.0...1.0, default 1.0), use 1.0 for the rest pose, not 0.0.
-                if addPoseboneDriver(scn, self.rig, pb, tfm, self.errors, default):
+                if addPoseboneDriver(self.rig, pb, tfm, self.errors, default):
                     success = True
-
-        if success:
-            return props
-        else:
-            return []
+        return success
             
     
     def opencode(self, exprs, asset, opencoded, level): 
@@ -533,16 +548,14 @@ class PropFormulas:
                 if url == asset.selfref():
                     if key not in self.others.keys():
                         self.others[key] = []
-                    self.others[key].append(expr)
+                    self.others[key].append((key, val, asset))
                     continue
                 if url[0] == "#" and url[1:] == bname:
-                    print("Recursive definition:", bname)
+                    print("Recursive definition:", bname, asset.selfref())
                     continue
                 subasset = asset.getTypedAsset(url, ChannelAsset)
                 if isinstance(subasset, Formula):
                     subassets = [subasset]
-                elif isinstance(subasset, ChannelAsset):
-                    subassets = subasset.guessBaseAssets()
                 else:
                     subassets = []
                 for subasset in subassets:
@@ -561,7 +574,6 @@ class PropFormulas:
         for val,subexprs,subprops,subopen in openlist:
             value1 = val*value
             if subopen:
-                print("SUB", prop, subopen.keys())
                 for subprop,sublist in subopen.items():
                     self.combineExpressions(sublist, prop, exprs, value1)
             else:
@@ -621,14 +633,14 @@ def addToStringGroup(items, string):
     item.s = string
 
 
-def addPoseboneDriver(scn, rig, pb, tfm, errors, default):
+def addPoseboneDriver(rig, pb, tfm, errors, default):
     from .node import getBoneMatrix
     mat = getBoneMatrix(tfm, pb)
     loc,quat,scale = mat.decompose()
     scale -= Vector((1,1,1))
     success = False
     if (tfm.transProp and loc.length > 0.01*rig.DazScale):
-        setFcurves(scn, rig, pb, "", loc, tfm.transProp, "location", errors, default)
+        setFcurves(rig, pb, "", loc, tfm.transProp, "location", errors, default)
         success = True
     if tfm.rotProp:
         if Vector(quat.to_euler()).length < 1e-4:
@@ -636,22 +648,22 @@ def addPoseboneDriver(scn, rig, pb, tfm, errors, default):
         elif pb.rotation_mode == 'QUATERNION':
             value = Vector(quat)
             value[0] = 1.0 - value[0]
-            setFcurves(scn, rig, pb, "1.0-", value, tfm.rotProp, "rotation_quaternion", errors, default)
+            setFcurves(rig, pb, "1.0-", value, tfm.rotProp, "rotation_quaternion", errors, default)
             success = True
         else:
             value = mat.to_euler(pb.rotation_mode)
-            setFcurves(scn, rig, pb, "", value, tfm.rotProp, "rotation_euler", errors, default)
+            setFcurves(rig, pb, "", value, tfm.rotProp, "rotation_euler", errors, default)
             success = True
     if (tfm.scaleProp and scale.length > 1e-4):
-        setFcurves(scn, rig, pb, "", scale, tfm.scaleProp, "scale", errors, default)
+        setFcurves(rig, pb, "", scale, tfm.scaleProp, "scale", errors, default)
         success = True
     elif tfm.generalProp:
-        setFcurves(scn, rig, pb, "", scale, tfm.generalProp, "scale", errors, default)
+        setFcurves(rig, pb, "", scale, tfm.generalProp, "scale", errors, default)
         success = True
     return success
 
 
-def setFcurves(scn, rig, pb, init, value, prop, channel, errors, default):
+def setFcurves(rig, pb, init, value, prop, channel, errors, default):
     from .daz import addCustomDriver
     path = '["%s"]' % prop
     key = channel[0:3].capitalize()

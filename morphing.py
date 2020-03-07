@@ -278,15 +278,11 @@ class LoadMorph(PropFormulas):
                     if not success:
                         miss = True
                 if not self.useShapekeysOnly:
-                    props = self.buildPropFormula(asset, scn)
+                    props = self.buildPropFormula(asset, filepath)
                     props = list(props)
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
                 props = []
-                asset.setupPropmap([], self.prefix, self.rig)
-                for subasset in asset.guessBaseAssets():
-                    subasset.base = asset
-                    props1 = self.buildPropFormula(subasset, scn)
-                    props += list(props1)
+                miss = True
 
         if props:
             return props,False
@@ -374,6 +370,19 @@ class LoadAllMorphs(LoadMorph):
                 print("-", name)
 
         print("Second pass:")
+        for prop,data in self.others.items():
+            success = self.buildOthers(prop, data)
+            if prop[0:2] == "Dz":
+                key = prop[3:]
+            else: 
+                key = prop
+            if success:
+                print("*", key)
+            else:
+                print("-", key)
+        
+        '''
+
         for name,filepath in missing:
             sname,miss = self.getSingleMorph(filepath, scn, occur=1)
             if miss:
@@ -381,7 +390,7 @@ class LoadAllMorphs(LoadMorph):
             else:
                 snames += sname
                 print("*", name)
-
+        '''
         updateDrivers(self.mesh)
         updateDrivers(self.rig)
         finishMain(filepath, t1)
