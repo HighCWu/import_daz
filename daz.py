@@ -70,8 +70,8 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         layout.separator()
         layout.prop(self, "useAutoMaterials")
         layout.prop(self, "handleOpaque")
-        layout.prop(self, "handleVolumetric")
         layout.prop(self, "handleRefractive")
+        layout.prop(self, "handleVolumetric")
         layout.prop(self, "useEnvironment")
         #layout.prop(self, "useSimulation")
 

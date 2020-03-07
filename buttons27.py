@@ -234,10 +234,10 @@ class DazOptions:
 
     handleVolumetric = EnumProperty(
         items = [('VOLUMETRIC', "Volumetric", "Volumetric (Iray)"),
-                 ('TRANSLUCENCY', "Translucency", "Translucency only"),
+                 ('TRANSLUCENCY', "Translucency Only", "Translucency only"),
                  ('SSS', "SSS", "Subsurface scattering"),
                  ],
-        name = "Skin Options",
+        name = "Volumetric Options",
         description = "Method for handle volumetric (Iray skin)",
         default = 'VOLUMETRIC')
         
