@@ -336,7 +336,9 @@ class CyclesTree(FromCycles):
         scn = context.scene
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
-        if (self.material.thinWalled or
+        if theSettings.handleVolumetric == "SSS":
+            self.buildSubsurface()
+        elif (self.material.thinWalled or
             self.volume or
             self.material.translucent):
             self.buildTranslucency()
@@ -696,7 +698,8 @@ class CyclesTree(FromCycles):
     def buildTranslucency(self):
         if (self.material.refractive or
             not self.material.translucent or
-            not theSettings.useTranslucency):
+            not theSettings.useTranslucency or
+            theSettings.handleVolumetric == "SSS"):
             return
         mat = self.material.rna
         mat.DazUseTranslucency = True
@@ -922,7 +925,8 @@ class CyclesTree(FromCycles):
 
     def buildVolume(self):
         if (self.material.thinWalled or 
-            self.material.eevee):
+            self.material.eevee or
+            theSettings.handleVolumetric != "VOLUMETRIC"):
             return
 
         absorb = None

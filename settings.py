@@ -52,6 +52,7 @@ class Settings:
         self.useDazPropDefault = True
         self.autoMaterials = True
         self.handleOpaque = 'BSDF'
+        self.handleVolumetric = 'VOLUMETRIC'
         self.handleRefractive = 'BSDF'
         self.brightenEyes = 1.0
         self.useEnvironment = False
@@ -172,6 +173,7 @@ class Settings:
 
         self.autoMaterials = btn.useAutoMaterials
         self.handleOpaque = btn.handleOpaque
+        self.handleVolumetric = btn.handleVolumetric
         self.handleRefractive = btn.handleRefractive
         self.useEnvironment = btn.useEnvironment
         self.useSimulation = btn.useSimulation

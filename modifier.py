@@ -275,7 +275,7 @@ class Alias(ChannelAsset):
 
     def parse(self, struct):
         ChannelAsset.parse(self, struct)
-        ChannelAsset = struct["channel"]
+        channel = struct["channel"]
         #self.parent = self.getAsset(struct["parent"])
         self.alias = self.getAsset(channel["target_channel"])
 

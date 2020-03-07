@@ -130,10 +130,10 @@ class PbrTree(CyclesTree):
         useTex = not (self.material.shader == 'IRAY' and self.material.basemix == 0 and metallicity > 0.5)
 
         # Subsurface scattering
+        unlikely = (self.material.thinWalled or self.material.translucent)
         if (theSettings.useSSS and
             self.material.sssActive() and
-            not self.material.thinWalled and
-            not self.material.translucent and
+            (theSettings.handleVolumetric == "SSS" or not unlikely) and
             not self.material.refractive):
 
             wt,tex = self.getColorTex("getChannelSSSAmount", "NONE", 0)

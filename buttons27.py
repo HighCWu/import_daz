@@ -232,6 +232,15 @@ class DazOptions:
         description = "Default method used for refractive materials.\nIgnored by some materials.",
         default = 'GUESS')
 
+    handleVolumetric = EnumProperty(
+        items = [('VOLUMETRIC', "Volumetric", "Volumetric (Iray)"),
+                 ('TRANSLUCENCY', "Translucency", "Translucency only"),
+                 ('SSS', "SSS", "Subsurface scattering"),
+                 ],
+        name = "Skin Options",
+        description = "Method for handle volumetric (Iray skin)",
+        default = 'VOLUMETRIC')
+        
     useEnvironment = BoolProperty(
         name = "Environment",
         description = "Load environment",
