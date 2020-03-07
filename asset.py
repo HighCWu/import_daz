@@ -237,6 +237,10 @@ class Asset(Accessor):
         return ("<Asset %s t: %s r: %s>" % (self.id, self.type, self.rna))
 
 
+    def selfref(self):
+        return ("#" + self.id.rsplit("#", 2)[-1])
+
+
     def getLabel(self, inst):
         if inst and inst.label:
             return inst.label

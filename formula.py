@@ -334,7 +334,7 @@ def buildShapeFormula(asset, scn, rig, ob, occur=0):
         if sname in rig.data.bones.keys():
             continue
         elif sname not in ob.data.shape_keys.key_blocks.keys():
-            print("No such shapekey:", sname)
+            #print("No such shapekey:", sname)
             if occur == 0:
                 return False
             else:
@@ -436,7 +436,6 @@ def convertDualMatrix(umat, pbDriver, pbDriven):
 
 def buildPropFormula(asset, scn, rig, prefix, errors):
     from .bone import getTargetName
-    from .driver import setFloatProp, setBoolProp
     from .transform import Transform
 
     exprs = {}
@@ -449,45 +448,30 @@ def buildPropFormula(asset, scn, rig, prefix, errors):
         if theSettings.verbosity > 4:
             print(asset.formulas)
 
-    propmap = {}
+    asset.setupPropmap(list(props.keys()) + list(exprs.keys()), prefix, rig)
+    default = asset.clearProp(None)    
+    for prop in props.keys():
+        nprop = asset.getProp(prop)
+        if nprop not in rig.keys():
+            asset.clearProp(nprop)
+        
     nprops = {}
     for prop,value in props.items():
-        nprop = getExprProp(prop, prefix, rig)
+        nprop = asset.getProp(prop)
         nprops[nprop] = value
-        propmap[prop] = propmap[nprop] = nprop
-    for prop in exprs.keys():
-        nprop = getExprProp(prop, prefix, rig)
-        propmap[prop] = propmap[nprop] = nprop
     props = nprops
-
-    # By default, use 0.0 for value and the configured min and max (usually -1.0...1.0) for sliders
-    value = 0.0
-    min = max = None
-
-    # If useDazPropLimits is set: load default value, min and max from the asset
-    if theSettings.useDazPropLimits and asset is not None:
-        value = asset.value
-        min = asset.min
-        max = asset.max
-
-    selfname = asset.id.rsplit("#")[-1]
-    selfref = "#" + selfname
-    print("SPROP", selfref, props)
-    for prop in props.keys():
-        if prop not in rig.keys():
-            setFloatProp(rig, prop, value, min=min, max=max)
-            setBoolProp(rig, "DzA"+prop, True)
 
     success = False
     
-    opencoded = dict([(prop, []) for prop in props.keys()])
-    others = dict([(prop, []) for prop in props.keys()])
-    opencode(exprs, propmap, rig, asset, selfref, opencoded, others, 0)
-    for prop in props.keys():
-        print("COMB", prop, opencoded[prop])
-        combineExpressions(opencoded[prop], prop, exprs, rig, 1.0)
+    opencoded = {}
+    others = {}
+    opencode(exprs, rig, asset, opencoded, others, 0)
+    for prop,openlist in opencoded.items():
+        combineExpressions(openlist, prop, exprs, rig, 1.0)
     for prop,expr in others.items():
-        print("OTH", prop, expr)
+        continue
+        if expr:
+            print("OTH", prop, expr)
             
     for bname,expr in exprs.items():
         if rig.data.DazExtraFaceBones or rig.data.DazExtraDrivenBones:
@@ -503,56 +487,47 @@ def buildPropFormula(asset, scn, rig, prefix, errors):
         tfm = Transform()
         nonzero = False
         if "translation" in expr.keys():
-            tfm.setTrans(expr["translation"]["value"], getProp(expr["translation"]["prop"], propmap))
+            tfm.setTrans(expr["translation"]["value"], asset.getProp(expr["translation"]["prop"]))
             nonzero = True
         if "rotation" in expr.keys():
-            tfm.setRot(expr["rotation"]["value"], getProp(expr["rotation"]["prop"], propmap))
+            tfm.setRot(expr["rotation"]["value"], asset.getProp(expr["rotation"]["prop"]))
             nonzero = True
         if "scale" in expr.keys():
-            tfm.setScale(expr["scale"]["value"], getProp(expr["scale"]["prop"], propmap))
+            tfm.setScale(expr["scale"]["value"], asset.getProp(expr["scale"]["prop"]))
             nonzero = True
         if "general_scale" in expr.keys():
-            tfm.setGeneral(expr["general_scale"]["value"], getProp(expr["general_scale"]["prop"], propmap))
+            tfm.setGeneral(expr["general_scale"]["value"], asset.getProp(expr["general_scale"]["prop"]))
             nonzero = True
         if nonzero:
             # Fix: don't assume that the rest pose is at slider value 0.0.
             # For example: for 'default pose' (-1.0...1.0, default 1.0), use 1.0 for the rest pose, not 0.0.
-            default = value if theSettings.useDazPropDefault else 0.0
-            if addPoseboneDriver(scn, rig, pb, tfm, errors, default=default):
+            if addPoseboneDriver(scn, rig, pb, tfm, errors, default):
                 success = True
 
     if success:
         return props
     else:
         return []
-
-
-def getProp(prop, propmap):
-    if prop in propmap.keys():
-        return propmap[prop]
-    else:
-        return prop
             
     
-def opencode(exprs, propmap, rig, asset, selfref, opencoded, others, level): 
+def opencode(exprs, rig, asset, opencoded, others, level): 
     from .bone import getTargetName
     if level > 5:
         raise DazError("Recursion too deep")
     for bname,expr in exprs.items():    
         bname1 = getTargetName(bname, rig.pose.bones)
         if bname1 is None:
-            prop = getProp(bname, propmap)
+            prop = asset.getProp(bname)
             struct = expr["value"]
-            key = getProp(struct["prop"], propmap)
-            print("LVLV", level, bname, prop, key)
+            key = asset.getProp(struct["prop"])
             val = struct["value"]
             words = struct["output"].rsplit("?", 1)
             if not (len(words) == 2 and words[1] == "value"):
                 continue
             path = words[0].split(":")[-1]
-            if path == selfref:
-                print("Selfref", path, prop)
-                print("EE", expr)
+            if path == asset.selfref():
+                if key not in others.keys():
+                    others[key] = []
                 others[key].append(expr)
                 continue
             if path[0] == "#" and path[1:] == bname:
@@ -565,33 +540,21 @@ def opencode(exprs, propmap, rig, asset, selfref, opencoded, others, level):
             subexprs = {}
             subprops = {}
             subasset.evalFormulas(subexprs, subprops, rig, None, False)
-            subopen = []
-            opencode(subexprs, propmap, rig, asset, selfref, subopen, others, level+1)
-            opencoded[key].append((key,val,subexprs,subprops,subopen))
+            subopen = {}
+            opencode(subexprs, rig, asset, subopen, others, level+1)
+            if key not in opencoded.keys():
+                opencoded[key] = []
+            opencoded[key].append((val,subexprs,subprops,subopen))
     
 
-def getExprProp(prop, prefix, rig):
-    if prop in rig.data.bones.keys():
-        return prop
-    lprop = prop.lower()
-    if lprop[0:5] == "ectrl":
-        prop0 = prop[5:]
-    elif lprop[0:4] == "ctrl":
-        prop0 = prop[4:]
-    else:
-        prop0 = prop
-    for pfx in ["DzU", "DzV", "DzE"]:
-        if pfx+prop0 in rig.keys():
-            return pfx+prop0        
-    return prefix+prop0
-    
-
-def combineExpressions(opencoded, prop, exprs, rig, value):
+def combineExpressions(openlist, prop, exprs, rig, value):
     from .bone import getTargetName
-    for _,val,subexprs,subprops,subopen in opencoded:
+    for val,subexprs,subprops,subopen in openlist:
         value1 = val*value
         if subopen:
-            combineExpressions(subopen, prop, exprs, rig, value1)
+            print("SUB", prop, subopen.keys())
+            for subprop,sublist in subopen.items():
+                combineExpressions(sublist, prop, exprs, rig, value1)
         else:
             for bname,subexpr in subexprs.items():
                 bname1 = getTargetName(bname, rig.pose.bones)
@@ -649,7 +612,7 @@ def addToStringGroup(items, string):
     item.s = string
 
 
-def addPoseboneDriver(scn, rig, pb, tfm, errors, default=0.0):
+def addPoseboneDriver(scn, rig, pb, tfm, errors, default):
     from .node import getBoneMatrix
     mat = getBoneMatrix(tfm, pb)
     loc,quat,scale = mat.decompose()
@@ -679,7 +642,7 @@ def addPoseboneDriver(scn, rig, pb, tfm, errors, default=0.0):
     return success
 
 
-def setFcurves(scn, rig, pb, init, value, prop, channel, errors, default=0.0):
+def setFcurves(scn, rig, pb, init, value, prop, channel, errors, default):
     from .daz import addCustomDriver
     path = '["%s"]' % prop
     key = channel[0:3].capitalize()

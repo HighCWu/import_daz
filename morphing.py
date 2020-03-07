@@ -279,7 +279,8 @@ class LoadMorph:
                     props = buildPropFormula(asset, scn, self.rig, self.prefix, self.errors)
                     props = list(props)
             elif isinstance(asset, Channel):
-                print("USE", asset)            
+                asset.setupPropmap([], self.prefix, self.rig)
+                asset.clearProp(None)
 
         if props:
             return props,False

@@ -63,7 +63,6 @@ def parseModifierAsset(asset, struct):
         
 def parseChannelAsset(asset, struct):        
     channel = struct["channel"]
-    print("PCA", channel)
     if channel["type"] == "alias":
         return asset.parseTypedAsset(struct, Alias)
     else:
@@ -79,7 +78,6 @@ def parseMorph(asset, struct):
                 return asset.parseTypedAsset(mstruct, FormulaAsset)
             elif "channel" in mstruct.keys():
                 channel = parseChannelAsset(asset, mstruct)
-                print("KKK", channel)
                 return channel
 
 #-------------------------------------------------------------
@@ -189,6 +187,7 @@ class Channel(Modifier):
         self.value = 0
         self.min = None
         self.max = None
+        self.propmap = {}
 
     def __repr__(self):
         return ("<Channel %s %s>" % (self.id, self.type))
@@ -212,10 +211,54 @@ class Channel(Modifier):
             "current_value" in struct["channel"].keys()):
             self.value = struct["channel"]["current_value"]
 
-    def build(self, context, inst):
-        if not theSettings.useMorph:
-            return
-        print("BUCH", self.id)
+    
+    def setupPropmap(self, props, prefix, rig):
+        self.prefix = prefix
+        self.rig = rig
+        self.prop = self.id.rsplit("#",2)[-1]
+        props.append(self.prop)
+        for prop in props:
+            nprop = self.getExprProp(prop)
+            self.propmap[prop] = nprop
+
+
+    def getProp(self, prop):
+        if prop in self.propmap.keys():
+            return self.propmap[prop]
+        else:
+            return prop
+
+        
+    def getExprProp(self, prop):
+        if prop in self.rig.data.bones.keys():
+            return prop
+        lprop = prop.lower()
+        if lprop[0:5] == "ectrl":
+            prop0 = prop[5:]
+        elif lprop[0:4] == "ctrl":
+            prop0 = prop[4:]
+        else:
+            prop0 = prop
+        for pfx in ["DzU", "DzV", "DzE"]:
+            if pfx+prop0 in self.rig.keys():
+                return pfx+prop0        
+        return self.prefix+prop0
+        
+
+    def clearProp(self, prop):
+        from .driver import setFloatProp, setBoolProp    
+        if prop is None:
+            prop = self.getProp(self.prop)
+        if theSettings.useDazPropLimits:
+            value = self.value
+            min = self.min
+            max = self.max
+        else:
+            value = 0.0
+            min = max = None
+        setFloatProp(self.rig, prop, value, min=min, max=max)
+        setBoolProp(self.rig, "DzA"+prop, True)
+        return value
             
 
 class Alias(Channel):
