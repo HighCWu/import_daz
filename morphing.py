@@ -223,7 +223,7 @@ class LoadMorph:
 
 
     def getSingleMorph(self, filepath, scn, occur=0):
-        from .modifier import Morph, FormulaAsset, Channel
+        from .modifier import Morph, FormulaAsset, ChannelAsset
         from .readfile import readDufFile
         from .files import parseAssetFile
         from .driver import makeShapekeyDriver
@@ -267,8 +267,9 @@ class LoadMorph:
                 props = [prop]
 
         if self.useDrivers and self.rig:
+            from .formula import buildShapeFormula, buildPropFormula
             if isinstance(asset, FormulaAsset) and asset.formulas:
-                from .formula import buildShapeFormula, buildPropFormula
+                print("FORM", asset)
                 if self.useShapekeys:
                     success = buildShapeFormula(asset, scn, self.rig, self.mesh, occur=occur)
                     if self.useShapekeysOnly and not success and skey:
@@ -278,9 +279,13 @@ class LoadMorph:
                 if not self.useShapekeysOnly:
                     props = buildPropFormula(asset, scn, self.rig, self.prefix, self.errors)
                     props = list(props)
-            elif isinstance(asset, Channel):
-                asset.setupPropmap([], self.prefix, self.rig)
-                asset.clearProp(None)
+            elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
+                print("CHC", asset)
+                subassets = asset.guessBaseAssets()
+                props = []
+                for subasset in subassets:
+                    subprops = buildPropFormula(subasset, scn, self.rig, self.prefix, self.errors)
+                    props += list(subprops)
 
         if props:
             return props,False

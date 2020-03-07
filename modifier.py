@@ -28,6 +28,7 @@
 
 import bpy
 import collections
+import os
 
 from .asset import Asset
 from .utils import *
@@ -66,7 +67,7 @@ def parseChannelAsset(asset, struct):
     if channel["type"] == "alias":
         return asset.parseTypedAsset(struct, Alias)
     else:
-        return asset.parseTypedAsset(struct, Channel)
+        return asset.parseTypedAsset(struct, ChannelAsset)
 
 
 def parseMorph(asset, struct):
@@ -176,10 +177,10 @@ def getRigMesh(inst):
         return None,None
         
 #-------------------------------------------------------------
-#   Channel
+#   ChannelAsset
 #-------------------------------------------------------------
 
-class Channel(Modifier):
+class ChannelAsset(Modifier):
 
     def __init__(self, fileref):
         Modifier.__init__(self, fileref)
@@ -211,6 +212,19 @@ class Channel(Modifier):
             "current_value" in struct["channel"].keys()):
             self.value = struct["channel"]["current_value"]
 
+    
+    def guessBaseAssets(self):
+        from .asset import normalizePath
+        assets = []
+        for suffix in ["L", "R"]:   
+            path,id = self.id.rsplit("#", 2)
+            file,ext = os.path.splitext(path)
+            ref = ("%s%s%s#%s%s" % (file, suffix, ext, id, suffix))
+            subasset = self.getTypedAsset(ref, ChannelAsset) 
+            if subasset:
+                assets.append(subasset)
+        return assets
+    
     
     def setupPropmap(self, props, prefix, rig):
         self.prefix = prefix
@@ -261,10 +275,10 @@ class Channel(Modifier):
         return value
             
 
-class Alias(Channel):
+class Alias(ChannelAsset):
 
     def __init__(self, fileref):
-        Channel.__init__(self, fileref)
+        ChannelAsset.__init__(self, fileref)
         self.alias = None
         self.parent = None
         self.type = "alias"
@@ -274,8 +288,8 @@ class Alias(Channel):
         return ("<Alias %s\n  %s>" % (self.id, self.alias))
 
     def parse(self, struct):
-        Channel.parse(self, struct)
-        channel = struct["channel"]
+        ChannelAsset.parse(self, struct)
+        ChannelAsset = struct["channel"]
         #self.parent = self.getAsset(struct["parent"])
         self.alias = self.getAsset(channel["target_channel"])
 
@@ -477,10 +491,10 @@ class LegacySkinBinding(SkinBinding):
 #   Formula
 #-------------------------------------------------------------
 
-class FormulaAsset(Formula, Channel):
+class FormulaAsset(Formula, ChannelAsset):
 
     def __init__(self, fileref):
-        Channel.__init__(self, fileref)
+        ChannelAsset.__init__(self, fileref)
         Formula.__init__(self)
         self.group = ""
 
@@ -488,7 +502,7 @@ class FormulaAsset(Formula, Channel):
         return ("<Formula %s %f>" % (self.id, self.value))
 
     def parse(self, struct):
-        Channel.parse(self, struct)
+        ChannelAsset.parse(self, struct)
         if not theSettings.useMorph:
             return
         if "group" in struct.keys():

@@ -512,6 +512,7 @@ def buildPropFormula(asset, scn, rig, prefix, errors):
     
 def opencode(exprs, rig, asset, opencoded, others, level): 
     from .bone import getTargetName
+    from .modifier import ChannelAsset
     if level > 5:
         raise DazError("Recursion too deep")
     for bname,expr in exprs.items():    
@@ -534,17 +535,23 @@ def opencode(exprs, rig, asset, opencoded, others, level):
                 print("Recursive definition:", bname)
                 continue
             url = {"url" : path, "id" : struct["output"]}
-            subasset = asset.parseUrlAsset(url, Formula)
+            subasset = asset.parseUrlAsset(url, ChannelAsset)
             if subasset is None:
                 continue
-            subexprs = {}
-            subprops = {}
-            subasset.evalFormulas(subexprs, subprops, rig, None, False)
-            subopen = {}
-            opencode(subexprs, rig, asset, subopen, others, level+1)
-            if key not in opencoded.keys():
-                opencoded[key] = []
-            opencoded[key].append((val,subexprs,subprops,subopen))
+            if isinstance(subasset, Formula):
+                subassets = [subasset]
+            else:
+                print("SUBS", subasset)
+                subassets = asset.guessBaseAssets()
+            for subasset in subassets:
+                subexprs = {}
+                subprops = {}
+                subasset.evalFormulas(subexprs, subprops, rig, None, False)
+                subopen = {}
+                opencode(subexprs, rig, asset, subopen, others, level+1)
+                if key not in opencoded.keys():
+                    opencoded[key] = []
+                opencoded[key].append((val,subexprs,subprops,subopen))
     
 
 def combineExpressions(openlist, prop, exprs, rig, value):
