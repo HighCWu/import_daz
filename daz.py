@@ -85,56 +85,9 @@ def evalMorphs(pb, idx, key):
     return sum([pg.factor*(rig[pg.prop]-pg.default) for pg in props if pg.index == idx])
 
 
-def addCustomDriver(fcu, rig, pb, init, value, prop, key, errors, default=0.0):
-    from .driver import addTransformVar, driverHasVar
-    fcu.driver.type = 'SCRIPTED'
-    if abs(value) > 1e-4:
-        expr = 'evalMorphs(self, %d, "%s")' % (fcu.array_index, key)
-        drvexpr = fcu.driver.expression[len(init):]
-        if drvexpr in ["0.000", "-0.000"]:
-            if init:
-                fcu.driver.expression = init + "+" + expr
-            else:
-                fcu.driver.expression = expr
-        elif expr not in drvexpr:
-            if init:
-                fcu.driver.expression = init + "(" + drvexpr + "+" + expr + ")"
-            else:
-                fcu.driver.expression = drvexpr + "+" + expr
-        fcu.driver.use_self = True
-        addSelfRef(rig, pb)
-        addPropGroup(rig, pb, fcu.array_index, key, prop, value, default)
-        if len(fcu.modifiers) > 0:
-            fmod = fcu.modifiers[0]
-            fcu.modifiers.remove(fmod)
-
-
-def addSelfRef(rig, pb):
-    if pb.constraints:
-        cns = pb.constraints[0]
-        if cns.name == "Do Not Touch":
-            return
-        else:
-            raise DazError("Inconsistent self reference constraint\n for bone '%s'" % pb.name)
-    cns = pb.constraints.new('COPY_LOCATION')
-    cns.name = "Do Not Touch"
-    cns.target = rig
-    cns.mute = True
-
-
 def hasSelfRef(pb):
     return (pb.constraints and
             pb.constraints[0].name == "Do Not Touch")
-
-
-def addPropGroup(rig, pb, idx, key, prop, value, default=0.0):
-    props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
-    clearProp(props, prop, idx)
-    pg = props.add()
-    pg.index = idx
-    pg.prop = prop
-    pg.factor = value
-    pg.default = default
 
 
 def removeFromPropGroup(props, prop):
@@ -201,7 +154,7 @@ def showPropGroups(rig):
                     print("    ", pg.index, pg.prop, pg.factor, pg.default)
 
 
-class DAZ_OT_ShowPropGroupsColor(DazOperator, IsArmature):
+class DAZ_OT_ShowPropGroups(DazOperator, IsArmature):
     bl_idname = "daz.show_prop_groups"
     bl_label = "Show Prop Groups"
     bl_description = "Show the property groups for the selected posebones."
@@ -226,17 +179,10 @@ classes = [
     B.DazPropGroup,
     B.DazFormula,
     B.DazStringGroup,
-    DAZ_OT_ShowPropGroupsColor,
+    DAZ_OT_ShowPropGroups,
 ]
 
 def initialize():
-
-    #bpy.types.Scene.DazUnitScale = FloatProperty(
-    #    name = "Unit Scale",
-    #    description = "Scale used to convert between DAZ and Blender units (cm vs dm).",
-    #    default = 0.1,
-    #    precision = 3,
-    #    min = 0.001, max = 10.0)
 
     bpy.types.Scene.DazChooseColors = EnumProperty(
         items = [('WHITE', "White", "Default diffuse color"),

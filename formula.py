@@ -430,17 +430,200 @@ def convertDualMatrix(umat, pbDriver, pbDriven):
     return nmat
 
 #-------------------------------------------------------------
-#   Build prop formula
-#   For prop drivers
+#   class PoseboneDriver
 #-------------------------------------------------------------
 
-class PropFormulas:
+class PoseboneDriver:
     def __init__(self, rig):
         self.rig = rig
-        self.others = {}
         self.errors = {}
-        if not hasattr(self, "prefix"):
-            self.prefix = ""
+        self.default = None
+
+
+    def addPoseboneDriver(self, pb, tfm):
+        from .node import getBoneMatrix
+        mat = getBoneMatrix(tfm, pb)
+        loc,quat,scale = mat.decompose()
+        scale -= Vector((1,1,1))
+        success = False
+        if (tfm.transProp and loc.length > 0.01*self.rig.DazScale):
+            self.setFcurves(pb, "", loc, tfm.transProp, "location")
+            success = True
+        if tfm.rotProp:
+            if Vector(quat.to_euler()).length < 1e-4:
+                pass
+            elif pb.rotation_mode == 'QUATERNION':
+                value = Vector(quat)
+                value[0] = 1.0 - value[0]
+                self.setFcurves(pb, "1.0-", value, tfm.rotProp, "rotation_quaternion")
+                success = True
+            else:
+                value = mat.to_euler(pb.rotation_mode)
+                self.setFcurves(pb, "", value, tfm.rotProp, "rotation_euler")
+                success = True
+        if (tfm.scaleProp and scale.length > 1e-4):
+            self.setFcurves(pb, "", scale, tfm.scaleProp, "scale")
+            success = True
+        elif tfm.generalProp:
+            self.setFcurves(pb, "", scale, tfm.generalProp, "scale")
+            success = True
+        return success
+
+
+    def getBoneFcurves(self, pb, channel):
+        if channel[0] == "[":
+            dot = ""
+        else:
+            dot = "."
+        path = 'pose.bones["%s"]%s%s' % (pb.name, dot, channel)
+        fcurves = []
+        if self.rig.animation_data:
+            for fcu in self.rig.animation_data.drivers:
+                if path == fcu.data_path:
+                    fcurves.append((fcu.array_index, fcu))
+        if fcurves:
+            return [data[1] for data in fcurves]
+        else:
+            try:
+                return pb.driver_add(channel)
+            except TypeError:
+                return []
+
+
+    def setFcurves(self, pb, init, value, prop, channel):
+        path = '["%s"]' % prop
+        key = channel[0:3].capitalize()
+        fcurves = self.getBoneFcurves(pb, channel)
+        if len(fcurves) == 0:
+            return
+        if hasattr(fcurves[0].driver, "use_self"):
+            for fcu in fcurves:
+                idx = fcu.array_index
+                self.addCustomDriver(fcu, pb, init, value[idx], prop, key)
+                init = ""
+        else:
+            fcurves = self.getBoneFcurves(pb, channel)
+            for fcu in fcurves:
+                idx = fcu.array_index
+                self.addScriptedDriver(fcu, pb, init, value[idx], path)
+                init = ""
+
+
+    def addCustomDriver(self, fcu, pb, init, value, prop, key):
+        from .driver import addTransformVar, driverHasVar
+        from .daz import addPropGroup
+        fcu.driver.type = 'SCRIPTED'
+        if abs(value) > 1e-4:
+            expr = 'evalMorphs(self, %d, "%s")' % (fcu.array_index, key)
+            drvexpr = fcu.driver.expression[len(init):]
+            if drvexpr in ["0.000", "-0.000"]:
+                if init:
+                    fcu.driver.expression = init + "+" + expr
+                else:
+                    fcu.driver.expression = expr
+            elif expr not in drvexpr:
+                if init:
+                    fcu.driver.expression = init + "(" + drvexpr + "+" + expr + ")"
+                else:
+                    fcu.driver.expression = drvexpr + "+" + expr
+            fcu.driver.use_self = True
+            self.addSelfRef(pb)
+            self.addPropGroup(pb, fcu.array_index, key, prop, value)
+            if len(fcu.modifiers) > 0:
+                fmod = fcu.modifiers[0]
+                fcu.modifiers.remove(fmod)
+
+
+    def addSelfRef(self, pb):
+        if pb.constraints:
+            cns = pb.constraints[0]
+            if cns.name == "Do Not Touch":
+                return
+            else:
+                raise DazError("Inconsistent self reference constraint\n for bone '%s'" % pb.name)
+        cns = pb.constraints.new('COPY_LOCATION')
+        cns.name = "Do Not Touch"
+        cns.target = self.rig
+        cns.mute = True
+
+
+    def addPropGroup(self, pb, idx, key, prop, value):
+        from .daz import clearProp
+        props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
+        clearProp(props, prop, idx)
+        pg = props.add()
+        pg.index = idx
+        pg.prop = prop
+        pg.factor = value
+        pg.default = self.default
+    
+
+    def addError(self, err, prop, pb):
+        if err not in self.errors.keys():
+            self.errors[err] = {"props" : [], "bones": []}
+        if prop not in self.errors[err]["props"]:
+            self.errors[err]["props"].append(prop)
+        if pb.name not in self.errors[err]["bones"]:
+            self.errors[err]["bones"].append(pb.name)
+
+
+    def addScriptedDriver(self, fcu, pb, init, value, path):
+        fcu.driver.type = 'SCRIPTED'
+        var,isnew = getDriverVar(path, fcu.driver)
+        if var is None:
+            self.addError("Too many variables for the following properties:", path, pb)
+            return
+        drvexpr = removeInitFromExpr(var, fcu.driver.expression, init)
+        if abs(value) > 1e-4:
+            if isnew:
+                self.addDriverVar(var, path, fcu.driver)
+            if value < 0:
+                sign = "-"
+                value = -value
+            else:
+                sign = "+"
+            expr = "%s%d*%s" % (sign, int(1000*value), var)
+            drvexpr = init + "(" + drvexpr + expr + ")/1000"
+            if len(drvexpr) <= 255:
+                fcu.driver.expression = drvexpr
+            else:
+                string = drvexpr[0:249]
+                string1 = string.rsplit("+",1)[0]
+                string2 = string.rsplit("-",1)[0]
+                if len(string1) > len(string2):
+                    string = string1
+                else:
+                    string = string2
+                drvexpr = string + ")/1000"
+                fcu.driver.expression = drvexpr
+                self.addError("Drive expression too long:", path, pb, errors)
+                return
+
+        if len(fcu.modifiers) > 0:
+            fmod = fcu.modifiers[0]
+            fcu.modifiers.remove(fmod)
+
+
+    def addDriverVar(self, vname, path, drv):
+        var = drv.variables.new()
+        var.name = vname
+        var.type = 'SINGLE_PROP'
+        trg = var.targets[0]
+        trg.id_type = 'OBJECT'
+        trg.id = self.rig
+        trg.data_path = path
+
+#-------------------------------------------------------------
+#   class PropFormulas
+#-------------------------------------------------------------
+
+class PropFormulas(PoseboneDriver):
+    usePropFunctions = False
+    prefix = ""
+
+    def __init__(self, rig):
+        PoseboneDriver.__init__(self, rig)
+        self.others = {}
 
     
     def buildPropFormula(self, asset, filepath):
@@ -467,27 +650,33 @@ class PropFormulas:
             nprops[nprop] = value
         props = nprops
 
-        opencoded = {}
-        self.opencode(exprs, asset, opencoded, 0)
-        for prop,openlist in opencoded.items():
-            self.combineExpressions(openlist, prop, exprs, 1.0)
+        if self.usePropFunctions:
+            self.getOthers(exprs, asset)
 
         if self.buildBoneFormulas(asset, exprs):
             return props
         else:
             return []
 
+    
+    def getOthers(self, exprs, asset): 
+        from .bone import getTargetName
+        for bname,expr in exprs.items():    
+            bname1 = getTargetName(bname, self.rig.pose.bones)
+            if bname1 is None:
+                prop = asset.getProp(bname)
+                struct = expr["value"]
+                key = asset.getProp(struct["prop"])
+                val = struct["value"]
+                if prop not in self.others.keys():
+                    self.others[prop] = []
+                self.others[prop].append((key, val))
+
 
     def buildOthers(self, key, data):
-        exprs = {}
-        openlist = []
-        for prop,value,asset in data:
-            subexprs = {}
-            subprops = {}
-            asset.evalFormulas(subexprs, subprops, self.rig, None, False)
-            openlist.append((value,subexprs,subprops,{}))
-        self.combineExpressions(openlist, prop, exprs, 1.0)
-        return self.buildBoneFormulas(asset, exprs)
+        print("BOO", key)
+        for prop,value in data:
+            print("  ", prop, value)
                    
 
     def buildBoneFormulas(self, asset, exprs):            
@@ -495,7 +684,7 @@ class PropFormulas:
         from .transform import Transform
 
         success = False    
-        default = asset.clearProp(None)    
+        self.default = asset.clearProp(None)    
         for bname,expr in exprs.items():
             if self.rig.data.DazExtraFaceBones or self.rig.data.DazExtraDrivenBones:
                 dname = bname + "Drv"
@@ -524,81 +713,10 @@ class PropFormulas:
             if nonzero:
                 # Fix: don't assume that the rest pose is at slider value 0.0.
                 # For example: for 'default pose' (-1.0...1.0, default 1.0), use 1.0 for the rest pose, not 0.0.
-                if addPoseboneDriver(self.rig, pb, tfm, self.errors, default):
+                if self.addPoseboneDriver(pb, tfm):
                     success = True
         return success
-            
     
-    def opencode(self, exprs, asset, opencoded, level): 
-        from .bone import getTargetName
-        from .modifier import ChannelAsset
-        if level > 5:
-            raise DazError("Recursion too deep")
-        for bname,expr in exprs.items():    
-            bname1 = getTargetName(bname, self.rig.pose.bones)
-            if bname1 is None:
-                prop = asset.getProp(bname)
-                struct = expr["value"]
-                key = asset.getProp(struct["prop"])
-                val = struct["value"]
-                words = struct["output"].rsplit("?", 1)
-                if not (len(words) == 2 and words[1] == "value"):
-                    continue
-                url = words[0].split(":")[-1]
-                if url == asset.selfref():
-                    if key not in self.others.keys():
-                        self.others[key] = []
-                    self.others[key].append((key, val, asset))
-                    continue
-                if url[0] == "#" and url[1:] == bname:
-                    print("Recursive definition:", bname, asset.selfref())
-                    continue
-                subasset = asset.getTypedAsset(url, ChannelAsset)
-                if isinstance(subasset, Formula):
-                    subassets = [subasset]
-                else:
-                    subassets = []
-                for subasset in subassets:
-                    subexprs = {}
-                    subprops = {}
-                    subasset.evalFormulas(subexprs, subprops, self.rig, None, False)
-                    subopen = {}
-                    self.opencode(subexprs, asset, subopen, level+1)
-                    if key not in opencoded.keys():
-                        opencoded[key] = []
-                    opencoded[key].append((val,subexprs,subprops,subopen))
-    
-
-    def combineExpressions(self, openlist, prop, exprs, value):
-        from .bone import getTargetName
-        for val,subexprs,subprops,subopen in openlist:
-            value1 = val*value
-            if subopen:
-                for subprop,sublist in subopen.items():
-                    self.combineExpressions(sublist, prop, exprs, value1)
-            else:
-                for bname,subexpr in subexprs.items():
-                    bname1 = getTargetName(bname, self.rig.pose.bones)
-                    if bname1 is not None:
-                        addValue("translation", bname1, prop, exprs, subexpr, value1)
-                        addValue("rotation", bname1, prop, exprs, subexpr, value1)
-                        addValue("scale", bname1, prop, exprs, subexpr, value1)
-                        addValue("general_scale", bname1, prop, exprs, subexpr, value1)
-
-
-def addValue(slot, bname, prop, exprs, subexpr, value):
-    if slot not in subexpr.keys():
-        return    
-    delta = value * subexpr[slot]["value"]
-    if bname in exprs.keys():
-        expr = exprs[bname]
-    else:
-        expr = exprs[bname] = {}
-    if slot in expr.keys():
-        expr[slot]["value"] += delta
-    else:
-        expr[slot] = {"value" : delta, "prop" : prop}
-        
 
 def getNewFormula(rig, key, prop):
     for item in rig.DazFormulas:
@@ -632,56 +750,6 @@ def addToStringGroup(items, string):
     item = items.add()
     item.s = string
 
-
-def addPoseboneDriver(rig, pb, tfm, errors, default):
-    from .node import getBoneMatrix
-    mat = getBoneMatrix(tfm, pb)
-    loc,quat,scale = mat.decompose()
-    scale -= Vector((1,1,1))
-    success = False
-    if (tfm.transProp and loc.length > 0.01*rig.DazScale):
-        setFcurves(rig, pb, "", loc, tfm.transProp, "location", errors, default)
-        success = True
-    if tfm.rotProp:
-        if Vector(quat.to_euler()).length < 1e-4:
-            pass
-        elif pb.rotation_mode == 'QUATERNION':
-            value = Vector(quat)
-            value[0] = 1.0 - value[0]
-            setFcurves(rig, pb, "1.0-", value, tfm.rotProp, "rotation_quaternion", errors, default)
-            success = True
-        else:
-            value = mat.to_euler(pb.rotation_mode)
-            setFcurves(rig, pb, "", value, tfm.rotProp, "rotation_euler", errors, default)
-            success = True
-    if (tfm.scaleProp and scale.length > 1e-4):
-        setFcurves(rig, pb, "", scale, tfm.scaleProp, "scale", errors, default)
-        success = True
-    elif tfm.generalProp:
-        setFcurves(rig, pb, "", scale, tfm.generalProp, "scale", errors, default)
-        success = True
-    return success
-
-
-def setFcurves(rig, pb, init, value, prop, channel, errors, default):
-    from .daz import addCustomDriver
-    path = '["%s"]' % prop
-    key = channel[0:3].capitalize()
-    fcurves = getBoneFcurves(rig, pb, channel)
-    if len(fcurves) == 0:
-        return
-    if hasattr(fcurves[0].driver, "use_self"):
-        for fcu in fcurves:
-            idx = fcu.array_index
-            addCustomDriver(fcu, rig, pb, init, value[idx], prop, key, errors, default)
-            init = ""
-    else:
-        fcurves = getBoneFcurves(rig, pb, channel)
-        for fcu in fcurves:
-            idx = fcu.array_index
-            addScriptedDriver(fcu, rig, pb, init, value[idx], path, errors)
-            init = ""
-
 #-------------------------------------------------------------
 #   Eval formulas
 #   For all kinds of drivers
@@ -702,73 +770,7 @@ def parseChannel(channel):
         msg = ("Unknown attribute: %s" % attr)
         reportError(msg)
     return attr, idx, default
-
-
-def getBoneFcurves(rig, pb, channel):
-    if channel[0] == "[":
-        dot = ""
-    else:
-        dot = "."
-    path = 'pose.bones["%s"]%s%s' % (pb.name, dot, channel)
-    fcurves = []
-    if rig.animation_data:
-        for fcu in rig.animation_data.drivers:
-            if path == fcu.data_path:
-                fcurves.append((fcu.array_index, fcu))
-    if fcurves:
-        return [data[1] for data in fcurves]
-    else:
-        try:
-            return pb.driver_add(channel)
-        except TypeError:
-            return []
-
-
-def addError(err, prop, pb, errors):
-    if err not in errors.keys():
-        errors[err] = {"props" : [], "bones": []}
-    if prop not in errors[err]["props"]:
-        errors[err]["props"].append(prop)
-    if pb.name not in errors[err]["bones"]:
-        errors[err]["bones"].append(pb.name)
-
-
-def addScriptedDriver(fcu, rig, pb, init, value, path, errors):
-    fcu.driver.type = 'SCRIPTED'
-    var,isnew = getDriverVar(path, fcu.driver)
-    if var is None:
-        addError("Too many variables for the following properties:", path, pb, errors)
-        return
-    drvexpr = removeInitFromExpr(var, fcu.driver.expression, init)
-    if abs(value) > 1e-4:
-        if isnew:
-            addDriverVar(var, path, fcu.driver, rig)
-        if value < 0:
-            sign = "-"
-            value = -value
-        else:
-            sign = "+"
-        expr = "%s%d*%s" % (sign, int(1000*value), var)
-        drvexpr = init + "(" + drvexpr + expr + ")/1000"
-        if len(drvexpr) <= 255:
-            fcu.driver.expression = drvexpr
-        else:
-            string = drvexpr[0:249]
-            string1 = string.rsplit("+",1)[0]
-            string2 = string.rsplit("-",1)[0]
-            if len(string1) > len(string2):
-                string = string1
-            else:
-                string = string2
-            drvexpr = string + ")/1000"
-            fcu.driver.expression = drvexpr
-            addError("Drive expression too long:", path, pb, errors)
-            return
-
-    if len(fcu.modifiers) > 0:
-        fmod = fcu.modifiers[0]
-        fcu.modifiers.remove(fmod)
-
+    
 
 def removeInitFromExpr(var, expr, init):
     import re
@@ -795,16 +797,6 @@ def getDriverVar(path, drv):
     else:
         var = chr(n1+1)
     return var,True
-
-
-def addDriverVar(vname, path, drv, rig):
-    var = drv.variables.new()
-    var.name = vname
-    var.type = 'SINGLE_PROP'
-    trg = var.targets[0]
-    trg.id_type = 'OBJECT'
-    trg.id = rig
-    trg.data_path = path
 
 
 def deleteRigProperty(rig, prop):

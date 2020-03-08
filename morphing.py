@@ -410,6 +410,7 @@ class DAZ_OT_LoadAllUnits(DazOperator, LoadAllMorphs):
 
     type = "Units"
     prefix = "DzU"
+    usePropFunctions = True    
 
 
 class DAZ_OT_LoadAllExpressions(DazOperator, LoadAllMorphs):
@@ -420,6 +421,7 @@ class DAZ_OT_LoadAllExpressions(DazOperator, LoadAllMorphs):
 
     type = "Expressions"
     prefix = "DzE"
+    usePropFunctions = True
 
 
 class DAZ_OT_LoadAllVisemes(DazOperator, LoadAllMorphs):
@@ -430,6 +432,7 @@ class DAZ_OT_LoadAllVisemes(DazOperator, LoadAllMorphs):
 
     type = "Visemes"
     prefix = "DzV"
+    usePropFunctions = True
 
 
 class DAZ_OT_LoadAllCorrectives(DazOperator, LoadAllMorphs):
