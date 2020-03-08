@@ -85,6 +85,12 @@ def evalMorphs(pb, idx, key):
     return sum([pg.factor*(rig[pg.prop]-pg.default) for pg in props if pg.index == idx])
 
 
+def evalMorphFunctions(pb, idx, key):
+    rig = pb.constraints[0].target
+    props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
+    return sum([pg.factor*(pg.function(rig)-pg.default) for pg in props if pg.index == idx])
+
+
 def hasSelfRef(pb):
     return (pb.constraints and
             pb.constraints[0].name == "Do Not Touch")
@@ -103,6 +109,34 @@ def clearProp(props, prop, idx):
             return
 
 
+def addMorphGroup(pb, idx, key, prop, value, default):
+    props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
+    clearProp(props, prop, idx)
+    pg = props.add()
+    pg.index = idx
+    pg.prop = prop
+    pg.factor = value
+    pg.default = default
+
+
+def addMorphPropGroup(rig, key, prop, value):
+    if key in rig.DazMorphProps.keys():
+        pg = rig.DazMorphProps[key]
+        print("OLD PG", pg)
+    else:
+        pg = rig.DazMorphProps.add()
+        pg.name = key
+        print("NEW PG", pg)
+    if prop in pg.parts.keys():
+        parts = pg.parts[prop]
+        print("OLD PARTS", parts)
+    else:
+        parts = pg.parts.add()
+        parts.name = prop
+        print("NEW PARTS", parts)
+    parts.factor = value
+
+
 def getNewItem(collProp, key):
     for item in collProp:
         if item.key == key:
@@ -110,6 +144,19 @@ def getNewItem(collProp, key):
     item = collProp.add()
     item.key = key
     return item
+
+
+def addSelfRef(rig, pb):
+    if pb.constraints:
+        cns = pb.constraints[0]
+        if cns.name == "Do Not Touch":
+            return
+        else:
+            raise DazError("Inconsistent self reference constraint\n for bone '%s'" % pb.name)
+    cns = pb.constraints.new('COPY_LOCATION')
+    cns.name = "Do Not Touch"
+    cns.target = rig
+    cns.mute = True
 
 
 def copyPropGroups(rig1, rig2, pb2):
@@ -170,13 +217,16 @@ from bpy.app.handlers import persistent
 
 @persistent
 def updateHandler(scn):
-    global evalMorphs
+    global evalMorphs, evalMorphFunctions
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
+    bpy.app.driver_namespace["evalMorphFunctions"] = evalMorphFunctions
 
 
 classes = [
     ImportDAZ,
-    B.DazPropGroup,
+    B.DazMorphLevel1Group,
+    B.DazMorphPropGroup,
+    B.DazMorphGroup,
     B.DazFormula,
     B.DazStringGroup,
     DAZ_OT_ShowPropGroups,
@@ -389,13 +439,15 @@ def initialize():
 
     for cls in classes:
         bpy.utils.register_class(cls)
-    bpy.types.PoseBone.DazLocProps = CollectionProperty(type = B.DazPropGroup)
-    bpy.types.PoseBone.DazRotProps = CollectionProperty(type = B.DazPropGroup)
-    bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = B.DazPropGroup)
+    bpy.types.PoseBone.DazLocProps = CollectionProperty(type = B.DazMorphGroup)
+    bpy.types.PoseBone.DazRotProps = CollectionProperty(type = B.DazMorphGroup)
+    bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = B.DazMorphGroup)
     bpy.types.Object.DazFormulas = CollectionProperty(type = B.DazFormula)
     bpy.types.Object.DazHiddenProps = CollectionProperty(type = B.DazStringGroup)
+    bpy.types.Object.DazMorphProps = CollectionProperty(type = B.DazMorphPropGroup)
 
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
+    bpy.app.driver_namespace["evalMorphFunctions"] = evalMorphFunctions
     bpy.app.handlers.load_post.append(updateHandler)
 
 

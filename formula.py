@@ -434,6 +434,8 @@ def convertDualMatrix(umat, pbDriver, pbDriven):
 #-------------------------------------------------------------
 
 class PoseboneDriver:
+    usePropFunctions = False
+
     def __init__(self, rig):
         self.rig = rig
         self.errors = {}
@@ -511,10 +513,13 @@ class PoseboneDriver:
 
     def addCustomDriver(self, fcu, pb, init, value, prop, key):
         from .driver import addTransformVar, driverHasVar
-        from .daz import addPropGroup
+        from .daz import addMorphGroup, addSelfRef
         fcu.driver.type = 'SCRIPTED'
         if abs(value) > 1e-4:
-            expr = 'evalMorphs(self, %d, "%s")' % (fcu.array_index, key)
+            if self.usePropFunctions:
+                expr = 'evalMorphFunctions(self, %d, "%s")' % (fcu.array_index, key)
+            else:
+                expr = 'evalMorphs(self, %d, "%s")' % (fcu.array_index, key)
             drvexpr = fcu.driver.expression[len(init):]
             if drvexpr in ["0.000", "-0.000"]:
                 if init:
@@ -527,35 +532,11 @@ class PoseboneDriver:
                 else:
                     fcu.driver.expression = drvexpr + "+" + expr
             fcu.driver.use_self = True
-            self.addSelfRef(pb)
-            self.addPropGroup(pb, fcu.array_index, key, prop, value)
+            addSelfRef(self.rig, pb)
+            addMorphGroup(pb, fcu.array_index, key, prop, value, self.default)
             if len(fcu.modifiers) > 0:
                 fmod = fcu.modifiers[0]
                 fcu.modifiers.remove(fmod)
-
-
-    def addSelfRef(self, pb):
-        if pb.constraints:
-            cns = pb.constraints[0]
-            if cns.name == "Do Not Touch":
-                return
-            else:
-                raise DazError("Inconsistent self reference constraint\n for bone '%s'" % pb.name)
-        cns = pb.constraints.new('COPY_LOCATION')
-        cns.name = "Do Not Touch"
-        cns.target = self.rig
-        cns.mute = True
-
-
-    def addPropGroup(self, pb, idx, key, prop, value):
-        from .daz import clearProp
-        props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
-        clearProp(props, prop, idx)
-        pg = props.add()
-        pg.index = idx
-        pg.prop = prop
-        pg.factor = value
-        pg.default = self.default
     
 
     def addError(self, err, prop, pb):
@@ -618,7 +599,6 @@ class PoseboneDriver:
 #-------------------------------------------------------------
 
 class PropFormulas(PoseboneDriver):
-    usePropFunctions = False
     prefix = ""
 
     def __init__(self, rig):
@@ -674,9 +654,11 @@ class PropFormulas(PoseboneDriver):
 
 
     def buildOthers(self, key, data):
+        from .daz import addMorphPropGroup
         print("BOO", key)
         for prop,value in data:
             print("  ", prop, value)
+            addMorphPropGroup(self.rig, key, prop, value)
                    
 
     def buildBoneFormulas(self, asset, exprs):            
