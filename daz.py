@@ -119,7 +119,9 @@ def addMorphGroup(pb, idx, key, prop, value, default):
     pg.default = default
 
 
-def addMorphPropGroup(rig, key, prop, value):
+def addMorphPropGroup(rig, tree, prop, value, pgroups):    
+    key = tree[0]
+    level = 1
     if key in rig.DazMorphProps.keys():
         pg = rig.DazMorphProps[key]
         print("OLD PG", pg)
@@ -127,14 +129,37 @@ def addMorphPropGroup(rig, key, prop, value):
         pg = rig.DazMorphProps.add()
         pg.name = key
         print("NEW PG", pg)
+        pgroups[key] = pg
+
+    for key in tree[1:]:
+        if key in pg.parts.keys():
+            part = pg.parts[key]
+            print("OLD PG", level, part)
+        elif False and key in pgroups.keys():
+            part = pgroups[key]
+            print("USED PG", level, prop, part)
+            pg.parts[key] = part
+        else:
+            part = pg.parts.add()
+            part.name = key
+            print("NEW PG", level, part)
+            pgroups[key] = part
+        level += 1
+        pg = part
+        
     if prop in pg.parts.keys():
-        parts = pg.parts[prop]
-        print("OLD PARTS", parts)
+        part = pg.parts[prop]
+        print("OLD PART", part)
+    elif False and prop in pgroups.keys():
+        part = pgroups[prop]
+        print("USED PART", prop, part)
+        pg.parts[prop] = part
     else:
-        parts = pg.parts.add()
-        parts.name = prop
-        print("NEW PARTS", parts)
-    parts.factor = value
+        part = pg.parts.add()
+        part.name = prop
+        print("NEW PART", part)
+        pgroups[prop] = part
+    part.factor = value
 
 
 def getNewItem(collProp, key):
@@ -224,6 +249,8 @@ def updateHandler(scn):
 
 classes = [
     ImportDAZ,
+    B.DazMorphLevel3Group,
+    B.DazMorphLevel2Group,
     B.DazMorphLevel1Group,
     B.DazMorphPropGroup,
     B.DazMorphGroup,

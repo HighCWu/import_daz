@@ -597,13 +597,14 @@ class PoseboneDriver:
 #-------------------------------------------------------------
 #   class PropFormulas
 #-------------------------------------------------------------
-
+        
 class PropFormulas(PoseboneDriver):
     prefix = ""
 
     def __init__(self, rig):
         PoseboneDriver.__init__(self, rig)
         self.others = {}
+        self.level = {}
 
     
     def buildPropFormula(self, asset, filepath):
@@ -641,9 +642,14 @@ class PropFormulas(PoseboneDriver):
     
     def getOthers(self, exprs, asset): 
         from .bone import getTargetName
+        props = []
+        props2 = []
+        bottom = False
         for bname,expr in exprs.items():    
             bname1 = getTargetName(bname, self.rig.pose.bones)
-            if bname1 is None:
+            if bname1:
+                bottom = True
+            else:
                 prop = asset.getProp(bname)
                 struct = expr["value"]
                 key = asset.getProp(struct["prop"])
@@ -651,14 +657,52 @@ class PropFormulas(PoseboneDriver):
                 if prop not in self.others.keys():
                     self.others[prop] = []
                 self.others[prop].append((key, val))
+                props.append(prop)
+                props2.append(key)
+
+        if bottom:
+            for prop in props:
+                self.level[prop] = 1
+        else:                
+            for prop in props+props2:
+                if prop not in self.level.keys():
+                    self.level[prop] = None
 
 
-    def buildOthers(self, key, data):
+    def buildOthers(self):
+        lkeys = list(self.level.keys())
+        lkeys.sort()
+        print("BOT", lkeys)
+        tree = []
+        self.pgroups = {}
+        self.buildOtherLevel(1, tree)
+        unassigned = [prop for prop,level in self.level.items() if level is None]
+        if unassigned:
+            print("Unassigned properties: %s" % unassigned)
+        
+        
+    def buildOtherLevel(self, level, tree):        
         from .daz import addMorphPropGroup
-        print("BOO", key)
-        for prop,value in data:
-            print("  ", prop, value)
-            addMorphPropGroup(self.rig, key, prop, value)
+        print("LVL", level)
+        if level >= 4:
+            print("Level too deep", level, tree)
+        for key,data in self.others.items():
+            if self.level[key] == level:
+                print("  K", key)
+                newtree = tree + [key]
+                for prop,value in data:
+                    if prop not in self.level.keys() or self.level[prop] is None:
+                        self.level[prop] = level+1
+                    print("   P", prop, value, self.level[prop])
+                    if self.level[prop] == level+1:                    
+                        addMorphPropGroup(self.rig, newtree, prop, value, self.pgroups)
+                        self.buildOtherLevel(level+1, newtree)
+                    else:
+                        print("BUG LEVEL", self.level[prop], level+1)
+                if key[0:2] == "Dz":
+                    print("*", key[3:])
+                else:
+                    print("*", key)
                    
 
     def buildBoneFormulas(self, asset, exprs):            

@@ -368,29 +368,9 @@ class LoadAllMorphs(LoadMorph):
                     print("*", name)
             else:
                 print("-", name)
-
         print("Second pass:")
-        for prop,data in self.others.items():
-            success = self.buildOthers(prop, data)
-            if prop[0:2] == "Dz":
-                key = prop[3:]
-            else: 
-                key = prop
-            if success:
-                print("*", key)
-            else:
-                print("-", key)
-        
-        '''
+        self.buildOthers()
 
-        for name,filepath in missing:
-            sname,miss = self.getSingleMorph(filepath, scn, occur=1)
-            if miss:
-                print("-", name)
-            else:
-                snames += sname
-                print("*", name)
-        '''
         updateDrivers(self.mesh)
         updateDrivers(self.rig)
         finishMain(filepath, t1)
