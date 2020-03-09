@@ -581,13 +581,14 @@ class CyclesTree(FromCycles):
         from .cgroup import DualLobeGroup
         self.dualLobe = self.addGroup(DualLobeGroup, "DAZ Dual Lobe", 7)
 
-        value,tex = self.getColorTex(["Dual Lobe Specular Reflectivity"], "NONE", 0.5, False)
-        self.dualLobe.inputs["Color"].default_value[0:3] = (value, value, value)
+        value,tex = self.getColorTex(["Dual Lobe Specular Weight"], "NONE", 0.5, False)
+        self.dualLobe.inputs["Weight"].default_value = value
         if tex:
-            colortex = self.multiplyScalarTex(value, tex)
-            if colortex:
-                self.links.new(colortex.outputs[0], self.dualLobe.inputs["Color"])
+            wttex = self.multiplyScalarTex(value, tex)
+            if wttex:
+                self.links.new(wttex.outputs[0], self.dualLobe.inputs["Weight"])
 
+        value,tex = self.getColorTex(["Dual Lobe Specular Reflectivity"], "NONE", 0.5, False)
         ior = 1.1 + 0.7*value
         self.dualLobe.inputs["IOR"].default_value = ior
         if tex:
@@ -601,8 +602,8 @@ class CyclesTree(FromCycles):
         value,tex = self.getColorTex(["Specular Lobe 2 Roughness"], "NONE", 0.0, False)
         self.setRoughness(self.dualLobe, "Roughness 2", value, tex)
 
-        value = self.getValue(["Dual Lobe Specular Ratio"], 1.0)
-        self.dualLobe.inputs["Fac"].default_value = value
+        fac = self.getValue(["Dual Lobe Specular Ratio"], 1.0)
+        self.dualLobe.inputs["Fac"].default_value = fac
 
         if self.normal:
             self.links.new(self.normal.outputs["Normal"], self.dualLobe.inputs["Normal"])
