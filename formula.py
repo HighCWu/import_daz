@@ -618,13 +618,10 @@ class PoseboneDriver:
 #   class PropFormulas
 #-------------------------------------------------------------
 
-def printKey(char, key):                
-    if key[0:2] == "Dz":
-        print(char, key[3:])
-    else:
-        print(char, key)
+def dzstrip(key):                
+    return (key[3:] if key[0:2] == "Dz" else key)
 
-        
+
 class PropFormulas(PoseboneDriver):
     prefix = ""
 
@@ -690,15 +687,16 @@ class PropFormulas(PoseboneDriver):
             remains = self.sortRemains(remains, sorted, level)
             if not remains:
                 break
-        print("Sorted:")
         for key,prop,factor in sorted:
-            print("  ", key, prop, factor)
-            addMorphPropGroup(self.rig, key, prop, factor)
-
+            if addMorphPropGroup(self.rig, key, prop, factor):
+                char = "*"
+            else:
+                char = "-"
+            print("%s %s => %s" % (char, dzstrip(prop), dzstrip(key)))
         if remains:
             print("Missing:")
             for key in remains.keys():
-                printKey("-", key)        
+                print("-", dzstrip(key))        
 
 
     def sortRemains(self, others, sorted, level):

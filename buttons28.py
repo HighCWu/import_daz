@@ -727,35 +727,35 @@ class TextFile:
 #   Property groups
 #-------------------------------------------------------------
 
-class DazMorphLevel3Group(bpy.types.PropertyGroup):
+class DazMorphLevel4Group(bpy.types.PropertyGroup):
     factor : FloatProperty()
 
+class DazMorphLevel3Group(bpy.types.PropertyGroup):
+    factor : FloatProperty()
+    parts : CollectionProperty(type = DazMorphLevel4Group)
+
+    def eval(self, rig):
+        return rig[self.name] + sum([part.factor*rig[part.name] for part in self.parts])
 
 class DazMorphLevel2Group(bpy.types.PropertyGroup):
     factor : FloatProperty()
     parts : CollectionProperty(type = DazMorphLevel3Group)
 
     def eval(self, rig):
-        #print("      3:", [(part.name,part.factor) for part in self.parts])
         return rig[self.name] + sum([part.factor*rig[part.name] for part in self.parts])
-
 
 class DazMorphLevel1Group(bpy.types.PropertyGroup):
     factor : FloatProperty()
     parts : CollectionProperty(type = DazMorphLevel2Group)
 
     def eval(self, rig):
-        #print("    2:", [(part.name,part.factor) for part in self.parts])
         return rig[self.name] + sum([part.factor*part.eval(rig) for part in self.parts])
-
 
 class DazMorphPropGroup(bpy.types.PropertyGroup):
     parts : CollectionProperty(type = DazMorphLevel1Group)
 
     def eval(self, rig):
-        #print("  1:", [(part.name,part.factor) for part in self.parts])
         return max(0, min(1, rig[self.name] + sum([part.factor*part.eval(rig) for part in self.parts])))
-
 
 class DazMorphGroup(bpy.types.PropertyGroup):
     prop : StringProperty()
@@ -766,10 +766,8 @@ class DazMorphGroup(bpy.types.PropertyGroup):
     def function(self, rig):
         if self.prop in rig.DazMorphProps.keys():
             prop = rig.DazMorphProps[self.prop]
-            #print("0:", prop)
             return prop.eval(rig)
         else:
-            #print("ERRM", self.prop, list(rig.DazMorphLevel1Parts))
             return rig[self.prop]
     
     def __repr__(self):

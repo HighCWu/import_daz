@@ -284,7 +284,6 @@ class LoadMorph(PropFormulas):
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
                 prop = asset.clearProp(self.prefix, self.rig)
                 self.taken[prop] = False
-                print("CHAN", prop)
                 props = []
                 miss = True
 

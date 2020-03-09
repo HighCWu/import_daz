@@ -104,56 +104,54 @@ def removeFromPropGroup(props, prop):
 
 def addMorphGroup(rig, prop): 
     if prop not in rig.DazMorphProps.keys():
-        print("ADDMPG", rig, prop)
         pg = rig.DazMorphProps.add()
         pg.name = prop
 
 
 def addMorphPropGroup(rig, key, prop, factor):    
-    print("ADDRIG", rig, key, prop, factor)
-    print("  ", rig.DazMorphProps.keys())
-    if key in rig.DazMorphProps.keys():
-        pg = rig.DazMorphProps[key].parts.add()
-        pg.name = prop
-        pg.factor = factor   
-        print("  ADDPG", key, rig.DazMorphProps, pg)    
-    else:
-        for pg in rig.DazMorphProps.values():
-            addMorphPropPart(pg, key, prop, factor, 1)
+    success = True
+    for key1,pg in rig.DazMorphProps.items():
+        if key == key1:
+            part = pg.parts.add()
+            part.name = prop
+            part.factor = factor   
+        else:
+            success *= addMorphPropPart(pg, key, prop, factor, 1)
+    return success            
 
 def addMorphPropPart(pg, key, prop, factor, level):
-    print("ADDPART", level, pg, key, prop, factor)
     if level > 5:
         print("Recursion too deep", level)
-        return
-    if key in pg.parts.keys():
-        part = pg.parts[key].parts.add()
-        part.name = prop
-        part.factor = factor
-        print("  ADD", prop, pg, part)
-    else:        
-        for part in pg.parts.values():
-            addMorphPropPart(part, key, prop, factor, level+1)
+        return False
+    if not hasattr(pg, "parts"):
+        print("Recursion", level, key, prop)
+        return False
+    success = True
+    for key1,part in pg.parts.items():
+        if key == key1:        
+            part1 = part.parts.add()
+            part1.name = prop
+            part1.factor = factor
+        else:        
+            success *= addMorphPropPart(part, key, prop, factor, level+1)
+    return success
 
 
 def removePropFromRig(rig, prop):
-    print("REMRIG", prop, rig)
     if prop in rig.DazMorphProps.keys():
         for idx,key in enumerate(rig.DazMorphProps.keys()):
             if prop == key:
-                print("  REM", prop, rig.DazMorphProps, idx)    
                 rig.DazMorphProps.remove(idx)
                 break
-    else:
-        for pg in rig.DazMorphProps.values():
-            removePropFromGroup(pg, prop)
+    for pg in rig.DazMorphProps.values():
+        removePropFromGroup(pg, prop)
 
 def removePropFromGroup(pg, prop):
-    print("REMPG", prop, pg)
+    if not hasattr(pg, "parts"):
+        return
     if prop in pg.parts.keys():
         for idx,key in enumerate(pg.parts.keys()):
             if prop == key:
-                print("  REM", prop, pg, idx)
                 pg.parts.remove(idx)
                 break
     for part in pg.parts.values():
@@ -247,6 +245,7 @@ def updateHandler(scn):
 
 classes = [
     ImportDAZ,
+    B.DazMorphLevel4Group,
     B.DazMorphLevel3Group,
     B.DazMorphLevel2Group,
     B.DazMorphLevel1Group,
