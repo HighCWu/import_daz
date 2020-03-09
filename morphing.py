@@ -371,7 +371,6 @@ class LoadAllMorphs(LoadMorph):
                     print("*", name)
             else:
                 print("-", name)
-        print("Second pass:")
         self.buildOthers()
 
         updateDrivers(self.mesh)

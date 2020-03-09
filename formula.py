@@ -435,6 +435,7 @@ def convertDualMatrix(umat, pbDriver, pbDriven):
 
 class PoseboneDriver:
     usePropFunctions = False
+    openCodeProps = True
 
     def __init__(self, rig):
         self.rig = rig
@@ -516,7 +517,7 @@ class PoseboneDriver:
         from .daz import addSelfRef
         fcu.driver.type = 'SCRIPTED'
         if abs(value) > 1e-4:
-            if self.usePropFunctions:
+            if self.usePropFunctions and not self.openCodeProps:
                 expr = 'evalMorphFunctions(self, %d, "%s")' % (fcu.array_index, key)
             else:
                 expr = 'evalMorphs(self, %d, "%s")' % (fcu.array_index, key)
@@ -554,7 +555,7 @@ class PoseboneDriver:
         pg.prop = prop
         pg.factor = value
         pg.default = self.default    
-        if self.usePropFunctions:
+        if self.usePropFunctions and not self.openCodeProps:
             from .daz import addMorphGroup
             addMorphGroup(self.rig, prop)
 
@@ -655,7 +656,12 @@ class PropFormulas(PoseboneDriver):
             nprops[nprop] = value
         props = nprops
 
-        if self.usePropFunctions:
+        if self.openCodeProps:        
+            opencoded = {}
+            self.opencode(exprs, asset, opencoded, 0)
+            for prop,openlist in opencoded.items():
+                self.combineExpressions(openlist, prop, exprs, 1.0)        
+        elif self.usePropFunctions and not self.openCodeProps:
             self.getOthers(exprs, asset)
 
         if self.buildBoneFormulas(asset, exprs):
@@ -679,8 +685,71 @@ class PropFormulas(PoseboneDriver):
                 self.others[prop].append((key, val))
 
 
+    def opencode(self, exprs, asset, opencoded, level): 
+        from .bone import getTargetName
+        from .modifier import ChannelAsset
+        if level > 5:
+            raise DazError("Recursion too deep")
+        for bname,expr in exprs.items():    
+            bname1 = getTargetName(bname, self.rig.pose.bones)
+            if bname1 is None:
+                prop = asset.getProp(bname)
+                struct = expr["value"]
+                key = asset.getProp(struct["prop"])
+                val = struct["value"]
+                words = struct["output"].rsplit("?", 1)
+                if not (len(words) == 2 and words[1] == "value"):
+                    continue
+                url = words[0].split(":")[-1]
+                if url[0] == "#" and url[1:] == bname:
+                    print("Recursive definition:", bname, asset.selfref())
+                    continue
+                subasset = asset.getTypedAsset(url, ChannelAsset)
+                if isinstance(subasset, Formula):
+                    subexprs = {}
+                    subprops = {}
+                    subasset.evalFormulas(subexprs, subprops, self.rig, None, False)
+                    subopen = {}
+                    self.opencode(subexprs, asset, subopen, level+1)
+                    if key not in opencoded.keys():
+                        opencoded[key] = []
+                    opencoded[key].append((val,subexprs,subprops,subopen))
+    
+
+    def combineExpressions(self, openlist, prop, exprs, value):
+        from .bone import getTargetName
+        for val,subexprs,subprops,subopen in openlist:
+            value1 = val*value
+            if subopen:
+                for subprop,sublist in subopen.items():
+                    self.combineExpressions(sublist, prop, exprs, value1)
+            else:
+                for bname,subexpr in subexprs.items():
+                    bname1 = getTargetName(bname, self.rig.pose.bones)
+                    if bname1 is not None:
+                        self.addValue("translation", bname1, prop, exprs, subexpr, value1)
+                        self.addValue("rotation", bname1, prop, exprs, subexpr, value1)
+                        self.addValue("scale", bname1, prop, exprs, subexpr, value1)
+                        self.addValue("general_scale", bname1, prop, exprs, subexpr, value1)
+
+
+    def addValue(self, slot, bname, prop, exprs, subexpr, value):
+        if slot not in subexpr.keys():
+            return    
+        delta = value * subexpr[slot]["value"]
+        if bname in exprs.keys():
+            expr = exprs[bname]
+        else:
+            expr = exprs[bname] = {}
+        if slot in expr.keys():
+            expr[slot]["value"] += delta
+        else:
+            expr[slot] = {"value" : delta, "prop" : prop}
+        
+
     def buildOthers(self):
         from .daz import addMorphPropGroup
+        print("Second pass:")
         remains = self.others
         sorted = []
         for level in range(1,5):
@@ -716,7 +785,7 @@ class PropFormulas(PoseboneDriver):
         from .transform import Transform
 
         success = False    
-        prop,self.default = asset.initProp(None)    
+        prop,self.default = asset.initProp(None)  
         for bname,expr in exprs.items():
             if self.rig.data.DazExtraFaceBones or self.rig.data.DazExtraDrivenBones:
                 dname = bname + "Drv"
