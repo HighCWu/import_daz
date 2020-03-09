@@ -513,7 +513,7 @@ class PoseboneDriver:
 
     def addCustomDriver(self, fcu, pb, init, value, prop, key):
         from .driver import addTransformVar, driverHasVar
-        from .daz import addMorphGroup, addSelfRef
+        from .daz import addSelfRef
         fcu.driver.type = 'SCRIPTED'
         if abs(value) > 1e-4:
             if self.usePropFunctions:
@@ -533,11 +533,31 @@ class PoseboneDriver:
                     fcu.driver.expression = drvexpr + "+" + expr
             fcu.driver.use_self = True
             addSelfRef(self.rig, pb)
-            addMorphGroup(pb, fcu.array_index, key, prop, value, self.default)
+            self.addMorphGroup(pb, fcu.array_index, key, prop, value)
             if len(fcu.modifiers) > 0:
                 fmod = fcu.modifiers[0]
                 fcu.modifiers.remove(fmod)
-    
+
+
+    def clearProp(self, props, prop, idx):
+        for n,pg in enumerate(props):
+            if pg.prop == prop and pg.index == idx:
+                props.remove(n)
+                return
+
+
+    def addMorphGroup(self, pb, idx, key, prop, value):
+        props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
+        self.clearProp(props, prop, idx)
+        pg = props.add()
+        pg.index = idx
+        pg.prop = prop
+        pg.factor = value
+        pg.default = self.default    
+        if self.usePropFunctions:
+            from .daz import addMorphGroup
+            addMorphGroup(self.rig, prop)
+
 
     def addError(self, err, prop, pb):
         if err not in self.errors.keys():
@@ -597,6 +617,13 @@ class PoseboneDriver:
 #-------------------------------------------------------------
 #   class PropFormulas
 #-------------------------------------------------------------
+
+def printKey(char, key):                
+    if key[0:2] == "Dz":
+        print(char, key[3:])
+    else:
+        print(char, key)
+
         
 class PropFormulas(PoseboneDriver):
     prefix = ""
@@ -604,9 +631,9 @@ class PropFormulas(PoseboneDriver):
     def __init__(self, rig):
         PoseboneDriver.__init__(self, rig)
         self.others = {}
-        self.level = {}
+        self.taken = {}
 
-    
+
     def buildPropFormula(self, asset, filepath):
         self.filepath = filepath
         exprs = {}
@@ -623,7 +650,7 @@ class PropFormulas(PoseboneDriver):
         for prop in props.keys():
             nprop = asset.getProp(prop)
             if nprop not in self.rig.keys():
-                asset.clearProp(nprop)
+                asset.initProp(nprop)
         
         nprops = {}
         for prop,value in props.items():
@@ -642,75 +669,56 @@ class PropFormulas(PoseboneDriver):
     
     def getOthers(self, exprs, asset): 
         from .bone import getTargetName
-        props = []
-        props2 = []
-        bottom = False
         for bname,expr in exprs.items():    
             bname1 = getTargetName(bname, self.rig.pose.bones)
-            if bname1:
-                bottom = True
-            else:
-                prop = asset.getProp(bname)
+            prop = asset.getProp(bname)
+            if bname1 is None:
+                self.taken[prop] = False
                 struct = expr["value"]
                 key = asset.getProp(struct["prop"])
                 val = struct["value"]
                 if prop not in self.others.keys():
                     self.others[prop] = []
                 self.others[prop].append((key, val))
-                props.append(prop)
-                props2.append(key)
-
-        if bottom:
-            for prop in props:
-                self.level[prop] = 1
-        else:                
-            for prop in props+props2:
-                if prop not in self.level.keys():
-                    self.level[prop] = None
 
 
     def buildOthers(self):
-        lkeys = list(self.level.keys())
-        lkeys.sort()
-        print("BOT", lkeys)
-        tree = []
-        self.pgroups = {}
-        self.buildOtherLevel(1, tree)
-        unassigned = [prop for prop,level in self.level.items() if level is None]
-        if unassigned:
-            print("Unassigned properties: %s" % unassigned)
-        
-        
-    def buildOtherLevel(self, level, tree):        
         from .daz import addMorphPropGroup
-        print("LVL", level)
-        if level >= 4:
-            print("Level too deep", level, tree)
-        for key,data in self.others.items():
-            if self.level[key] == level:
-                print("  K", key)
-                newtree = tree + [key]
-                for prop,value in data:
-                    if prop not in self.level.keys() or self.level[prop] is None:
-                        self.level[prop] = level+1
-                    print("   P", prop, value, self.level[prop])
-                    if self.level[prop] == level+1:                    
-                        addMorphPropGroup(self.rig, newtree, prop, value, self.pgroups)
-                        self.buildOtherLevel(level+1, newtree)
-                    else:
-                        print("BUG LEVEL", self.level[prop], level+1)
-                if key[0:2] == "Dz":
-                    print("*", key[3:])
+        remains = self.others
+        sorted = []
+        for level in range(1,5):
+            remains = self.sortRemains(remains, sorted, level)
+            if not remains:
+                break
+        print("Sorted:")
+        for key,prop,factor in sorted:
+            print("  ", key, prop, factor)
+            addMorphPropGroup(self.rig, key, prop, factor)
+
+        if remains:
+            print("Missing:")
+            for key in remains.keys():
+                printKey("-", key)        
+
+
+    def sortRemains(self, others, sorted, level):
+        remains = {}
+        for key,data in others.items():
+            for prop,factor in data:
+                if self.taken[key]:
+                    sorted.append((key,prop,factor))
+                    self.taken[prop] = True
                 else:
-                    print("*", key)
-                   
+                    remains[key] = data
+        return remains
+                           
 
     def buildBoneFormulas(self, asset, exprs):            
         from .bone import getTargetName
         from .transform import Transform
 
         success = False    
-        self.default = asset.clearProp(None)    
+        prop,self.default = asset.initProp(None)    
         for bname,expr in exprs.items():
             if self.rig.data.DazExtraFaceBones or self.rig.data.DazExtraDrivenBones:
                 dname = bname + "Drv"
@@ -720,7 +728,8 @@ class PropFormulas(PoseboneDriver):
             bname = getTargetName(bname, self.rig.pose.bones)
             if bname is None:
                 continue
-        
+            self.taken[prop] = True
+            
             pb = self.rig.pose.bones[bname]
             tfm = Transform()
             nonzero = False

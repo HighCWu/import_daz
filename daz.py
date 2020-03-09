@@ -102,64 +102,62 @@ def removeFromPropGroup(props, prop):
         clearProp(props, prop, idx)
 
 
-def clearProp(props, prop, idx):
-    for n,pg in enumerate(props):
-        if pg.prop == prop and pg.index == idx:
-            props.remove(n)
-            return
-
-
-def addMorphGroup(pb, idx, key, prop, value, default):
-    props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
-    clearProp(props, prop, idx)
-    pg = props.add()
-    pg.index = idx
-    pg.prop = prop
-    pg.factor = value
-    pg.default = default
-
-
-def addMorphPropGroup(rig, tree, prop, value, pgroups):    
-    key = tree[0]
-    level = 1
-    if key in rig.DazMorphProps.keys():
-        pg = rig.DazMorphProps[key]
-        print("OLD PG", pg)
-    else:
+def addMorphGroup(rig, prop): 
+    if prop not in rig.DazMorphProps.keys():
+        print("ADDMPG", rig, prop)
         pg = rig.DazMorphProps.add()
-        pg.name = key
-        print("NEW PG", pg)
-        pgroups[key] = pg
+        pg.name = prop
 
-    for key in tree[1:]:
-        if key in pg.parts.keys():
-            part = pg.parts[key]
-            print("OLD PG", level, part)
-        elif False and key in pgroups.keys():
-            part = pgroups[key]
-            print("USED PG", level, prop, part)
-            pg.parts[key] = part
-        else:
-            part = pg.parts.add()
-            part.name = key
-            print("NEW PG", level, part)
-            pgroups[key] = part
-        level += 1
-        pg = part
-        
-    if prop in pg.parts.keys():
-        part = pg.parts[prop]
-        print("OLD PART", part)
-    elif False and prop in pgroups.keys():
-        part = pgroups[prop]
-        print("USED PART", prop, part)
-        pg.parts[prop] = part
+
+def addMorphPropGroup(rig, key, prop, factor):    
+    print("ADDRIG", rig, key, prop, factor)
+    print("  ", rig.DazMorphProps.keys())
+    if key in rig.DazMorphProps.keys():
+        pg = rig.DazMorphProps[key].parts.add()
+        pg.name = prop
+        pg.factor = factor   
+        print("  ADDPG", key, rig.DazMorphProps, pg)    
     else:
-        part = pg.parts.add()
+        for pg in rig.DazMorphProps.values():
+            addMorphPropPart(pg, key, prop, factor, 1)
+
+def addMorphPropPart(pg, key, prop, factor, level):
+    print("ADDPART", level, pg, key, prop, factor)
+    if level > 5:
+        print("Recursion too deep", level)
+        return
+    if key in pg.parts.keys():
+        part = pg.parts[key].parts.add()
         part.name = prop
-        print("NEW PART", part)
-        pgroups[prop] = part
-    part.factor = value
+        part.factor = factor
+        print("  ADD", prop, pg, part)
+    else:        
+        for part in pg.parts.values():
+            addMorphPropPart(part, key, prop, factor, level+1)
+
+
+def removePropFromRig(rig, prop):
+    print("REMRIG", prop, rig)
+    if prop in rig.DazMorphProps.keys():
+        for idx,key in enumerate(rig.DazMorphProps.keys()):
+            if prop == key:
+                print("  REM", prop, rig.DazMorphProps, idx)    
+                rig.DazMorphProps.remove(idx)
+                break
+    else:
+        for pg in rig.DazMorphProps.values():
+            removePropFromGroup(pg, prop)
+
+def removePropFromGroup(pg, prop):
+    print("REMPG", prop, pg)
+    if prop in pg.parts.keys():
+        for idx,key in enumerate(pg.parts.keys()):
+            if prop == key:
+                print("  REM", prop, pg, idx)
+                pg.parts.remove(idx)
+                break
+    for part in pg.parts.values():
+        removePropFromGroup(part, prop)
 
 
 def getNewItem(collProp, key):

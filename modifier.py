@@ -245,7 +245,7 @@ class ChannelAsset(Modifier):
         return self.prefix+prop0
         
 
-    def clearProp(self, prop):
+    def initProp(self, prop):
         from .driver import setFloatProp, setBoolProp    
         if prop is None:
             prop = self.getProp(self.prop)
@@ -258,7 +258,15 @@ class ChannelAsset(Modifier):
             min = max = None
         setFloatProp(self.rig, prop, value, min=min, max=max)
         setBoolProp(self.rig, "DzA"+prop, True)
-        return value
+        return prop,value
+
+
+    def clearProp(self, prefix, rig):
+        from .daz import removePropFromRig
+        self.setupPropmap([], prefix, rig)
+        prop,_value = self.initProp(None)
+        removePropFromRig(rig, prop)
+        return prop
             
 
 class Alias(ChannelAsset):

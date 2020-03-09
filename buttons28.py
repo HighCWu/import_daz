@@ -750,7 +750,6 @@ class DazMorphLevel1Group(bpy.types.PropertyGroup):
 
 
 class DazMorphPropGroup(bpy.types.PropertyGroup):
-    factor : FloatProperty()
     parts : CollectionProperty(type = DazMorphLevel1Group)
 
     def eval(self, rig):

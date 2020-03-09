@@ -278,9 +278,13 @@ class LoadMorph(PropFormulas):
                     if not success:
                         miss = True
                 if not self.useShapekeysOnly:
+                    prop = asset.clearProp(self.prefix, self.rig)
+                    self.taken[prop] = False
                     props = self.buildPropFormula(asset, filepath)
-                    props = list(props)
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
+                prop = asset.clearProp(self.prefix, self.rig)
+                self.taken[prop] = False
+                print("CHAN", prop)
                 props = []
                 miss = True
 
