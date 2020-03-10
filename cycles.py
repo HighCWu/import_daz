@@ -592,8 +592,7 @@ class CyclesTree(FromCycles):
         ior = 1.1 + 0.7*value
         self.dualLobe.inputs["IOR"].default_value = ior
         if tex:
-            iortex = self.multiplyScalarTex(0.7, tex)
-            iortex = self.addScalarTex(1.1, iortex)
+            iortex = self.multiplyAddScalarTex(0.7*value, 1.1, tex)
             self.links.new(iortex.outputs[0], self.dualLobe.inputs["IOR"])
 
         value,tex = self.getColorTex(["Specular Lobe 1 Roughness"], "NONE", 0.0, False)
@@ -662,8 +661,7 @@ class CyclesTree(FromCycles):
                 factor = 0.7 * averageColor(color) / 0.078
             ior = 1.1 + factor
             if tex:
-                tex = self.multiplyScalarTex(factor, tex)
-                iortex = self.addScalarTex(1.1, tex)
+                iortex = self.multiplyAddScalarTex(factor, 1.1, tex)
         return ior, iortex
 
 
@@ -1260,6 +1258,28 @@ class CyclesTree(FromCycles):
         if tex:
             self.links.new(tex.outputs[0], add.inputs[1])
         return add
+
+
+    def multiplyAddScalarTex(self, factor, term, tex, col=3, slot=0):
+        mult = self.addNode(col, "ShaderNodeMath")   
+        try:
+            mult.operation = 'MULTIPLY_ADD'        
+            ok = True
+        except TypeError:
+            ok = False
+        if ok:
+            self.links.new(tex.outputs[slot], mult.inputs[0])
+            mult.inputs[1].default_value = factor
+            mult.inputs[2].default_value = term
+            return mult
+        else:
+            mult.operation = 'MULTIPLY'
+            self.links.new(tex.outputs[slot], mult.inputs[0])
+            mult.inputs[1].default_value = factor
+            add = self.addNode(col+1, "ShaderNodeMath")       
+            add.operation = 'ADD'
+            self.links.new(mult.outputs[slot], add.inputs[0])
+            return add
 
 
 def isEyeMaterial(mat):
