@@ -434,9 +434,6 @@ def convertDualMatrix(umat, pbDriver, pbDriven):
 #-------------------------------------------------------------
 
 class PoseboneDriver:
-    usePropFunctions = False
-    openCodeProps = True
-
     def __init__(self, rig):
         self.rig = rig
         self.errors = {}
@@ -517,10 +514,7 @@ class PoseboneDriver:
         from .daz import addSelfRef
         fcu.driver.type = 'SCRIPTED'
         if abs(value) > 1e-4:
-            if self.usePropFunctions and not self.openCodeProps:
-                expr = 'evalMorphFunctions(self, %d, "%s")' % (fcu.array_index, key)
-            else:
-                expr = 'evalMorphs(self, %d, "%s")' % (fcu.array_index, key)
+            expr = 'evalMorphs(self, %d, "%s")' % (fcu.array_index, key)
             drvexpr = fcu.driver.expression[len(init):]
             if drvexpr in ["0.000", "-0.000"]:
                 if init:
@@ -555,9 +549,6 @@ class PoseboneDriver:
         pg.prop = prop
         pg.factor = value
         pg.default = self.default    
-        if self.usePropFunctions and not self.openCodeProps:
-            from .daz import addMorphGroup
-            addMorphGroup(self.rig, prop)
 
 
     def addError(self, err, prop, pb):
@@ -656,13 +647,11 @@ class PropFormulas(PoseboneDriver):
             nprops[nprop] = value
         props = nprops
 
-        if self.openCodeProps:        
-            opencoded = {}
-            self.opencode(exprs, asset, opencoded, 0)
-            for prop,openlist in opencoded.items():
-                self.combineExpressions(openlist, prop, exprs, 1.0)        
-        elif self.usePropFunctions and not self.openCodeProps:
-            self.getOthers(exprs, asset)
+        opencoded = {}
+        self.opencode(exprs, asset, opencoded, 0)
+        for prop,openlist in opencoded.items():
+            self.combineExpressions(openlist, prop, exprs, 1.0)        
+        self.getOthers(exprs, asset)
 
         if self.buildBoneFormulas(asset, exprs):
             return props
@@ -748,7 +737,6 @@ class PropFormulas(PoseboneDriver):
         
 
     def buildOthers(self):
-        from .daz import addMorphPropGroup
         print("Second pass:")
         remains = self.others
         sorted = []
@@ -757,7 +745,7 @@ class PropFormulas(PoseboneDriver):
             if not remains:
                 break
         for key,prop,factor in sorted:
-            if addMorphPropGroup(self.rig, key, prop, factor):
+            if False:
                 char = "*"
             else:
                 char = "-"

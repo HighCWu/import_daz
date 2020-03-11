@@ -85,12 +85,6 @@ def evalMorphs(pb, idx, key):
     return sum([pg.factor*(rig[pg.prop]-pg.default) for pg in props if pg.index == idx])
 
 
-def evalMorphFunctions(pb, idx, key):
-    rig = pb.constraints[0].target
-    props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
-    return sum([pg.factor*(pg.function(rig)-pg.default) for pg in props if pg.index == idx])
-
-
 def hasSelfRef(pb):
     return (pb.constraints and
             pb.constraints[0].name == "Do Not Touch")
@@ -100,62 +94,6 @@ def removeFromPropGroup(props, prop):
     n = len(props)
     for idx in range(4):
         clearProp(props, prop, idx)
-
-
-def addMorphGroup(rig, prop): 
-    if prop not in rig.DazMorphProps.keys():
-        pg = rig.DazMorphProps.add()
-        pg.name = prop
-
-
-def addMorphPropGroup(rig, key, prop, factor):    
-    success = True
-    for key1,pg in rig.DazMorphProps.items():
-        if key == key1:
-            part = pg.parts.add()
-            part.name = prop
-            part.factor = factor   
-        else:
-            success *= addMorphPropPart(pg, key, prop, factor, 1)
-    return success            
-
-def addMorphPropPart(pg, key, prop, factor, level):
-    if level > 5:
-        print("Recursion too deep", level)
-        return False
-    if not hasattr(pg, "parts"):
-        print("Recursion", level, key, prop)
-        return False
-    success = True
-    for key1,part in pg.parts.items():
-        if key == key1:        
-            part1 = part.parts.add()
-            part1.name = prop
-            part1.factor = factor
-        else:        
-            success *= addMorphPropPart(part, key, prop, factor, level+1)
-    return success
-
-
-def removePropFromRig(rig, prop):
-    if prop in rig.DazMorphProps.keys():
-        for idx,key in enumerate(rig.DazMorphProps.keys()):
-            if prop == key:
-                rig.DazMorphProps.remove(idx)
-                break
-    for pg in rig.DazMorphProps.values():
-        removePropFromGroup(pg, prop)
-
-def removePropFromGroup(pg, prop):
-    if not hasattr(pg, "parts"):
-        return
-    if prop in pg.parts.keys():
-        for idx,key in enumerate(pg.parts.keys()):
-            if prop == key:
-                pg.parts.remove(idx)
-                break
-    for part in pg.parts.values():
-        removePropFromGroup(part, prop)
 
 
 def getNewItem(collProp, key):
@@ -238,18 +176,12 @@ from bpy.app.handlers import persistent
 
 @persistent
 def updateHandler(scn):
-    global evalMorphs, evalMorphFunctions
+    global evalMorphs
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
-    bpy.app.driver_namespace["evalMorphFunctions"] = evalMorphFunctions
 
 
 classes = [
     ImportDAZ,
-    B.DazMorphLevel4Group,
-    B.DazMorphLevel3Group,
-    B.DazMorphLevel2Group,
-    B.DazMorphLevel1Group,
-    B.DazMorphPropGroup,
     B.DazMorphGroup,
     B.DazFormula,
     B.DazStringGroup,
@@ -468,10 +400,8 @@ def initialize():
     bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = B.DazMorphGroup)
     bpy.types.Object.DazFormulas = CollectionProperty(type = B.DazFormula)
     bpy.types.Object.DazHiddenProps = CollectionProperty(type = B.DazStringGroup)
-    bpy.types.Object.DazMorphProps = CollectionProperty(type = B.DazMorphPropGroup)
 
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
-    bpy.app.driver_namespace["evalMorphFunctions"] = evalMorphFunctions
     bpy.app.handlers.load_post.append(updateHandler)
 
 

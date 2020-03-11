@@ -589,8 +589,7 @@ class CyclesTree(FromCycles):
                 self.links.new(wttex.outputs[0], self.dualLobe.inputs["Weight"])
 
         value,tex = self.getColorTex(["Dual Lobe Specular Reflectivity"], "NONE", 0.5, False)
-        ior = 1.1 + 0.7*value
-        self.dualLobe.inputs["IOR"].default_value = ior
+        self.dualLobe.inputs["IOR"].default_value = 1.1 + 0.7*value
         if tex:
             iortex = self.multiplyAddScalarTex(0.7*value, 1.1, tex)
             self.links.new(iortex.outputs[0], self.dualLobe.inputs["IOR"])

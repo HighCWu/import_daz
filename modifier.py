@@ -262,10 +262,8 @@ class ChannelAsset(Modifier):
 
 
     def clearProp(self, prefix, rig):
-        from .daz import removePropFromRig
         self.setupPropmap([], prefix, rig)
         prop,_value = self.initProp(None)
-        removePropFromRig(rig, prop)
         return prop
             
 
