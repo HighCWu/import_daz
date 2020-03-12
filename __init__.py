@@ -106,8 +106,10 @@ class DAZ_PT_Setup(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowCorrections")
-        if scn.DazShowCorrections:
+        if not scn.DazShowCorrections:
+            box.prop(scn, "DazShowCorrections", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowCorrections", icon="DOWNARROW_HLT", emboss=False)
             box.operator("daz.merge_rigs")
             box.operator("daz.merge_toes")
             box.operator("daz.add_extra_face_bones")
@@ -116,8 +118,10 @@ class DAZ_PT_Setup(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowMaterials")
-        if scn.DazShowMaterials:
+        if not scn.DazShowMaterials:
+            box.prop(scn, "DazShowMaterials", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowMaterials", icon="DOWNARROW_HLT", emboss=False)
             box.operator("daz.save_local_textures")
             box.operator("daz.resize_textures")
             box.operator("daz.change_resolution")
@@ -144,8 +148,10 @@ class DAZ_PT_Setup(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowMorphs")
-        if scn.DazShowMorphs:
+        if not scn.DazShowMorphs:
+            box.prop(scn, "DazShowMorphs", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowMorphs", icon="DOWNARROW_HLT", emboss=False)
             from .morphing import theMorphNames
             if theMorphNames:
                 self.morphSection(box, scn, ob)
@@ -163,8 +169,10 @@ class DAZ_PT_Setup(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowFinish")
-        if scn.DazShowFinish:
+        if not scn.DazShowFinish:
+            box.prop(scn, "DazShowFinish", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowFinish", icon="DOWNARROW_HLT", emboss=False)
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.set_udims")
             box.operator("daz.merge_anatomy")
@@ -243,8 +251,10 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout = self.layout
 
         box = layout.box()
-        box.prop(scn, "DazShowLowpoly")
-        if scn.DazShowLowpoly:
+        if not scn.DazShowLowpoly:
+            box.prop(scn, "DazShowLowpoly", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowLowpoly", icon="DOWNARROW_HLT", emboss=False)
             box.operator("daz.print_statistics")
             box.separator()
             box.operator("daz.apply_morphs")
@@ -264,8 +274,10 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowVisibility")
-        if scn.DazShowVisibility:
+        if not scn.DazShowVisibility:
+            box.prop(scn, "DazShowVisibility", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowVisibility", icon="DOWNARROW_HLT", emboss=False)
             box.operator("daz.create_all_masks")
             box.operator("daz.create_selected_masks")
             box.operator("daz.add_hide_drivers")
@@ -278,8 +290,10 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowMesh")
-        if scn.DazShowMesh:
+        if not scn.DazShowMesh:
+            box.prop(scn, "DazShowMesh", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowMesh", icon="DOWNARROW_HLT", emboss=False)
             box.operator("daz.fit_mesh_to_other")
             box.operator("daz.find_seams")
             box.operator("daz.prune_vertex_groups")
@@ -288,8 +302,10 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowRigging")
-        if scn.DazShowRigging:
+        if not scn.DazShowRigging:
+            box.prop(scn, "DazShowRigging", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowRigging", icon="DOWNARROW_HLT", emboss=False)
             box.operator("daz.convert_rig")
             box.separator()
             box.operator("daz.apply_rest_pose")
@@ -313,8 +329,10 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowAdvancedMorph")
-        if scn.DazShowAdvancedMorph:
+        if not scn.DazShowAdvancedMorph:
+            box.prop(scn, "DazShowAdvancedMorph", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowAdvancedMorph", icon="DOWNARROW_HLT", emboss=False)
             sname = "None"
             if ob and ob.type == 'MESH':
                 skey = ob.active_shape_key
@@ -339,16 +357,20 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         if scn.DazUseHidden:
             layout.separator()
             box = layout.box()
-            box.prop(scn, "DazShowMaterials")
-            if scn.DazShowMaterials:
+            if not scn.DazShowMaterials:
+                box.prop(scn, "DazShowMaterials", icon="RIGHTARROW", emboss=False)
+            else:
+                box.prop(scn, "DazShowMaterials", icon="DOWNARROW_HLT", emboss=False)
                 box.operator("daz.share_materials")
                 box.operator("daz.share_meshes")
                 box.prop(scn, "DazShareThreshold")
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowHair")
-        if scn.DazShowHair:
+        if not scn.DazShowHair:
+            box.prop(scn, "DazShowHair", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowHair", icon="DOWNARROW_HLT", emboss=False)
             from .hair import getHairAndHuman
             box.operator("daz.make_hair")
             hair,hum = getHairAndHuman(context, False)
@@ -372,8 +394,10 @@ class DAZ_PT_Settings(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowSettings")
-        if scn.DazShowSettings:
+        if not scn.DazShowSettings:
+            box.prop(scn, "DazShowSettings", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowSettings", icon="DOWNARROW_HLT", emboss=False)
             box.operator("daz.load_factory_settings")
             box.operator("daz.save_default_settings")
             box.operator("daz.load_default_settings")
@@ -382,8 +406,10 @@ class DAZ_PT_Settings(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowPaths")
-        if scn.DazShowPaths:
+        if not scn.DazShowPaths:
+            box.prop(scn, "DazShowPaths", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowPaths", icon="DOWNARROW_HLT", emboss=False)
             box.prop(scn, "DazNumPaths")
             for n in range(scn.DazNumPaths):
                 box.prop(scn, "DazPath%d" % (n+1), text="")
@@ -392,8 +418,10 @@ class DAZ_PT_Settings(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowGeneral")
-        if scn.DazShowGeneral:
+        if not scn.DazShowGeneral:
+            box.prop(scn, "DazShowGeneral", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowGeneral", icon="DOWNARROW_HLT", emboss=False)
             box.prop(scn, "DazUseHidden")
             box.prop(scn, "DazVerbosity")
             box.separator()
@@ -411,8 +439,10 @@ class DAZ_PT_Settings(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowRiggingSettings")
-        if scn.DazShowRiggingSettings:
+        if not scn.DazShowRiggingSettings:
+            box.prop(scn, "DazShowRiggingSettings", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowRiggingSettings", icon="DOWNARROW_HLT", emboss=False)
             box.prop(scn, "DazAddFaceDrivers")
             box.prop(scn, "DazUseLockRot")
             box.prop(scn, "DazUseLockLoc")
@@ -423,8 +453,10 @@ class DAZ_PT_Settings(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.prop(scn, "DazShowMaterialSettings")
-        if scn.DazShowMaterialSettings:
+        if not scn.DazShowMaterialSettings:
+            box.prop(scn, "DazShowMaterialSettings", icon="RIGHTARROW", emboss=False)
+        else:
+            box.prop(scn, "DazShowMaterialSettings", icon="DOWNARROW_HLT", emboss=False)
             box.prop(scn, "DazChooseColors")
             box.prop(scn, "DazMergeShells")
             box.prop(scn, "DazMaxBump")
@@ -771,9 +803,10 @@ class DAZ_PT_Custom:
             else:
                 path = '["%s"]' % prop
                 value = ob[prop]
-            box.prop(ob, path, text=cat.name)
             if not value:
+                box.prop(ob, path, text=cat.name, icon="RIGHTARROW", emboss=False)
                 continue
+            box.prop(ob, path, text=cat.name, icon="DOWNARROW_HLT", emboss=False)
             for morph in cat.morphs:
                 if morph.prop in ob.keys():
                     row = utils.splitLayout(box, 0.8)
