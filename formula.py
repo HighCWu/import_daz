@@ -528,7 +528,7 @@ class PoseboneDriver:
                     fcu.driver.expression = drvexpr + "+" + expr
             fcu.driver.use_self = True
             addSelfRef(self.rig, pb)
-            self.addMorphGroup(pb, fcu.array_index, key, prop, value)
+            self.addMorphGroup(pb, fcu.array_index, key, prop, value, self.default)
             if len(fcu.modifiers) > 0:
                 fmod = fcu.modifiers[0]
                 fcu.modifiers.remove(fmod)
@@ -541,14 +541,15 @@ class PoseboneDriver:
                 return
 
 
-    def addMorphGroup(self, pb, idx, key, prop, value):
+    def addMorphGroup(self, pb, idx, key, prop, value, default):
         props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
         self.clearProp(props, prop, idx)
         pg = props.add()
+        pg.name = prop
         pg.index = idx
         pg.prop = prop
         pg.factor = value
-        pg.default = self.default    
+        pg.default = default    
 
 
     def addError(self, err, prop, pb):
@@ -691,7 +692,7 @@ class PropFormulas(PoseboneDriver):
                     continue
                 url = words[0].split(":")[-1]
                 if url[0] == "#" and url[1:] == bname:
-                    print("Recursive definition:", bname, asset.selfref())
+                    #print("Recursive definition:", bname, asset.selfref())
                     continue
                 subasset = asset.getTypedAsset(url, ChannelAsset)
                 if isinstance(subasset, Formula):
@@ -741,32 +742,58 @@ class PropFormulas(PoseboneDriver):
         remains = self.others
         sorted = []
         for level in range(1,5):
-            remains = self.sortRemains(remains, sorted, level)
+            batch, remains = self.getNextLevelMorphs(remains)
+            self.buildMorphBatch(batch)
+            for prop,_factor,_bones in batch:            
+                print(" *", dzstrip(prop))
             if not remains:
                 break
-        for key,prop,factor in sorted:
-            if False:
-                char = "*"
-            else:
-                char = "-"
-            print("%s %s => %s" % (char, dzstrip(prop), dzstrip(key)))
         if remains:
             print("Missing:")
             for key in remains.keys():
                 print("-", dzstrip(key))        
 
 
-    def sortRemains(self, others, sorted, level):
+    def getNextLevelMorphs(self, others):
         remains = {}
+        batch = []
         for key,data in others.items():
             for prop,factor in data:
-                if self.taken[key]:
-                    sorted.append((key,prop,factor))
+                if self.taken[key]:                    
+                    batch.append((prop,factor,self.getStoredMorphs(key)))
                     self.taken[prop] = True
                 else:
                     remains[key] = data
-        return remains
+        return batch, remains
                            
+
+    def getStoredMorphs(self, key):        
+        stored = {}
+        for pb in self.rig.pose.bones:
+            if not (pb.DazLocProps or pb.DazRotProps or pb.DazScaleProps):
+                continue
+            data = stored[pb.name] = {"Loc" : [], "Rot" : [], "Scale" : []}
+            for channel,pgs in [
+                ("Loc", pb.DazLocProps), 
+                ("Rot", pb.DazRotProps),
+                ("Scale", pb.DazScaleProps)]:
+                for pg in pgs:
+                    if pg.prop == key:
+                        data[channel].append((pg.index, pg.factor, pg.default))
+        return stored
+        
+
+    def buildMorphBatch(self, batch):
+        for prop,factor,bones in batch:
+            #print("\nSTO", prop, factor)
+            for pbname,data in bones.items():
+                #print("  ", pbname)
+                pb = self.rig.pose.bones[pbname]
+                for key,drvlist in data.items():
+                    for (idx, value, default) in drvlist:
+                        #print("    ", key, idx, factor*value, default)
+                        self.addMorphGroup(pb, idx, key, prop, factor*value, default)
+
 
     def buildBoneFormulas(self, asset, exprs):            
         from .bone import getTargetName

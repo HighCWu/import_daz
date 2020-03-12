@@ -117,7 +117,7 @@ def addSelfRef(rig, pb):
     cns.target = rig
     cns.mute = True
 
-
+        
 def copyPropGroups(rig1, rig2, pb2):
     if pb2.name not in rig1.pose.bones.keys():
         return
@@ -132,6 +132,7 @@ def copyPropGroups(rig1, rig2, pb2):
         ]:
         for pg1 in props1:
             pg2 = props2.add()
+            pg2.name = pg1.name
             pg2.index = pg1.index
             pg2.prop = pg1.prop
             pg2.factor = pg1.factor
@@ -157,7 +158,7 @@ def showPropGroups(rig):
                               ]:
                 print("  ", key)
                 for pg in props:
-                    print("    ", pg.index, pg.prop, pg.factor, pg.default)
+                    print("    ", pg.index, pg.name, pg.prop, pg.factor, pg.default)
 
 
 class DAZ_OT_ShowPropGroups(DazOperator, IsArmature):
