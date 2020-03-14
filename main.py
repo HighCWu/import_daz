@@ -50,12 +50,13 @@ def getMainAsset(filepath, context, btn):
     if path is None:
         raise DazError("Found no .duf file matching\n%s        " % filepath)
     filepath = path
-    print("\nLoading %s" % filepath)
+    startProgress("\nLoading %s" % filepath)
     if theSettings.fitFile:
         getFitFile(filepath)
 
     from .readfile import readDufFile
     struct = readDufFile(filepath)
+    showProgress(10, 100)
 
     print("Parsing data")
     from .files import parseAssetFile
@@ -63,9 +64,11 @@ def getMainAsset(filepath, context, btn):
     if main is None:
         msg = ("File not found:  \n%s      " % filepath)
         raise DazError(msg)
+    showProgress(20, 100)
 
     if theSettings.fitFile:
         fitToFile(filepath, main.nodes)
+    showProgress(30, 100)
 
     print("Preprocessing...")
     for asset,inst in main.nodes:
@@ -78,10 +81,24 @@ def getMainAsset(filepath, context, btn):
 
     for asset in main.materials:
         asset.build(context)
+    showProgress(50, 100)
+
+    nnodes = len(main.nodes)
+    idx = 0
     for asset,inst in main.nodes:
+        showProgress(50 + int(idx/30), 100)
+        idx += 1
         asset.build(context, inst)      # Builds armature
+    showProgress(80, 100)
+
+    nmods = len(main.modifiers)
+    idx = 0
     for asset,inst in main.modifiers:
+        showProgress(80 + int(idx/10), 100)
+        idx += 1
         asset.build(context, inst)      # Builds morphs
+    showProgress(90, 100)
+
     for asset,inst in main.nodes:
         asset.postbuild(context, inst)
     # Need to update scene before calculating object areas
