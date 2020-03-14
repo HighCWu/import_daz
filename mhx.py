@@ -1165,7 +1165,7 @@ def convert2Mhx(context):
         createBendTwists(rig, MhxBendTwists)
         fixCorrectives(rig, MhxCorrect)
     else:
-        raise DazError("Cannot convert %s to Mhx" % rig)
+        raise DazError("Cannot convert %s to Mhx" % rig.name)
 
     constrainBendTwists(rig, MhxBendTwists)
     addLongFingers(rig, FingerNames)

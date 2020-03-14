@@ -86,7 +86,7 @@ def getMainAsset(filepath, context, btn):
     nnodes = len(main.nodes)
     idx = 0
     for asset,inst in main.nodes:
-        showProgress(50 + int(idx/30), 100)
+        showProgress(50 + int(idx*30/nnodes), 100)
         idx += 1
         asset.build(context, inst)      # Builds armature
     showProgress(80, 100)
@@ -94,7 +94,7 @@ def getMainAsset(filepath, context, btn):
     nmods = len(main.modifiers)
     idx = 0
     for asset,inst in main.modifiers:
-        showProgress(80 + int(idx/10), 100)
+        showProgress(80 + int(idx*10/nmods), 100)
         idx += 1
         asset.build(context, inst)      # Builds morphs
     showProgress(90, 100)

@@ -340,8 +340,11 @@ def deleteChildren(eb, meta):
 def renameBones(rig, bones):
     bpy.ops.object.mode_set(mode='EDIT')
     for dname,rname in bones.items():
-        eb = rig.data.edit_bones[dname]
-        eb.name = rname
+        if dname in rig.data.edit_bones.keys():
+            eb = rig.data.edit_bones[dname]
+            eb.name = rname
+        else:
+            raise DazError("Did not find bone %s     " % dname)
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
