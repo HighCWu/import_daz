@@ -357,10 +357,14 @@ class LoadAllMorphs(LoadMorph):
 
         theSettings.forMorphLoad(self.mesh, scn, addDrivers)
         t1 = time.perf_counter()
-        print("\n--------------------\n%s" % self.type)
+        startProgress("\n--------------------\n%s" % self.type)
+        nfiles = len(files)
+        idx = 0
         snames = []
         missing = []
         for name,filepath in files.items():
+            showProgress(idx, nfiles)
+            idx += 1
             if hasattr(scn, "Daz"+name) and getattr(scn, "Daz"+name):
                 sname,miss = self.getSingleMorph(filepath, scn)
                 if miss:
@@ -484,12 +488,14 @@ class DAZ_OT_ImportMorph(DazOperator, LoadMorph, B.DazImageFile, B.MultiFile, B.
 
         self.errors = {}
         t1 = time.perf_counter()
-        print("\n--------------------")
+        startProgress("\n--------------------")
         snames = []
         missing = []
         paths = getMultiFiles(self, ["duf", "dsf"])
+        npaths = len(paths)
         self.suppressError = (len(paths) > 1)
-        for path in paths:
+        for idx,path in enumerate(paths):
+            showProgress(idx, npaths)
             file = os.path.basename(path)
             names,miss = self.getSingleMorph(path, scn)
             if miss:

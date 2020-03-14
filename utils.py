@@ -347,6 +347,25 @@ def hasPoseBones(rig, bnames):
             return False
     return True
 
+
+#-------------------------------------------------------------
+#   Progress
+#-------------------------------------------------------------
+
+def startProgress(string):
+    print(string)
+    wm = bpy.context.window_manager
+    wm.progress_begin(0, 100)
+
+def endProgress():
+    wm = bpy.context.window_manager
+    wm.progress_end()
+        
+def showProgress(n, total):
+    pct = (100.0*n)/total
+    wm = bpy.context.window_manager
+    wm.progress_update(int(pct))
+
 #-------------------------------------------------------------
 #   Coords
 #-------------------------------------------------------------

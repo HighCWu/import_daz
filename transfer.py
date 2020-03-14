@@ -81,7 +81,7 @@ class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
         from .driver import getShapekeyBoneDriver, getShapekeyPropDriver, copyDriver
         from .asset import setDazPaths
 
-        print("Transfer morphs %s => %s" %(hum.name, clo.name))
+        startProgress("Transfer morphs %s => %s" %(hum.name, clo.name))
         scn = context.scene
         setDazPaths(scn)
         setActiveObject(context, clo)
@@ -93,8 +93,10 @@ class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
         if hum.active_shape_key_index < 0:
             hum.active_shape_key_index = 0
         clo.active_shape_key_index = 0
+        nskeys = len(hskeys.key_blocks)
 
-        for hskey in hskeys.key_blocks[1:]:
+        for idx,hskey in enumerate(hskeys.key_blocks[1:]):
+            showProgress(idx, nskeys)
             sname = hskey.name
             if self.useActiveOnly and hskey != hum.active_shape_key:
                 continue

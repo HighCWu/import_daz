@@ -177,6 +177,13 @@ class DazOperator(bpy.types.Operator):
             self.run(context)
         except DazError:
             handleDazError(context)
+        except KeyboardInterrupt:
+            global theMessage
+            theMessage = "Keyboard interrupt"
+            bpy.ops.daz.error('INVOKE_DEFAULT')            
+        finally:
+            wm = bpy.context.window_manager
+            wm.progress_end()            
         return{'FINISHED'}    
 
 class DazPropsOperator(DazOperator):

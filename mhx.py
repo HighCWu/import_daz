@@ -797,6 +797,14 @@ MhxGizmos = {
     "knee.pt.ik.L" :    "GZM_Cube025",
     "knee.pt.ik.R" :    "GZM_Cube025",
 
+    "toe.marker.L" :     "GZM_Ball025",
+    "ball.marker.L" :    "GZM_Ball025",
+    "heel.marker.L" :    "GZM_Ball025",
+    "toe.marker.R" :     "GZM_Ball025",
+    "ball.marker.R" :    "GZM_Ball025",
+    "heel.marker.R" :    "GZM_Ball025",
+
+
     # Arm
 
     "clavicle.L" :      "GZM_Shoulder",
