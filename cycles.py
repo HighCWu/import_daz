@@ -232,6 +232,7 @@ class CyclesTree(FromCycles):
         self.refraction = None
         self.transmission = None
         self.volume = None
+        self.useCutout = False
 
 
     def __repr__(self):
@@ -872,6 +873,7 @@ class CyclesTree(FromCycles):
             alpha = self.material.getChannelValue(channel, 1.0)
             imgfile = self.material.getImageFile(channel)
             if imgfile or alpha < 1:
+                self.useCutout = True
                 node = self.addNode(3, "ShaderNodeBsdfTransparent")
                 self.material.alphaBlend(alpha, imgfile)
                 #node.inputs["Color"].default_value[0:3] = (value,value,value)
@@ -921,35 +923,46 @@ class CyclesTree(FromCycles):
                 self.addToActive(emit, 8)
 
 
+    def invertColor(self, color, tex, col):
+        inverse = (1-color[0], 1-color[1], 1-color[2])
+        if tex:
+            node = self.addNode(col, "ShaderNodeInvert")
+            self.links.new(tex.outputs[0], node.inputs["Color"])        
+        else:
+            node = None
+        return inverse, node
+
+
     def buildVolume(self):
         if (self.material.thinWalled or 
             self.material.eevee or
             theSettings.handleVolumetric != "VOLUMETRIC"):
             return
 
+        transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
+        ssscolor,ssstex = self.getColorTex(["SSS Color", "Subsurface Color"], "COLOR", BLACK)
+        
         absorb = None
-        color = self.getColor(["Transmitted Color"], BLACK)
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
-        if not (isBlack(color) or isWhite(color) or dist == 0.0):
-            color,tex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
-            density = 200/dist
+        if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
+            if transcolor == ssscolor:
+                color,tex = self.invertColor(transcolor, transtex, 6)
+            else:
+                color,tex = transcolor,transtex
             absorb = self.addNode(6, "ShaderNodeVolumeAbsorption")
-            self.linkColor(tex, absorb, color, "Color")
-            absorb.inputs["Density"].default_value = density
+            absorb.inputs["Density"].default_value = 200/dist
+            self.linkColor(tex, absorb, color, "Color")            
 
         scatter = None
-        color = self.getColor(["SSS Color", "Subsurface Color"], BLACK)
         sss = self.getValue(["SSS Amount"], 0.0)
         dist = self.getValue(["Scattering Measurement Distance"], 0.0)
-        if not (isBlack(color) or isWhite(color) or dist == 0.0):
+        if not (isBlack(ssscolor) or isWhite(ssscolor) or dist == 0.0):
+            if transcolor == ssscolor:
+                color,tex = ssscolor,ssstex
+            else:
+                color,tex = self.invertColor(ssscolor, ssstex, 6)
             scatter = self.addNode(6, "ShaderNodeVolumeScatter")
-            color,tex = self.getColorTex(["SSS Color", "Subsurface Color"], "COLOR", BLACK)
-            inverse = (1-color[0], 1-color[1], 1-color[2])
-            scatter.inputs["Color"].default_value[0:3] = inverse
-            if tex:
-                invert = self.addNode(6, "ShaderNodeInvert")
-                self.links.new(tex.outputs[0], invert.inputs["Color"])
-                self.links.new(invert.outputs[0], scatter.inputs["Color"])
+            self.linkColor(tex, scatter, color, "Color")            
             scatter.inputs["Density"].default_value = 100/dist
             scatter.inputs["Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
         elif sss > 0 and dist > 0.0:
@@ -974,7 +987,7 @@ class CyclesTree(FromCycles):
         output = self.addNode(8, "ShaderNodeOutputMaterial")
         if self.active:
             self.links.new(self.active.outputs[0], output.inputs["Surface"])
-        if self.volume:
+        if self.volume and not self.useCutout:
             self.links.new(self.volume.outputs[0], output.inputs["Volume"])
         if self.displacement:
             self.links.new(self.displacement.outputs[0], output.inputs["Displacement"])

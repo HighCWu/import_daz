@@ -85,6 +85,7 @@ class PbrTree(CyclesTree):
             alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1)
             if alpha < 1 or tex:
                 self.material.alphaBlend(alpha, tex)
+                self.useCutout = True
             self.pbr.inputs["Alpha"].default_value = alpha
             if tex:
                 self.links.new(tex.outputs[0], self.pbr.inputs["Alpha"])
