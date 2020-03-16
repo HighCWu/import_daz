@@ -940,24 +940,30 @@ class CyclesTree(FromCycles):
             return
 
         transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
-        ssscolor,ssstex = self.getColorTex(["SSS Color", "Subsurface Color"], "COLOR", BLACK)
+        sssmode = self.getValue(["SSS Mode"], 0)
+        # [ "Mono", "Chromatic" ]
+        if sssmode == 1:
+            ssscolor,ssstex = self.getColorTex(["SSS Color", "Subsurface Color"], "COLOR", BLACK)
+            equal = ( (transcolor-ssscolor).length < 0.002 )
+        else:
+            equal = False
         
         absorb = None
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
         if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
-            if transcolor == ssscolor:
+            if equal:
                 color,tex = self.invertColor(transcolor, transtex, 6)
             else:
                 color,tex = transcolor,transtex
             absorb = self.addNode(6, "ShaderNodeVolumeAbsorption")
             absorb.inputs["Density"].default_value = 200/dist
-            self.linkColor(tex, absorb, color, "Color")            
+            self.linkColor(tex, absorb, color, "Color") 
 
         scatter = None
         sss = self.getValue(["SSS Amount"], 0.0)
         dist = self.getValue(["Scattering Measurement Distance"], 0.0)
-        if not (isBlack(ssscolor) or isWhite(ssscolor) or dist == 0.0):
-            if transcolor == ssscolor:
+        if not (sssmode == 0 or isBlack(ssscolor) or isWhite(ssscolor) or dist == 0.0):
+            if equal:
                 color,tex = ssscolor,ssstex
             else:
                 color,tex = self.invertColor(ssscolor, ssstex, 6)
