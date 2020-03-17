@@ -81,10 +81,6 @@ class CyclesMaterial(Material):
             elif (self.dualLobeWeight or
                   (self.thinWalled and self.translucent)):
                 self.tree = CyclesTree(self)                
-            elif (self.getValue(["Backscattering Weight"], 0) or
-                self.getValue(["Glossy Anisotropy"], 0) or
-                self.getValue(["Top Coat Weight"], 0)):
-                self.tree = PbrTree(self)
             elif self.refractive:
                 if theSettings.handleRefractive in ['PRINCIPLED', 'GUESS']:
                     self.tree = PbrTree(self)
@@ -355,6 +351,7 @@ class CyclesTree(FromCycles):
             self.buildGlossy()
         self.buildRefraction()
         self.linkGlossy()
+        self.buildTopCoat()
         self.buildEmission()
         return self.active
 
@@ -670,7 +667,7 @@ class CyclesTree(FromCycles):
             self.links.new(self.active.outputs[0], self.dualLobe.inputs["Shader"])
             if self.glossy:
                 mix = self.addMixShader(6, 0.5, None, None, self.fresnel, self.active, self.glossy)
-                self.active = self.addMixShader(7, self.material.dualLobeWeight, None, None, None, mix, self.dualLobe)
+                self.active = self.addMixShader(6, self.material.dualLobeWeight, None, None, None, mix, self.dualLobe)
             else:
                 self.active = self.dualLobe
             return
@@ -688,7 +685,22 @@ class CyclesTree(FromCycles):
             print("No node")
             print(self.material)
             node = None
-        self.active = self.addMixShader(7, 0.5, None, None, self.fresnel, node, self.glossy)
+        self.active = self.addMixShader(6, 0.5, None, None, self.fresnel, node, self.glossy)
+
+#-------------------------------------------------------------
+#   Top Coat
+#-------------------------------------------------------------
+
+    def buildTopCoat(self):
+        topweight = self.getValue(["Top Coat Weight"], 0)
+        if topweight == 0:
+            return
+        color,tex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
+        roughness,roughtex = self.getColorTex(["Top Coat Roughness"], "NONE", 0)
+        top = self.addNode(6, "ShaderNodeBsdfGlossy")
+        self.linkColor(tex, top, color, "Color") 
+        self.linkScalar(roughtex, top, roughness, "Roughness")
+        self.mixWithActive(0.1*topweight, None, top, col=7)
 
 #-------------------------------------------------------------
 #   Translucency
