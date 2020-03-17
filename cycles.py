@@ -944,14 +944,15 @@ class CyclesTree(FromCycles):
         # [ "Mono", "Chromatic" ]
         if sssmode == 1:
             ssscolor,ssstex = self.getColorTex(["SSS Color", "Subsurface Color"], "COLOR", BLACK)
-            equal = ( (transcolor-ssscolor).length < 0.002 )
+            # https://bitbucket.org/Diffeomorphic/import-daz/issues/27/better-volumes-minor-but-important-fixes
+            switch = (transcolor[1] == 0 or ssscolor[1] == 0)
         else:
-            equal = False
+            switch = False
         
         absorb = None
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
         if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
-            if equal:
+            if switch:
                 color,tex = self.invertColor(transcolor, transtex, 6)
             else:
                 color,tex = transcolor,transtex
@@ -963,7 +964,7 @@ class CyclesTree(FromCycles):
         sss = self.getValue(["SSS Amount"], 0.0)
         dist = self.getValue(["Scattering Measurement Distance"], 0.0)
         if not (sssmode == 0 or isBlack(ssscolor) or isWhite(ssscolor) or dist == 0.0):
-            if equal:
+            if switch:
                 color,tex = ssscolor,ssstex
             else:
                 color,tex = self.invertColor(ssscolor, ssstex, 6)
