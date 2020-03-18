@@ -480,10 +480,13 @@ class CyclesTree(FromCycles):
                 bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.025)
                 bump.inputs["Distance"].default_value = (bumpmax-bumpmin) * theSettings.scale
                 self.links.new(tex.outputs[0], bump.inputs["Height"])
-                if self.normal:
-                    self.links.new(self.normal.outputs["Normal"], bump.inputs["Normal"])
+                self.linkNormal(bump)
                 self.normal = bump
 
+    def linkNormal(self, node):
+        if self.normal:
+            self.links.new(self.normal.outputs["Normal"], node.inputs["Normal"])
+    
 #-------------------------------------------------------------
 #   Diffuse and Diffuse Overlay
 #-------------------------------------------------------------
@@ -506,8 +509,7 @@ class CyclesTree(FromCycles):
             self.linkColor(tex, self.diffuse, color, "Color")
             roughness = clamp( self.getValue(["Diffuse Roughness"], scn.DazDiffuseRoughness) )
             self.addSlot(channel, self.diffuse, "Roughness", roughness, roughness, False, True)
-            if self.normal:
-                self.links.new(self.normal.outputs["Normal"], self.diffuse.inputs["Normal"])
+            self.linkNormal(self.diffuse)
 
 
     def buildOverlay(self):
@@ -523,8 +525,7 @@ class CyclesTree(FromCycles):
 
             roughness,roughtex = self.getColorTex(["Diffuse Overlay Roughness"], "NONE", 0, False)
             self.setRoughness(node, "Roughness", roughness, roughtex)
-            if self.normal:
-                self.links.new(self.normal.outputs["Normal"], node.inputs["Normal"])
+            self.linkNormal(node)
             self.mixWithActive(weight, tex, node, col=6)
 
 
@@ -601,8 +602,7 @@ class CyclesTree(FromCycles):
         fac = self.getValue(["Dual Lobe Specular Ratio"], 1.0)
         self.dualLobe.inputs["Fac"].default_value = fac
 
-        if self.normal:
-            self.links.new(self.normal.outputs["Normal"], self.dualLobe.inputs["Normal"])
+        self.linkNormal(self.dualLobe)
 
 
     def buildGlossy(self):
@@ -627,8 +627,7 @@ class CyclesTree(FromCycles):
             roughness = roughness**2
             value = value**2
         roughtex = self.addSlot(channel, self.glossy, "Roughness", roughness, value, invert, theSettings.useTextures)
-        if self.normal:
-            self.links.new(self.normal.outputs["Normal"], self.glossy.inputs["Normal"])
+        self.linkNormal(self.glossy)
 
         from .cgroup import FresnelGroup
         fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 5)
@@ -639,8 +638,7 @@ class CyclesTree(FromCycles):
             self.links.new(iortex.outputs[0], fresnel.inputs["IOR"])
         if roughtex:
             self.links.new(roughtex.outputs[0], fresnel.inputs["Roughness"])
-        if self.normal:
-            self.links.new(self.normal.outputs["Normal"], fresnel.inputs["Normal"])
+        self.linkNormal(fresnel)
         self.fresnel = fresnel
 
 
@@ -695,12 +693,14 @@ class CyclesTree(FromCycles):
         topweight = self.getValue(["Top Coat Weight"], 0)
         if topweight == 0:
             return
+        topweight,weighttex = self.getColorTex(["Top Coat Weight"], "NONE", 0)
         color,tex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
         roughness,roughtex = self.getColorTex(["Top Coat Roughness"], "NONE", 0)
         top = self.addNode(6, "ShaderNodeBsdfGlossy")
         self.linkColor(tex, top, color, "Color") 
         self.linkScalar(roughtex, top, roughness, "Roughness")
-        self.mixWithActive(0.1*topweight, None, top, col=7)
+        self.linkNormal(top)
+        self.mixWithActive(0.1*topweight, weighttex, top, col=7)
 
 #-------------------------------------------------------------
 #   Translucency
@@ -719,8 +719,7 @@ class CyclesTree(FromCycles):
         luc.inputs["Color"].default_value[0:3] = color
         if tex:
             self.links.new(tex.outputs[0], luc.inputs[0])
-        if self.normal:
-            self.links.new(self.normal.outputs["Normal"], luc.inputs["Normal"])
+        self.linkNormal(luc)
         fac,factex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         effect = self.getValue(["Base Color Effect"], 0)
         if effect == 1: # Scatter and transmit
@@ -758,8 +757,7 @@ class CyclesTree(FromCycles):
             sss.inputs["Radius"].default_value = (radius,radius,radius)
             scale = self.getValue("getChannelSSSScale", 1.0)
             sss.inputs["Scale"].default_value = scale * 0.1 * theSettings.scale
-            if self.normal:
-                self.links.new(self.normal.outputs["Normal"], sss.inputs["Normal"])             
+            self.linkNormal(sss)
             fac = clamp(wt/(1+wt))
             self.mixWithActive(wt, wttex, sss)
 
@@ -874,8 +872,7 @@ class CyclesTree(FromCycles):
                 else:
                     self.removeLink(self.fresnel, "IOR")
 
-            if self.normal:
-                self.links.new(self.normal.outputs["Normal"], node.inputs["Normal"])
+            self.linkNormal(node)
             self.refraction = node
 
 
