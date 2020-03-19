@@ -305,7 +305,7 @@ class Geometry(Asset):
                                     uv = uvs[mname]
                                     if mname in geo.materials.keys():
                                         mats = geo.materials[mname]
-                                        mats[0].shells.append((mat,uv))
+                                        mats[geonode.index].shells.append((mat,uv))
                                         mat.ignore = True
                                         # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
                                         # so they can be used to define materials assigned to the geometry in Blender.
