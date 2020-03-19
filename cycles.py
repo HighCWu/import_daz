@@ -529,7 +529,7 @@ class CyclesTree(FromCycles):
             self.mixWithActive(weight, tex, node, col=6)
 
 
-    def getColorTex(self, attr, colorSpace, default, useFactor=True, useTex=True, maxval=0):
+    def getColorTex(self, attr, colorSpace, default, useFactor=True, useTex=True, maxval=0, value=None):
         channel = self.material.getChannel(attr)
         if channel is None:
             return default,None
@@ -539,7 +539,9 @@ class CyclesTree(FromCycles):
             tex = self.addTexImageNode(channel, colorSpace)
         else:
             tex = None
-        if colorSpace == "COLOR":
+        if value is not None:
+            pass
+        elif colorSpace == "COLOR":
             value = self.material.getChannelColor(channel, default)
         else:
             value = self.material.getChannelValue(channel, default)
@@ -693,7 +695,7 @@ class CyclesTree(FromCycles):
         topweight = self.getValue(["Top Coat Weight"], 0)
         if topweight == 0:
             return
-        topweight,weighttex = self.getColorTex(["Top Coat Weight"], "NONE", 0)
+        _,weighttex = self.getColorTex(["Top Coat Weight"], "NONE", 0, value=0.1*topweight)
         color,tex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
         roughness,roughtex = self.getColorTex(["Top Coat Roughness"], "NONE", 0)
         top = self.addNode(6, "ShaderNodeBsdfGlossy")
