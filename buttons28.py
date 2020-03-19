@@ -197,7 +197,7 @@ class DazOptions:
     brightenEyes : FloatProperty(
         name = "Brighten Eyes",
         description = "Brighten eye textures with this factor\nto avoid dark eyes problem for Genesis 8",
-        default = 1.8,
+        default = 1.0,
         min = 0.1, max = 10)        
 
     fitMeshes : EnumProperty(
