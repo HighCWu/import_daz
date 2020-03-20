@@ -555,11 +555,12 @@ class Node(Asset, Formula):
         else:
             ob = bpy.data.objects.new(inst.name, self.data)
         
-        if (isinstance(self.data, Geometry) and 
-            self.data.current_subdivision_level > 0):
+        if (self.type == "subdivision_surface" and
+            isinstance(self.data, Geometry) and 
+            (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
             mod = ob.modifiers.new(name='SUBSURF', type='SUBSURF')
-            mod.render_levels = self.data.current_subdivision_level
-            mod.levels = self.data.current_subdivision_level-1
+            mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
+            mod.levels = self.data.SubDIALevel
 
         self.rna = inst.rna = ob
         ob.rotation_mode = BlenderRotMode[self.rotDaz]

@@ -171,7 +171,8 @@ class Geometry(Asset):
         self.default_uv_set = None
         self.uv_sets = OrderedDict()
         self.rigidity = []
-        self.current_subdivision_level = 0
+        self.SubDIALevel = 0
+        self.SubDRenderLevel = 0
         self.extra = []
         self.shell = {}
         self.shells = {}
@@ -206,6 +207,7 @@ class Geometry(Asset):
     def parse(self, struct):
         Asset.parse(self, struct)
 
+        print("PP", self.type)
         vdata = struct["vertices"]["values"]
         fdata = struct["polylist"]["values"]
         if theSettings.zup:
@@ -238,13 +240,24 @@ class Geometry(Asset):
             print("GROUPS", self.name)
             self.groups.append(struct["groups"])
 
+        if "extra" in struct.keys():
+            for extra in struct["extra"]:
+                if "type" not in extra.keys():
+                    pass
+                elif extra["type"] == "studio_geometry_channels":
+                    for channel in extra["channels"]:
+                        cstruct = channel["channel"]
+                        if cstruct["id"] == "SubDIALevel":
+                            self.SubDIALevel = cstruct["current_value"]
+                        elif cstruct["id"] == "SubDRenderLevel":
+                            self.SubDRenderLevel = cstruct["current_value"]
         return self
 
 
     def update(self, struct):
         Asset.update(self, struct)
-        if "current_subdivision_level" in struct.keys():
-            self.current_subdivision_level = struct["current_subdivision_level"]
+        if self.SubDIALevel == 0 and "current_subdivision_level" in struct.keys():
+            self.SubDIALevel = struct["current_subdivision_level"]
         if "extra" in struct.keys():
             self.extra = struct["extra"]
             for extra in self.extra:
