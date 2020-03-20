@@ -351,13 +351,13 @@ def getAssetFromStruct(struct, fileref):
         return None
 
 
-def getCurrentValue(struct):
+def getCurrentValue(struct, default=None):
     if "current_value" in struct.keys():
         return struct["current_value"]
     elif "value" in struct.keys():
         return struct["value"]
     else:
-        return None
+        return default
 
 
 def getExistingFile(fileref):

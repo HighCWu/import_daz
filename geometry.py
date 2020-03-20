@@ -205,9 +205,9 @@ class Geometry(Asset):
 
 
     def parse(self, struct):
+        from .asset import getCurrentValue
         Asset.parse(self, struct)
 
-        print("PP", self.type)
         vdata = struct["vertices"]["values"]
         fdata = struct["polylist"]["values"]
         if theSettings.zup:
@@ -248,9 +248,9 @@ class Geometry(Asset):
                     for channel in extra["channels"]:
                         cstruct = channel["channel"]
                         if cstruct["id"] == "SubDIALevel":
-                            self.SubDIALevel = cstruct["current_value"]
+                            self.SubDIALevel = getCurrentValue(cstruct, 0)
                         elif cstruct["id"] == "SubDRenderLevel":
-                            self.SubDRenderLevel = cstruct["current_value"]
+                            self.SubDRenderLevel = getCurrentValue(cstruct, 0)
         return self
 
 
