@@ -483,13 +483,7 @@ def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
             cset.mass = 0.05
             deflector = findDeflector(hum)
 
-        if bpy.app.version < (2,80,0):        
-            bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
-            bpy.ops.object.mode_set(mode='OBJECT')
-        else:
-            dg = context.evaluated_depsgraph_get()
-            psys = hum.evaluated_get(dg).particle_systems.active
-        
+        updateHair(context, hum)        
         for m,hair in enumerate(psys.particles):
             verts = strands[m]
             hair.location = verts[0]
@@ -500,11 +494,17 @@ def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
                 v.co = verts[n]
                 #print("  ", n, verts[n], v.co)
                 pass
-
-        if bpy.app.version >= (2,80,0):        
-            dg = context.evaluated_depsgraph_get()
-            psys = hum.evaluated_get(dg).particle_systems.active
+        updateHair(context, hum)
         setEditProperties(context, hum)    
+
+
+def updateHair(context, hum):        
+    if bpy.app.version < (2,80,0):        
+        bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+    else:
+        dg = context.evaluated_depsgraph_get()
+        psys = hum.evaluated_get(dg).particle_systems.active
 
 
 def setEditProperties(context, hum):
@@ -546,6 +546,8 @@ def getSettings(pset):
 
 def setSettings(pset, settings):
     for key,value in settings.items():
+        if key in ["use_absolute_path_time"]:
+            continue
         try:
             setattr(pset, key, value)
         except AttributeError:
@@ -625,17 +627,20 @@ class DAZ_OT_UpdateHair(DazOperator, IsHair):
     def run(self, context):
         hum = context.object
         psys0 = hum.particle_systems.active
+        idx0 = hum.particle_systems.active_index
         psettings = getSettings(psys0.settings)
         hdyn0 = psys0.use_hair_dynamics
         csettings = getSettings(psys0.cloth.settings)
-        for psys in hum.particle_systems:
-            if psys == psys0:
-                continue
-            hum.particle_systems.active = psys
+        for idx,psys in enumerate(hum.particle_systems):
+            if idx == idx0:
+                continue            
+            updateHair(context, hum)
+            hum.particle_systems.active_index = idx
             setSettings(psys.settings, psettings)
             psys.use_hair_dynamics = hdyn0
             #setSettings(psys.cloth.settings, csettings)
-        hum.particle_systems.active = psys0
+        updateHair(context, hum)
+        hum.particle_systems.active_index = idx0
 
 
 class DAZ_OT_ColorHair(DazPropsOperator, IsHair, B.ColorProp):

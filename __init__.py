@@ -376,8 +376,9 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             hair,hum = getHairAndHuman(context, False)
             box.label(text = "  Hair:  %s" % (hair.name if hair else None))
             box.label(text = "  Human: %s" % (hum.name if hum else None))
-            #box.operator("daz.update_hair")
-            #box.operator("daz.color_hair")
+            box.separator()
+            box.operator("daz.update_hair")
+            box.operator("daz.color_hair")
             #box.operator("daz.connect_hair")
 
 
