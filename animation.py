@@ -36,6 +36,7 @@ from .utils import *
 from .transform import Transform
 from .settings import theSettings
 from .globvars import theDazExtensions, thePoserExtensions, theRestPoseItems
+from .formula import PoseboneDriver
 
 
 def framesToVectors(frames):
@@ -314,10 +315,15 @@ class FrameConverter:
 #   AnimatorBase class
 #-------------------------------------------------------------
 
-class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, IsMeshArmature):
+class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, IsMeshArmature):
     lockMeshes = False
+    
+    def __init__(self):
+        pass
+        
 
     def invoke(self, context, event):
+        PoseboneDriver.__init__(self, context.object)
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
@@ -548,7 +554,6 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, IsMeshArmature):
 
     def transformBone(self, rig, bname, tfm, value, n, offset, twist):
         from .node import setBoneTransform, setBoneTwist
-        from .formula import addPoseboneDriver
         from .driver import isFaceBoneDriven
 
         pb = rig.pose.bones[bname]
@@ -567,7 +572,7 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, IsMeshArmature):
                 if not self.useGeneral:
                     tfm.noGeneral()
                 if not twist:
-                    addPoseboneDriver(rig, pb, tfm, errors)
+                    self.addPoseboneDriver(rig, pb, tfm)
             else:
                 if twist:
                     setBoneTwist(tfm, pb)
