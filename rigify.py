@@ -747,12 +747,14 @@ def createMeta(context):
 
     # Add rigify properties to spine bones
     bpy.ops.object.mode_set(mode='OBJECT')
+    disconnect = []
     for _dname,rname,_pname in spineBones:
         pb = meta.pose.bones[rname]
         if "rigify_type" in pb.keys():
-            #print("%s: %s" % (rname, pb["rigify_type"]))
+            # print("%s: %s" % (rname, pb["rigify_type"]))
             if pb["rigify_type"] == "spines.super_head":
-                pb["rigify_type"] = ""
+                disconnect.append(pb.name)
+                #pb["rigify_type"] = ""
         else:
             pb["rigify_type"] = ""
 
@@ -760,6 +762,13 @@ def createMeta(context):
         if rname in meta.pose.bones:
             pb = meta.pose.bones[rname]
             setattr(pb.rigify_parameters, prop, value)
+
+    # Disconnect bones that have to be disconnected
+    bpy.ops.object.mode_set(mode='EDIT')
+    for rname in disconnect:
+        eb = meta.data.edit_bones[rname]
+        eb.use_connect = False
+    bpy.ops.object.mode_set(mode='OBJECT')
 
     print("Metarig created")
     return meta
