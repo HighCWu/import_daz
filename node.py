@@ -121,7 +121,8 @@ class Instance(Accessor):
         node.label = None
         self.extra = node.extra
         node.extra = []
-        self.channels = []
+        self.channels = node.channels
+        node.channels = {}
         self.shell = {}
         self.instance = {}
         self.node2 = None
@@ -131,6 +132,7 @@ class Instance(Accessor):
         self.modifiers = []
         self.materials = node.materials
         node.materials = {}
+        self.material_group_vis = {}
         self.attributes = copyElements(node.attributes)
         self.previewAttrs = copyElements(node.previewAttrs)
         self.updateMatrices()
@@ -170,7 +172,7 @@ class Instance(Accessor):
 
 
     def preprocess(self, context):
-        from .bone import BoneInstance
+        from .asset import getCurrentValue
         for extra in self.extra:
             if "type" not in extra.keys():
                 continue
@@ -178,15 +180,21 @@ class Instance(Accessor):
                 self.shell = extra
             elif extra["type"] == "studio/node/instance":
                 self.instance = extra
-            elif (extra["type"] == "studio_node_channels" and
-                  "channels" in extra.keys()):
-                for data in extra["channels"]:
-                    channel = data["channel"]
-                    if channel["type"] == "node":
-                        ref = channel["node"]
-                        node = self.getAsset(ref)
-                        if node:
-                            self.node2 = node.instances[instRef(ref)]
+
+        for channel in self.channels.values(): 
+            if "type" not in channel.keys():
+                continue                   
+            elif channel["type"] == "node":
+                ref = channel["node"]
+                node = self.getAsset(ref)
+                if node:
+                    self.node2 = node.instances[instRef(ref)]
+            elif channel["type"] == "bool":
+                words = channel["id"].split("_")
+                if (words[0] == "material" and words[1] == "group" and words[-1] == "vis"):
+                    self.material_group_vis[channel["label"]] = getCurrentValue(channel)
+                elif (words[0] == "facet" and words[1] == "group" and words[-1] == "vis"):
+                    pass
 
         for geo in self.geometries:
             geo.preprocess(context, self)
@@ -207,7 +215,7 @@ class Instance(Accessor):
 
         empty = self.rna
         if self.instance:
-            for channel in self.channels:
+            for channel in self.channels.values():
                 if channel["type"] == "node":
                     inst = channel["node"]
                     ob = inst.rna

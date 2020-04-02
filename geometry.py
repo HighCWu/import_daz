@@ -250,7 +250,7 @@ class Geometry(Asset, Channels):
         if "SubDIALevel" in self.channels.keys():
             self.SubDIALevel = getCurrentValue(self.channels["SubDIALevel"], 0)
         if "SubDRenderLevel" in self.channels.keys():
-            self.SubDRenderLevel = getCurrentValue(self.channels["SubDIALevel"], 0)
+            self.SubDRenderLevel = getCurrentValue(self.channels["SubDRenderLevel"], 0)
         if self.SubDIALevel == 0 and "current_subdivision_level" in struct.keys():
             self.SubDIALevel = struct["current_subdivision_level"]
                     
@@ -282,6 +282,9 @@ class Geometry(Asset, Channels):
                             geo = geonode.data
                             for mname,shellmats in self.materials.items():
                                 mat = shellmats[0]
+                                if mname in inst.material_group_vis.keys() and not inst.material_group_vis[mname]:
+                                    continue
+                                print("SMS", mname, mat, inst.material_group_vis[mname])
                                 uv = uvs[mname]
                                 if mname in geo.materials.keys():
                                     mats = geo.materials[mname]
@@ -294,6 +297,7 @@ class Geometry(Asset, Channels):
                                     missing.append((mname,mat,uv))
 
                     for mname,mat,uv in missing:
+                        print("MISS", mname, mat, uv)
                         for key,inst3 in inst.node2.children.items():
                             n = len(key)
                             if mname[0:n] == key:
