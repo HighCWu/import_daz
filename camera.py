@@ -37,7 +37,6 @@ class Camera(Node):
         Node.__init__(self, fileref)
         self.perspective = {}
         self.orthographic = {}
-        self.channels = {}
         self.aspectRatio = 1.0
 
 
@@ -51,10 +50,6 @@ class Camera(Node):
             self.perspective = struct["perspective"]
         elif "orthographic" in struct.keys():
             self.orthographic = struct["orthographic"]
-        if "extra" in struct.keys():
-            for estruct in struct["extra"]:
-                if estruct["type"] == "studio_node_channels":
-                    self.channels = estruct["channels"]
 
 
     def postTransform(self):
@@ -121,9 +116,7 @@ class Camera(Node):
 
         camera = self.data
         camera.sensor_width = 64
-        for data in self.channels:
-            channel = data["channel"]
-            key = channel["id"]
+        for key,channel in self.channels.items():
             value = channel["current_value"]
             if key == "Lens Shift X" :
                 camera.shift_x = value * theSettings.scale

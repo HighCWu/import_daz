@@ -124,6 +124,7 @@ class Instance(Accessor):
         self.channels = []
         self.shell = {}
         self.instance = {}
+        self.node2 = None
         self.strand_hair = node.strand_hair
         node.strand_hair = None
         self.name = node.getLabel(self)
@@ -138,7 +139,7 @@ class Instance(Accessor):
 
     def __repr__(self):
         pname = (self.parent.id if self.parent else None)
-        return "<Instance %s %d N: %s P: %s R: %s>" % (self.id, self.index, self.node.name, pname, self.rna)
+        return "<Instance %s %d N: %s P: %s R: %s, E: %d>" % (self.id, self.index, self.node.name, pname, self.rna, len(self.extra))
 
 
     def getSelfId(self):
@@ -169,6 +170,7 @@ class Instance(Accessor):
 
 
     def preprocess(self, context):
+        from .bone import BoneInstance
         for extra in self.extra:
             if "type" not in extra.keys():
                 continue
@@ -177,20 +179,14 @@ class Instance(Accessor):
             elif extra["type"] == "studio/node/instance":
                 self.instance = extra
             elif (extra["type"] == "studio_node_channels" and
-                "channels" in extra.keys()):
-                for channels in extra["channels"]:
-                    if (isinstance(channels, dict) and
-                        "channel" in channels.keys()):
-                        channel = channels["channel"]
-                        self.channels.append(channel)
-                        if channel["type"] == "node":
-                            ref = channel["node"]
-                            node = self.getAsset(ref)
-                            if node:
-                                inst = node.instances[instRef(ref)]
-                            else:
-                                inst = None
-                            channel["node"] = inst
+                  "channels" in extra.keys()):
+                for data in extra["channels"]:
+                    channel = data["channel"]
+                    if channel["type"] == "node":
+                        ref = channel["node"]
+                        node = self.getAsset(ref)
+                        if node:
+                            self.node2 = node.instances[instRef(ref)]
 
         for geo in self.geometries:
             geo.preprocess(context, self)
@@ -367,15 +363,15 @@ def printExtra(self, name):
 #   Node
 #-------------------------------------------------------------
 
-class Node(Asset, Formula):
+class Node(Asset, Formula, Channels):
 
     def __init__(self, fileref):
         Asset.__init__(self, fileref)
         Formula.__init__(self)
+        Channels.__init__(self)
         self.instances = {}
         self.count = 0
         self.data = None
-        self.extra = []
         self.geometries = []
         self.materials = {}
         self.strand_hair = None
@@ -447,27 +443,28 @@ class Node(Asset, Formula):
 
     def parse(self, struct):
         Asset.parse(self, struct)
+        Channels.parse(self, struct)
 
-        for channel,data in struct.items():
-            if channel == "formulas":
+        for key,data in struct.items():
+            if key == "formulas":
                 self.formulas = data
-            elif channel == "inherits_scale":
+            elif key == "inherits_scale":
                 self.inherits_scale = data
-            elif channel == "rotation_order":
+            elif key == "rotation_order":
                 self.rotDaz = data
-            elif channel == "extra":
-                self.extra = data
-                for extra in data:
-                    if extra["type"] == "studio/node/strand_hair":
-                        self.strand_hair = extra["data"]
-                        print("STRAND")
-            elif channel in self.attributes.keys():
-                self.setAttribute(channel, data)
+            elif key in self.attributes.keys():
+                self.setAttribute(key, data)
 
         for key in self.attributes.keys():
             self.origAttrs[key] = self.attributes[key]
         return self
 
+
+    def setExtra(self, extra):
+        if extra["type"] == "studio/node/strand_hair":
+            self.strand_hair = extra["data"]
+            print("STRAND")
+    
 
     Indices = { "x": 0, "y": 1, "z": 2 }
 
@@ -495,8 +492,7 @@ class Node(Asset, Formula):
         from .geometry import GeoNode
 
         Asset.update(self, struct)
-        if "extra" in struct.keys():
-            self.extra = struct["extra"]
+        Channels.update(self, struct)
         for channel,data in struct.items():
             if channel == "geometries":
                 for geostruct in data:

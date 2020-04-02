@@ -27,7 +27,7 @@
 ##
 
 import bpy
-from .asset import Asset
+from .asset import Asset, Channels
 
 #-------------------------------------------------------------
 #   
@@ -257,10 +257,10 @@ def buildSmoothingModifier(rig, ob, extras):
 #   Simulation Options
 #-------------------------------------------------------------
 
-class SimulationOptions(Asset):
+class SimulationOptions(Asset, Channels):
     def __init__(self, fileref):
         Asset.__init__(self, fileref)
-        self.channels = {}
+        Channels.__init__(self)
 
 
     def __repr__(self):

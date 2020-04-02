@@ -959,7 +959,7 @@ class CyclesTree(FromCycles):
             switch = (transcolor[1] == 0 or ssscolor[1] == 0)
         else:
             switch = False
-        
+
         absorb = None
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
         if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):

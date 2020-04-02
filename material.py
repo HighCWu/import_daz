@@ -33,7 +33,7 @@ import copy
 import math
 from collections import OrderedDict
 
-from .asset import Asset
+from .asset import Asset, Channels
 from .utils import *
 from .settings import theSettings
 from .error import *
@@ -59,14 +59,14 @@ def getMatKey(id):
         return key
 
 
-class Material(Asset):
+class Material(Asset, Channels):
 
     def __init__(self, fileref):
         Asset.__init__(self, fileref)
+        Channels.__init__(self)
         self.scene = None
         self.shader = 'DAZ'
         self.channels = OrderedDict()
-        self.studioChannels = OrderedDict()
         self.textures = OrderedDict()
         self.groups = []
         self.ignore = False
@@ -93,18 +93,12 @@ class Material(Asset):
 
     def parse(self, struct):
         Asset.parse(self, struct)
-        if "url" in struct.keys():
-            asset = self.getAsset(struct["url"])
-            if asset:
-                self.channels = copy.deepcopy(asset.channels)
-        self.set(struct)
+        Channels.parse(self, struct)
 
 
     def update(self, struct):
         Asset.update(self, struct)
-        self.set(struct)
-        #for grp in struct["groups"]:
-        #    setMaterial(struct["geometry"], grp, self)
+        Channels.update(self, struct)
         if "uv_set" in struct.keys():
             from .geometry import Uvset
             self.uv_set = self.getTypedAsset(struct["uv_set"], Uvset)
@@ -136,56 +130,13 @@ class Material(Asset):
                             theSettings.handleOpaque != 'EEVEE')
 
 
-    def set(self, struct):
-        for key,data in struct.items():
-            if key == "extra":
-                for extra in data:
-                    self.setExtra(extra)
-            elif isinstance(data, dict):
-                if "channel" in data.keys():
-                    self.replaceChannel(key, data["channel"])
-                elif "color" in data.keys() or "strength" in data.keys():
-                    self.replaceChannel(key, data)
-
-
     def setExtra(self, struct):
-        if (struct["type"] == "studio_material_channels" and
-            "channels" in struct.keys()):
-            for elt in struct["channels"]:
-                data = elt["channel"]
-                key = data["id"]
-                self.replaceChannel(key, data)
-                if "label" in self.channels.keys():
-                    key = data["label"]
-                    self.replaceChannel(key, data)
-        elif struct["type"] == "studio/material/uber_iray":
+        if struct["type"] == "studio/material/uber_iray":
             self.shader = 'IRAY'
         elif struct["type"] == "studio/material/daz_brick":
             self.shader = '3DELIGHT'
         elif struct["type"] == "studio/material/daz_shader":
             self.shader = 'DAZ'
-        return
-        if struct["type"] == "studio/material/daz_shader":
-            if "definition" in struct.keys():
-                print("DEFINED IN", struct["definition"])
-            elif "property_settings" in struct.keys():
-                for prop,value in struct["property_settings"].items():
-                    self.channels[prop] = value
-
-
-    def replaceChannel(self, key, data):
-        if key in self.channels.keys():
-            channel = self.channels[key]
-            for name,value in data.items():
-                channel[name] = value
-        else:
-            self.channels[key] = data
-
-
-    def copyChannels(self, base):
-        for key,value in base.channels.items():
-            if key not in self.channels.keys():
-                self.channels[key] = value.copy()
 
 
     def build(self, context):

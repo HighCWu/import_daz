@@ -122,6 +122,7 @@ class FileAsset(Asset):
             if theSettings.useMaterials and "materials" in scene.keys():
                 for mstruct in scene["materials"]:
                     from .material import getRenderMaterial
+                    from copy import deepcopy
                     if "url" in mstruct.keys():
                         base = self.getAsset(mstruct["url"])
                     else:
@@ -129,7 +130,7 @@ class FileAsset(Asset):
                     asset = getRenderMaterial(mstruct, base)(self.fileref)
                     asset.parse(mstruct)
                     if base:
-                        asset.copyChannels(base)
+                        asset.channels = deepcopy(base.channels)
                     asset.update(mstruct)
                     self.materials.append(asset)
 

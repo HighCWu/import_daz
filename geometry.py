@@ -155,10 +155,11 @@ def isEmpty(vgrp, ob):
 #   Geometry Asset
 #-------------------------------------------------------------
 
-class Geometry(Asset):
+class Geometry(Asset, Channels):
 
     def __init__(self, fileref):
         Asset.__init__(self, fileref)
+        Channels.__init__(self)
         self.instances = self.nodes = {}
         self.verts = []
         self.faces = []
@@ -173,7 +174,6 @@ class Geometry(Asset):
         self.rigidity = []
         self.SubDIALevel = 0
         self.SubDRenderLevel = 0
-        self.extra = []
         self.shell = {}
         self.shells = {}
 
@@ -207,6 +207,7 @@ class Geometry(Asset):
     def parse(self, struct):
         from .asset import getCurrentValue
         Asset.parse(self, struct)
+        Channels.parse(self, struct)
 
         vdata = struct["vertices"]["values"]
         fdata = struct["polylist"]["values"]
@@ -240,38 +241,29 @@ class Geometry(Asset):
             print("GROUPS", self.name)
             self.groups.append(struct["groups"])
 
-        if "extra" in struct.keys():
-            for extra in struct["extra"]:
-                if "type" not in extra.keys():
-                    pass
-                elif extra["type"] == "studio_geometry_channels":
-                    for channel in extra["channels"]:
-                        cstruct = channel["channel"]
-                        if cstruct["id"] == "SubDIALevel":
-                            self.SubDIALevel = getCurrentValue(cstruct, 0)
-                        elif cstruct["id"] == "SubDRenderLevel":
-                            self.SubDRenderLevel = getCurrentValue(cstruct, 0)
         return self
-
+    
 
     def update(self, struct):
         Asset.update(self, struct)
+        Channels.update(self, struct)
+        if "SubDIALevel" in self.channels.keys():
+            self.SubDIALevel = getCurrentValue(self.channels["SubDIALevel"], 0)
+        if "SubDRenderLevel" in self.channels.keys():
+            self.SubDRenderLevel = getCurrentValue(self.channels["SubDIALevel"], 0)
         if self.SubDIALevel == 0 and "current_subdivision_level" in struct.keys():
             self.SubDIALevel = struct["current_subdivision_level"]
-        if "extra" in struct.keys():
-            self.extra = struct["extra"]
-            for extra in self.extra:
-                if "type" not in extra.keys():
-                    pass
-                elif extra["type"] == "studio/geometry/shell":
-                    self.shell = extra
-
+                    
+                    
+    def setExtra(self, extra):       
+        if extra["type"] == "studio/geometry/shell":
+            self.shell = extra
+        
 
     def preprocess(self, context, inst):
         scn = context.scene
         if self.shell:
             node = self.getNode(0)
-
             for extra in node.extra:
                 if "type" not in extra.keys():
                     pass
@@ -281,65 +273,40 @@ class Geometry(Asset):
                     else:
                         uvs = None
 
-            active = []
-            for channel in inst.channels:
-                if (channel["type"] == "bool" and
-                    "label" in channel.keys() and
-                    "current_value" in channel.keys() and
-                    channel["current_value"]):
-                    active.append(channel["label"])
+            if scn.DazMergeShells:
+                if inst.node2:
+                    missing = []
+                    for key,child in inst.node2.children.items():
+                        if child.shell:
+                            geonode = inst.node2.geometries[0]
+                            geo = geonode.data
+                            for mname,shellmats in self.materials.items():
+                                mat = shellmats[0]
+                                uv = uvs[mname]
+                                if mname in geo.materials.keys():
+                                    mats = geo.materials[mname]
+                                    mats[geonode.index].shells.append((mat,uv))
+                                    mat.ignore = True
+                                    # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
+                                    # so they can be used to define materials assigned to the geometry in Blender.
+                                    self.addNewUvset(uv, geo)
+                                else:
+                                    missing.append((mname,mat,uv))
 
-            if active:
-                if scn.DazMergeShells:
-                    for mats in self.materials.values():
-                        for mat in mats:
-                            mat.ignore = True
-
-                for channel in inst.channels:
-                    if channel["type"] == "node":
-                        inst2 = channel["node"]
-                        for child in inst2.children.values():
-                            n = len(child.id)
-                            for longname in active:
-                                if longname[0:n] == child.id:
-                                    self.addShell(child, longname, longname[n+1:], uvs[longname], scn)
-
-            elif scn.DazMergeShells:
-                for channel in inst.channels:
-                    if channel["type"] == "node":
-                        inst2 = channel["node"]
-                        missing = []
-                        for key,child in inst2.children.items():
-                            if child.shell:
-                                geonode = inst2.geometries[0]
+                    for mname,mat,uv in missing:
+                        for key,inst3 in inst.node2.children.items():
+                            n = len(key)
+                            if mname[0:n] == key:
+                                mname = mname[n+1:]
+                                geonode = inst3.geometries[0]
                                 geo = geonode.data
-                                for mname,shellmats in self.materials.items():
-                                    mat = shellmats[0]
-                                    uv = uvs[mname]
-                                    if mname in geo.materials.keys():
-                                        mats = geo.materials[mname]
-                                        mats[geonode.index].shells.append((mat,uv))
-                                        mat.ignore = True
-                                        # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
-                                        # so they can be used to define materials assigned to the geometry in Blender.
-                                        self.addNewUvset(uv, geo)
-                                    else:
-                                        missing.append((mname,mat,uv))
-
-                        for mname,mat,uv in missing:
-                            for key,inst3 in inst2.children.items():
-                                n = len(key)
-                                if mname[0:n] == key:
-                                    mname = mname[n+1:]
-                                    geonode = inst3.geometries[0]
-                                    geo = geonode.data
-                                    if mname in geo.materials.keys():
-                                        mats = geo.materials[mname]
-                                        mats[0].shells.append((mat,uv))
-                                        mat.ignore = True
-                                        self.addNewUvset(uv, geo)
-                                    else:
-                                        print("  ***", mname, mat)
+                                if mname in geo.materials.keys():
+                                    mats = geo.materials[mname]
+                                    mats[0].shells.append((mat,uv))
+                                    mat.ignore = True
+                                    self.addNewUvset(uv, geo)
+                                else:
+                                    print("  ***", mname, mat)
 
                                         
     def addNewUvset(self, uv, geo):                                        

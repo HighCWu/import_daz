@@ -27,21 +27,20 @@
 
 import bpy
 import os
-from .asset import Asset
+from .asset import Asset, Channels
 from .material import Material, WHITE
 from .cycles import CyclesMaterial, CyclesTree
 from .settings import theSettings
 from .utils import *
 
-
 #-------------------------------------------------------------
 #   Render Options
 #-------------------------------------------------------------
 
-class RenderOptions(Asset):
+class RenderOptions(Asset, Channels):
     def __init__(self, fileref):
         Asset.__init__(self, fileref)
-        self.channels = {}
+        Channels.__init__(self)
         self.world = None
 
 
@@ -50,24 +49,20 @@ class RenderOptions(Asset):
 
 
     def parse(self, struct):
-        for key,clist in struct.items():
-            if key == "channels":
-                for channel in clist:
-                    self.setChannel(channel)
-            elif key == "children":
-                for child in clist:
-                    if "channels" in child.keys():
-                        for channel in child["channels"]:
-                            self.setChannel(channel)
+        Asset.parse(self, struct)
+        Channels.parse(self, struct)
+        if "children" in struct.keys():
+            for child in struct["children"]:
+                if "channels" in child.keys():
+                    for channel in child["channels"]:
+                        self.setChannel(channel["channel"])
 
 
-    def setChannel(self, cstruct):
-        channel = cstruct["channel"]
-        if ("visible" not in channel.keys() or
-            channel["visible"]):
-            self.channels[channel["id"]] = channel
+    def update(self, struct):
+        Asset.update(self, struct)
+        Channels.update(self, struct)
 
-
+    
     def build(self, context):
         if theSettings.useEnvironment:
             self.world = WorldMaterial(self.fileref)

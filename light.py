@@ -46,7 +46,6 @@ class Light(Node):
         self.type = None
         self.info = {}
         self.presentation = {}
-        self.channels = {}
         self.data = None
         self.material = None
         self.twosided = False
@@ -70,10 +69,7 @@ class Light(Node):
         else:
             self.presentation = struct["presentation"]
             print("Strange lamp", self)
-        if "extra" in struct.keys():
-            for estruct in struct["extra"]:
-                if estruct["type"] == "studio_node_channels":
-                    self.channels = estruct["channels"]
+
 
     def build(self, context, inst=None):
         if theSettings.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
@@ -109,12 +105,7 @@ class LightMaterial:
     def __init__(self, light):
         self.light = light
         self.fluxFactor = 1
-        self.channels = {}
-        for cstruct in light.channels:
-            channel = cstruct["channel"]
-            if "id" in channel.keys():
-                key = channel["id"]
-                self.channels[key] = channel
+        self.channels = light.channels
 
 
     def build(self, context):

@@ -30,6 +30,7 @@ import os
 #from urllib.parse import quote, unquote
 import json
 import gzip
+import copy
 from .error import reportError
 from .utils import *
 from .settings import theSettings
@@ -368,6 +369,76 @@ def getExistingFile(fileref):
         return theAssets[ref]
     else:
         return None
+
+#-------------------------------------------------------------
+#   Channels class
+#-------------------------------------------------------------
+
+class Channels:
+    def __init__(self):
+        self.channels = {}
+        self.extra = []
+
+
+    def parse(self, struct):
+        if "url" in struct.keys():
+            asset = self.getAsset(struct["url"])
+            if asset:
+                self.channels = copy.deepcopy(asset.channels)
+        for key,data in struct.items():
+            if key == "extra":
+                self.extra = data
+                for extra in data:
+                    self.setExtra(extra)
+                    if "channels" in extra.keys():
+                        for data in extra["channels"]:
+                            self.setChannel(data["channel"])
+            elif isinstance(data, dict):
+                if "channel" in data.keys():
+                    self.setChannel(data["channel"])
+
+
+    def setChannel(self, channel):                
+        if ("visible" in channel.keys() and not channel["visible"]):
+            return
+        self.channels[channel["id"]] = channel
+        if False and "label" in channel.keys():
+            self.channels[channel["label"]] = channel
+
+
+    def update(self, struct):
+        for key,data in struct.items():
+            if key == "extra":
+                self.extra = data
+                for extra in data:
+                    self.setExtra(extra)
+                    if "channels" in extra.keys():
+                        for data in extra["channels"]:
+                            self.replaceChannel(data["channel"])
+            elif isinstance(data, dict):
+                if "channel" in data.keys():
+                    self.replaceChannel(data["channel"])        
+
+
+    def setExtra(self, struct):
+        pass
+        
+
+    def replaceChannel(self, channel, key=None):
+        if ("visible" in channel.keys() and not channel["visible"]):
+            return
+        if key is None:
+            key = channel["id"]        
+        if key in self.channels.keys():
+            oldchannel = self.channels[key]
+            self.channels[key] = channel
+            for name,value in oldchannel.items():
+                if name not in channel.keys():
+                    channel[name] = value
+        else:
+            self.channels[key] = copy.deepcopy(channel)
+        if False and "label" in channel.keys():
+            self.channels[channel["label"]] = self.channels[key]
 
 #-------------------------------------------------------------
 #
