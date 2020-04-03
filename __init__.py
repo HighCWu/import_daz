@@ -175,7 +175,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.prop(scn, "DazShowFinish", icon="DOWNARROW_HLT", emboss=False)
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.set_udims")
-            box.operator("daz.merge_anatomy")
+            box.operator("daz.merge_geografts")
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.make_udim_materials")
             box.operator("daz.merge_shapekeys")

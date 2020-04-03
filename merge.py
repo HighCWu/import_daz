@@ -111,121 +111,132 @@ def copyMaterial(cob, aob):
                 mtex = mat.texture_slots.add()
                 mtex.texture = tmtex.texture
 
+#-------------------------------------------------------------
+#   Merge geografts
+#-------------------------------------------------------------
 
-def mergeAnatomy(context):
-    from .driver import getShapekeyDrivers, copyShapeKeyDrivers
-
-    bpy.ops.object.mode_set(mode='OBJECT')
-    cob = context.object
-    if cob.data.DazGraftGroup:
-        raise DazError("Meshes selected in wrong order.\nAnatomies selected and body active.   ")
-
-    # Find anatomies and move graft verts into position
-    anatomies = []
-    for aob in getSceneObjects(context):
-        if (aob.type == 'MESH' and
-            getSelected(aob) and
-            aob != cob and
-            aob.data.DazGraftGroup):
-            anatomies.append(aob)
-
-    if len(anatomies) < 1:
-        raise DazError("At least two meshes must be selected.\nAnatomy selected and body active.")
-
-    cname = getUvName(cob.data)
-    anames = []
-    keep = []
-    drivers = {}
-
-    # Select graft group for each anatomy
-    for aob in anatomies:
-        activateObject(context, aob)
-        moveGraftVerts(aob, cob)
-        getShapekeyDrivers(aob, drivers)
-        for uvtex in getUvTextures(aob.data):
-            if uvtex.active_render:
-                anames.append(uvtex.name)
-            else:
-                keep.append(uvtex.name)
-
-    # For the body, delete mask groups
-    activateObject(context, cob)
-    nverts = len(cob.data.vertices)
-    deleted = dict([(vn,False) for vn in range(nverts)])
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.select_all(action='DESELECT')
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for aob in anatomies:
-        graft = [pair.b for pair in aob.data.DazGraftGroup]
-        for face in aob.data.DazMaskGroup:
-            for vn in cob.data.polygons[face.a].vertices:
-                if vn not in graft:
-                    cob.data.vertices[vn].select = True
-                    deleted[vn] = True
-
-    assoc = {}
-    vn2 = 0
-    for vn in range(nverts):
-        if not deleted[vn]:
-            assoc[vn] = vn2
-            vn2 += 1
-
-    # Select verts on common boundary
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.delete(type='VERT')
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for aob in anatomies:
-        activateObject(context, aob)
-        for pair in aob.data.DazGraftGroup:
-            aob.data.vertices[pair.a].select = True
-            cvn = assoc[pair.b]
-            cob.data.vertices[cvn].select = True
-
-    # Join meshes and remove doubles
-    activateObject(context, cob)
-    names = []
-    for aob in anatomies:
-        setSelected(aob, True)
-        names.append(aob.name)
-    print("Merge %s to %s" % (names, cob.name))
-    bpy.ops.object.join()
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.remove_doubles(threshold=0.001*cob.DazScale)
-    bpy.ops.mesh.select_all(action='DESELECT')
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    joinUvTextures(cob.data, keep)
-
-    newname = getUvName(cob.data)
-    for mat in cob.data.materials:
-        if mat.use_nodes:
-            replaceNodeNames(mat, cname, newname)
-            for aname in anames:
-                replaceNodeNames(mat, aname, newname)
-
-    copyShapeKeyDrivers(cob, drivers)
-    updateDrivers(cob)
-
-
-def moveGraftVerts(aob, cob):
-    for pair in aob.data.DazGraftGroup:
-        aob.data.vertices[pair.a].co = cob.data.vertices[pair.b].co
-    if cob.data.shape_keys and aob.data.shape_keys:
-        for cskey in cob.data.shape_keys.key_blocks:
-            if cskey.name in aob.data.shape_keys.key_blocks.keys():
-                askey = aob.data.shape_keys.key_blocks[cskey.name]
-                for pair in aob.data.DazGraftGroup:
-                    askey.data[pair.a].co = cskey.data[pair.b].co
-
-
-class DAZ_OT_MergeAnatomy(DazOperator, IsMesh):
-    bl_idname = "daz.merge_anatomy"
-    bl_label = "Merge Anatomy"
-    bl_description = "Merge selected anatomy to selected character"
+class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
+    bl_idname = "daz.merge_geografts"
+    bl_label = "Merge Geografts"
+    bl_description = "Merge selected geografts to active object"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        mergeAnatomy(context)
+        from .driver import getShapekeyDrivers, copyShapeKeyDrivers
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+        cob = context.object
+        ncverts = len(cob.data.vertices)
+
+        # Find anatomies and move graft verts into position
+        anatomies = []
+        for aob in getSceneObjects(context):
+            if (aob.type == 'MESH' and
+                getSelected(aob) and
+                aob != cob and
+                aob.data.DazGraftGroup):
+                anatomies.append(aob)
+
+        if len(anatomies) < 1:
+            raise DazError("At least two meshes must be selected.\nGeografts selected and target active.")
+            
+        for aob in anatomies:
+            if aob.data.DazVertexCount != ncverts:
+                if cob.data.DazVertexCount == len(aob.data.vertices):
+                    msg = ("Meshes selected in wrong order.\nGeografts selected and target active.   ")
+                else:
+                    msg = ("Geograft %s fits mesh with %d vertices,      \nbut %s has %d vertices." % 
+                        (aob.name, aob.data.DazVertexCount, cob.name, ncverts))
+                raise DazError(msg)
+
+        cname = getUvName(cob.data)
+        anames = []
+        keep = []
+        drivers = {}
+
+        # Select graft group for each anatomy
+        for aob in anatomies:
+            activateObject(context, aob)
+            self.moveGraftVerts(aob, cob)
+            getShapekeyDrivers(aob, drivers)
+            for uvtex in getUvTextures(aob.data):
+                if uvtex.active_render:
+                    anames.append(uvtex.name)
+                else:
+                    keep.append(uvtex.name)
+
+        # For the body, delete mask groups
+        activateObject(context, cob)
+        nverts = len(cob.data.vertices)
+        deleted = dict([(vn,False) for vn in range(nverts)])
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for aob in anatomies:
+            graft = [pair.b for pair in aob.data.DazGraftGroup]
+            for face in aob.data.DazMaskGroup:
+                for vn in cob.data.polygons[face.a].vertices:
+                    if vn not in graft:
+                        cob.data.vertices[vn].select = True
+                        deleted[vn] = True
+
+        assoc = {}
+        vn2 = 0
+        for vn in range(nverts):
+            if not deleted[vn]:
+                assoc[vn] = vn2
+                vn2 += 1
+
+        # Select verts on common boundary
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.delete(type='VERT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for aob in anatomies:
+            activateObject(context, aob)
+            for pair in aob.data.DazGraftGroup:
+                aob.data.vertices[pair.a].select = True
+                cvn = assoc[pair.b]
+                cob.data.vertices[cvn].select = True
+
+        # Join meshes and remove doubles
+        activateObject(context, cob)
+        names = []
+        for aob in anatomies:
+            setSelected(aob, True)
+            names.append(aob.name)
+        print("Merge %s to %s" % (names, cob.name))
+        bpy.ops.object.join()
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.remove_doubles(threshold=0.001*cob.DazScale)
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+    
+        joinUvTextures(cob.data, keep)
+
+        newname = getUvName(cob.data)
+        for mat in cob.data.materials:
+            if mat.use_nodes:
+                replaceNodeNames(mat, cname, newname)
+                for aname in anames:
+                    replaceNodeNames(mat, aname, newname)
+
+        copyShapeKeyDrivers(cob, drivers)
+        updateDrivers(cob)
+        
+        if cob.data.DazGraftGroup:
+            for pair in cob.data.DazGraftGroup:
+                pair.a = assoc[pair.a]
+                
+
+    def moveGraftVerts(self, aob, cob):
+        for pair in aob.data.DazGraftGroup:
+            aob.data.vertices[pair.a].co = cob.data.vertices[pair.b].co
+        if cob.data.shape_keys and aob.data.shape_keys:
+            for cskey in cob.data.shape_keys.key_blocks:
+                if cskey.name in aob.data.shape_keys.key_blocks.keys():
+                    askey = aob.data.shape_keys.key_blocks[cskey.name]
+                    for pair in aob.data.DazGraftGroup:
+                        askey.data[pair.a].co = cskey.data[pair.b].co
 
 #-------------------------------------------------------------
 #   Create graft and mask vertex groups
@@ -770,7 +781,7 @@ class EditBoneStorage:
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_MergeAnatomy,
+    DAZ_OT_MergeGeografts,
     DAZ_OT_CreateGraftGroups,
     DAZ_OT_MergeUVLayers,
     DAZ_OT_CopyPoses,

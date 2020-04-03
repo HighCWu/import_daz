@@ -28,7 +28,6 @@
 import math
 import os
 import bpy
-from bpy.props import CollectionProperty
 from collections import OrderedDict
 from .asset import Asset
 from .channels import Channels
@@ -112,22 +111,15 @@ class GeoNode(Node):
         par = parent.rna
         if par is None:
             return
-
+        me = self.rna.data
+        me.DazVertexCount = self.data.vertex_count
         if self.data.hidden_polys:
-            hgroup = self.rna.data.DazMaskGroup
+            hgroup = me.DazMaskGroup
             for fn in self.data.hidden_polys:
                 elt = hgroup.add()
                 elt.a = fn
-            '''
-            from .hide import getMaskName
-            hverts = parent.getUsedVerts(self.data.hidden_polys)
-            mname = getMaskName(self.getName())
-            pgrp = par.vertex_groups.new(name=mname)
-            for vn in hverts:
-                pgrp.add([vn], 1, 'REPLACE')
-            '''
         if self.data.vertex_pairs:
-            ggroup = self.rna.data.DazGraftGroup
+            ggroup = me.DazGraftGroup
             for vn,pvn in self.data.vertex_pairs:
                 pair = ggroup.add()
                 pair.a = vn
@@ -169,9 +161,10 @@ class Geometry(Asset, Channels):
         self.materials = {}
         self.material_indices = []
         self.polygon_material_groups = []
+        self.vertex_count = 0
+        self.poly_count = 0
         self.vertex_pairs = []
         self.hidden_polys = []
-        self.isGraft = False
         self.uv_set = None
         self.default_uv_set = None
         self.uv_sets = OrderedDict()
@@ -230,12 +223,11 @@ class Geometry(Asset, Channels):
             self.uv_set = self.default_uv_set
 
         if "graft" in struct.keys():
-            self.isGraft = True
             graft = struct["graft"]
-            if "hidden_polys" in graft.keys():
-                self.hidden_polys = graft["hidden_polys"]["values"]
-            if "vertex_pairs" in graft.keys():
-                self.vertex_pairs = graft["vertex_pairs"]["values"]
+            self.vertex_count = graft["vertex_count"]
+            self.poly_count = graft["poly_count"]
+            self.hidden_polys = graft["hidden_polys"]["values"]
+            self.vertex_pairs = graft["vertex_pairs"]["values"]
 
         if "rigidity" in struct.keys():
             print("RIGIDITY", self.name)
@@ -814,9 +806,11 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
 
+    from bpy.props import CollectionProperty, IntProperty    
     bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = B.DazRigidityGroup)
     bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = B.DazPairGroup)
     bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)
+    bpy.types.Mesh.DazVertexCount = IntProperty(default=0)
 
 
 def uninitialize():
