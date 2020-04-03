@@ -223,11 +223,15 @@ class Geometry(Asset, Channels):
             self.uv_set = self.default_uv_set
 
         if "graft" in struct.keys():
-            graft = struct["graft"]
-            self.vertex_count = graft["vertex_count"]
-            self.poly_count = graft["poly_count"]
-            self.hidden_polys = graft["hidden_polys"]["values"]
-            self.vertex_pairs = graft["vertex_pairs"]["values"]
+            for key,data in struct["graft"].items():
+                if key == "vertex_count":
+                    self.vertex_count = data
+                elif key == "vertex_count":
+                    self.poly_count = data
+                elif key == "vertex_count":
+                    self.hidden_polys = data["values"]
+                elif key == "vertex_pairs":
+                    self.vertex_pairs = data["values"]
 
         if "rigidity" in struct.keys():
             print("RIGIDITY", self.name)
