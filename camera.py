@@ -111,8 +111,7 @@ class Camera(Node):
 
 
     def buildChannels(self):
-        from .asset import getCurrentValue
-        from .utils import D
+        from .utils import getCurrentValue, D
 
         camera = self.data
         camera.sensor_width = 64

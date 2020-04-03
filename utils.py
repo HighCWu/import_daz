@@ -348,6 +348,14 @@ def hasPoseBones(rig, bnames):
     return True
 
 
+def getCurrentValue(struct, default=None):
+    if "current_value" in struct.keys():
+        return struct["current_value"]
+    elif "value" in struct.keys():
+        return struct["value"]
+    else:
+        return default
+
 #-------------------------------------------------------------
 #   Progress
 #-------------------------------------------------------------

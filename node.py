@@ -29,11 +29,12 @@ import bpy
 import math
 from mathutils import *
 from collections import OrderedDict
-from .asset import *
+from .asset import Accessor, Asset
+from .channels import Channels
 from .formula import Formula
 from .settings import theSettings
 from .error import *
-from .utils import getIndex
+from .utils import *
 
 #-------------------------------------------------------------
 #   External access
@@ -172,7 +173,6 @@ class Instance(Accessor):
 
 
     def preprocess(self, context):
-        from .asset import getCurrentValue
         for extra in self.extra:
             if "type" not in extra.keys():
                 continue
@@ -477,6 +477,7 @@ class Node(Asset, Formula, Channels):
     Indices = { "x": 0, "y": 1, "z": 2 }
 
     def setAttribute(self, channel, data):
+        from .channels import getCurrentValue
         #self.attributes[channel] = self.defaultAttributes()[channel]
         if isinstance(data, list):
             for comp in data:
@@ -548,6 +549,7 @@ class Node(Asset, Formula, Channels):
 
     def buildObject(self, context, inst, center):
         from .geometry import Geometry
+        from .asset import normalizePath
         cscale = inst.getCharacterScale()
 
         if isinstance(self.data, Asset):

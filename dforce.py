@@ -27,7 +27,8 @@
 ##
 
 import bpy
-from .asset import Asset, Channels
+from .asset import Asset
+from .channels import Channels
 
 #-------------------------------------------------------------
 #   

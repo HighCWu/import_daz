@@ -33,7 +33,8 @@ import copy
 import math
 from collections import OrderedDict
 
-from .asset import Asset, Channels
+from .asset import Asset
+from .channels import Channels
 from .utils import *
 from .settings import theSettings
 from .error import *
@@ -381,18 +382,6 @@ class Material(Asset, Channels):
         return self.getChannelColor(self.getChannel(attr), default)
 
 
-    def getChannel(self, attr):
-        if isinstance(attr, str):
-            return getattr(self, attr)()
-        for key in attr:
-            if key in self.channels.keys():
-                channel = self.channels[key]
-                if ("visible" not in channel.keys() or
-                    channel["visible"]):
-                    return channel
-        return None
-                            
-                
     def getTexChannel(self, channels):
         for key in channels:
             channel = self.getChannel([key])
@@ -456,14 +445,6 @@ class Material(Asset, Channels):
         return Vector(lin)
 
 
-    def equalChannels(self, mat):
-        for key,value in self.channels.items():
-            if (key not in mat.channels.keys() or
-                mat.channels[key] != value):
-                return False
-        return True
-
-
     def getTextures(self, channel):
         if isinstance(channel, tuple):
             channel = channel[0]
@@ -525,14 +506,6 @@ class Material(Asset, Channels):
             if self.getTextures(channel)[0]:
                 return True
         return False
-
-
-    def dumpChannels(self):
-        for key,channel in self.channels.items():
-            string = ("%s  %s %s " % (key, channel["value"], channel["current_value"]))
-            if "image_file" in channel.keys():
-                string += channel["image_file"]
-            print(string)
 
 
     def sssActive(self):

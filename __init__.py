@@ -60,7 +60,7 @@ def importModules():
             modnames.append("buttons27")
         else:
             modnames.append("buttons28")
-        modnames += ["daz", "fileutils", "readfile", "driver", "asset", "formula",
+        modnames += ["daz", "fileutils", "readfile", "driver", "asset", "channels", "formula",
                     "transform", "node", "figure", "bone", "geometry", "objfile",
                     "fix", "modifier", "convert", "material", "frommat", "internal",
                     "cycles", "cgroup", "pbr", "render", "camera", "light",

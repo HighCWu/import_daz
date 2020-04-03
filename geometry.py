@@ -29,7 +29,8 @@ import math
 import bpy
 from bpy.props import CollectionProperty
 from collections import OrderedDict
-from .asset import *
+from .asset import Asset
+from .channels import Channels
 from .utils import *
 from .error import *
 from .settings import theSettings
@@ -39,8 +40,9 @@ from .node import Node, Instance
 #   Geometry
 #-------------------------------------------------------------
 
-class GeoNode(Node):
+class GeoNode(Node):    
     def __init__(self, figure, geo, ref):
+        from .asset import normalizeRef
         if figure.caller:
             fileref = figure.caller.fileref
         else:
@@ -205,7 +207,6 @@ class Geometry(Asset, Channels):
 
 
     def parse(self, struct):
-        from .asset import getCurrentValue
         Asset.parse(self, struct)
         Channels.parse(self, struct)
 

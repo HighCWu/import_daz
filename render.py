@@ -27,7 +27,8 @@
 
 import bpy
 import os
-from .asset import Asset, Channels
+from .asset import Asset
+from .channels import Channels
 from .material import Material, WHITE
 from .cycles import CyclesMaterial, CyclesTree
 from .settings import theSettings
