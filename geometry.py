@@ -26,6 +26,7 @@
 # either expressed or implied, of the FreeBSD Project.
 
 import math
+import os
 import bpy
 from bpy.props import CollectionProperty
 from collections import OrderedDict
@@ -170,6 +171,7 @@ class Geometry(Asset, Channels):
         self.polygon_material_groups = []
         self.vertex_pairs = []
         self.hidden_polys = []
+        self.isGraft = False
         self.uv_set = None
         self.default_uv_set = None
         self.uv_sets = OrderedDict()
@@ -228,6 +230,7 @@ class Geometry(Asset, Channels):
             self.uv_set = self.default_uv_set
 
         if "graft" in struct.keys():
+            self.isGraft = True
             graft = struct["graft"]
             if "hidden_polys" in graft.keys():
                 self.hidden_polys = graft["hidden_polys"]["values"]
@@ -275,6 +278,7 @@ class Geometry(Asset, Channels):
                         uvs = None
 
             if scn.DazMergeShells:
+                from .figure import FigureInstance
                 if inst.node2:
                     missing = []
                     for key,child in inst.node2.children.items():
@@ -285,7 +289,6 @@ class Geometry(Asset, Channels):
                                 mat = shellmats[0]
                                 if mname in inst.material_group_vis.keys() and not inst.material_group_vis[mname]:
                                     continue
-                                print("SMS", mname, mat, inst.material_group_vis[mname])
                                 uv = uvs[mname]
                                 if mname in geo.materials.keys():
                                     mats = geo.materials[mname]
@@ -298,20 +301,26 @@ class Geometry(Asset, Channels):
                                     missing.append((mname,mat,uv))
 
                     for mname,mat,uv in missing:
-                        print("MISS", mname, mat, uv)
                         for key,inst3 in inst.node2.children.items():
-                            n = len(key)
-                            if mname[0:n] == key:
-                                mname = mname[n+1:]
-                                geonode = inst3.geometries[0]
-                                geo = geonode.data
-                                if mname in geo.materials.keys():
-                                    mats = geo.materials[mname]
-                                    mats[0].shells.append((mat,uv))
-                                    mat.ignore = True
-                                    self.addNewUvset(uv, geo)
-                                else:
-                                    print("  ***", mname, mat)
+                            if not isinstance(inst3, FigureInstance):
+                                continue
+                            key1 = inst3.node.name
+                            if mname[0:len(key)] == key:
+                                n = len(key)
+                            elif mname[0:len(key1)] == key1:
+                                n = len(key1)
+                            else:
+                                continue 
+                            mname = mname[n+1:]
+                            geonode = inst3.geometries[0]
+                            geo = geonode.data
+                            if mname in geo.materials.keys():
+                                mats = geo.materials[mname]
+                                mats[0].shells.append((mat,uv))
+                                mat.ignore = True
+                                self.addNewUvset(uv, geo)
+                            else:
+                                print("  ***", mname, mat)
 
                                         
     def addNewUvset(self, uv, geo):                                        
@@ -322,6 +331,7 @@ class Geometry(Asset, Channels):
 
 
     def findUvSet(self, uv, url):
+        from .asset import getDazPath, normalizePath, getRelativeRef
         from .transfer import findFileRecursive
         folder = getDazPath(os.path.dirname(url) + "/UV Sets")
         file = ("%s.dsf" % uv)
