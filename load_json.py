@@ -29,6 +29,8 @@
 import json
 import gzip
 from mathutils import Vector, Color
+from .error import reportError
+
 
 def loadJson(filepath, mustOpen=False):
     try:
@@ -37,20 +39,28 @@ def loadJson(filepath, mustOpen=False):
     except IOError:
         bytes = None
 
+    struct = {}
+    msg = ("Could not load %s" % filepath)  
+    trigger=(2,3)  
     if bytes:
-        string = bytes.decode("utf-8")
-        struct = json.loads(string)
+        try:
+            struct = json.loads(string)
+            msg = None
+        except json.decoder.JSONDecodeError as err:
+            msg = ('JSON error while reading zipped file\n"%s"\n%s' % (filepath, err))
+            trigger=(1,2)
     else:
         from .fileutils import safeOpen
         fp = safeOpen(filepath, "rU", mustOpen=mustOpen)
         if fp:
-            struct = json.load(fp)
-        else:
-            struct = None
-
-    if not struct:
-        print("Could not load %s" % filepath)
-
+            try:
+                struct = json.load(fp)
+                msg = None
+            except json.decoder.JSONDecodeError as err:
+                msg = ('JSON error while reading ascii file\n"%s"\n%s' % (filepath, err))
+                trigger=(1,2)
+    if msg:
+        reportError(msg, trigger=trigger)
     return struct
 
 
