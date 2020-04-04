@@ -365,18 +365,37 @@ class MorphStrings:
         default = True)
 
 
-class PoseStrings:
-    catname : StringProperty(
-        name = "Category",
-        default = "Poses")
-
-
 class MorphTypes:
     units : BoolProperty(name = "Units", default = True)
     expressions : BoolProperty(name = "Expressions", default = True)
     visemes : BoolProperty(name = "Visemes", default = True)
     other : BoolProperty(name = "Other", default = False)
 
+
+def getActiveCategories(scn, context):
+    rig = context.object
+    cats = [(cat.name,cat.name,cat.name) for cat in rig.DazMorphCats]
+    cats.sort()
+    return [("All", "All", "All")] + cats
+    
+class CatEnums:
+    category : EnumProperty(
+        items = getActiveCategories,
+        name = "Category")
+
+
+class DazSelectGroup(bpy.types.PropertyGroup):
+    name : StringProperty()
+    text : StringProperty()
+    category : StringProperty()
+    select : BoolProperty()
+
+class Selector:
+    removeAll : BoolProperty(
+        name = "Remove All", 
+        default = False)
+    selector : CollectionProperty(type = DazSelectGroup)
+    
 #-------------------------------------------------------------
 #   convert.py
 #-------------------------------------------------------------
@@ -631,16 +650,12 @@ class KeyString:
 class NameString:
     name : StringProperty()
 
-class CatGroupString:
-    catgroup : StringProperty()
-
 class ActionString:
     action : StringProperty()
 
 class TypePrefixCat:
     type : StringProperty(default = "")
     prefix : StringProperty(default = "")
-    catgroup : StringProperty(default = "")
 
 class UseOpenBool:
     useOpen : BoolProperty()
@@ -749,7 +764,7 @@ class DazStringGroup(bpy.types.PropertyGroup):
 
 class DazCustomGroup(bpy.types.PropertyGroup):
     name : StringProperty()
-    prop : StringProperty()
+    prop : StringProperty()    
 
 class DazCategory(bpy.types.PropertyGroup):
     name : StringProperty()

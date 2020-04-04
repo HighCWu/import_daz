@@ -341,6 +341,11 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.add_shapekey_driver", text="Add Driver To Shapekey %s" % sname)
             #box.operator("daz.restore_shapekey_drivers")
             box.separator()
+            box.operator("daz.remove_units")
+            box.operator("daz.remove_expressions")
+            box.operator("daz.remove_visemes")
+            box.operator("daz.remove_morphs")
+            box.separator()
             box.operator("daz.copy_props")
             box.operator("daz.copy_bone_drivers")
             box.operator("daz.retarget_mesh_drivers")
@@ -747,13 +752,13 @@ class DAZ_PT_Custom:
             return
         layout = self.layout
 
-        attr = morphing.getOpenAttr(self.catgroup)
+        attr = morphing.getOpenAttr("DazMorphCats")
         if getattr(scn, attr):
-            layout.prop(scn, "%sContent" % self.catgroup)
+            layout.prop(scn, "DazMorphCatsContent")
             layout.prop(scn, "DazNewCatName")
-            layout.operator("daz.rename_category").catgroup = self.catgroup
-            layout.operator("daz.remove_category").catgroup = self.catgroup
-            layout.operator("daz.change_category_cancel").catgroup = self.catgroup
+            layout.operator("daz.rename_category")
+            layout.operator("daz.remove_category")
+            layout.operator("daz.change_category_cancel")
             return
 
         split = utils.splitLayout(layout, 0.3333)
@@ -761,40 +766,33 @@ class DAZ_PT_Custom:
         op = split.operator("daz.activate_all")
         op.type = "CUSTOM"
         op.prefix = ""
-        op.catgroup = self.catgroup
         op = split.operator("daz.deactivate_all")
         op.type = "CUSTOM"
         op.prefix = ""
-        op.catgroup = self.catgroup
 
         split = utils.splitLayout(layout, 0.25)
         op = split.operator("daz.add_keyset", text="", icon='KEYINGSET')
         op.type = "CUSTOM"
         op.prefix = ""
-        op.catgroup = self.catgroup
         op = split.operator("daz.key_morphs", text="", icon='KEY_HLT')
         op.type = "CUSTOM"
         op.prefix = ""
-        op.catgroup = self.catgroup
         op = split.operator("daz.unkey_morphs", text="", icon='KEY_DEHLT')
         op.type = "CUSTOM"
         op.prefix = ""
-        op.catgroup = self.catgroup
         #op = split.operator("daz.update_morphs", text="", icon='FILE_REFRESH')
         #op.type = "CUSTOM"
         #op.prefix = ""
-        #op.catgroup = self.catgroup
         op = split.operator("daz.clear_morphs", text="", icon='X')
         op.type = "CUSTOM"
         op.prefix = ""
-        op.catgroup = self.catgroup
 
         row = layout.row()
         row.operator("daz.toggle_all_cats", text="Open All Categories").useOpen=True
         row.operator("daz.toggle_all_cats", text="Close All Categories").useOpen=False
-        layout.operator("daz.change_category").catgroup=self.catgroup
+        layout.operator("daz.change_category")
 
-        for cat in getattr(ob, self.catgroup):
+        for cat in ob.DazMorphCats:
             layout.separator()
             box = layout.box()
             prop = "DazShow" + cat.name
@@ -816,7 +814,6 @@ class DAZ_PT_Custom:
                     op = row.operator("daz.pin_prop", icon='UNPINNED')
                     op.key = morph.prop
                     op.type = "CUSTOM"
-                    op.catgroup = self.catgroup
 
 
 class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Custom):
@@ -827,18 +824,6 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Custom):
     bl_options = {'DEFAULT_CLOSED'}
 
     custom = "DazCustomMorphs"
-    catgroup = "DazMorphCats"
-
-
-class DAZ_PT_CustomPoses(bpy.types.Panel, DAZ_PT_Custom):
-    bl_label = "Custom Poses"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = Region
-    bl_category = "DAZ"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    custom = "DazCustomPoses"
-    catgroup = "DazPoseCats"
 
 #------------------------------------------------------------------------
 #    Mhx Layers Panel
@@ -1211,7 +1196,6 @@ classes = [
     DAZ_PT_Expressions,
     DAZ_PT_Viseme,
     DAZ_PT_CustomMorphs,
-    DAZ_PT_CustomPoses,
     DAZ_PT_MhxLayers,
     DAZ_PT_MhxFKIK,
     DAZ_PT_MhxProperties,

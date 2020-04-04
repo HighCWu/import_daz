@@ -629,16 +629,12 @@ class KeyString:
 class NameString:
     name = StringProperty()
 
-class CatGroupString:
-    catgroup = StringProperty()
-
 class ActionString:
     action = StringProperty()
 
 class TypePrefixCat:
     type = StringProperty(default = "")
     prefix = StringProperty(default = "")
-    catgroup = StringProperty(default = "")
 
 class UseOpenBool:
     useOpen = BoolProperty()

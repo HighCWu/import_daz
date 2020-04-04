@@ -442,7 +442,6 @@ class DAZ_OT_ImportMorph(DazOperator, LoadMorph, B.DazImageFile, B.MultiFile, B.
     type = "Shapes"
     prefix = ""
     custom = "DazCustomMorphs"
-    catgroup = "DazMorphCats"
 
     def draw(self, context):
         self.layout.prop(self, "useDrivers")
@@ -463,7 +462,7 @@ class DAZ_OT_ImportMorph(DazOperator, LoadMorph, B.DazImageFile, B.MultiFile, B.
     def run(self, context):
         from .driver import setBoolProp
         snames = self.getMorphs(self.filepath, context.scene)
-        addToCategories(self.rig, snames, self.catname, self.catgroup)
+        addToCategories(self.rig, snames, self.catname)
         if self.rig:
             setBoolProp(self.rig, self.custom, True)
         if self.mesh:
@@ -531,11 +530,10 @@ class DAZ_OT_ImportMorph(DazOperator, LoadMorph, B.DazImageFile, B.MultiFile, B.
 #   Categories
 #------------------------------------------------------------------------
 
-def addToCategories(rig, snames, catname, catgroup="DazMorphCats"):
+def addToCategories(rig, snames, catname):
     from .driver import setBoolProp
     if snames and rig is not None:
-        categories = getattr(rig, catgroup)
-        cats = dict([(cat.name,cat) for cat in categories])
+        cats = dict([(cat.name,cat) for cat in rig.DazMorphCats])
         if catname not in cats.keys():
             cat = categories.add()
             cat.name = catname
@@ -562,24 +560,22 @@ def addToCategories(rig, snames, catname, catgroup="DazMorphCats"):
 #   Rename category
 #------------------------------------------------------------------------
 
-def getOpenAttr(catgroup):
-    return ("%sOpen" % catgroup)
+def getOpenAttr(DazMorphCats):
+    return ("DazMorphCatsOpen")
 
 
-class ChangeCategory(B.CatGroupString):
+class ChangeCategory:
     def execute(self, context):
         try:
             rig = context.object
             scn = context.scene
-            categories = getattr(rig, self.catgroup)
-            catname = getattr(scn, "%sContent" % self.catgroup)
+            catname = scn.DazMorphCatsContent
             key = ("DazShow%s" % catname)
-            self.doChange(rig, scn, categories, catname, key)
+            self.doChange(rig, scn, rig.DazMorphCats, catname, key)
         except DazError:
             handleDazError(context)
         finally:
-            attr = getOpenAttr(self.catgroup)
-            setattr(context.scene, attr, False)
+            setattr(context.scene, self.DazMorphCatsOpen, False)
         return {'FINISHED'}
 
 
@@ -637,18 +633,17 @@ class DAZ_OT_RemoveCategoryOK(bpy.types.Operator, ChangeCategory):
             del ob[key]
 
 
-class DAZ_OT_ChangeCategoryCancel(DazOperator, B.CatGroupString):
+class DAZ_OT_ChangeCategoryCancel(DazOperator):
     bl_idname = "daz.change_category_cancel"
     bl_label = "Cancel"
     bl_description = "Cancel category change"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        attr = getOpenAttr(self.catgroup)
-        setattr(context.scene, attr, False)
+        setattr(context.scene, "DazMorphCats", False)
 
 
-class DAZ_OT_ChangeCategory(DazOperator, B.CatGroupString, B.ActionString, IsArmature):
+class DAZ_OT_ChangeCategory(DazOperator, B.ActionString, IsArmature):
     bl_idname = "daz.change_category"
     bl_label = "Change Category"
     bl_description = "Rename or remove category"
@@ -657,14 +652,12 @@ class DAZ_OT_ChangeCategory(DazOperator, B.CatGroupString, B.ActionString, IsArm
     def run(self, context):
         ob = context.object
         scn = context.scene
-        categories = getattr(ob, self.catgroup)
         enums = EnumProperty(
-            items = [(cat.name, cat.name, cat.name) for cat in categories],
-            name = self.catgroup[3:-4])
-        setattr(bpy.types.Scene, "%sContent" % self.catgroup, enums)
+            items = [(cat.name, cat.name, cat.name) for cat in ob.DazMorphCats],
+            name = "Morph")
+        setattr(bpy.types.Scene, "DazMorphCatsContent", enums)
 
-        attr = getOpenAttr(self.catgroup)
-        setattr(context.scene, attr, True)
+        setattr(context.scene, self.DazMorphCatsOpen, True)
 
 #------------------------------------------------------------------------
 #   Apply morphs
@@ -720,11 +713,11 @@ def removeDrivingProps(rig, props):
 #   Select and unselect all
 #------------------------------------------------------------------------
 
-class Activator(B.PrefixString, B.TypeString, B.CatGroupString):
+class Activator(B.PrefixString, B.TypeString):
     def run(self, context):
         from .driver import setBoolProp
         rig = getRigFromObject(context.object)
-        keys = getRelevantMorphs(rig, self.type, self.prefix, self.catgroup)
+        keys = getRelevantMorphs(rig, self.type, self.prefix)
         if self.type == "CUSTOM":
             for key in keys:
                 setBoolProp(rig, "DzA"+key.prop, self.activate)
@@ -797,12 +790,12 @@ class DAZ_OT_ForceUpdate(DazOperator):
 #   Clear morphs
 #------------------------------------------------------------------
 
-def getRelevantMorphs(rig, type, prefix, catgroup):
+def getRelevantMorphs(rig, type, prefix):
     morphs = []
     if rig is None:
         return morphs
     if type == "CUSTOM":
-        for cat in getattr(rig, catgroup):
+        for cat in rig.DazMorphCats:
             morphs += cat.morphs
     elif rig.DazNewStyleExpressions:
         for key in rig.keys():
@@ -817,8 +810,8 @@ def getRelevantMorphs(rig, type, prefix, catgroup):
     return morphs
 
 
-def clearMorphs(rig, type, prefix, catgroup, scn, frame, force):
-    keys = getRelevantMorphs(rig, type, prefix, catgroup)
+def clearMorphs(rig, type, prefix, scn, frame, force):
+    keys = getRelevantMorphs(rig, type, prefix)
 
     if type == "CUSTOM":
         for key in keys:
@@ -832,8 +825,8 @@ def clearMorphs(rig, type, prefix, catgroup, scn, frame, force):
                 autoKeyProp(rig, key, scn, frame, force)
 
 
-def updateMorphs(rig, type, prefix, catgroup, scn, frame, force):
-    keys = getRelevantMorphs(rig, type, prefix, catgroup)
+def updateMorphs(rig, type, prefix, scn, frame, force):
+    keys = getRelevantMorphs(rig, type, prefix)
     for key in keys:
         if isActive(rig, key):
             autoKeyProp(rig, key, scn, frame, force)
@@ -873,7 +866,7 @@ class DAZ_OT_ClearMorphs(DazOperator, B.TypePrefixCat, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            clearMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current, False)
+            clearMorphs(rig, self.type, self.prefix, scn, scn.frame_current, False)
             updateRig(rig, context)
             if scn.tool_settings.use_keyframe_insert_auto:
                 updateScene(context)
@@ -889,7 +882,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.TypePrefixCat, IsMeshArmat
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            updateMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
+            updateMorphs(rig, self.type, self.prefix, scn, scn.frame_current)
             updateScene(context)
             updateRig(rig, context)
 
@@ -897,7 +890,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.TypePrefixCat, IsMeshArmat
 #   Add morphs to keyset
 #------------------------------------------------------------------
 
-def addKeySet(rig, type, prefix, catgroup, scn, frame):
+def addKeySet(rig, type, prefix, scn, frame):
     if rig is None:
         return
     aksi = scn.keying_sets.active_index
@@ -905,7 +898,7 @@ def addKeySet(rig, type, prefix, catgroup, scn, frame):
         aks = scn.keying_sets.new(idname = "daz_morphs", name = "daz_morphs")
     aks = scn.keying_sets.active
     if type == "CUSTOM":
-        for cat in getattr(rig, catgroup):
+        for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 path = "[" + '"' + morph.prop + '"' + "]"
                 aks.paths.add(rig.id_data, path)
@@ -934,7 +927,7 @@ class DAZ_OT_AddKeysets(DazOperator, B.TypePrefixCat, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            addKeySet(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
+            addKeySet(rig, self.type, self.prefix, scn, scn.frame_current)
             updateScene(context)
             updateRig(rig, context)
 
@@ -942,11 +935,11 @@ class DAZ_OT_AddKeysets(DazOperator, B.TypePrefixCat, IsMeshArmature):
 #   Set morph keys
 #------------------------------------------------------------------
 
-def keyMorphs(rig, type, prefix, catgroup, scn, frame):
+def keyMorphs(rig, type, prefix, scn, frame):
     if rig is None:
         return
     if type == "CUSTOM":
-        for cat in getattr(rig, catgroup):
+        for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 if morph.prop in rig.keys() and isActive(rig, morph.prop):
                     keyProp(rig, morph.prop, frame)
@@ -972,7 +965,7 @@ class DAZ_OT_KeyMorphs(DazOperator, B.TypePrefixCat, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            keyMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
+            keyMorphs(rig, self.type, self.prefix, scn, scn.frame_current)
             updateScene(context)
             updateRig(rig, context)
 
@@ -980,11 +973,11 @@ class DAZ_OT_KeyMorphs(DazOperator, B.TypePrefixCat, IsMeshArmature):
 #   Remove morph keys
 #------------------------------------------------------------------
 
-def unkeyMorphs(rig, type, prefix, catgroup, scn, frame):
+def unkeyMorphs(rig, type, prefix, scn, frame):
     if rig is None:
         return
     if type == "CUSTOM":
-        for cat in getattr(rig, catgroup):
+        for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 if morph.prop in rig.keys() and isActive(rig, morph.prop):
                     unkeyProp(rig, morph.prop, frame)
@@ -1008,9 +1001,9 @@ class DAZ_OT_UnkeyMorphs(DazOperator, B.TypePrefixCat, IsMeshArmature):
 
     def run(self, context):
         rig = getRigFromObject(context.object)
-        if rig:
+        if rig and rig.animation_data and rig.animation_data.action:
             scn = context.scene
-            unkeyMorphs(rig, self.type, self.prefix, self.catgroup, scn, scn.frame_current)
+            unkeyMorphs(rig, self.type, self.prefix, scn, scn.frame_current)
             updateScene(context)
             updateRig(rig, context)
 
@@ -1020,9 +1013,8 @@ class DAZ_OT_UnkeyMorphs(DazOperator, B.TypePrefixCat, IsMeshArmature):
 
 def getCustomProps(ob):
     props = []
-    for catgroup in ["DazMorphCats", "DazPoseCats"]:
-        for cat in getattr(ob, catgroup):
-            props += [morph.prop for morph in cat.morphs]
+    for cat in ob.DazMorphCats:
+        props += [morph.prop for morph in cat.morphs]
     return props
 
 
@@ -1063,18 +1055,6 @@ class DAZ_OT_UpdatePropLimits(DazOperator, IsMeshArmature):
 #   Remove morphs
 #------------------------------------------------------------------
 
-def removeAllMorphDrivers(rig, scn, prefix):
-    from .driver import removeRigDrivers, removeTypedDrivers
-    setupMorphPaths(scn, False)
-    removeRigDrivers(rig)
-    removeSelfRefs(rig)
-    removeProps(rig, prefix)
-    for ob in rig.children:
-        if ob.type == 'MESH' and ob.data.shape_keys:
-            removeTypedDrivers(ob.data.shape_keys, 'SINGLE_PROP')
-            removeProps(ob, prefix)
-
-
 def removeSelfRefs(rig):
     for pb in rig.pose.bones:
         if len(pb.constraints) > 0:
@@ -1085,23 +1065,23 @@ def removeSelfRefs(rig):
 
 
 def removeProps(ob, prefix):
-    ob.DazCustomMorphs = ob.DazCustomPoses = False
-    for catgroup in ["DazMorphCats", "DazPoseCats"]:
-        for cat in getattr(ob, catgroup):
-            key = "DazShow"+cat.name
-            if hasattr(ob, key):
-                setattr(ob, key, False)
-            for morph in cat.morphs:
-                key = morph.prop
-                if key in ob.keys():
-                    ob[key] = 0.0
-                    del ob[key]
+    ob.DazCustomMorphs = False
+    for cat in ob.DazMorphCats:
+        key = "DazShow"+cat.name
+        if hasattr(ob, key):
+            setattr(ob, key, False)
+        for morph in cat.morphs:
+            key = morph.prop
+            if key in ob.keys():
+                ob[key] = 0.0
+                del ob[key]
 
     n = len(prefix)
     for key in ob.keys():
         if key[0:n] == prefix:
             ob[key] = 0.0
             del ob[key]
+        
     for type in theMorphNames.keys():
         key = "Daz"+type
         if key in ob.keys():
@@ -1116,12 +1096,144 @@ class DAZ_OT_RemoveMorphDrivers(DazOperator, IsMeshArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
+        from .driver import removeRigDrivers, removeTypedDrivers
         rig = getRigFromObject(context.object)
+        scn = context.scene
+        prefix = "Dz"
         if rig:
-            removeAllMorphDrivers(rig, context.scene, "Dz")
+            setupMorphPaths(scn, False)
+            removeRigDrivers(rig)
+            removeSelfRefs(rig)
+            removeProps(rig, prefix=prefix)
+            for ob in rig.children:
+                if ob.type == 'MESH' and ob.data.shape_keys:
+                    removeTypedDrivers(ob.data.shape_keys, 'SINGLE_PROP')
+                    removeProps(ob, prefix=prefix)
             updateScene(context)
             updateRig(rig, context)
 
+#-------------------------------------------------------------
+#   Remove specific morphs
+#-------------------------------------------------------------
+
+class MorphRemover(B.Selector, IsMeshArmature):
+
+    def draw(self, context):
+        self.layout.prop(self, "removeAll")
+        if self.removeAll:
+            return
+        self.layout.separator()
+        for item in self.selector:
+            if self.category == "All" or item.category == self.category:
+                split = self.layout.split(factor = 0.6)
+                split.label(text=item.text)
+                split.prop(item, "select", text="")
+
+    
+    def run(self, context):
+        from .driver import removeRigDrivers, removeTypedDrivers
+        rig = getRigFromObject(context.object)
+        scn = context.scene
+        if rig:
+            if self.removeAll:
+                if self.category == "All":
+                    props = [item.name for item in self.selector]
+                else:
+                    props = [item.name for item in self.selector 
+                        if item.category == self.category]
+            else:
+                if self.category == "All":
+                    props = [item.name for item in self.selector 
+                        if item.select]
+                else:
+                    props = [item.name for item in self.selector 
+                        if item.select and item.category == self.category]
+            print("Remove", props)
+            return
+            
+            removeRigDrivers(rig, props=props)
+            self.removeProps(rig, props)
+            for ob in rig.children:
+                if ob.type == 'MESH' and ob.data.shape_keys:
+                    removeTypedDrivers(ob.data.shape_keys, 'SINGLE_PROP', props=props)
+                    self.removeProps(ob, props)
+            updateScene(context)
+            updateRig(rig, context)
+
+
+    def removeProps(self, props):
+        for key in props:
+            if key in ob.keys():
+                ob[key] = 0.0
+                del ob[key]
+
+
+    def invoke(self, context, event):
+        self.selector.clear()
+        rig = getRigFromObject(context.object)
+        for prop,text,cat in self.getKeys(rig):
+            item = self.selector.add()
+            item.name = prop
+            item.text = text
+            item.category = cat
+            item.select = False
+        return DazPropsOperator.invoke(self, context, event)
+
+
+class DAZ_OT_RemoveUnits(DazOperator, MorphRemover):
+    bl_idname = "daz.remove_units"
+    bl_label = "Remove Units"
+    bl_description = "Remove specific face units and their associated drivers"
+    bl_options = {'UNDO'}
+
+    category = "All"
+    
+    def getKeys(self, rig):
+        return [(key,key[3:],"All") for key in rig.keys() if key[0:3] == "DzU"]
+            
+
+class DAZ_OT_RemoveExpressions(DazOperator, MorphRemover):
+    bl_idname = "daz.remove_expressions"
+    bl_label = "Remove Expressions"
+    bl_description = "Remove specific expressions and their associated drivers"
+    bl_options = {'UNDO'}
+
+    category = "All"
+
+    def getKeys(self, rig):
+        return [(key,key[3:],"All") for key in rig.keys() if key[0:3] == "DzE"]
+            
+
+class DAZ_OT_RemoveVisemes(DazOperator, MorphRemover):
+    bl_idname = "daz.remove_visemes"
+    bl_label = "Remove Visemes"
+    bl_description = "Remove specific visemes and their associated drivers"
+    bl_options = {'UNDO'}
+
+    category = "All"
+
+    def getKeys(self, rig):
+        return [(key,key[3:],"All") for key in rig.keys() if key[0:2] == "DzV"]
+            
+
+class DAZ_OT_RemoveMorphs(DazOperator, MorphRemover, B.CatEnums):
+    bl_idname = "daz.remove_morphs"
+    bl_label = "Remove Custom Morphs"
+    bl_description = "Remove specific morphs and their associated drivers"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "category")
+        MorphRemover.draw(self, context)
+
+    def getKeys(self, rig):
+        keys = []
+        for cat in rig.DazMorphCats:
+            for morph in cat.morphs:
+                key = morph.prop
+                keys.append((key,key,cat.name))
+        return keys
+                        
 #-------------------------------------------------------------
 #   Add and remove driver
 #-------------------------------------------------------------
@@ -1241,9 +1353,9 @@ def autoKeyProp(rig, key, scn, frame, force):
             keyProp(rig, key, frame)
 
 
-def pinProp(rig, scn, key, type, prefix, catgroup, frame):
+def pinProp(rig, scn, key, type, prefix, frame):
     if rig:
-        clearMorphs(rig, type, prefix, catgroup, scn, frame, True)
+        clearMorphs(rig, type, prefix, scn, frame, True)
         rig[key] = 1.0
         autoKeyProp(rig, key, scn, frame, True)
 
@@ -1258,7 +1370,7 @@ class DAZ_OT_PinProp(DazOperator, B.KeyString, B.TypePrefixCat, IsMeshArmature):
         rig = getRigFromObject(context.object)
         scn = context.scene
         setupMorphPaths(scn, False)
-        pinProp(rig, scn, self.key, self.type, self.prefix, self.catgroup, scn.frame_current)
+        pinProp(rig, scn, self.key, self.type, self.prefix, scn.frame_current)
         updateScene(context)
         updateRig(rig, context)
 
@@ -1497,6 +1609,10 @@ classes = [
     DAZ_OT_KeyMorphs,
     DAZ_OT_UnkeyMorphs,
     DAZ_OT_UpdatePropLimits,
+    DAZ_OT_RemoveUnits,
+    DAZ_OT_RemoveExpressions,
+    DAZ_OT_RemoveVisemes,
+    DAZ_OT_RemoveMorphs,
     DAZ_OT_RemoveMorphDrivers,
     DAZ_OT_AddDriver,
     DAZ_OT_RemoveDriver,
@@ -1505,12 +1621,11 @@ classes = [
     DAZ_OT_LoadMoho,
     DAZ_OT_DeleteLipsync,
     DAZ_OT_ConvertMorphsToShapes,
-
-    #B.DazCategory,
-    #B.DazCustomGroup,
 ]
 
 def initialize():
+    bpy.utils.register_class(B.DazSelectGroup)
+
     for cls in classes:
         bpy.utils.register_class(cls)
 
@@ -1519,19 +1634,12 @@ def initialize():
 
     bpy.utils.register_class(B.DazCustomGroup)
     bpy.utils.register_class(B.DazCategory)
-
+    
     bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory)
-    bpy.types.Object.DazPoseCats = CollectionProperty(type = B.DazCategory)
-
     bpy.types.Scene.DazMorphCatsOpen = BoolProperty(default = False)
-    bpy.types.Scene.DazPoseCatsOpen = BoolProperty(default = False)
-
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],
         name = "Morph")
-    bpy.types.Scene.DazPoseCatsContent = EnumProperty(
-        items = [],
-        name = "Pose")
 
     bpy.types.Scene.DazNewCatName = StringProperty(
         name = "New Name",
@@ -1545,3 +1653,6 @@ def uninitialize():
 
     bpy.utils.unregister_class(B.DazCustomGroup)
     bpy.utils.unregister_class(B.DazCategory)
+    bpy.utils.unregister_class(B.DazSelectGroup)
+    
+    
