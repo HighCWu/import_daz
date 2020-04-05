@@ -333,25 +333,17 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.prop(scn, "DazShowAdvancedMorph", icon="RIGHTARROW", emboss=False)
         else:
             box.prop(scn, "DazShowAdvancedMorph", icon="DOWNARROW_HLT", emboss=False)
-            sname = "None"
-            if ob and ob.type == 'MESH':
-                skey = ob.active_shape_key
-                if skey:
-                    sname = skey.name
-            box.operator("daz.add_shapekey_driver", text="Add Driver To Shapekey %s" % sname)
-            #box.operator("daz.restore_shapekey_drivers")
+            box.operator("daz.remove_standard_morphs")
+            box.operator("daz.remove_custom_morphs")
             box.separator()
-            box.operator("daz.remove_units")
-            box.operator("daz.remove_expressions")
-            box.operator("daz.remove_visemes")
-            box.operator("daz.remove_morphs")
+            box.operator("daz.convert_morphs_to_shapekeys")
+            box.operator("daz.add_shapekey_drivers")
+            box.operator("daz.remove_unused_drivers")
+            box.operator("daz.remove_all_morph_drivers")
             box.separator()
             box.operator("daz.copy_props")
             box.operator("daz.copy_bone_drivers")
             box.operator("daz.retarget_mesh_drivers")
-            box.operator("daz.remove_unused_drivers")
-            box.operator("daz.remove_morph_drivers")
-            box.operator("daz.convert_morphs_to_shapes")
             box.separator()
             box.operator("daz.update_prop_limits")
             box.prop(scn, "DazPropMin")
@@ -384,8 +376,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.separator()
             box.operator("daz.update_hair")
             box.operator("daz.color_hair")
-            #box.operator("daz.connect_hair")
-
+            #box.operator("daz.connect_hair")        
+    
 
 class DAZ_PT_Settings(bpy.types.Panel):
     bl_label = "Settings"
@@ -603,6 +595,12 @@ class DAZ_PT_Posing(bpy.types.Panel):
 
 
 class DAZ_PT_Morphs:
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and getattr(ob, self.show) and ob.DazMesh)
+
     def draw(self, context):
         from .morphing import theMorphNames, nameFromKey
         rig = context.object
@@ -686,14 +684,7 @@ class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
 
     type = "Units"
     prefix = "DzU"
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.DazUnits and ob.DazMesh)
-
-    def draw(self, context):
-        DAZ_PT_Morphs.draw(self, context)
+    show = "DazUnits"
 
 
 class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
@@ -705,14 +696,7 @@ class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
 
     type = "Expressions"
     prefix = "DzE"
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.DazExpressions and ob.DazMesh)
-
-    def draw(self, context):
-        DAZ_PT_Morphs.draw(self, context)
+    show = "DazExpressions"
 
 
 class DAZ_PT_Viseme(bpy.types.Panel, DAZ_PT_Morphs):
@@ -724,11 +708,7 @@ class DAZ_PT_Viseme(bpy.types.Panel, DAZ_PT_Morphs):
 
     type = "Visemes"
     prefix = "DzV"
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.DazVisemes and ob.DazMesh)
+    show = "DazVisemes"
 
     def draw(self, context):
         self.layout.operator("daz.load_moho")
@@ -780,9 +760,6 @@ class DAZ_PT_Custom:
         op = split.operator("daz.unkey_morphs", text="", icon='KEY_DEHLT')
         op.type = "CUSTOM"
         op.prefix = ""
-        #op = split.operator("daz.update_morphs", text="", icon='FILE_REFRESH')
-        #op.type = "CUSTOM"
-        #op.prefix = ""
         op = split.operator("daz.clear_morphs", text="", icon='X')
         op.type = "CUSTOM"
         op.prefix = ""

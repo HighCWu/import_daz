@@ -785,13 +785,10 @@ class PropFormulas(PoseboneDriver):
 
     def buildMorphBatch(self, batch):
         for prop,factor,bones in batch:
-            #print("\nSTO", prop, factor)
             for pbname,data in bones.items():
-                #print("  ", pbname)
                 pb = self.rig.pose.bones[pbname]
                 for key,drvlist in data.items():
                     for (idx, value, default) in drvlist:
-                        #print("    ", key, idx, factor*value, default)
                         self.addMorphGroup(pb, idx, key, prop, factor*value, default)
 
 

@@ -555,18 +555,20 @@ def removeRigDrivers(rig):
     removeDriverFCurves(fcus, rig)
 
 
-def removePropDrivers(rna, path, rig):
+def removePropDrivers(rna, paths=None, rig=None):
     if rna is None or rna.animation_data is None:
         return False
     fcus = []
     keep = False
     for fcu in rna.animation_data.drivers:
-        if len(fcu.driver.variables) == 1:
-            if matchesPath(fcu.driver.variables[0], path, rig):
+        if paths is None:
+            fcus.append(fcu)
+        elif len(fcu.driver.variables) == 1:
+            if matchesPaths(fcu.driver.variables[0], paths, rig):
                 fcus.append(fcu)
         else:
             for var in fcu.driver.variables:
-                if matchesPath(var, path, rig):
+                if matchesPaths(var, paths, rig):
                     keep = True
     for fcu in fcus:
         if fcu.data_path:
@@ -574,10 +576,10 @@ def removePropDrivers(rna, path, rig):
     return keep
 
 
-def matchesPath(var, path, rig):
+def matchesPaths(var, paths, rig):
     if var.type == 'SINGLE_PROP':
         trg = var.targets[0]
-        return (trg.id == rig and trg.data_path == path)
+        return (trg.id == rig and trg.data_path in paths)
     return False
 
 
@@ -608,27 +610,6 @@ class DAZ_OT_UpdateAll(DazOperator):
 #   Restore shapekey drivers
 #-------------------------------------------------------------
 
-def restoreShapekeyDrivers(ob):
-    if (ob.data.shape_keys is None or
-        ob.data.shape_keys.animation_data is None):
-        return
-    rig = ob.parent
-    if rig is None:
-        return
-
-    for fcu in ob.data.shape_keys.animation_data.drivers:
-        words = fcu.data_path.split('"')
-        if (words[0] == "key_blocks[" and
-            len(words) == 3 and
-            words[2] == "].value"):
-            sname = words[1]
-            for var in fcu.driver.variables:
-                trg = var.targets[0]
-                trg.id_type = 'OBJECT'
-                trg.id = rig
-                trg.data_path = '["%s"]' % sname
-
-
 class DAZ_OT_RestoreDrivers(DazOperator, IsMesh):
     bl_idname = "daz.restore_shapekey_drivers"
     bl_label = "Restore Drivers"
@@ -636,44 +617,29 @@ class DAZ_OT_RestoreDrivers(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        restoreShapekeyDrivers(context.object)
+        ob = context.object
+        if (ob.data.shape_keys is None or
+            ob.data.shape_keys.animation_data is None):
+            return
+        rig = ob.parent
+        if rig is None:
+            return
+
+        for fcu in ob.data.shape_keys.animation_data.drivers:
+            words = fcu.data_path.split('"')
+            if (words[0] == "key_blocks[" and
+                len(words) == 3 and
+                words[2] == "].value"):
+                sname = words[1]
+                for var in fcu.driver.variables:
+                    trg = var.targets[0]
+                    trg.id_type = 'OBJECT'
+                    trg.id = rig
+                    trg.data_path = '["%s"]' % sname
 
 #----------------------------------------------------------
-#   Transfer and remove drivers
+#   Remove unused drivers
 #----------------------------------------------------------
-
-def removeUnusedDrivers(context, ob):
-    removeUnused(ob)
-    if ob.data:
-        removeUnused(ob.data)
-    if ob.type == 'MESH' and ob.data.shape_keys:
-        removeUnused(ob.data.shape_keys)
-
-
-def removeUnused(rna):
-    fcus = []
-    if rna and rna.animation_data:
-        for fcu in rna.animation_data.drivers:
-            for var in fcu.driver.variables:
-                for trg in var.targets:
-                    if trg.id is None:
-                        fcus.append(fcu)
-        for fcu in fcus:
-            if fcu.data_path:
-                rna.driver_remove(fcu.data_path)
-
-
-def removeTypedDrivers(rna, type):
-    fcus = []
-    if rna and rna.animation_data:
-        for fcu in rna.animation_data.drivers:
-            for var in fcu.driver.variables:
-                if var.type == type:
-                    fcus.append(fcu)
-        for fcu in fcus:
-            if fcu.data_path:
-                rna.driver_remove(fcu.data_path)
-
 
 class DAZ_OT_RemoveUnusedDrivers(DazOperator, IsObject):
     bl_idname = "daz.remove_unused_drivers"
@@ -684,31 +650,28 @@ class DAZ_OT_RemoveUnusedDrivers(DazOperator, IsObject):
     def run(self, context):
         for ob in getSceneObjects(context):
             if getSelected(ob):
-                removeUnusedDrivers(context, ob)
+                self.removeUnused(ob)
+                if ob.data:
+                    self.removeUnused(ob.data)
+                if ob.type == 'MESH' and ob.data.shape_keys:
+                    self.removeUnused(ob.data.shape_keys)
+
+
+    def removeUnused(self, rna):
+        fcus = []
+        if rna and rna.animation_data:
+            for fcu in rna.animation_data.drivers:
+                for var in fcu.driver.variables:
+                    for trg in var.targets:
+                        if trg.id is None:
+                            fcus.append(fcu)
+            for fcu in fcus:
+                if fcu.data_path:
+                    rna.driver_remove(fcu.data_path)
 
 #----------------------------------------------------------
-#   Retarget drivers
+#   Retarget mesh drivers
 #----------------------------------------------------------
-
-def retargetDrivers(context, ob, rig):
-    retargetRna(ob, rig)
-    if ob.data:
-        retargetRna(ob.data, rig)
-    if ob.type == 'MESH' and ob.data.shape_keys:
-        retargetRna(ob.data.shape_keys, rig)
-
-
-def retargetRna(rna, rig):
-    if rna and rna.animation_data:
-        for fcu in rna.animation_data.drivers:
-            for var in fcu.driver.variables:
-                if var.type == 'SINGLE_PROP':
-                    trg = var.targets[0]
-                    prop = trg.data_path.split('"')[1]
-                    rig[prop] = 0
-                for trg in var.targets:
-                    trg.id = rig
-
 
 class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
     bl_idname = "daz.retarget_mesh_drivers"
@@ -720,7 +683,23 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
         rig = context.object
         for ob in getSceneObjects(context):
             if getSelected(ob):
-                retargetDrivers(context, ob, rig)
+                self.retargetRna(ob, rig)
+                if ob.data:
+                    self.retargetRna(ob.data, rig)
+                if ob.type == 'MESH' and ob.data.shape_keys:
+                    self.retargetRna(ob.data.shape_keys, rig)
+
+
+    def retargetRna(self, rna, rig):
+        if rna and rna.animation_data:
+            for fcu in rna.animation_data.drivers:
+                for var in fcu.driver.variables:
+                    if var.type == 'SINGLE_PROP':
+                        trg = var.targets[0]
+                        prop = trg.data_path.split('"')[1]
+                        rig[prop] = 0
+                    for trg in var.targets:
+                        trg.id = rig
 
 #----------------------------------------------------------
 #   Copy props

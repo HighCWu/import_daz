@@ -57,7 +57,18 @@ for file in os.listdir(theRestPoseFolder):
     fname = os.path.splitext(file)[0]
     name = fname.replace("_", " ").capitalize()
     theRestPoseItems.append((fname, name, name))
-    
+
+#-------------------------------------------------------------
+#   morphing.py
+#-------------------------------------------------------------
+
+def getActiveCategories(scn, context):
+    from .morphing import getRigFromObject
+    rig = getRigFromObject(context.object)
+    cats = [(cat.name,cat.name,cat.name) for cat in rig.DazMorphCats]
+    cats.sort()
+    return [("All", "All", "All")] + cats
+        
 # ---------------------------------------------------------------------
 #   material.py   
 #   Tweak bump strength and height

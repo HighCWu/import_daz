@@ -30,15 +30,11 @@ import bpy
 from bpy.props import *
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 
+from . import globvars as G
+
 #-------------------------------------------------------------
 #   animation.py
 #-------------------------------------------------------------
-
-from .globvars import theImagedDefaults
-from .globvars import theDazDefaults
-from .globvars import thePoserDefaults, theImagedPoserDefaults
-from .globvars import theRestPoseItems
-
 
 class ConvertOptions:
     convertPoses : BoolProperty(
@@ -47,13 +43,13 @@ class ConvertOptions:
         default = False)
 
     srcCharacter : EnumProperty(
-        items = theRestPoseItems,
+        items = G.theRestPoseItems,
         name = "Source Character",
         description = "Character this file was made for",
         default = "genesis_3_female")
 
     trgCharacter : EnumProperty(
-        items = theRestPoseItems,
+        items = G.theRestPoseItems,
         name = "Target Character",
         description = "Active character",
         default = "genesis_3_female")
@@ -284,7 +280,6 @@ class ColorProp:
         default = (0.1, 0.1, 0.5, 1)
     )
 
-from .globvars import TweakableChannels
 
 class LaunchEditor:
     colorFactor : FloatVectorProperty(
@@ -296,7 +291,7 @@ class LaunchEditor:
     )        
 
     tweakableChannel : EnumProperty(
-        items = [(key,key,key) for key in TweakableChannels.keys()],
+        items = [(key,key,key) for key in G.TweakableChannels.keys()],
         name = "Active Channel",
         description = "Active channel to be tweaked",
         default = "Bump Strength")
@@ -372,17 +367,35 @@ class MorphTypes:
     other : BoolProperty(name = "Other", default = False)
 
 
-def getActiveCategories(scn, context):
-    rig = context.object
-    cats = [(cat.name,cat.name,cat.name) for cat in rig.DazMorphCats]
-    cats.sort()
-    return [("All", "All", "All")] + cats
-    
-class CatEnums:
+class FilterString:
+    filter : StringProperty(
+        name = "Filter",
+        description = "Show only items containing this string",
+        default = ""
+        )
+
+class CategoryString:
+    category : StringProperty(
+        name = "Category",
+        description = "Add morphs to this category of custom morphs",
+        default = "Shapes"
+        )
+
+
+class CustomEnums:
     category : EnumProperty(
-        items = getActiveCategories,
+        items = G.getActiveCategories,
         name = "Category")
 
+class StandardEnums:
+    morphType : EnumProperty(
+        items = [("All", "All", "All"),
+                 ("Units", "Units", "Units"), 
+                 ("Expressions", "Expressions", "Expressions"),
+                 ("Visemes", "Visemes", "Visemes"),
+                ],
+        name = "Type",
+        default = "All")
 
 class DazSelectGroup(bpy.types.PropertyGroup):
     name : StringProperty()
@@ -391,8 +404,8 @@ class DazSelectGroup(bpy.types.PropertyGroup):
     select : BoolProperty()
 
 class Selector:
-    removeAll : BoolProperty(
-        name = "Remove All", 
+    selectAll : BoolProperty(
+        name = "Select All", 
         default = False)
     selector : CollectionProperty(type = DazSelectGroup)
     
@@ -402,7 +415,7 @@ class Selector:
 
 class NewRig:
     newRig : EnumProperty(
-        items = theRestPoseItems,
+        items = G.theRestPoseItems,
         name = "New Rig",
         description = "Convert active rig to this",
         default = "genesis_3_female")
@@ -691,7 +704,7 @@ class SingleFile(ImportHelper):
 
 class AnimatorFile:
     filename_ext = ".duf"
-    filter_glob : StringProperty(default = theDazDefaults + theImagedDefaults + thePoserDefaults, options={'HIDDEN'})
+    filter_glob : StringProperty(default = G.theDazDefaults + G.theImagedDefaults + G.thePoserDefaults, options={'HIDDEN'})
 
 
 class JsonFile:
@@ -761,6 +774,9 @@ class DazPairGroup(bpy.types.PropertyGroup):
 
 class DazStringGroup(bpy.types.PropertyGroup):
     s : StringProperty()
+
+class DazKeys(bpy.types.PropertyGroup):
+    keys : CollectionProperty(type = StringProperty)
 
 class DazCustomGroup(bpy.types.PropertyGroup):
     name : StringProperty()

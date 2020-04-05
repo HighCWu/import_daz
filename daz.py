@@ -90,12 +90,6 @@ def hasSelfRef(pb):
             pb.constraints[0].name == "Do Not Touch")
 
 
-def removeFromPropGroup(props, prop):
-    n = len(props)
-    for idx in range(4):
-        clearProp(props, prop, idx)
-
-
 def getNewItem(collProp, key):
     for item in collProp:
         if item.key == key:
