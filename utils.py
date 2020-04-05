@@ -283,6 +283,7 @@ def updateRig(rig, context):
                 rig.pose.bones[0].location[0] = pos + 0
                 bpy.ops.object.posemode_toggle()
 
+
 def updateDrivers(ob):
     if ob and ob.animation_data:
         for fcu in ob.animation_data.drivers:

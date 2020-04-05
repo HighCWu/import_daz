@@ -266,45 +266,26 @@ class DAZ_OT_CreateGraftGroups(DazOperator):
         cob = objects[0]
         gname = "Graft_" + aob.data.name
         mname = "Mask_" + aob.data.name
-        createVertexGroup(aob, gname, [pair.a for pair in aob.data.DazGraftGroup])
+        self.createVertexGroup(aob, gname, [pair.a for pair in aob.data.DazGraftGroup])
         graft = [pair.b for pair in aob.data.DazGraftGroup]
-        createVertexGroup(cob, gname, graft)
+        self.createVertexGroup(cob, gname, graft)
         mask = {}
         for face in aob.data.DazMaskGroup:
             for vn in cob.data.polygons[face.a].vertices:
                 if vn not in graft:
                     mask[vn] = True
-        createVertexGroup(cob, mname, mask.keys())
+        self.createVertexGroup(cob, mname, mask.keys())
 
 
-def createVertexGroup(ob, gname, vnums):
-    vgrp = ob.vertex_groups.new(name=gname)
-    for vn in vnums:
-        vgrp.add([vn], 1, 'REPLACE')
-    return vgrp
+    def createVertexGroup(self, ob, gname, vnums):
+        vgrp = ob.vertex_groups.new(name=gname)
+        for vn in vnums:
+            vgrp.add([vn], 1, 'REPLACE')
+        return vgrp
 
 #-------------------------------------------------------------
 #   Merge UV sets
 #-------------------------------------------------------------
-
-def joinActiveToRender(me):
-    actIdx = rndIdx = 0
-    for n,uvtex in enumerate(getUvTextures(me).values()):
-        if uvtex.active:
-            actIdx = n
-        if uvtex.active_render:
-            rndIdx = n
-    if actIdx == rndIdx:
-        raise DazError("Active and render UV textures are equal")
-    render = me.uv_layers[rndIdx]
-    for n,data in enumerate(me.uv_layers[actIdx].data):
-        if data.uv.length > 1e-6:
-            render.data[n].uv = data.uv
-    uvtex = getUvTextures(me).active
-    getUvTextures(me).active_index = rndIdx
-    getUvTextures(me).remove(uvtex)
-    print("UV layers joined")
-
 
 class DAZ_OT_MergeUVLayers(DazOperator, IsMesh):
     bl_idname = "daz.merge_uv_layers"
@@ -313,10 +294,27 @@ class DAZ_OT_MergeUVLayers(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        joinActiveToRender(context.object.data)
+        me = context.object.data
+        actIdx = rndIdx = 0
+        for n,uvtex in enumerate(getUvTextures(me).values()):
+            if uvtex.active:
+                actIdx = n
+            if uvtex.active_render:
+                rndIdx = n
+        if actIdx == rndIdx:
+            raise DazError("Active and render UV textures are equal")
+        render = me.uv_layers[rndIdx]
+        for n,data in enumerate(me.uv_layers[actIdx].data):
+            if data.uv.length > 1e-6:
+                render.data[n].uv = data.uv
+
+        uvtex = getUvTextures(me).active
+        getUvTextures(me).active_index = rndIdx
+        getUvTextures(me).remove(uvtex)
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
+        print("UV layers joined")
 
 #-------------------------------------------------------------
 #   Merge armatures
@@ -491,7 +489,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
                 for ob in subrig.children:
                     if ob.type == 'MESH':
                         changeArmatureModifier(ob, rig, context)
-                        changeVertexGroupNames(ob, storage)
+                        self.changeVertexGroupNames(ob, storage)
                         self.addToGroups(ob, adds, removes)
                         ob.name = stripName(ob.name)
                         ob.data.name = stripName(ob.data.name)
@@ -502,6 +500,13 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
 
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='OBJECT')
+
+
+    def changeVertexGroupNames(self, ob, storage):
+        for bname in storage.keys():
+            if bname in ob.vertex_groups.keys():
+                vgrp = ob.vertex_groups[bname]
+                vgrp.name = storage[bname].realname
 
 
     def addToGroups(self, ob, adds, removes):
@@ -550,38 +555,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
         else:
             return {}
 
-
-def changeVertexGroupNames(ob, storage):
-    for bname in storage.keys():
-        if bname in ob.vertex_groups.keys():
-            vgrp = ob.vertex_groups[bname]
-            vgrp.name = storage[bname].realname
-
 #-------------------------------------------------------------
 #   Copy bone locations
 #-------------------------------------------------------------
-
-def copyBones(rig, subrigs, context):
-    if rig is None:
-        print("No bones to copy")
-        return
-
-    print("Copy bones to %s:" % rig.name)
-    ebones = []
-    for ob in subrigs:
-        print("  ", ob.name)
-        setActiveObject(context, ob)
-        bpy.ops.object.mode_set(mode='EDIT')
-        for eb in ob.data.edit_bones:
-            ebones.append(EditBoneStorage(eb))
-        bpy.ops.object.mode_set(mode='POSE')
-
-    setActiveObject(context, rig)
-    bpy.ops.object.mode_set(mode='EDIT')
-    for storage in ebones:
-        storage.copyBoneLocation(rig)
-    bpy.ops.object.mode_set(mode='POSE')
-
 
 class DAZ_OT_CopyBones(DazOperator, IsArmature):
     bl_idname = "daz.copy_bones"
@@ -591,12 +567,30 @@ class DAZ_OT_CopyBones(DazOperator, IsArmature):
 
     def run(self, context):
         rig,subrigs = getSelectedRigs(context)
-        copyBones(rig, subrigs, context)
+        if rig is None:
+            raise DazError("No target armature")
+        if not subrigs:
+            raise DazError("No source armature")
+
+        print("Copy bones to %s:" % rig.name)
+        ebones = []
+        for ob in subrigs:
+            print("  ", ob.name)
+            setActiveObject(context, ob)
+            bpy.ops.object.mode_set(mode='EDIT')
+            for eb in ob.data.edit_bones:
+                ebones.append(EditBoneStorage(eb))
+            bpy.ops.object.mode_set(mode='POSE')
+
+        setActiveObject(context, rig)
+        bpy.ops.object.mode_set(mode='EDIT')
+        for storage in ebones:
+            storage.copyBoneLocation(rig)
+        bpy.ops.object.mode_set(mode='POSE')
 
 #-------------------------------------------------------------
 #   Apply rest pose
 #-------------------------------------------------------------
-
 
 class DAZ_OT_ApplyRestPoses(DazOperator, IsArmature):
     bl_idname = "daz.apply_rest_pose"

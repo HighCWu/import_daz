@@ -1289,7 +1289,9 @@ class AddRemoveDriver:
         if (rig and rig.type == 'ARMATURE'):
             for sname in self.getSelectedProps():
                 self.handleShapekey(sname, rig, ob)
+            updateDrivers(rig)
 
+        
     def invoke(self, context, event):
         self.selector.clear()
         ob = context.object
@@ -1337,7 +1339,6 @@ class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, IsMes
         if (rig and rig.type == 'ARMATURE' and
             sname in rig.keys()):
             del rig[sname]
-
 
     def removeShapekeyDriver(self, ob, sname):
         adata = ob.data.shape_keys.animation_data
