@@ -724,7 +724,7 @@ class DAZ_PT_Viseme(bpy.types.Panel, DAZ_PT_Morphs):
 #    Custom panels
 #------------------------------------------------------------------------
 
-class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Custom):
+class DAZ_PT_CustomMorphs(bpy.types.Panel):
     bl_label = "Custom Morphs"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region

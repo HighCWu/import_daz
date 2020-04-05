@@ -1274,7 +1274,7 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMes
     def deleteCategory(self, rig, cat):
         for n,cat1 in enumerate(rig.DazMorphCats):
             if cat == cat1:
-                categories.remove(n)
+                rig.DazMorphCats.remove(n)
                 return
 
 #-------------------------------------------------------------
@@ -1301,7 +1301,7 @@ class AddRemoveDriver:
         return DazPropsOperator.invoke(self, context, event)
 
 
-class DAZ_OT_AddShapekeyDrivers(DazOperator, Selector, AddRemoveDriver, B.CategoryString, IsMesh):
+class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.CategoryString, IsMesh):
     bl_idname = "daz.add_shapekey_drivers"
     bl_label = "Add Shapekey Drivers"
     bl_description = "Add rig drivers to shapekeys"
@@ -1322,7 +1322,7 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, Selector, AddRemoveDriver, B.Catego
         rig.DazCustomMorphs = True
 
 
-class DAZ_OT_RemoveShapekeyDrivers(DazOperator, Selector, AddRemoveDriver, IsMesh):
+class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, IsMesh):
     bl_idname = "daz.remove_shapekey_drivers"
     bl_label = "Remove Shapekey Drivers"
     bl_description = "Remove rig drivers from shapekeys"

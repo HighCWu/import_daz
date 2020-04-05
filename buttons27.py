@@ -367,13 +367,6 @@ class MorphTypes:
     other = BoolProperty(name = "Other", default = False)
 
 
-class FilterString:
-    filter = StringProperty(
-        name = "Filter",
-        description = "Show only items containing this string",
-        default = ""
-        )
-
 class CategoryString:
     category = StringProperty(
         name = "Category",
@@ -382,7 +375,7 @@ class CategoryString:
         )
 
 class CustomEnums:
-    category = EnumProperty(
+    custom = EnumProperty(
         items = G.getActiveCategories,
         name = "Category")
 
@@ -396,18 +389,33 @@ class StandardEnums:
         name = "Type",
         default = "All")
 
+class DeleteShapekeysBool:
+    deleteShapekeys = BoolProperty(
+        name = "Delete Shapekeys",
+        description = "Delete both drivers and shapekeys",
+        default = False
+    )
+    
 class DazSelectGroup(bpy.types.PropertyGroup):
     name = StringProperty()
     text = StringProperty()
     category = StringProperty()
+    index = IntProperty()
     select = BoolProperty()
 
 class Selector:
     selectAll = BoolProperty(
         name = "Select All", 
         default = False)
+
+    filter = StringProperty(
+        name = "Filter",
+        description = "Show only items containing this string",
+        default = ""
+        )
+
     selector = CollectionProperty(type = DazSelectGroup)
-    
+
 #-------------------------------------------------------------
 #   convert.py
 #-------------------------------------------------------------
