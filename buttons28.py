@@ -389,6 +389,13 @@ class StandardEnums:
         name = "Type",
         default = "All")
 
+class DeleteShapekeysBool:
+    deleteShapekeys : BoolProperty(
+        name = "Delete Shapekeys",
+        description = "Delete both drivers and shapekeys",
+        default = False
+    )
+    
 class DazSelectGroup(bpy.types.PropertyGroup):
     name : StringProperty()
     text : StringProperty()

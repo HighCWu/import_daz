@@ -598,7 +598,7 @@ class StandardSelector(Selector, B.StandardEnums):
 class CustomSelector(Selector, B.CustomEnums):
 
     def selectCondition(self, item):
-        return (self.category == "All" or item.category == self.category)
+        return (self.custom == "All" or item.category == self.custom)
      
     def draw(self, context):
         self.layout.prop(self, "custom")
@@ -672,11 +672,19 @@ class DAZ_OT_RenameCategory(DazPropsOperator, B.CustomEnums, B.CategoryString, I
         setBoolProp(rig, "DazShow%s" % cat.name, show)
 
 
-def removeFromPropGroups(rig, prop):             
+def removeFromPropGroups(rig, prop, keep=False):             
     for pb in rig.pose.bones:
         removeFromPropGroup(pb.DazLocProps, prop)
         removeFromPropGroup(pb.DazRotProps, prop)
         removeFromPropGroup(pb.DazScaleProps, prop)
+
+    if not keep:
+        rig[prop] = 0
+        del rig[prop]
+        for ob in rig.children:
+            if prop in ob.keys():
+                ob[prop] = 0
+                del ob[prop]
 
 
 def removeFromPropGroup(pgrps, prop):
@@ -715,12 +723,7 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
                         if removePropDrivers(ob.data.shape_keys, path, rig):
                             keep = True
                 if pg.prop in rig.keys():
-                    removeFromPropGroups(rig, pg.prop)
-                if not keep:
-                    del rig[pg.prop]
-                    for ob in rig.children:
-                        if key in ob.keys():
-                            del ob[key]
+                    removeFromPropGroups(rig, pg.prop, keep)
             rig.DazMorphCats.remove(idx)
 
         if len(rig.DazMorphCats) == 0:
@@ -1197,7 +1200,7 @@ class DAZ_OT_RemoveAllMorphDrivers(DazOperator, IsMeshArmature):
 #   Remove specific morphs
 #-------------------------------------------------------------
 
-class MorphRemover:
+class MorphRemover(B.DeleteShapekeysBool):
     allText = "Remove All"
     
     def run(self, context):
@@ -1207,24 +1210,20 @@ class MorphRemover:
         if rig:
             props = self.getSelectedProps()
             print("Remove", props)            
-            for prop in props:
-                removeFromPropGroups(rig, prop)
             paths = ['["%s"]' % prop for prop in props]
             for ob in rig.children:
                 if ob.type == 'MESH' and ob.data.shape_keys:
                     removePropDrivers(ob.data.shape_keys, paths, rig)
-                    self.removeProps(ob, props)
-            self.removeProps(rig, props)
+                    if self.deleteShapekeys:
+                        for prop in props:
+                            if prop in ob.data.shape_keys.key_blocks.keys():
+                                skey = ob.data.shape_keys.key_blocks[prop]
+                                ob.shape_key_remove(skey)
+            for prop in props:
+                removeFromPropGroups(rig, prop)
             self.finalize(rig)
             updateScene(context)
             updateRig(rig, context)
-
-
-    def removeProps(self, ob, props):
-        for key in props:
-            if key in ob.keys():
-                ob[key] = 0.0
-                del ob[key]
 
 
 class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, IsMeshArmature):
@@ -1239,6 +1238,10 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, I
              "Visemes" : ["DazVisemes"]
             }
 
+    def draw(self, context):
+        self.layout.prop(self, "deleteShapekeys")
+        StandardSelector.draw(self, context)
+        
     def finalize(self, rig):
         if self.selectAll:
             for show in self.shows[self.morphType]:
@@ -1254,13 +1257,17 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMes
     bl_description = "Remove specific custom morphs and their associated drivers"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "deleteShapekeys")
+        CustomSelector.draw(self, context)
+
     def finalize(self, rig):
         if self.selectAll:
-            if self.category == "All":
+            if self.custom == "All":
                 for cat in rig.DazMorphCats:
                     self.deleteCategory(rig, cat)
             else:
-                cat = rig.DazMorphCats[self.category]                
+                cat = rig.DazMorphCats[self.custom]                
                 self.deleteCategory(rig, cat)
 
 
