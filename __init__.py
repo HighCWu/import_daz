@@ -336,8 +336,14 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.remove_standard_morphs")
             box.operator("daz.remove_custom_morphs")
             box.separator()
-            box.operator("daz.convert_morphs_to_shapekeys")
+            box.operator("daz.rename_category")
+            box.operator("daz.remove_categories")
+            box.separator()
+            box.operator("daz.convert_standard_morphs_to_shapekeys")
+            box.operator("daz.convert_custom_morphs_to_shapekeys")
+            box.separator()
             box.operator("daz.add_shapekey_drivers")
+            box.operator("daz.remove_shapekey_drivers")
             box.operator("daz.remove_unused_drivers")
             box.operator("daz.remove_all_morph_drivers")
             box.separator()
@@ -718,11 +724,17 @@ class DAZ_PT_Viseme(bpy.types.Panel, DAZ_PT_Morphs):
 #    Custom panels
 #------------------------------------------------------------------------
 
-class DAZ_PT_Custom:
+class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Custom):
+    bl_label = "Custom Morphs"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "DAZ"
+    bl_options = {'DEFAULT_CLOSED'}
+
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (ob and getattr(ob, self.custom))
+        return (ob and ob.DazCustomMorphs)
 
 
     def draw(self, context):
@@ -731,15 +743,6 @@ class DAZ_PT_Custom:
         if ob is None:
             return
         layout = self.layout
-
-        attr = morphing.getOpenAttr("DazMorphCats")
-        if getattr(scn, attr):
-            layout.prop(scn, "DazMorphCatsContent")
-            layout.prop(scn, "DazNewCatName")
-            layout.operator("daz.rename_category")
-            layout.operator("daz.remove_category")
-            layout.operator("daz.change_category_cancel")
-            return
 
         split = utils.splitLayout(layout, 0.3333)
         split.operator("daz.prettify")
@@ -763,11 +766,9 @@ class DAZ_PT_Custom:
         op = split.operator("daz.clear_morphs", text="", icon='X')
         op.type = "CUSTOM"
         op.prefix = ""
-
         row = layout.row()
         row.operator("daz.toggle_all_cats", text="Open All Categories").useOpen=True
         row.operator("daz.toggle_all_cats", text="Close All Categories").useOpen=False
-        layout.operator("daz.change_category")
 
         for cat in ob.DazMorphCats:
             layout.separator()
@@ -791,16 +792,6 @@ class DAZ_PT_Custom:
                     op = row.operator("daz.pin_prop", icon='UNPINNED')
                     op.key = morph.prop
                     op.type = "CUSTOM"
-
-
-class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Custom):
-    bl_label = "Custom Morphs"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = Region
-    bl_category = "DAZ"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    custom = "DazCustomMorphs"
 
 #------------------------------------------------------------------------
 #    Mhx Layers Panel

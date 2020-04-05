@@ -526,6 +526,92 @@ class DAZ_OT_ImportMorph(DazOperator, LoadMorph, B.DazImageFile, B.MultiFile, B.
 
         return snames
 
+#-------------------------------------------------------------
+#   Morph selector
+#-------------------------------------------------------------
+
+class Selector(B.Selector):
+
+    def draw(self, context):
+        self.layout.prop(self, "selectAll", text=self.allText)        
+        if self.selectAll:
+            return
+        self.layout.prop(self, "filter")            
+        self.layout.separator()
+        for item in self.selector:
+            if self.selectCondition(item):
+                if self.filter and not self.filter in item.text:
+                    continue
+                split = splitLayout(self.layout, 0.6)
+                split.label(text=item.text)
+                split.prop(item, "select", text="")
+
+
+    def selectCondition(self, item):
+        return True
+
+
+    def getSelectedItems(self):
+        if self.selectAll:
+            return [item for item in self.selector if self.selectCondition(item)]
+        else:
+            return [item for item in self.selector if item.select and self.selectCondition(item)]
+
+
+    def getSelectedProps(self):
+        return [item.name for item in self.getSelectedItems()]
+        
+
+    def invoke(self, context, event):
+        self.selector.clear()
+        rig = getRigFromObject(context.object)
+        for idx,data in enumerate(self.getKeys(rig)):
+            prop,text,cat = data
+            item = self.selector.add()
+            item.name = prop
+            item.text = text
+            item.category = cat
+            item.index = idx
+            item.select = False
+        return DazPropsOperator.invoke(self, context, event)
+
+
+class StandardSelector(Selector, B.StandardEnums):
+    prefixes = {"All" : ["DzU", "DzE", "DzV"], 
+                "Units" : ["DzU"], 
+                "Expressions" : ["DzE"], 
+                "Visemes" : ["DzV"]
+               }
+
+    def selectCondition(self, item):
+        return (item.name[0:3] in self.prefixes[self.morphType])
+     
+    def draw(self, context):
+        self.layout.prop(self, "morphType")
+        Selector.draw(self, context)
+        
+    def getKeys(self, rig):
+        prefixes = self.prefixes[self.morphType]
+        return [(key,key[3:],"All") for key in rig.keys() if key[0:3] in prefixes]
+
+
+class CustomSelector(Selector, B.CustomEnums):
+
+    def selectCondition(self, item):
+        return (self.category == "All" or item.category == self.category)
+     
+    def draw(self, context):
+        self.layout.prop(self, "custom")
+        Selector.draw(self, context)
+
+    def getKeys(self, rig):
+        keys = []
+        for cat in rig.DazMorphCats:
+            for morph in cat.morphs:
+                key = morph.prop
+                keys.append((key,key,cat.name))
+        return keys
+
 #------------------------------------------------------------------------
 #   Categories
 #------------------------------------------------------------------------
@@ -560,35 +646,24 @@ def addToCategories(rig, snames, catname):
 #   Rename category
 #------------------------------------------------------------------------
 
-def getOpenAttr(DazMorphCats):
-    return ("DazMorphCatsOpen")
-
-
-class ChangeCategory:
-    def execute(self, context):
-        try:
-            rig = context.object
-            scn = context.scene
-            catname = scn.DazMorphCatsContent
-            key = ("DazShow%s" % catname)
-            self.doChange(rig, scn, catname, key)
-        except DazError:
-            handleDazError(context)
-        finally:
-            setattr(context.scene, self.DazMorphCatsOpen, False)
-        return {'FINISHED'}
-
-
-class DAZ_OT_RenameCategoryOK(bpy.types.Operator, ChangeCategory):
+class DAZ_OT_RenameCategory(DazPropsOperator, B.CustomEnums, B.CategoryString, IsArmature):
     bl_idname = "daz.rename_category"
     bl_label = "Rename Category"
     bl_description = "Rename selected category"
     bl_options = {'UNDO'}
 
-    def doChange(self, rig, scn, catname, key):
+    def draw(self, context):
+       self.layout.prop(self, "custom")
+       self.layout.prop(self, "category", text="New Name")
+
+    def run(self, context):
         from .driver import setBoolProp
-        cat = rig.DazMorphCats[catname]
-        cat.name = scn.DazNewCatName
+        rig = context.object
+        if self.custom == "All":
+            raise DazError("Cannot rename all categories")
+        cat = rig.DazMorphCats[self.custom]
+        cat.name = self.category
+        key = "DazShow%s" % self.custom
         if key in rig.keys():
             show = rig[key]
             del rig[key]
@@ -614,67 +689,57 @@ def removeFromPropGroup(pgrps, prop):
         pgrps.remove(n)            
             
 
-def deleteCategory(rig, cat):
-    for n,cat1 in enumerate(rig.DazMorphCats):
-        if cat == cat1:
-            categories.remove(n)
-            return
-
-
-class DAZ_OT_RemoveCategoryOK(bpy.types.Operator, ChangeCategory):
-    bl_idname = "daz.remove_category"
-    bl_label = "Remove Category"
-    bl_description = "Remove selected category and associated drivers"
+class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
+    bl_idname = "daz.remove_categories"
+    bl_label = "Remove Categories"
+    bl_description = "Remove selected categories and associated drivers"
     bl_options = {'UNDO'}
 
-    def doChange(self, rig, scn, catname, key):
+    allText = "Remove All Categories"
+    
+    def run(self, context):
         from .driver import removePropDrivers
-        #if len(cat.morphs) > 0:
-        #    raise DazError("Cannot remove non-empty category:      \n%s" % cat.name)
-        cat = rig.DazMorphCats[catname]
-        for pg in cat.morphs:
-            if pg.prop in rig.keys():
-                rig[pg.prop] = 0.0
-            path = ('["%s"]' % pg.prop)
-            keep = removePropDrivers(rig, path, rig)
-            for ob in rig.children:
-                if ob.type == 'MESH':
-                    if removePropDrivers(ob.data.shape_keys, path, rig):
-                        keep = True
-            if pg.prop in rig.keys():
-                removeFromPropGroups(rig, pg.prop)
+        items = [(item.index, item.name) for item in self.getSelectedItems()]
+        items.sort()
+        items.reverse()
+        rig = context.object
+        for idx,key in items:
+            cat = rig.DazMorphCats[key]
+            for pg in cat.morphs:
+                if pg.prop in rig.keys():
+                    rig[pg.prop] = 0.0
+                path = ('["%s"]' % pg.prop)
+                keep = removePropDrivers(rig, path, rig)
+                for ob in rig.children:
+                    if ob.type == 'MESH':
+                        if removePropDrivers(ob.data.shape_keys, path, rig):
+                            keep = True
+                if pg.prop in rig.keys():
+                    removeFromPropGroups(rig, pg.prop)
                 if not keep:
                     del rig[pg.prop]
-        deleteCategory(rig, cat)
-        if key in ob.keys():
-            del ob[key]
+                    for ob in rig.children:
+                        if key in ob.keys():
+                            del ob[key]
+            rig.DazMorphCats.remove(idx)
+
+        if len(rig.DazMorphCats) == 0:
+            rig.DazCustomMorphs = False
+            for ob in rig.children:
+                if len(ob.DazMorphCats) == 0:
+                    ob.DazCustomMorphs = False
 
 
-class DAZ_OT_ChangeCategoryCancel(DazOperator):
-    bl_idname = "daz.change_category_cancel"
-    bl_label = "Cancel"
-    bl_description = "Cancel category change"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        setattr(context.scene, "DazMorphCats", False)
+    def selectCondition(self, item):
+        return True
 
 
-class DAZ_OT_ChangeCategory(DazOperator, B.ActionString, IsArmature):
-    bl_idname = "daz.change_category"
-    bl_label = "Change Category"
-    bl_description = "Rename or remove category"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        ob = context.object
-        scn = context.scene
-        enums = EnumProperty(
-            items = [(cat.name, cat.name, cat.name) for cat in ob.DazMorphCats],
-            name = "Morph")
-        setattr(bpy.types.Scene, "DazMorphCatsContent", enums)
-
-        setattr(context.scene, self.DazMorphCatsOpen, True)
+    def getKeys(self, rig):
+        keys = []
+        for cat in rig.DazMorphCats:
+            key = cat.name
+            keys.append((key,key,key))
+        return keys
 
 #------------------------------------------------------------------------
 #   Apply morphs
@@ -1129,89 +1194,6 @@ class DAZ_OT_RemoveAllMorphDrivers(DazOperator, IsMeshArmature):
                 del ob[key]
 
 #-------------------------------------------------------------
-#   Morph selector
-#-------------------------------------------------------------
-
-class Selector(B.Selector, B.FilterString):
-
-    def draw(self, context):
-        self.layout.prop(self, "selectAll", text=self.allText)        
-        if self.selectAll:
-            return
-        self.layout.prop(self, "filter")            
-        self.layout.separator()
-        for item in self.selector:
-            if self.selectCondition(item):
-                if self.filter and not self.filter in item.text:
-                    continue
-                split = self.layout.split(factor = 0.6)
-                split.label(text=item.text)
-                split.prop(item, "select", text="")
-
-
-    def selectCondition(self, item):
-        return True
-
-
-    def getSelectedProps(self):
-        if self.selectAll:
-            return [item.name for item in self.selector if self.selectCondition(item)]
-        else:
-            return [item.name for item in self.selector if item.select and self.selectCondition(item)]
-        
-
-    def invoke(self, context, event):
-        self.selector.clear()
-        rig = getRigFromObject(context.object)
-        for prop,text,cat in self.getKeys(rig):
-            item = self.selector.add()
-            item.name = prop
-            item.text = text
-            item.category = cat
-            item.select = False
-        return DazPropsOperator.invoke(self, context, event)
-
-
-class StandardSelector(Selector):
-    prefixes = {"All" : ["DzU", "DzE", "DzV"], 
-                "Units" : ["DzU"], 
-                "Expressions" : ["DzE"], 
-                "Visemes" : ["DzV"]
-               }
-
-    def selectCondition(self, item):
-        return (item.name[0:3] in self.prefixes[self.morphType])
-     
-    def draw(self, context):
-        self.layout.prop(self, "morphType")
-        Selector.draw(self, context)
-        
-    def getKeys(self, rig):
-        prefixes = self.prefixes[self.morphType]
-        print("GK", self.morphType, prefixes)
-        return [(key,key[3:],"All") for key in rig.keys() if key[0:3] in prefixes]
-
-
-class CustomSelector(Selector):
-
-    def selectCondition(self, item):
-        return (self.category == "All" or item.category == self.category)
-     
-    def draw(self, context):
-        self.layout.prop(self, "category")
-        Selector.draw(self, context)
-
-    def getKeys(self, rig):
-        keys = []
-        for cat in rig.DazMorphCats:
-            print("CC", cat, keys)
-            for morph in cat.morphs:
-                key = morph.prop
-                print("KK", key)
-                keys.append((key,key,cat.name))
-        return keys
-
-#-------------------------------------------------------------
 #   Remove specific morphs
 #-------------------------------------------------------------
 
@@ -1245,7 +1227,7 @@ class MorphRemover:
                 del ob[key]
 
 
-class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, B.StandardEnums, IsMeshArmature):
+class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, IsMeshArmature):
     bl_idname = "daz.remove_standard_morphs"
     bl_label = "Remove Standard Morphs"
     bl_description = "Remove specific standard morphs and their associated drivers"
@@ -1266,7 +1248,7 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, B
                     setattr(ob, show, "")
 
 
-class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, B.CustomEnums, IsMeshArmature):
+class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMeshArmature):
     bl_idname = "daz.remove_custom_morphs"
     bl_label = "Remove Custom Morphs"
     bl_description = "Remove specific custom morphs and their associated drivers"
@@ -1276,50 +1258,30 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, B.Cus
         if self.selectAll:
             if self.category == "All":
                 for cat in rig.DazMorphCats:
-                    deleteCategory(rig, cat)
+                    self.deleteCategory(rig, cat)
             else:
                 cat = rig.DazMorphCats[self.category]                
-                deleteCategory(rig, cat)
-                        
+                self.deleteCategory(rig, cat)
+
+
+    def deleteCategory(self, rig, cat):
+        for n,cat1 in enumerate(rig.DazMorphCats):
+            if cat == cat1:
+                categories.remove(n)
+                return
+
 #-------------------------------------------------------------
 #   Add and remove driver
 #-------------------------------------------------------------
 
-def getActiveShapeKey(ob):
-    if ob.active_shape_key_index == 0:
-        raise DazError("Cannot add/remove driver to first shapekey")
-    skey = ob.active_shape_key
-    if skey is None:
-        raise DazError("Object %s has no active shapekey" % ob.name)
-    return skey
-
-
-class DAZ_OT_AddShapekeyDrivers(DazPropsOperator, Selector, B.CategoryString, IsMesh):
-    bl_idname = "daz.add_shapekey_drivers"
-    bl_label = "Add Shapekey Drivers"
-    bl_description = "Add rig drivers to shapekeys"
-    bl_options = {'UNDO'}
-
-    allText = "Select All"
-
-    def draw(self, context):
-        self.layout.prop(self, "category")
-        Selector.draw(self, context)
+class AddRemoveDriver:
 
     def run(self, context):
-        from .driver import makeShapekeyDriver
         ob = context.object
         rig = ob.parent
         if (rig and rig.type == 'ARMATURE'):
-            for item in self.selector:
-                if item.select:
-                    sname = item.name
-                    skey = ob.data.shape_keys.key_blocks[sname]
-                    makeShapekeyDriver(ob, sname, skey.value, rig, sname)
-                    addToCategories(rig, [sname], self.category)
-                    ob.DazCustomMorphs = True
-                    rig.DazCustomMorphs = True
-
+            for sname in self.getSelectedProps():
+                self.handleShapekey(sname, rig, ob)
 
     def invoke(self, context, event):
         self.selector.clear()
@@ -1332,31 +1294,54 @@ class DAZ_OT_AddShapekeyDrivers(DazPropsOperator, Selector, B.CategoryString, Is
         return DazPropsOperator.invoke(self, context, event)
 
 
-class DAZ_OT_RemoveDriver(DazOperator, IsMesh):
-    bl_idname = "daz.remove_shapekey_driver"
-    bl_label = "Remove Driver"
-    bl_description = "Remove rig driver from active shapekey"
+class DAZ_OT_AddShapekeyDrivers(DazOperator, Selector, AddRemoveDriver, B.CategoryString, IsMesh):
+    bl_idname = "daz.add_shapekey_drivers"
+    bl_label = "Add Shapekey Drivers"
+    bl_description = "Add rig drivers to shapekeys"
     bl_options = {'UNDO'}
 
-    def run(self, ob):
-        skey = getActiveShapeKey(ob)
-        removeShapekeyDriver(ob, skey)
+    allText = "Add Drivers To All Shapekeys"
+
+    def draw(self, context):
+        self.layout.prop(self, "category")
+        Selector.draw(self, context)
+
+    def handleShapekey(self, sname, rig, ob):                    
+        from .driver import makeShapekeyDriver
+        skey = ob.data.shape_keys.key_blocks[sname]
+        makeShapekeyDriver(ob, sname, skey.value, rig, sname)
+        addToCategories(rig, [sname], self.category)
+        ob.DazCustomMorphs = True
+        rig.DazCustomMorphs = True
+
+
+class DAZ_OT_RemoveShapekeyDrivers(DazOperator, Selector, AddRemoveDriver, IsMesh):
+    bl_idname = "daz.remove_shapekey_drivers"
+    bl_label = "Remove Shapekey Drivers"
+    bl_description = "Remove rig drivers from shapekeys"
+    bl_options = {'UNDO'}
+
+    allText = "Remove All Shapekey Drivers"
+
+    def handleShapekey(self, sname, rig, ob):                    
+        #skey = ob.data.shape_keys.key_blocks[sname]
+        self.removeShapekeyDriver(ob, sname)
         rig = ob.parent
         if (rig and rig.type == 'ARMATURE' and
-            skey.name in rig.keys()):
-            del rig[skey.name]
+            sname in rig.keys()):
+            del rig[sname]
 
 
-def removeShapekeyDriver(ob, skey):
-    adata = ob.data.shape_keys.animation_data
-    if (adata and adata.drivers):
-        for fcu in adata.drivers:
-            words = fcu.data_path.split('"')
-            if (words[0] == "key_blocks[" and
-                words[1] == skey.name):
-                ob.data.shape_keys.driver_remove(fcu.data_path)
-                return
-    raise DazError("Did not find driver for shapekey %s" % skey.name)
+    def removeShapekeyDriver(self, ob, sname):
+        adata = ob.data.shape_keys.animation_data
+        if (adata and adata.drivers):
+            for fcu in adata.drivers:
+                words = fcu.data_path.split('"')
+                if (words[0] == "key_blocks[" and
+                    words[1] == sname):
+                    ob.data.shape_keys.driver_remove(fcu.data_path)
+                    return
+        #raise DazError("Did not find driver for shapekey %s" % skey.name)
 
 #-------------------------------------------------------------
 #
@@ -1571,39 +1556,21 @@ class DAZ_OT_DeleteLipsync(DazOperator):
 #   Convert pose to shapekey
 #-------------------------------------------------------------
 
-class DAZ_OT_ConvertMorphsToShapes(DazOperator, B.MorphTypes, IsMesh):
-    bl_idname = "daz.convert_morphs_to_shapekeys"
-    bl_label = "Convert Morphs To Shapekeys"
-    bl_description = "Convert face rig poses to shapekeys"
-    bl_options = {'UNDO'}
-
-    def draw(self, context):
-        self.layout.prop(self, "units")
-        self.layout.prop(self, "expressions")
-        self.layout.prop(self, "visemes")
-        self.layout.prop(self, "other")
-
+class MorphsToShapes:
+    allText = "Convert All"
+    
     def run(self, context):
         ob = context.object
         rig = ob.parent
-        if rig and rig.type == 'ARMATURE':
-            self.convertToShapes(context, rig, ob)
-
-    def invoke(self, context, event):
-        context.window_manager.invoke_props_dialog(self)
-        return {'RUNNING_MODAL'}
-    
-    
-    def convertToShapes(self, context, rig, ob):    
-        from .daz import getPropGroupProps
-        keys = getPropGroupProps(rig)
-        keys.sort()
-        for key in keys:
+        if rig is None or rig.type != 'ARMATURE':
+            return
+        for item in self.getSelectedItems():
+            key = item.name
+            mname = item.text            
             rig[key] = 0.0
-        for key in keys:
-            mname = self.getMorphName(key, ob)
             if (ob.data.shape_keys and 
                 mname in ob.data.shape_keys.key_blocks.keys()):
+                print("Skip", mname)
                 continue
             if mname:
                 for mod in ob.modifiers:
@@ -1617,18 +1584,6 @@ class DAZ_OT_ConvertMorphsToShapes(DazOperator, B.MorphTypes, IsMesh):
         updateScene(context)
         updateRig(rig, context)
         updateDrivers(rig)
-
-
-    def getMorphName(self, key, ob):
-        if key[0:3] == "DzU" and self.units:
-            return key[3:]
-        if key[0:3] == "DzE" and self.expressions:
-            return key[3:]
-        if key[0:3] == "DzV" and self.visemes:
-            return key[3:]
-        if self.other and key[0:2] != "Dz" and key[0:3] not in["Daz", "DzA"]:
-            return key
-        return None                
     
 
     def applyArmature(self, ob, rig, mod, mname):
@@ -1651,6 +1606,21 @@ class DAZ_OT_ConvertMorphsToShapes(DazOperator, B.MorphTypes, IsMesh):
         for i in range(len(ob.modifiers)-1):
             bpy.ops.object.modifier_move_up(modifier=nmod.name)
 
+
+class DAZ_OT_ConvertStandardMorphsToShapes(DazOperator, StandardSelector, MorphsToShapes, IsMesh):
+    bl_idname = "daz.convert_standard_morphs_to_shapekeys"
+    bl_label = "Convert Standard Morphs To Shapekeys"
+    bl_description = "Convert standard face rig morphs to shapekeys"
+    bl_options = {'UNDO'}
+
+
+class DAZ_OT_ConvertCustomMorphsToShapes(DazOperator, CustomSelector, MorphsToShapes, IsMesh):
+    bl_idname = "daz.convert_custom_morphs_to_shapekeys"
+    bl_label = "Convert Custom Morphs To Shapekeys"
+    bl_description = "Convert custom rig morphs to shapekeys"
+    bl_options = {'UNDO'}
+
+
 #-------------------------------------------------------------
 #   Property groups, for drivers
 #-------------------------------------------------------------
@@ -1663,10 +1633,8 @@ classes = [
     DAZ_OT_LoadAllVisemes,
     DAZ_OT_LoadAllCorrectives,
     DAZ_OT_ImportMorph,
-    DAZ_OT_RenameCategoryOK,
-    DAZ_OT_RemoveCategoryOK,
-    DAZ_OT_ChangeCategoryCancel,
-    DAZ_OT_ChangeCategory,
+    DAZ_OT_RenameCategory,
+    DAZ_OT_RemoveCategories,
     DAZ_OT_Prettify,
     DAZ_OT_ForceUpdate,
     DAZ_OT_ActivateAll,
@@ -1681,12 +1649,13 @@ classes = [
     DAZ_OT_RemoveCustomMorphs,
     DAZ_OT_RemoveAllMorphDrivers,
     DAZ_OT_AddShapekeyDrivers,
-    DAZ_OT_RemoveDriver,
+    DAZ_OT_RemoveShapekeyDrivers,
     DAZ_OT_ToggleAllCats,
     DAZ_OT_PinProp,
     DAZ_OT_LoadMoho,
     DAZ_OT_DeleteLipsync,
-    DAZ_OT_ConvertMorphsToShapes,
+    DAZ_OT_ConvertStandardMorphsToShapes,
+    DAZ_OT_ConvertCustomMorphsToShapes,    
 ]
 
 def initialize():
@@ -1702,7 +1671,6 @@ def initialize():
     bpy.utils.register_class(B.DazCategory)
     
     bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory)
-    bpy.types.Scene.DazMorphCatsOpen = BoolProperty(default = False)
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],
         name = "Morph")

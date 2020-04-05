@@ -572,7 +572,10 @@ def removePropDrivers(rna, paths=None, rig=None):
                     keep = True
     for fcu in fcus:
         if fcu.data_path:
-            rna.driver_remove(fcu.data_path)
+            try:
+                rna.driver_remove(fcu.data_path)
+            except TypeError:
+                pass
     return keep
 
 

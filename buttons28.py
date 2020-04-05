@@ -271,7 +271,7 @@ class ResizeOptions:
         default = False)
 
 class ColorProp:
-    color : bpy.props.FloatVectorProperty(
+    color : FloatVectorProperty(
         name = "Color",
         subtype = "COLOR",
         size = 4,
@@ -367,13 +367,6 @@ class MorphTypes:
     other : BoolProperty(name = "Other", default = False)
 
 
-class FilterString:
-    filter : StringProperty(
-        name = "Filter",
-        description = "Show only items containing this string",
-        default = ""
-        )
-
 class CategoryString:
     category : StringProperty(
         name = "Category",
@@ -381,9 +374,8 @@ class CategoryString:
         default = "Shapes"
         )
 
-
 class CustomEnums:
-    category : EnumProperty(
+    custom : EnumProperty(
         items = G.getActiveCategories,
         name = "Category")
 
@@ -401,14 +393,22 @@ class DazSelectGroup(bpy.types.PropertyGroup):
     name : StringProperty()
     text : StringProperty()
     category : StringProperty()
+    index : IntProperty()
     select : BoolProperty()
 
 class Selector:
     selectAll : BoolProperty(
         name = "Select All", 
         default = False)
+
+    filter : StringProperty(
+        name = "Filter",
+        description = "Show only items containing this string",
+        default = ""
+        )
+
     selector : CollectionProperty(type = DazSelectGroup)
-    
+
 #-------------------------------------------------------------
 #   convert.py
 #-------------------------------------------------------------
@@ -744,7 +744,7 @@ class DatFile:
 
 class PoserFile:
     filename_ext = ".pz2"
-    filter_glob : StringProperty(default=theImagedPoserDefaults, options={'HIDDEN'})
+    filter_glob : StringProperty(default=G.theImagedPoserDefaults, options={'HIDDEN'})
 
 
 class TextFile:

@@ -30,14 +30,11 @@ import bpy
 from bpy.props import *
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 
+from . import globvars as G
+
 #-------------------------------------------------------------
 #   animation.py
 #-------------------------------------------------------------
-
-from .globvars import theImagedDefaults
-from .globvars import theDazDefaults
-from .globvars import thePoserDefaults, theImagedPoserDefaults
-from .globvars import theRestPoseItems
 
 class ConvertOptions:
     convertPoses = BoolProperty(
@@ -46,13 +43,13 @@ class ConvertOptions:
         default = False)
 
     srcCharacter = EnumProperty(
-        items = theRestPoseItems,
+        items = G.theRestPoseItems,
         name = "Source Character",
         description = "Character this file was made for",
         default = "genesis_3_female")
 
     trgCharacter = EnumProperty(
-        items = theRestPoseItems,
+        items = G.theRestPoseItems,
         name = "Target Character",
         description = "Active character",
         default = "genesis_3_female")
@@ -200,7 +197,7 @@ class DazOptions:
         min = 0.1, max = 10)        
 
     fitMeshes = EnumProperty(
-        items = [('SHARED', "Unmorphed Shared", "Don't fit meshes. All objects share the same mesh."),
+    items = [('SHARED', "Unmorphed Shared", "Don't fit meshes. All objects share the same mesh."),
              ('UNIQUE', "Unmorped Unique", "Don't fit meshes. Each object has unique mesh instance."),
              ('JSONFILE', "Json File", "Use exported JSON (.json) file to fit meshes. Must exist in same directory."),
             ],
@@ -220,7 +217,7 @@ class DazOptions:
                  ],
         name = "Opaque Materials",
         description = "Default method used for opaque materials.\nIgnored by some materials.",
-        default = 'PRINCIPLED')
+        default = 'BSDF')
 
     handleRefractive = EnumProperty(
         items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
@@ -267,14 +264,14 @@ class ResizeOptions:
         description = "Resize original images with this number of steps",
         min = 0, max = 8,
         default = 2)
-
+        
     overwrite = BoolProperty(
         name = "Overwrite Files",
         description = "Overwrite the original image files.",
         default = False)
 
 class ColorProp:
-    color = bpy.props.FloatVectorProperty(
+    color = FloatVectorProperty(
         name = "Color",
         subtype = "COLOR",
         size = 4,
@@ -283,7 +280,6 @@ class ColorProp:
         default = (0.1, 0.1, 0.5, 1)
     )
 
-from .globvars import TweakableChannels
 
 class LaunchEditor:
     colorFactor = FloatVectorProperty(
@@ -295,7 +291,7 @@ class LaunchEditor:
     )        
 
     tweakableChannel = EnumProperty(
-        items = [(key,key,key) for key in TweakableChannels.keys()],
+        items = [(key,key,key) for key in G.TweakableChannels.keys()],
         name = "Active Channel",
         description = "Active channel to be tweaked",
         default = "Bump Strength")
@@ -364,25 +360,61 @@ class MorphStrings:
         default = True)
 
 
-class PoseStrings:
-    catname = StringProperty(
-        name = "Category",
-        default = "Poses")
-
-
 class MorphTypes:
     units = BoolProperty(name = "Units", default = True)
     expressions = BoolProperty(name = "Expressions", default = True)
     visemes = BoolProperty(name = "Visemes", default = True)
-    other = BoolProperty(name = "Other", default = False)    
+    other = BoolProperty(name = "Other", default = False)
 
+
+class FilterString:
+    filter = StringProperty(
+        name = "Filter",
+        description = "Show only items containing this string",
+        default = ""
+        )
+
+class CategoryString:
+    category = StringProperty(
+        name = "Category",
+        description = "Add morphs to this category of custom morphs",
+        default = "Shapes"
+        )
+
+class CustomEnums:
+    category = EnumProperty(
+        items = G.getActiveCategories,
+        name = "Category")
+
+class StandardEnums:
+    morphType = EnumProperty(
+        items = [("All", "All", "All"),
+                 ("Units", "Units", "Units"), 
+                 ("Expressions", "Expressions", "Expressions"),
+                 ("Visemes", "Visemes", "Visemes"),
+                ],
+        name = "Type",
+        default = "All")
+
+class DazSelectGroup(bpy.types.PropertyGroup):
+    name = StringProperty()
+    text = StringProperty()
+    category = StringProperty()
+    select = BoolProperty()
+
+class Selector:
+    selectAll = BoolProperty(
+        name = "Select All", 
+        default = False)
+    selector = CollectionProperty(type = DazSelectGroup)
+    
 #-------------------------------------------------------------
 #   convert.py
 #-------------------------------------------------------------
 
 class NewRig:
     newRig = EnumProperty(
-        items = theRestPoseItems,
+        items = G.theRestPoseItems,
         name = "New Rig",
         description = "Convert active rig to this",
         default = "genesis_3_female")
@@ -426,14 +458,15 @@ class Mannequin:
         default = 'JAW')
 
     useGroup = BoolProperty(
-        name = "Add To Group",
-        description = "Add mannequin to group",
+        name = "Add To Collection",
+        description = "Add mannequin to collection",
         default = True)
 
     group = StringProperty(
-        name = "Group",
-        description = "Add mannequin to this group",
+        name = "Collection",
+        description = "Add mannequin to this collection",
         default = "Mannequin")
+
 
 #-------------------------------------------------------------
 #   hair.py
@@ -670,7 +703,7 @@ class SingleFile(ImportHelper):
 
 class AnimatorFile:
     filename_ext = ".duf"
-    filter_glob = StringProperty(default = theDazDefaults + theImagedDefaults + thePoserDefaults, options={'HIDDEN'})
+    filter_glob = StringProperty(default = G.theDazDefaults + G.theImagedDefaults + G.thePoserDefaults, options={'HIDDEN'})
 
 
 class JsonFile:
@@ -710,7 +743,7 @@ class DatFile:
 
 class PoserFile:
     filename_ext = ".pz2"
-    filter_glob = StringProperty(default=theImagedPoserDefaults, options={'HIDDEN'})
+    filter_glob = StringProperty(default=G.theImagedPoserDefaults, options={'HIDDEN'})
 
 
 class TextFile:
@@ -730,6 +763,7 @@ class DazMorphGroup(bpy.types.PropertyGroup):
     def __repr__(self):
         return "<MorphGroup %d %s %f %f>" % (self.index, self.prop, self.factor, self.default)
 
+
 class DazIntGroup(bpy.types.PropertyGroup):
     a = IntProperty()
 
@@ -740,9 +774,12 @@ class DazPairGroup(bpy.types.PropertyGroup):
 class DazStringGroup(bpy.types.PropertyGroup):
     s = StringProperty()
 
+class DazKeys(bpy.types.PropertyGroup):
+    keys = CollectionProperty(type = StringProperty)
+
 class DazCustomGroup(bpy.types.PropertyGroup):
     name = StringProperty()
-    prop = StringProperty()
+    prop = StringProperty()    
 
 class DazCategory(bpy.types.PropertyGroup):
     name = StringProperty()
