@@ -226,9 +226,9 @@ class Geometry(Asset, Channels):
             for key,data in struct["graft"].items():
                 if key == "vertex_count":
                     self.vertex_count = data
-                elif key == "vertex_count":
+                elif key == "poly_count":
                     self.poly_count = data
-                elif key == "vertex_count":
+                elif key == "hidden_polys":
                     self.hidden_polys = data["values"]
                 elif key == "vertex_pairs":
                     self.vertex_pairs = data["values"]

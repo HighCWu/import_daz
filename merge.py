@@ -179,7 +179,7 @@ class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
                     if vn not in graft:
                         cob.data.vertices[vn].select = True
                         deleted[vn] = True
-
+        
         assoc = {}
         vn2 = 0
         for vn in range(nverts):
