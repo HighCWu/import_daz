@@ -204,7 +204,7 @@ def saveSettings(filepath, scn):
     settings = {}
     for attr in dir(scn):
         if (attr[0:3] == "Daz" and
-            attr not in ["DazMorphCatsContent", "DazPoseCatsContent"]):
+            attr not in ["DazMorphCatsContent", "DazPoseCatsContent", "DazSelector"]):
             value = getattr(scn, attr)
             if (isinstance(value, int) or
                 isinstance(value, float) or
