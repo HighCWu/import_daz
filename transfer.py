@@ -353,10 +353,10 @@ def findVertsInGroup(ob, vgrp):
     return verts
 
 
-class DAZ_OT_TransferExpressions(DazOperator, MorphTransferer):
-    bl_idname = "daz.transfer_expressions"
-    bl_label = "Transfer Expressions"
-    bl_description = "Transfer facial expressions shapekeys with drivers from active to selected"
+class DAZ_OT_TransferStandardMorphs(DazOperator, MorphTransferer):
+    bl_idname = "daz.transfer_standard_morphs"
+    bl_label = "Transfer Standard Morphs"
+    bl_description = "Transfer standard morphs (face units/expressions/visemes) with drivers from active to selected"
     bl_options = {'UNDO'}
 
     useBoneDriver = False
@@ -366,10 +366,10 @@ class DAZ_OT_TransferExpressions(DazOperator, MorphTransferer):
     useIgnore = False
 
 
-class DAZ_OT_TransferShapekeys(DazOperator, MorphTransferer):
-    bl_idname = "daz.transfer_other_shapekeys"
-    bl_label = "Transfer Other Shapekeys"
-    bl_description = "Transfer all shapekeys except correctives and facial expressions with drivers from active to selected"
+class DAZ_OT_TransferCustomMorphs(DazOperator, MorphTransferer):
+    bl_idname = "daz.transfer_custom_morphs"
+    bl_label = "Transfer Custom Morphs"
+    bl_description = "Transfer all shapekeys except correctives and standard morphs with drivers from active to selected"
     bl_options = {'UNDO'}
 
     useBoneDriver = False
@@ -435,8 +435,8 @@ class DAZ_OT_MergeShapekeys(DazOperator, B.MergeShapekeysOptions):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_TransferExpressions,
-    DAZ_OT_TransferShapekeys,
+    DAZ_OT_TransferStandardMorphs,
+    DAZ_OT_TransferCustomMorphs,
     DAZ_OT_TransferCorrectives,
     DAZ_OT_MergeShapekeys,
 ]

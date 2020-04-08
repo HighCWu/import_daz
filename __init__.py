@@ -152,20 +152,24 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.prop(scn, "DazShowMorphs", icon="RIGHTARROW", emboss=False)
         else:
             box.prop(scn, "DazShowMorphs", icon="DOWNARROW_HLT", emboss=False)
+            '''
             from .morphing import theMorphNames
             if theMorphNames:
                 self.morphSection(box, scn, ob)
             else:
                 box.operator("daz.update_morph_paths")
             box.separator()
-            box.operator("daz.import_morph")
+            '''
+            box.operator("daz.import_standard_morphs")
+            box.operator("daz.import_custom_morphs")
+            box.operator("daz.import_correctives")
             if scn.DazUseHidden:
                 box.operator("daz.import_json")
-            box.separator()
+            #box.separator()
             box.label(text="Create low-poly meshes before transfers.")
+            box.operator("daz.transfer_standard_morphs")
+            box.operator("daz.transfer_custom_morphs")
             box.operator("daz.transfer_correctives")
-            box.operator("daz.transfer_expressions")
-            box.operator("daz.transfer_other_shapekeys")
 
         layout.separator()
         box = layout.box()
