@@ -380,7 +380,16 @@ class CustomEnums:
         name = "Category")
 
 class StandardEnums:
-    morphType = EnumProperty(
+    type = EnumProperty(
+        items = [("Units", "Units", "Units"), 
+                 ("Expressions", "Expressions", "Expressions"),
+                 ("Visemes", "Visemes", "Visemes"),
+                ],
+        name = "Type",
+        default = "Units")
+
+class StandardAllEnums:
+    type = EnumProperty(
         items = [("All", "All", "All"),
                  ("Units", "Units", "Units"), 
                  ("Expressions", "Expressions", "Expressions"),
@@ -667,7 +676,7 @@ class NameString:
 class ActionString:
     action = StringProperty()
 
-class TypePrefixCat:
+class TypePrefix:
     type = StringProperty(default = "")
     prefix = StringProperty(default = "")
 

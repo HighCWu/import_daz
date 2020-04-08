@@ -510,7 +510,7 @@ class LoadAllMorphs(LoadMorph):
 
         updateDrivers(self.mesh)
         updateDrivers(self.rig)
-        finishMain(filepath, t1)
+        finishMain("", t1)
         if self.errors:
             print("but there were errors:")
             for err,struct in self.errors.items():
