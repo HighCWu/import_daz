@@ -187,7 +187,7 @@ class Instance(Accessor):
         for channel in self.channels.values(): 
             if "type" not in channel.keys():
                 continue                   
-            elif channel["type"] == "node":
+            elif channel["type"] == "node" and "node" in channel.keys():
                 ref = channel["node"]
                 node = self.getAsset(ref)
                 if node:
