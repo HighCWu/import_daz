@@ -204,7 +204,9 @@ class Geometry(Asset, Channels):
     def parse(self, struct):
         Asset.parse(self, struct)
         Channels.parse(self, struct)
-
+        if "source" in struct.keys():
+            self.copySource(struct["source"], Geometry)
+            
         vdata = struct["vertices"]["values"]
         fdata = struct["polylist"]["values"]
         if theSettings.zup:
@@ -247,6 +249,9 @@ class Geometry(Asset, Channels):
     def update(self, struct):
         Asset.update(self, struct)
         Channels.update(self, struct)
+        if "source" in struct.keys():
+            halt
+            self.copySource(struct["source"])
         if "SubDIALevel" in self.channels.keys():
             self.SubDIALevel = getCurrentValue(self.channels["SubDIALevel"], 0)
         if "SubDRenderLevel" in self.channels.keys():

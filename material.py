@@ -194,6 +194,9 @@ class Material(Asset, Channels):
 
 
     def fixUdim(self, udim):
+        if self.rna is None:
+            print("No material:", self.name)
+            return
         try:
             self.rna.DazUDim = udim
         except ValueError:

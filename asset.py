@@ -47,7 +47,7 @@ class Accessor:
 
 
     def getAsset(self, id, strict=True):
-        global theAssets
+        global theAssets, theOtherAssets
 
         if isinstance(id, Asset):
             return id
@@ -72,6 +72,10 @@ class Accessor:
             ref = getRef(id, self.fileref)
             try:
                 return theAssets[ref]
+            except KeyError:
+                pass
+            try:
+                return theOtherAssets[ref]
             except KeyError:
                 pass
             msg = ("Missing local asset:\n  '%s'\n" % ref)
@@ -267,6 +271,32 @@ class Asset(Accessor):
         return getName(string)
 
 
+    def copySource(self, source, type): 
+        global theAssets, theOtherAssets, theSources        
+        asset = self.parseUrlAsset({"url": source}, type)
+        old = asset.id.rsplit("#", 1)[0]
+        new = self.id.rsplit("#", 1)[0]
+        self.copySource1(old, new)
+        if old not in theSources.keys():
+            theSources[old] = []
+        for other in theSources[old]:
+            self.copySource1(other, new)
+        theSources[old].append(new)
+        
+        
+    def copySource1(self, old, new):
+        print("CSORC", old, new)
+        nold = len(old)
+        nnew = len(new)
+        adds = []
+        for key,value in theAssets.items():
+            if key[0:nold] == old:
+                adds.append((new + key[nold:], value))
+        for key,value in adds:
+            if key not in theOtherAssets.keys():
+                theOtherAssets[key] = value
+                
+        
     def parse(self, struct):
         self.source = struct
 
@@ -409,9 +439,10 @@ def undoQuote(ref):
 
 
 def clearAssets():
-    global theAssets, theOtherAssets
+    global theAssets, theOtherAssets, theSources
     theAssets = {}
     theOtherAssets = {}
+    theSources = {}
 
 clearAssets()
 

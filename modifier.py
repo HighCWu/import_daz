@@ -358,7 +358,10 @@ class SkinBinding(Modifier):
             return ob, rig, geonode
         elif isinstance(inst, GeoNode):
             ob = inst.rna
-            rig = ob.parent
+            if ob:
+                rig = ob.parent
+            else:
+                rig = None
             return ob, rig, inst
         else:
             msg = ("Expected geonode but got:\n  %s" % inst)

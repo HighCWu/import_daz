@@ -117,7 +117,7 @@ def handleDazError(context):
 
     try:
         from .settings import theTrace
-        from .asset import theAssets, theDazPaths
+        from .asset import theAssets, theOtherAssets, theDazPaths
 
         fp.write("\n\nFILES VISITED:\n")
         for string in theTrace:
@@ -134,6 +134,12 @@ def handleDazError(context):
         refs.sort()
         for ref in refs:
             fp.write('"%s"\n    %s\n\n' % (ref, theAssets[ref]))
+
+        fp.write("\nOTHER ASSETS:\n")
+        refs = list(theOtherAssets.keys())
+        refs.sort()
+        for ref in refs:
+            fp.write('"%s"\n    %s\n\n' % (ref, theOtherAssets[ref]))
 
         fp.write("\nDAZ ROOT PATHS:\n")
         for n, path in enumerate(theDazPaths):

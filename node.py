@@ -112,6 +112,9 @@ class Instance(Accessor):
         self.hasBoneParent = False
         if "parent" in struct.keys() and node.parent is not None:
             self.parent = node.parent.getInstance(node.caller, struct["parent"])
+            if self.parent == self:
+                print("Self-parent", self)
+                self.parent = None
             if self.parent:
                 self.parent.children[self.id] = self
         else:
