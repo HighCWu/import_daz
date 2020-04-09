@@ -66,24 +66,6 @@ class GeoNode(Node):
         return ("<GeoNode %s %d %s>" % (self.id, self.index, self.rna))
 
 
-    def getRna(self, context):
-        if self.rna is None:
-            from .asset import theAssets, theOtherAssets
-            if self.id in theAssets.keys():
-                other = theAssets[self.id]
-            elif self.id in theOtherAssets.keys():
-                other = theOtherAssets[self.id]
-            if other:
-                print("OTHER", other)
-                if isinstance(other, GeoNode):
-                    self.rna = other.rna
-                elif isinstance(other, Geometry):
-                    print("GEO", other.nodes)
-            reportError("Missing GEO: %s" % self, trigger=(2,3))
-            print("")
-        return self.rna
-
-
     def getCharacterScale(self):
         if self.figureInst:
             return self.figureInst.getCharacterScale()
@@ -99,6 +81,7 @@ class GeoNode(Node):
     def buildObject(self, context, inst, center):
         Node.buildObject(self, context, inst, center)
         ob = self.rna
+        self.storeRna(ob)
         scn = context.scene
         if ob:
             ob.DazUseSSS = scn.DazUseSSS
@@ -223,8 +206,7 @@ class Geometry(Asset, Channels):
         Asset.parse(self, struct)
         Channels.parse(self, struct)
         if "source" in struct.keys():
-            pass
-            #self.copySource(struct["source"], Geometry)
+            self.copySource(struct["source"])
             
         vdata = struct["vertices"]["values"]
         fdata = struct["polylist"]["values"]

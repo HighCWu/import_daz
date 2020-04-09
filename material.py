@@ -92,25 +92,14 @@ class Material(Asset, Channels):
         return ("<Material %s %s %s>" % (self.id, self.rna, self.geometry))
 
 
-    def getRna(self, context):
-        if self.rna is None:
-            self.build(context)
-        return self.rna
-
-
     def parse(self, struct):
         Asset.parse(self, struct)
         Channels.parse(self, struct)
-        self.atest = (self.id == "/People/Genesis%208%20Female/Clothing/No%20Suit/G8F%20NoSuit.duf#Torso-1")
-        if self.atest:
-            print("PMAT %s" % self)
 
 
     def update(self, struct):
         Asset.update(self, struct)
         Channels.update(self, struct)
-        if self.atest:
-            print("UMAT", self)
         if "uv_set" in struct.keys():
             from .geometry import Uvset
             self.uv_set = self.getTypedAsset(struct["uv_set"], Uvset)
@@ -160,6 +149,7 @@ class Material(Asset, Channels):
             self.rna = bpy.data.materials.new(self.name)
         scn = self.scene = context.scene
         mat = self.rna
+        self.storeRna(mat)
         mat.DazRenderEngine = scn.render.engine
         mat.DazShader = self.shader
         if bpy.app.version < (2,80,0):

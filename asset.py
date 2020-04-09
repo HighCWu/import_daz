@@ -46,6 +46,26 @@ class Accessor:
         self.rna = None
 
 
+    def getRna(self, context):
+        global theRnas
+        if self.rna is None:
+            if self.name in theRnas.keys():
+                return theRnas[self.name]
+            else:
+                print("Did not find RNA", self.name)
+        return self.rna
+
+
+    def storeRna(self, rna):
+        global theRnas
+        theRnas[self.name] = rna
+        return
+        if hasattr(rna, "type"):
+            print("Store", rna.type, self.name, rna)
+        else:
+            print("Store RNA", self.name, rna)
+                
+
     def getAsset(self, id, strict=True):
         global theAssets, theOtherAssets
 
@@ -247,17 +267,17 @@ class Asset(Accessor):
         return ("#" + self.id.rsplit("#", 2)[-1])
 
 
-    def getRna(self, context):
-        if self.rna is None:
-            if self.id in theAssets.keys():
-                print("ASSET", theAssets[self.id])
-            if self.id in theOtherAssets.keys():
-                print("OTHER", theOtherAssets[self.id])
-            reportError("Missing RNA: %s" % self, trigger=(2,3))
-            print("")
-        return self.rna
-
-
+    def getOtherAsset(self):
+        print("")
+        if self.id in theAssets.keys():
+            print("ASSET", theAssets[self.id])
+            return theAssets[self.id]
+        elif self.id in theOtherAssets.keys():
+            print("OTHER", theOtherAssets[self.id])
+            return theOtherAssets[self.id]
+        return None
+            
+    
     def getLabel(self, inst):
         if inst and inst.label:
             return inst.label
@@ -298,7 +318,6 @@ class Asset(Accessor):
             asset = theAssets[other]
             assets.append(asset)
         theSources[old].append(new)
-        print("CSORC", old, new, assets)
         return assets
         
         
@@ -456,10 +475,11 @@ def undoQuote(ref):
 
 
 def clearAssets():
-    global theAssets, theOtherAssets, theSources
+    global theAssets, theOtherAssets, theSources, theRnas
     theAssets = {}
     theOtherAssets = {}
     theSources = {}
+    theRnas = {}
 
 clearAssets()
 

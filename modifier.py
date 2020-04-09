@@ -346,15 +346,11 @@ class SkinBinding(Modifier):
             rig = inst.rna
             if not geoname:
                 return None,rig,None
+            geonode = ob = None
             geo = self.getAsset(geoname)
             if geo:
                 geonode = geo.getNode(0)
-            else:
-                geonode = None
-            if geonode:
-                ob = geonode.rna
-            else:
-                ob = None
+                ob = geonode.getRna(context)
             return ob, rig, geonode
         elif isinstance(inst, GeoNode):
             ob = inst.getRna(context)
