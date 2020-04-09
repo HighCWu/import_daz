@@ -92,14 +92,25 @@ class Material(Asset, Channels):
         return ("<Material %s %s %s>" % (self.id, self.rna, self.geometry))
 
 
+    def getRna(self, context):
+        if self.rna is None:
+            self.build(context)
+        return self.rna
+
+
     def parse(self, struct):
         Asset.parse(self, struct)
         Channels.parse(self, struct)
+        self.atest = (self.id == "/People/Genesis%208%20Female/Clothing/No%20Suit/G8F%20NoSuit.duf#Torso-1")
+        if self.atest:
+            print("PMAT %s" % self)
 
 
     def update(self, struct):
         Asset.update(self, struct)
         Channels.update(self, struct)
+        if self.atest:
+            print("UMAT", self)
         if "uv_set" in struct.keys():
             from .geometry import Uvset
             self.uv_set = self.getTypedAsset(struct["uv_set"], Uvset)
@@ -193,16 +204,16 @@ class Material(Asset, Channels):
         return self.uv_sets[key]
 
 
-    def fixUdim(self, udim):
-        if self.rna is None:
-            print("No material:", self.name)
+    def fixUdim(self, context, udim):
+        mat = self.getRna(context)
+        if mat is None:
             return
         try:
-            self.rna.DazUDim = udim
+            mat.DazUDim = udim
         except ValueError:
             print("UDIM out of range: %d" % udim)
-        self.rna.DazVDim = 0
-        addUdim(self.rna, udim, 0)
+        mat.DazVDim = 0
+        addUdim(mat, udim, 0)
 
 
     def fromMaterial(self, mat, ob):

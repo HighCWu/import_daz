@@ -42,6 +42,7 @@ class FileAsset(Asset):
         self.animations = []
         self.instances = {}
         self.extras = []
+        self.sources = []
         self.toplevel = toplevel
         if toplevel:
             self.caller = self
@@ -58,7 +59,7 @@ class FileAsset(Asset):
         if theSettings.verbosity > 4:
             print(msg)
 
-        libs = []
+        sources = []
         if "asset_info" in struct.keys():
             Asset.parse(self, struct["asset_info"])
 
@@ -72,7 +73,12 @@ class FileAsset(Asset):
             from .geometry import Geometry
             for gstruct in struct["geometry_library"]:
                 asset = self.parseTypedAsset(gstruct, Geometry)
-
+                if "source" in gstruct.keys():
+                    sources = self.copySource(gstruct["source"])
+                    self.sources += sources
+        if self.sources:
+            print("SOU", self, self.sources)
+        
         if theSettings.useNodes and "node_library" in struct.keys():
             from .node import parseNode
             for nstruct in struct["node_library"]:
@@ -87,18 +93,11 @@ class FileAsset(Asset):
             from .material import Images
             for mstruct in struct["image_library"]:
                 asset = self.parseTypedAsset(mstruct, Images)
-                if theSettings.useLibraries:
-                    libs.append(asset)
 
         if theSettings.useMaterials and "material_library" in struct.keys():
             from .material import getRenderMaterial
             for mstruct in struct["material_library"]:
                 asset = self.parseTypedAsset(mstruct, getRenderMaterial(mstruct, None))
-                if theSettings.useLibraries:
-                    libs.append(asset)
-
-        if self.toplevel and theSettings.useLibraries:
-            return libs
 
         if "scene" in struct.keys():
             scene = struct["scene"]
@@ -106,7 +105,7 @@ class FileAsset(Asset):
             if theSettings.useNodes and "nodes" in scene.keys():
                 from .node import Node
                 from .geometry import Geometry
-                nodes = []
+                from .bone import Bone
                 for nstruct in scene["nodes"]:
                     asset = self.parseUrlAsset(nstruct)
                     if isinstance(asset, Geometry):
@@ -117,7 +116,6 @@ class FileAsset(Asset):
                     inst = asset.makeInstance(self.fileref, nstruct)
                     self.instances[inst.id] = inst
                     self.nodes.append((asset, inst))
-                    nodes.append((nstruct,asset,inst))
 
             if theSettings.useMaterials and "materials" in scene.keys():
                 for mstruct in scene["materials"]:
@@ -162,7 +160,6 @@ class FileAsset(Asset):
                             from .dforce import parseSimulationOptions
                             options = parseSimulationOptions(estruct, self.fileref)
                             self.extras.append(options)
-                
 
         msg = ("-FILE %s" % self.fileref)
         theTrace.append(msg)
@@ -251,6 +248,7 @@ class FileAsset(Asset):
 
 
     def build(self, context):
+        print("BUILD FILE?", self)
         for asset in self.assets:
             if asset.type == "figure":
                 asset.build(context)

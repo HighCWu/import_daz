@@ -634,7 +634,7 @@ class Bone(Node):
         pass
 
 
-    def getRna(self):
+    def getRna(self, context):
         rig = self.rna
         if rig and self.name in rig.pose.bones.keys():
             return rig.pose.bones[self.name]

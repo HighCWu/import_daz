@@ -184,9 +184,10 @@ class Accessor:
         global theAssets, theOtherAssets
         ref = ref2 = normalizeRef(asset.id)
         if self.caller:
-            if "id" not in struct.keys():
-                print(struct.keys())
-            ref = getId(struct["id"], self.caller.fileref)
+            if "id" in struct.keys():
+                ref = getId(struct["id"], self.caller.fileref)
+            else:
+                print("No id", struct.keys())
 
         try:
             asset2 = theAssets[ref]
@@ -198,7 +199,7 @@ class Accessor:
                    "  Asset 1: %s\n" % asset +
                    "  Asset 2: %s\n" % asset2 +
                    "  Ref: %s\n" % ref)
-            return reportError(msg)
+            return reportError(msg, trigger=(3,4))
         theAssets[ref] = theAssets[ref2] = asset
         return
 
@@ -246,6 +247,17 @@ class Asset(Accessor):
         return ("#" + self.id.rsplit("#", 2)[-1])
 
 
+    def getRna(self, context):
+        if self.rna is None:
+            if self.id in theAssets.keys():
+                print("ASSET", theAssets[self.id])
+            if self.id in theOtherAssets.keys():
+                print("OTHER", theOtherAssets[self.id])
+            reportError("Missing RNA: %s" % self, trigger=(2,3))
+            print("")
+        return self.rna
+
+
     def getLabel(self, inst):
         if inst and inst.label:
             return inst.label
@@ -271,31 +283,39 @@ class Asset(Accessor):
         return getName(string)
 
 
-    def copySource(self, source, type): 
-        global theAssets, theOtherAssets, theSources        
-        asset = self.parseUrlAsset({"url": source}, type)
+    def copySource(self, source): 
+        global theAssets, theOtherAssets, theSources 
+        file = source.rsplit("#", 1)[0]
+        asset = self.parseUrlAsset({"url": file})
         old = asset.id.rsplit("#", 1)[0]
         new = self.id.rsplit("#", 1)[0]
-        self.copySource1(old, new)
+        asset = self.copySource1(old, new)
+        assets = [theAssets[old]]
         if old not in theSources.keys():
             theSources[old] = []
         for other in theSources[old]:
             self.copySource1(other, new)
+            asset = theAssets[other]
+            assets.append(asset)
         theSources[old].append(new)
+        print("CSORC", old, new, assets)
+        return assets
         
         
     def copySource1(self, old, new):
-        print("CSORC", old, new)
         nold = len(old)
         nnew = len(new)
         adds = []
-        for key,value in theAssets.items():
+        assets = []
+        for key,asset in theAssets.items():
             if key[0:nold] == old:
-                adds.append((new + key[nold:], value))
-        for key,value in adds:
+                adds.append((new + key[nold:], asset))
+        for key,asset in adds:
             if key not in theOtherAssets.keys():
-                theOtherAssets[key] = value
-                
+                theOtherAssets[key] = asset
+                assets.append(asset)
+        return assets
+        
         
     def parse(self, struct):
         self.source = struct
@@ -369,9 +389,6 @@ class Asset(Accessor):
 
     def connect(self, struct):
         pass
-
-    def getRna(self):
-        return self.rna
 
 
 def getAssetFromStruct(struct, fileref):

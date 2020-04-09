@@ -66,6 +66,24 @@ class GeoNode(Node):
         return ("<GeoNode %s %d %s>" % (self.id, self.index, self.rna))
 
 
+    def getRna(self, context):
+        if self.rna is None:
+            from .asset import theAssets, theOtherAssets
+            if self.id in theAssets.keys():
+                other = theAssets[self.id]
+            elif self.id in theOtherAssets.keys():
+                other = theOtherAssets[self.id]
+            if other:
+                print("OTHER", other)
+                if isinstance(other, GeoNode):
+                    self.rna = other.rna
+                elif isinstance(other, Geometry):
+                    print("GEO", other.nodes)
+            reportError("Missing GEO: %s" % self, trigger=(2,3))
+            print("")
+        return self.rna
+
+
     def getCharacterScale(self):
         if self.figureInst:
             return self.figureInst.getCharacterScale()
@@ -205,7 +223,8 @@ class Geometry(Asset, Channels):
         Asset.parse(self, struct)
         Channels.parse(self, struct)
         if "source" in struct.keys():
-            self.copySource(struct["source"], Geometry)
+            pass
+            #self.copySource(struct["source"], Geometry)
             
         vdata = struct["vertices"]["values"]
         fdata = struct["polylist"]["values"]
@@ -409,17 +428,17 @@ class Geometry(Asset, Channels):
                     self.uv_set = mat.uv_set
 
         for key,uvset in self.uv_sets.items():
-            self.buildUVSet(uvset, me, False)
+            self.buildUVSet(context, uvset, me, False)
 
-        self.buildUVSet(self.uv_set, me, True)
+        self.buildUVSet(context, self.uv_set, me, True)
         if self.shells and self.uv_set != self.default_uv_set:
-            self.buildUVSet(self.default_uv_set, me, False)
+            self.buildUVSet(context, self.default_uv_set, me, False)
 
 
-    def buildUVSet(self, uv_set, me, setActive):
+    def buildUVSet(self, context, uv_set, me, setActive):
         if uv_set:
             if uv_set.checkSize(me):
-                uv_set.build(me, self, setActive)
+                uv_set.build(context, me, self, setActive)
             else:
                 msg = ("Incompatible UV set\n  %s\n  %s" % (me, uv_set))
                 reportError(msg, trigger=(2,3))
@@ -487,7 +506,7 @@ class Uvset(Asset):
         return polyverts
 
 
-    def build(self, me, geo, setActive):
+    def build(self, context, me, geo, setActive):
         if self.name is None or me in self.built:
             return
 
@@ -520,7 +539,7 @@ class Uvset(Asset):
                 key = geo.polygon_material_groups[mn]
                 if key in geo.materials.keys():
                     for mat in geo.materials[key]:
-                        mat.fixUdim(udim)
+                        mat.fixUdim(context, udim)
                 else:
                     print("Material \"%s\" not found" % key)
 

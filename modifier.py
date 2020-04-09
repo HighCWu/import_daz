@@ -324,7 +324,7 @@ class SkinBinding(Modifier):
 
 
     def build(self, context, inst):
-        ob,rig,geonode = self.getGeoRig(inst, self.skin["geometry"])
+        ob,rig,geonode = self.getGeoRig(context, inst, self.skin["geometry"])
         if ob is None or rig is None:
             return
         mod = ob.modifiers.new(self.name, 'ARMATURE')
@@ -339,7 +339,7 @@ class SkinBinding(Modifier):
         self.addVertexGroups(ob, geonode, rig)
 
 
-    def getGeoRig(self, inst, geoname):        
+    def getGeoRig(self, context, inst, geoname):        
         from .geometry import GeoNode
         from .figure import FigureInstance
         if isinstance(inst, FigureInstance):
@@ -357,7 +357,7 @@ class SkinBinding(Modifier):
                 ob = None
             return ob, rig, geonode
         elif isinstance(inst, GeoNode):
-            ob = inst.rna
+            ob = inst.getRna(context)
             if ob:
                 rig = ob.parent
             else:
