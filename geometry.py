@@ -250,9 +250,6 @@ class Geometry(Asset, Channels):
     def update(self, struct):
         Asset.update(self, struct)
         Channels.update(self, struct)
-        if "source" in struct.keys():
-            halt
-            self.copySource(struct["source"])
         if "SubDIALevel" in self.channels.keys():
             self.SubDIALevel = getCurrentValue(self.channels["SubDIALevel"], 0)
         if "SubDRenderLevel" in self.channels.keys():

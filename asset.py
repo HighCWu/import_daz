@@ -149,21 +149,11 @@ class Accessor:
 
 
     def getTypedAsset(self, id, type):
-        global theOtherAssets
         asset = self.getAsset(id)
         if (asset is None or
             type is None or
             isinstance(asset,type)):
             return asset
-        try:
-            assets = theOtherAssets[asset.id]
-        except KeyError:
-            assets = {}
-        for asset in assets.values():
-            if isinstance(asset, type):
-                print("Other", asset, id)
-                return asset
-
         msg = (
             "Asset of type %s not found:\n  %s\n" % (type, id) +
             "File ref:\n  '%s'\n" % self.fileref
@@ -201,7 +191,7 @@ class Accessor:
 
 
     def saveAsset(self, struct, asset):
-        global theAssets, theOtherAssets
+        global theAssets
         ref = ref2 = normalizeRef(asset.id)
         if self.caller:
             if "id" in struct.keys():
@@ -267,17 +257,6 @@ class Asset(Accessor):
         return ("#" + self.id.rsplit("#", 2)[-1])
 
 
-    def getOtherAsset(self):
-        print("")
-        if self.id in theAssets.keys():
-            print("ASSET", theAssets[self.id])
-            return theAssets[self.id]
-        elif self.id in theOtherAssets.keys():
-            print("OTHER", theOtherAssets[self.id])
-            return theOtherAssets[self.id]
-        return None
-            
-    
     def getLabel(self, inst):
         if inst and inst.label:
             return inst.label
@@ -304,21 +283,18 @@ class Asset(Accessor):
 
 
     def copySource(self, source): 
-        global theAssets, theOtherAssets, theSources 
+        global theAssets, theSources 
         file = source.rsplit("#", 1)[0]
         asset = self.parseUrlAsset({"url": file})
         old = asset.id.rsplit("#", 1)[0]
         new = self.id.rsplit("#", 1)[0]
-        asset = self.copySource1(old, new)
-        assets = [theAssets[old]]
+        self.copySource1(old, new)
         if old not in theSources.keys():
             theSources[old] = []
         for other in theSources[old]:
             self.copySource1(other, new)
-            asset = theAssets[other]
-            assets.append(asset)
+            theAssets[other]
         theSources[old].append(new)
-        return assets
         
         
     def copySource1(self, old, new):
@@ -333,7 +309,6 @@ class Asset(Accessor):
             if key not in theOtherAssets.keys():
                 theOtherAssets[key] = asset
                 assets.append(asset)
-        return assets
         
         
     def parse(self, struct):
