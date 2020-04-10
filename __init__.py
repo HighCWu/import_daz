@@ -152,14 +152,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.prop(scn, "DazShowMorphs", icon="RIGHTARROW", emboss=False)
         else:
             box.prop(scn, "DazShowMorphs", icon="DOWNARROW_HLT", emboss=False)
-            '''
-            from .morphing import theMorphNames
-            if theMorphNames:
-                self.morphSection(box, scn, ob)
-            else:
-                box.operator("daz.update_morph_paths")
-            box.separator()
-            '''
             box.operator("daz.import_units")
             box.operator("daz.import_expressions")
             box.operator("daz.import_visemes")
@@ -169,9 +161,8 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.import_json")
             #box.separator()
             box.label(text="Create low-poly meshes before transfers.")
-            box.operator("daz.transfer_standard_morphs")
-            box.operator("daz.transfer_custom_morphs")
             box.operator("daz.transfer_correctives")
+            box.operator("daz.transfer_other_morphs")
 
         layout.separator()
         box = layout.box()
@@ -197,28 +188,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.rigify_daz")
             box.operator("daz.create_meta")
             box.operator("daz.rigify_meta")
-
-
-    def morphSection(self, layout, scn, ob):
-        layout.prop(scn, "DazShowUnits")
-        if scn.DazShowUnits:
-            self.showBox(layout, scn, ob, "Units")
-        layout.operator("daz.load_all_units")
-        layout.prop(scn, "DazShowExpressions")
-        if scn.DazShowExpressions:
-            self.showBox(layout, scn, ob, "Expressions")
-        layout.operator("daz.load_all_expressions")
-        layout.prop(scn, "DazShowVisemes")
-        if scn.DazShowVisemes:
-            self.showBox(layout, scn, ob, "Visemes")
-        layout.operator("daz.load_all_visemes")
-        layout.prop(scn, "DazShowCorrectives")
-        if scn.DazShowCorrectives:
-            self.showBox(layout, scn, ob, "Correctives")
-        layout.operator("daz.load_all_correctives")
-        #layout.separator()
-        #layout.operator("daz.save_favorite_morphs")
-        #layout.operator("daz.load_favorite_morphs")
 
 
     def showBox(self, layout, scn, ob, type):
@@ -1071,23 +1040,6 @@ def initialize():
         precision = 3)
 
     bpy.types.Object.DazCharacterScale = FloatProperty(default = 0.1, precision = 3)
-
-    bpy.types.Scene.DazShowUnits = BoolProperty(
-        name = "Show Units",
-        description = "Show face units to load",
-        default = False)
-    bpy.types.Scene.DazShowExpressions = BoolProperty(
-        name = "Show Expressions",
-        description = "Show facial expressions to load",
-        default = False)
-    bpy.types.Scene.DazShowVisemes = BoolProperty(
-        name = "Show Visemes",
-        description = "Show visemes to load",
-        default = False)
-    bpy.types.Scene.DazShowCorrectives = BoolProperty(
-        name = "Show Correctives",
-        description = "Show corrective morphs to load",
-        default = False)
 
     bpy.types.Object.DazUnits = StringProperty(default = "")
     bpy.types.Object.DazExpressions = StringProperty(default = "")

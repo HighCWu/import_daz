@@ -590,38 +590,10 @@ class ScaleLock:
 #-------------------------------------------------------------
 
 class TransferOptions:
-    transferMethod : EnumProperty(
-        items = [('AUTO', "Auto", "Only auto-transfer morphs, never use morph files"),
-                 ('FILES', "Files", "Only use morph files, never auto-transfer"),
-                 ('BOTH', "Both", "Use morph file if found, otherwise auto-transfer"),
-        ],
-        name = "Transfer Method",
-        description = "How to transfer morphs to target mesh",
-        default = 'BOTH')
-
-    searchMethod : EnumProperty(
-        items = [('AUTO', "Auto", "Search for files automatically"),
-                 ('CURRENT', "Current", "Search in current directory"),
-                 ('SUBDIR', "Subdirs", "Search in current directory and subdirectories"),
-        ],
-        name = "File Search Method",
-        description = "How to search for morph files",
-        default = 'AUTO')
-
     useDriver : BoolProperty(
         name = "Use Driver",
         description = "Transfer both shapekeys and drivers",
         default = True)
-
-    useActiveOnly : BoolProperty(
-        name = "Use Active Shapekey Only",
-        description = "Only transfer the active shapekey",
-        default = False)
-
-    startsWith : StringProperty(
-        name = "Starts with",
-        description = "Only transfer shapekeys that start with this",
-        default = "")
 
     useSelectedOnly : BoolProperty(
         name = "Selected Verts Only",

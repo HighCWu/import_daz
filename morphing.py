@@ -63,7 +63,8 @@ class DAZ_OT_SelectNone(bpy.types.Operator):
         
 
 class Selector(B.FilterString):
-
+    defaultSelect = False
+    
     def draw(self, context):
         scn = context.scene
         row = self.layout.row()
@@ -132,15 +133,14 @@ class Selector(B.FilterString):
     def invoke(self, context, event):
         scn = context.scene
         scn.DazSelector.clear()
-        rig = getRigFromObject(context.object)
-        for idx,data in enumerate(self.getKeys(rig)):
+        for idx,data in enumerate(self.getKeys(context)):
             prop,text,cat = data
             item = scn.DazSelector.add()
             item.name = prop
             item.text = text
             item.category = cat
             item.index = idx
-            item.select = False
+            item.select = self.defaultSelect
         return self.invokeDialog(context)
 
 
@@ -158,7 +158,8 @@ class StandardSelector(Selector, B.StandardAllEnums):
         self.layout.prop(self, "type")
         Selector.draw(self, context)
         
-    def getKeys(self, rig):
+    def getKeys(self, context):
+        rig = getRigFromObject(context.object)
         prefixes = self.prefixes[self.type]
         return [(key,key[3:],"All") for key in rig.keys() if key[0:3] in prefixes]
 
@@ -176,7 +177,8 @@ class CustomSelector(Selector, B.CustomEnums):
         self.layout.prop(self, "custom")
         Selector.draw(self, context)
 
-    def getKeys(self, rig):
+    def getKeys(self, context):
+        rig = getRigFromObject(context.object)
         keys = []
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
@@ -628,7 +630,6 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, Is
     type = "Visemes"
     prefix = "DzV"
 
-
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
@@ -849,7 +850,8 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
         return True
 
 
-    def getKeys(self, rig):
+    def getKeys(self, context):
+        rig = getRigFromObject(context.object)
         keys = []
         for cat in rig.DazMorphCats:
             key = cat.name

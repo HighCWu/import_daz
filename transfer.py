@@ -29,9 +29,10 @@ import os
 import bpy
 from .error import *
 from .utils import *
+from .morphing import Selector
 
 
-class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
+class MorphTransferer(Selector, B.TransferOptions):
     @classmethod
     def poll(self, context):
         ob = context.object
@@ -39,30 +40,10 @@ class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
 
 
     def draw(self, context):
-        layout = self.layout
-        layout.label(text = "Transfer Method:")
-        layout.prop(self, "transferMethod", expand=True)
-        if self.transferMethod != 'AUTO':
-            layout.label(text = "File Search Method:")
-            layout.prop(self, "searchMethod", expand=True)
-        layout.prop(self, "useDriver")
-        layout.prop(self, "useActiveOnly")
-        layout.prop(self, "startsWith")
-        layout.prop(self, "useSelectedOnly")
-        layout.prop(self, "ignoreRigidity")
-
-
-    def invoke(self, context, event):
-        from .asset import setDazPaths
-        from .fileutils import getFolder
-        scn = context.scene
-        clothes = self.getClothes(context.object, context)
-        if len(clothes) > 0:
-            folder = getFolder(clothes[0], scn, ["Morphs/", ""])
-            if folder is not None:
-                self.properties.filepath = folder
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        self.layout.prop(self, "useDriver")
+        self.layout.prop(self, "useSelectedOnly")
+        self.layout.prop(self, "ignoreRigidity")
+        Selector.draw(self, context)
 
 
     def run(self, context):
@@ -71,8 +52,8 @@ class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
         hum = context.object
         if not hum.data.shape_keys:
             raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (hum.name))
-        for ob in self.getClothes(hum, context):
-            self.transferMorphs(hum, ob, context)
+        for clo in self.getClothes(hum, context):
+            self.transferMorphs(hum, clo, context)
         t2 = time.perf_counter()
         print("Morphs transferred in %.1f seconds" % (t2-t1))
 
@@ -93,37 +74,22 @@ class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
         if hum.active_shape_key_index < 0:
             hum.active_shape_key_index = 0
         clo.active_shape_key_index = 0
-        nskeys = len(hskeys.key_blocks)
-
-        for idx,hskey in enumerate(hskeys.key_blocks[1:]):
-            showProgress(idx, nskeys)
-            sname = hskey.name
-            if self.useActiveOnly and hskey != hum.active_shape_key:
-                continue
-            if self.startsWith and sname[0:len(self.startsWith)] != self.startsWith:
-                continue
-
-            if hskey.name[0:2] == "Dz":
-                if not self.useExpressions:
-                    continue
-            elif hskey.name[0:4].lower() == "pjcm":
-                if not self.useCorrectives:
-                    continue
-            elif self.useExpressions or self.useCorrectives:
-                continue
+        
+        nitems = len(scn.DazSelector)
+        for idx,item in enumerate(self.getSelectedItems(scn)):
+            showProgress(idx, nitems)
+            sname = item.name
+            hskey = hskeys.key_blocks[sname]
 
             if self.useDriver:
                 if self.useBoneDriver:
                     fcu = getShapekeyBoneDriver(hskeys, sname)
                 elif self.usePropDriver:
                     fcu = getShapekeyPropDriver(hskeys, sname)
-                #if (fcu is None and
-                #    (self.useCorrectives or self.useExpressions)):
-                #    continue
             else:
                 fcu = None
 
-            if not self.useActiveOnly and self.ignoreMorph(hum, clo, hskey):
+            if self.ignoreMorph(hum, clo, hskey):
                 print(" 0", sname)
                 continue
 
@@ -132,26 +98,24 @@ class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
                 clo.shape_key_remove(cskey)
 
             cskey = None
-            if self.transferMethod != 'AUTO':
-                path = self.getMorphPath(sname, clo, scn)
-                if path is not None:
-                    from .morphing import LoadShapekey
-                    from .settings import theSettings
-                    loader = LoadShapekey(mesh=clo)
-                    theSettings.forMorphLoad(clo, scn, False)
-                    loader.errors = {}
-                    loader.getSingleMorph(path, scn)
-                    if sname in clo.data.shape_keys.key_blocks.keys():
-                        cskey = clo.data.shape_keys.key_blocks[sname]
+            path = self.getMorphPath(sname, clo, scn)
+            if path is not None:
+                from .morphing import LoadShapekey
+                from .settings import theSettings
+                loader = LoadShapekey(mesh=clo)
+                theSettings.forMorphLoad(clo, scn, False)
+                loader.errors = {}
+                loader.getSingleMorph(path, scn)
+                if sname in clo.data.shape_keys.key_blocks.keys():
+                    cskey = clo.data.shape_keys.key_blocks[sname]
 
             if cskey:
                 print(" *", sname)
-            elif self.transferMethod != 'FILES':
-                if self.autoTransfer(hum, clo, hskey):
-                    cskey = clo.data.shape_keys.key_blocks[sname]
-                    print(" +", sname)
-                    if cskey and not self.ignoreRigidity:
-                        correctForRigidity(clo, cskey)
+            if self.autoTransfer(hum, clo, hskey):
+                cskey = clo.data.shape_keys.key_blocks[sname]
+                print(" +", sname)
+                if cskey and not self.ignoreRigidity:
+                    correctForRigidity(clo, cskey)
 
             if cskey:
                 cskey.slider_min = hskey.slider_min
@@ -167,7 +131,6 @@ class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
             clo.data.shape_keys.key_blocks[0] == basic):
             print("No shapekeys transferred to %s" % clo.name)
             clo.shape_key_remove(basic)
-
 
 
     def autoTransfer(self, hum, clo, hskey):
@@ -265,18 +228,7 @@ class MorphTransferer(B.DazImageFile, B.SingleFile, B.TransferOptions):
     def getMorphPath(self, sname, ob, scn):
         from .fileutils import getFolder
         file = sname + ".dsf"
-        if (self.searchMethod == 'AUTO' or
-            self.filepath is None):
-            folder = getFolder(ob, scn, ["Morphs/"])
-        else:
-            folder = os.path.dirname(self.filepath)
-            if not os.path.exists(folder):
-                return None
-            if self.searchMethod == 'CURRENT':
-                if file in os.listdir(folder):
-                    return os.path.join(folder, file)
-                else:
-                    return None
+        folder = getFolder(ob, scn, ["Morphs/"])
         if folder:
             return findFileRecursive(folder, file)
         else:
@@ -353,30 +305,22 @@ def findVertsInGroup(ob, vgrp):
     return verts
 
 
-class DAZ_OT_TransferStandardMorphs(DazOperator, MorphTransferer):
-    bl_idname = "daz.transfer_standard_morphs"
-    bl_label = "Transfer Standard Morphs"
-    bl_description = "Transfer standard morphs (face units/expressions/visemes) with drivers from active to selected"
+class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
+    bl_idname = "daz.transfer_other_morphs"
+    bl_label = "Transfer Other Morphs"
+    bl_description = "Transfer all shapekeys except correctives with drivers from active to selected"
     bl_options = {'UNDO'}
 
     useBoneDriver = False
     usePropDriver = True
-    useExpressions = True
     useCorrectives = False
-    useIgnore = False
+    defaultSelect = True
 
-
-class DAZ_OT_TransferCustomMorphs(DazOperator, MorphTransferer):
-    bl_idname = "daz.transfer_custom_morphs"
-    bl_label = "Transfer Custom Morphs"
-    bl_description = "Transfer all shapekeys except correctives and standard morphs with drivers from active to selected"
-    bl_options = {'UNDO'}
-
-    useBoneDriver = False
-    usePropDriver = True
-    useExpressions = False
-    useCorrectives = False
-    useIgnore = False
+    def getKeys(self, context):
+        ob = context.object
+        return [(skey.name,skey.name,"All") 
+            for skey in ob.data.shape_keys.key_blocks[1:]
+                if skey.name[0:4].lower() not in ["pjcm", "jcm"]]
 
 
 class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
@@ -387,9 +331,14 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
 
     useBoneDriver = True
     usePropDriver = False
-    useExpressions = False
     useCorrectives = True
-    useIgnore = True
+    defaultSelect = True
+
+    def getKeys(self, context):
+        ob = context.object
+        return [(skey.name,skey.name[4:],"All") 
+            for skey in ob.data.shape_keys.key_blocks[1:] 
+                if skey.name[0:4].lower() in ["pjcm", "jcm"]]
 
 #----------------------------------------------------------
 #   Merge Shapekeys
@@ -435,9 +384,8 @@ class DAZ_OT_MergeShapekeys(DazOperator, B.MergeShapekeysOptions):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_TransferStandardMorphs,
-    DAZ_OT_TransferCustomMorphs,
     DAZ_OT_TransferCorrectives,
+    DAZ_OT_TransferOtherMorphs,
     DAZ_OT_MergeShapekeys,
 ]
 
