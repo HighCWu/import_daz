@@ -160,7 +160,9 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.update_morph_paths")
             box.separator()
             '''
-            box.operator("daz.import_standard_morphs")
+            box.operator("daz.import_units")
+            box.operator("daz.import_expressions")
+            box.operator("daz.import_visemes")
             box.operator("daz.import_custom_morphs")
             box.operator("daz.import_correctives")
             if scn.DazUseHidden:

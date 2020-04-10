@@ -57,15 +57,19 @@ class ErrorOperator(bpy.types.Operator):
             self.layout.label(text=line)
 
 
+def invokeErrorMessage(value, warning=False):       
+    global theMessage
+    if warning:
+        theMessage = "WARNING:\n" + value
+    else:
+        theMessage = "ERROR:\n" + value
+    bpy.ops.daz.error('INVOKE_DEFAULT')
+
+
 class DazError(Exception):
 
     def __init__(self, value, warning=False):
-        global theMessage
-        if warning:
-            theMessage = "WARNING:\n" + value
-        else:
-            theMessage = "ERROR:\n" + value
-        bpy.ops.daz.error('INVOKE_DEFAULT')
+        invokeErrorMessage(value, warning)
 
     def __str__(self):
         global theMessage

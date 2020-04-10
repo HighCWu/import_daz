@@ -72,12 +72,29 @@ class Selector(B.FilterString):
         self.layout.prop(self, "filter")       
         self.drawExtra(context)     
         self.layout.separator()
-        for item in scn.DazSelector:
-            if self.selectCondition(item):
-                if self.filtered(item):
-                    split = splitLayout(self.layout, 0.6)
-                    split.label(text=item.text)
-                    split.prop(item, "select", text="")
+        items = [item for item in scn.DazSelector
+                    if self.selectCondition(item) and 
+                        self.filtered(item)]                                
+        nitems = len(items)
+        ncols = 6
+        nrows = 24
+        if nitems > ncols*nrows:
+            nrows = nitems//ncols + 1
+        else:
+            ncols = nitems//nrows + 1
+        cols = []
+        for n in range(ncols):
+            cols.append(items[0:nrows])
+            items = items[nrows:]
+        for m in range(nrows):
+            row = self.layout.row()
+            for col in cols:
+                if m < len(col):
+                    item = col[m]
+                    row.prop(item, "select", text="")
+                    row.label(text=item.text)
+                else:                    
+                    row.label(text="")
 
 
     def drawExtra(self, context):
@@ -103,6 +120,15 @@ class Selector(B.FilterString):
         return [item.name for item in self.getSelectedItems(scn)]
         
 
+    def invokeDialog(self, context):
+        wm = context.window_manager
+        ncols = len(context.scene.DazSelector)//24 + 1
+        if ncols > 6:
+            ncols = 6
+        wm.invoke_props_dialog(self, width=ncols*180)
+        return {'RUNNING_MODAL'}
+    
+    
     def invoke(self, context, event):
         scn = context.scene
         scn.DazSelector.clear()
@@ -115,9 +141,7 @@ class Selector(B.FilterString):
             item.category = cat
             item.index = idx
             item.select = False
-        wm = context.window_manager
-        wm.invoke_props_dialog(self)
-        return {'RUNNING_MODAL'}
+        return self.invokeDialog(context)
 
 
 class StandardSelector(Selector, B.StandardAllEnums):
@@ -137,6 +161,10 @@ class StandardSelector(Selector, B.StandardAllEnums):
     def getKeys(self, rig):
         prefixes = self.prefixes[self.type]
         return [(key,key[3:],"All") for key in rig.keys() if key[0:3] in prefixes]
+
+    def invoke(self, context, event):
+        self.type = "All"
+        return Selector.invoke(self, context, event)
 
 
 class CustomSelector(Selector, B.CustomEnums):
@@ -432,40 +460,30 @@ class LoadShapekey(LoadMorph):
 #   Load typed morphs base class
 #------------------------------------------------------------------
 
-class OldMorphFiles:
-
-    def isActive(self, name, scn):
-        return hasattr(scn, "Daz"+name) and getattr(scn, "Daz"+name)   
-
-    def getActiveMorphFiles(self, context):
-        self.setupCharacter(context)
-        if self.useShapekeysOnly and self.mesh is None:
-            raise DazError("No mesh found")
-        files = self.getMorphFiles()
-        if not files:
-            raise DazError("No morph files:\nCharacter: %s\nMorph type: %s" % (self.char, self.type))
-        return files
-        
-
 class LoadAllMorphs(LoadMorph):
 
     suppressError = True
 
-    def setupCharacter(self, context):
+    def setupCharacter(self, context, rigIsMesh):
         from .finger import getFingeredCharacter
-        self.rig, self.mesh, self.char = getFingeredCharacter(context.object)
-        if self.mesh is None:
+        ob = context.object
+        self.rig, self.mesh, self.char = getFingeredCharacter(ob)
+        if self.mesh is None and rigIsMesh:
             if self.rig.DazRig == "genesis3":
-                char = "Genesis3-female"
+                self.char = "Genesis3-female"
                 self.mesh = self.rig
                 addDrivers = True
             elif self.rig.DazRig == "genesis8":
-                char = "Genesis8-female"
+                self.char = "Genesis8-female"
                 self.mesh = self.rig
                 addDrivers = True
-            else:
-                print("Can not add morphs to this mesh: %s" % self.rig.DazRig)
-
+        if not self.char:
+            from .error import invokeErrorMessage
+            msg = ("Can not add morphs to this mesh:\n %s" % ob.name) 
+            invokeErrorMessage(msg)
+            return False
+        return True
+        
 
     def getMorphFiles(self):
         try:
@@ -518,48 +536,6 @@ class LoadAllMorphs(LoadMorph):
                 print("  Props: %s" % struct["props"])
                 print("  Bones: %s" % struct["bones"])
 
-
-class DAZ_OT_LoadAllUnits(DazOperator, LoadAllMorphs, OldMorphFiles, IsMeshArmature):
-    bl_idname = "daz.load_all_units"
-    bl_label = "Load Face Units"
-    bl_description = "Load all face unit morphs"
-    bl_options = {'UNDO'}
-
-    type = "Units"
-    prefix = "DzU"
-
-
-class DAZ_OT_LoadAllExpressions(DazOperator, LoadAllMorphs, OldMorphFiles, IsMeshArmature):
-    bl_idname = "daz.load_all_expressions"
-    bl_label = "Load Expressions"
-    bl_description = "Load all expression morphs"
-    bl_options = {'UNDO'}
-
-    type = "Expressions"
-    prefix = "DzE"
-
-
-class DAZ_OT_LoadAllVisemes(DazOperator, LoadAllMorphs, OldMorphFiles, IsMeshArmature):
-    bl_idname = "daz.load_all_visemes"
-    bl_label = "Load Visemes"
-    bl_description = "Load all viseme morphs"
-    bl_options = {'UNDO'}
-
-    type = "Visemes"
-    prefix = "DzV"
-
-
-class DAZ_OT_LoadAllCorrectives(DazOperator, LoadAllMorphs, OldMorphFiles, IsMeshArmature):
-    bl_idname = "daz.load_all_correctives"
-    bl_label = "Load Correctives"
-    bl_description = "Load all corrective morphs"
-    bl_options = {'UNDO'}
-
-    type = "Correctives"
-    prefix = "DzC"
-    useShapekeysOnly = True
-    useSoftLimits = False
-
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
@@ -585,55 +561,73 @@ class DAZ_OT_ImportCorrectives(DazOperator, Selector, LoadAllMorphs, IsMeshArmat
         global theMorphFiles
         scn = context.scene
         scn.DazSelector.clear()
-        self.setupCharacter(context)
+        if not self.setupCharacter(context, False):
+            return {'FINISHED'}
         setupMorphPaths(scn, False)
         for key,path in theMorphFiles[self.char]["Correctives"].items():
             item = scn.DazSelector.add()
             item.name = path
             item.text = key
             item.select = True
-        return DazPropsOperator.invoke(self, context, event)
+        return self.invokeDialog(context)
 
     
-class DAZ_OT_ImportStandardMorphs(DazOperator, Selector, B.StandardEnums, LoadAllMorphs, IsMeshArmature):
-    bl_idname = "daz.import_standard_morphs"
-    bl_label = "Import Standard Morphs"
-    bl_description = "Import standard morphs (face units/expressions/visemes) for this character"
-    bl_options = {'UNDO'}
-
-    prefixes = {"Units" : ["DzU"], 
-                "Expressions" : ["DzE"], 
-                "Visemes" : ["DzV"]
-               }
-
-    def draw(self, context):
-        self.layout.prop(self, "type")
-        Selector.draw(self, context)
+class StandardMorphSelector(Selector):
                 
     def getActiveMorphFiles(self, context):
-        self.prefix = self.prefixes[self.type][0]
         return dict([(item.text,item.name) for item in self.getSelectedItems(context.scene)])        
 
     def isActive(self, name, scn):
         return True
 
     def selectCondition(self, item):
-        return (item.category == self.type)
+        return True
 
     def invoke(self, context, event):
         global theMorphFiles
         scn = context.scene
         scn.DazSelector.clear()
-        self.setupCharacter(context)
+        if not self.setupCharacter(context, True):
+            return {'FINISHED'}
         setupMorphPaths(scn, False)
-        for type in ["Units", "Expressions", "Visemes"]:
-            for key,path in theMorphFiles[self.char][type].items():
-                item = scn.DazSelector.add()
-                item.name = path
-                item.text = key
-                item.category = type
-                item.select = True
-        return DazPropsOperator.invoke(self, context, event)
+        for key,path in theMorphFiles[self.char][self.type].items():
+            item = scn.DazSelector.add()
+            item.name = path
+            item.text = key
+            item.category = self.type
+            item.select = True
+        return self.invokeDialog(context)
+
+
+class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+    bl_idname = "daz.import_units"
+    bl_label = "Import Units"
+    bl_description = "Import face unit morphs"
+    bl_options = {'UNDO'}
+
+    type = "Units"
+    prefix = "DzU"
+
+
+class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+    bl_idname = "daz.import_expressions"
+    bl_label = "Import Expressions"
+    bl_description = "Import expression morphs"
+    bl_options = {'UNDO'}
+
+    type = "Expressions"
+    prefix = "DzE"
+
+
+class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+    bl_idname = "daz.import_visemes"
+    bl_label = "Import Visemes"
+    bl_description = "Import viseme morphs"
+    bl_options = {'UNDO'}
+
+    type = "Visemes"
+    prefix = "DzV"
+
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -1417,7 +1411,7 @@ class AddRemoveDriver:
                 item = scn.DazSelector.add()
                 item.name = item.text = skey.name
                 item.select = False
-        return DazPropsOperator.invoke(self, context, event)
+        return self.invokeDialog(context)
 
 
 class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.CategoryString, IsMesh):
@@ -1754,11 +1748,10 @@ classes = [
     
     DAZ_OT_Update,
     DAZ_OT_SelectAllMorphs,
-    #DAZ_OT_LoadAllUnits,
-    #DAZ_OT_LoadAllExpressions,
-    #DAZ_OT_LoadAllVisemes,
-    #DAZ_OT_LoadAllCorrectives,
-    DAZ_OT_ImportStandardMorphs,
+    DAZ_OT_ImportUnits,
+    DAZ_OT_ImportExpressions,
+    DAZ_OT_ImportVisemes,
+    #DAZ_OT_ImportStandardMorphs,
     DAZ_OT_ImportCustomMorphs,
     DAZ_OT_ImportCorrectives,
     DAZ_OT_RenameCategory,
