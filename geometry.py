@@ -170,10 +170,13 @@ class Geometry(Asset, Channels):
         self.default_uv_set = None
         self.uv_sets = OrderedDict()
         self.rigidity = []
+        self.root_region = None
         self.SubDIALevel = 0
         self.SubDRenderLevel = 0
         self.shell = {}
         self.shells = {}
+        self.sourceAsset = None
+        self.isSourced = False
 
 
     def __repr__(self):
@@ -205,9 +208,10 @@ class Geometry(Asset, Channels):
     def parse(self, struct):
         Asset.parse(self, struct)
         Channels.parse(self, struct)
-        if "source" in struct.keys():
-            self.copySource(struct["source"])
             
+        if "source" in struct.keys():
+            self.sourceAsset = self.copySourceFile(struct["source"])
+
         vdata = struct["vertices"]["values"]
         fdata = struct["polylist"]["values"]
         if theSettings.zup:
@@ -218,34 +222,55 @@ class Geometry(Asset, Channels):
         self.material_indices = [f[1] for f in fdata]
         self.polygon_material_groups = struct["polygon_material_groups"]["values"]
 
-        if "default_uv_set" in struct.keys():
-            self.default_uv_set = self.addUvSet(struct["default_uv_set"])
-        if "uv_set" in struct.keys():
-            self.uv_set = self.addUvSet(struct["uv_set"])
-        else:
+        for key,data in struct.items():
+            if key == "default_uv_set":
+                self.default_uv_set = self.addUvSet(data)
+            elif key == "uv_set":
+                self.uv_set = self.addUvSet(data)
+            elif key == "graft":
+                for key1,data1 in data.items():
+                    if key1 == "vertex_count":
+                        self.vertex_count = data1
+                    elif key1 == "poly_count":
+                        self.poly_count = data1
+                    elif key1 == "hidden_polys":
+                        self.hidden_polys = data1["values"]
+                    elif key1 == "vertex_pairs":
+                        self.vertex_pairs = data1["values"]
+            elif key == "rigidity":
+                self.rigidity = data
+            elif key == "groups":
+                self.groups.append(data)
+            elif key == "root_region":
+                self.root_region = data
+        
+        if self.uv_set is None:
             self.uv_set = self.default_uv_set
 
-        if "graft" in struct.keys():
-            for key,data in struct["graft"].items():
-                if key == "vertex_count":
-                    self.vertex_count = data
-                elif key == "poly_count":
-                    self.poly_count = data
-                elif key == "hidden_polys":
-                    self.hidden_polys = data["values"]
-                elif key == "vertex_pairs":
-                    self.vertex_pairs = data["values"]
-
-        if "rigidity" in struct.keys():
-            print("RIGIDITY", self.name)
-            self.rigidity = struct["rigidity"]
-
-        if "groups" in struct.keys():
-            print("GROUPS", self.name)
-            self.groups.append(struct["groups"])
-
+        if self.sourceAsset:
+            self.copySource()
+        
         return self
     
+
+    def copySource(self):
+        asset = self.sourceAsset
+        if asset.isSourced:
+            return
+        asset.isSourced = True
+        asset.verts = self.verts
+        asset.faces = self.faces
+        asset.materials = self.materials
+        asset.material_indices = self.material_indices
+        asset.polygon_material_groups = self.polygon_material_groups
+        asset.uv_set = self.uv_set
+        asset.default_uv_set = self.default_uv_set
+        asset.uv_sets = self.uv_sets
+        asset.rigidity = self.rigidity
+        asset.root_region = self.root_region
+        asset.shell = self.shell
+        asset.shells = self.shells
+
 
     def update(self, struct):
         Asset.update(self, struct)
@@ -256,6 +281,8 @@ class Geometry(Asset, Channels):
             self.SubDRenderLevel = getCurrentValue(self.channels["SubDRenderLevel"], 0)
         if self.SubDIALevel == 0 and "current_subdivision_level" in struct.keys():
             self.SubDIALevel = struct["current_subdivision_level"]
+        #if self.sourceAsset:
+        #    self.copySource()
                     
                     
     def setExtra(self, extra):       

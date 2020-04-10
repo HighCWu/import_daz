@@ -282,22 +282,22 @@ class Asset(Accessor):
         return getName(string)
 
 
-    def copySource(self, source): 
+    def copySourceFile(self, source): 
         global theAssets, theSources 
         file = source.rsplit("#", 1)[0]
-        asset = self.parseUrlAsset({"url": file})
+        asset = self.parseUrlAsset({"url": source})
         old = asset.id.rsplit("#", 1)[0]
         new = self.id.rsplit("#", 1)[0]
-        self.copySource1(old, new)
+        self.copySourceAssets(old, new)
         if old not in theSources.keys():
             theSources[old] = []
         for other in theSources[old]:
-            self.copySource1(other, new)
-            theAssets[other]
+            self.copySourceAssets(other, new)
         theSources[old].append(new)
+        return asset
         
         
-    def copySource1(self, old, new):
+    def copySourceAssets(self, old, new):
         nold = len(old)
         nnew = len(new)
         adds = []
