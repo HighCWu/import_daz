@@ -76,8 +76,9 @@ def getMainAsset(filepath, context, btn):
 
     print("Building objects...")
     grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()
+    coll = None
     if theSettings.group and bpy.app.version >= (2,80,0):
-        makeNewSceneCollection(grpname, context)
+        coll = makeNewSceneCollection(grpname, context)
 
     for asset in main.materials:
         asset.build(context)
@@ -125,22 +126,31 @@ def getMainAsset(filepath, context, btn):
         for asset,inst in main.nodes:
             asset.guessColor(scn, theSettings.chooseColors, inst)
 
-    rig,grp = renameAndGroup(main, grpname, context)
+    rig,grp = renameAndGroup(main, grpname, context, coll)
     finishMain(filepath, t1)
     if theSettings.missingAssets:
         msg = ("Some assets were not found.\nCheck that all Daz paths have been set up correctly.        ")
         raise DazError(msg, warning=True)
 
 
-def renameAndGroup(main, grpname, context):
+def renameAndGroup(main, grpname, context, coll):
     from .figure import FigureInstance
     from .finger import getFingeredCharacter
+    from mathutils import Matrix
 
     for _,inst in main.nodes:
         if isinstance(inst, FigureInstance):
             rig = inst.rna
             inst.rna.name = inst.name
 
+        if inst.dupli:
+            ob = inst.rna
+            wmat = ob.matrix_basis.copy()
+            ob.matrix_basis = Matrix()
+            inst.dupli.matrix_basis = wmat
+            if coll:
+                coll.objects.unlink(ob)
+    
     rig = None
     mesh = None
     for asset,inst in main.nodes:
@@ -172,6 +182,7 @@ def makeNewSceneCollection(grpname, context):
     coll = bpy.data.collections.new(name=grpname)
     colls.children.link(coll)
     theSettings.collection = coll
+    return coll
 
 
 def groupInstances(grpname, main, context):

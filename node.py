@@ -128,6 +128,7 @@ class Instance(Accessor):
         self.channels = node.channels
         node.channels = {}
         self.shell = {}
+        self.dupli = None
         self.groupNode = None
         self.isInstance = False
         self.node2 = None
@@ -205,13 +206,9 @@ class Instance(Accessor):
                     coll = bpy.data.collections.new(name=self.name)
                     context.collection.children.link(coll)
                     self.groupNode = coll
-                print("GNODE", self)
             elif extra["type"] == "studio/node/instance":
                 self.isInstance = True
                 self.parent.node2 = self.node2
-                print("INST", self)
-                print("  P", self.parent)
-                print("  N", self.node2)
 
         for geo in self.geometries:
             geo.preprocess(context, self)
@@ -228,21 +225,34 @@ class Instance(Accessor):
             return
 
         elif self.groupNode:
-            print("IGRP", self)
-            print(" N2", self.node2)
             ob = self.node2.rna
-            self.groupNode.objects.link(ob)
-            print("GRPS", self.groupNode)
-                
-        elif self.isInstance:
-            print("BINST", self, self.parent)
-            empty = self.rna
+            coll = self.groupNode
+            coll.objects.link(ob)
             if bpy.app.version < (2,80,0):
-                empty.dupli_type = 'GROUP'
-                empty.dupli_group = self.parent.groupNode
+                putOnHiddenLayer(ob)
             else:
-                empty.instance_type = 'COLLECTION'
-                empty.instance_collection = self.parent.groupNode
+                layer = findLayerCollection(context.view_layer.layer_collection, coll)
+                layer.exclude = True
+            empty = bpy.data.objects.new(ob.name + "_Dupli", None)
+            self.node2.dupli = empty
+            scncoll = getCollection(context)
+            scncoll.objects.link(empty)
+            setSelected(empty, True)
+            empty.parent = self.rna
+            self.duplicate(empty, coll)
+
+        elif self.isInstance:
+            self.duplicate(self.rna, self.parent.groupNode)
+            
+
+    def duplicate(self, empty, group):
+        if bpy.app.version < (2,80,0):
+            empty.dupli_type = 'GROUP'
+            empty.dupli_group = group
+        else:
+            empty.instance_type = 'COLLECTION'
+            empty.instance_collection = group
+
 
     def pose(self, context):
         pass
@@ -360,6 +370,15 @@ def printExtra(self, name):
         print("  ", extra.keys())
     
     
+def findLayerCollection(layer, coll):
+    if layer.collection == coll:
+        return layer
+    for child in layer.children:
+        clayer = findLayerCollection(child, coll)
+        if clayer:
+            return clayer
+    return None
+            
 #-------------------------------------------------------------
 #   Node
 #-------------------------------------------------------------
