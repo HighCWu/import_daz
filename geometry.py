@@ -175,7 +175,6 @@ class Geometry(Asset, Channels):
         self.SubDRenderLevel = 0
         self.shell = {}
         self.shells = {}
-        self.sourceAsset = None
         self.isSourced = False
 
 
@@ -209,9 +208,6 @@ class Geometry(Asset, Channels):
         Asset.parse(self, struct)
         Channels.parse(self, struct)
             
-        if "source" in struct.keys():
-            self.sourceAsset = self.copySourceFile(struct["source"])
-
         vdata = struct["vertices"]["values"]
         fdata = struct["polylist"]["values"]
         if theSettings.zup:
@@ -247,17 +243,16 @@ class Geometry(Asset, Channels):
         if self.uv_set is None:
             self.uv_set = self.default_uv_set
 
-        if self.sourceAsset:
-            self.copySource()
+        if "source" in struct.keys():
+            asset = self.copySourceFile(struct["source"])
+            if not asset.isSourced:
+                self.copySource(asset)
+                asset.isSourced = True
         
         return self
     
 
-    def copySource(self):
-        asset = self.sourceAsset
-        if asset.isSourced:
-            return
-        asset.isSourced = True
+    def copySource(self, asset):
         asset.verts = self.verts
         asset.faces = self.faces
         asset.materials = self.materials
@@ -281,8 +276,6 @@ class Geometry(Asset, Channels):
             self.SubDRenderLevel = getCurrentValue(self.channels["SubDRenderLevel"], 0)
         if self.SubDIALevel == 0 and "current_subdivision_level" in struct.keys():
             self.SubDIALevel = struct["current_subdivision_level"]
-        #if self.sourceAsset:
-        #    self.copySource()
                     
                     
     def setExtra(self, extra):       
