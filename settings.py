@@ -94,7 +94,6 @@ class Settings:
         self.useAnimations = False
         self.useLibraries = False
         self.useUV = False
-        self.instanceGroups = {}
         self.collection = None
         self.fps = 30
         self.integerFrames = True

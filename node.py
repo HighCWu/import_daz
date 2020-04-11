@@ -128,7 +128,8 @@ class Instance(Accessor):
         self.channels = node.channels
         node.channels = {}
         self.shell = {}
-        self.instance = {}
+        self.groupNode = None
+        self.isInstance = False
         self.node2 = None
         self.strand_hair = node.strand_hair
         node.strand_hair = None
@@ -176,14 +177,6 @@ class Instance(Accessor):
 
 
     def preprocess(self, context):
-        for extra in self.extra:
-            if "type" not in extra.keys():
-                continue
-            elif extra["type"] == "studio/node/shell":
-                self.shell = extra
-            elif extra["type"] == "studio/node/instance":
-                self.instance = extra
-
         for channel in self.channels.values(): 
             if "type" not in channel.keys():
                 continue                   
@@ -199,11 +192,32 @@ class Instance(Accessor):
                 elif (words[0] == "facet" and words[1] == "group" and words[-1] == "vis"):
                     pass
 
+        for extra in self.extra:
+            if "type" not in extra.keys():
+                continue
+            elif extra["type"] == "studio/node/shell":
+                self.shell = extra
+            elif extra["type"] == "studio/node/group_node":
+                if bpy.app.version < (2,80,0):
+                    group = bpy.data.groups.new(self.name)
+                    self.groupNode = group
+                else:
+                    coll = bpy.data.collections.new(name=self.name)
+                    context.collection.children.link(coll)
+                    self.groupNode = coll
+                print("GNODE", self)
+            elif extra["type"] == "studio/node/instance":
+                self.isInstance = True
+                self.parent.node2 = self.node2
+                print("INST", self)
+                print("  P", self.parent)
+                print("  N", self.node2)
+
         for geo in self.geometries:
             geo.preprocess(context, self)
 
 
-    def buildExtra(self):
+    def buildExtra(self, context):
         if self.strand_hair:
             print("Strand-based hair is not implemented.")
             #return
@@ -213,27 +227,22 @@ class Instance(Accessor):
                 fp.write(bytes)
             return
 
-        if bpy.app.version >= (2,80,0):
-            return
-
-        empty = self.rna
-        if self.instance:
-            for channel in self.channels.values():
-                if channel["type"] == "node":
-                    inst = channel["node"]
-                    ob = inst.rna
-                    if ob is None:
-                        continue
-                    gname = "_" + ob.name
-                    if gname in theSettings.instanceGroups.keys():
-                        grp,_ = theSettings.instanceGroups[gname]
-                    else:
-                        grp = bpy.data.groups.new(gname)
-                        grp.objects.link(ob)
-                        theSettings.instanceGroups[gname] = (grp,ob)
-                    empty.dupli_type = 'GROUP'
-                    empty.dupli_group = grp
-
+        elif self.groupNode:
+            print("IGRP", self)
+            print(" N2", self.node2)
+            ob = self.node2.rna
+            self.groupNode.objects.link(ob)
+            print("GRPS", self.groupNode)
+                
+        elif self.isInstance:
+            print("BINST", self, self.parent)
+            empty = self.rna
+            if bpy.app.version < (2,80,0):
+                empty.dupli_type = 'GROUP'
+                empty.dupli_group = self.parent.groupNode
+            else:
+                empty.instance_type = 'COLLECTION'
+                empty.instance_collection = self.parent.groupNode
 
     def pose(self, context):
         pass
@@ -343,25 +352,6 @@ class Instance(Accessor):
         ob.rotation_euler = quat.to_euler(ob.rotation_mode)
         ob.scale = scale
         self.node.postTransform()
-
-
-def resetInstancedObjects(context, grp):
-    if not theSettings.instanceGroups:
-        return
-    coll = getCollection(context)
-    hidden = createHiddenCollection(context)
-    for igrp,ob in theSettings.instanceGroups.values():
-        wmat = ob.matrix_basis.copy()
-        activateObject(context, ob)
-        ob.matrix_basis = Matrix()
-        putOnHiddenLayer(ob, coll, hidden)
-        empty = bpy.data.objects.new(ob.name + "Instance", None)
-        coll.objects.link(empty)
-        if grp:
-            grp.objects.link(empty)
-        empty.matrix_basis = wmat
-        empty.dupli_type = 'GROUP'
-        empty.dupli_group = igrp
 
 
 def printExtra(self, name):
@@ -537,7 +527,7 @@ class Node(Asset, Formula, Channels):
         else:
             self.buildObject(context, inst, center)
         if inst.extra:
-            inst.buildExtra()
+            inst.buildExtra(context)
         ob = inst.rna
         if isinstance(ob, bpy.types.Object):
             ob.DazOrientation = inst.attributes["orientation"]

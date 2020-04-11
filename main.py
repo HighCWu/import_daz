@@ -126,8 +126,6 @@ def getMainAsset(filepath, context, btn):
             asset.guessColor(scn, theSettings.chooseColors, inst)
 
     rig,grp = renameAndGroup(main, grpname, context)
-    from .node import resetInstancedObjects
-    resetInstancedObjects(context, grp)
     finishMain(filepath, t1)
     if theSettings.missingAssets:
         msg = ("Some assets were not found.\nCheck that all Daz paths have been set up correctly.        ")

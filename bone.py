@@ -411,7 +411,7 @@ class BoneInstance(Instance):
         pass
 
 
-    def buildExtra(self):
+    def buildExtra(self, context):
         pass
 
 

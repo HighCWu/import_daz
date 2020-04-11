@@ -55,7 +55,7 @@ class FigureInstance(Instance):
         return "<FigureInstance %s %d P: %s R: %s>" % (self.node.name, self.index, self.node.parent, self.rna)
 
 
-    def buildExtra(self):
+    def buildExtra(self, context):
         pass
 
 
