@@ -51,10 +51,10 @@ class Channels:
                 for extra in data:
                     self.setExtra(extra)
                     if "channels" in extra.keys():
-                        for data in extra["channels"]:
-                            self.setChannel(data["channel"])
-            elif isinstance(data, dict):
-                if "channel" in data.keys():
+                        for cstruct in extra["channels"]:
+                            if isinstance(cstruct, dict) and "channel" in cstruct.keys():
+                                self.setChannel(cstruct["channel"])
+            elif isinstance(data, dict) and "channel" in data.keys():
                     self.setChannel(data["channel"])
 
 
@@ -73,11 +73,11 @@ class Channels:
                 for extra in data:
                     self.setExtra(extra)
                     if "channels" in extra.keys():
-                        for data in extra["channels"]:
-                            self.replaceChannel(data["channel"])
-            elif isinstance(data, dict):
-                if "channel" in data.keys():
-                    self.replaceChannel(data["channel"])        
+                        for cstruct in extra["channels"]:
+                            if isinstance(cstruct, dict) and "channel" in cstruct.keys():
+                                self.replaceChannel(cstruct["channel"])
+            elif isinstance(data, dict) and "channel" in data.keys():
+                self.replaceChannel(data["channel"])        
 
 
     def setExtra(self, struct):
