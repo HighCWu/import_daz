@@ -575,6 +575,33 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.rotate_bones")
 
 
+def activateLayout(layout, type, prefix):
+    split = utils.splitLayout(layout, 0.3333)
+    split.operator("daz.prettify")
+    op = split.operator("daz.activate_all")
+    op.type = type
+    op.prefix = prefix
+    op = split.operator("daz.deactivate_all")
+    op.type = type
+    op.prefix = prefix
+
+
+def keyLayout(layout, type, prefix):
+    split = utils.splitLayout(layout, 0.25)
+    op = split.operator("daz.add_keyset", text="", icon='KEYINGSET')
+    op.type = type
+    op.prefix = prefix
+    op = split.operator("daz.key_morphs", text="", icon='KEY_HLT')
+    op.type = type
+    op.prefix = prefix
+    op = split.operator("daz.unkey_morphs", text="", icon='KEY_DEHLT')
+    op.type = type
+    op.prefix = prefix
+    op = split.operator("daz.clear_morphs", text="", icon='X')
+    op.type = type
+    op.prefix = prefix
+
+
 class DAZ_PT_Morphs:
 
     @classmethod
@@ -598,31 +625,8 @@ class DAZ_PT_Morphs:
             layout.operator("daz.update_morph_paths")
             return
 
-        split = utils.splitLayout(layout, 0.3333)
-        split.operator("daz.prettify")
-        op = split.operator("daz.activate_all")
-        op.type = self.type
-        op.prefix = self.prefix
-        op = split.operator("daz.deactivate_all")
-        op.type = self.type
-        op.prefix = self.prefix
-
-        split = utils.splitLayout(layout, 0.25)
-        op = split.operator("daz.add_keyset", text="", icon='KEYINGSET')
-        op.type = self.type
-        op.prefix = self.prefix
-        op = split.operator("daz.key_morphs", text="", icon='KEY_HLT')
-        op.type = self.type
-        op.prefix = self.prefix
-        op = split.operator("daz.unkey_morphs", text="", icon='KEY_DEHLT')
-        op.type = self.type
-        op.prefix = self.prefix
-        #op = split.operator("daz.update_morphs", text="", icon='FILE_REFRESH')
-        #op.type = self.type
-        #op.prefix = self.prefix
-        op = split.operator("daz.clear_morphs", text="", icon='X')
-        op.type = self.type
-        op.prefix = self.prefix
+        activateLayout(layout, self.type, self.prefix)
+        keyLayout(layout, self.type, self.prefix)
         layout.separator()
 
         if rig.DazNewStyleExpressions:
@@ -642,18 +646,18 @@ class DAZ_PT_Morphs:
     def displayProp(self, name, key, rig, scn):
         row = utils.splitLayout(self.layout, 0.8)
         row.prop(rig, '["%s"]' % key, text=name)
-        showBool(row, rig, "DzA"+key, "")
+        showBool(row, rig, key)
         op = row.operator("daz.pin_prop", icon='UNPINNED')
         op.key = key
         op.type = self.type
         op.prefix = self.prefix
 
 
-def showBool(layout, ob, key, text):
-    if hasattr(ob, key):
-        layout.prop(ob, key, text=text)
-    elif key in ob.keys():
-        layout.prop(ob, '["%s"]' % key, text=text)
+def showBool(layout, ob, key, text=""):
+    from .morphing import getExistingActivateGroup
+    pg = getExistingActivateGroup(ob, key)
+    if pg is not None:
+        layout.prop(pg, "active", text=text)
 
 
 class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
@@ -719,28 +723,8 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel):
             return
         layout = self.layout
 
-        split = utils.splitLayout(layout, 0.3333)
-        split.operator("daz.prettify")
-        op = split.operator("daz.activate_all")
-        op.type = "CUSTOM"
-        op.prefix = ""
-        op = split.operator("daz.deactivate_all")
-        op.type = "CUSTOM"
-        op.prefix = ""
-
-        split = utils.splitLayout(layout, 0.25)
-        op = split.operator("daz.add_keyset", text="", icon='KEYINGSET')
-        op.type = "CUSTOM"
-        op.prefix = ""
-        op = split.operator("daz.key_morphs", text="", icon='KEY_HLT')
-        op.type = "CUSTOM"
-        op.prefix = ""
-        op = split.operator("daz.unkey_morphs", text="", icon='KEY_DEHLT')
-        op.type = "CUSTOM"
-        op.prefix = ""
-        op = split.operator("daz.clear_morphs", text="", icon='X')
-        op.type = "CUSTOM"
-        op.prefix = ""
+        activateLayout(layout, "CUSTOM", "")
+        keyLayout(layout, "CUSTOM", "")
         row = layout.row()
         row.operator("daz.toggle_all_cats", text="Open All Categories").useOpen=True
         row.operator("daz.toggle_all_cats", text="Close All Categories").useOpen=False
@@ -748,22 +732,15 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel):
         for cat in ob.DazMorphCats:
             layout.separator()
             box = layout.box()
-            prop = "DazShow" + cat.name
-            if hasattr(ob, prop):
-                path = prop
-                value = getattr(ob, prop)
-            else:
-                path = '["%s"]' % prop
-                value = ob[prop]
-            if not value:
-                box.prop(ob, path, text=cat.name, icon="RIGHTARROW", emboss=False)
+            if not cat.active:
+                box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
                 continue
-            box.prop(ob, path, text=cat.name, icon="DOWNARROW_HLT", emboss=False)
+            box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
             for morph in cat.morphs:
                 if morph.prop in ob.keys():
                     row = utils.splitLayout(box, 0.8)
                     row.prop(ob, '["%s"]' % morph.prop, text=morph.name)
-                    showBool(row, ob, "DzA"+morph.prop, "")
+                    showBool(row, ob, morph.prop)
                     op = row.operator("daz.pin_prop", icon='UNPINNED')
                     op.key = morph.prop
                     op.type = "CUSTOM"
@@ -920,17 +897,15 @@ class DAZ_PT_Hide:
         ob = context.object
         scn = context.scene
         layout = self.layout
-        split = utils.splitLayout(layout, 0.5)
+        split = utils.splitLayout(layout, 0.3333)
         split.operator("daz.prettify")
-        split.operator("daz.update_all")
-        split = utils.splitLayout(layout, 0.5)
         split.operator("daz.show_all").prefix=self.prefix
         split.operator("daz.hide_all").prefix=self.prefix
         props = list(ob.keys())
         props.sort()
         for prop in props:
             if prop[0:3] == self.prefix:
-                showBool(layout, ob, prop, prop[3:])
+                layout.prop(ob, prop, text=prop[3:])
 
 
 class DAZ_PT_Visibility(DAZ_PT_Hide, bpy.types.Panel):

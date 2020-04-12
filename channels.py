@@ -55,7 +55,7 @@ class Channels:
                             if isinstance(cstruct, dict) and "channel" in cstruct.keys():
                                 self.setChannel(cstruct["channel"])
             elif isinstance(data, dict) and "channel" in data.keys():
-                    self.setChannel(data["channel"])
+                self.setChannel(data["channel"])
 
 
     def setChannel(self, channel):                

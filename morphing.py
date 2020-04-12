@@ -437,9 +437,13 @@ class LoadMorph(PropFormulas):
                 miss = True
 
         if props:
+            for props in props:
+                setActivated(self.rig, prop, True)
             return props,False
         elif skey:
-            return [skey.name],miss
+            prop = skey.name
+            setActivated(self.rig, prop, True)
+            return [prop],miss
         else:
             return [],miss
 
@@ -740,7 +744,7 @@ def addToCategories(rig, snames, catname):
             cat.name = catname
         else:
             cat = cats[catname]
-        setBoolProp(rig, "DazShow"+catname, True)
+        setBoolProp(cat, "active", True)
 
         morphs = dict([(morph.prop,morph) for morph in cat.morphs])
         for sname in snames:
@@ -778,13 +782,6 @@ class DAZ_OT_RenameCategory(DazPropsOperator, B.CustomEnums, B.CategoryString, I
             raise DazError("Cannot rename all categories")
         cat = rig.DazMorphCats[self.custom]
         cat.name = self.category
-        key = "DazShow%s" % self.custom
-        if key in rig.keys():
-            show = rig[key]
-            del rig[key]
-        else:
-            show = True
-        setBoolProp(rig, "DazShow%s" % cat.name, show)
 
 
 def removeFromPropGroups(rig, prop, keep=False):             
@@ -901,11 +898,7 @@ def removeDrivingProps(rig, props):
     for prop,id in props.items():
         if rig == id:
             del rig[prop]
-
     for cat in rig.DazCategories:
-        showname = "DazShow" + cat.name
-        if hasattr(rig, showname):
-            delattr(rig, showname)
         rig.DazCategories.remove(cat)
 
 #------------------------------------------------------------------------
@@ -919,10 +912,43 @@ class Activator(B.PrefixString, B.TypeString):
         keys = getRelevantMorphs(rig, self.type, self.prefix)
         if self.type == "CUSTOM":
             for key in keys:
-                setBoolProp(rig, "DzA"+key.prop, self.activate)
+                setActivated(rig, key.prop, self.activate)
         else:
             for key in keys:
-                setBoolProp(rig, "DzA"+key, self.activate)
+                setActivated(rig, key, self.activate)
+
+
+def setActivated(rig, key, value):
+    if rig is None:
+        return
+    pg = getActivateGroup(rig, key)
+    pg.active = value
+
+
+def getActivated(rig, key, force=False):
+    if key not in rig.keys():
+        return False
+    elif force:
+        return True
+    else:
+        pg = getActivateGroup(rig, key)
+        return pg.active
+        
+
+def getExistingActivateGroup(rig, key):
+    if key in rig.DazActivated.keys():
+        return rig.DazActivated[key]
+    else:
+        return None
+        
+        
+def getActivateGroup(rig, key):
+    if key in rig.DazActivated.keys():
+        return rig.DazActivated[key]
+    else:
+        pg = rig.DazActivated.add()
+        pg.name = key
+        return pg
 
 
 class DAZ_OT_ActivateAll(DazOperator, Activator):
@@ -953,7 +979,7 @@ def prettifyAll(context):
             for prop in ob.keys():
                 if prop[0:7] == "DazShow":
                     setattr(bpy.types.Object, prop, BoolProperty(default=True))
-                elif prop[0:3] in ["DzA", "Mhh", "DzM"]:
+                elif prop[0:3] in ["Mhh", "DzM"]:
                     setattr(bpy.types.Object, prop, BoolProperty(default=True))                            
 
 
@@ -1014,12 +1040,12 @@ def clearMorphs(rig, type, prefix, scn, frame, force):
 
     if type == "CUSTOM":
         for key in keys:
-            if isActive(rig, key.prop, force) and not rig[key.prop] == 0.0:
+            if getActivated(rig, key.prop, force) and not rig[key.prop] == 0.0:
                 rig[key.prop] = 0.0
                 autoKeyProp(rig, key.prop, scn, frame, force)
     else:
         for key in keys:
-            if isActive(rig, key, force) and not rig[key] == 0.0:
+            if getActivated(rig, key, force) and not rig[key] == 0.0:
                 rig[key] = 0.0
                 autoKeyProp(rig, key, scn, frame, force)
 
@@ -1027,7 +1053,7 @@ def clearMorphs(rig, type, prefix, scn, frame, force):
 def updateMorphs(rig, type, prefix, scn, frame, force):
     keys = getRelevantMorphs(rig, type, prefix)
     for key in keys:
-        if isActive(rig, key):
+        if getActivated(rig, key):
             autoKeyProp(rig, key, scn, frame, force)
 
 
@@ -1140,11 +1166,11 @@ def keyMorphs(rig, type, prefix, scn, frame):
     if type == "CUSTOM":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
-                if isActive(rig, morph.prop):
+                if getActivated(rig, morph.prop):
                     keyProp(rig, morph.prop, frame)
     elif rig.DazNewStyleExpressions:
         for key in rig.keys():
-            if key[0:3] == prefix and isActive(rig, key):
+            if key[0:3] == prefix and getActivated(rig, key):
                 keyProp(rig, key, frame)
     else:
         names = theMorphNames[type]
@@ -1178,11 +1204,11 @@ def unkeyMorphs(rig, type, prefix, scn, frame):
     if type == "CUSTOM":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
-                if isActive(rig, morph.prop):
+                if getActivated(rig, morph.prop):
                     unkeyProp(rig, morph.prop, frame)
     elif rig.DazNewStyleExpressions:
         for key in rig.keys():
-            if key[0:3] == prefix and isActive(rig, key):
+            if key[0:3] == prefix and getActivated(rig, key):
                 unkeyProp(rig, key, frame)
     else:
         names = theMorphNames[type]
@@ -1290,9 +1316,6 @@ class DAZ_OT_RemoveAllMorphDrivers(DazOperator, IsMeshArmature):
     def removeAllProps(self, ob):
         ob.DazCustomMorphs = False
         for cat in ob.DazMorphCats:
-            key = "DazShow"+cat.name
-            if hasattr(ob, key):
-                setattr(ob, key, False)
             for morph in cat.morphs:
                 key = morph.prop
                 if key in ob.keys():
@@ -1483,24 +1506,12 @@ class DAZ_OT_ToggleAllCats(DazOperator, B.UseOpenBool, IsMeshArmature):
     def run(self, context):
         rig = getRigFromObject(context.object)
         if rig:
-            for key in rig.keys():
-                if key[0:7] == "DazShow":
-                    rig[key] = self.useOpen
+            for cat in rig.DazMorphCats:
+                cat.active = self.useOpen
 
 #-------------------------------------------------------------
 #
 #-------------------------------------------------------------
-
-def isActive(rig, key, force=False):
-    if key not in rig.keys():
-        return False
-    elif force:
-        return True
-    elif "DzA"+key in rig.keys():
-        return rig["DzA"+key]
-    else:
-        return True
-
 
 def keyProp(rig, key, frame):
     rig.keyframe_insert('["%s"]' % key, frame=frame)
@@ -1792,7 +1803,9 @@ def initialize():
 
     bpy.utils.register_class(B.DazCustomGroup)
     bpy.utils.register_class(B.DazCategory)
+    bpy.utils.register_class(B.DazActiveGroup)
     
+    bpy.types.Object.DazActivated = CollectionProperty(type = B.DazActiveGroup)
     bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory)
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],

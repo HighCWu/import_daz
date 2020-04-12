@@ -230,7 +230,8 @@ if bpy.app.version >= (2,80,0):
 #------------------------------------------------------------------------
 
 def setAllVisibility(context, prefix, value):
-    from .morphing import autoKeyProp
+    from .morphing import autoKeyProp 
+    from .driver import updateAll   
     rig = context.object
     scn = context.scene
     if rig is None:
@@ -240,7 +241,7 @@ def setAllVisibility(context, prefix, value):
             if key:
                 rig[key] = value
                 autoKeyProp(rig, key, scn, scn.frame_current, True)
-    updateScene(context)
+    updateAll(context)
 
 
 class DAZ_OT_ShowAll(DazOperator, B.PrefixString):

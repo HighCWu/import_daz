@@ -257,7 +257,6 @@ class ChannelAsset(Modifier):
             value = 0.0
             min = max = None
         setFloatProp(self.rig, prop, value, min=min, max=max)
-        setBoolProp(self.rig, "DzA"+prop, True)
         return prop,value
 
 

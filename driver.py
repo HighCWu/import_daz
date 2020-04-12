@@ -363,7 +363,6 @@ def makePropDriver(prop, rna, channel, rig, expr, idx=-1):
 
 def makeShapekeyDriver(ob, sname, value, rig, prop, min=None, max=None):
     setFloatProp(rig, prop, value, min=min, max=max)
-    setBoolProp(rig, "DzA"+prop, True)
     skey = ob.data.shape_keys.key_blocks[sname]
     if getShapekeyDriver(ob.data.shape_keys, sname):
         skey.driver_remove("value")

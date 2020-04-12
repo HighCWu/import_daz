@@ -81,7 +81,6 @@ class Formula:
         addToCategories(rig, props, "Imported")
         for prop in props:
             setFloatProp(rig, prop, self.value)
-            setBoolProp(rig, "DzA"+prop, True)
 
 
     def postbuild(self, context, inst):
