@@ -113,11 +113,20 @@ function startObject(fp, name, label)
 
 function doMesh (fp, obj, start, name, str1, str2)
 {
-	var geom = obj.getCachedGeom();
-	if (geom == null)
-		return false;
 	var shape = obj.getCurrentShape();
 	if (shape == null)
+		return false;
+
+    // Set subd algo to bilinear (1)
+    var subdlevel = shape.getSubDDrawLevel();
+    var subdalgo = shape.getSubDAlgo();
+    var levelctrl = shape.getSubDLevelControl();
+    var algoctrl = shape.getSubDAlgorithmControl();
+    levelctrl.setValue(0);
+    algoctrl.setValue(1);
+    
+	var geom = obj.getCachedGeom();
+	if (geom == null)
 		return false;
 	var mesh = shape.getFacetMesh( false );
 	if (mesh == null)
@@ -146,6 +155,9 @@ function doMesh (fp, obj, start, name, str1, str2)
 	}	
 	fp.writeLine(str1)
 	fp.writeLine(str2)
+	
+    levelctrl.setValue(subdlevel);
+    algoctrl.setValue(subdalgo);
 	return true;
 }
 
