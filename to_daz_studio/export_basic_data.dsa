@@ -41,7 +41,7 @@ function exportBasicData()
 			obj = node.getObject();
 			if (obj != null) 
 			{
-				doMesh(fp, obj, true, node.name, "		]", "	},");
+				doMesh(fp, obj, true, node, "		]", "	},");
 			}
 		}
 	}
@@ -71,7 +71,7 @@ function doFigure (fp, figure)
 	var obj = figure.getObject();
 	if (obj != null) 
 	{
-		doMesh(fp, obj, false, null, "		],", "")
+		doMesh(fp, obj, false, figure, "		],", "")
 	}
 	
 	var bones = figure.getAllBones();
@@ -111,20 +111,19 @@ function startObject(fp, name, label)
 }
 
 
-function doMesh (fp, obj, start, name, str1, str2)
+function doMesh (fp, obj, start, node, str1, str2)
 {
 	var shape = obj.getCurrentShape();
 	if (shape == null)
 		return false;
 
-    // Set subd algo to bilinear (1)
-    var subdlevel = shape.getSubDDrawLevel();
-    var subdalgo = shape.getSubDAlgo();
-    var levelctrl = shape.getSubDLevelControl();
-    var algoctrl = shape.getSubDAlgorithmControl();
-    levelctrl.setValue(0);
-    algoctrl.setValue(1);
-    
+    // Turn off high resolution
+    var lodctrl = shape.getLODControl();
+    var lodvalue = lodctrl.getValue();
+    lodctrl.setValue(0);
+    // update mesh
+    obj.forceCacheUpdate(node,false);   
+        
 	var geom = obj.getCachedGeom();
 	if (geom == null)
 		return false;
@@ -134,7 +133,7 @@ function doMesh (fp, obj, start, name, str1, str2)
 
 	if (start)
 	{
-		startObject(fp, name, "undefined");
+		startObject(fp, node.name, "undefined");
 	}
 
 	var nv = mesh.getNumVertices();
@@ -156,8 +155,7 @@ function doMesh (fp, obj, start, name, str1, str2)
 	fp.writeLine(str1)
 	fp.writeLine(str2)
 	
-    levelctrl.setValue(subdlevel);
-    algoctrl.setValue(subdalgo);
+    lodctrl.setValue(lodvalue);    
 	return true;
 }
 
