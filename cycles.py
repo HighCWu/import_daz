@@ -1255,7 +1255,7 @@ class CyclesTree(FromCycles):
             return tex
         elif isBlack(color):
             return None
-        elif (tex and tex.type != 'TEX_IMAGE'):
+        elif (tex and tex.type not in ['TEX_IMAGE', 'GROUP']):
             return tex
         mix = self.addNode(col, "ShaderNodeMixRGB")
         mix.blend_type = 'MULTIPLY'

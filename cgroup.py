@@ -676,9 +676,10 @@ class LieGroup(CyclesGroup):
                     if alpha != 1:
                         node = self.multiplyScalarTex(alpha, base, 4, "Alpha")
                         self.links.new(node.outputs[0], mix.inputs[0])
-                    elif hasattr(base.outputs, "Alpha"):
+                    elif "Alpha" in base.outputs.keys():
                         self.links.new(base.outputs["Alpha"], mix.inputs[0])
                     else:
+                        print("No LIE alpha:", base)
                         mix.inputs[0].default_value = alpha
                     mix.use_alpha = True
                     self.links.new(texnode.outputs["Color"], mix.inputs[1])
