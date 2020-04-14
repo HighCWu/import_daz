@@ -33,6 +33,7 @@ from .error import reportError
 
 
 def loadJson(filepath, mustOpen=False):
+    print("JSON", filepath)
     try:
         with gzip.open(filepath, 'rb') as fp:
             bytes = fp.read()
@@ -44,10 +45,14 @@ def loadJson(filepath, mustOpen=False):
     trigger=(2,3)  
     if bytes:
         try:
+            string = bytes.decode("utf-8")
             struct = json.loads(string)
             msg = None
         except json.decoder.JSONDecodeError as err:
             msg = ('JSON error while reading zipped file\n"%s"\n%s' % (filepath, err))
+            trigger=(1,2)
+        except UnicodeDecodeError as err:
+            msg = ('Unicode error while reading zipped file\n"%s"\n%s' % (filepath, err))
             trigger=(1,2)
     else:
         from .fileutils import safeOpen
@@ -58,6 +63,9 @@ def loadJson(filepath, mustOpen=False):
                 msg = None
             except json.decoder.JSONDecodeError as err:
                 msg = ('JSON error while reading ascii file\n"%s"\n%s' % (filepath, err))
+                trigger=(1,2)
+            except UnicodeDecodeError as err:
+                msg = ('Unicode error while reading zipped file\n"%s"\n%s' % (filepath, err))
                 trigger=(1,2)
     if msg:
         reportError(msg, trigger=trigger)

@@ -183,8 +183,8 @@ class Settings:
             self.singleUser = False
         elif btn.fitMeshes == 'UNIQUE':
             pass
-        elif btn.fitMeshes == 'JSONFILE':
-            self.fitFile = ".json"
+        elif btn.fitMeshes == 'DBZFILE':
+            self.fitFile = True
 
 
     def forAnimation(self, btn, ob, scn):

@@ -199,11 +199,11 @@ class DazOptions:
     fitMeshes : EnumProperty(
     items = [('SHARED', "Unmorphed Shared", "Don't fit meshes. All objects share the same mesh."),
              ('UNIQUE', "Unmorped Unique", "Don't fit meshes. Each object has unique mesh instance."),
-             ('JSONFILE', "Json File", "Use exported JSON (.json) file to fit meshes. Must exist in same directory."),
+             ('DBZFILE', "DBZ (JSON) File", "Use exported .dbz (.json) file to fit meshes. Must exist in same directory."),
             ],
         name = "Mesh Fitting",
         description = "Mesh fitting method",
-        default = 'JSONFILE')
+        default = 'DBZFILE')
 
     useAutoMaterials : BoolProperty(
         name = "Auto Material Method",
@@ -715,8 +715,8 @@ class DazImageFile:
 
 
 class DazFile:
-    filename_ext = ".dsf;.duf"
-    filter_glob : StringProperty(default="*.dsf;*.duf", options={'HIDDEN'})
+    filename_ext = ".dsf;.duf;*.dbz"
+    filter_glob : StringProperty(default="*.dsf;*.duf;*.dbz", options={'HIDDEN'})
 
 
 class DatFile:

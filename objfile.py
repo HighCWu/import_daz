@@ -43,10 +43,10 @@ def loadJsonVerts(filepath):
     rigs = {}
     struct = loadJson(filepath)
     if ("application" not in struct.keys() or
-        struct["application"] != "export_basic_data"):
+        struct["application"] not in ["export_basic_data", "export_to_blender"]):
         msg = ("The file\n" +
                filepath + "           \n" +
-               "does not contain basic data")
+               "does not contain data exported from DAZ Studio")
         raise DazError(msg)
 
     for figure in struct["figures"]:
@@ -98,14 +98,16 @@ def loadJsonVerts(filepath):
 #------------------------------------------------------------------
 
 def getFitFile(filepath):
-    objpath = os.path.splitext(filepath)[0] + theSettings.fitFile
-    if not os.path.exists(objpath):
-        msg = ("Mesh fitting set to %s.\n" % theSettings.fitFile +
-               "Export \"%s\"            \n" % objpath +
-               "from Daz Studio to fit to %s file.\n" % theSettings.fitFile +
-               "See documentation for more information.")
-        raise DazError(msg)
-    return objpath
+    filename = os.path.splitext(filepath)[0]
+    for ext in [".dbz", ".json"]:
+        filepath = filename + ext
+        if os.path.exists(filepath):
+            return filepath
+    msg = ("Mesh fitting set to DBZ (JSON).\n" +
+           "Export \"%s.dbz\"            \n" % filename +
+           "from Daz Studio to fit to dbz file.\n" % +
+           "See documentation for more information.")
+    raise DazError(msg)
 
 
 def fitToFile(filepath, nodes):
@@ -114,14 +116,11 @@ def fitToFile(filepath, nodes):
     from .bone import BoneInstance
     from .node import Instance
 
-    print("Fitting objects with %s file..." % theSettings.fitFile)
-    objpath = getFitFile(filepath)
-    if theSettings.fitFile == ".json":
-        objects,rigs = loadJsonVerts(objpath)
+    print("Fitting objects with dbz file...")
+    filepath = getFitFile(filepath)
+    if theSettings.fitFile:
+        objects,rigs = loadJsonVerts(filepath)
         subsurfaced = False
-    else:
-        print("fitToFile", ext)
-        halt
 
     taken = dict([(name,0) for name in objects.keys()])
     takenfigs = dict([(name,[]) for name in rigs.keys()])

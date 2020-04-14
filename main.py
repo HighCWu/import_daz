@@ -248,7 +248,7 @@ class DAZ_OT_ReparentBones(DazOperator):
 class DAZ_OT_DecodeFile(DazOperator, B.DazFile, B.SingleFile):
     bl_idname = "daz.decode_file"
     bl_label = "Decode File"
-    bl_description = "Decode a gzipped DAZ file (*.duf, *.dsf) to a text file"
+    bl_description = "Decode a gzipped DAZ file (*.duf, *.dsf, *.dbz) to a text file"
     bl_options = {'UNDO'}
 
     def invoke(self, context, event):
