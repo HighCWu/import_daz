@@ -342,10 +342,12 @@ class Geometry(Asset, Channels):
             return
         geonode = inst.geometries[0]
         geo = geonode.data
-        prefix = inst.node.name
-        if pprefix:
-            prefix = pprefix + "_" + prefix
-        mname1 = self.getMaterialName(mname, prefix)
+        prefix = pprefix + inst.node.name + "_"
+        n = len(prefix)
+        if mname[0:n] == prefix:
+            mname1 = mname[n:]
+        else:
+            mname1 = None
         if mname1 and mname1 in geo.materials.keys():
             mats = geo.materials[mname1]
             mats[0].shells.append((mat,uv))
@@ -355,14 +357,6 @@ class Geometry(Asset, Channels):
         else:
             for key,child in inst.children.items():
                 self.addMoreUvSets(child, mname, mat, uv, prefix)
-        
-
-    def getMaterialName(self, mname, prefix):
-        n = len(prefix)
-        if mname[0:n] == prefix:
-            return mname[n+1:]
-        else:
-            return None
 
 
     def addNewUvset(self, uv, geo):                                        
