@@ -736,15 +736,17 @@ class PropFormulas(PoseboneDriver):
             expr[slot] = {"value" : delta, "prop" : prop}
         
 
-    def buildOthers(self):
-        print("Second pass:")
+    def buildOthers(self, missing):
         remains = self.others
         sorted = []
         for level in range(1,5):
+            print("--- Pass %d ---" % (level+1))
             batch, remains = self.getNextLevelMorphs(remains)
             self.buildMorphBatch(batch)
             for prop,_factor,_bones in batch:            
-                print(" *", dzstrip(prop))
+                name = dzstrip(prop)
+                print(" *", name)
+                missing[name] = False
             if not remains:
                 break
         if remains:
@@ -758,7 +760,7 @@ class PropFormulas(PoseboneDriver):
         batch = []
         for key,data in others.items():
             for prop,factor in data:
-                if self.taken[key]:                    
+                if self.taken[key]:        
                     batch.append((prop,factor,self.getStoredMorphs(key)))
                     self.taken[prop] = True
                 else:

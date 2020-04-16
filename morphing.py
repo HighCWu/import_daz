@@ -417,7 +417,7 @@ class LoadMorph(PropFormulas):
                 makeShapekeyDriver(ob, prop, skey.value, self.rig, prop, min=min, max=max)
                 props = [prop]
 
-        if self.useDrivers and self.rig and prop is None:
+        if self.useDrivers and self.rig:
             from .formula import buildShapeFormula
             if isinstance(asset, FormulaAsset) and asset.formulas:
                 if self.useShapekeys:
@@ -430,6 +430,8 @@ class LoadMorph(PropFormulas):
                     prop = asset.clearProp(self.prefix, self.rig)
                     self.taken[prop] = False
                     props = self.buildPropFormula(asset, filepath)
+            elif isinstance(asset, Morph):
+                pass
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
                 prop = asset.clearProp(self.prefix, self.rig)
                 self.taken[prop] = False
@@ -473,20 +475,13 @@ class LoadMorph(PropFormulas):
         npaths = len(namepaths)
         self.suppressError = (npaths > 1)
         passidx = 1
-        missing,props = self.getPass(passidx, namepaths.items(), props, scn, 0)
-
-        nmissing = len(missing)
-        while missing and passidx < 5:
-            passidx += 1
-            missing,props = self.getPass(passidx, missing, props, scn, 1)
-            if len(missing) == nmissing:
-                print("Failed to load the following morphs:\n%s\n" % [name for name,path in missing])
-                break            
-            nmissing = len(missing)
-        
+        missing = self.getPass(passidx, namepaths.items(), props, scn, 0)
+        self.buildOthers(missing)
+        missing = [key for key in missing.keys() if missing[key]]
+        if missing:
+            print("Failed to load the following morphs:\n%s\n" % missing)
         updateDrivers(self.rig)
-        updateDrivers(self.mesh)
-                       
+        updateDrivers(self.mesh)                       
         finishMain("Folder", folder, t1)
         if self.errors:
             print("but there were errors:")
@@ -500,7 +495,7 @@ class LoadMorph(PropFormulas):
 
     def getPass(self, passidx, namepaths, props, scn, occur):
         print("--- Pass %d ---" % passidx)
-        missing = []
+        missing = {}
         idx = 0
         npaths = len(namepaths)
         for name,path in namepaths:
@@ -509,13 +504,13 @@ class LoadMorph(PropFormulas):
             props1,miss = self.getSingleMorph(path, scn, occur=occur)
             if miss:
                 print("?", name)
-                missing.append((name,path))
+                missing[name] = True
             elif props1:
                 print("*", name)
                 props += props1
             else:
                 print("-", name)
-        return missing,props
+        return missing
         
 
 
