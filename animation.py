@@ -758,7 +758,7 @@ class StandardAnimation:
         if poserfiles:
             loadPoserAnimation(self, context, poserfiles)
 
-        finishMain(self.filepath, t1)
+        finishMain("File", self.filepath, t1)
         scn.frame_current = startframe
         nameAction(self, rig, scn)
         if not self.selectedOnly:

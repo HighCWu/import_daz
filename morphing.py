@@ -448,6 +448,74 @@ class LoadMorph(PropFormulas):
             return [],miss
 
 
+    def getAllMorphs(self, namepaths, context):
+        import time
+        from .asset import clearAssets
+        from .main import finishMain
+
+        scn = context.scene
+        if self.mesh:
+            ob = self.mesh
+        elif self.rig:
+            ob = self.rig
+        else:
+            raise DazError("Neither mesh nor rig selected")
+        theSettings.forMorphLoad(ob, scn, self.useDrivers)
+
+        self.errors = {}
+        t1 = time.perf_counter()
+        startProgress("\n--------------------")
+        props = []
+        missing = []
+        folder = ""
+        npaths = len(namepaths)
+        self.suppressError = (npaths > 1)
+        idx = 0
+        for name,path in namepaths.items():
+            folder = os.path.dirname(path)
+            showProgress(idx, npaths)
+            idx += 1
+            props1,miss = self.getSingleMorph(path, scn)
+            if miss:
+                print("?", name)
+                missing.append((name,path))
+            elif props1:
+                print("*", name)
+                props += props1
+            else:
+                print("-", name)
+
+        print("Second pass:")
+        stillMissing = []
+        nmissing = len(missing)
+        idx = 0
+        for name,path in missing:
+            showProgress(idx, nmissing)
+            idx += 1
+            props1,miss = self.getSingleMorph(path, scn, occur=1)
+            if miss:
+                print("-", name)
+                stillMissing.append(name)
+            else:
+                print("*", name)
+                props += props1
+
+        updateDrivers(self.rig)
+        updateDrivers(self.mesh)
+        if stillMissing:
+            print("Failed to load the following morphs:\n%s\n" % stillMissing)
+                       
+        finishMain("Folder", folder, t1)
+        if self.errors:
+            print("but there were errors:")
+            for err,struct in self.errors.items():
+                print("%s:" % err)
+                print("  Props: %s" % struct["props"])
+                print("  Bones: %s" % struct["bones"])
+
+        return props
+
+
 def propFromName(key, type, prefix, rig):
     if prefix:
         names = theMorphNames[type]
@@ -498,49 +566,19 @@ class LoadAllMorphs(LoadMorph):
             return []
 
 
-    def run(self, context):
-        import time
-        from .main import finishMain
+    def getPaths(self, context):
+        return 
 
+        
+    def run(self, context):
         scn = context.scene
         setupMorphPaths(scn, False)
-        addDrivers = (scn.DazAddFaceDrivers and not self.useShapekeysOnly)
-        files = self.getActiveMorphFiles(context)
+        self.useDrivers = (scn.DazAddFaceDrivers and not self.useShapekeysOnly)
         self.rig["Daz"+self.type] = self.char
         self.mesh["Daz"+self.type] = self.char
         self.rig.DazNewStyleExpressions = True
-        
-        theSettings.forMorphLoad(self.mesh, scn, addDrivers)
-        t1 = time.perf_counter()
-        startProgress("\n--------------------\n%s" % self.type)
-        nfiles = len(files)
-        idx = 0
-        snames = []
-        missing = []
-        for name,filepath in files.items():
-            showProgress(idx, nfiles)
-            idx += 1
-            if self.isActive(name, scn):
-                sname,miss = self.getSingleMorph(filepath, scn)
-                if miss:
-                    print("?", name)
-                    missing.append((name,filepath))
-                else:
-                    snames += sname
-                    print("*", name)
-            else:
-                print("-", name)
-        self.buildOthers()
-
-        updateDrivers(self.mesh)
-        updateDrivers(self.rig)
-        finishMain("", t1)
-        if self.errors:
-            print("but there were errors:")
-            for err,struct in self.errors.items():
-                print("%s:" % err)
-                print("  Props: %s" % struct["props"])
-                print("  Bones: %s" % struct["bones"])
+        namepaths = self.getActiveMorphFiles(context)  
+        self.getAllMorphs(namepaths, context)
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -666,70 +704,20 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.MultiF
 
     def run(self, context):
         from .driver import setBoolProp
-        snames = self.getMorphs(self.filepath, context.scene)
-        addToCategories(self.rig, snames, self.catname)
+        from .fileutils import getMultiFiles
+        namepaths = {}
+        folder = ""
+        for path in getMultiFiles(self, ["duf", "dsf"]):
+            name = os.path.splitext(os.path.basename(path))[0]
+            namepaths[name] = path
+        props = self.getAllMorphs(namepaths, context)
+        addToCategories(self.rig, props, self.catname)
         if self.rig:
             setBoolProp(self.rig, self.custom, True)
         if self.mesh:
             setBoolProp(self.mesh, self.custom, True)
         if self.errors:
             raise DazError(theLimitationsMessage)
-
-
-    def getMorphs(self, filepath, scn):
-        import time
-        from .asset import clearAssets
-        from .main import finishMain
-        from .fileutils import getMultiFiles
-
-        if self.mesh:
-            ob = self.mesh
-        elif self.rig:
-            ob = self.rig
-        else:
-            raise DazError("Neither mesh nor rig selected")
-        theSettings.forMorphLoad(ob, scn, self.useDrivers)
-
-        self.errors = {}
-        t1 = time.perf_counter()
-        startProgress("\n--------------------")
-        snames = []
-        missing = []
-        paths = getMultiFiles(self, ["duf", "dsf"])
-        npaths = len(paths)
-        self.suppressError = (len(paths) > 1)
-        for idx,path in enumerate(paths):
-            showProgress(idx, npaths)
-            file = os.path.basename(path)
-            names,miss = self.getSingleMorph(path, scn)
-            if miss:
-                print("?", file)
-                missing.append(path)
-            elif names:
-                print("*", file)
-                snames += names
-            else:
-                print("-", file)
-
-        for path in missing:
-            names,miss = self.getSingleMorph(path, scn, occur=1)
-            if names and not miss:
-                print("*", file)
-                snames += names
-            elif names:
-                print("-", file)
-
-        updateDrivers(self.rig)
-        updateDrivers(self.mesh)
-        finishMain(filepath, t1)
-        if self.errors:
-            print("but there were errors:")
-            for err,struct in self.errors.items():
-                print("%s:" % err)
-                print("  Props: %s" % struct["props"])
-                print("  Bones: %s" % struct["bones"])
-
-        return snames
 
 #------------------------------------------------------------------------
 #   Categories

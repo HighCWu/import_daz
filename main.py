@@ -127,7 +127,7 @@ def getMainAsset(filepath, context, btn):
             asset.guessColor(scn, theSettings.chooseColors, inst)
 
     rig,grp = renameAndGroup(main, grpname, context, coll)
-    finishMain(filepath, t1)
+    finishMain("File", filepath, t1)
     if theSettings.missingAssets:
         msg = ("Some assets were not found.\nCheck that all Daz paths have been set up correctly.        ")
         raise DazError(msg, warning=True)
@@ -216,12 +216,12 @@ def addToGroup(inst, grp):
         grp.objects.link(ob)
 
 
-def finishMain(filepath, t1):
+def finishMain(entity, filepath, t1):
     import time
     from .asset import clearAssets
 
     t2 = time.perf_counter()
-    print("File %s loaded in %.3f seconds" % (filepath, t2-t1))
+    print('%s "%s" loaded in %.3f seconds' % (entity, filepath, t2-t1))
     clearAssets()
 
 #------------------------------------------------------------------
