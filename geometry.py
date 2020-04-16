@@ -287,61 +287,84 @@ class Geometry(Asset, Channels):
         scn = context.scene
         if self.shell:
             node = self.getNode(0)
+            self.uvs = None
             for extra in node.extra:
                 if "type" not in extra.keys():
                     pass
                 elif extra["type"] == "studio/node/shell":
                     if "material_uvs" in extra.keys():
-                        uvs = dict(extra["material_uvs"])
-                    else:
-                        uvs = None
+                        self.uvs = dict(extra["material_uvs"])
 
             if scn.DazMergeShells:
-                from .figure import FigureInstance
                 if inst.node2:
-                    missing = []
-                    for key,child in inst.node2.children.items():
-                        if child.shell:
-                            geonode = inst.node2.geometries[0]
-                            geo = geonode.data
-                            for mname,shellmats in self.materials.items():
-                                mat = shellmats[0]
-                                if mname in inst.material_group_vis.keys() and not inst.material_group_vis[mname]:
-                                    continue
-                                uv = uvs[mname]
-                                if mname in geo.materials.keys():
-                                    mats = geo.materials[mname]
-                                    mats[geonode.index].shells.append((mat,uv))
-                                    mat.ignore = True
-                                    # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
-                                    # so they can be used to define materials assigned to the geometry in Blender.
-                                    self.addNewUvset(uv, geo)
-                                else:
-                                    missing.append((mname,mat,uv))
-
+                    missing = self.addUvSets(inst.node2)                    
                     for mname,mat,uv in missing:
-                        for key,inst3 in inst.node2.children.items():
-                            if not isinstance(inst3, FigureInstance):
-                                continue
-                            key1 = inst3.node.name
-                            if mname[0:len(key)] == key:
-                                n = len(key)
-                            elif mname[0:len(key1)] == key1:
-                                n = len(key1)
-                            else:
-                                continue 
-                            mname = mname[n+1:]
-                            geonode = inst3.geometries[0]
-                            geo = geonode.data
-                            if mname in geo.materials.keys():
-                                mats = geo.materials[mname]
-                                mats[0].shells.append((mat,uv))
-                                mat.ignore = True
-                                self.addNewUvset(uv, geo)
-                            else:
-                                print("  ***", mname, mat)
+                        msg = ("Missing shell material\n" +
+                               "Material: %s\n" % mname +
+                               "Node: %s\n" % node.name +
+                               "Inst: %s\n" % inst.name +
+                               "Node2: %s\n" % inst.node2.name +
+                               "UV set: %s\n" % uv)
+                        reportError(msg, trigger=(2,4))
+                    
+        
+    def addUvSets(self, inst): 
+        missing = []                           
+        for key,child in inst.children.items():
+            if child.shell:
+                geonode = inst.geometries[0]
+                geo = geonode.data
+                for mname,shellmats in self.materials.items():
+                    mat = shellmats[0]
+                    if mname in inst.material_group_vis.keys() and not inst.material_group_vis[mname]:
+                        continue
+                    uv = self.uvs[mname]
+                    if mname in geo.materials.keys():
+                        mats = geo.materials[mname]
+                        mats[geonode.index].shells.append((mat,uv))
+                        mat.ignore = True
+                        # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
+                        # so they can be used to define materials assigned to the geometry in Blender.
+                        self.addNewUvset(uv, geo)
+                    else:
+                        missing.append((mname,mat,uv))
 
-                                        
+        self.matused = []                           
+        for mname,mat,uv in missing:
+            for key,child in inst.children.items():
+                self.addMoreUvSets(child, mname, mat, uv, "")
+        return [miss for miss in missing if miss[0] not in self.matused]
+        
+
+    def addMoreUvSets(self, inst, mname, mat, uv, pprefix):
+        from .figure import FigureInstance
+        if not isinstance(inst, FigureInstance):
+            return
+        geonode = inst.geometries[0]
+        geo = geonode.data
+        prefix = inst.node.name
+        if pprefix:
+            prefix = pprefix + "_" + prefix
+        mname1 = self.getMaterialName(mname, prefix)
+        if mname1 and mname1 in geo.materials.keys():
+            mats = geo.materials[mname1]
+            mats[0].shells.append((mat,uv))
+            mat.ignore = True
+            self.addNewUvset(uv, geo)
+            self.matused.append(mname)
+        else:
+            for key,child in inst.children.items():
+                self.addMoreUvSets(child, mname, mat, uv, prefix)
+        
+
+    def getMaterialName(self, mname, prefix):
+        n = len(prefix)
+        if mname[0:n] == prefix:
+            return mname[n+1:]
+        else:
+            return None
+
+
     def addNewUvset(self, uv, geo):                                        
         if uv not in geo.uv_sets.keys():
             uvset = self.findUvSet(uv, geo.id)

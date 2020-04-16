@@ -105,7 +105,7 @@ def getFitFile(filepath):
             return filepath
     msg = ("Mesh fitting set to DBZ (JSON).\n" +
            "Export \"%s.dbz\"            \n" % filename +
-           "from Daz Studio to fit to dbz file.\n" % +
+           "from Daz Studio to fit to dbz file.\n" +
            "See documentation for more information.")
     raise DazError(msg)
 
