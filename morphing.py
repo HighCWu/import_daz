@@ -417,7 +417,7 @@ class LoadMorph(PropFormulas):
                 makeShapekeyDriver(ob, prop, skey.value, self.rig, prop, min=min, max=max)
                 props = [prop]
 
-        if self.useDrivers and self.rig:
+        if self.useDrivers and self.rig and prop is None:
             from .formula import buildShapeFormula
             if isinstance(asset, FormulaAsset) and asset.formulas:
                 if self.useShapekeys:
@@ -437,7 +437,7 @@ class LoadMorph(PropFormulas):
                 miss = True
 
         if props:
-            for props in props:
+            for prop in props:
                 setActivated(self.rig, prop, True)
             return props,False
         elif skey:

@@ -353,7 +353,7 @@ def buildSingleShapeFormula(expr, rig, ob, skey, occur):
     
     bname = expr["bone"]
     if bname is None:
-        print("BSSF", expr, skey.name, occur)
+        # print("BSSF", expr, skey.name, occur)
         return
     if bname not in rig.pose.bones.keys():
         if bname in BoneAlternatives.keys():
