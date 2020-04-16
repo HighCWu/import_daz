@@ -464,46 +464,28 @@ class LoadMorph(PropFormulas):
 
         self.errors = {}
         t1 = time.perf_counter()
-        startProgress("\n--------------------")
         props = []
-        missing = []
-        folder = ""
+        if namepaths:
+            path = list(namepaths.values())[0]
+            folder = os.path.dirname(path)
+        else:
+            raise DazError("No morphs selected")
         npaths = len(namepaths)
         self.suppressError = (npaths > 1)
-        idx = 0
-        for name,path in namepaths.items():
-            folder = os.path.dirname(path)
-            showProgress(idx, npaths)
-            idx += 1
-            props1,miss = self.getSingleMorph(path, scn)
-            if miss:
-                print("?", name)
-                missing.append((name,path))
-            elif props1:
-                print("*", name)
-                props += props1
-            else:
-                print("-", name)
+        passidx = 1
+        missing,props = self.getPass(passidx, namepaths.items(), props, scn, 0)
 
-        print("Second pass:")
-        stillMissing = []
         nmissing = len(missing)
-        idx = 0
-        for name,path in missing:
-            showProgress(idx, nmissing)
-            idx += 1
-            props1,miss = self.getSingleMorph(path, scn, occur=1)
-            if miss:
-                print("-", name)
-                stillMissing.append(name)
-            else:
-                print("*", name)
-                props += props1
-
+        while missing and passidx < 5:
+            passidx += 1
+            missing,props = self.getPass(passidx, missing, props, scn, 1)
+            if len(missing) == nmissing:
+                print("Failed to load the following morphs:\n%s\n" % [name for name,path in missing])
+                break            
+            nmissing = len(missing)
+        
         updateDrivers(self.rig)
         updateDrivers(self.mesh)
-        if stillMissing:
-            print("Failed to load the following morphs:\n%s\n" % stillMissing)
                        
         finishMain("Folder", folder, t1)
         if self.errors:
@@ -514,6 +496,27 @@ class LoadMorph(PropFormulas):
                 print("  Bones: %s" % struct["bones"])
 
         return props
+
+
+    def getPass(self, passidx, namepaths, props, scn, occur):
+        print("--- Pass %d ---" % passidx)
+        missing = []
+        idx = 0
+        npaths = len(namepaths)
+        for name,path in namepaths:
+            showProgress(idx, npaths)
+            idx += 1
+            props1,miss = self.getSingleMorph(path, scn, occur=occur)
+            if miss:
+                print("?", name)
+                missing.append((name,path))
+            elif props1:
+                print("*", name)
+                props += props1
+            else:
+                print("-", name)
+        return missing,props
+        
 
 
 def propFromName(key, type, prefix, rig):
