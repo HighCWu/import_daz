@@ -548,7 +548,7 @@ def removeRigDrivers(rig):
     fcus = []
     for fcu in rig.animation_data.drivers:
         if ("evalMorphs" in fcu.driver.expression or
-            "evalMorphFunctions" in fcu.driver.expression or
+            "evalMorphs2" in fcu.driver.expression or
             isNumber(fcu.driver.expression)):
             fcus.append(fcu)
     removeDriverFCurves(fcus, rig)

@@ -737,14 +737,13 @@ class TextFile:
 #   Property groups
 #-------------------------------------------------------------
 
-class DazMorphGroup(bpy.types.PropertyGroup):
+class DazMorphGroupProps:
     prop : StringProperty()
     factor : FloatProperty()
+    factor2 : FloatProperty()
     index : IntProperty()
     default : FloatProperty()
-
-    def __repr__(self):
-        return "<MorphGroup %d %s %f %f>" % (self.index, self.prop, self.factor, self.default)
+    simple : BoolProperty(default=True)
 
 
 class DazIntGroup(bpy.types.PropertyGroup):

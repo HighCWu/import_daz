@@ -513,7 +513,7 @@ class PoseboneDriver:
         from .daz import addSelfRef
         fcu.driver.type = 'SCRIPTED'
         if abs(value) > 1e-4:
-            expr = 'evalMorphs(self, %d, "%s")' % (fcu.array_index, key)
+            expr = 'evalMorphs2(self, %d, "%s")' % (fcu.array_index, key)
             drvexpr = fcu.driver.expression[len(init):]
             if drvexpr in ["0.000", "-0.000"]:
                 if init:
@@ -527,7 +527,7 @@ class PoseboneDriver:
                     fcu.driver.expression = drvexpr + "+" + expr
             fcu.driver.use_self = True
             addSelfRef(self.rig, pb)
-            self.addMorphGroup(pb, fcu.array_index, key, prop, value, self.default)
+            self.addMorphGroup(pb, fcu.array_index, key, prop, self.default, value)
             if len(fcu.modifiers) > 0:
                 fmod = fcu.modifiers[0]
                 fcu.modifiers.remove(fmod)
@@ -540,16 +540,12 @@ class PoseboneDriver:
                 return
 
 
-    def addMorphGroup(self, pb, idx, key, prop, value, default):
+    def addMorphGroup(self, pb, idx, key, prop, default, factor, factor2=None):
         props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
         self.clearProp(props, prop, idx)
         pg = props.add()
-        pg.name = prop
-        pg.index = idx
-        pg.prop = prop
-        pg.factor = value
-        pg.default = default    
-
+        pg.init(prop, idx, default, factor, factor2)
+        
 
     def addError(self, err, prop, pb):
         if err not in self.errors.keys():
@@ -743,7 +739,7 @@ class PropFormulas(PoseboneDriver):
             print("--- Pass %d ---" % (level+1))
             batch, remains = self.getNextLevelMorphs(remains)
             self.buildMorphBatch(batch)
-            for prop,_factor,_bones in batch:            
+            for prop in batch.keys():
                 name = dzstrip(prop)
                 print(" *", name)
                 missing[name] = False
@@ -757,11 +753,13 @@ class PropFormulas(PoseboneDriver):
 
     def getNextLevelMorphs(self, others):
         remains = {}
-        batch = []
+        batch = {}
         for key,data in others.items():
             for prop,factor in data:
                 if self.taken[key]:        
-                    batch.append((prop,factor,self.getStoredMorphs(key)))
+                    if prop not in batch.keys():
+                        batch[prop] = []
+                    batch[prop].append((factor,self.getStoredMorphs(key)))
                     self.taken[prop] = True
                 else:
                     remains[key] = data
@@ -773,24 +771,71 @@ class PropFormulas(PoseboneDriver):
         for pb in self.rig.pose.bones:
             if not (pb.DazLocProps or pb.DazRotProps or pb.DazScaleProps):
                 continue
-            data = stored[pb.name] = {"Loc" : [], "Rot" : [], "Scale" : []}
+            data = stored[pb.name] = {"Loc" : {}, "Rot" : {}, "Sca" : {}}
             for channel,pgs in [
                 ("Loc", pb.DazLocProps), 
                 ("Rot", pb.DazRotProps),
-                ("Scale", pb.DazScaleProps)]:
+                ("Sca", pb.DazScaleProps)]:
                 for pg in pgs:
-                    if pg.prop == key:
-                        data[channel].append((pg.index, pg.factor, pg.default))
+                    if pg.name == key:
+                        data[channel][pg.index] = (pg.factor, pg.factor2, pg.default)
         return stored
         
 
     def buildMorphBatch(self, batch):
-        for prop,factor,bones in batch:
-            for pbname,data in bones.items():
-                pb = self.rig.pose.bones[pbname]
-                for key,drvlist in data.items():
-                    for (idx, value, default) in drvlist:
-                        self.addMorphGroup(pb, idx, key, prop, factor*value, default)
+        for prop,bdata in batch.items():
+            print("BMB", prop, [factor for factor,bones in bdata])
+            if len(bdata) == 1:
+                factor,bones = bdata[0]            
+                for pbname,pdata in bones.items():
+                    pb = self.rig.pose.bones[pbname]
+                    for key,channel in pdata.items():
+                        for idx in channel.keys():
+                            value, value2, default = channel[idx]
+                            self.addMorphGroup(pb, idx, key, prop, default, factor*value)
+            elif len(bdata) == 2:
+                factor1,bones1 = bdata[0]
+                factor2,bones2 = bdata[1]
+                if factor1 > 0 and factor2 < 0:
+                    pass
+                elif factor2 > 0 and factor1 < 0:
+                    factor1,bones1 = bdata[1]
+                    factor2,bones2 = bdata[0]
+                else:
+                    print("FF", prop, factor1, factor2)
+                    halt
+                self.addMissingBones(bones1, bones2)
+                self.addMissingBones(bones2, bones1)
+                for pbname in bones1.keys():
+                    pb = self.rig.pose.bones[pbname]
+                    data1 = bones1[pbname]
+                    data2 = bones2[pbname]
+                    for key in data1.keys():
+                        channel1 = data1[key]
+                        channel2 = data2[key]
+                        for idx in channel1.keys():
+                            value11, value12, default1 = channel1[idx]
+                            value21, value22, default2 = channel2[idx]
+                            v1 = factor1*value11+factor2*value22
+                            v2 = factor2*value21+factor1*value12
+                            self.addMorphGroup(pb, idx, key, prop, default1, v1, v2)
+
+
+    def addMissingBones(self, bones1, bones2):
+        for bname in bones1.keys():
+            data1 = bones1[bname]
+            if bname not in bones2.keys():
+                bones2[bname] = {"Loc" : {}, "Rot" : {}, "Sca" : {}}
+            data2 = bones2[bname]
+            for key in data1.keys():
+                channel1 = data1[key]
+                channel2 = data2[key]
+                for idx in channel1.keys():
+                    if idx not in channel2.keys():
+                        channel2[idx] = (0, 0, 0)
+                for idx in channel2.keys():
+                    if idx not in channel1.keys():
+                        channel1[idx] = (0, 0, 0)
 
 
     def buildBoneFormulas(self, asset, exprs):            

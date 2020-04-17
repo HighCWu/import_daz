@@ -79,24 +79,50 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
 #   Property groups, for drivers
 #-------------------------------------------------------------
 
+class DazMorphGroup(bpy.types.PropertyGroup, B.DazMorphGroupProps):
+    def __repr__(self):
+        return "<MorphGroup %d %s %f %f>" % (self.index, self.prop, self.factor, self.default)
+
+    def eval(self, rig):
+        if self.simple:
+            return self.factor*(rig[self.name]-self.default) 
+        else:
+            value = rig[self.name]-self.default
+            return (self.factor*value if value > 0 else self.factor2*value)
+
+    def display(self):
+        return ("MG %d %25s %10.6f %10.6f %10.2f" % (self.index, self.name, self.factor, self.factor2, self.default))
+
+    def init(self, prop, idx, default, factor, factor2):
+        self.name = prop
+        self.index = idx
+        self.factor = factor        
+        self.default = default
+        if factor2 is None:
+            self.factor2 = 0
+            self.simple = True
+        else:
+            self.factor2 = factor2
+            self.simple = False
+        
+
+# Old style evalMorphs, for backward compatibility
 def evalMorphs(pb, idx, key):
     rig = pb.constraints[0].target
     props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
     return sum([pg.factor*(rig[pg.prop]-pg.default) for pg in props if pg.index == idx])
 
 
+# New style evalMorphs
+def evalMorphs2(pb, idx, key):
+    rig = pb.constraints[0].target
+    props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
+    return sum([pg.eval(rig) for pg in props if pg.index == idx])
+
+
 def hasSelfRef(pb):
     return (pb.constraints and
             pb.constraints[0].name == "Do Not Touch")
-
-
-def getNewItem(collProp, key):
-    for item in collProp:
-        if item.key == key:
-            return item
-    item = collProp.add()
-    item.key = key
-    return item
 
 
 def addSelfRef(rig, pb):
@@ -133,35 +159,23 @@ def copyPropGroups(rig1, rig2, pb2):
             pg2.default = pg1.default
 
 
-def getPropGroupProps(rig):
-    struct = {}
-    for pb in rig.pose.bones:
-        for props in [pb.DazLocProps, pb.DazRotProps, pb.DazScaleProps]:
-            for pg in props:
-                struct[pg.prop] = True
-    return list(struct.keys())
-
-
-def showPropGroups(rig):
-    for pb in rig.pose.bones:
-        if pb.bone.select:
-            print("\n", pb.name)
-            for key,props in [("Loc",pb.DazLocProps),
-                              ("Rot",pb.DazRotProps),
-                              ("Sca",pb.DazScaleProps)
-                              ]:
-                print("  ", key)
-                for pg in props:
-                    print("    ", pg.index, pg.name, pg.prop, pg.factor, pg.default)
-
-
 class DAZ_OT_ShowPropGroups(DazOperator, IsArmature):
     bl_idname = "daz.show_prop_groups"
     bl_label = "Show Prop Groups"
     bl_description = "Show the property groups for the selected posebones."
 
     def run(self, context):
-        showPropGroups(context.object)
+        rig = context.object
+        for pb in rig.pose.bones:
+            if pb.bone.select:
+                print("\n", pb.name)
+                for key,props in [("Loc",pb.DazLocProps),
+                                  ("Rot",pb.DazRotProps),
+                                  ("Sca",pb.DazScaleProps)
+                                  ]:
+                    print("  ", key)
+                    for pg in props:
+                        print("    ", pg.display())
 
 #-------------------------------------------------------------
 #   Initialize
@@ -171,13 +185,14 @@ from bpy.app.handlers import persistent
 
 @persistent
 def updateHandler(scn):
-    global evalMorphs
+    global evalMorphs, evalMorphs2
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
+    bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
 
 
 classes = [
     ImportDAZ,
-    B.DazMorphGroup,
+    DazMorphGroup,
     B.DazFormula,
     B.DazStringGroup,
     DAZ_OT_ShowPropGroups,
@@ -379,24 +394,17 @@ def initialize():
     bpy.types.Material.DazUDim = IntProperty(default=0)
     bpy.types.Material.DazVDim = IntProperty(default=0)
 
-    #bpy.types.Scene.DazDriverType = EnumProperty(
-    #    items = [('DIRECT', "Direct", "Drive bones directly. Causes problems if many expressions are loaded."),
-    #             ('HANDLER', "Handler", "Use handlers to drive bones. Unstable and slow."),
-    #             ('FUNCTION', "Function", "Use driver functions to drive bones. Probably best."),
-    #             ],
-    #    name = "Driver Type",
-    #    description = "How to construct expressions for scripted drivers.",
-    #    default = 'FUNCTION')
-
     for cls in classes:
         bpy.utils.register_class(cls)
-    bpy.types.PoseBone.DazLocProps = CollectionProperty(type = B.DazMorphGroup)
-    bpy.types.PoseBone.DazRotProps = CollectionProperty(type = B.DazMorphGroup)
-    bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = B.DazMorphGroup)
+
+    bpy.types.PoseBone.DazLocProps = CollectionProperty(type = DazMorphGroup)
+    bpy.types.PoseBone.DazRotProps = CollectionProperty(type = DazMorphGroup)
+    bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = DazMorphGroup)
     bpy.types.Object.DazFormulas = CollectionProperty(type = B.DazFormula)
     bpy.types.Object.DazHiddenProps = CollectionProperty(type = B.DazStringGroup)
 
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
+    bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
     bpy.app.handlers.load_post.append(updateHandler)
 
 
