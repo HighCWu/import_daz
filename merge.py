@@ -35,83 +35,6 @@ from .error import *
 from .settings import theSettings
 
 #-------------------------------------------------------------
-#   Merge meshes
-#-------------------------------------------------------------
-
-def joinUvTextures(me, keep):
-    if len(me.uv_layers) <= 1:
-        return
-    for n,data in enumerate(me.uv_layers[0].data):
-        if data.uv.length < 1e-6:
-            for uvloop in me.uv_layers[1:]:
-                if uvloop.data[n].uv.length > 1e-6:
-                    data.uv = uvloop.data[n].uv
-                    break
-    for uvtex in list(getUvTextures(me)[1:]):
-        if uvtex.name not in keep:
-            try:
-                getUvTextures(me).remove(uvtex)
-            except RuntimeError:
-                print("Cannot remove texture layer '%s'" % uvtex.name)
-
-
-def explicateUvTextures(me, uvname):
-    if len(getUvTextures(me)) == 0:
-        return
-    uvtex = getUvTextures(me)[0]
-    if uvname:
-        oldname = uvtex.name
-        newname = uvtex.name = uvname
-    else:
-        oldname = newname = uvtex.name
-    for mat in me.materials:
-        for mtex in mat.texture_slots:
-            if mtex:
-                if not mtex.uv_layer:
-                    mtex.uv_layer = uvtex.name
-        if mat.use_nodes:
-            replaceNodeNames(mat, oldname, newname)
-
-
-def getUvName(me):
-    for uvtex in getUvTextures(me):
-        if uvtex.active_render:
-            return uvtex.name
-    return None
-
-
-def replaceNodeNames(mat, oldname, newname):
-    for node in mat.node_tree.nodes:
-        if isinstance(node, bpy.types.ShaderNodeAttribute):
-            if node.attribute_name == oldname:
-                node.attribute_name = newname
-        elif isinstance(node, bpy.types.ShaderNodeNormalMap):
-            if node.uv_map == oldname:
-                node.uv_map = newname
-
-
-def copyMaterial(cob, aob):
-    torso = None
-    for mat in cob.data.materials:
-        if mat.name[0:5] == "Torso":
-            torso = mat
-            break
-    mat = aob.data.materials[0]
-    if torso and mat:
-        mat.diffuse_color = torso.diffuse_color
-        mat.diffuse_intensity = torso.diffuse_intensity
-        mat.specular_color = torso.specular_color
-        mat.specular_intensity = torso.specular_intensity
-        mat.specular_hardness = torso.specular_hardness
-        mtex = mat.texture_slots[0]
-        if mtex is None:
-            for tmtex in torso.texture_slots:
-                if tmtex is None:
-                    break
-                mtex = mat.texture_slots.add()
-                mtex.texture = tmtex.texture
-
-#-------------------------------------------------------------
 #   Merge geografts
 #-------------------------------------------------------------
 
@@ -149,7 +72,7 @@ class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
                         (aob.name, aob.data.DazVertexCount, cob.name, ncverts))
                 raise DazError(msg)
 
-        cname = getUvName(cob.data)
+        cname = self.getUvName(cob.data)
         anames = []
         keep = []
         drivers = {}
@@ -211,14 +134,14 @@ class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
     
-        joinUvTextures(cob.data, keep)
+        self.joinUvTextures(cob.data, keep)
 
-        newname = getUvName(cob.data)
+        newname = self.getUvName(cob.data)
         for mat in cob.data.materials:
             if mat.use_nodes:
-                replaceNodeNames(mat, cname, newname)
+                self.replaceNodeNames(mat, cname, newname)
                 for aname in anames:
-                    replaceNodeNames(mat, aname, newname)
+                    self.replaceNodeNames(mat, aname, newname)
 
         copyShapeKeyDrivers(cob, drivers)
         updateDrivers(cob)
@@ -237,6 +160,40 @@ class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
                     askey = aob.data.shape_keys.key_blocks[cskey.name]
                     for pair in aob.data.DazGraftGroup:
                         askey.data[pair.a].co = cskey.data[pair.b].co
+
+
+    def joinUvTextures(self, me, keep):
+        if len(me.uv_layers) <= 1:
+            return
+        for n,data in enumerate(me.uv_layers[0].data):
+            if data.uv.length < 1e-6:
+                for uvloop in me.uv_layers[1:]:
+                    if uvloop.data[n].uv.length > 1e-6:
+                        data.uv = uvloop.data[n].uv
+                        break
+        for uvtex in list(getUvTextures(me)[1:]):
+            if uvtex.name not in keep:
+                try:
+                    getUvTextures(me).remove(uvtex)
+                except RuntimeError:
+                    print("Cannot remove texture layer '%s'" % uvtex.name)
+
+
+    def getUvName(self, me):
+        for uvtex in getUvTextures(me):
+            if uvtex.active_render:
+                return uvtex.name
+        return None
+
+
+    def replaceNodeNames(self, mat, oldname, newname):
+        for node in mat.node_tree.nodes:
+            if isinstance(node, bpy.types.ShaderNodeAttribute):
+                if node.attribute_name == oldname:
+                    node.attribute_name = newname
+            elif isinstance(node, bpy.types.ShaderNodeNormalMap):
+                if node.uv_map == oldname:
+                    node.uv_map = newname
 
 #-------------------------------------------------------------
 #   Create graft and mask vertex groups
@@ -319,49 +276,6 @@ class DAZ_OT_MergeUVLayers(DazOperator, IsMesh):
 #-------------------------------------------------------------
 #   Merge armatures
 #-------------------------------------------------------------
-
-def changeArmatureModifier(ob, rig, context):
-    from .node import setParent
-    setParent(context, ob, rig)
-    if ob.parent_type != 'BONE':
-        for mod in ob.modifiers:
-            if mod.type == "ARMATURE":
-                mod.name = rig.name
-                mod.object = rig
-                return
-        mod = ob.modifiers.new(rig.name, "ARMATURE")
-        mod.object = rig
-        mod.use_deform_preserve_volume = True
-
-
-def setRestPose(ob, rig, context):
-    from .node import setParent
-    setActiveObject(context, ob)
-    setParent(context, ob, rig)
-    if ob.parent_type == 'BONE' or ob.type != 'MESH':
-        return
-
-    if theSettings.fitFile:
-        for mod in ob.modifiers:
-            if mod.type == 'ARMATURE':
-                mod.object = rig
-    else:
-        for mod in ob.modifiers:
-            if mod.type == 'ARMATURE':
-                mname = mod.name
-                if ob.data.shape_keys:
-                    bpy.ops.object.modifier_apply(apply_as='SHAPE', modifier=mname)
-                    skey = ob.data.shape_keys.key_blocks[mname]
-                    skey.value = 1.0
-                else:
-                    bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mname)
-        mod = ob.modifiers.new(rig.name, "ARMATURE")
-        mod.object = rig
-        mod.use_deform_preserve_volume = True
-        nmods = len(ob.modifiers)
-        for n in range(nmods-1):
-            bpy.ops.object.modifier_move_up(modifier=mod.name)
-
 
 def getSelectedRigs(context):
     rig = context.object
@@ -469,7 +383,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
 
         for ob in rig.children:
             if ob.type == 'MESH':
-                changeArmatureModifier(ob, rig, context)
+                self.changeArmatureModifier(ob, rig, context)
                 self.addToGroups(ob, adds, removes)
 
         self.mainBones = [bone.name for bone in rig.data.bones]
@@ -488,7 +402,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
 
                 for ob in subrig.children:
                     if ob.type == 'MESH':
-                        changeArmatureModifier(ob, rig, context)
+                        self.changeArmatureModifier(ob, rig, context)
                         self.changeVertexGroupNames(ob, storage)
                         self.addToGroups(ob, adds, removes)
                         ob.name = stripName(ob.name)
@@ -517,6 +431,20 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
             if ob.name in grp.objects:
                 grp.objects.unlink(ob)
     
+
+    def changeArmatureModifier(self, ob, rig, context):
+        from .node import setParent
+        setParent(context, ob, rig)
+        if ob.parent_type != 'BONE':
+            for mod in ob.modifiers:
+                if mod.type == "ARMATURE":
+                    mod.name = rig.name
+                    mod.object = rig
+                    return
+            mod = ob.modifiers.new(rig.name, "ARMATURE")
+            mod.object = rig
+            mod.use_deform_preserve_volume = True
+
 
     def addExtraBones(self, ob, rig, context, scn, parbone):
         from .figure import copyBoneInfo
@@ -616,6 +544,35 @@ def applyRestPoses(context):
         bpy.ops.pose.armature_apply()
     setActiveObject(context, rig)
     bpy.ops.object.mode_set(mode='OBJECT')
+
+
+def setRestPose(ob, rig, context):
+    from .node import setParent
+    setActiveObject(context, ob)
+    setParent(context, ob, rig)
+    if ob.parent_type == 'BONE' or ob.type != 'MESH':
+        return
+
+    if theSettings.fitFile:
+        for mod in ob.modifiers:
+            if mod.type == 'ARMATURE':
+                mod.object = rig
+    else:
+        for mod in ob.modifiers:
+            if mod.type == 'ARMATURE':
+                mname = mod.name
+                if ob.data.shape_keys:
+                    bpy.ops.object.modifier_apply(apply_as='SHAPE', modifier=mname)
+                    skey = ob.data.shape_keys.key_blocks[mname]
+                    skey.value = 1.0
+                else:
+                    bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mname)
+        mod = ob.modifiers.new(rig.name, "ARMATURE")
+        mod.object = rig
+        mod.use_deform_preserve_volume = True
+        nmods = len(ob.modifiers)
+        for n in range(nmods-1):
+            bpy.ops.object.modifier_move_up(modifier=mod.name)
 
 #-------------------------------------------------------------
 #   Merge toes
