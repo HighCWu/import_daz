@@ -298,7 +298,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
                 box.operator("daz.remove_from_groups")
                 box.prop(scn, "DazGroup")
             box.separator()
-            box.operator("daz.show_prop_groups")
             box.operator("daz.list_bones")
             box.operator("daz.get_finger_print")
 
@@ -322,6 +321,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.remove_unused_drivers")
             box.operator("daz.remove_all_morph_drivers")
             box.separator()
+            box.operator("daz.show_prop_groups")
             box.operator("daz.copy_props")
             box.operator("daz.copy_bone_drivers")
             box.operator("daz.retarget_mesh_drivers")

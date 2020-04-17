@@ -735,16 +735,18 @@ class PropFormulas(PoseboneDriver):
     def buildOthers(self, missing):
         remains = self.others
         sorted = []
+        nremains = len(remains)
         for level in range(1,5):
-            print("--- Pass %d ---" % (level+1))
+            print("--- Pass %d (%d left) ---" % (level+1, nremains))
             batch, remains = self.getNextLevelMorphs(remains)
             self.buildMorphBatch(batch)
             for prop in batch.keys():
                 name = dzstrip(prop)
                 print(" *", name)
-                missing[name] = False
-            if not remains:
+                missing[name] = False        
+            if len(remains) == nremains:
                 break
+            nremains = len(remains)
         if remains:
             print("Missing:")
             for key in remains.keys():
@@ -784,7 +786,6 @@ class PropFormulas(PoseboneDriver):
 
     def buildMorphBatch(self, batch):
         for prop,bdata in batch.items():
-            print("BMB", prop, [factor for factor,bones in bdata])
             if len(bdata) == 1:
                 factor,bones = bdata[0]            
                 for pbname,pdata in bones.items():
@@ -797,10 +798,13 @@ class PropFormulas(PoseboneDriver):
                 factor1,bones1 = bdata[0]
                 factor2,bones2 = bdata[1]
                 if factor1 > 0 and factor2 < 0:
-                    pass
+                    simple = False
                 elif factor2 > 0 and factor1 < 0:
                     factor1,bones1 = bdata[1]
                     factor2,bones2 = bdata[0]
+                    simple = False
+                elif factor1 > 0 and factor2 > 0:
+                    simple = True
                 else:
                     print("FF", prop, factor1, factor2)
                     halt
@@ -816,8 +820,12 @@ class PropFormulas(PoseboneDriver):
                         for idx in channel1.keys():
                             value11, value12, default1 = channel1[idx]
                             value21, value22, default2 = channel2[idx]
-                            v1 = factor1*value11+factor2*value22
-                            v2 = factor2*value21+factor1*value12
+                            if simple:
+                                v1 = factor1*value11+factor2*value21
+                                v2 = factor2*value12+factor1*value22
+                            else:
+                                v1 = factor1*value11+factor2*value22
+                                v2 = factor2*value21+factor1*value12
                             self.addMorphGroup(pb, idx, key, prop, default1, v1, v2)
 
 

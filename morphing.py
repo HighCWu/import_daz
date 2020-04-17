@@ -475,7 +475,7 @@ class LoadMorph(PropFormulas):
         npaths = len(namepaths)
         self.suppressError = (npaths > 1)
         passidx = 1
-        missing = self.getPass(passidx, namepaths.items(), props, scn, 0)
+        missing = self.getPass(passidx, list(namepaths.items()), props, scn, 0)
         self.buildOthers(missing)
         missing = [key for key in missing.keys() if missing[key]]
         if missing:
@@ -495,6 +495,7 @@ class LoadMorph(PropFormulas):
 
     def getPass(self, passidx, namepaths, props, scn, occur):
         print("--- Pass %d ---" % passidx)
+        namepaths.sort()
         missing = {}
         idx = 0
         npaths = len(namepaths)

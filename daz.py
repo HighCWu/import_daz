@@ -88,10 +88,10 @@ class DazMorphGroup(bpy.types.PropertyGroup, B.DazMorphGroupProps):
             return self.factor*(rig[self.name]-self.default) 
         else:
             value = rig[self.name]-self.default
-            return (self.factor*value if value > 0 else self.factor2*value)
+            return (self.factor*(value > 0) + self.factor2*(value < 0))*value
 
     def display(self):
-        return ("MG %d %25s %10.6f %10.6f %10.2f" % (self.index, self.name, self.factor, self.factor2, self.default))
+        return ("MG %d %-25s %10.6f %10.6f %10.2f" % (self.index, self.name, self.factor, self.factor2, self.default))
 
     def init(self, prop, idx, default, factor, factor2):
         self.name = prop
@@ -104,7 +104,13 @@ class DazMorphGroup(bpy.types.PropertyGroup, B.DazMorphGroupProps):
         else:
             self.factor2 = factor2
             self.simple = False
-        
+
+    def __lt__(self,other):
+        if self.name == other.name:
+            return (self.index < other.index)
+        else:
+            return (self.name < other.name)
+
 
 # Old style evalMorphs, for backward compatibility
 def evalMorphs(pb, idx, key):
@@ -174,6 +180,8 @@ class DAZ_OT_ShowPropGroups(DazOperator, IsArmature):
                                   ("Sca",pb.DazScaleProps)
                                   ]:
                     print("  ", key)
+                    props = list(props)
+                    props.sort()
                     for pg in props:
                         print("    ", pg.display())
 
