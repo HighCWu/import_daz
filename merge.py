@@ -74,8 +74,13 @@ class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
 
         cname = self.getUvName(cob.data)
         anames = []
-        keep = []
         drivers = {}
+
+        # Keep extra UVs 
+        self.keepUv = []
+        for uvtex in getUvTextures(cob.data):
+            if not uvtex.active_render:
+                self.keepUv.append(uvtex.name)
 
         # Select graft group for each anatomy
         for aob in anatomies:
@@ -86,7 +91,7 @@ class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
                 if uvtex.active_render:
                     anames.append(uvtex.name)
                 else:
-                    keep.append(uvtex.name)
+                    self.keepUv.append(uvtex.name)
 
         # For the body, delete mask groups
         activateObject(context, cob)
@@ -134,7 +139,7 @@ class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
     
-        self.joinUvTextures(cob.data, keep)
+        self.joinUvTextures(cob.data)
 
         newname = self.getUvName(cob.data)
         for mat in cob.data.materials:
@@ -162,7 +167,7 @@ class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
                         askey.data[pair.a].co = cskey.data[pair.b].co
 
 
-    def joinUvTextures(self, me, keep):
+    def joinUvTextures(self, me):
         if len(me.uv_layers) <= 1:
             return
         for n,data in enumerate(me.uv_layers[0].data):
@@ -172,7 +177,7 @@ class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
                         data.uv = uvloop.data[n].uv
                         break
         for uvtex in list(getUvTextures(me)[1:]):
-            if uvtex.name not in keep:
+            if uvtex.name not in self.keepUv:
                 try:
                     getUvTextures(me).remove(uvtex)
                 except RuntimeError:
@@ -274,7 +279,7 @@ class DAZ_OT_MergeUVLayers(DazOperator, IsMesh):
         print("UV layers joined")
 
 #-------------------------------------------------------------
-#   Merge armatures
+#   Get selected rigs
 #-------------------------------------------------------------
 
 def getSelectedRigs(context):
