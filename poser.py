@@ -1326,12 +1326,12 @@ def loadPoserAnimation(self, context, filepaths):
     rig = context.object
     self.unitScale = rig.DazScale
     the = The(self, scn, True)
-    if not self.selectedOnly:
+    if not self.affectSelectedOnly:
         selected = selectAll(rig, True)
     clearAction(self, rig)
     loadPoserFiles(filepaths, context)
     nameAction(self, rig, scn)
-    if not self.selectedOnly:
+    if not self.affectSelectedOnly:
         selectAll(rig, selected)
 
 

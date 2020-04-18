@@ -341,8 +341,7 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
         if rig.type == 'ARMATURE':
             bpy.ops.object.mode_set(mode='POSE')
             self.prepareRig(rig)
-        if self.useClearPose:
-            self.clearPose(rig, offset)
+        self.clearPose(rig, offset)
         animations,locks = self.convertAnimations(animations, rig)
         if self.useDrivers:
             prop = os.path.splitext(os.path.basename(filepath))[0]
@@ -352,6 +351,7 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
         result = self.animateBones(rig, scn, animations, offset, prop, filepath, missing)
         for pb,lock in locks:
             pb.lock_location = lock
+        updateDrivers(rig)
         return result
 
 
@@ -411,7 +411,7 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
                         if channel is None:
                             continue
                         elif channel == "value":
-                            if self.affectValues:
+                            if self.affectMorphs:
                                 values[key] = getAnimKeys(anim)
                         elif channel in ["translation", "rotation", "scale"]:
                             if key not in bones.keys():
@@ -441,34 +441,37 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
 
     def clearPose(self, rig, frame):
         tfm = Transform()
-        tfm.setRna(rig)
-        if self.insertKeys:
-            tfm.insertKeys(rig, None, frame, rig.name, self.driven)
+        if self.clearObject:
+            tfm.setRna(rig)
+            if self.insertKeys:
+                tfm.insertKeys(rig, None, frame, rig.name, self.driven)
         if rig.type != 'ARMATURE':
             return
-        for pb in rig.pose.bones:
-            if pb.bone.select or not self.selectedOnly:
-                pb.location = (0,0,0)
-                pb.rotation_euler = (0,0,0)
-                pb.rotation_quaternion = (1,0,0,0)
-                if self.insertKeys:
-                    tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
-        for key in rig.keys():
-            if key[0:2] == "Dz" and key[0:3] != "DzA":
-                rig[key] = 0.0
-                if self.insertKeys:
-                    rig.keyframe_insert('["%s"]' % key, frame=frame, group=key)
+        if self.clearBones:
+            for pb in rig.pose.bones:
+                if pb.bone.select or not self.affectSelectedOnly:
+                    pb.location = (0,0,0)
+                    pb.rotation_euler = (0,0,0)
+                    pb.rotation_quaternion = (1,0,0,0)
+                    if self.insertKeys:
+                        tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
+        if self.clearMorphs:
+            for key in rig.keys():
+                if key[0:2] == "Dz" and key[0:3] != "DzA":
+                    rig[key] = 0.0
+                    if self.insertKeys:
+                        rig.keyframe_insert('["%s"]' % key, frame=frame, group=key)
 
 
     def animateBones(self, rig, scn, animations, offset, prop, filepath, missing):
         from .driver import setFloatProp
 
-        if self.affectValues:
+        if self.affectMorphs:
             props = {}
             taken = {}
             for prop in rig.keys():
                 key = prop[3:].lower()
-                key = stripKey(key)
+                key = stripSuffix(key)
                 props[key] = prop
                 taken[key] = False
 
@@ -520,7 +523,7 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
                     elif bname[0:6] == "TWIST-":
                         twists.append((bname[6:], tfm, value))
                     else:
-                        if self.affectValues:
+                        if self.affectMorphs:
                             keys = getRigKeys(bname, rig, props, taken, missing)
                         else:
                             keys = None
@@ -533,7 +536,7 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
                 for (bname, tfm, value) in twists:
                     self.transformBone(rig, bname, tfm, value, n, offset, True)
 
-                if rig.DazRig == "mhx":
+                if rig.DazRig == "mhx" and self.affectBones:
                     for suffix in ["L", "R"]:
                         forearm = rig.pose.bones["forearm.fk."+suffix]
                         hand = rig.pose.bones["hand.fk."+suffix]
@@ -556,12 +559,14 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
         from .node import setBoneTransform, setBoneTwist
         from .driver import isFaceBoneDriven
 
+        if not self.affectBones:
+            return
         pb = rig.pose.bones[bname]
         if False and isFaceBoneDriven(rig, pb):
             if theSettings.verbosity > 4:
                 print("Face driven", pb.name)
             pass
-        elif pb.bone.select or not self.selectedOnly:
+        elif pb.bone.select or not self.affectSelectedOnly:
             if self.useDrivers:
                 if not self.useTranslations:
                     tfm.noTrans()
@@ -614,43 +619,19 @@ def addToPoseLib(rig, name):
 
 
 def getRigKeys(bname, rig, props, taken, missing):
-    #from .formula import getOldFormula
+    from .modifier import stripPrefix
     if bname in rig.keys():
         return [(bname,1)]
-
-    lcname = stripKey(bname.lower())
-
-    for prefix in ["ectrlv", "ectrl", "ctrlvsm", "ctrl", "phm", "ephm"]:
-        n = len(prefix)        
-        if lcname[0:n] == prefix:
-            keys = getSynonyms(lcname[n:])
-            for key in keys:
-                if (False and key+"l" in props.keys() and
-                    key+"r" in props.keys()):
-                    taken[key+"l"] = taken[key+"r"] = True
-                    left = props[key+"l"]
-                    right = props[key+"r"]
-                    m = len(left) - len(bname[n:])
-                    both = left[0:m-1] + bname[n:]
-                    lform = getOldFormula(rig, both, left)
-                    rform = getOldFormula(rig, both, right)
-                    if lform and rform:
-                        return [(left, lform.value), (right, rform.value)]
-                    else:
-                        print("Missing formula", both, left, right)
-                        return [(left,1), (right,-1)]
-                elif key in props.keys():
-                    if taken[key]:
-                        return []
-                    else:
-                        #taken[key] = True
-                        return [(props[key],1)]
-            if bname[n:] not in missing:
-                missing.append(bname[n:])
+    cname = stripPrefix(stripSuffix(bname.lower()))
+    for key in getSynonyms(cname):
+        if key in props.keys():
+            return [(props[key],1)]
+    if bname not in missing:
+        missing.append(bname)
     return None
 
 
-def stripKey(key):                
+def stripSuffix(key):                
     if key[-5:] == "_div2":
         key = key[:-5]
     if key[-3:] == "_hd":
@@ -727,7 +708,7 @@ class StandardAnimation:
 
         rig = context.object
         scn = context.scene
-        if not self.selectedOnly:
+        if not self.affectSelectedOnly:
             selected = selectAll(rig, True)
         theSettings.forAnimation(self, rig, scn)
         if scn.tool_settings.use_keyframe_insert_auto:
@@ -761,10 +742,10 @@ class StandardAnimation:
         finishMain("File", self.filepath, t1)
         scn.frame_current = startframe
         nameAction(self, rig, scn)
-        if not self.selectedOnly:
+        if not self.affectSelectedOnly:
             selectAll(rig, selected)
 
-        if missing and self.reportMissing:
+        if missing and self.reportMissingMorphs:
             missing.sort()
             print("Missing morphs:\n  %s" % missing)
             raise DazError(

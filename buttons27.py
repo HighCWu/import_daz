@@ -63,38 +63,58 @@ class ConvertOptions:
 
 
 class AffectOptions:
-    useClearPose = BoolProperty(
-        name = "Clear Pose",
-        description = "Clear pose before adding new one",
+    clearBones = BoolProperty(
+        name = "Clear Bones",
+        description = "Clear bones pose before adding new one",
+        default = True)
+
+    clearMorphs = BoolProperty(
+        name = "Clear Morphs",
+        description = "Clear morph pose before adding new one",
+        default = True)
+
+    clearObject = BoolProperty(
+        name = "Clear Object",
+        description = "Clear object pose before adding new one",
+        default = True)
+
+    affectBones = BoolProperty(
+        name = "Affect Bones",
+        description = "Animate bones.",
+        default = True)
+
+    affectMorphs = BoolProperty(
+        name = "Affect Morphs",
+        description = "Animate morph properties.",
         default = True)
 
     affectObject = BoolProperty(
         name = "Affect Object",
-        description = "Don't ignore global object transformation",
+        description = "Animate global object transformation",
         default = True)
 
-    affectValues = BoolProperty(
-        name = "Affect Values",
-        description = "Animate properties like facial expressions.",
-        default = True)
-
-    reportMissing = BoolProperty(
+    reportMissingMorphs = BoolProperty(
         name = "Report Missing Morphs",
         description = "Print a list of missing morphs.",
         default = True)
 
-    selectedOnly = BoolProperty(
+    affectSelectedOnly = BoolProperty(
         name = "Selected Bones Only",
         description = "Only animate selected bones.",
         default = False)
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(self, "useClearPose")
+        layout.prop(self, "useClearBones")
+        layout.prop(self, "useClearObject")
+        layout.prop(self, "useClearMorphs")
+        layout.prop(self, "affectBones")
+        if self.affectBones:
+            layout.prop(self, "affectSelectedOnly")
         layout.prop(self, "affectObject")
-        layout.prop(self, "affectValues")
-        layout.prop(self, "reportMissing")
-        layout.prop(self, "selectedOnly")
+        layout.prop(self, "affectMorphs")
+        if self.affectMorphs:
+            layout.prop(self, "reportMissingMorphs")
 
 
 class ActionOptions:
@@ -761,21 +781,17 @@ class DazKeys(bpy.types.PropertyGroup):
     keys = CollectionProperty(type = StringProperty)
 
 class DazActiveGroup(bpy.types.PropertyGroup):
-    name = StringProperty()
     active = BoolProperty(default = True)
 
 class DazCustomGroup(bpy.types.PropertyGroup):
-    name = StringProperty()
     prop = StringProperty()    
 
 class DazCategory(bpy.types.PropertyGroup):
-    name = StringProperty()
     custom = StringProperty()
     morphs = CollectionProperty(type = DazCustomGroup)
     active = BoolProperty(default=False)
 
 class DazFormula(bpy.types.PropertyGroup):
-    key = StringProperty()
     prop = StringProperty()
     value = FloatProperty()
 

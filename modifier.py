@@ -232,13 +232,7 @@ class ChannelAsset(Modifier):
     def getExprProp(self, prop):
         if prop in self.rig.data.bones.keys():
             return prop
-        lprop = prop.lower()
-        prop0 = prop
-        for prefix in ["ectrlv", "ectrl", "ctrl", "phm", "ephm", "vsm", "pjcm"]:
-            n = len(prefix)
-            if lprop[0:n] == prefix:
-                prop0 = prop[n:]
-                break
+        prop0 = stripPrefix(prop)        
         for pfx in ["DzU", "DzV", "DzE"]:
             if pfx+prop0 in self.rig.keys():
                 return pfx+prop0        
@@ -264,7 +258,16 @@ class ChannelAsset(Modifier):
         self.setupPropmap([], prefix, rig)
         prop,_value = self.initProp(None)
         return prop
-            
+
+
+def stripPrefix(prop):
+    lprop = prop.lower()
+    for prefix in ["ectrlv", "ectrl", "ctrl", "phm", "ephm", "vsm", "pjcm"]:
+        n = len(prefix)
+        if lprop[0:n] == prefix:
+            return prop[n:]
+    return prop
+    
 
 class Alias(ChannelAsset):
 

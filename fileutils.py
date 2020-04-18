@@ -162,6 +162,8 @@ def getFilePath(filepath, exts):
         fname,ext = words
     else:
         return None
+    if fname[-4:] == ".tip":
+        fname = fname[:-4]
     if ext in [".png", ".jpeg", ".jpg", ".bmp"]:
         if os.path.exists(fname):
             words = os.path.splitext(fname)
