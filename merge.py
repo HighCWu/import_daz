@@ -33,12 +33,13 @@ from bpy.props import *
 from .utils import *
 from .error import *
 from .settings import theSettings
+from .material import MaterialMerger
 
 #-------------------------------------------------------------
 #   Merge geografts
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
+class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
     bl_idname = "daz.merge_geografts"
     bl_label = "Merge Geografts"
     bl_description = "Merge selected geografts to active object"
@@ -148,13 +149,26 @@ class DAZ_OT_MergeGeografts(DazOperator, IsMesh):
                 for aname in anames:
                     self.replaceNodeNames(mat, aname, newname)
 
+        # Remove unused materials
+        self.mathits = dict([(mn,False) for mn in range(len(cob.data.materials))])
+        for f in cob.data.polygons:
+            self.mathits[f.material_index] = True
+        self.mergeMaterials(cob)
+        
         copyShapeKeyDrivers(cob, drivers)
         updateDrivers(cob)
         
         if cob.data.DazGraftGroup:
             for pair in cob.data.DazGraftGroup:
                 pair.a = assoc[pair.a]
-                
+
+
+    def keepMaterial(self, mn, mat, ob):
+        keep = self.mathits[mn]
+        if not keep:
+            print("Remove material %s" % mat.name)
+        return keep
+                        
 
     def moveGraftVerts(self, aob, cob):
         for pair in aob.data.DazGraftGroup:

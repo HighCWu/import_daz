@@ -937,213 +937,34 @@ class DAZ_OT_SaveLocalTextures(DazOperator):
 #   Merge identical materials
 #-------------------------------------------------------------
 
-def mergeMaterials(ob):
-    if ob.type != 'MESH':
-        return
+class MaterialMerger:
 
-    matlist = []
-    assoc = {}
-    reindex = {}
-    m = 0
-    reduced = False
-    for n,mat1 in enumerate(ob.data.materials):
-        unique = True
-        for mat2 in matlist:
-            if areSameMaterial(mat1, mat2):
-                reindex[n] = assoc[mat2.name]
-                unique = False
+    def mergeMaterials(self, ob):
+        if ob.type != 'MESH':
+            return
+
+        self.matlist = []
+        self.assoc = {}
+        self.reindex = {}
+        m = 0
+        reduced = False
+        for n,mat in enumerate(ob.data.materials):
+            if self.keepMaterial(n, mat, ob):
+                self.matlist.append(mat)
+                self.reindex[n] = self.assoc[mat.name] = m
+                m += 1
+            else:
                 reduced = True
-                break
-        if unique:
-            matlist.append(mat1)
-            reindex[n] = assoc[mat1.name] = m
-            m += 1
-    if reduced:
-        for f in ob.data.polygons:
-            f.material_index = reindex[f.material_index]
-        for n,mat in enumerate(matlist):
-            ob.data.materials[n] = mat
-        for n in range(len(matlist), len(ob.data.materials)):
-            ob.data.materials.pop()
+        if reduced:
+            for f in ob.data.polygons:
+                f.material_index = self.reindex[f.material_index]
+            for n,mat in enumerate(self.matlist):
+                ob.data.materials[n] = mat
+            for n in range(len(self.matlist), len(ob.data.materials)):
+                ob.data.materials.pop()
 
 
-def areSameMaterial(mat1, mat2):
-    deadMatProps = [
-        "texture_slots", "node_tree",
-        "name", "name_full", "active_texture",
-    ]
-    matProps = getRelevantProps(mat1, deadMatProps)
-    if not haveSameAttrs(mat1, mat2, matProps):
-        return False
-    if mat1.use_nodes and mat2.use_nodes:
-        if areSameCycles(mat1.node_tree, mat2.node_tree):
-            print(mat1.name, "=", mat2.name)
-            return True
-    elif mat1.use_nodes or mat2.use_nodes:
-        return False
-    elif areSameInternal(mat1.texture_slots, mat2.texture_slots):
-        print(mat1.name, "=", mat2.name)
-        return True
-    else:
-        return False
-
-
-def getRelevantProps(rna, deadProps):
-    props = []
-    for prop in dir(rna):
-        if (prop[0] != "_" and
-            prop not in deadProps):
-            props.append(prop)
-    return props
-
-
-def haveSameAttrs(rna1, rna2, props):
-    for prop in props:
-        attr1 = attr2 = None
-        if hasattr(rna1, prop) and hasattr(rna2, prop):
-            attr1 = getattr(rna1, prop)
-            attr2 = getattr(rna2, prop)
-            if not checkEqual(attr1, attr2):
-                return False
-        elif hasattr(rna1, prop) or hasattr(rna2, prop):
-            return False
-    return True
-
-
-def checkEqual(attr1, attr2):
-    if (isinstance(attr1, int) or
-        isinstance(attr1, float) or
-        isinstance(attr1, str)):
-        return (attr1 == attr2)
-    if isinstance(attr1, bpy.types.Image):
-        return (isinstance(attr2, bpy.types.Image) and (attr1.name == attr2.name))
-    if (isinstance(attr1, set) and isinstance(attr2, set)):
-        return True
-    if hasattr(attr1, "__len__") and hasattr(attr2, "__len__"):
-        if (len(attr1) != len(attr2)):
-            return False
-        for n in range(len(attr1)):
-            if not checkEqual(attr1[n], attr2[n]):
-                return False
-    return True
-
-
-def areSameCycles(tree1, tree2):
-    if not haveSameKeys(tree1.nodes, tree2.nodes):
-        return False
-    if not haveSameKeys(tree1.links, tree2.links):
-        return False
-    for key,node1 in tree1.nodes.items():
-        node2 = tree2.nodes[key]
-        if not areSameNode(node1, node2):
-            return False
-    for link1 in tree1.links:
-        hit = False
-        for link2 in tree2.links:
-            if areSameLink(link1, link2):
-                hit = True
-                break
-        if not hit:
-            return False
-    for link2 in tree2.links:
-        hit = False
-        for link1 in tree1.links:
-            if areSameLink(link1, link2):
-                hit = True
-                break
-        if not hit:
-            return False
-    return True
-
-
-def areSameNode(node1, node2):
-    if not haveSameKeys(node1, node2):
-        return False
-    deadNodeProps = ["dimensions", "location"]
-    nodeProps = getRelevantProps(node1, deadNodeProps)
-    if not haveSameAttrs(node1, node2, nodeProps):
-        return False
-    if not haveSameInputs(node1, node2):
-        return False
-    return True
-
-
-def areSameLink(link1, link2):
-    return (
-        (link1.from_node.name == link2.from_node.name) and
-        (link1.to_node.name == link2.to_node.name) and
-        (link1.from_socket.name == link2.from_socket.name) and
-        (link1.to_socket.name == link2.to_socket.name)
-    )
-
-
-def haveSameInputs(nodes1, nodes2):
-    if len(nodes1.inputs) != len(nodes2.inputs):
-        return False
-    for n,socket1 in enumerate(nodes1.inputs):
-        socket2 = nodes2.inputs[n]
-        if hasattr(socket1, "default_value"):
-            if not hasattr(socket2, "default_value"):
-                return False
-            val1 = socket1.default_value
-            val2 = socket2.default_value
-            if (hasattr(val1, "__len__") and
-                hasattr(val2, "__len__")):
-                for m in range(len(val1)):
-                    if val1[m] != val2[m]:
-                        return False
-            elif val1 != val2:
-                return False
-        elif hasattr(socket2, "default_value"):
-            return False
-    return True
-
-
-def haveSameKeys(struct1, struct2):
-    for key in struct1.keys():
-        if key not in struct2.keys():
-            return False
-    return True
-
-
-def areSameInternal(mtexs1, mtexs2):
-    if len(mtexs1) != len(mtexs2):
-        return False
-    if len(mtexs1) == 0:
-        return True
-
-    deadMtexProps = [
-        "name", "output_node",
-    ]
-    mtexProps = getRelevantProps(mtexs1[0], deadMtexProps)
-
-    for n,mtex1 in enumerate(mtexs1):
-        mtex2 = mtexs2[n]
-        if mtex1 is None and mtex2 is None:
-            continue
-        if mtex1 is None or mtex2 is None:
-            return False
-        if not haveSameAttrs(mtex1, mtex2, mtexProps):
-            return False
-        if hasattr(mtex1.texture, "image"):
-            img1 = mtex1.texture.image
-        else:
-            img1 = None
-        if hasattr(mtex2.texture, "image"):
-            img2 = mtex2.texture.image
-        else:
-            img2 = None
-        if img1 is None and img2 is None:
-            continue
-        if img1 is None or img2 is None:
-            return False
-        if img1.filepath != img2.filepath:
-            return False
-
-    return True
-
-
-class DAZ_OT_MergeMaterials(DazOperator, IsMesh):
+class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
     bl_idname = "daz.merge_materials"
     bl_label = "Merge Materials"
     bl_description = "Merge identical materials"
@@ -1152,7 +973,191 @@ class DAZ_OT_MergeMaterials(DazOperator, IsMesh):
     def run(self, context):
         for ob in getSceneObjects(context):
            if getSelected(ob):
-               mergeMaterials(ob)
+               self.mergeMaterials(ob)
+    
+    
+    def keepMaterial(self, mn, mat, ob):            
+        for mat2 in self.matlist:
+            if self.areSameMaterial(mat, mat2):
+                self.reindex[mn] = self.assoc[mat2.name]
+                return False
+        return True                
+
+
+    def areSameMaterial(self, mat1, mat2):
+        deadMatProps = [
+            "texture_slots", "node_tree",
+            "name", "name_full", "active_texture",
+        ]
+        matProps = self.getRelevantProps(mat1, deadMatProps)
+        if not self.haveSameAttrs(mat1, mat2, matProps):
+            return False
+        if mat1.use_nodes and mat2.use_nodes:
+            if self.areSameCycles(mat1.node_tree, mat2.node_tree):
+                print(mat1.name, "=", mat2.name)
+                return True
+        elif mat1.use_nodes or mat2.use_nodes:
+            return False
+        elif self.areSameInternal(mat1.texture_slots, mat2.texture_slots):
+            print(mat1.name, "=", mat2.name)
+            return True
+        else:
+            return False
+
+
+    def getRelevantProps(self, rna, deadProps):
+        props = []
+        for prop in dir(rna):
+            if (prop[0] != "_" and
+                prop not in deadProps):
+                props.append(prop)
+        return props
+
+
+    def haveSameAttrs(self, rna1, rna2, props):
+        for prop in props:
+            attr1 = attr2 = None
+            if hasattr(rna1, prop) and hasattr(rna2, prop):
+                attr1 = getattr(rna1, prop)
+                attr2 = getattr(rna2, prop)
+                if not self.checkEqual(attr1, attr2):
+                    return False
+            elif hasattr(rna1, prop) or hasattr(rna2, prop):
+                return False
+        return True
+
+
+    def checkEqual(self, attr1, attr2):
+        if (isinstance(attr1, int) or
+            isinstance(attr1, float) or
+            isinstance(attr1, str)):
+            return (attr1 == attr2)
+        if isinstance(attr1, bpy.types.Image):
+            return (isinstance(attr2, bpy.types.Image) and (attr1.name == attr2.name))
+        if (isinstance(attr1, set) and isinstance(attr2, set)):
+            return True
+        if hasattr(attr1, "__len__") and hasattr(attr2, "__len__"):
+            if (len(attr1) != len(attr2)):
+                return False
+            for n in range(len(attr1)):
+                if not self.checkEqual(attr1[n], attr2[n]):
+                    return False
+        return True
+
+
+    def areSameCycles(self, tree1, tree2):
+        if not self.haveSameKeys(tree1.nodes, tree2.nodes):
+            return False
+        if not self.haveSameKeys(tree1.links, tree2.links):
+            return False
+        for key,node1 in tree1.nodes.items():
+            node2 = tree2.nodes[key]
+            if not self.areSameNode(node1, node2):
+                return False
+        for link1 in tree1.links:
+            hit = False
+            for link2 in tree2.links:
+                if self.areSameLink(link1, link2):
+                    hit = True
+                    break
+            if not hit:
+                return False
+        for link2 in tree2.links:
+            hit = False
+            for link1 in tree1.links:
+                if self.areSameLink(link1, link2):
+                    hit = True
+                    break
+            if not hit:
+                return False
+        return True
+
+
+    def areSameNode(self, node1, node2):
+        if not self.haveSameKeys(node1, node2):
+            return False
+        deadNodeProps = ["dimensions", "location"]
+        nodeProps = self.getRelevantProps(node1, deadNodeProps)
+        if not self.haveSameAttrs(node1, node2, nodeProps):
+            return False
+        if not self.haveSameInputs(node1, node2):
+            return False
+        return True
+
+
+    def areSameLink(self, link1, link2):
+        return (
+            (link1.from_node.name == link2.from_node.name) and
+            (link1.to_node.name == link2.to_node.name) and
+            (link1.from_socket.name == link2.from_socket.name) and
+            (link1.to_socket.name == link2.to_socket.name)
+        )
+
+
+    def haveSameInputs(self, nodes1, nodes2):
+        if len(nodes1.inputs) != len(nodes2.inputs):
+            return False
+        for n,socket1 in enumerate(nodes1.inputs):
+            socket2 = nodes2.inputs[n]
+            if hasattr(socket1, "default_value"):
+                if not hasattr(socket2, "default_value"):
+                    return False
+                val1 = socket1.default_value
+                val2 = socket2.default_value
+                if (hasattr(val1, "__len__") and
+                    hasattr(val2, "__len__")):
+                    for m in range(len(val1)):
+                        if val1[m] != val2[m]:
+                            return False
+                elif val1 != val2:
+                    return False
+            elif hasattr(socket2, "default_value"):
+                return False
+        return True
+
+
+    def haveSameKeys(self, struct1, struct2):
+        for key in struct1.keys():
+            if key not in struct2.keys():
+                return False
+        return True
+
+
+    def areSameInternal(self, mtexs1, mtexs2):
+        if len(mtexs1) != len(mtexs2):
+            return False
+        if len(mtexs1) == 0:
+            return True
+
+        deadMtexProps = [
+            "name", "output_node",
+        ]
+        mtexProps = self.getRelevantProps(mtexs1[0], deadMtexProps)
+
+        for n,mtex1 in enumerate(mtexs1):
+            mtex2 = mtexs2[n]
+            if mtex1 is None and mtex2 is None:
+                continue
+            if mtex1 is None or mtex2 is None:
+                return False
+            if not self.haveSameAttrs(mtex1, mtex2, mtexProps):
+                return False
+            if hasattr(mtex1.texture, "image"):
+                img1 = mtex1.texture.image
+            else:
+                img1 = None
+            if hasattr(mtex2.texture, "image"):
+                img2 = mtex2.texture.image
+            else:
+                img2 = None
+            if img1 is None and img2 is None:
+                continue
+            if img1 is None or img2 is None:
+                return False
+            if img1.filepath != img2.filepath:
+                return False
+
+        return True
 
 # ---------------------------------------------------------------------
 #   Mini material editor
