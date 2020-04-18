@@ -760,21 +760,20 @@ class DazKeys(bpy.types.PropertyGroup):
     keys : CollectionProperty(type = StringProperty)
 
 class DazActiveGroup(bpy.types.PropertyGroup):
-    name : StringProperty()
+    #name : StringProperty()
     active : BoolProperty(default = True)
 
 class DazCustomGroup(bpy.types.PropertyGroup):
-    name : StringProperty()
+    #name : StringProperty()
     prop : StringProperty()    
 
 class DazCategory(bpy.types.PropertyGroup):
-    name : StringProperty()
+    #name : StringProperty()
     custom : StringProperty()
     morphs : CollectionProperty(type = DazCustomGroup)
     active : BoolProperty(default=False)
 
 class DazFormula(bpy.types.PropertyGroup):
-    key : StringProperty()
     prop : StringProperty()
     value : FloatProperty()
 

@@ -321,7 +321,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.remove_unused_drivers")
             box.operator("daz.remove_all_morph_drivers")
             box.separator()
-            box.operator("daz.show_prop_groups")
             box.operator("daz.copy_props")
             box.operator("daz.copy_bone_drivers")
             box.operator("daz.retarget_mesh_drivers")
@@ -465,6 +464,9 @@ class DAZ_PT_Utils(bpy.types.Panel):
         ob = context.object
         layout = self.layout
         layout.operator("daz.decode_file")
+        layout.separator()
+        layout.operator("daz.inspect_prop_groups")
+        layout.operator("daz.inspect_prop_dependencies")        
         layout.separator()
         box = layout.box()
         box.label(text = "Information About Active Object")

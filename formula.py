@@ -535,7 +535,7 @@ class PoseboneDriver:
 
     def clearProp(self, props, prop, idx):
         for n,pg in enumerate(props):
-            if pg.prop == prop and pg.index == idx:
+            if (pg.prop == prop or pg.name == prop) and pg.index == idx:
                 props.remove(n)
                 return
 
@@ -617,6 +617,7 @@ class PropFormulas(PoseboneDriver):
         PoseboneDriver.__init__(self, rig)
         self.others = {}
         self.taken = {}
+        self.isOpen = {}
 
 
     def buildPropFormula(self, asset, filepath):
@@ -659,11 +660,13 @@ class PropFormulas(PoseboneDriver):
         from .bone import getTargetName
         for bname,expr in exprs.items():    
             bname1 = getTargetName(bname, self.rig.pose.bones)
-            prop = asset.getProp(bname)
             if bname1 is None:
-                self.taken[prop] = False
+                prop = asset.getProp(bname)
                 struct = expr["value"]
                 key = asset.getProp(struct["prop"])
+                if key in self.isOpen.keys():
+                    continue
+                self.taken[key] = False
                 val = struct["value"]
                 if prop not in self.others.keys():
                     self.others[prop] = []
@@ -673,6 +676,7 @@ class PropFormulas(PoseboneDriver):
     def opencode(self, exprs, asset, opencoded, level): 
         from .bone import getTargetName
         from .modifier import ChannelAsset
+        from .daz import addDependency
         if level > 5:
             raise DazError("Recursion too deep")
         for bname,expr in exprs.items():    
@@ -689,6 +693,7 @@ class PropFormulas(PoseboneDriver):
                 if url[0] == "#" and url[1:] == bname:
                     #print("Recursive definition:", bname, asset.selfref())
                     continue
+                addDependency(key, prop, val)
                 subasset = asset.getTypedAsset(url, ChannelAsset)
                 if isinstance(subasset, Formula):
                     subexprs = {}
@@ -699,6 +704,7 @@ class PropFormulas(PoseboneDriver):
                     if key not in opencoded.keys():
                         opencoded[key] = []
                     opencoded[key].append((val,subexprs,subprops,subopen))
+                    self.isOpen[key] = True
     
 
     def combineExpressions(self, openlist, prop, exprs, value):
@@ -754,19 +760,21 @@ class PropFormulas(PoseboneDriver):
 
 
     def getNextLevelMorphs(self, others):
+        from .daz import addDependency
         remains = {}
         batch = {}
-        for key,data in others.items():
-            for prop,factor in data:
-                if self.taken[key]:        
-                    if prop not in batch.keys():
-                        batch[prop] = []
-                    batch[prop].append((factor,self.getStoredMorphs(key)))
-                    self.taken[prop] = True
+        for prop,data in others.items():
+            for key,factor in data:
+                if self.taken[prop]:        
+                    if key not in batch.keys():
+                        batch[key] = []
+                    batch[key].append((factor,self.getStoredMorphs(prop)))
+                    addDependency(key, prop, factor)
+                    self.taken[key] = True
                 else:
-                    remains[key] = data
+                    remains[prop] = data
         return batch, remains
-                           
+
 
     def getStoredMorphs(self, key):        
         stored = {}
@@ -885,25 +893,6 @@ class PropFormulas(PoseboneDriver):
                     success = True
         return success
     
-
-def getNewFormula(rig, key, prop):
-    for item in rig.DazFormulas:
-        if (item.key == key and
-            item.prop == prop):
-            return item
-    item = rig.DazFormulas.add()
-    item.key = key
-    item.prop = prop
-    return item
-
-
-def getOldFormula(rig, key, prop):
-    for item in rig.DazFormulas:
-        if (item.key == key and
-            item.prop == prop):
-            return item
-    return None
-
 
 def inStringGroup(items, string):
     for item in items:

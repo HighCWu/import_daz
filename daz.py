@@ -165,9 +165,9 @@ def copyPropGroups(rig1, rig2, pb2):
             pg2.default = pg1.default
 
 
-class DAZ_OT_ShowPropGroups(DazOperator, IsArmature):
-    bl_idname = "daz.show_prop_groups"
-    bl_label = "Show Prop Groups"
+class DAZ_OT_InspectPropGroups(DazOperator, IsArmature):
+    bl_idname = "daz.inspect_prop_groups"
+    bl_label = "Inspect Prop Groups"
     bl_description = "Show the property groups for the selected posebones."
 
     def run(self, context):
@@ -186,6 +186,44 @@ class DAZ_OT_ShowPropGroups(DazOperator, IsArmature):
                         print("    ", pg.display())
 
 #-------------------------------------------------------------
+#   Dependencies
+#   For debugging
+#-------------------------------------------------------------
+
+def clearDependecies():
+    global theDependecies
+    theDependecies = {}
+    
+clearDependecies()
+    
+    
+def addDependency(key, prop, factor):
+    global theDependecies
+    if key not in theDependecies.keys():
+        deps = theDependecies[key] = []
+    else:
+        deps = theDependecies[key]
+    deps.append((prop,factor))
+        
+
+class DAZ_OT_InspectPropDependencies(DazOperator, IsArmature):
+    bl_idname = "daz.inspect_prop_dependencies"
+    bl_label = "Inspect Prop Dependencies"
+    bl_description = "List properties depending on other properties"
+
+    def run(self, context):
+        global theDependecies
+        print("--- Property dependencies from latest load ---")
+        deps = list(theDependecies.items())
+        deps.sort()
+        for key,dep in deps:
+            if len(dep) > 0:
+                prop,val = dep[0]
+                print("  %-24s: %6.4f %-24s" % (key, val, prop))
+            for prop,val in dep[1:]:
+                print("  %-24s: %6.4f %-24s" % ("", val, prop))
+
+#-------------------------------------------------------------
 #   Initialize
 #-------------------------------------------------------------
 
@@ -201,9 +239,9 @@ def updateHandler(scn):
 classes = [
     ImportDAZ,
     DazMorphGroup,
-    B.DazFormula,
     B.DazStringGroup,
-    DAZ_OT_ShowPropGroups,
+    DAZ_OT_InspectPropGroups,
+    DAZ_OT_InspectPropDependencies,
 ]
 
 def initialize():
@@ -408,7 +446,6 @@ def initialize():
     bpy.types.PoseBone.DazLocProps = CollectionProperty(type = DazMorphGroup)
     bpy.types.PoseBone.DazRotProps = CollectionProperty(type = DazMorphGroup)
     bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = DazMorphGroup)
-    bpy.types.Object.DazFormulas = CollectionProperty(type = B.DazFormula)
     bpy.types.Object.DazHiddenProps = CollectionProperty(type = B.DazStringGroup)
 
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs

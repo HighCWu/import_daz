@@ -614,7 +614,7 @@ def addToPoseLib(rig, name):
 
 
 def getRigKeys(bname, rig, props, taken, missing):
-    from .formula import getOldFormula
+    #from .formula import getOldFormula
     if bname in rig.keys():
         return [(bname,1)]
 
@@ -625,7 +625,7 @@ def getRigKeys(bname, rig, props, taken, missing):
         if lcname[0:n] == prefix:
             keys = getSynonyms(lcname[n:])
             for key in keys:
-                if (key+"l" in props.keys() and
+                if (False and key+"l" in props.keys() and
                     key+"r" in props.keys()):
                     taken[key+"l"] = taken[key+"r"] = True
                     left = props[key+"l"]

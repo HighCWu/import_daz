@@ -453,7 +453,8 @@ class LoadMorph(PropFormulas):
     def getAllMorphs(self, namepaths, context):
         import time
         from .asset import clearAssets
-        from .main import finishMain
+        from .main import finishMain  
+        from .daz import clearDependecies      
 
         scn = context.scene
         if self.mesh:
@@ -463,6 +464,7 @@ class LoadMorph(PropFormulas):
         else:
             raise DazError("Neither mesh nor rig selected")
         theSettings.forMorphLoad(ob, scn, self.useDrivers)
+        clearDependecies()
 
         self.errors = {}
         t1 = time.perf_counter()
@@ -513,8 +515,7 @@ class LoadMorph(PropFormulas):
                 print("-", name)
         return missing
         
-
-
+        
 def propFromName(key, type, prefix, rig):
     if prefix:
         names = theMorphNames[type]
@@ -1278,10 +1279,12 @@ class DAZ_OT_RemoveAllMorphDrivers(DazOperator, IsMeshArmature):
         rig = getRigFromObject(context.object)
         scn = context.scene
         prefix = "Dz"
+        print("REMALL", rig)
         if rig:
             setupMorphPaths(scn, False)
             removeRigDrivers(rig)
             self.removeSelfRefs(rig)
+            self.clearPropGroups(rig)
             self.removeAllProps(rig)
             for ob in rig.children:
                 if ob.type == 'MESH' and ob.data.shape_keys:
@@ -1298,6 +1301,17 @@ class DAZ_OT_RemoveAllMorphDrivers(DazOperator, IsMeshArmature):
                 if (cns.mute and
                     cns.name == "Do Not Touch"):
                     pb.constraints.remove(cns)
+
+
+    def clearPropGroups(self, rig):
+        for pb in rig.pose.bones:
+            pb.DazLocProps.clear()
+            pb.DazRotProps.clear()
+            pb.DazScaleProps.clear()
+            pb.location = (0,0,0)
+            pb.rotation_euler = (0,0,0)
+            pb.rotation_quaternion = (1,0,0,0)
+            pb.scale = (1,1,1)
 
 
     def removeAllProps(self, ob):
@@ -1746,6 +1760,12 @@ class DAZ_OT_ConvertCustomMorphsToShapes(DazOperator, CustomSelector, MorphsToSh
 #-------------------------------------------------------------
 
 classes = [
+    B.DazFormula,
+    B.DazSelectGroup,
+    B.DazCustomGroup,
+    B.DazCategory,
+    B.DazActiveGroup,
+    
     DAZ_OT_SelectAll,
     DAZ_OT_SelectNone,
     
@@ -1783,17 +1803,11 @@ classes = [
 ]
 
 def initialize():
-    bpy.utils.register_class(B.DazSelectGroup)
-
     for cls in classes:
         bpy.utils.register_class(cls)
 
     bpy.types.Object.DazCustomMorphs = BoolProperty(default = False)
     bpy.types.Object.DazCustomPoses = BoolProperty(default = False)
-
-    bpy.utils.register_class(B.DazCustomGroup)
-    bpy.utils.register_class(B.DazCategory)
-    bpy.utils.register_class(B.DazActiveGroup)
     
     bpy.types.Object.DazActivated = CollectionProperty(type = B.DazActiveGroup)
     bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory)
@@ -1811,9 +1825,5 @@ def initialize():
 def uninitialize():
     for cls in classes:
         bpy.utils.unregister_class(cls)
-
-    bpy.utils.unregister_class(B.DazCustomGroup)
-    bpy.utils.unregister_class(B.DazCategory)
-    bpy.utils.unregister_class(B.DazSelectGroup)
     
     
