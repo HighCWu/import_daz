@@ -373,7 +373,7 @@ class LoadMorph(PropFormulas):
             return self.mesh
 
 
-    def getSingleMorph(self, filepath, scn, occur=0):
+    def getSingleMorph(self, name, filepath, scn, occur=0):
         from .modifier import Morph, FormulaAsset, ChannelAsset
         from .readfile import readDufFile
         from .files import parseAssetFile
@@ -502,7 +502,7 @@ class LoadMorph(PropFormulas):
         for name,path in namepaths:
             showProgress(idx, npaths)
             idx += 1
-            props1,miss = self.getSingleMorph(path, scn, occur=occur)
+            props1,miss = self.getSingleMorph(name, path, scn, occur=occur)
             if miss:
                 print("?", name)
                 missing[name] = True
@@ -576,7 +576,7 @@ class LoadAllMorphs(LoadMorph):
         self.rig["Daz"+self.type] = self.char
         self.mesh["Daz"+self.type] = self.char
         self.rig.DazNewStyleExpressions = True
-        namepaths = self.getActiveMorphFiles(context)  
+        namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
 
 #------------------------------------------------------------------------
@@ -1027,12 +1027,12 @@ def clearMorphs(rig, type, prefix, scn, frame, force):
 
     if type == "CUSTOM":
         for key in keys:
-            if getActivated(rig, key.prop, force) and not rig[key.prop] == 0.0:
+            if getActivated(rig, key.prop, force):
                 rig[key.prop] = 0.0
                 autoKeyProp(rig, key.prop, scn, frame, force)
     else:
         for key in keys:
-            if getActivated(rig, key, force) and not rig[key] == 0.0:
+            if getActivated(rig, key, force):
                 rig[key] = 0.0
                 autoKeyProp(rig, key, scn, frame, force)
 
@@ -1546,13 +1546,13 @@ class DAZ_OT_PinProp(DazOperator, B.KeyString, B.TypePrefix, IsMeshArmature):
 #   Load Moho
 # ---------------------------------------------------------------------
 
-Moho = {
+Moho2Daz = {
     "rest" : "Rest",
     "etc" : "K",
     "AI" : "AA",
-    "O" : "OU",
-    "U" : "OW",
-    "WQ" : "AH",
+    "O" : "OW",
+    "U" : "UW",
+    "WQ" : "W",
     "L" : "L",
     "E" : "EH",
     "MBP" : "M",
@@ -1591,13 +1591,16 @@ def loadMoho(context, filepath, offs):
         if len(words) < 2:
             pass
         else:
+            moho = words[1]
             frame = int(words[0]) + offs
             if words[1] == "rest":
-                clearMorphs(rig, "Visemes", prefix, None, scn, frame, True)
+                clearMorphs(rig, "Visemes", prefix, scn, frame, True)
             else:
-                key = vprefix + Moho[words[1]]
-                print("MOI", frame, words[1], key)
-                pinProp(rig, scn, key, "Visemes", prefix, None, frame)
+                daz = Moho2Daz[moho]
+                key = vprefix + daz
+                if key not in rig.keys():
+                    raise DazError("Missing viseme: %s => %s" % (moho, daz))
+                pinProp(rig, scn, key, "Visemes", prefix, frame)
     fp.close()
     #setInterpolation(rig)
     updateScene(context)

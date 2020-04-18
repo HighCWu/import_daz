@@ -233,12 +233,12 @@ class ChannelAsset(Modifier):
         if prop in self.rig.data.bones.keys():
             return prop
         lprop = prop.lower()
-        if lprop[0:5] == "ectrl":
-            prop0 = prop[5:]
-        elif lprop[0:4] == "ctrl":
-            prop0 = prop[4:]
-        else:
-            prop0 = prop
+        prop0 = prop
+        for prefix in ["ectrlv", "ectrl", "ctrl", "phm", "ephm", "vsm", "pjcm"]:
+            n = len(prefix)
+            if lprop[0:n] == prefix:
+                prop0 = prop[n:]
+                break
         for pfx in ["DzU", "DzV", "DzE"]:
             if pfx+prop0 in self.rig.keys():
                 return pfx+prop0        

@@ -105,7 +105,7 @@ class MorphTransferer(Selector, B.TransferOptions):
                 loader = LoadShapekey(mesh=clo)
                 theSettings.forMorphLoad(clo, scn, False)
                 loader.errors = {}
-                loader.getSingleMorph(path, scn)
+                loader.getSingleMorph(sname, path, scn)
                 if sname in clo.data.shape_keys.key_blocks.keys():
                     cskey = clo.data.shape_keys.key_blocks[sname]
 
