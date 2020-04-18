@@ -591,6 +591,9 @@ def pruneUvMaps(ob):
                 if (node.type == "ATTRIBUTE" and
                     node.attribute_name in uvtexs.keys()):
                     uvtexs[node.attribute_name][1] = True
+                elif (node.type == "UVMAP" and
+                    node.uv_map in uvtexs.keys()):
+                    uvtexs[node.uv_map][1] = True
     for uvtex,used in uvtexs.values():
         if not used:
             getUvTextures(ob.data).remove(uvtex)

@@ -277,7 +277,7 @@ class CyclesTree(FromCycles):
         if key is None:
             return self.texco
         elif key not in self.texcos.keys():
-            self.addAttribute(key, key)
+            self.addUvNode(key, key)
         return self.texcos[key]
 
 
@@ -385,13 +385,19 @@ class CyclesTree(FromCycles):
                 self.texco = self.mapping
 
         for key,uvset in self.material.uv_sets.items():
-            self.addAttribute(key, uvset.name)
+            self.addUvNode(key, uvset.name)
             
             
-    def addAttribute(self, key, uvname):            
-        node = self.addNode(1, "ShaderNodeAttribute")
-        node.attribute_name = uvname
-        self.texcos[key] = node.outputs["Vector"]
+    def addUvNode(self, key, uvname):
+        if True:
+            node = self.addNode(1, "ShaderNodeUVMap")
+            node.uv_map = uvname
+            slot = "UV"
+        else:
+            node = self.addNode(1, "ShaderNodeAttribute")
+            node.attribute_name = uvname
+            slot = "Vector"
+        self.texcos[key] = node.outputs[slot]
 
 
     def addMappingNode(self, data, map):
