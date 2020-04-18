@@ -105,9 +105,9 @@ class AffectOptions:
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(self, "useClearBones")
-        layout.prop(self, "useClearObject")
-        layout.prop(self, "useClearMorphs")
+        layout.prop(self, "clearBones")
+        layout.prop(self, "clearObject")
+        layout.prop(self, "clearMorphs")
         layout.prop(self, "affectBones")
         if self.affectBones:
             layout.prop(self, "affectSelectedOnly")
