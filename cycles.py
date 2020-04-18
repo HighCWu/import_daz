@@ -232,7 +232,7 @@ class CyclesTree(FromCycles):
 
 
     def __repr__(self):
-        return ("<Cycles %s %s %s %s>" % (self.material.rna, self.nodes, self.links, self.shells))
+        return ("<Cycles %s %s %s>" % (self.material.rna, self.nodes, self.links))
 
 
     def getValue(self, channel, default):
@@ -293,6 +293,8 @@ class CyclesTree(FromCycles):
 
     def addShellGroup(self, context, shell):
         from .material import theShellGroups
+        if shell.getValue("getChannelCutoutOpacity", 0) == 0:
+            return None
         node = self.addNode(7, "ShaderNodeGroup")
         for shell1,group in theShellGroups:
             if shell.equalChannels(shell1):
@@ -320,9 +322,10 @@ class CyclesTree(FromCycles):
         self.buildLayer(context)
         for shell,uvs in self.material.shells:
             node = self.addShellGroup(context, shell)
-            self.links.new(self.active.outputs[0], node.inputs["Shader"])
-            self.links.new(self.getTexco(uvs), node.inputs["UV"])
-            self.active = node
+            if node:
+                self.links.new(self.active.outputs[0], node.inputs["Shader"])
+                self.links.new(self.getTexco(uvs), node.inputs["UV"])
+                self.active = node
         self.buildCutout()
         self.buildDisplacementNodes()
         self.buildOutput()
