@@ -352,8 +352,9 @@ class LoadMorph(PropFormulas):
     useSoftLimits = True
     useShapekeysOnly = False
     useShapekeys = True
-    useDrivers = True
     suppressError = False
+    useFaceDrivers = True
+    useBoneDrivers = False
 
     def __init__(self, mesh=None, rig=None):
         PropFormulas.__init__(self, rig)
@@ -373,7 +374,7 @@ class LoadMorph(PropFormulas):
             return self.mesh
 
 
-    def getSingleMorph(self, name, filepath, scn, occur=0):
+    def getSingleMorph(self, name, filepath, scn):
         from .modifier import Morph, FormulaAsset, ChannelAsset
         from .readfile import readDufFile
         from .files import parseAssetFile
@@ -409,19 +410,26 @@ class LoadMorph(PropFormulas):
                 return [],miss
             asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits)
             skey,ob,sname = asset.rna
-            if self.rig and theSettings.useDrivers:
+            if self.rig and self.useFaceDrivers:
                 prop = propFromName(sname, self.type, self.prefix, self.rig)
                 skey.name = prop
                 min = skey.slider_min if theSettings.useDazPropLimits else None
                 max = skey.slider_max if theSettings.useDazPropLimits else None
                 makeShapekeyDriver(ob, prop, skey.value, self.rig, prop, min=min, max=max)
                 props = [prop]
+            elif self.rig and self.useBoneDrivers:
+                from .formula import buildShapeFormula
+                success = buildShapeFormula(asset, scn, self.rig, self.mesh)
+                if self.useShapekeysOnly and not success and skey:
+                    print("Could not build shape formula", skey.name)
+                if not success:
+                    miss = True
 
-        if self.useDrivers and self.rig:
+        if self.useFaceDrivers and self.rig:
             from .formula import buildShapeFormula
             if isinstance(asset, FormulaAsset) and asset.formulas:
                 if self.useShapekeys:
-                    success = buildShapeFormula(asset, scn, self.rig, self.mesh, occur=occur)
+                    success = buildShapeFormula(asset, scn, self.rig, self.mesh)
                     if self.useShapekeysOnly and not success and skey:
                         print("Could not build shape formula", skey.name)
                     if not success:
@@ -463,7 +471,7 @@ class LoadMorph(PropFormulas):
             ob = self.rig
         else:
             raise DazError("Neither mesh nor rig selected")
-        theSettings.forMorphLoad(ob, scn, self.useDrivers)
+        theSettings.forMorphLoad(ob, scn, self.useFaceDrivers)
         clearDependecies()
 
         self.errors = {}
@@ -477,7 +485,7 @@ class LoadMorph(PropFormulas):
         npaths = len(namepaths)
         self.suppressError = (npaths > 1)
         passidx = 1
-        missing = self.getPass(passidx, list(namepaths.items()), props, scn, 0)
+        missing = self.getPass(passidx, list(namepaths.items()), props, scn)
         self.buildOthers(missing)
         missing = [key for key in missing.keys() if missing[key]]
         if missing:
@@ -495,7 +503,7 @@ class LoadMorph(PropFormulas):
         return props
 
 
-    def getPass(self, passidx, namepaths, props, scn, occur):
+    def getPass(self, passidx, namepaths, props, scn):
         print("--- Pass %d ---" % passidx)
         namepaths.sort()
         missing = {}
@@ -504,7 +512,7 @@ class LoadMorph(PropFormulas):
         for name,path in namepaths:
             showProgress(idx, npaths)
             idx += 1
-            props1,miss = self.getSingleMorph(name, path, scn, occur=occur)
+            props1,miss = self.getSingleMorph(name, path, scn)
             if miss:
                 print("?", name)
                 missing[name] = True
@@ -528,7 +536,7 @@ def propFromName(key, type, prefix, rig):
 
 class LoadShapekey(LoadMorph):
 
-    useDrivers = False
+    useFaceDrivers = False
 
 #------------------------------------------------------------------
 #   Load typed morphs base class
@@ -573,7 +581,7 @@ class LoadAllMorphs(LoadMorph):
     def run(self, context):
         scn = context.scene
         setupMorphPaths(scn, False)
-        self.useDrivers = (scn.DazAddFaceDrivers and not self.useShapekeysOnly)
+        self.useFaceDrivers = (scn.DazAddFaceDrivers and not self.useShapekeysOnly)
         self.rig["Daz"+self.type] = self.char
         self.mesh["Daz"+self.type] = self.char
         self.rig.DazNewStyleExpressions = True
@@ -594,6 +602,8 @@ class DAZ_OT_ImportCorrectives(DazOperator, Selector, LoadAllMorphs, IsMeshArmat
     prefix = "DzC"
     useShapekeysOnly = True
     useSoftLimits = False
+    useFaceDrivers = False
+    useBoneDrivers = True
     
     def getActiveMorphFiles(self, context):
         return dict([(item.text,item.name) for item in self.getSelectedItems(context.scene)])        
@@ -705,6 +715,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.MultiF
     def run(self, context):
         from .driver import setBoolProp
         from .fileutils import getMultiFiles
+        self.useFaceDrivers = self.useDrivers
         namepaths = {}
         folder = ""
         for path in getMultiFiles(self, ["duf", "dsf"]):

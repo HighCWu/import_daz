@@ -111,7 +111,7 @@ class MorphTransferer(Selector, B.TransferOptions):
 
             if cskey:
                 print(" *", sname)
-            if self.autoTransfer(hum, clo, hskey):
+            elif self.autoTransfer(hum, clo, hskey):
                 cskey = clo.data.shape_keys.key_blocks[sname]
                 print(" +", sname)
                 if cskey and not self.ignoreRigidity:
