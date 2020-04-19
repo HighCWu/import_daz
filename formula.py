@@ -617,7 +617,7 @@ class PropFormulas(PoseboneDriver):
         PoseboneDriver.__init__(self, rig)
         self.others = {}
         self.taken = {}
-        self.isOpen = {}
+        self.built = {}
 
 
     def buildPropFormula(self, asset, filepath):
@@ -664,8 +664,6 @@ class PropFormulas(PoseboneDriver):
                 prop = asset.getProp(bname)
                 struct = expr["value"]
                 key = asset.getProp(struct["prop"])
-                if key in self.isOpen.keys():
-                    continue
                 self.taken[key] = False
                 val = struct["value"]
                 if prop not in self.others.keys():
@@ -704,7 +702,6 @@ class PropFormulas(PoseboneDriver):
                     if key not in opencoded.keys():
                         opencoded[key] = []
                     opencoded[key].append((val,subexprs,subprops,subopen))
-                    self.isOpen[key] = True
     
 
     def combineExpressions(self, openlist, prop, exprs, value):
@@ -742,9 +739,9 @@ class PropFormulas(PoseboneDriver):
         remains = self.others
         sorted = []
         nremains = len(remains)
-        for level in range(1,5):
+        for level in range(1,6):
             print("--- Pass %d (%d left) ---" % (level+1, nremains))
-            batch, remains = self.getNextLevelMorphs(remains)
+            batch, used, remains = self.getNextLevelMorphs(remains)
             self.buildMorphBatch(batch)
             for prop in batch.keys():
                 name = dzstrip(prop)
@@ -753,6 +750,10 @@ class PropFormulas(PoseboneDriver):
             if len(remains) == nremains:
                 break
             nremains = len(remains)
+            for key in batch.keys():
+                self.built[key] = True
+            for key in used.keys():
+                self.taken[key] = True
         if remains:
             print("Missing:")
             for key in remains.keys():
@@ -763,17 +764,20 @@ class PropFormulas(PoseboneDriver):
         from .daz import addDependency
         remains = {}
         batch = {}
+        used = {}
         for prop,data in others.items():
             for key,factor in data:
-                if self.taken[prop]:        
+                if key in self.built.keys():
+                    pass
+                elif self.taken[prop]: 
                     if key not in batch.keys():
                         batch[key] = []
                     batch[key].append((factor,self.getStoredMorphs(prop)))
                     addDependency(key, prop, factor)
-                    self.taken[key] = True
+                    used[key] = True
                 else:
                     remains[prop] = data
-        return batch, remains
+        return batch, used, remains
 
 
     def getStoredMorphs(self, key):        
@@ -802,6 +806,7 @@ class PropFormulas(PoseboneDriver):
                         for idx in channel.keys():
                             value, value2, default = channel[idx]
                             self.addMorphGroup(pb, idx, key, prop, default, factor*value)
+
             elif len(bdata) == 2:
                 factor1,bones1 = bdata[0]
                 factor2,bones2 = bdata[1]
@@ -814,8 +819,8 @@ class PropFormulas(PoseboneDriver):
                 elif factor1 > 0 and factor2 > 0:
                     simple = True
                 else:
-                    print("FF", prop, factor1, factor2)
-                    halt
+                    raise RuntimeError("Unexpected morph data:", prop, factor1, factor2)
+
                 self.addMissingBones(bones1, bones2)
                 self.addMissingBones(bones2, bones1)
                 for pbname in bones1.keys():
@@ -869,7 +874,7 @@ class PropFormulas(PoseboneDriver):
             bname = getTargetName(bname, self.rig.pose.bones)
             if bname is None:
                 continue
-            self.taken[prop] = True
+            self.taken[prop] = self.built[prop] = True            
             
             pb = self.rig.pose.bones[bname]
             tfm = Transform()
