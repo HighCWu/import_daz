@@ -103,7 +103,7 @@ class MorphTransferer(Selector, B.TransferOptions):
                 from .morphing import LoadShapekey
                 from .settings import theSettings
                 loader = LoadShapekey(mesh=clo)
-                theSettings.forMorphLoad(clo, scn, False)
+                theSettings.forMorphLoad(clo, scn)
                 loader.errors = {}
                 loader.getSingleMorph(sname, path, scn)
                 if sname in clo.data.shape_keys.key_blocks.keys():

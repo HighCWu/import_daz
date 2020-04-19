@@ -90,7 +90,6 @@ class Settings:
         self.useMorph = False
         self.useFormulas = False
         self.applyMorphs = False
-        self.useDrivers = False
         self.useAnimations = False
         self.useLibraries = False
         self.useUV = False
@@ -200,7 +199,7 @@ class Settings:
 
 
 
-    def forMorphLoad(self, ob, scn, useDrivers):
+    def forMorphLoad(self, ob, scn):
         self.reset(scn)
         self.scale = ob.DazScale
         self.useNothing()
@@ -208,7 +207,6 @@ class Settings:
         self.useMorph = True
         self.useFormulas = True
         self.applyMorphs = False
-        self.useDrivers = useDrivers
         self.useModifiers = True
 
 

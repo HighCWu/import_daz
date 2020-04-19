@@ -471,7 +471,7 @@ class LoadMorph(PropFormulas):
             ob = self.rig
         else:
             raise DazError("Neither mesh nor rig selected")
-        theSettings.forMorphLoad(ob, scn, self.useFaceDrivers)
+        theSettings.forMorphLoad(ob, scn)
         clearDependecies()
 
         self.errors = {}
