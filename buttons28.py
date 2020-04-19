@@ -374,7 +374,7 @@ class MorphStrings:
         name = "Category",
         default = "Shapes")
 
-    useDrivers : BoolProperty(
+    usePropDrivers : BoolProperty(
         name = "Use drivers",
         description = "Control morphs with rig properties",
         default = True)

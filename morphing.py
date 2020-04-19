@@ -353,7 +353,7 @@ class LoadMorph(PropFormulas):
     useShapekeysOnly = False
     useShapekeys = True
     suppressError = False
-    useFaceDrivers = True
+    usePropDrivers = True
     useBoneDrivers = False
 
     def __init__(self, mesh=None, rig=None):
@@ -410,7 +410,7 @@ class LoadMorph(PropFormulas):
                 return [],miss
             asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits)
             skey,ob,sname = asset.rna
-            if self.rig and self.useFaceDrivers:
+            if self.rig and self.usePropDrivers:
                 prop = propFromName(sname, self.type, self.prefix, self.rig)
                 skey.name = prop
                 min = skey.slider_min if theSettings.useDazPropLimits else None
@@ -425,7 +425,7 @@ class LoadMorph(PropFormulas):
                 if not success:
                     miss = True
 
-        if self.useFaceDrivers and self.rig:
+        if self.usePropDrivers and self.rig:
             from .formula import buildShapeFormula
             if isinstance(asset, FormulaAsset) and asset.formulas:
                 if self.useShapekeys:
@@ -536,7 +536,7 @@ def propFromName(key, type, prefix, rig):
 
 class LoadShapekey(LoadMorph):
 
-    useFaceDrivers = False
+    usePropDrivers = False
 
 #------------------------------------------------------------------
 #   Load typed morphs base class
@@ -581,7 +581,7 @@ class LoadAllMorphs(LoadMorph):
     def run(self, context):
         scn = context.scene
         setupMorphPaths(scn, False)
-        self.useFaceDrivers = (scn.DazAddFaceDrivers and not self.useShapekeysOnly)
+        self.usePropDrivers = (scn.DazAddFaceDrivers and not self.useShapekeysOnly)
         self.rig["Daz"+self.type] = self.char
         self.mesh["Daz"+self.type] = self.char
         self.rig.DazNewStyleExpressions = True
@@ -602,7 +602,7 @@ class DAZ_OT_ImportCorrectives(DazOperator, Selector, LoadAllMorphs, IsMeshArmat
     prefix = "DzC"
     useShapekeysOnly = True
     useSoftLimits = False
-    useFaceDrivers = False
+    usePropDrivers = False
     useBoneDrivers = True
     
     def getActiveMorphFiles(self, context):
@@ -697,7 +697,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.MultiF
     custom = "DazCustomMorphs"
 
     def draw(self, context):
-        self.layout.prop(self, "useDrivers")
+        self.layout.prop(self, "usePropDrivers")
         self.layout.prop(self, "catname")
 
 
@@ -715,7 +715,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.MultiF
     def run(self, context):
         from .driver import setBoolProp
         from .fileutils import getMultiFiles
-        self.useFaceDrivers = self.useDrivers
         namepaths = {}
         folder = ""
         for path in getMultiFiles(self, ["duf", "dsf"]):
