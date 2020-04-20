@@ -67,7 +67,7 @@ def importModules():
                     "guess", "animation", "files", "main", "finger",
                     "morphing", "tables", "proxy", "rigify", "merge", "hide",
                     "load_json", "mhx", "layers", "fkik", "hair",
-                    "transfer", "dforce", "poser", "addon", "addons"]
+                    "transfer", "poser", "addon", "addons"]
         if bpy.app.version >= (2,82,0):
             modnames.append("udim")                    
         anchor = os.path.basename(__file__[0:-12])

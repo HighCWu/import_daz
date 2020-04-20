@@ -142,18 +142,7 @@ class ExtraAsset(Modifier):
     def build(self, context, inst):
         rig, ob = getRigMesh(inst)
         for etype,extra in self.extras.items():
-            if (etype == "studio/modifier/dynamic_simulation" and
-                theSettings.useSimulation):
-                from .dforce import buildSimulationModifier
-                buildSimulationModifier(rig, ob, self.extras)
-            if (etype == "studio/simulation_settings/dynamic_simulation" and
-                theSettings.useSimulation):
-                from .dforce import buildSimulationSettings
-                buildSimulationSettings(rig, ob, self.extras)
-            if (etype == "studio/modifier/smoothing" and
-                theSettings.useSimulation):
-                from .dforce import buildSmoothingModifier
-                buildSmoothingModifier(rig, ob, self.extras)
+            pass
 
 
 def getRigMesh(inst):

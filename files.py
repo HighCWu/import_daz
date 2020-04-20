@@ -152,9 +152,7 @@ class FileAsset(Asset):
                             self.extras.append(options)
                         elif (key == "simulation_options" and
                               theSettings.useSimulations):
-                            from .dforce import parseSimulationOptions
-                            options = parseSimulationOptions(estruct, self.fileref)
-                            self.extras.append(options)
+                            pass
 
         msg = ("-FILE %s" % self.fileref)
         theTrace.append(msg)
