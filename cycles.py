@@ -212,6 +212,7 @@ class CyclesTree(FromCycles):
         self.nodes = None
         self.links = None
         self.groups = {}
+        self.liegroups = []
 
         self.diffuse = None
         self.diffuseTex = None
@@ -1018,6 +1019,11 @@ class CyclesTree(FromCycles):
             self.links.new(self.volume.outputs[0], output.inputs["Volume"])
         if self.displacement:
             self.links.new(self.displacement.outputs[0], output.inputs["Displacement"])
+        if self.liegroups:
+            node = self.addNode(1, "ShaderNodeValue")
+            node.outputs[0].default_value = 1.0
+            for lie in self.liegroups:
+                self.links.new(node.outputs[0], lie.inputs["Alpha"])
 
 
     def buildDisplacementNodes(self):
@@ -1161,6 +1167,7 @@ class CyclesTree(FromCycles):
         self.linkVector(self.texco, node)        
         group.addTextureNodes(assets, maps, colorSpace)
         node.inputs["Alpha"].default_value = 1
+        self.liegroups.append(node)
         return node
 
 
