@@ -192,7 +192,7 @@ class Instance(Accessor):
                     self.material_group_vis[channel["label"]] = getCurrentValue(channel)
                 elif (words[0] == "facet" and words[1] == "group" and words[-1] == "vis"):
                     pass
-
+                    
         for extra in self.extra:
             if "type" not in extra.keys():
                 continue

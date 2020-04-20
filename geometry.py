@@ -297,7 +297,7 @@ class Geometry(Asset, Channels):
 
             if scn.DazMergeShells:
                 if inst.node2:
-                    missing = self.addUvSets(inst.node2)                    
+                    missing = self.addUvSets(inst.node2, inst.material_group_vis)                    
                     for mname,mat,uv in missing:
                         msg = ("Missing shell material\n" +
                                "Material: %s\n" % mname +
@@ -308,16 +308,19 @@ class Geometry(Asset, Channels):
                         reportError(msg, trigger=(2,4))
                     
         
-    def addUvSets(self, inst): 
-        missing = []                           
+    def addUvSets(self, inst, vis): 
+        missing = []        
         for key,child in inst.children.items():
             if child.shell:
                 geonode = inst.geometries[0]
                 geo = geonode.data
                 for mname,shellmats in self.materials.items():
                     mat = shellmats[0]
-                    if mname in inst.material_group_vis.keys() and not inst.material_group_vis[mname]:
-                        continue
+                    if mname in vis.keys():
+                        if not vis[mname]:
+                            continue
+                    else:
+                        print("Warning: no visibility for material %s" % mname)
                     uv = self.uvs[mname]
                     if mname in geo.materials.keys():
                         mats = geo.materials[mname]
