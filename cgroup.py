@@ -621,6 +621,7 @@ class LieGroup(CyclesGroup):
         CyclesGroup.__init__(self, node, name, parent, 6)
         self.group.inputs.new("NodeSocketVector", "Vector")
         self.texco = self.inputs.outputs[0]
+        self.group.inputs.new("NodeSocketFloat", "Alpha")
         self.group.outputs.new("NodeSocketColor", "Color")
 
 
@@ -651,6 +652,12 @@ class LieGroup(CyclesGroup):
                     texnodes[idx].append(inv)
 
             texnode = texnodes[0][-1]
+            alphamix = self.addNode(6, "ShaderNodeMixRGB")
+            alphamix.blend_type = 'MIX'
+            alphamix.inputs[0].default_value = 1.0
+            self.links.new(self.inputs.outputs["Alpha"], alphamix.inputs[0])
+            self.links.new(texnode.outputs["Color"], alphamix.inputs[1])
+            
             masked = False
             for idx in range(1, nassets):
                 map = maps[idx]
@@ -689,7 +696,8 @@ class LieGroup(CyclesGroup):
                 else:
                     masked = False
 
-            self.links.new(texnode.outputs[0], self.outputs.inputs["Color"])
+            self.links.new(texnode.outputs[0], alphamix.inputs[2])
+            self.links.new(alphamix.outputs[0], self.outputs.inputs["Color"])
 
 
     def mapTexture(self, asset, map):
