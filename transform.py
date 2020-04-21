@@ -97,9 +97,11 @@ class Transform:
         if self.scale is None:
             scale = unit
         else:
-            scale = unit + self.scale
+            scale = self.scale
         if self.general is not None:
-            scale *= (unit + self.general)
+            scale *= self.general
+        if scale.length == 0:
+            raise RuntimeError("Bug evalScale")
         return scale
 
 
