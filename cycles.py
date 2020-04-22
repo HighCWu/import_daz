@@ -294,7 +294,9 @@ class CyclesTree(FromCycles):
 
     def addShellGroup(self, context, shell):
         from .material import theShellGroups
-        if shell.getValue("getChannelCutoutOpacity", 0) == 0:
+        if (shell.getValue("getChannelCutoutOpacity", 1) == 0 or
+            shell.getValue("getChannelOpacity", 1) == 0):
+            print("No shell group", self.material.name)
             return None
         node = self.addNode(7, "ShaderNodeGroup")
         for shell1,group in theShellGroups:

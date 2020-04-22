@@ -298,11 +298,12 @@ class Geometry(Asset, Channels):
             if scn.DazMergeShells:
                 if inst.node2:
                     missing = self.addUvSets(inst.node2, inst.material_group_vis)                    
-                    for mname,mat,uv in missing:
+                    for mname,mat,uv,idx in missing:
                         msg = ("Missing shell material\n" +
                                "Material: %s\n" % mname +
                                "Node: %s\n" % node.name +
                                "Inst: %s\n" % inst.name +
+                               "Index: %d\n" % idx +
                                "Node2: %s\n" % inst.node2.name +
                                "UV set: %s\n" % uv)
                         reportError(msg, trigger=(2,4))
@@ -321,6 +322,9 @@ class Geometry(Asset, Channels):
                             continue
                     else:
                         print("Warning: no visibility for material %s" % mname)
+                    if (mat.getValue("getChannelCutoutOpacity", 1) == 0 or 
+                        mat.getValue("getChannelOpacity", 1) == 0):
+                        continue
                     uv = self.uvs[mname]
                     if mname in geo.materials.keys():
                         mats = geo.materials[mname]
@@ -330,18 +334,20 @@ class Geometry(Asset, Channels):
                         # so they can be used to define materials assigned to the geometry in Blender.
                         self.addNewUvset(uv, geo)
                     else:
-                        missing.append((mname,mat,uv))
+                        missing.append((mname,mat,uv,geonode.index))
 
         self.matused = []                           
-        for mname,mat,uv in missing:
+        for mname,mat,uv,idx in missing:
             for key,child in inst.children.items():
-                self.addMoreUvSets(child, mname, mat, uv, "")
+                self.addMoreUvSets(child, mname, mat, uv, idx, "")
         return [miss for miss in missing if miss[0] not in self.matused]
         
 
-    def addMoreUvSets(self, inst, mname, mat, uv, pprefix):
+    def addMoreUvSets(self, inst, mname, mat, uv, idx, pprefix):
         from .figure import FigureInstance
         if not isinstance(inst, FigureInstance):
+            return
+        if mname in self.matused:
             return
         geonode = inst.geometries[0]
         geo = geonode.data
@@ -353,13 +359,13 @@ class Geometry(Asset, Channels):
             mname1 = None
         if mname1 and mname1 in geo.materials.keys():
             mats = geo.materials[mname1]
-            mats[0].shells.append((mat,uv))
+            mats[idx].shells.append((mat,uv))
             mat.ignore = True
             self.addNewUvset(uv, geo)
             self.matused.append(mname)
         else:
             for key,child in inst.children.items():
-                self.addMoreUvSets(child, mname, mat, uv, prefix)
+                self.addMoreUvSets(child, mname, mat, uv, idx, prefix)
 
 
     def addNewUvset(self, uv, geo):                                        

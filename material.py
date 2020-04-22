@@ -286,7 +286,7 @@ class Material(Asset, Channels):
         return self.getChannel(["translucency", "Translucency Weight"])
 
     def getChannelOpacity(self):
-        return self.getChannel(["opacity"])
+        return self.getChannel(["opacity", "Opacity Strength"])
 
     def getChannelCutoutOpacity(self):
         return self.getChannel(["Cutout Opacity", "transparency"])
