@@ -94,52 +94,116 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
                 else:
                     self.keepUv.append(uvtex.name)
 
-        # For the body, delete mask groups
+        # For the body, setup mask groups
         activateObject(context, cob)
         nverts = len(cob.data.vertices)
-        deleted = dict([(vn,False) for vn in range(nverts)])
+        vfaces = dict([(vn,[]) for vn in range(nverts)])
+        for f in cob.data.polygons:
+            for vn in f.vertices:
+                vfaces[vn].append(f.index)
+                
+        nfaces = len(cob.data.polygons)
+        fmasked = dict([(fn,False) for fn in range(nfaces)])
+        for aob in anatomies:
+            for face in aob.data.DazMaskGroup:
+                fmasked[face.a] = True
+
+        # If cob is itself a geograft, make sure to keep tbe boundary
+        if cob.data.DazGraftGroup:
+            cgrafts = [pair.a for pair in cob.data.DazGraftGroup]
+        else:
+            cgrafts = []
+
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
+
+        # Select body verts to delete            
+        vdeleted = dict([(vn,False) for vn in range(nverts)])
         for aob in anatomies:
-            graft = [pair.b for pair in aob.data.DazGraftGroup]
+            paired = [pair.b for pair in aob.data.DazGraftGroup]
             for face in aob.data.DazMaskGroup:
-                for vn in cob.data.polygons[face.a].vertices:
-                    if vn not in graft:
-                        cob.data.vertices[vn].select = True
-                        deleted[vn] = True
-        
+                fverts = cob.data.polygons[face.a].vertices
+                vdelete = []
+                for vn in fverts:
+                    if vn in cgrafts:
+                        pass
+                    elif vn not in paired:
+                        vdelete.append(vn)
+                    else:
+                        mfaces = [fn for fn in vfaces[vn] if fmasked[fn]]
+                        if len(mfaces) == len(vfaces[vn]):
+                            vdelete.append(vn)
+                for vn in vdelete:
+                    cob.data.vertices[vn].select = True
+                    vdeleted[vn] = True
+
+        # Build association table between new and old vertex numbers        
         assoc = {}
         vn2 = 0
         for vn in range(nverts):
-            if not deleted[vn]:
+            if not vdeleted[vn]:
                 assoc[vn] = vn2
                 vn2 += 1
-
-        # Select verts on common boundary
+        
+        # Delete the masked verts
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.delete(type='VERT')
         bpy.ops.object.mode_set(mode='OBJECT')
+
+        # If cob is itself a geograft, store locations
+        if cob.data.DazGraftGroup:
+            verts = cob.data.vertices
+            locations = dict([(pair.a, verts[pair.a].co.copy()) for pair in cob.data.DazGraftGroup])
+
+        # Select nothing
         for aob in anatomies:
             activateObject(context, aob)
-            for pair in aob.data.DazGraftGroup:
-                aob.data.vertices[pair.a].select = True
-                cvn = assoc[pair.b]
-                cob.data.vertices[cvn].select = True
-
-        # Join meshes and remove doubles
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.select_all(action='DESELECT')
+            bpy.ops.object.mode_set(mode='OBJECT')
         activateObject(context, cob)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        
+        # Select verts on common boundary
         names = []
         for aob in anatomies:
             setSelected(aob, True)
             names.append(aob.name)
+            for pair in aob.data.DazGraftGroup:
+                aob.data.vertices[pair.a].select = True
+                if pair.b in assoc.keys():
+                    cvn = assoc[pair.b]
+                    cob.data.vertices[cvn].select = True
+
+        # Also select cob graft group. These will not be removed.
+        if cob.data.DazGraftGroup:
+            for pair in cob.data.DazGraftGroup:
+                cvn = assoc[pair.a]
+                cob.data.vertices[cvn].select = True
+
+        # Join meshes and remove doubles
         print("Merge %s to %s" % (names, cob.name))
+        threshold = 0.001*cob.DazScale
         bpy.ops.object.join()
         bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.remove_doubles(threshold=0.001*cob.DazScale)
+        bpy.ops.mesh.remove_doubles(threshold=threshold)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        selected = dict([(v.index,v.co.copy()) for v in cob.data.vertices if v.select])
+        bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
     
+        # Update cob graft group
+        if cob.data.DazGraftGroup and selected:
+            for pair in cob.data.DazGraftGroup:
+                x = locations[pair.a]
+                dists = [((x-y).length, vn) for vn,y in selected.items()]
+                dists.sort()
+                pair.a = dists[0][1]
+        
         self.joinUvTextures(cob.data)
 
         newname = self.getUvName(cob.data)
@@ -154,14 +218,10 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         for f in cob.data.polygons:
             self.mathits[f.material_index] = True
         self.mergeMaterials(cob)
-        
+
         copyShapeKeyDrivers(cob, drivers)
         updateDrivers(cob)
         
-        if cob.data.DazGraftGroup:
-            for pair in cob.data.DazGraftGroup:
-                pair.a = assoc[pair.a]
-
 
     def keepMaterial(self, mn, mat, ob):
         keep = self.mathits[mn]
