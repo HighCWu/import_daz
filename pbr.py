@@ -60,10 +60,10 @@ class PbrTree(CyclesTree):
         self.active = self.pbr
         self.buildBumpNodes(scn)
         self.buildPBRNode(scn)
+        self.buildOverlay()
         if (self.material.thinWalled or
             self.material.translucent):
             self.buildTranslucency()        
-        self.buildOverlay()
         if self.material.dualLobeWeight > 0:
             self.buildDualLobe()
             self.links.new(self.active.outputs[0], self.dualLobe.inputs["Shader"])

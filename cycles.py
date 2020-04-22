@@ -340,6 +340,7 @@ class CyclesTree(FromCycles):
         scn = context.scene
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
+        self.buildOverlay()
         if theSettings.handleVolumetric == "SSS":
             self.buildSubsurface()
         elif (self.material.thinWalled or
@@ -348,7 +349,6 @@ class CyclesTree(FromCycles):
             self.buildTranslucency()
         else:
             self.buildSubsurface()
-        self.buildOverlay()
         if self.material.dualLobeWeight == 1:
             self.buildDualLobe()
         elif self.material.dualLobeWeight == 0:
