@@ -292,27 +292,28 @@ class CyclesTree(FromCycles):
         return node
         
 
-    def addShellGroup(self, context, shell):
+    def addShellGroup(self, context, shname, shmat):
         from .material import theShellGroups
-        if (shell.getValue("getChannelCutoutOpacity", 1) == 0 or
-            shell.getValue("getChannelOpacity", 1) == 0):
-            print("No shell group", self.material.name)
+        if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or
+            shmat.getValue("getChannelOpacity", 1) == 0):
+            print("Invisible shell %s for %s" % (shname, self.material.name))
             return None
         node = self.addNode(7, "ShaderNodeGroup")
-        for shell1,group in theShellGroups:
-            if shell.equalChannels(shell1):
+        node.name = shname
+        for shmat1,group in theShellGroups:
+            if shmat.equalChannels(shmat1):
                 node.node_tree = group
                 return node
         if self.type == 'CYCLES':
             from .cgroup import ShellCyclesGroup
-            group = ShellCyclesGroup(node, "DAZ Shell", self)
+            group = ShellCyclesGroup(node, shname, self)
         elif self.type == 'PBR':
             from .cgroup import ShellPbrGroup
-            group = ShellPbrGroup(node, "DAZ PBR Shell", self)
+            group = ShellPbrGroup(node, shname, self)
         else:
             raise RuntimeError("Bug Cycles type %s" % self.type)
-        group.addNodes(context, shell)
-        theShellGroups.append((shell, node.node_tree))
+        group.addNodes(context, shmat)
+        theShellGroups.append((shmat, node.node_tree))
         return node
         
 
@@ -323,11 +324,11 @@ class CyclesTree(FromCycles):
             return
         self.buildVolume()
         self.buildLayer(context)
-        for shell,uvs in self.material.shells:
-            node = self.addShellGroup(context, shell)
+        for shname,shmat,uv in self.material.shells:
+            node = self.addShellGroup(context, shname, shmat)
             if node:
                 self.links.new(self.active.outputs[0], node.inputs["Shader"])
-                self.links.new(self.getTexco(uvs), node.inputs["UV"])
+                self.links.new(self.getTexco(uv), node.inputs["UV"])
                 self.active = node
         self.buildCutout()
         self.buildDisplacementNodes()

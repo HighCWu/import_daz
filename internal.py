@@ -97,8 +97,8 @@ class InternalMaterial(Material, FromInternal):
                         mat.specular_alpha = 0
                         mtex.use_map_alpha = True
                         mtex.alpha_factor = 1.0
-            for shell,uv in self.shells:
-                mtex = self.buildShellMTex(shell, "getChannelDiffuse", uv, "sRGB")
+            for shname,shmat,uv in self.shells:
+                mtex = self.buildShellMTex(shmat, "getChannelDiffuse", uv, "sRGB")
                 if mtex:
                     mtex.use_map_color_diffuse = True
 
@@ -255,9 +255,9 @@ class InternalMaterial(Material, FromInternal):
             for mtex in self.buildMtexs(channel, "Non-Color"):
                 if mtex and not mtex.use_stencil:
                     self.setNormalSettings(channel, mtex)
-            for shell,uv in self.shells:
+            for shname,shmat,uv in self.shells:
                 continue
-                mtex = self.buildShellMTex(shell, "getChannelNormal", uv, "Non-Color")
+                mtex = self.buildShellMTex(shmat, "getChannelNormal", uv, "Non-Color")
                 if mtex:
                     shell.setNormalSettings(channel, mtex)
 
@@ -277,9 +277,9 @@ class InternalMaterial(Material, FromInternal):
             for mtex in self.buildMtexs(channel, "Non-Color"):
                 if mtex and not mtex.use_stencil:
                     self.setBumpSettings(channel, mtex)
-            for shell,uv in self.shells:
+            for shname,shmat,uv in self.shells:
                 continue
-                mtex = self.buildShellMTex(shell, "getChannelBump", uv, "Non-Color")
+                mtex = self.buildShellMTex(shmat, "getChannelBump", uv, "Non-Color")
                 if mtex:
                     shell.setBumpSettings(channel, mtex)
 
@@ -298,9 +298,9 @@ class InternalMaterial(Material, FromInternal):
                 if mtex and not mtex.use_stencil:
                     self.setDisplacementSettings(channel, mtex)
                     mat.DazUseDisplacement = True
-            for shell,uv in self.shells:
+            for shname,shmat,uv in self.shells:
                 continue
-                mtex = self.buildShellMTex(shell, "getChannelDisplacement", uv, "Non-Color")
+                mtex = self.buildShellMTex(shmat, "getChannelDisplacement", uv, "Non-Color")
                 if mtex:
                     shell.setDisplacementSettings(channel, mtex)
                     mat.DazUseDisplacement = True

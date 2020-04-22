@@ -161,8 +161,8 @@ class Material(Asset, Channels):
             for uv,uvset in geo.uv_sets.items():
                 if uvset:
                     self.uv_sets[uv] = self.uv_sets[uvset.name] = uvset
-        for shell,uvs in self.shells:
-            shell.shader = self.shader
+        for shname,shmat,uv in self.shells:
+            shmat.shader = self.shader
         if self.thinGlass:
             mat.DazThinGlass = True
 

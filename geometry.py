@@ -297,8 +297,8 @@ class Geometry(Asset, Channels):
 
             if scn.DazMergeShells:
                 if inst.node2:
-                    missing = self.addUvSets(inst.node2, inst.material_group_vis)                    
-                    for mname,mat,uv,idx in missing:
+                    missing = self.addUvSets(inst.node2, inst.name, inst.material_group_vis)                    
+                    for mname,shmat,uv,idx in missing:
                         msg = ("Missing shell material\n" +
                                "Material: %s\n" % mname +
                                "Node: %s\n" % node.name +
@@ -309,41 +309,41 @@ class Geometry(Asset, Channels):
                         reportError(msg, trigger=(2,4))
                     
         
-    def addUvSets(self, inst, vis): 
+    def addUvSets(self, inst, shname, vis): 
         missing = []        
         for key,child in inst.children.items():
             if child.shell:
                 geonode = inst.geometries[0]
                 geo = geonode.data
                 for mname,shellmats in self.materials.items():
-                    mat = shellmats[0]
                     if mname in vis.keys():
                         if not vis[mname]:
                             continue
                     else:
                         print("Warning: no visibility for material %s" % mname)
-                    if (mat.getValue("getChannelCutoutOpacity", 1) == 0 or 
-                        mat.getValue("getChannelOpacity", 1) == 0):
+                    shmat = shellmats[0]
+                    if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or 
+                        shmat.getValue("getChannelOpacity", 1) == 0):
                         continue
                     uv = self.uvs[mname]
                     if mname in geo.materials.keys():
                         mats = geo.materials[mname]
-                        mats[geonode.index].shells.append((mat,uv))
-                        mat.ignore = True
+                        mats[geonode.index].shells.append((shname,shmat,uv))
+                        shmat.ignore = True
                         # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
                         # so they can be used to define materials assigned to the geometry in Blender.
                         self.addNewUvset(uv, geo)
                     else:
-                        missing.append((mname,mat,uv,geonode.index))
+                        missing.append((mname,shmat,uv,geonode.index))
 
         self.matused = []                           
-        for mname,mat,uv,idx in missing:
+        for mname,shmat,uv,idx in missing:
             for key,child in inst.children.items():
-                self.addMoreUvSets(child, mname, mat, uv, idx, "")
+                self.addMoreUvSets(child, mname, shname, shmat, uv, idx, "")
         return [miss for miss in missing if miss[0] not in self.matused]
         
 
-    def addMoreUvSets(self, inst, mname, mat, uv, idx, pprefix):
+    def addMoreUvSets(self, inst, mname, shname, shmat, uv, idx, pprefix):
         from .figure import FigureInstance
         if not isinstance(inst, FigureInstance):
             return
@@ -359,13 +359,13 @@ class Geometry(Asset, Channels):
             mname1 = None
         if mname1 and mname1 in geo.materials.keys():
             mats = geo.materials[mname1]
-            mats[idx].shells.append((mat,uv))
-            mat.ignore = True
+            mats[idx].shells.append((shname,shmat,uv))
+            shmat.ignore = True
             self.addNewUvset(uv, geo)
             self.matused.append(mname)
         else:
             for key,child in inst.children.items():
-                self.addMoreUvSets(child, mname, mat, uv, idx, prefix)
+                self.addMoreUvSets(child, mname, shname, shmat, uv, idx, prefix)
 
 
     def addNewUvset(self, uv, geo):                                        
@@ -391,16 +391,6 @@ class Geometry(Asset, Channels):
                     self.uv_sets[uv] = asset
                 return asset
         return None
-
-
-    def addShell(self, inst, longname, mname, uvs, scn):
-        if isinstance(inst, Instance):
-            geo = inst.geometries[0]
-        geo.data.shells[self.id] = self
-        if scn.DazMergeShells:
-            if mname in geo.data.materials.keys():
-                mat = geo.data.materials[mname][0]
-                mat.shells += [(shmat,uvs) for shmat in self.materials[longname]]
 
 
     def buildData(self, context, node, inst, cscale, center):
