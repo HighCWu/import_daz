@@ -711,6 +711,11 @@ class CyclesTree(FromCycles):
         _,weighttex = self.getColorTex(["Top Coat Weight"], "NONE", 0, value=0.1*topweight)
         color,tex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
         roughness,roughtex = self.getColorTex(["Top Coat Roughness"], "NONE", 0)
+        if roughness == 0:
+            glossiness,glosstex = self.getColorTex(["Top Coat Glossiness"], "NONE", 1)
+            roughness = 1-glossiness
+            roughtex = self.invertTex(glosstex, 5)
+        
         top = self.addNode(6, "ShaderNodeBsdfGlossy")
         self.linkColor(tex, top, color, "Color") 
         self.linkScalar(roughtex, top, roughness, "Roughness")
@@ -949,12 +954,7 @@ class CyclesTree(FromCycles):
 
     def invertColor(self, color, tex, col):
         inverse = (1-color[0], 1-color[1], 1-color[2])
-        if tex:
-            node = self.addNode(col, "ShaderNodeInvert")
-            self.links.new(tex.outputs[0], node.inputs["Color"])        
-        else:
-            node = None
-        return inverse, node
+        return inverse, self.invertTex(tex, col)
 
 
     def buildVolume(self):
@@ -1253,13 +1253,20 @@ class CyclesTree(FromCycles):
 
     def fixTex(self, tex, value, invert):
         _,tex = self.multiplyTex(value, tex)
-        if invert and tex:
-            inv = self.addNode(3, "ShaderNodeInvert")
-            self.links.new(tex.outputs[0], inv.inputs["Color"])
-            return inv
+        if invert:
+            return self.invertTex(tex, 3)
         else:
             return tex
 
+
+    def invertTex(self, tex, col):
+        if tex:
+            inv = self.addNode(col, "ShaderNodeInvert")
+            self.links.new(tex.outputs[0], inv.inputs["Color"])
+            return inv
+        else:
+            return None
+    
 
     def multiplyTex(self, value, tex, col=3):
         if isinstance(value, float) or isinstance(value, int):
