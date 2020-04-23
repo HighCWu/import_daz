@@ -111,13 +111,13 @@ class Accessor:
 
     def getNewAsset(self, id, ref, strict=True):
         from .files import parseAssetFile
-        from .readfile import readDufFile
+        from .load_json import loadJson
 
         fileref = id.split("#")[0]
         filepath = getDazPath(fileref)
         file = None
         if filepath:
-            struct = readDufFile(filepath)
+            struct = loadJson(filepath)
             file = parseAssetFile(struct, fileref=fileref)
             try:
                 return theAssets[ref]

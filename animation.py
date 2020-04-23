@@ -329,12 +329,15 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
 
 
     def getSingleAnimation(self, filepath, rig, scn, offset, missing):
-        from .readfile import readAssetFile
         from .driver import setFloatProp
-
+        from .load_json import loadJson
         if filepath is None:
             return
-        struct = readAssetFile(filepath)
+        ext = os.path.splitext(filepath)[1]
+        if ext in [".duf", ".dsf"]:
+            struct = loadJson(filepath, False)
+        else:
+            raise DazError("Wrong type of file: %s" % filepath)
         if "scene" not in struct.keys():
             return offset
         animations = self.parseAnimation(struct["scene"])

@@ -54,8 +54,8 @@ def getMainAsset(filepath, context, btn):
     if theSettings.fitFile:
         getFitFile(filepath)
 
-    from .readfile import readDufFile
-    struct = readDufFile(filepath)
+    from .load_json import loadJson
+    struct = loadJson(filepath)
     showProgress(10, 100)
 
     print("Parsing data")

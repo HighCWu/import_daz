@@ -1447,7 +1447,7 @@ class DAZ_OT_LoadMaterial(DazOperator, B.DazImageFile, B.MultiFile, IsMesh):
     def loadMaterials(self, context):
         from .fileutils import getMultiFiles
         from .globvars import theDazExtensions
-        from .readfile import readDufFile
+        from .load_json import loadJson
         from .files import parseAssetFile
 
         ob = context.object
@@ -1455,7 +1455,7 @@ class DAZ_OT_LoadMaterial(DazOperator, B.DazImageFile, B.MultiFile, IsMesh):
         theSettings.forMaterial(ob, scn)
         paths = getMultiFiles(self, theDazExtensions)
         for path in paths:
-            struct = readDufFile(path)
+            struct = loadJson(path)
             fasset = parseAssetFile(struct)
             if fasset is None or len(fasset.materials) == 0:
                 raise DazError ("Not a material asset:\n  '%s'" % path)

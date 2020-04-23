@@ -770,7 +770,7 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
 
 
     def run(self, context):
-        from .readfile import readDufFile
+        from .load_json import loadJson
         from .files import parseAssetFile
 
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -778,7 +778,7 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
         me = ob.data
         scn = context.scene
         theSettings.forUV(ob, scn)
-        struct = readDufFile(self.filepath)
+        struct = loadJson(self.filepath)
         asset = parseAssetFile(struct)
         if asset is None or len(asset.uvs) == 0:
             raise DazError ("Not an UV asset:\n  '%s'" % self.filepath)

@@ -376,7 +376,7 @@ class LoadMorph(PropFormulas):
 
     def getSingleMorph(self, name, filepath, scn):
         from .modifier import Morph, FormulaAsset, ChannelAsset
-        from .readfile import readDufFile
+        from .load_json import loadJson
         from .files import parseAssetFile
         from .driver import makeShapekeyDriver
 
@@ -385,7 +385,7 @@ class LoadMorph(PropFormulas):
         if ob is None:
             return [],miss
 
-        struct = readDufFile(filepath)
+        struct = loadJson(filepath)
         asset = parseAssetFile(struct)
         props = []
         if asset is None:

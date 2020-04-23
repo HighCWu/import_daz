@@ -60,13 +60,13 @@ def importModules():
             modnames.append("buttons27")
         else:
             modnames.append("buttons28")
-        modnames += ["daz", "fileutils", "readfile", "driver", "asset", "channels", "formula",
+        modnames += ["daz", "fileutils", "load_json", "driver", "asset", "channels", "formula",
                     "transform", "node", "figure", "bone", "geometry", "objfile",
                     "fix", "modifier", "convert", "material", "frommat", "internal",
                     "cycles", "cgroup", "pbr", "render", "camera", "light",
                     "guess", "animation", "files", "main", "finger",
                     "morphing", "tables", "proxy", "rigify", "merge", "hide",
-                    "load_json", "mhx", "layers", "fkik", "hair",
+                    "mhx", "layers", "fkik", "hair",
                     "transfer", "poser", "addon", "addons"]
         if bpy.app.version >= (2,82,0):
             modnames.append("udim")                    

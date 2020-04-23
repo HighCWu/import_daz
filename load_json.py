@@ -33,7 +33,6 @@ from .error import reportError
 
 
 def loadJson(filepath, mustOpen=False):
-    print("JSON", filepath)
     try:
         with gzip.open(filepath, 'rb') as fp:
             bytes = fp.read()
