@@ -416,6 +416,7 @@ class LoadMorph(PropFormulas):
                 min = skey.slider_min if theSettings.useDazPropLimits else None
                 max = skey.slider_max if theSettings.useDazPropLimits else None
                 makeShapekeyDriver(ob, prop, skey.value, self.rig, prop, min=min, max=max)
+                self.taken[prop] = self.built[prop] = True
                 props = [prop]
             elif self.rig and self.useBoneDrivers:
                 from .formula import buildShapeFormula
@@ -489,7 +490,7 @@ class LoadMorph(PropFormulas):
         self.buildOthers(missing)
         missing = [key for key in missing.keys() if missing[key]]
         if missing:
-            print("Failed to load the following morphs:\n%s\n" % missing)
+            print("Failed to load the following %d morphs:\n%s\n" % (len(missing), missing))
         updateDrivers(self.rig)
         updateDrivers(self.mesh)                       
         finishMain("Folder", folder, t1)

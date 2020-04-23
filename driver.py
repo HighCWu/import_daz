@@ -376,10 +376,19 @@ def makeShapekeyDriver(ob, sname, value, rig, prop, min=None, max=None):
 #   Don't know whether to use custom attributes or custom props with RNA_UI
 #-------------------------------------------------------------
 
+def truncateProp(prop):    
+    if len(prop) > 63:
+        print('Truncate property "%s"' % prop)
+        return prop[:63]
+    else:
+        return prop
+
+    
 def setFloatProp(ob, prop, value, min=None, max=None):
     value = float(value)
     min = float(min) if min is not None and theSettings.useDazPropLimits else theSettings.propMin
     max = float(max) if max is not None and theSettings.useDazPropLimits else theSettings.propMax
+    prop = truncateProp(prop)
     ob[prop] = value
     rna_ui = ob.get('_RNA_UI')
     if rna_ui is None:
@@ -388,6 +397,7 @@ def setFloatProp(ob, prop, value, min=None, max=None):
 
 
 def setBoolProp(ob, prop, value, desc=""):
+    prop = truncateProp(prop)
     ob[prop] = value
     rna_ui = ob.get('_RNA_UI')
     if rna_ui is None:

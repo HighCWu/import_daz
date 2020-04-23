@@ -662,6 +662,8 @@ class PropFormulas(PoseboneDriver):
             bname1 = getTargetName(bname, self.rig.pose.bones)
             if bname1 is None:
                 prop = asset.getProp(bname)
+                if prop in self.built.keys() and self.built[prop]:
+                    continue
                 struct = expr["value"]
                 key = asset.getProp(struct["prop"])
                 self.taken[key] = False
@@ -874,7 +876,7 @@ class PropFormulas(PoseboneDriver):
             bname = getTargetName(bname, self.rig.pose.bones)
             if bname is None:
                 continue
-            self.taken[prop] = self.built[prop] = True            
+            self.taken[prop] = self.built[prop] = True    
             
             pb = self.rig.pose.bones[bname]
             tfm = Transform()
