@@ -73,35 +73,42 @@ def getActiveCategories(scn, context):
 #   material.py   
 #   Tweak bump strength and height
 #
-#   (node type, socket, BI use, BI factor, isColor)
+#   (node type, socket, BI use, BI factor, # components, comes from)
 # ---------------------------------------------------------------------
 
 TweakableChannels = OrderedDict([
-    ("Bump Strength", ("BUMP", "Strength", "use_map_normal", "normal_factor", 1)),
-    ("Bump Distance", ("BUMP", "Distance", None, None, 1)),
-    ("Normal Strength", ("NORMAL_MAP", "Strength", "use_map_normal", "normal_factor", 1)),
+    ("Bump Strength", ("BUMP", "Strength", "use_map_normal", "normal_factor", 1, None)),
+    ("Bump Distance", ("BUMP", "Distance", None, None, 1, None)),
+    ("Normal Strength", ("NORMAL_MAP", "Strength", "use_map_normal", "normal_factor", 1, None)),
 
-    ("Diffuse Color", ("BSDF_DIFFUSE", "Color", None, None, 4)),
-    ("Diffuse Roughness", ("BSDF_DIFFUSE", "Roughness", None, None, 1)),
+    ("Diffuse Color", ("BSDF_DIFFUSE", "Color", None, None, 4, None)),
+    ("Diffuse Roughness", ("BSDF_DIFFUSE", "Roughness", None, None, 1, None)),
 
-    ("Glossy Color", ("BSDF_GLOSSY", "Color", None, None, 4)),
-    ("Glossy Roughness", ("BSDF_GLOSSY", "Roughness", None, None, 1)),
+    ("Glossy Color", ("BSDF_GLOSSY", "Color", None, None, 4, None)),
+    ("Glossy Roughness", ("BSDF_GLOSSY", "Roughness", None, None, 1, None)),
 
-    ("Translucency Color", ("BSDF_TRANSLUCENT", "Color", "use_map_translucency", "translucency_factor", 4)),
+    ("Translucency Color", ("BSDF_TRANSLUCENT", "Color", "use_map_translucency", "translucency_factor", 4, None)),
+    ("Translucency Strength", ("MIX_SHADER", "Fac", "use_map_translucency", "translucency_factor", 1, "BSDF_TRANSLUCENT")),
 
-    ("Subsurface Color", ("SUBSURFACE_SCATTERING", "Color", None, None, 4)),
-    ("Subsurface Scale", ("SUBSURFACE_SCATTERING", "Scale", None, None, 1)),
-    ("Subsurface Radius", ("SUBSURFACE_SCATTERING", "Radius", None, None, 3)),
+    ("Subsurface Color", ("SUBSURFACE_SCATTERING", "Color", None, None, 4, None)),
+    ("Subsurface Scale", ("SUBSURFACE_SCATTERING", "Scale", None, None, 1, None)),
+    ("Subsurface Radius", ("SUBSURFACE_SCATTERING", "Radius", None, None, 3, None)),
 
-    ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4)),
-    ("Principled Metallic", ("BSDF_PRINCIPLED", "Metallic", None, None, 1)),
-    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", None, None, 1)),
-    ("Principled Subsurface", ("BSDF_PRINCIPLED", "Subsurface", None, None, 1)),
-    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", None, None, 4)),
-    ("Principled Subsurface Radius", ("BSDF_PRINCIPLED", "Subsurface Radius", None, None, 3)),
-    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", None, None, 1)),
-    ("Principled Clearcoat", ("BSDF_PRINCIPLED", "Clearcoat", None, None, 1)),
-    ("Principled Clearcoat Roughness", ("BSDF_PRINCIPLED", "Clearcoat Roughness", None, None, 1)),
+    ("Volume Absorption Color", ("VOLUME_ABSORPTION", "Color", None, None, 4, None)),
+    ("Volume Absorption Density", ("VOLUME_ABSORPTION", "Density", None, None, 1, None)),
+
+    ("Volume Scatter Color", ("VOLUME_SCATTER", "Color", None, None, 4, None)),
+    ("Volume Scatter Density", ("VOLUME_SCATTER", "Density", None, None, 1, None)),
+
+    ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4, None)),
+    ("Principled Metallic", ("BSDF_PRINCIPLED", "Metallic", None, None, 1, None)),
+    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", None, None, 1, None)),
+    ("Principled Subsurface", ("BSDF_PRINCIPLED", "Subsurface", None, None, 1, None)),
+    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", None, None, 4, None)),
+    ("Principled Subsurface Radius", ("BSDF_PRINCIPLED", "Subsurface Radius", None, None, 3, None)),
+    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", None, None, 1, None)),
+    ("Principled Clearcoat", ("BSDF_PRINCIPLED", "Clearcoat", None, None, 1, None)),
+    ("Principled Clearcoat Roughness", ("BSDF_PRINCIPLED", "Clearcoat Roughness", None, None, 1, None)),
 ])
     
 

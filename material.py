@@ -1190,13 +1190,15 @@ def inputDiffers(node, slot, value):
 
 class ChannelChanger:
     def setChannel(self, ob, key, item):
-        nodetype, slot, useAttr, factorAttr, ncomps = TweakableChannels[key]
+        nodetype, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[key]
         for mat in ob.data.materials:            
             if mat and mat.use_nodes:
                 if self.skipMaterial(mat):
                     continue
                 for node in mat.node_tree.nodes.values():
                     if node.type == nodetype:
+                        if not self.comesFrom(node, mat, fromType):
+                            continue
                         socket = node.inputs[slot]
                         self.setOriginal(socket, ncomps, item)
                         self.setSocket(socket, ncomps, item)
@@ -1217,6 +1219,15 @@ class ChannelChanger:
                 self.setChannelInternal(mat, useAttr, factorAttr)
 
                 
+    def comesFrom(self, node, mat, fromType):
+        if fromType is None:
+            return True                            
+        for link in mat.node_tree.links.values():
+            if link.to_node == node and link.from_node.type == fromType:
+                return True
+        return False                
+
+
     def setChannelInternal(self, mat, useAttr, factorAttr):                 
         for mtex in mat.texture_slots:
             if mtex and getattr(mtex, useAttr):

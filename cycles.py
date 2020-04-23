@@ -76,11 +76,11 @@ class CyclesMaterial(Material):
             elif theSettings.renderMethod == 'BLENDER_EEVEE':
                 self.tree = PbrTree(self)
                 self.eevee = True
-            elif self.metallic:
-                self.tree = PbrTree(self)
             elif (self.dualLobeWeight or
                   (self.thinWalled and self.translucent)):
                 self.tree = CyclesTree(self)                
+            elif self.metallic:
+                self.tree = PbrTree(self)
             elif self.refractive:
                 if theSettings.handleRefractive in ['PRINCIPLED', 'GUESS']:
                     self.tree = PbrTree(self)
