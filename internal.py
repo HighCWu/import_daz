@@ -59,19 +59,19 @@ class InternalMaterial(Material, FromInternal):
         self.buildDiffuse(mat, scn)
         if self.isActive("Specular"):
             self.buildSpecular(mat)
-        if theSettings.useReflection and self.isActive("Reflection"):
+        if scn.DazUseReflection and self.isActive("Reflection"):
             self.buildReflection(mat)
-        if self.sssActive():
+        if self.sssActive(scn):
             self.buildSSS(mat)
-        if theSettings.useTranslucency and self.isActive("Translucency"):
+        if scn.DazUseTranslucency and self.isActive("Translucency"):
             self.buildTranslucency(mat)
-        if theSettings.useEmission and self.isActive("Emission"):
+        if scn.DazUseEmission and self.isActive("Emission"):
             self.buildEmission(mat)
         if self.isActive("Normal"):
             self.buildNormal(mat)
         if self.isActive("Bump"):
             self.buildBump(mat)
-        if theSettings.useDisplacement and self.isActive("Displacement"):
+        if scn.DazUseDisplacement and self.isActive("Displacement"):
             self.buildDisplacement(mat)
         self.buildTransparency(mat)
 

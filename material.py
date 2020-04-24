@@ -512,10 +512,10 @@ class Material(Asset, Channels):
         return False
 
 
-    def sssActive(self):
-        if not (self.isActive("Subsurface") and theSettings.useSSS):
+    def sssActive(self, scn):
+        if not (self.isActive("Subsurface") and scn.DazUseSSS):
             return False
-        if self.thinWalled:
+        if self.refractive or self.thinWalled:
             return False
         return True
 

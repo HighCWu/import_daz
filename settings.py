@@ -68,13 +68,6 @@ class Settings:
         self.useLimitLoc = True
         self.useConnect = True
 
-        self.useDisplacement = True
-        self.useNormal = True
-        self.useTranslucency = False
-        self.useSSS = False
-        self.useEmission = False
-        self.useReflection = True
-
         self.errorPath = ""
         self.useNothing()
 
@@ -143,12 +136,6 @@ class Settings:
         self.useLockLoc = (scn.DazUseLockLoc or scn.DazUseLimitLoc)
         self.useLimitRot = scn.DazUseLimitRot
         self.useLimitLoc = scn.DazUseLimitLoc
-
-        self.useDisplacement = scn.DazUseDisplacement
-        self.useTranslucency = scn.DazUseTranslucency
-        self.useSSS = scn.DazUseSSS
-        self.useEmission = scn.DazUseEmission
-        self.useReflection = scn.DazUseReflection
 
 
     def forImport(self, btn, scn):

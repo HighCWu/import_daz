@@ -60,9 +60,12 @@ class PbrTree(CyclesTree):
         self.active = self.pbr
         self.buildBumpNodes(scn)
         self.buildPBRNode(scn)
+        if self.normal:
+            self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Normal"])
+            self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Clearcoat Normal"])
         if (self.material.thinWalled or
             self.material.translucent):
-            self.buildTranslucency()        
+            self.buildTranslucency(scn)        
         self.buildOverlay()
         if self.material.dualLobeWeight > 0:
             self.buildDualLobe()
@@ -76,7 +79,7 @@ class PbrTree(CyclesTree):
             else:
                 self.buildRefraction()
         else:
-            self.buildEmission()
+            self.buildEmission(scn)
         return self.active        
     
     
@@ -93,14 +96,16 @@ class PbrTree(CyclesTree):
             CyclesTree.buildCutout(self)
 
 
-    def buildEmission(self):
-        if False and "Emission" in self.pbr.inputs.keys():
+    def buildEmission(self, scn):
+        if not scn.DazUseEmission:
+            return
+        elif False and "Emission" in self.pbr.inputs.keys():
             color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)
             self.pbr.inputs["Emission"].default_value[0:3] = color
             if tex:
                 self.links.new(tex.outputs[0], self.pbr.inputs["Emission"])
         else:
-            CyclesTree.buildEmission(self)
+            CyclesTree.buildEmission(self, scn)
 
 
     def mixGlass(self, scn):
@@ -110,13 +115,6 @@ class PbrTree(CyclesTree):
         else:
             self.active = self.glass
         self.tintSpecular()
-
-
-    def buildDisplacementNodes(self):
-        CyclesTree.buildDisplacementNodes(self)
-        if self.normal:
-            self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Normal"])
-            self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Clearcoat Normal"])
 
 
     def buildPBRNode(self, scn):
@@ -132,11 +130,8 @@ class PbrTree(CyclesTree):
 
         # Subsurface scattering
         unlikely = (self.material.thinWalled or self.material.translucent)
-        if (theSettings.useSSS and
-            self.material.sssActive() and
-            (theSettings.handleVolumetric == "SSS" or not unlikely) and
-            not self.material.refractive):
-
+        if (self.material.sssActive(scn) and
+            (theSettings.handleVolumetric == "SSS" or not unlikely)):
             wt,tex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
             self.linkScalar(tex, self.pbr, wt, "Subsurface")
             

@@ -331,7 +331,7 @@ class CyclesTree(FromCycles):
                 self.links.new(self.getTexco(uv), node.inputs["UV"])
                 self.active = node
         self.buildCutout()
-        self.buildDisplacementNodes()
+        self.buildDisplacementNodes(scn)
         self.buildOutput()
         self.prune()
 
@@ -341,13 +341,13 @@ class CyclesTree(FromCycles):
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
         if theSettings.handleVolumetric == "SSS":
-            self.buildSubsurface()
+            self.buildSubsurface(scn)
         elif (self.material.thinWalled or
             self.volume or
             self.material.translucent):
-            self.buildTranslucency()
+            self.buildTranslucency(scn)
         else:
-            self.buildSubsurface()
+            self.buildSubsurface(scn)
         self.buildOverlay()
         if self.material.dualLobeWeight == 1:
             self.buildDualLobe()
@@ -359,7 +359,7 @@ class CyclesTree(FromCycles):
         self.buildRefraction()
         self.linkGlossy()
         self.buildTopCoat()
-        self.buildEmission()
+        self.buildEmission(scn)
         return self.active
 
 
@@ -741,10 +741,10 @@ class CyclesTree(FromCycles):
 #   Translucency
 #-------------------------------------------------------------
 
-    def buildTranslucency(self):
+    def buildTranslucency(self, scn):
         if (self.material.refractive or
             not self.material.translucent or
-            not theSettings.useTranslucency or
+            not scn.DazUseTranslucency or
             theSettings.handleVolumetric == "SSS"):
             return
         mat = self.material.rna
@@ -770,10 +770,8 @@ class CyclesTree(FromCycles):
 #   Subsurface
 #-------------------------------------------------------------
 
-    def buildSubsurface(self):
-        if (self.material.refractive or
-            not theSettings.useSSS or 
-            not self.material.sssActive()):
+    def buildSubsurface(self, scn):
+        if not self.material.sssActive(scn):
             return
         wt,wttex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
         if wt > 0:
@@ -926,10 +924,10 @@ class CyclesTree(FromCycles):
 #   Emission
 #-------------------------------------------------------------
 
-    def buildEmission(self):
+    def buildEmission(self, scn):
         # Emission
         channel = self.material.getChannelEmissionColor()
-        if channel and theSettings.useEmission:
+        if channel and scn.DazUseEmission:
             color = self.material.getChannelColor(channel, BLACK)
             if (color != BLACK): 
                 emit = self.addNode(6, "ShaderNodeEmission")
@@ -1043,11 +1041,11 @@ class CyclesTree(FromCycles):
                 self.links.new(node.outputs[0], lie.inputs["Alpha"])
 
 
-    def buildDisplacementNodes(self):
+    def buildDisplacementNodes(self, scn):
         channel = self.material.getChannelDisplacement()
         if not( channel and
                 self.material.isActive("Displacement") and
-                theSettings.useDisplacement):
+                scn.DazUseDisplacement):
             return
         tex = self.addTexImageNode(channel, "NONE")
         if tex:
