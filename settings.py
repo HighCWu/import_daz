@@ -147,7 +147,6 @@ class Settings:
         self.useDisplacement = scn.DazUseDisplacement
         self.useTranslucency = scn.DazUseTranslucency
         self.useSSS = scn.DazUseSSS
-        self.useTextures = scn.DazUseTextures
         self.useEmission = scn.DazUseEmission
         self.useReflection = scn.DazUseReflection
 

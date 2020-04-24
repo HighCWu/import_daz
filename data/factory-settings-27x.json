@@ -67,7 +67,6 @@
     "DazUsePropLimits": true,
     "DazUseReflection": true,
     "DazUseSSS": true,
-    "DazUseTextures": true,
     "DazUseTranslucency": true,
     "DazVerbosity": 2,
     "DazZup": true

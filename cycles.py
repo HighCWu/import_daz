@@ -462,7 +462,7 @@ class CyclesTree(FromCycles):
 
         # Normal map
         channel = self.material.getChannelNormal()
-        if channel and self.material.isActive("Normal") and theSettings.useTextures:
+        if channel and self.material.isActive("Normal"):
             tex = self.addTexImageNode(channel, "NONE")
             #_,tex = self.getColorTex("getChannelNormal", "NONE", BLACK)
             if self.material.uv_set:
@@ -483,7 +483,7 @@ class CyclesTree(FromCycles):
 
         # Bump map
         channel = self.material.getChannelBump()
-        if channel and self.material.isActive("Bump") and theSettings.useTextures:
+        if channel and self.material.isActive("Bump"):
             #tex = self.addTexImageNode(channel, "NONE")
             _,tex = self.getColorTex("getChannelBump", "NONE", 0, False)
             if tex:
@@ -521,7 +521,7 @@ class CyclesTree(FromCycles):
             self.diffuse = self.active = self.addNode(5, "ShaderNodeBsdfDiffuse")
             self.linkColor(tex, self.diffuse, color, "Color")
             roughness = clamp( self.getValue(["Diffuse Roughness"], scn.DazDiffuseRoughness) )
-            self.addSlot(channel, self.diffuse, "Roughness", roughness, roughness, False, True)
+            self.addSlot(channel, self.diffuse, "Roughness", roughness, roughness, False)
             self.linkNormal(self.diffuse)
 
 
@@ -656,7 +656,7 @@ class CyclesTree(FromCycles):
         if bpy.app.version < (2,80):
             roughness = roughness**2
             value = value**2
-        roughtex = self.addSlot(channel, self.glossy, "Roughness", roughness, value, invert, theSettings.useTextures)
+        roughtex = self.addSlot(channel, self.glossy, "Roughness", roughness, value, invert)
         self.linkNormal(self.glossy)
 
         from .cgroup import FresnelGroup
@@ -748,7 +748,6 @@ class CyclesTree(FromCycles):
             theSettings.handleVolumetric == "SSS"):
             return
         mat = self.material.rna
-        mat.DazUseTranslucency = True
         color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
         luc = self.addNode(5, "ShaderNodeBsdfTranslucent")
         luc.inputs["Color"].default_value[0:3] = color
@@ -1254,10 +1253,8 @@ class CyclesTree(FromCycles):
         return tex
 
 
-    def addSlot(self, channel, node, slot, value, value0, invert, useTex):
+    def addSlot(self, channel, node, slot, value, value0, invert):
         node.inputs[slot].default_value = value
-        if not useTex:
-            return None
         tex = self.addTexImageNode(channel, "NONE")
         if tex:
             tex = self.fixTex(tex, value0, invert)

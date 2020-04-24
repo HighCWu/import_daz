@@ -85,7 +85,6 @@ class GeoNode(Node):
         scn = context.scene
         if ob:
             ob.DazUseSSS = scn.DazUseSSS
-            ob.DazUseTranslucency = scn.DazUseTranslucency
             ob.DazUseDisplacement = scn.DazUseDisplacement
         if ob and self.data:
             self.data.buildRigidity(ob)

@@ -160,7 +160,7 @@ class PbrTree(CyclesTree):
         # Roughness
         channel,invert,value,roughness = self.getGlossyRoughness()
         roughness *= (1 + anisotropy)
-        self.addSlot(channel, self.pbr, "Roughness", roughness, value, invert, theSettings.useTextures)
+        self.addSlot(channel, self.pbr, "Roughness", roughness, value, invert)
 
         # Specular
         strength,strtex = self.getColorTex("getChannelSpecularStrength", "NONE", 1.0, False)

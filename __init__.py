@@ -439,7 +439,6 @@ class DAZ_PT_Settings(bpy.types.Panel):
             box.prop(scn, "DazMergeShells")
             box.prop(scn, "DazMaxBump")
             box.separator()
-            box.prop(scn, "DazUseTextures")
             box.prop(scn, "DazUseDisplacement")
             box.prop(scn, "DazUseTranslucency")
             box.prop(scn, "DazUseSSS")

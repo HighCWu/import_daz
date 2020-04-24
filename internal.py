@@ -221,7 +221,6 @@ class InternalMaterial(Material, FromInternal):
         channel = self.getChannelTranslucencyWeight()
         if channel:
             mat.translucency = self.getChannelValue(channel, 1.0)
-            mat.DazUseTranslucency = True
             for mtex in self.buildMtexs(channel, "sRGB"):
                 if mtex and not mtex.use_stencil:
                     mtex.use_map_translucency = True

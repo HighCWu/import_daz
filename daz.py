@@ -350,9 +350,6 @@ def initialize():
         description = "Use translucency.",
         default = True)
 
-    bpy.types.Object.DazUseTranslucency = BoolProperty(default=True)
-    bpy.types.Material.DazUseTranslucency = BoolProperty(default=False)
-
     bpy.types.Scene.DazUseSSS = BoolProperty(
         name = "SSS",
         description = "Use subsurface scattering.",
@@ -360,14 +357,6 @@ def initialize():
 
     bpy.types.Object.DazUseSSS = BoolProperty(default=True)
     bpy.types.Material.DazUseSSS = BoolProperty(default=False)
-
-    bpy.types.Scene.DazUseTextures = BoolProperty(
-        name = "Textures",
-        description = "Use textures in all channels.",
-        default = True)
-
-    bpy.types.Object.DazUseTextures = BoolProperty(default=True)
-    bpy.types.Material.DazUseTextures = BoolProperty(default=False)
 
     bpy.types.Scene.DazUseNormal = BoolProperty(
         name = "Normal",
