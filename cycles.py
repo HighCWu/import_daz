@@ -340,7 +340,6 @@ class CyclesTree(FromCycles):
         scn = context.scene
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
-        self.buildOverlay()
         if theSettings.handleVolumetric == "SSS":
             self.buildSubsurface()
         elif (self.material.thinWalled or
@@ -349,6 +348,7 @@ class CyclesTree(FromCycles):
             self.buildTranslucency()
         else:
             self.buildSubsurface()
+        self.buildOverlay()
         if self.material.dualLobeWeight == 1:
             self.buildDualLobe()
         elif self.material.dualLobeWeight == 0:
@@ -528,18 +528,33 @@ class CyclesTree(FromCycles):
     def buildOverlay(self):
         weight = self.getValue(["Diffuse Overlay Weight"], 0)
         if weight:
-            node = self.addNode(5, "ShaderNodeBsdfDiffuse")
-            square = self.getValue(["Diffuse Overlay Weight Squared"], False)
-            if square:
-                weight = weight * weight
-
+            if self.getValue(["Diffuse Overlay Weight Squared"], False):
+                power = 4
+            else:
+                power = 2
             color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE)
+            if tex:
+                tex1 = self.raiseToPower(tex, power, 5)
+            else:
+                tex1 = tex
+            node = self.addNode(5, "ShaderNodeBsdfDiffuse")
             self.linkColor(tex, node, color, "Color")
-
             roughness,roughtex = self.getColorTex(["Diffuse Overlay Roughness"], "NONE", 0, False)
             self.setRoughness(node, "Roughness", roughness, roughtex)
             self.linkNormal(node)
-            self.mixWithActive(weight, tex, node, col=6)
+            self.mixWithActive(weight^power, tex1, node, col=6)
+
+
+    def raiseToPower(self, tex, power, col):
+        node = self.addNode(col, "ShaderNodeMath")
+        node.operation = 'POWER'
+        node.inputs[1].default_value = power
+        if "Alpha" in tex.outputs.keys():
+            slot = "Alpha"
+        else:
+            slot = 0
+        self.links.new(tex.outputs[slot], node.inputs[0])
+        return node
 
 
     def getColorTex(self, attr, colorSpace, default, useFactor=True, useTex=True, maxval=0, value=None):
