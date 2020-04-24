@@ -440,8 +440,6 @@ class DAZ_PT_Settings(bpy.types.Panel):
             box.prop(scn, "DazMaxBump")
             box.separator()
             box.prop(scn, "DazUseDisplacement")
-            box.prop(scn, "DazUseTranslucency")
-            box.prop(scn, "DazUseSSS")
             box.prop(scn, "DazUseEmission")
             box.prop(scn, "DazUseReflection")
             if bpy.app.version < (2,80,0):

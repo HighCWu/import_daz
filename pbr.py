@@ -99,11 +99,10 @@ class PbrTree(CyclesTree):
     def buildEmission(self, scn):
         if not scn.DazUseEmission:
             return
-        elif False and "Emission" in self.pbr.inputs.keys():
+        elif "Emission" in self.pbr.inputs.keys():
             color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)
-            self.pbr.inputs["Emission"].default_value[0:3] = color
-            if tex:
-                self.links.new(tex.outputs[0], self.pbr.inputs["Emission"])
+            if color != BLACK:
+                self.linkColor(tex, self.pbr, color, "Emission")
         else:
             CyclesTree.buildEmission(self, scn)
 

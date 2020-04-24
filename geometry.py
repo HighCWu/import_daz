@@ -83,9 +83,6 @@ class GeoNode(Node):
         ob = self.rna
         self.storeRna(ob)
         scn = context.scene
-        if ob:
-            ob.DazUseSSS = scn.DazUseSSS
-            ob.DazUseDisplacement = scn.DazUseDisplacement
         if ob and self.data:
             self.data.buildRigidity(ob)
 

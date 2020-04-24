@@ -63,7 +63,7 @@ class InternalMaterial(Material, FromInternal):
             self.buildReflection(mat)
         if self.sssActive(scn):
             self.buildSSS(mat)
-        if scn.DazUseTranslucency and self.isActive("Translucency"):
+        if self.isActive("Translucency"):
             self.buildTranslucency(mat)
         if scn.DazUseEmission and self.isActive("Emission"):
             self.buildEmission(mat)
@@ -199,7 +199,6 @@ class InternalMaterial(Material, FromInternal):
         if amount == 0:
             return
         sss = mat.subsurface_scattering
-        mat.DazUseSSS = True
         sss.use = True
         sss.scale = 0.1 * theSettings.scale
         sss.color_factor = amount
@@ -296,13 +295,11 @@ class InternalMaterial(Material, FromInternal):
             for mtex in self.buildMtexs(channel, "Non-Color"):
                 if mtex and not mtex.use_stencil:
                     self.setDisplacementSettings(channel, mtex)
-                    mat.DazUseDisplacement = True
             for shname,shmat,uv in self.shells:
                 continue
                 mtex = self.buildShellMTex(shmat, "getChannelDisplacement", uv, "Non-Color")
                 if mtex:
                     shell.setDisplacementSettings(channel, mtex)
-                    mat.DazUseDisplacement = True
 
 
     def setDisplacementSettings(self, channel, mtex):

@@ -342,38 +342,6 @@ def initialize():
         description = "Use displacement maps. Affects internal renderer only",
         default = True)
 
-    bpy.types.Object.DazUseDisplacement = BoolProperty(default=True)
-    bpy.types.Material.DazUseDisplacement = BoolProperty(default=False)
-
-    bpy.types.Scene.DazUseTranslucency = BoolProperty(
-        name = "Translucency",
-        description = "Use translucency.",
-        default = True)
-
-    bpy.types.Scene.DazUseSSS = BoolProperty(
-        name = "SSS",
-        description = "Use subsurface scattering.",
-        default = True)
-
-    bpy.types.Object.DazUseSSS = BoolProperty(default=True)
-    bpy.types.Material.DazUseSSS = BoolProperty(default=False)
-
-    bpy.types.Scene.DazUseNormal = BoolProperty(
-        name = "Normal",
-        description = "Use normal maps.",
-        default = True)
-
-    bpy.types.Object.DazUseNormal = BoolProperty(default=True)
-    bpy.types.Material.DazUseNormal = BoolProperty(default=False)
-
-    bpy.types.Scene.DazUseBump = BoolProperty(
-        name = "Bump",
-        description = "Use bump maps.",
-        default = True)
-
-    bpy.types.Object.DazUseBump = BoolProperty(default=True)
-    bpy.types.Material.DazUseBump = BoolProperty(default=False)
-
     bpy.types.Scene.DazUseEmission = BoolProperty(
         name = "Emission",
         description = "Use emission.",

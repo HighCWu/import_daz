@@ -744,7 +744,6 @@ class CyclesTree(FromCycles):
     def buildTranslucency(self, scn):
         if (self.material.refractive or
             not self.material.translucent or
-            not scn.DazUseTranslucency or
             theSettings.handleVolumetric == "SSS"):
             return
         mat = self.material.rna
@@ -775,8 +774,6 @@ class CyclesTree(FromCycles):
             return
         wt,wttex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
         if wt > 0:
-            mat = self.material.rna
-            mat.DazUseSSS = True
             sss = self.addNode(5, "ShaderNodeSubsurfaceScattering")
             color,tex = self.getColorTex("getChannelSSSColor", "COLOR", WHITE)
             if tex:
@@ -925,43 +922,41 @@ class CyclesTree(FromCycles):
 #-------------------------------------------------------------
 
     def buildEmission(self, scn):
-        # Emission
-        channel = self.material.getChannelEmissionColor()
-        if channel and scn.DazUseEmission:
-            color = self.material.getChannelColor(channel, BLACK)
-            if (color != BLACK): 
-                emit = self.addNode(6, "ShaderNodeEmission")
-                tex = self.addTexImageNode(channel, "COLOR")
-                emit.inputs["Color"].default_value[0:3] = color
-                if tex:
+        if not scn.DazUseEmission:
+            return
+        color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)
+        if (color != BLACK): 
+            emit = self.addNode(6, "ShaderNodeEmission")
+            emit.inputs["Color"].default_value[0:3] = color
+            if tex:
+                self.linkColor(tex, emit, color)
+            else:
+                channel = self.material.getChannel(["Luminance"])
+                if channel:
+                    tex = self.addTexImageNode(channel, "COLOR")
                     self.linkColor(tex, emit, color)
-                else:
-                    channel = self.material.getChannel(["Luminance"])
-                    if channel:
-                        tex = self.addTexImageNode(channel, "COLOR")
-                        self.linkColor(tex, emit, color)
 
-                lum = self.getValue(["Luminance"], 1500)
-                # "cd/m^2", "kcd/m^2", "cd/ft^2", "cd/cm^2", "lm", "W"
-                units = self.getValue(["Luminance Units"], 3)
-                factors = [1, 1000, 10.764, 10000, 1, 1]
-                strength = lum/2 * factors[units] / 15000
-                if units >= 4:
-                    self.material.geosockets.append(emit.inputs["Strength"])
-                    if units == 5:
-                        strength *= self.getValue(["Luminous Efficacy"], 1)
-                emit.inputs["Strength"].default_value = strength
+            lum = self.getValue(["Luminance"], 1500)
+            # "cd/m^2", "kcd/m^2", "cd/ft^2", "cd/cm^2", "lm", "W"
+            units = self.getValue(["Luminance Units"], 3)
+            factors = [1, 1000, 10.764, 10000, 1, 1]
+            strength = lum/2 * factors[units] / 15000
+            if units >= 4:
+                self.material.geosockets.append(emit.inputs["Strength"])
+                if units == 5:
+                    strength *= self.getValue(["Luminous Efficacy"], 1)
+            emit.inputs["Strength"].default_value = strength
 
-                twosided = self.getValue(["Two Sided Light"], False)
-                if not twosided:
-                    geo = self.addNode(6, "ShaderNodeNewGeometry")
-                    trans = self.addNode(6, "ShaderNodeBsdfTransparent")
-                    mix = self.addNode(7, "ShaderNodeMixShader")
-                    self.links.new(geo.outputs["Backfacing"], mix.inputs[0])
-                    self.links.new(emit.outputs[0], mix.inputs[1])
-                    self.links.new(trans.outputs[0], mix.inputs[2])
-                    emit = mix
-                self.addToActive(emit, 8)
+            twosided = self.getValue(["Two Sided Light"], False)
+            if not twosided:
+                geo = self.addNode(6, "ShaderNodeNewGeometry")
+                trans = self.addNode(6, "ShaderNodeBsdfTransparent")
+                mix = self.addNode(7, "ShaderNodeMixShader")
+                self.links.new(geo.outputs["Backfacing"], mix.inputs[0])
+                self.links.new(emit.outputs[0], mix.inputs[1])
+                self.links.new(trans.outputs[0], mix.inputs[2])
+                emit = mix
+            self.addToActive(emit, 8)
 
 
     def invertColor(self, color, tex, col):

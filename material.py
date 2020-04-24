@@ -513,7 +513,7 @@ class Material(Asset, Channels):
 
 
     def sssActive(self, scn):
-        if not (self.isActive("Subsurface") and scn.DazUseSSS):
+        if not self.isActive("Subsurface"):
             return False
         if self.refractive or self.thinWalled:
             return False
@@ -1356,55 +1356,6 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelChanger, IsMesh):
         pass
 
 # ---------------------------------------------------------------------
-#   Toggle SSS and displacement for BI
-# ---------------------------------------------------------------------
-
-class DAZ_OT_ToggleSSS(DazOperator, IsMesh):
-    bl_idname = "daz.toggle_sss"
-    bl_label = "Toggle SSS"
-    bl_description = "Toggle subsurface scattering on/off for selected meshes"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        value = 0 if context.object.DazUseSSS else 1
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'MESH':
-                for mat in ob.data.materials:
-                    if mat.DazUseSSS:
-                        if mat.node_tree:
-                            for link in mat.node_tree.links:
-                                if link.from_node.type == 'SUBSURFACE_SCATTERING':
-                                    mix = link.to_node
-                                    if mix.type == 'MIX_SHADER':
-                                        mix.inputs[0].default_value = 0.5*value
-                        else:
-                            mat.subsurface_scattering.use = value
-                ob.DazUseSSS = value
-
-    def skipMaterial(self, mat):
-        return False
-
-
-class DAZ_OT_ToggleDisplacement(DazOperator, IsMesh):
-    bl_idname = "daz.toggle_displacement"
-    bl_label = "Toggle Displacement"
-    bl_description = "Toggle displacement on/off for selected meshes"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        value = False if context.object.DazUseDisplacement else True
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'MESH':
-                for mat in ob.data.materials:
-                    if mat.node_tree:
-                        pass
-                    else:
-                        for n,mtex in enumerate(mat.texture_slots):
-                            if mtex and mtex.use_map_displacement:
-                                mat.use_textures[n] = value
-                ob.DazUseDisplacement = value
-
-# ---------------------------------------------------------------------
 #   Share materials
 # ---------------------------------------------------------------------
 
@@ -1672,8 +1623,6 @@ classes = [
     DAZ_OT_MergeMaterials,
     DAZ_OT_LaunchEditor,
     DAZ_OT_ResetMaterial,
-    DAZ_OT_ToggleSSS,
-    DAZ_OT_ToggleDisplacement,
     DAZ_OT_ShareMaterials,
     DAZ_OT_LoadMaterial,
     DAZ_OT_ChangeResolution,
