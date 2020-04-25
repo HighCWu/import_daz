@@ -523,6 +523,7 @@ class CyclesTree(FromCycles):
             roughness = clamp( self.getValue(["Diffuse Roughness"], scn.DazDiffuseRoughness) )
             self.addSlot(channel, self.diffuse, "Roughness", roughness, roughness, False)
             self.linkNormal(self.diffuse)
+            theSettings.usedFeatures["Diffuse"] = True
 
 
     def buildOverlay(self):
@@ -633,6 +634,7 @@ class CyclesTree(FromCycles):
         self.dualLobe.inputs["Fac"].default_value = fac
 
         self.linkNormal(self.dualLobe)
+        theSettings.usedFeatures["Glossy"] = True
 
 
     def buildGlossy(self):
@@ -670,6 +672,7 @@ class CyclesTree(FromCycles):
             self.links.new(roughtex.outputs[0], fresnel.inputs["Roughness"])
         self.linkNormal(fresnel)
         self.fresnel = fresnel
+        theSettings.usedFeatures["Glossy"] = True
 
 
     def getFresnelIOR(self):
@@ -759,6 +762,7 @@ class CyclesTree(FromCycles):
             fac = 0.5 + fac/2
             self.setMultiplier(factex, fac)
         self.mixWithActive(fac, factex, luc)
+        theSettings.usedFeatures["Transparent"] = True
 
 
     def setMultiplier(self, node, fac):
@@ -789,6 +793,7 @@ class CyclesTree(FromCycles):
             self.linkNormal(sss)
             fac = clamp(wt/(1+wt))
             self.mixWithActive(wt, wttex, sss)
+            theSettings.usedFeatures["Transparent"] = True
 
 #-------------------------------------------------------------
 #   Transparency
@@ -845,6 +850,7 @@ class CyclesTree(FromCycles):
             self.active = self.addMixShader(4, alpha, channel, None, fresnel, transp, glossy)
             self.buildOutput()
             self.prune()
+            theSettings.usedFeatures["Transparent"] = True
             return True
         else:
             return False
@@ -903,6 +909,7 @@ class CyclesTree(FromCycles):
 
             self.linkNormal(node)
             self.refraction = node
+            theSettings.usedFeatures["Transparent"] = True
 
 
     def buildCutout(self):
@@ -916,6 +923,7 @@ class CyclesTree(FromCycles):
                 self.material.alphaBlend(alpha, imgfile)
                 #node.inputs["Color"].default_value[0:3] = (value,value,value)
                 self.active = self.addMixShader(5, alpha, channel, imgfile, None, node, self.active)
+                theSettings.usedFeatures["Transparent"] = True
 
 #-------------------------------------------------------------
 #   Emission
@@ -1019,6 +1027,7 @@ class CyclesTree(FromCycles):
             self.volume = absorb
         elif scatter:
             self.volume = scatter  
+        theSettings.usedFeatures["Volume"] = True
             
 
     def buildOutput(self):

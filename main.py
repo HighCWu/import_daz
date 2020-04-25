@@ -132,6 +132,11 @@ def getMainAsset(filepath, context, btn):
         msg = ("Some assets were not found.\nCheck that all Daz paths have been set up correctly.        ")
         raise DazError(msg, warning=True)
 
+    from .material import checkRenderSettings
+    msg = checkRenderSettings(context)
+    if msg:
+        raise DazError(msg, warning=True)
+
 
 def renameAndGroup(main, grpname, context, coll):
     from .figure import FigureInstance

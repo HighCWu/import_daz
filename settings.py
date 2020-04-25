@@ -67,6 +67,8 @@ class Settings:
         self.useLimitRot = True
         self.useLimitLoc = True
         self.useConnect = True
+        
+        self.usedFeatures = {}        
 
         self.errorPath = ""
         self.useNothing()
@@ -136,6 +138,14 @@ class Settings:
         self.useLockLoc = (scn.DazUseLockLoc or scn.DazUseLimitLoc)
         self.useLimitRot = scn.DazUseLimitRot
         self.useLimitLoc = scn.DazUseLimitLoc
+        
+        self.usedFeatures = {
+            "Bounces" : True,
+            "Diffuse" : False,
+            "Glossy" : False,
+            "Transparent" : False,
+            "Volume" : False,
+        }
 
 
     def forImport(self, btn, scn):

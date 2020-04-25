@@ -1593,6 +1593,57 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, B.MultiFile, B.ResizeOptio
         self.replaceTextures(context)                
 
 #----------------------------------------------------------
+#   Render settings
+#----------------------------------------------------------
+
+def checkRenderSettings(context):
+    scn = context.scene
+    if scn.DazHandleRenderSettings == "IGNORE":
+        return
+    if scn.render.engine in ["BLENDER_RENDER", "BLENDER_GAME"]:
+        return
+    elif scn.render.engine == "CYCLES":    
+        settings = scn.cycles
+    else:
+        return
+        
+    minSettings = {
+        "Bounces" : [("max_bounces", 8)],
+        "Diffuse" : [("diffuse_bounces", 4)],
+        "Glossy" : [("glossy_bounces", 1)],
+        "Transparent" : [("transparent_max_bounces", 8),
+                         ("transmission_bounces", 2),
+                         ("caustics_refractive", True),
+                         ("caustics_reflective", True)],
+        "Volume" : [("volume_bounces", 2)],
+    }
+    ok = True
+    print("Render Settings:")
+    for key,used in theSettings.usedFeatures.items():
+        if used:
+            for attr,minval in minSettings[key]:
+                val = getattr(settings, attr)                
+                if isinstance(val, bool) and val != minval:
+                    ok = False
+                    print("  %s: %d != %d" % (attr, val, minval))
+                    if scn.DazHandleRenderSettings == "UPDATE":
+                        setattr(settings, attr, minval)
+                elif isinstance(val, int) and val < minval:
+                    ok = False
+                    print("  %s: %d < %d" % (attr, val, minval))
+                    if scn.DazHandleRenderSettings == "UPDATE":
+                        setattr(settings, attr, minval)
+    if not ok:
+        if scn.DazHandleRenderSettings == "WARN":
+            msg = "Render settings are insufficient to render this scene correctly."
+        else:
+            msg = "Render settings have been update to minimal requirements for this scene."
+        msg += "\nSee http://diffeomorphic.blogspot.com/2020/04/minimal-render-settings.html for details."
+        return msg
+    else:
+        return ""
+
+#----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
@@ -1614,6 +1665,14 @@ def initialize():
     bpy.types.Object.DazChannelFactors = CollectionProperty(type = B.DazChannelFactor)
     bpy.types.Object.DazChannelValues = CollectionProperty(type = B.DazChannelFactor)
     bpy.types.Object.DazLocalTextures = BoolProperty(default = False)
+    
+    bpy.types.Scene.DazHandleRenderSettings = EnumProperty(
+        items = [("IGNORE", "Ignore", "Ignore insufficient render settings"),
+                 ("WARN", "Warn", "Warn about insufficient render settings"),
+                 ("UPDATE", "Update", "Update insufficient render settings")],
+        name = "Render Settings",
+        default = "UPDATE"
+    )                 
     
 
 def uninitialize():
