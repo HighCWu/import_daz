@@ -67,7 +67,7 @@ def importModules():
                     "guess", "animation", "files", "main", "finger",
                     "morphing", "tables", "proxy", "rigify", "merge", "hide",
                     "mhx", "layers", "fkik", "hair",
-                    "transfer", "poser", "addon", "addons"]
+                    "transfer", "addon", "addons"]
         if bpy.app.version >= (2,82,0):
             modnames.append("udim")                    
         anchor = os.path.basename(__file__[0:-12])
@@ -1127,7 +1127,6 @@ def register():
     mhx.initialize()
     morphing.initialize()
     objfile.initialize()
-    poser.initialize()
     proxy.initialize()
     rigify.initialize()
     transfer.initialize()
@@ -1168,7 +1167,6 @@ def unregister():
     mhx.uninitialize()
     morphing.uninitialize()
     objfile.uninitialize()
-    poser.uninitialize()
     proxy.uninitialize()
     rigify.uninitialize()
     transfer.uninitialize()

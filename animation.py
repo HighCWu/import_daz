@@ -35,7 +35,7 @@ from .error import *
 from .utils import *
 from .transform import Transform
 from .settings import theSettings
-from .globvars import theDazExtensions, thePoserExtensions, theRestPoseItems
+from .globvars import theDazExtensions, theRestPoseItems
 from .formula import PoseboneDriver
 
 
@@ -706,7 +706,6 @@ class StandardAnimation:
     def run(self, context):
         import time
         from .main import finishMain
-        from .poser import loadPoserAnimation
         from .fileutils import getMultiFiles
 
         rig = context.object
@@ -727,10 +726,9 @@ class StandardAnimation:
         print("\n--------------------")
 
         dazfiles = getMultiFiles(self, theDazExtensions)
-        poserfiles = getMultiFiles(self, thePoserExtensions)
-        nfiles = len(dazfiles) + len(poserfiles)
+        nfiles = len(dazfiles)
         if nfiles == 0:
-            raise DazError("No corresponding DAZ or Poser file selected")
+            raise DazError("No corresponding DAZ file selected")
         self.verbose = (nfiles == 1)
 
         for filepath in dazfiles:
@@ -738,9 +736,6 @@ class StandardAnimation:
             offset,prop = self.getSingleAnimation(filepath, rig, scn, offset, missing)
             if prop:
                 props.append(prop)
-
-        if poserfiles:
-            loadPoserAnimation(self, context, poserfiles)
 
         finishMain("File", self.filepath, t1)
         scn.frame_current = startframe

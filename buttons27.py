@@ -589,23 +589,6 @@ class Pinning:
     )
 
 #-------------------------------------------------------------
-#   poser.py
-#-------------------------------------------------------------
-
-class ScaleLock:
-    unitScale = FloatProperty(
-        name = "Unit Scale",
-        description = "Scale used to convert between DAZ and Blender units. Default unit meters",
-        default = 0.01,
-        precision = 3,
-        min = 0.001, max = 10.0)
-
-    lockMeshes = BoolProperty(
-        name = "Lock Meshes",
-        description = "Lock meshes with armature modifier",
-        default = True)
-
-#-------------------------------------------------------------
 #   transfer.py
 #-------------------------------------------------------------
 
@@ -707,7 +690,7 @@ class SingleFile(ImportHelper):
 
 class AnimatorFile:
     filename_ext = ".duf"
-    filter_glob = StringProperty(default = G.theDazDefaults + G.theImagedDefaults + G.thePoserDefaults, options={'HIDDEN'})
+    filter_glob = StringProperty(default = G.theDazDefaults + G.theImagedDefaults, options={'HIDDEN'})
 
 
 class JsonFile:
@@ -743,11 +726,6 @@ class DazFile:
 class DatFile:
     filename_ext = ".dat"
     filter_glob = StringProperty(default="*.dat", options={'HIDDEN'})
-
-
-class PoserFile:
-    filename_ext = ".pz2"
-    filter_glob = StringProperty(default=G.theImagedPoserDefaults, options={'HIDDEN'})
 
 
 class TextFile:

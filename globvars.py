@@ -39,11 +39,6 @@ theDazExtensions = ["dsf", "duf"]
 theDazUpcaseExtensions = [ext.upper() for ext in theDazExtensions]
 theDazDefaults = ";".join(["*.%s" % ext for ext in theDazExtensions+theDazUpcaseExtensions])
 
-thePoserExtensions = ["pp2", "pz2", "cr2", "pp3", "pz3", "cr3"]
-thePoserUpcaseExtensions = [ext.upper() for ext in thePoserExtensions]
-thePoserDefaults = ";".join(["*.%s" % ext for ext in thePoserExtensions+thePoserUpcaseExtensions])
-theImagedPoserDefaults = theImagedDefaults + thePoserDefaults
-
 #-------------------------------------------------------------
 #   convert.py
 #-------------------------------------------------------------
