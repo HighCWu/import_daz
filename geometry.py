@@ -689,64 +689,6 @@ class DAZ_OT_RestoreUDims(DazOperator):
                 restoreUDims(ob)
 
 #-------------------------------------------------------------
-#   Solidify thin walls
-#-------------------------------------------------------------
-
-class DAZ_OT_SolidifyThinWalls(DazOperator, IsMesh):
-    bl_idname = "daz.solidify_thin_walls"
-    bl_label = "Solidify Thin Walls"
-    bl_description = "Create solidify modifiers for materials with thin wall refraction"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        for ob in getSceneObjects(context):
-            setSelected(ob, False)
-        ob = context.object
-        setSelected(ob, True)
-        mnums = []
-        mats = []
-        for mn,mat in enumerate(ob.data.materials):
-            if mat and mat.DazThinGlass:
-                mnums.append(mn)
-                mat.DazThinGlass = False
-
-        if mnums:
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.mesh.select_all(action='DESELECT')
-            bpy.ops.object.mode_set(mode='OBJECT')
-            for f in ob.data.polygons:
-                if f.material_index in mnums:
-                    f.select = True
-
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.mesh.separate(type='SELECTED')
-            bpy.ops.object.mode_set(mode='OBJECT')
-            setSelected(ob, False)
-            nob = None
-            for ob1 in getSceneObjects(context):
-                if getSelected(ob1):
-                    nob = ob1
-            nob.name = ob.name+"Sep"
-
-            mod = nob.modifiers.new("Solidify", 'SOLIDIFY')
-            #mod.show_render = mod.show_viewport = False
-            mod.thickness = -0.03 * nob.DazScale
-            mod.offset = 1
-            mod.use_even_offset = True
-            mod.use_rim = True
-
-            for mn,mat in enumerate(ob.data.materials):
-                if mn in mnums:
-                    ob.data.materials[mn] = None
-                else:
-                    nob.data.materials[mn] = None
-
-            #bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Solidify")
-        else:
-            msg = ("%s has no\nthin-walled materials that       \ncan be solidified" % ob.name)
-            raise DazError(msg)
-
-#-------------------------------------------------------------
 #   Load UVs
 #-------------------------------------------------------------
 
@@ -792,42 +734,6 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
                         uvloop.data[m].uv = uv
                     m += 1
 
-#-------------------------------------------------------------
-#   Utility to share meshes
-#-------------------------------------------------------------
-
-def sameMeshes(mesh1, mesh2, threshold):
-    if mesh1 == mesh2:
-        return False
-    if len(mesh1.vertices) != len(mesh2.vertices):
-        return False
-    verts1 = mesh1.vertices
-    verts2 = mesh2.vertices
-    dists = [(verts1[n].co - verts2[n].co).length for n in range(len(verts1))]
-    return (max(dists) < threshold)
-
-
-def shareMyMesh(mesh, context):
-    for ob in getSceneObjects(context):
-        if (getSelected(ob) and
-            ob.type == 'MESH' and
-            sameMeshes(ob.data, mesh, scn.DazShareThreshold)):
-            print("  ", ob.name)
-            ob.data = mesh
-
-
-class DAZ_OT_ShareMeshes(DazOperator, IsMesh):
-    bl_idname = "daz.share_meshes"
-    bl_label = "Share Meshes"
-    bl_description = "Share meshes of all selected objects to active mesh"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'MESH':
-                print("Share with", ob.name)
-                shareMyMesh(ob.data, context)
-
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -836,9 +742,7 @@ classes = [
     DAZ_OT_PruneUvMaps,
     DAZ_OT_CollapseUDims,
     DAZ_OT_RestoreUDims,
-    DAZ_OT_SolidifyThinWalls,
     DAZ_OT_LoadUV,
-    DAZ_OT_ShareMeshes,
     B.DazIntGroup,
     B.DazPairGroup,
     B.DazRigidityGroup,

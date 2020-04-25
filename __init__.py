@@ -157,9 +157,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.import_visemes")
             box.operator("daz.import_custom_morphs")
             box.operator("daz.import_correctives")
-            if scn.DazUseHidden:
-                box.operator("daz.import_json")
-            #box.separator()
             box.label(text="Create low-poly meshes before transfers.")
             box.operator("daz.transfer_correctives")
             box.operator("daz.transfer_other_morphs")
@@ -177,8 +174,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.make_udim_materials")
             box.operator("daz.merge_shapekeys")
             box.operator("daz.merge_uv_layers")
-            if scn.DazUseHidden:
-                box.operator("daz.solidify_thin_walls")
 
             box.separator()
             box.operator("daz.optimize_pose")
@@ -243,9 +238,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.separator()
             box.operator("daz.add_push")
             box.operator("daz.add_subsurf")
-            if scn.DazUseHidden:
-                box.separator()
-                box.operator("daz.make_deflection")
+            box.separator()
+            box.operator("daz.make_deflection")
 
         layout.separator()
         box = layout.box()
@@ -330,17 +324,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.prop(scn, "DazPropMax")
             box.separator()
             box.operator("daz.create_graft_groups")
-
-        if scn.DazUseHidden:
-            layout.separator()
-            box = layout.box()
-            if not scn.DazShowMaterials:
-                box.prop(scn, "DazShowMaterials", icon="RIGHTARROW", emboss=False)
-            else:
-                box.prop(scn, "DazShowMaterials", icon="DOWNARROW_HLT", emboss=False)
-                box.operator("daz.share_materials")
-                box.operator("daz.share_meshes")
-                box.prop(scn, "DazShareThreshold")
+            box.separator()
+            box.operator("daz.import_json")
 
         layout.separator()
         box = layout.box()
@@ -400,7 +385,6 @@ class DAZ_PT_Settings(bpy.types.Panel):
             box.prop(scn, "DazShowGeneral", icon="RIGHTARROW", emboss=False)
         else:
             box.prop(scn, "DazShowGeneral", icon="DOWNARROW_HLT", emboss=False)
-            box.prop(scn, "DazUseHidden")
             box.prop(scn, "DazVerbosity")
             box.separator()
             box.prop(scn, "DazPropMin")
@@ -546,8 +530,17 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.separator()
         layout.operator("daz.save_current_frame")
         layout.operator("daz.restore_current_frame")
-        if not scn.DazUseHidden:
-            return
+
+        layout.separator()
+        split = utils.splitLayout(layout, 0.6)
+        layout.operator("daz.toggle_loc_locks", text = "Location Locks Are " + ("ON" if ob.DazUseLocLocks else "OFF"))
+        layout.operator("daz.toggle_rot_locks", text = "Rotation Locks Are " + ("ON" if ob.DazUseRotLocks else "OFF"))
+        layout.operator("daz.toggle_limits", text = "Limits Are " + ("ON" if ob.DazUseLimits else "OFF"))
+
+        layout.separator()
+        layout.operator("daz.rotate_bones")
+
+        return
 
         layout.separator()
         layout.operator("daz.save_current_pose")
@@ -557,21 +550,6 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.separator()
         layout.operator("daz.import_node_poses")
 
-        layout.separator()
-        split = utils.splitLayout(layout, 0.6)
-        split.operator("daz.toggle_loc_locks")
-        split.label(text = "Locks ON" if ob.DazUseLocLocks else "Locks OFF")
-        split = utils.splitLayout(layout, 0.6)
-        split.operator("daz.toggle_rot_locks")
-        split.label(text = "Locks ON" if ob.DazUseRotLocks else "Locks OFF")
-        #split = utils.splitLayout(layout, 0.6)
-        #split.operator("daz.toggle_limits")
-        #split.label(text = "Limits ON" if ob.DazUseLimits else "Limits OFF")
-
-        layout.separator()
-        layout.label(text = "Global Rotation")
-        layout.prop(ob, "DazGlobalRotation", text="", expand=True)
-        layout.operator("daz.rotate_bones")
 
 
 def activateLayout(layout, type, prefix):
@@ -1033,12 +1011,6 @@ def initialize():
     bpy.types.Bone.DazTail = FloatVectorProperty(size=3, default=(0,0,0))
     bpy.types.Bone.DazAngle = FloatProperty(default=0)
     bpy.types.Bone.DazNormal = FloatVectorProperty(size=3, default=(0,0,0))
-
-    bpy.types.Object.DazGlobalRotation = FloatVectorProperty(
-        name = "Global Rotation",
-        size = 3,
-        default = (0,0,0)
-    )
 
     bpy.types.Object.DazUseRotLocks = BoolProperty(default = True)
     bpy.types.Object.DazUseLocLocks = BoolProperty(default = True)

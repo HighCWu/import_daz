@@ -255,11 +255,6 @@ def initialize():
         description = "Method to use object colors",
         default = 'GUESS')
 
-    bpy.types.Scene.DazUseHidden = BoolProperty(
-        name = "Hidden Features",
-        description = "Use hidden and undocumented experimental features",
-        default = False)
-
     bpy.types.Scene.DazUseLockRot = BoolProperty(
         name = "Rotation Locks",
         description = "Use rotation locks",

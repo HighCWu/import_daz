@@ -1356,25 +1356,7 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelChanger, IsMesh):
         pass
 
 # ---------------------------------------------------------------------
-#   Share materials
-# ---------------------------------------------------------------------
-
-class DAZ_OT_ShareMaterials(DazOperator, IsMesh):
-    bl_idname = "daz.share_materials"
-    bl_label = "Share Materials"
-    bl_description = "Share material of all selected meshes to active material"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        ob = context.object
-        mat = ob.data.materials[ob.active_material_index]
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'MESH':
-                ob.data.materials.clear()
-                ob.data.materials.append(mat)
-
-# ---------------------------------------------------------------------
-#   Share materials
+#   Load materials
 # ---------------------------------------------------------------------
 
 class DAZ_OT_LoadMaterial(DazOperator, B.DazImageFile, B.MultiFile, IsMesh):
@@ -1382,9 +1364,6 @@ class DAZ_OT_LoadMaterial(DazOperator, B.DazImageFile, B.MultiFile, IsMesh):
     bl_label = "Load Material(s)"
     bl_description = "Load materials to active mesh"
     bl_options = {'UNDO'}
-
-    def run(self, context):
-        self.loadMaterials(context)
 
     def invoke(self, context, event):
         from .fileutils import getFolder
@@ -1395,7 +1374,7 @@ class DAZ_OT_LoadMaterial(DazOperator, B.DazImageFile, B.MultiFile, IsMesh):
         return {'RUNNING_MODAL'}
 
 
-    def loadMaterials(self, context):
+    def run(self, context):
         from .fileutils import getMultiFiles
         from .globvars import theDazExtensions
         from .load_json import loadJson
@@ -1623,7 +1602,6 @@ classes = [
     DAZ_OT_MergeMaterials,
     DAZ_OT_LaunchEditor,
     DAZ_OT_ResetMaterial,
-    DAZ_OT_ShareMaterials,
     DAZ_OT_LoadMaterial,
     DAZ_OT_ChangeResolution,
     DAZ_OT_ResizeTextures,

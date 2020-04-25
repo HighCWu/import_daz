@@ -327,15 +327,20 @@ class DAZ_OT_PrintMatrix(DazOperator, IsArmature):
         print(mat)
 
 
-class DAZ_OT_RotateBones(DazOperator, IsArmature):
+class DAZ_OT_RotateBones(DazPropsOperator, B.XYZ, IsArmature):
     bl_idname = "daz.rotate_bones"
     bl_label = "Rotate Bones"
     bl_description = "Rotate selected bones the same angle"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "X")
+        self.layout.prop(self, "Y")
+        self.layout.prop(self, "Z")
+        
     def run(self, context):
         rig = context.object
-        rot = Vector(rig.DazGlobalRotation)*D
+        rot = Vector((self.X, self.Y, self.Z))*D
         quat = Euler(rot).to_quaternion()
         for pb in rig.pose.bones:
             if pb.bone.select:

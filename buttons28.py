@@ -354,6 +354,11 @@ class BoneLayers:
         min = 1, max = 32,
         default = 32)
 
+class XYZ:
+    X : FloatProperty(name = "X")
+    Y : FloatProperty(name = "Y")
+    Z : FloatProperty(name = "Z")
+    
 #-------------------------------------------------------------
 #   merge.py
 #-------------------------------------------------------------
