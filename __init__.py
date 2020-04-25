@@ -62,7 +62,7 @@ def importModules():
             modnames.append("buttons28")
         modnames += ["daz", "fileutils", "load_json", "driver", "asset", "channels", "formula",
                     "transform", "node", "figure", "bone", "geometry", "objfile",
-                    "fix", "modifier", "convert", "material", "frommat", "internal",
+                    "fix", "modifier", "convert", "material", "matedit", "internal",
                     "cycles", "cgroup", "pbr", "render", "camera", "light",
                     "guess", "animation", "files", "main", "finger",
                     "morphing", "tables", "proxy", "rigify", "merge", "hide",
@@ -135,8 +135,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.load_uv")
             box.operator("daz.prune_uv_maps")
             #box.operator("daz.load_materials")
-            if bpy.app.version < (2,80,0):
-                box.operator("daz.update_for_engine", text=("Update for %s" % scn.render.engine))
 
             box.separator()
             box.operator("daz.collapse_udims")
@@ -1088,7 +1086,6 @@ def register():
     finger.initialize()
     fix.initialize()
     fkik.initialize()
-    frommat.initialize()
     geometry.initialize()
     guess.initialize()
     hair.initialize()
@@ -1096,6 +1093,7 @@ def register():
     layers.initialize()
     main.initialize()
     material.initialize()
+    matedit.initialize()
     merge.initialize()
     mhx.initialize()
     morphing.initialize()
@@ -1128,7 +1126,6 @@ def unregister():
     finger.uninitialize()
     fix.uninitialize()
     fkik.uninitialize()
-    frommat.uninitialize()
     geometry.uninitialize()
     guess.uninitialize()
     hair.uninitialize()
@@ -1136,6 +1133,7 @@ def unregister():
     layers.uninitialize()
     main.uninitialize()
     material.uninitialize()
+    matedit.uninitialize()
     merge.uninitialize()
     mhx.uninitialize()
     morphing.uninitialize()

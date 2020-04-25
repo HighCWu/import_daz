@@ -30,19 +30,12 @@ import bpy
 import math
 from mathutils import Vector
 from .material import Material, WHITE, BLACK, setImageColorSpace
-from .frommat import FromInternal
 from .settings import theSettings
 
-class InternalMaterial(Material, FromInternal):
+class InternalMaterial(Material):
 
     def __repr__(self):
         return ("<Internal %s r: %s>" % (self.id, self.rna))
-
-
-    def fromMaterial(self, mat, ob):
-        struct = Material.fromMaterial(self, mat, ob)
-        FromInternal.fromMaterial(self, mat, ob, struct)
-        return struct
 
 
     def build(self, context):

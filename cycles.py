@@ -31,7 +31,6 @@ import math
 import os
 from mathutils import Vector, Matrix, Color
 from .material import Material, WHITE, GREY, BLACK, isWhite, isBlack
-from .frommat import FromCycles
 from .settings import theSettings
 from .error import DazError
 from .utils import *
@@ -173,13 +172,6 @@ class CyclesMaterial(Material):
                         node.inputs[0].default_value /= area
 
 
-    def fromMaterial(self, mat, ob):
-        struct = Material.fromMaterial(self, mat, ob)
-        self.tree = CyclesTree(self)
-        self.tree.fromMaterial(mat, ob, struct)
-        return struct
-
-
     def alphaBlend(self, alpha, tex):
         if bpy.app.version >= (2,80,0):
             if alpha == 1 and tex is None:
@@ -202,7 +194,7 @@ class CyclesMaterial(Material):
 #   Cycles node tree
 #-------------------------------------------------------------
 
-class CyclesTree(FromCycles):
+class CyclesTree:
     def __init__(self, cmat):
         self.type = 'CYCLES'
         self.material = cmat
