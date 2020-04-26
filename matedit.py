@@ -28,10 +28,9 @@
 
 import bpy
 from bpy.props import *
-from mathutils import Vector, Matrix
 from .error import *
 from .utils import *
-from .material import WHITE, BLACK
+from .material import WHITE, isWhite
 from collections import OrderedDict
 
 # ---------------------------------------------------------------------
@@ -84,25 +83,14 @@ def printItem(string, item):
 
 
 class ChannelSetter:                    
-    def setChannel(self, ob, item):
+    def setChannelCycles(self, mat, item):                                    
         nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[item.name]
-        for mat in ob.data.materials:            
-            if mat:
-                if self.skipMaterial(mat):
-                    continue
-                elif mat.use_nodes:
-                    self.setChannelCycles(ob, mat, nodeType, slot, ncomps, fromType, item)
-                elif useAttr:
-                    self.setChannelInternal(ob, mat, useAttr, factorAttr, item)
-                    
-
-    def setChannelCycles(self, ob, mat, nodeType, slot, ncomps, fromType, item):                                    
         for node in mat.node_tree.nodes.values():
             if node.type == nodeType:
                 if not self.comesFrom(node, mat, fromType):
                     continue
                 socket = node.inputs[slot]
-                self.setOriginal(socket, ncomps, ob, item.name)
+                self.setOriginal(socket, ncomps, mat, item.name)
                 self.setSocket(socket, ncomps, item)
                 fromnode,fromsocket = self.getFromNode(mat, node, socket)
                 if fromnode:
@@ -111,7 +99,7 @@ class ChannelSetter:
                     elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY':
                         self.setSocket(fromnode.inputs[0], 1, item)
                     elif fromnode.type == "TEX_IMAGE":
-                        mix = self.addMixRGB(fromsocket, socket, mat.node_tree, item)
+                        self.addMixRGB(fromsocket, socket, mat.node_tree, item)
             
 
     def setSocket(self, socket, ncomps, item):
@@ -145,7 +133,10 @@ class ChannelSetter:
                 return value
 
 
-    def setChannelInternal(self, ob, mat, useAttr, factorAttr):                 
+    def setChannelInternal(self, mat, item):                 
+        nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[item.name]
+        if not useAttr:
+            return
         for mtex in mat.texture_slots:
             if mtex and getattr(mtex, useAttr):
                 value = getattr(mtex, factorAttr)
@@ -229,7 +220,6 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
             value,ncomps = self.getChannel(ob, key)
             if ncomps == 0:
                 continue            
-            print("KK", key, value, ncomps)
             item = self.slots.add()
             item.name = key
             item.ncomps = ncomps
@@ -250,6 +240,17 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
             if getSelected(ob) and ob.type == 'MESH':
                 for item in self.slots:
                     self.setChannel(ob, item)
+
+
+    def setChannel(self, ob, item):
+        for mat in ob.data.materials:            
+            if mat:
+                if self.skipMaterial(mat):
+                    continue
+                elif mat.use_nodes:
+                    self.setChannelCycles(mat, item)
+                else:
+                    self.setChannelInternal(mat, item)
 
 
     def getChannel(self, ob, key):
@@ -294,11 +295,11 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
         return item
    
 
-    def setOriginal(self, socket, ncomps, ob, key):
-        item = self.getObjectSlot(ob, key)
+    def setOriginal(self, socket, ncomps, mat, key):
+        item = self.getObjectSlot(mat, key)
         if item.new:
             value = socket.default_value
-            print("ORIG", key, value)
+            item.ncomps = ncomps
             if ncomps == 1:
                 item.number = self.getValue(value, 1)
             elif ncomps == 3:
@@ -309,7 +310,7 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
 
 
     def addMixRGB(self, fromsocket, tosocket, tree, item):
-        if item.ncomps != 4:
+        if item.ncomps != 4 or isWhite(item.color):
             return
         mix = tree.nodes.new(type = "ShaderNodeMixRGB")
         mix.blend_type = 'MULTIPLY'
@@ -329,10 +330,23 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
     def run(self, context):
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':
-                for item in list(ob.DazSlots):
-                    self.setChannel(ob, item)
-                    item.new = True
-                ob.DazSlots.clear()
+                self.resetObject(ob)
+
+
+    def resetObject(self, ob):
+        for mat in ob.data.materials:            
+            if mat:
+                if mat.use_nodes:
+                    for item in mat.DazSlots:
+                        self.setChannelCycles(mat, item)
+                        item.new = True
+                    mat.DazSlots.clear()
+                else:
+                    for item in mat.DazSlots:
+                        self.setChannelInternal(mat, item)
+                        item.new = True
+                    mat.DazSlots.clear()
+
 
     def setOriginal(self, socket, ncomps, item, key):
         pass
@@ -358,7 +372,7 @@ def initialize():
         bpy.utils.register_class(cls)
         
     bpy.types.Scene.DazSlots = CollectionProperty(type = B.EditSlotGroup)
-    bpy.types.Object.DazSlots = CollectionProperty(type = B.EditSlotGroup)
+    bpy.types.Material.DazSlots = CollectionProperty(type = B.EditSlotGroup)
 
 
 def uninitialize():
