@@ -26,7 +26,6 @@
 # either expressed or implied, of the FreeBSD Project.
 
 import os
-from collections import OrderedDict
 
 #-------------------------------------------------------------
 #   animation.py
@@ -64,46 +63,5 @@ def getActiveCategories(scn, context):
     cats.sort()
     return [("All", "All", "All")] + cats
         
-# ---------------------------------------------------------------------
-#   material.py   
-#   Tweak bump strength and height
-#
-#   (node type, socket, BI use, BI factor, # components, comes from)
-# ---------------------------------------------------------------------
-
-TweakableChannels = OrderedDict([
-    ("Bump Strength", ("BUMP", "Strength", "use_map_normal", "normal_factor", 1, None)),
-    ("Bump Distance", ("BUMP", "Distance", None, None, 1, None)),
-    ("Normal Strength", ("NORMAL_MAP", "Strength", "use_map_normal", "normal_factor", 1, None)),
-
-    ("Diffuse Color", ("BSDF_DIFFUSE", "Color", None, None, 4, None)),
-    ("Diffuse Roughness", ("BSDF_DIFFUSE", "Roughness", None, None, 1, None)),
-
-    ("Glossy Color", ("BSDF_GLOSSY", "Color", None, None, 4, None)),
-    ("Glossy Roughness", ("BSDF_GLOSSY", "Roughness", None, None, 1, None)),
-
-    ("Translucency Color", ("BSDF_TRANSLUCENT", "Color", "use_map_translucency", "translucency_factor", 4, None)),
-    ("Translucency Strength", ("MIX_SHADER", "Fac", "use_map_translucency", "translucency_factor", 1, "BSDF_TRANSLUCENT")),
-
-    ("Subsurface Color", ("SUBSURFACE_SCATTERING", "Color", None, None, 4, None)),
-    ("Subsurface Scale", ("SUBSURFACE_SCATTERING", "Scale", None, None, 1, None)),
-    ("Subsurface Radius", ("SUBSURFACE_SCATTERING", "Radius", None, None, 3, None)),
-
-    ("Volume Absorption Color", ("VOLUME_ABSORPTION", "Color", None, None, 4, None)),
-    ("Volume Absorption Density", ("VOLUME_ABSORPTION", "Density", None, None, 1, None)),
-
-    ("Volume Scatter Color", ("VOLUME_SCATTER", "Color", None, None, 4, None)),
-    ("Volume Scatter Density", ("VOLUME_SCATTER", "Density", None, None, 1, None)),
-
-    ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4, None)),
-    ("Principled Metallic", ("BSDF_PRINCIPLED", "Metallic", None, None, 1, None)),
-    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", None, None, 1, None)),
-    ("Principled Subsurface", ("BSDF_PRINCIPLED", "Subsurface", None, None, 1, None)),
-    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", None, None, 4, None)),
-    ("Principled Subsurface Radius", ("BSDF_PRINCIPLED", "Subsurface Radius", None, None, 3, None)),
-    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", None, None, 1, None)),
-    ("Principled Clearcoat", ("BSDF_PRINCIPLED", "Clearcoat", None, None, 1, None)),
-    ("Principled Clearcoat Roughness", ("BSDF_PRINCIPLED", "Clearcoat Roughness", None, None, 1, None)),
-])
-    
+  
 

@@ -300,33 +300,37 @@ class ColorProp:
         default = (0.1, 0.1, 0.5, 1)
     )
 
+#-------------------------------------------------------------
+#   matedit.py
+#-------------------------------------------------------------
 
-class LaunchEditor:
-    colorFactor : FloatVectorProperty(
-        name = "Color Factor/Value",
+class EditSlotGroup(bpy.types.PropertyGroup):
+    ncomps : IntProperty(default = 0)
+    
+    color : FloatVectorProperty(
+        name = "Color",
         subtype = "COLOR",
         size = 4,
-        min = 0,
-        default = (1, 1, 1, 1)
-    )        
+        min = 0.0,
+        max = 1.0,
+        default = (1,1,1,1)
+    )
+    
+    vector : FloatVectorProperty(
+        name = "Vector",
+        size = 3,
+        min = 0.0,
+        max = 1.0,
+        default = (0,0,0)
+    )
+    
+    number : FloatProperty(default = 0.0)
+    new : BoolProperty()
+    
 
-    tweakableChannel : EnumProperty(
-        items = [(key,key,key) for key in G.TweakableChannels.keys()],
-        name = "Active Channel",
-        description = "Active channel to be tweaked",
-        default = "Bump Strength")
-
-    factor : FloatProperty(
-        name = "Factor/Value",
-        description = "Set/Multiply active channel with this factor",
-        min = 0,
-        default = 1.0)
-
-    useAbsoluteTweak : BoolProperty(
-        name = "Absolute Values",
-        description = "Tweak channels with absolute values",
-        default = False)
-
+class LaunchEditor:
+    slots : CollectionProperty(type = EditSlotGroup)
+    
     tweakMaterials : EnumProperty(
         items = [("Skin", "Skin", "Skin"),
                  ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
@@ -776,12 +780,6 @@ class DazCategory(bpy.types.PropertyGroup):
 class DazFormula(bpy.types.PropertyGroup):
     prop : StringProperty()
     value : FloatProperty()
-
-class DazChannelFactor(bpy.types.PropertyGroup):
-    key : StringProperty()
-    value : FloatProperty()
-    color : FloatVectorProperty(subtype='COLOR', size=4, default=(1,1,1,1))
-    new : BoolProperty()
 
 #-------------------------------------------------------------
 #   Rigidity groups

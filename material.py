@@ -1445,7 +1445,6 @@ def checkRenderSettings(context):
 #----------------------------------------------------------
 
 classes = [
-    B.DazChannelFactor,
     DAZ_OT_SaveLocalTextures,
     DAZ_OT_MergeMaterials,
     DAZ_OT_LoadMaterial,
@@ -1457,6 +1456,8 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
         
+    bpy.types.Object.DazLocalTextures = BoolProperty(default = False)
+
     bpy.types.Scene.DazHandleRenderSettings = EnumProperty(
         items = [("IGNORE", "Ignore", "Ignore insufficient render settings"),
                  ("WARN", "Warn", "Warn about insufficient render settings"),
