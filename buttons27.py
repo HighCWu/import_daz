@@ -327,10 +327,14 @@ class EditSlotGroup(bpy.types.PropertyGroup):
     number = FloatProperty(default = 0.0)
     new = BoolProperty()
     
+    
+class ShowGroup(bpy.types.PropertyGroup):
+    show = BoolProperty(default = False)
 
 class LaunchEditor:
     slots = CollectionProperty(type = EditSlotGroup)
-    
+    shows = CollectionProperty(type = ShowGroup)
+
     tweakMaterials = EnumProperty(
         items = [("Skin", "Skin", "Skin"),
                  ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),

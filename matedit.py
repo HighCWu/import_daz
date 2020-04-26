@@ -41,38 +41,46 @@ from collections import OrderedDict
 # ---------------------------------------------------------------------
 
 TweakableChannels = OrderedDict([
+    ("Bump", None),
     ("Bump Strength", ("BUMP", "Strength", "use_map_normal", "normal_factor", 1, None)),
     ("Bump Distance", ("BUMP", "Distance", None, None, 1, None)),
     ("Normal Strength", ("NORMAL_MAP", "Strength", "use_map_normal", "normal_factor", 1, None)),
 
+    ("Diffuse", None),
     ("Diffuse Color", ("BSDF_DIFFUSE", "Color", None, None, 4, None)),
     ("Diffuse Roughness", ("BSDF_DIFFUSE", "Roughness", None, None, 1, None)),
 
+    ("Specular", None),
     ("Glossy Color", ("BSDF_GLOSSY", "Color", None, None, 4, None)),
     ("Glossy Roughness", ("BSDF_GLOSSY", "Roughness", None, None, 1, None)),
 
+    ("Translucency", None),
     ("Translucency Color", ("BSDF_TRANSLUCENT", "Color", "use_map_translucency", "translucency_factor", 4, None)),
     ("Translucency Strength", ("MIX_SHADER", "Fac", "use_map_translucency", "translucency_factor", 1, "BSDF_TRANSLUCENT")),
 
+    ("Subsurface", None),
     ("Subsurface Color", ("SUBSURFACE_SCATTERING", "Color", None, None, 4, None)),
     ("Subsurface Scale", ("SUBSURFACE_SCATTERING", "Scale", None, None, 1, None)),
     ("Subsurface Radius", ("SUBSURFACE_SCATTERING", "Radius", None, None, 3, None)),
 
+    ("Principled", None),
+    ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4, None)),
+    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", None, None, 1, None)),
+    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", None, None, 1, None)),
+    ("Principled Subsurface", ("BSDF_PRINCIPLED", "Subsurface", None, None, 1, None)),
+    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", None, None, 4, None)),
+    ("Principled Subsurface Radius", ("BSDF_PRINCIPLED", "Subsurface Radius", None, None, 3, None)),
+    ("Principled Metallic", ("BSDF_PRINCIPLED", "Metallic", None, None, 1, None)),
+    ("Principled Clearcoat", ("BSDF_PRINCIPLED", "Clearcoat", None, None, 1, None)),
+    ("Principled Clearcoat Roughness", ("BSDF_PRINCIPLED", "Clearcoat Roughness", None, None, 1, None)),
+
+    ("Volume", None),
     ("Volume Absorption Color", ("VOLUME_ABSORPTION", "Color", None, None, 4, None)),
     ("Volume Absorption Density", ("VOLUME_ABSORPTION", "Density", None, None, 1, None)),
 
     ("Volume Scatter Color", ("VOLUME_SCATTER", "Color", None, None, 4, None)),
     ("Volume Scatter Density", ("VOLUME_SCATTER", "Density", None, None, 1, None)),
 
-    ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4, None)),
-    ("Principled Metallic", ("BSDF_PRINCIPLED", "Metallic", None, None, 1, None)),
-    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", None, None, 1, None)),
-    ("Principled Subsurface", ("BSDF_PRINCIPLED", "Subsurface", None, None, 1, None)),
-    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", None, None, 4, None)),
-    ("Principled Subsurface Radius", ("BSDF_PRINCIPLED", "Subsurface Radius", None, None, 3, None)),
-    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", None, None, 1, None)),
-    ("Principled Clearcoat", ("BSDF_PRINCIPLED", "Clearcoat", None, None, 1, None)),
-    ("Principled Clearcoat Roughness", ("BSDF_PRINCIPLED", "Clearcoat Roughness", None, None, 1, None)),
 ])
   # ---------------------------------------------------------------------
 #   Mini material editor
@@ -199,24 +207,43 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
     def draw(self, context):
         self.layout.prop(self, "tweakMaterials")
         self.layout.separator()
-        for item in self.slots:
-            row = self.layout.row()
-            row.label(text=item.name)
-            if item.ncomps == 4:
-                row.prop(item, "color", text="")
-            elif item.ncomps == 1:
-                row.prop(item, "number", text="")
-            elif item.ncomps == 3:
-                row.prop(item, "vector", text="")
-            else:
-                print("WAHT")
+        showing = False
+        for key in TweakableChannels.keys():
+            if TweakableChannels[key] is None:
+                if self.shows[key].show:
+                    self.layout.prop(self.shows[key], "show", icon="DOWNARROW_HLT", emboss=False, text=key)
+                else:
+                    self.layout.prop(self.shows[key], "show", icon="RIGHTARROW", emboss=False, text=key)
+                showing = self.shows[key].show
+            elif showing and key in self.slots.keys():            
+                item = self.slots[key]
+                row = self.layout.row()
+                if key[0:11] == "Principled ":
+                    text = item.name[11:]
+                else:
+                    text = item.name
+                row.label(text=text)
+                if item.ncomps == 4:
+                    row.prop(item, "color", text="")
+                elif item.ncomps == 1:
+                    row.prop(item, "number", text="")
+                elif item.ncomps == 3:
+                    row.prop(item, "vector", text="")
+                else:
+                    print("WAHT")
 
 
     def invoke(self, context, event):
         scn = context.scene
         self.slots.clear()
+        self.shows.clear()
         ob = context.object
         for key in TweakableChannels.keys():
+            if TweakableChannels[key] is None:
+                item = self.shows.add()
+                item.name = key
+                item.show = False
+                continue
             value,ncomps = self.getChannel(ob, key)
             if ncomps == 0:
                 continue            
@@ -363,6 +390,7 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
 
 classes = [
     B.EditSlotGroup,
+    B.ShowGroup,
     DAZ_OT_LaunchEditor,
     DAZ_OT_ResetMaterial,
 ]
@@ -371,7 +399,6 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
         
-    bpy.types.Scene.DazSlots = CollectionProperty(type = B.EditSlotGroup)
     bpy.types.Material.DazSlots = CollectionProperty(type = B.EditSlotGroup)
 
 
