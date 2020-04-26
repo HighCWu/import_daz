@@ -178,7 +178,7 @@ class ChannelSetter:
         nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[key]
         for mat in ob.data.materials:            
             if mat:
-                if self.skipMaterial(mat, scn):
+                if self.skipMaterial(ob, mat, scn):
                     continue
                 elif mat.use_nodes:
                     return self.getChannelCycles(mat, nodeType, slot, ncomps, fromType)
@@ -227,7 +227,13 @@ class ChannelSetter:
                 return value
 
 
-    def skipMaterial(self, mat, scn):
+    def skipMaterial(self, ob, mat, scn):
+        if ob.data.DazMaterialSets:
+            if scn.DazTweakMaterials in ob.data.DazMaterialSets.keys():
+                items = ob.data.DazMaterialSets[scn.DazTweakMaterials]
+                mname = mat.name.split(".",1)[0].split("-",1)[0]
+                return (mname not in items.names.keys())
+        
         from .guess import getSkinMaterial
         if self.isRefractive(mat):
             return (scn.DazTweakMaterials not in ["Refractive", "All"])
@@ -365,7 +371,7 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
     def setChannel(self, ob, scn, item):
         for mat in ob.data.materials:            
             if mat:
-                if self.skipMaterial(mat, scn):
+                if self.skipMaterial(ob, mat, scn):
                     continue
                 elif mat.use_nodes:
                     self.setChannelCycles(mat, item)
@@ -449,12 +455,24 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
     def setOriginal(self, socket, ncomps, item, key):
         pass
 
-    def skipMaterial(self, mat, scn):
+    def skipMaterial(self, ob, mat, scn):
         return False
 
     def multiplyTex(self, fromsocket, tosocket, tree, item):
         pass
 
+
+def getTweakMaterials(scn, context):
+    ob = context.object
+    if ob.data.DazMaterialSets:
+        return [(key,key,key) for key in ob.data.DazMaterialSets.keys()]
+    else:
+        return [("Skin", "Skin", "Skin"),
+                ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
+                ("Opaque", "Opaque", "Opaque"),
+                ("Refractive", "Refractive", "Refractive"),
+                ("All", "All", "All")]    
+                
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -475,14 +493,9 @@ def initialize():
     bpy.types.Scene.DazSlots = CollectionProperty(type = B.EditSlotGroup)
     
     bpy.types.Scene.DazTweakMaterials = EnumProperty(
-        items = [("Skin", "Skin", "Skin"),
-                 ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
-                 ("Opaque", "Opaque", "Opaque"),
-                 ("Refractive", "Refractive", "Refractive"),
-                 ("All", "All", "All")],
+        items = getTweakMaterials,
         name = "Material Type",
-        description = "Type of materials to tweak",
-        default = "Skin")
+        description = "Type of materials to tweak")
 
 
 def uninitialize():

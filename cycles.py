@@ -1045,7 +1045,6 @@ class CyclesTree:
             return
         tex = self.addTexImageNode(channel, "NONE")
         if tex:
-            mat = self.material.rna
             strength = self.material.getChannelValue(channel, 1)
             dmin = self.getValue("getChannelDispMin", -0.05)
             dmax = self.getValue("getChannelDispMax", 0.05)

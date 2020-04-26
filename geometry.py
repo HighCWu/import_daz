@@ -158,6 +158,7 @@ class Geometry(Asset, Channels):
         self.materials = {}
         self.material_indices = []
         self.polygon_material_groups = []
+        self.material_selection_sets = []
         self.vertex_count = 0
         self.poly_count = 0
         self.vertex_pairs = []
@@ -254,6 +255,7 @@ class Geometry(Asset, Channels):
         asset.materials = self.materials
         asset.material_indices = self.material_indices
         asset.polygon_material_groups = self.polygon_material_groups
+        asset.material_selection_sets = self.material_selection_sets
         asset.uv_set = self.uv_set
         asset.default_uv_set = self.default_uv_set
         asset.uv_sets = self.uv_sets
@@ -277,6 +279,8 @@ class Geometry(Asset, Channels):
     def setExtra(self, extra):       
         if extra["type"] == "studio/geometry/shell":
             self.shell = extra
+        elif extra["type"] == "material_selection_sets":
+            self.material_selection_sets = extra["material_selection_sets"]
         
 
     def preprocess(self, context, inst):
@@ -445,6 +449,16 @@ class Geometry(Asset, Channels):
         if self.shells and self.uv_set != self.default_uv_set:
             self.buildUVSet(context, self.default_uv_set, me, False)
 
+        for struct in self.material_selection_sets:
+            if "materials" in struct.keys() and "name" in struct.keys():
+                if struct["name"][0:8] == "Template":
+                    continue
+                items = me.DazMaterialSets.add()
+                items.name = struct["name"]
+                for mname in struct["materials"]:
+                    item = items.names.add()
+                    item.name = mname
+            
 
     def buildUVSet(self, context, uv_set, me, setActive):
         if uv_set:
@@ -746,6 +760,7 @@ classes = [
     B.DazIntGroup,
     B.DazPairGroup,
     B.DazRigidityGroup,
+    B.DazStringStringGroup,
 ]
 
 def initialize():
@@ -757,6 +772,7 @@ def initialize():
     bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = B.DazPairGroup)
     bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)
     bpy.types.Mesh.DazVertexCount = IntProperty(default=0)
+    bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = B.DazStringStringGroup)
 
 
 def uninitialize():
