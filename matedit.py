@@ -82,13 +82,17 @@ TweakableChannels = OrderedDict([
     ("Volume Scatter Density", ("VOLUME_SCATTER", "Density", None, None, 1, None)),
 
 ])
-  # ---------------------------------------------------------------------
+  
+# ---------------------------------------------------------------------
 #   Mini material editor
 # ---------------------------------------------------------------------
 
 def printItem(string, item):
     print(string, "<Factor %s %.4f (%.4f %.4f %.4f %.4f) %s>" % (item.key, item.value, item.color[0], item.color[1], item.color[2], item.color[3], item.new))
 
+# ---------------------------------------------------------------------
+#   Channel setter
+# ---------------------------------------------------------------------
 
 class ChannelSetter:                    
     def setChannelCycles(self, mat, item):                                    
@@ -119,6 +123,74 @@ class ChannelSetter:
             socket.default_value = self.getValue(item.color, ncomps)
 
 
+    def setChannelInternal(self, mat, item):                 
+        nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[item.name]
+        if not useAttr:
+            return
+        for mtex in mat.texture_slots:
+            if mtex and getattr(mtex, useAttr):
+                value = getattr(mtex, factorAttr)
+                setattr(mtex, factorAttr, self.factor*value)
+
+# ---------------------------------------------------------------------
+#   Channel getter
+# ---------------------------------------------------------------------
+
+class ChannelGetter:
+                        
+    def addSlots(self, context):
+        ob = context.object
+        scn = context.scene
+        scn.DazSlots.clear()
+        for key in TweakableChannels.keys():
+            if TweakableChannels[key] is None:
+                continue
+            value,ncomps = self.getChannel(ob, scn, key)
+            if ncomps == 0:
+                continue            
+            item = scn.DazSlots.add()
+            item.name = key
+            item.ncomps = ncomps
+            if ncomps == 1:
+                item.number = self.getValue(value, 1)
+            elif ncomps == 3:
+                item.vector = self.getValue(value, 3)
+            elif ncomps == 4:
+                item.color = self.getValue(value, 4)
+
+
+    def getChannel(self, ob, scn, key):
+        nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[key]
+        for mat in ob.data.materials:            
+            if mat:
+                if self.skipMaterial(mat, scn):
+                    continue
+                elif mat.use_nodes:
+                    return self.getChannelCycles(mat, nodeType, slot, ncomps, fromType)
+                elif useAttr:
+                    return self.getChannelInternal(mat, useAttr, factorAttr)
+        return None,0
+                            
+                    
+    def getChannelCycles(self, mat, nodeType, slot, ncomps, fromType):                                    
+        for node in mat.node_tree.nodes.values():
+            if node.type == nodeType:
+                if not self.comesFrom(node, mat, fromType):
+                    continue
+                socket = node.inputs[slot]
+                fromnode,fromsocket = self.getFromNode(mat, node, socket)
+                if fromnode:
+                    if fromnode.type == "MIX_RGB":
+                        return fromnode.inputs[1].default_value, ncomps
+                    elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY':
+                        return fromnode.inputs[0].default_value, ncomps
+                    elif fromnode.type == "TEX_IMAGE":
+                        return WHITE, 4
+                else:
+                    return socket.default_value, ncomps
+        return None,0
+
+
     def getValue(self, value, ncomps):
         if ncomps == 1:
             if isinstance(value, float):
@@ -141,24 +213,14 @@ class ChannelSetter:
                 return value
 
 
-    def setChannelInternal(self, mat, item):                 
-        nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[item.name]
-        if not useAttr:
-            return
-        for mtex in mat.texture_slots:
-            if mtex and getattr(mtex, useAttr):
-                value = getattr(mtex, factorAttr)
-                setattr(mtex, factorAttr, self.factor*value)
-
-
-    def skipMaterial(self, mat):
+    def skipMaterial(self, mat, scn):
         from .guess import getSkinMaterial
         if self.isRefractive(mat):
-            return (self.tweakMaterials not in ["Refractive", "All"])
+            return (scn.DazTweakMaterials not in ["Refractive", "All"])
         mattype = getSkinMaterial(mat)
-        if self.tweakMaterials == "Skin":
+        if scn.DazTweakMaterials == "Skin":
             return (mattype != "Skin")
-        elif self.tweakMaterials == "Skin-Lips-Nails":
+        elif scn.DazTweakMaterials == "Skin-Lips-Nails":
             return (mattype not in ["Skin", "Red"])
         return False            
 
@@ -197,15 +259,41 @@ class ChannelSetter:
                 return True
         return False                
 
+# ---------------------------------------------------------------------
+#   Update button
+# ---------------------------------------------------------------------
 
-class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
+class DAZ_OT_UpdateTweakType(bpy.types.Operator, ChannelGetter):
+    bl_idname = "daz.update_tweak_type"
+    bl_label = "Update Type"
+    bl_description = "Update tweak material type"
+
+    def draw(self, context):
+        self.layout.prop(context.scene, "DazTweakMaterials")
+                
+    def execute(self, context):
+        self.addSlots(context)
+        return {'PASS_THROUGH'}
+    
+    def invoke(self, context, event):
+        wm = context.window_manager
+        wm.invoke_props_dialog(self)
+        return {'RUNNING_MODAL'}
+
+# ---------------------------------------------------------------------
+#   Launch button
+# ---------------------------------------------------------------------
+
+class DAZ_OT_LaunchEditor(DazOperator, ChannelGetter, ChannelSetter, B.LaunchEditor, IsMesh):
     bl_idname = "daz.launch_editor"
     bl_label = "Launch Material Editor"
     bl_description = "Edit materials of selected meshes"
     bl_options = {'UNDO'}
 
     def draw(self, context):
-        self.layout.prop(self, "tweakMaterials")
+        scn = context.scene
+        self.layout.label(text = "Material Type: " + scn.DazTweakMaterials)
+        self.layout.operator("daz.update_tweak_type")
         self.layout.separator()
         showing = False
         for key in TweakableChannels.keys():
@@ -215,8 +303,8 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
                 else:
                     self.layout.prop(self.shows[key], "show", icon="RIGHTARROW", emboss=False, text=key)
                 showing = self.shows[key].show
-            elif showing and key in self.slots.keys():            
-                item = self.slots[key]
+            elif showing and key in scn.DazSlots.keys():            
+                item = scn.DazSlots[key]
                 row = self.layout.row()
                 if key[0:11] == "Principled ":
                     text = item.name[11:]
@@ -234,83 +322,37 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
 
 
     def invoke(self, context, event):
-        scn = context.scene
-        self.slots.clear()
         self.shows.clear()
-        ob = context.object
         for key in TweakableChannels.keys():
             if TweakableChannels[key] is None:
                 item = self.shows.add()
                 item.name = key
                 item.show = False
                 continue
-            value,ncomps = self.getChannel(ob, key)
-            if ncomps == 0:
-                continue            
-            item = self.slots.add()
-            item.name = key
-            item.ncomps = ncomps
-            if ncomps == 1:
-                item.number = self.getValue(value, 1)
-            elif ncomps == 3:
-                item.vector = self.getValue(value, 3)
-            elif ncomps == 4:
-                item.color = self.getValue(value, 4)
-            
+        self.addSlots(context)
         wm = context.window_manager
         wm.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
 
     def run(self, context):
+        scn = context.scene
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':
-                for item in self.slots:
-                    self.setChannel(ob, item)
+                for item in scn.DazSlots:
+                    self.setChannel(ob, scn, item)
 
 
-    def setChannel(self, ob, item):
+    def setChannel(self, ob, scn, item):
         for mat in ob.data.materials:            
             if mat:
-                if self.skipMaterial(mat):
+                if self.skipMaterial(mat, scn):
                     continue
                 elif mat.use_nodes:
                     self.setChannelCycles(mat, item)
                 else:
                     self.setChannelInternal(mat, item)
 
-
-    def getChannel(self, ob, key):
-        nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[key]
-        for mat in ob.data.materials:            
-            if mat:
-                if self.skipMaterial(mat):
-                    continue
-                elif mat.use_nodes:
-                    return self.getChannelCycles(mat, nodeType, slot, ncomps, fromType)
-                elif useAttr:
-                    return self.getChannelInternal(mat, useAttr, factorAttr)
-        return None,0
-                            
-                    
-    def getChannelCycles(self, mat, nodeType, slot, ncomps, fromType):                                    
-        for node in mat.node_tree.nodes.values():
-            if node.type == nodeType:
-                if not self.comesFrom(node, mat, fromType):
-                    continue
-                socket = node.inputs[slot]
-                fromnode,fromsocket = self.getFromNode(mat, node, socket)
-                if fromnode:
-                    if fromnode.type == "MIX_RGB":
-                        return fromnode.inputs[1].default_value, ncomps
-                    elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY':
-                        return fromnode.inputs[0].default_value, ncomps
-                    elif fromnode.type == "TEX_IMAGE":
-                        return WHITE, 4
-                else:
-                    return socket.default_value, ncomps
-        return None,0
-        
 
     def getObjectSlot(self, ob, key):
         for item in ob.DazSlots:
@@ -347,6 +389,9 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
         tree.links.new(mix.outputs[0], tosocket)
         return mix
                     
+# ---------------------------------------------------------------------
+#   Reset button
+# ---------------------------------------------------------------------
 
 class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
     bl_idname = "daz.reset_material"
@@ -378,7 +423,7 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
     def setOriginal(self, socket, ncomps, item, key):
         pass
 
-    def skipMaterial(self, mat):
+    def skipMaterial(self, mat, scn):
         return False
 
     def addMixRGB(self, fromsocket, tosocket, tree, item):
@@ -392,6 +437,7 @@ classes = [
     B.EditSlotGroup,
     B.ShowGroup,
     DAZ_OT_LaunchEditor,
+    DAZ_OT_UpdateTweakType,
     DAZ_OT_ResetMaterial,
 ]
 
@@ -400,6 +446,17 @@ def initialize():
         bpy.utils.register_class(cls)
         
     bpy.types.Material.DazSlots = CollectionProperty(type = B.EditSlotGroup)
+    bpy.types.Scene.DazSlots = CollectionProperty(type = B.EditSlotGroup)
+    
+    bpy.types.Scene.DazTweakMaterials = EnumProperty(
+        items = [("Skin", "Skin", "Skin"),
+                 ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
+                 ("Opaque", "Opaque", "Opaque"),
+                 ("Refractive", "Refractive", "Refractive"),
+                 ("All", "All", "All")],
+        name = "Material Type",
+        description = "Type of materials to tweak",
+        default = "Skin")
 
 
 def uninitialize():
