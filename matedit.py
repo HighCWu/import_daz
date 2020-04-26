@@ -54,6 +54,13 @@ TweakableChannels = OrderedDict([
     ("Glossy Color", ("BSDF_GLOSSY", "Color", None, None, 4, None)),
     ("Glossy Roughness", ("BSDF_GLOSSY", "Roughness", None, None, 1, None)),
 
+    ("Dual Lobe", None),
+    ("Dual Lobe Weight", ("DAZ Dual Lobe", "Weight", None, None, 1, None)),
+    ("Dual Lobe IOR", ("DAZ Dual Lobe", "IOR", None, None, 1, None)),
+    ("Dual Lobe Roughness 1", ("DAZ Dual Lobe", "Roughness 1", None, None, 1, None)),
+    ("Dual Lobe Roughness 2", ("DAZ Dual Lobe", "Roughness 2", None, None, 1, None)),
+    ("Dual Lobe Fac", ("DAZ Dual Lobe", "Fac", None, None, 1, None)),
+
     ("Translucency", None),
     ("Translucency Color", ("BSDF_TRANSLUCENT", "Color", "use_map_translucency", "translucency_factor", 4, None)),
     ("Translucency Strength", ("MIX_SHADER", "Fac", "use_map_translucency", "translucency_factor", 1, "BSDF_TRANSLUCENT")),
@@ -65,14 +72,27 @@ TweakableChannels = OrderedDict([
 
     ("Principled", None),
     ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4, None)),
-    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", None, None, 1, None)),
-    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", None, None, 1, None)),
     ("Principled Subsurface", ("BSDF_PRINCIPLED", "Subsurface", None, None, 1, None)),
-    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", None, None, 4, None)),
     ("Principled Subsurface Radius", ("BSDF_PRINCIPLED", "Subsurface Radius", None, None, 3, None)),
+    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", None, None, 4, None)),
     ("Principled Metallic", ("BSDF_PRINCIPLED", "Metallic", None, None, 1, None)),
+    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", None, None, 1, None)),
+    ("Principled Specular Tint", ("BSDF_PRINCIPLED", "Specular Tint", None, None, 1, None)),
+    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", None, None, 1, None)),
+    ("Principled Anisotropic", ("BSDF_PRINCIPLED", "Anisotropic", None, None, 1, None)),
+    ("Principled Anisotropic Rotation", ("BSDF_PRINCIPLED", "Anisotropic Rotation", None, None, 1, None)),
+    ("Principled Sheen", ("BSDF_PRINCIPLED", "Sheen", None, None, 1, None)),
+    ("Principled Sheen Tint", ("BSDF_PRINCIPLED", "Sheen Tint", None, None, 1, None)),
     ("Principled Clearcoat", ("BSDF_PRINCIPLED", "Clearcoat", None, None, 1, None)),
     ("Principled Clearcoat Roughness", ("BSDF_PRINCIPLED", "Clearcoat Roughness", None, None, 1, None)),
+    ("Principled IOR", ("BSDF_PRINCIPLED", "IOR", None, None, 1, None)),
+    ("Principled Transmission", ("BSDF_PRINCIPLED", "Transmission", None, None, 1, None)),
+    ("Principled Transmission Roughness", ("BSDF_PRINCIPLED", "Transmission Roughness", None, None, 1, None)),
+    ("Principled Emission", ("BSDF_PRINCIPLED", "Emission", None, None, 4, None)),
+
+    ("Emission", None),
+    ("Emission Color", ("BSDF_EMIT", "Color", None, None, 4, None)),
+    ("Emission Strength", ("BSDF_EMIT", "Strength", None, None, 1, None)),
 
     ("Volume", None),
     ("Volume Absorption Color", ("VOLUME_ABSORPTION", "Color", None, None, 4, None)),
@@ -98,9 +118,7 @@ class ChannelSetter:
     def setChannelCycles(self, mat, item):                                    
         nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[item.name]
         for node in mat.node_tree.nodes.values():
-            if node.type == nodeType:
-                if not self.comesFrom(node, mat, fromType):
-                    continue
+            if self.matchingNode(node, nodeType, mat, fromType):
                 socket = node.inputs[slot]
                 self.setOriginal(socket, ncomps, mat, item.name)
                 self.setSocket(socket, ncomps, item)
@@ -110,8 +128,10 @@ class ChannelSetter:
                         self.setSocket(fromnode.inputs[1], ncomps, item)
                     elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY':
                         self.setSocket(fromnode.inputs[0], 1, item)
+                    elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY_ADD':
+                        self.setSocket(fromnode.inputs[1], 1, item)
                     elif fromnode.type == "TEX_IMAGE":
-                        self.addMixRGB(fromsocket, socket, mat.node_tree, item)
+                        self.multiplyTex(fromsocket, socket, mat.node_tree, item)
             
 
     def setSocket(self, socket, ncomps, item):
@@ -132,12 +152,7 @@ class ChannelSetter:
                 value = getattr(mtex, factorAttr)
                 setattr(mtex, factorAttr, self.factor*value)
 
-# ---------------------------------------------------------------------
-#   Channel getter
-# ---------------------------------------------------------------------
 
-class ChannelGetter:
-                        
     def addSlots(self, context):
         ob = context.object
         scn = context.scene
@@ -172,11 +187,10 @@ class ChannelGetter:
         return None,0
                             
                     
-    def getChannelCycles(self, mat, nodeType, slot, ncomps, fromType):                                    
+    def getChannelCycles(self, mat, nodeType, slot, ncomps, fromType): 
+        from .cgroup import DualLobeGroup                                   
         for node in mat.node_tree.nodes.values():
-            if node.type == nodeType:
-                if not self.comesFrom(node, mat, fromType):
-                    continue
+            if self.matchingNode(node, nodeType, mat, fromType):            
                 socket = node.inputs[slot]
                 fromnode,fromsocket = self.getFromNode(mat, node, socket)
                 if fromnode:
@@ -185,7 +199,7 @@ class ChannelGetter:
                     elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY':
                         return fromnode.inputs[0].default_value, ncomps
                     elif fromnode.type == "TEX_IMAGE":
-                        return WHITE, 4
+                        return WHITE, ncomps
                 else:
                     return socket.default_value, ncomps
         return None,0
@@ -251,19 +265,24 @@ class ChannelGetter:
         return None,None    
 
                 
-    def comesFrom(self, node, mat, fromType):
-        if fromType is None:
-            return True                            
-        for link in mat.node_tree.links.values():
-            if link.to_node == node and link.from_node.type == fromType:
-                return True
-        return False                
+    def matchingNode(self, node, nodeType, mat, fromType):
+        if node.type == nodeType:
+            if fromType is None:
+                return True                            
+            for link in mat.node_tree.links.values():
+                if link.to_node == node and link.from_node.type == fromType:
+                    return True
+            return False                
+        elif (node.type == "GROUP" and 
+            nodeType in bpy.data.node_groups.keys()):
+            return (node.node_tree == bpy.data.node_groups[nodeType])
+        return False            
 
 # ---------------------------------------------------------------------
 #   Update button
 # ---------------------------------------------------------------------
 
-class DAZ_OT_UpdateTweakType(bpy.types.Operator, ChannelGetter):
+class DAZ_OT_UpdateTweakType(bpy.types.Operator, ChannelSetter):
     bl_idname = "daz.update_tweak_type"
     bl_label = "Update Type"
     bl_description = "Update tweak material type"
@@ -284,7 +303,7 @@ class DAZ_OT_UpdateTweakType(bpy.types.Operator, ChannelGetter):
 #   Launch button
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LaunchEditor(DazOperator, ChannelGetter, ChannelSetter, B.LaunchEditor, IsMesh):
+class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
     bl_idname = "daz.launch_editor"
     bl_label = "Launch Material Editor"
     bl_description = "Edit materials of selected meshes"
@@ -378,16 +397,23 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelGetter, ChannelSetter, B.LaunchEdi
             item.new = False
 
 
-    def addMixRGB(self, fromsocket, tosocket, tree, item):
-        if item.ncomps != 4 or isWhite(item.color):
-            return
-        mix = tree.nodes.new(type = "ShaderNodeMixRGB")
-        mix.blend_type = 'MULTIPLY'
-        mix.inputs[0].default_value = 1.0
-        mix.inputs[1].default_value = item.color
-        tree.links.new(fromsocket, mix.inputs[2])
-        tree.links.new(mix.outputs[0], tosocket)
-        return mix
+    def multiplyTex(self, fromsocket, tosocket, tree, item):
+        if item.ncomps == 4 and not isWhite(item.color):
+            mix = tree.nodes.new(type = "ShaderNodeMixRGB")
+            mix.blend_type = 'MULTIPLY'
+            mix.inputs[0].default_value = 1.0
+            mix.inputs[1].default_value = item.color
+            tree.links.new(fromsocket, mix.inputs[2])
+            tree.links.new(mix.outputs[0], tosocket)
+            return mix
+        elif item.ncomps == 1 and item.number != 1.0:
+            mult = tree.nodes.new(type = "ShaderNodeMath")
+            mult.operation = 'MULTIPLY'
+            mult.inputs[0].default_value = item.number
+            tree.links.new(fromsocket, mult.inputs[1])
+            tree.links.new(mult.outputs[0], tosocket)
+            return mult
+            
                     
 # ---------------------------------------------------------------------
 #   Reset button
@@ -426,7 +452,7 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
     def skipMaterial(self, mat, scn):
         return False
 
-    def addMixRGB(self, fromsocket, tosocket, tree, item):
+    def multiplyTex(self, fromsocket, tosocket, tree, item):
         pass
 
 #----------------------------------------------------------
