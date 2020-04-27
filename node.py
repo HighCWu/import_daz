@@ -224,7 +224,7 @@ class Instance(Accessor):
                 fp.write(bytes)
             return
 
-        elif self.groupNode and self.node2:
+        elif self.groupNode and self.node2 and self.node2.rna:
             ob = self.node2.rna
             coll = self.groupNode
             coll.objects.link(ob)
