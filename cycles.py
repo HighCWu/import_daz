@@ -535,7 +535,7 @@ class CyclesTree:
             roughness,roughtex = self.getColorTex(["Diffuse Overlay Roughness"], "NONE", 0, False)
             self.setRoughness(node, "Roughness", roughness, roughtex)
             self.linkNormal(node)
-            self.mixWithActive(weight^power, tex1, node, col=6)
+            self.mixWithActive(weight**power, tex1, node, col=6)
 
 
     def raiseToPower(self, tex, power, col):
