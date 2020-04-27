@@ -300,8 +300,8 @@ class ChannelSetter:
 
 class DAZ_OT_ChangeTweakType(bpy.types.Operator, ChannelSetter):
     bl_idname = "daz.change_tweak_type"
-    bl_label = "Change Material Type"
-    bl_description = "Change the tweak material type"
+    bl_label = "Change Material Selection"
+    bl_description = "Change the selection of materials to tweak"
 
     def draw(self, context):
         self.layout.prop(context.scene, "DazTweakMaterials")
@@ -329,7 +329,7 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
     def draw(self, context):
         scn = context.scene
         layout = self.layout
-        layout.label(text = "Material Type: %s:" % scn.DazTweakMaterials)
+        layout.label(text = "Material Selection: %s:" % scn.DazTweakMaterials)
         mnames = list(scn.DazAffectedMaterials.keys())
         while mnames:
             text = ""
