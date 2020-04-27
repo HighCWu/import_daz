@@ -185,6 +185,16 @@ class ChannelSetter:
                 elif useAttr:
                     return self.getChannelInternal(mat, useAttr, factorAttr)
         return None,0
+        
+
+    def getAffectedMaterials(self, context):
+        ob = context.object
+        scn = context.scene
+        scn.DazAffectedMaterials.clear()
+        for mat in ob.data.materials:
+            if mat and not self.skipMaterial(ob, mat, scn):
+                item = scn.DazAffectedMaterials.add()
+                item.name = mat.name
                             
                     
     def getChannelCycles(self, mat, nodeType, slot, ncomps, fromType): 
@@ -288,16 +298,17 @@ class ChannelSetter:
 #   Update button
 # ---------------------------------------------------------------------
 
-class DAZ_OT_UpdateTweakType(bpy.types.Operator, ChannelSetter):
-    bl_idname = "daz.update_tweak_type"
-    bl_label = "Update Type"
-    bl_description = "Update tweak material type"
+class DAZ_OT_ChangeTweakType(bpy.types.Operator, ChannelSetter):
+    bl_idname = "daz.change_tweak_type"
+    bl_label = "Change Material Type"
+    bl_description = "Change the tweak material type"
 
     def draw(self, context):
         self.layout.prop(context.scene, "DazTweakMaterials")
                 
     def execute(self, context):
         self.addSlots(context)
+        self.getAffectedMaterials(context)
         return {'PASS_THROUGH'}
     
     def invoke(self, context, event):
@@ -317,20 +328,29 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
 
     def draw(self, context):
         scn = context.scene
-        self.layout.label(text = "Material Type: " + scn.DazTweakMaterials)
-        self.layout.operator("daz.update_tweak_type")
-        self.layout.separator()
+        layout = self.layout
+        layout.label(text = "Material Type: %s:" % scn.DazTweakMaterials)
+        mnames = list(scn.DazAffectedMaterials.keys())
+        while mnames:
+            text = ""
+            for mname in mnames[0:3]:
+                text += ("    %s" % mname)
+            layout.label(text=text)
+            mnames = mnames[3:]
+        layout.operator("daz.change_tweak_type")
+
+        layout.separator()
         showing = False
         for key in TweakableChannels.keys():
             if TweakableChannels[key] is None:
                 if self.shows[key].show:
-                    self.layout.prop(self.shows[key], "show", icon="DOWNARROW_HLT", emboss=False, text=key)
+                    layout.prop(self.shows[key], "show", icon="DOWNARROW_HLT", emboss=False, text=key)
                 else:
-                    self.layout.prop(self.shows[key], "show", icon="RIGHTARROW", emboss=False, text=key)
+                    layout.prop(self.shows[key], "show", icon="RIGHTARROW", emboss=False, text=key)
                 showing = self.shows[key].show
             elif showing and key in scn.DazSlots.keys():            
                 item = scn.DazSlots[key]
-                row = self.layout.row()
+                row = layout.row()
                 if key[0:11] == "Principled ":
                     text = item.name[11:]
                 else:
@@ -355,6 +375,7 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
                 item.show = False
                 continue
         self.addSlots(context)
+        self.getAffectedMaterials(context)
         wm = context.window_manager
         wm.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
@@ -481,7 +502,7 @@ classes = [
     B.EditSlotGroup,
     B.ShowGroup,
     DAZ_OT_LaunchEditor,
-    DAZ_OT_UpdateTweakType,
+    DAZ_OT_ChangeTweakType,
     DAZ_OT_ResetMaterial,
 ]
 
@@ -491,6 +512,7 @@ def initialize():
         
     bpy.types.Material.DazSlots = CollectionProperty(type = B.EditSlotGroup)
     bpy.types.Scene.DazSlots = CollectionProperty(type = B.EditSlotGroup)
+    bpy.types.Scene.DazAffectedMaterials = CollectionProperty(type = bpy.types.PropertyGroup)
     
     bpy.types.Scene.DazTweakMaterials = EnumProperty(
         items = getTweakMaterials,

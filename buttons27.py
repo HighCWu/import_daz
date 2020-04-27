@@ -754,6 +754,9 @@ class DazPairGroup(bpy.types.PropertyGroup):
     a = IntProperty()
     b = IntProperty()
 
+class DazStringStringGroup(bpy.types.PropertyGroup):
+    names = CollectionProperty(type = bpy.types.PropertyGroup)
+
 class DazStringGroup(bpy.types.PropertyGroup):
     s = StringProperty()
 
