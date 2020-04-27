@@ -91,8 +91,8 @@ TweakableChannels = OrderedDict([
     ("Principled Emission", ("BSDF_PRINCIPLED", "Emission", None, None, 4, None)),
 
     ("Emission", None),
-    ("Emission Color", ("BSDF_EMIT", "Color", None, None, 4, None)),
-    ("Emission Strength", ("BSDF_EMIT", "Strength", None, None, 1, None)),
+    ("Emission Color", ("EMISSION", "Color", None, None, 4, None)),
+    ("Emission Strength", ("EMISSION", "Strength", None, None, 1, None)),
 
     ("Volume", None),
     ("Volume Absorption Color", ("VOLUME_ABSORPTION", "Color", None, None, 4, None)),
@@ -488,11 +488,12 @@ def getTweakMaterials(scn, context):
     if ob.data.DazMaterialSets:
         return [(key,key,key) for key in ob.data.DazMaterialSets.keys()]
     else:
-        return [("Skin", "Skin", "Skin"),
-                ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
-                ("Opaque", "Opaque", "Opaque"),
+        return [("Opaque", "Opaque", "Opaque"),
                 ("Refractive", "Refractive", "Refractive"),
-                ("All", "All", "All")]    
+                ("All", "All", "All"),
+                ("Skin", "Skin", "Skin"),
+                ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
+                ]    
                 
 #----------------------------------------------------------
 #   Initialize
