@@ -505,9 +505,9 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
                         elif key == "rotation":
                             tfm.setRot(bframe["rotation"], prop)
                         elif key == "scale":
-                            tfm.setScale(bframe["scale"], prop)
+                            tfm.setScale(bframe["scale"], True, prop)
                         elif key == "general_scale":
-                            tfm.setGeneral(bframe["general_scale"], prop)
+                            tfm.setGeneral(bframe["general_scale"], True, prop)
                         elif key == "value":
                             value = bframe["value"][0]
                         else:

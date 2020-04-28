@@ -66,16 +66,22 @@ class Transform:
         self.scale = None
         self.scaleProp = None
 
-    def setScale(self, scale, prop=None):
-        self.scale = Vector(scale)
+    def setScale(self, scale, subtract, prop=None):
+        if subtract:
+            self.scale = Vector(scale) - Vector((1,1,1))
+        else:
+            self.scale = Vector(scale)         
         self.scaleProp = prop
 
     def noGeneral(self):
         self.general = None
         self.generalProp = None
 
-    def setGeneral(self, general, prop=None):
-        self.general = Vector(general)
+    def setGeneral(self, general, subtract, prop=None):
+        if subtract:
+            self.general = Vector(general) - Vector((1,1,1))
+        else:
+            self.general = Vector(general)         
         self.generalProp = prop
         print("GGG", self.general)
 
@@ -97,9 +103,9 @@ class Transform:
         if self.scale is None:
             scale = unit
         else:
-            scale = self.scale
+            scale = self.scale + unit
         if self.general is not None:
-            scale *= self.general
+            scale *= (self.general + unit)
         if scale.length == 0:
             raise RuntimeError("Bug evalScale")
         return scale

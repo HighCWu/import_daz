@@ -888,10 +888,10 @@ class PropFormulas(PoseboneDriver):
                 tfm.setRot(expr["rotation"]["value"], asset.getProp(expr["rotation"]["prop"]))
                 nonzero = True
             if "scale" in expr.keys():
-                tfm.setScale(expr["scale"]["value"], asset.getProp(expr["scale"]["prop"]))
+                tfm.setScale(expr["scale"]["value"], False, asset.getProp(expr["scale"]["prop"]))
                 nonzero = True
             if "general_scale" in expr.keys():
-                tfm.setGeneral(expr["general_scale"]["value"], asset.getProp(expr["general_scale"]["prop"]))
+                tfm.setGeneral(expr["general_scale"]["value"], False, asset.getProp(expr["general_scale"]["prop"]))
                 nonzero = True
             if nonzero:
                 # Fix: don't assume that the rest pose is at slider value 0.0.
