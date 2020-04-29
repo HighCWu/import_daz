@@ -545,8 +545,6 @@ class Node(Asset, Formula, Channels):
                 inst.rna = geonode.rna
         else:
             self.buildObject(context, inst, center)
-        if inst.extra:
-            inst.buildExtra(context)
         ob = inst.rna
         if isinstance(ob, bpy.types.Object):
             ob.DazOrientation = inst.attributes["orientation"]
@@ -554,6 +552,8 @@ class Node(Asset, Formula, Channels):
 
     def postbuild(self, context, inst):
         from .geometry import GeoNode
+        if inst.extra:
+            inst.buildExtra(context)
         inst.parentObject(context)
         for geo in inst.geometries:
             geo.postbuild(context)
