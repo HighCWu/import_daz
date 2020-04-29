@@ -771,7 +771,7 @@ class PropFormulas(PoseboneDriver):
             for key,factor in data:
                 if key in self.built.keys():
                     pass
-                elif self.taken[prop]: 
+                elif prop in self.taken.keys() and self.taken[prop]: 
                     if key not in batch.keys():
                         batch[key] = []
                     batch[key].append((factor,self.getStoredMorphs(prop)))

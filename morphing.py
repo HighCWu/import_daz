@@ -801,7 +801,7 @@ def removeFromPropGroups(rig, prop, keep=False):
 def removeFromPropGroup(pgrps, prop):
     idxs = []
     for n,pg in enumerate(pgrps):
-        if pg.prop == prop:
+        if pg.name == prop:
             idxs.append(n)
     idxs.reverse()
     for n in idxs:
