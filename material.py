@@ -1153,49 +1153,38 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
         return True
 
 # ---------------------------------------------------------------------
-#   Load materials
+#   Copy materials
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LoadMaterial(DazOperator, B.DazImageFile, B.MultiFile, IsMesh):
-    bl_idname = "daz.load_materials"
-    bl_label = "Load Material(s)"
-    bl_description = "Load materials to active mesh"
+class DAZ_OT_CopyMaterials(DazOperator, IsMesh):
+    bl_idname = "daz.copy_materials"
+    bl_label = "Copy Materials"
+    bl_description = "Copy materials from active mesh to selected meshes"
     bl_options = {'UNDO'}
 
-    def invoke(self, context, event):
-        from .fileutils import getFolder
-        folder = getFolder(context.object, context.scene, ["Materials/"])
-        if folder is not None:
-            self.properties.filepath = folder
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
     def run(self, context):
-        from .fileutils import getMultiFiles
-        from .globvars import theDazExtensions
-        from .load_json import loadJson
-        from .files import parseAssetFile
-
-        ob = context.object
-        scn = context.scene
-        theSettings.forMaterial(ob, scn)
-        paths = getMultiFiles(self, theDazExtensions)
-        for path in paths:
-            struct = loadJson(path)
-            fasset = parseAssetFile(struct)
-            if fasset is None or len(fasset.materials) == 0:
-                raise DazError ("Not a material asset:\n  '%s'" % path)
-            print(fasset)
-            for masset in fasset.materials:
-                print("  ", masset)
-                masset.build(context)
-                print(" B", masset)
-                updateScene(context)
-                masset.postbuild(context)
-
-        ob.data.materials.clear()
-        print("Loaded")
+        src = context.object
+        self.mismatch = ""
+        for trg in getSceneObjects(context):
+           if getSelected(trg) and trg != src:
+               self.copyMaterials(src, trg)
+        if self.mismatch:
+            msg = "Material number mismatch.\n" + self.mismatch
+            raise DazError(msg, warning=True)
+            
+        
+    def copyMaterials(self, src, trg):
+        ntrgmats = len(trg.data.materials)
+        nsrcmats = len(src.data.materials)
+        if ntrgmats != nsrcmats:
+            self.mismatch += ("\n%s (%d materials) != %s (%d materials)" 
+                              % (src.name, nsrcmats, trg.name, ntrgmats))
+        mnums = [(f,f.material_index) for f in trg.data.polygons]
+        trg.data.materials.clear()
+        for mat in src.data.materials:
+            trg.data.materials.append(mat)
+        for f,mn in mnums:
+            f.material_index = mn
 
 # ---------------------------------------------------------------------
 #   Resize textures
@@ -1447,7 +1436,7 @@ def checkRenderSettings(context):
 classes = [
     DAZ_OT_SaveLocalTextures,
     DAZ_OT_MergeMaterials,
-    DAZ_OT_LoadMaterial,
+    DAZ_OT_CopyMaterials,
     DAZ_OT_ChangeResolution,
     DAZ_OT_ResizeTextures,
 ]
