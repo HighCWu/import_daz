@@ -1180,9 +1180,12 @@ class DAZ_OT_CopyMaterials(DazOperator, IsMesh):
             self.mismatch += ("\n%s (%d materials) != %s (%d materials)" 
                               % (src.name, nsrcmats, trg.name, ntrgmats))
         mnums = [(f,f.material_index) for f in trg.data.polygons]
+        trglist = list(trg.data.materials)
         trg.data.materials.clear()
         for mat in src.data.materials:
             trg.data.materials.append(mat)
+        for mat in trglist[nsrcmats:ntrgmats]:
+            trg.data.materials.append(mat)            
         for f,mn in mnums:
             f.material_index = mn
 
