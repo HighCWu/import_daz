@@ -1165,9 +1165,13 @@ class DAZ_OT_CopyMaterials(DazOperator, IsMesh):
     def run(self, context):
         src = context.object
         self.mismatch = ""
+        found = False
         for trg in getSceneObjects(context):
-           if getSelected(trg) and trg != src:
+           if getSelected(trg) and trg != src and trg.type == 'MESH':
                self.copyMaterials(src, trg)
+               found = True
+        if not found:
+            raise DazError("No target mesh selected")               
         if self.mismatch:
             msg = "Material number mismatch.\n" + self.mismatch
             raise DazError(msg, warning=True)
