@@ -130,9 +130,10 @@ class Instance(Accessor):
         self.shell = {}
         self.dupli = None
         self.collection = None
+        self.root = None
         self.hidden = None
         self.isGroupNode = False
-        self.isInstance = False
+        self.isNodeInstance = False
         self.node2 = None
         self.strand_hair = node.strand_hair
         node.strand_hair = None
@@ -195,10 +196,11 @@ class Instance(Accessor):
                 elif (words[0] == "facet" and words[1] == "group" and words[-1] == "vis"):
                     pass
 
+        self.root = root
         if self.parent:
             self.collection = self.parent.collection
         else:
-            self.collection = root
+            self.collection = self.root
             
         for extra in self.extra:
             if "type" not in extra.keys():
@@ -207,18 +209,8 @@ class Instance(Accessor):
                 self.shell = extra
             elif extra["type"] == "studio/node/group_node":
                 self.isGroupNode = True
-                if bpy.app.version < (2,80,0):
-                    group = bpy.data.groups.new(self.name)
-                    self.collection = group
-                else:
-                    coll = bpy.data.collections.new(name=self.name)
-                    if self.parent:
-                        self.parent.collection.children.link(coll)
-                    else:
-                        root.children.link(coll)
-                    self.collection = coll                        
             elif extra["type"] == "studio/node/instance":
-                self.isInstance = True
+                self.isNodeInstance = True
 
         for geo in self.geometries:
             geo.preprocess(context, self)
@@ -234,8 +226,24 @@ class Instance(Accessor):
                 fp.write(bytes)
             return
 
-        elif self.node2 and self.rna and self.rna.type == 'EMPTY':
-            if self.node2.rna is None:
+        elif self.isGroupNode:
+            return
+            if bpy.app.version < (2,80,0):
+                group = bpy.data.groups.new(self.name)
+                self.collection = group
+            else:
+                coll = bpy.data.collections.new(name=self.name)
+                if self.parent:
+                    self.parent.collection.children.link(coll)
+                else:
+                    self.root.children.link(coll)
+                self.collection = coll                        
+            
+        elif self.isNodeInstance:            
+            if not (self.node2 and 
+                    self.rna and 
+                    self.rna.type == 'EMPTY' and
+                    self.node2.rna):
                 print("Instance %s node2 %s not built" % (self.name, self.node2.name))
                 return
             ob = self.node2.rna
@@ -257,20 +265,11 @@ class Instance(Accessor):
                 hidden.objects.link(ob)
                 empty = bpy.data.objects.new(obname, None)
                 self.collection.objects.link(empty)
-                setSelected(empty, True)
                 self.node2.dupli = empty
                 self.node2.hidden = hidden
                 self.duplicate(empty, hidden)
             self.duplicate(self.rna, hidden)
-            
-
-        elif self.isGroupNode:
-            pass
-            
-        elif self.isInstance:            
-            print("\nIINST", self)
-            #self.duplicate(self.rna, self.parent.collection)
-            
+                        
 
     def getInstanceGroup(self, ob):
         if bpy.app.version < (2,80,0):
