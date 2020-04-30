@@ -259,7 +259,7 @@ class Instance(Accessor):
                     hidden = bpy.data.groups.new(name=ob.name)
                 else:
                     hidden = bpy.data.collections.new(name=ob.name)
-                    self.collection.children.link(hidden)
+                    context.collection.children.link(hidden)
                     layer = findLayerCollection(context.view_layer.layer_collection, hidden)
                     layer.exclude = True
                 hidden.objects.link(ob)
