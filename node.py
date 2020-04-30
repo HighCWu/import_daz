@@ -275,11 +275,11 @@ class Instance(Accessor):
     def getInstanceGroup(self, ob):
         if bpy.app.version < (2,80,0):
             if ob.dupli_type == 'GROUP':
-                for ob1 in ob.instance_group.objects:
+                for ob1 in ob.dupli_group.objects:
                     group = self.getInstanceGroup(ob1)
                     if group:
                         return group
-                return ob.instance_group
+                return ob.dupli_group
         else:
             if ob.instance_type == 'COLLECTION':
                 for ob1 in ob.instance_collection.objects:
@@ -313,6 +313,8 @@ class Instance(Accessor):
             empty.matrix_basis = wmat
             ob.parent = None
             ob.matrix_basis = Matrix()
+            for child in list(ob.children):
+                child.parent = empty
             self.collection.objects.unlink(ob)
 
 
