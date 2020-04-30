@@ -234,7 +234,7 @@ class Instance(Accessor):
                 fp.write(bytes)
             return
 
-        elif self.node2:
+        elif self.node2 and self.rna and self.rna.type == 'EMPTY':
             if self.node2.rna is None:
                 print("WHUT")
                 return
@@ -279,6 +279,16 @@ class Instance(Accessor):
 
     def pose(self, context):
         pass
+
+
+    def finalize(self, context):
+        from mathutils import Matrix
+        if self.dupli:
+            ob = self.rna
+            wmat = ob.matrix_basis.copy()
+            ob.matrix_basis = Matrix()
+            self.dupli.matrix_basis = wmat
+            self.collection.objects.unlink(ob)
 
 
     def formulate(self, key, value):

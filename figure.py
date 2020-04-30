@@ -59,6 +59,18 @@ class FigureInstance(Instance):
         pass
 
 
+    def finalize(self, context):
+        from .finger import getFingeredCharacter
+        Instance.finalize(self, context)
+        self.rna.name = self.name
+        rig,mesh,char = getFingeredCharacter(self.rna)
+        if rig and mesh:
+            rig.DazMesh = mesh.DazMesh = char
+            activateObject(context, rig)
+        elif mesh:
+            mesh.DazMesh = char    
+            
+
     def pose(self, context):
         from .bone import BoneInstance
         Instance.pose(self, context)

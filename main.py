@@ -112,6 +112,8 @@ def getMainAsset(filepath, context, btn):
         inst.pose(context)
     for asset,inst in main.modifiers:
         asset.postbuild(context, inst)
+    for _,inst in main.nodes:
+        inst.finalize(context)
 
     for extra in main.extras:
         if extra:
@@ -122,7 +124,6 @@ def getMainAsset(filepath, context, btn):
         for asset,inst in main.nodes:
             asset.guessColor(scn, theSettings.chooseColors, inst)
 
-    renameAndGroup(main, context)
     finishMain("File", filepath, t1)
     if theSettings.missingAssets:
         msg = ("Some assets were not found.\nCheck that all Daz paths have been set up correctly.        ")
@@ -132,35 +133,6 @@ def getMainAsset(filepath, context, btn):
     msg = checkRenderSettings(context)
     if msg:
         raise DazError(msg, warning=True)
-
-
-def renameAndGroup(main, context):
-    from .figure import FigureInstance
-    from .finger import getFingeredCharacter
-    from mathutils import Matrix
-
-    for _,inst in main.nodes:
-        if isinstance(inst, FigureInstance):
-            rig = inst.rna
-            inst.rna.name = inst.name
-
-        if inst.dupli:
-            ob = inst.rna
-            wmat = ob.matrix_basis.copy()
-            ob.matrix_basis = Matrix()
-            inst.dupli.matrix_basis = wmat
-            inst.collection.objects.unlink(ob)
-    
-    rig = None
-    mesh = None
-    for asset,inst in main.nodes:
-        if isinstance(inst, FigureInstance):
-            rig,mesh,char = getFingeredCharacter(inst.rna)
-            if rig and mesh:
-                rig.DazMesh = mesh.DazMesh = char
-                activateObject(context, rig)
-            elif mesh:
-                mesh.DazMesh = char
 
 
 def makeRootCollection(filepath, context):
