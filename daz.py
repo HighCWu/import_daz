@@ -296,16 +296,6 @@ def initialize():
         description = "Convert URLs to lowercase. Works best on Windows.",
         default = (platform != 'win32'))
 
-    bpy.types.Scene.DazRename = BoolProperty(
-        name = "Rename",
-        description = "Rename all imported objects based on file name",
-        default = False)
-
-    bpy.types.Scene.DazUseGroup = BoolProperty(
-        name = "Create Group",
-        description = "Add all objects to the same group",
-        default = True)
-
     bpy.types.Scene.DazAddFaceDrivers = BoolProperty(
         name = "Add Face Drivers",
         description = "Add drivers to facial morphs. Only for Genesis 1 and 2.",

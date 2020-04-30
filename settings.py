@@ -42,9 +42,7 @@ class Settings:
         self.verbosity = 1
         self.useStrict = False
         self.zup = True
-        self.rename = False
         self.caseSensitivePaths = False
-        self.group = False
         self.makeDrivers = 'PROPS'
         self.propMin = -1.0
         self.propMax = 1.0
@@ -124,9 +122,7 @@ class Settings:
         #elif scn.unit_settings.system == 'METRIC':
         #    self.scale = 0.01/scn.unit_settings.scale_length
         self.zup = scn.DazZup
-        self.rename = scn.DazRename
         self.caseSensitivePaths = scn.DazCaseSensitivePaths
-        self.group = scn.DazUseGroup
         self.makeDrivers = scn.DazMakeDrivers
         self.propMin = scn.DazPropMin
         self.propMax = scn.DazPropMax

@@ -71,15 +71,11 @@ def getMainAsset(filepath, context, btn):
     showProgress(30, 100)
 
     print("Preprocessing...")
+    root = makeRootCollection(filepath, context)
     for asset,inst in main.nodes:
-        inst.preprocess(context)
+        inst.preprocess(context, root)
 
     print("Building objects...")
-    grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()
-    coll = None
-    if theSettings.group and bpy.app.version >= (2,80,0):
-        coll = makeNewSceneCollection(grpname, context)
-
     for asset in main.materials:
         asset.build(context)
     showProgress(50, 100)
@@ -126,7 +122,7 @@ def getMainAsset(filepath, context, btn):
         for asset,inst in main.nodes:
             asset.guessColor(scn, theSettings.chooseColors, inst)
 
-    rig,grp = renameAndGroup(main, grpname, context, coll)
+    renameAndGroup(main, context)
     finishMain("File", filepath, t1)
     if theSettings.missingAssets:
         msg = ("Some assets were not found.\nCheck that all Daz paths have been set up correctly.        ")
@@ -138,7 +134,7 @@ def getMainAsset(filepath, context, btn):
         raise DazError(msg, warning=True)
 
 
-def renameAndGroup(main, grpname, context, coll):
+def renameAndGroup(main, context):
     from .figure import FigureInstance
     from .finger import getFingeredCharacter
     from mathutils import Matrix
@@ -153,8 +149,7 @@ def renameAndGroup(main, grpname, context, coll):
             wmat = ob.matrix_basis.copy()
             ob.matrix_basis = Matrix()
             inst.dupli.matrix_basis = wmat
-            if coll:
-                coll.objects.unlink(ob)
+            inst.collection.objects.unlink(ob)
     
     rig = None
     mesh = None
@@ -167,58 +162,16 @@ def renameAndGroup(main, grpname, context, coll):
             elif mesh:
                 mesh.DazMesh = char
 
-    if theSettings.rename and rig:
-        print("Renaming", grpname)
-        rig.name = rig.data.name = grpname
-        if mesh:
-            mesh.name = mesh.data.name = "Mesh"
-        for ob in rig.children:
-            ob.name = ob.data.name = grpname + "_" + ob.name
 
-    if theSettings.group and bpy.app.version < (2,80,0):
-        grp = groupInstances(grpname, main, context)
+def makeRootCollection(filepath, context):
+    grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()
+    if bpy.app.version < (2,80,0):
+        root = bpy.data.groups.new(name=grpname)
     else:
-        grp = None
-    return rig, grp
-
-
-def makeNewSceneCollection(grpname, context):
-    colls = context.scene.collection
-    coll = bpy.data.collections.new(name=grpname)
-    colls.children.link(coll)
-    theSettings.collection = coll
-    return coll
-
-
-def groupInstances(grpname, main, context):
-    from .node import Instance
-    from .figure import FigureInstance
-    from .bone import BoneInstance
-    from .geometry import GeoNode
-
-    print("Grouping", grpname)
-    grp = bpy.data.groups.new(grpname)
-    for asset,inst in main.nodes:
-        if isinstance(inst, FigureInstance):
-            addToGroup(inst, grp)
-            for geonode in inst.geometries:
-                addToGroup(geonode, grp)
-        elif isinstance(inst, GeoNode):
-            addToGroup(inst, grp)
-        elif isinstance(inst, BoneInstance):
-            pass
-        elif isinstance(inst, Instance):
-            addToGroup(inst, grp)
-            for geonode in inst.geometries:
-                addToGroup(geonode, grp)
-    return grp
-
-
-def addToGroup(inst, grp):
-    ob = inst.rna
-    if (isinstance(ob, bpy.types.Object) and
-        ob.name not in grp.objects.keys()):
-        grp.objects.link(ob)
+        root = bpy.data.collections.new(name=grpname)
+        context.scene.collection.children.link(root)
+    theSettings.collection = root
+    return root
 
 
 def finishMain(entity, filepath, t1):

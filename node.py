@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2020, Thomas Larsson
+    # Copyright (c) 2016-2020, Thomas Larsson
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -128,8 +128,10 @@ class Instance(Accessor):
         self.channels = node.channels
         node.channels = {}
         self.shell = {}
-        self.dupli = None
-        self.groupNode = None
+        self.dupli = False
+        self.collection = None
+        self.hidden = None
+        self.isGroupNode = False
         self.isInstance = False
         self.node2 = None
         self.strand_hair = node.strand_hair
@@ -177,7 +179,7 @@ class Instance(Accessor):
         return self.offsets["general_scale"]
 
 
-    def preprocess(self, context):
+    def preprocess(self, context, root):
         for channel in self.channels.values(): 
             if "type" not in channel.keys():
                 continue                   
@@ -192,23 +194,31 @@ class Instance(Accessor):
                     self.material_group_vis[channel["label"]] = getCurrentValue(channel)
                 elif (words[0] == "facet" and words[1] == "group" and words[-1] == "vis"):
                     pass
-                    
+
+        if self.parent:
+            self.collection = self.parent.collection
+        else:
+            self.collection = root
+            
         for extra in self.extra:
             if "type" not in extra.keys():
                 continue
             elif extra["type"] == "studio/node/shell":
                 self.shell = extra
             elif extra["type"] == "studio/node/group_node":
+                self.isGroupNode = True
                 if bpy.app.version < (2,80,0):
                     group = bpy.data.groups.new(self.name)
-                    self.groupNode = group
+                    self.collection = group
                 else:
                     coll = bpy.data.collections.new(name=self.name)
-                    context.collection.children.link(coll)
-                    self.groupNode = coll
+                    if self.parent:
+                        self.parent.collection.children.link(coll)
+                    else:
+                        root.children.link(coll)
+                    self.collection = coll                        
             elif extra["type"] == "studio/node/instance":
                 self.isInstance = True
-                self.parent.node2 = self.node2
 
         for geo in self.geometries:
             geo.preprocess(context, self)
@@ -224,25 +234,38 @@ class Instance(Accessor):
                 fp.write(bytes)
             return
 
-        elif self.groupNode and self.node2 and self.node2.rna:
+        elif self.node2:
+            if self.node2.rna is None:
+                print("WHUT")
+                return
             ob = self.node2.rna
-            coll = self.groupNode
-            coll.objects.link(ob)
-            if bpy.app.version < (2,80,0):
-                putOnHiddenLayer(ob)
+            if self.node2.hidden:
+                hidden = self.node2.hidden
             else:
-                layer = findLayerCollection(context.view_layer.layer_collection, coll)
-                layer.exclude = True
-            empty = bpy.data.objects.new(ob.name + "_Dupli", None)
-            self.node2.dupli = empty
-            scncoll = getCollection(context)
-            scncoll.objects.link(empty)
-            setSelected(empty, True)
-            empty.parent = self.rna
-            self.duplicate(empty, coll)
+                if bpy.app.version < (2,80,0):
+                    putOnHiddenLayer(ob)
+                    hidden = bpy.data.groups.new(name=self.name)
+                else:
+                    hidden = bpy.data.collections.new(name=self.name)
+                    self.collection.children.link(hidden)
+                    layer = findLayerCollection(context.view_layer.layer_collection, hidden)
+                    layer.exclude = True
+                hidden.objects.link(ob)                    
+                self.node2.hidden = hidden
+                empty = bpy.data.objects.new(ob.name + "_Dupli", None)
+                self.collection.objects.link(empty)
+                empty.parent = ob.parent
+                setSelected(empty, True)
+                self.node2.dupli = empty
+                self.duplicate(empty, hidden)
+            self.duplicate(self.rna, hidden)
 
-        elif self.isInstance:
-            self.duplicate(self.rna, self.parent.groupNode)
+        elif self.isGroupNode:
+            pass
+            
+        elif self.isInstance:            
+            print("\nIINST", self)
+            #self.duplicate(self.rna, self.parent.collection)
             
 
     def duplicate(self, empty, group):
@@ -548,12 +571,12 @@ class Node(Asset, Formula, Channels):
         ob = inst.rna
         if isinstance(ob, bpy.types.Object):
             ob.DazOrientation = inst.attributes["orientation"]
+        if inst.extra:
+            inst.buildExtra(context)
 
 
     def postbuild(self, context, inst):
         from .geometry import GeoNode
-        if inst.extra:
-            inst.buildExtra(context)
         inst.parentObject(context)
         for geo in inst.geometries:
             geo.postbuild(context)
@@ -562,10 +585,11 @@ class Node(Asset, Formula, Channels):
     def buildObject(self, context, inst, center):
         from .geometry import Geometry
         from .asset import normalizePath
-        cscale = inst.getCharacterScale()
 
+        cscale = inst.getCharacterScale()
+        scn = context.scene
         if isinstance(self.data, Asset):
-            if self.data.shell and context.scene.DazMergeShells:
+            if self.data.shell and scn.DazMergeShells:
                 return
             ob = self.data.buildData(context, self, inst, cscale, center)
             if not isinstance(ob, bpy.types.Object):
@@ -583,8 +607,9 @@ class Node(Asset, Formula, Channels):
         self.rna = inst.rna = ob
         ob.rotation_mode = BlenderRotMode[self.rotDaz]
         ob.DazRotMode = self.rotDaz
-        coll = getCollection(context)
-        coll.objects.link(ob)
+        inst.collection.objects.link(ob)
+        if bpy.app.version < (2,80,0):
+            scn.objects.link(ob)
         activateObject(context, ob)
         setSelected(ob, True)
         ob.DazId = self.id

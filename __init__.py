@@ -394,8 +394,6 @@ class DAZ_PT_Settings(bpy.types.Panel):
             box.prop(scn, "DazOrientation")
             box.prop(scn, "DazBestOrientation")
             box.prop(scn, "DazCaseSensitivePaths")
-            box.prop(scn, "DazRename")
-            box.prop(scn, "DazUseGroup")
 
         layout.separator()
         box = layout.box()
