@@ -128,7 +128,7 @@ class Instance(Accessor):
         self.channels = node.channels
         node.channels = {}
         self.shell = {}
-        self.dupli = False
+        self.dupli = None
         self.collection = None
         self.hidden = None
         self.isGroupNode = False
@@ -236,29 +236,33 @@ class Instance(Accessor):
 
         elif self.node2 and self.rna and self.rna.type == 'EMPTY':
             if self.node2.rna is None:
-                print("WHUT")
+                print("Instance %s node2 %s not built" % (self.name, self.node2.name))
                 return
             ob = self.node2.rna
             if self.node2.hidden:
                 hidden = self.node2.hidden
             else:
+                hidden = self.getInstanceGroup(ob)
+            if hidden is None:
+                obname = ob.name
+                ob.name = obname + " Hidden"
                 if bpy.app.version < (2,80,0):
                     putOnHiddenLayer(ob)
-                    hidden = bpy.data.groups.new(name=self.name)
+                    hidden = bpy.data.groups.new(name=ob.name)
                 else:
-                    hidden = bpy.data.collections.new(name=self.name)
+                    hidden = bpy.data.collections.new(name=ob.name)
                     self.collection.children.link(hidden)
                     layer = findLayerCollection(context.view_layer.layer_collection, hidden)
                     layer.exclude = True
-                hidden.objects.link(ob)                    
-                self.node2.hidden = hidden
-                empty = bpy.data.objects.new(ob.name + "_Dupli", None)
+                hidden.objects.link(ob)
+                empty = bpy.data.objects.new(obname, None)
                 self.collection.objects.link(empty)
-                empty.parent = ob.parent
                 setSelected(empty, True)
                 self.node2.dupli = empty
+                self.node2.hidden = hidden
                 self.duplicate(empty, hidden)
             self.duplicate(self.rna, hidden)
+            
 
         elif self.isGroupNode:
             pass
@@ -268,6 +272,24 @@ class Instance(Accessor):
             #self.duplicate(self.rna, self.parent.collection)
             
 
+    def getInstanceGroup(self, ob):
+        if bpy.app.version < (2,80,0):
+            if ob.dupli_type == 'GROUP':
+                for ob1 in ob.instance_group.objects:
+                    group = self.getInstanceGroup(ob1)
+                    if group:
+                        return group
+                return ob.instance_group
+        else:
+            if ob.instance_type == 'COLLECTION':
+                for ob1 in ob.instance_collection.objects:
+                    group = self.getInstanceGroup(ob1)
+                    if group:
+                        return group
+                return ob.instance_collection
+        return None
+            
+    
     def duplicate(self, empty, group):
         if bpy.app.version < (2,80,0):
             empty.dupli_type = 'GROUP'
@@ -285,9 +307,12 @@ class Instance(Accessor):
         from mathutils import Matrix
         if self.dupli:
             ob = self.rna
+            empty = self.dupli
+            empty.parent = ob.parent
             wmat = ob.matrix_basis.copy()
+            empty.matrix_basis = wmat
+            ob.parent = None
             ob.matrix_basis = Matrix()
-            self.dupli.matrix_basis = wmat
             self.collection.objects.unlink(ob)
 
 

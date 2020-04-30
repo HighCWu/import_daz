@@ -159,6 +159,7 @@ class Geometry(Asset, Channels):
         self.material_indices = []
         self.polygon_material_groups = []
         self.material_selection_sets = []
+        self.type = None
         self.vertex_count = 0
         self.poly_count = 0
         self.vertex_pairs = []
@@ -236,6 +237,8 @@ class Geometry(Asset, Channels):
                 self.groups.append(data)
             elif key == "root_region":
                 self.root_region = data
+            elif key == "type":
+                self.type = data
         
         if self.uv_set is None:
             self.uv_set = self.default_uv_set
@@ -252,6 +255,7 @@ class Geometry(Asset, Channels):
     def copySource(self, asset):
         asset.verts = self.verts
         asset.faces = self.faces
+        asset.type = self.type
         asset.materials = self.materials
         asset.material_indices = self.material_indices
         asset.polygon_material_groups = self.polygon_material_groups
@@ -413,10 +417,11 @@ class Geometry(Asset, Channels):
 
         me.from_pydata([cscale*vco-center for vco in verts], [], self.faces)
 
+        smooth = (False if self.type == "polygon_mesh" else True)
         for fn,mn in enumerate(self.material_indices):
             p = me.polygons[fn]
             p.material_index = mn
-            p.use_smooth = True
+            p.use_smooth = smooth
 
         for mn,mname in enumerate(self.polygon_material_groups):
             if mname in self.materials.keys():
@@ -560,7 +565,8 @@ class Uvset(Asset):
                     udim = math.floor((umin+umax)/2)
                 else:
                     udim = 0
-                    print("UV coordinate difference %f - %f > 1" % (umax, umin))
+                    if theSettings.verbosity > 2:
+                        print("UV coordinate difference %f - %f > 1" % (umax, umin))
                 key = geo.polygon_material_groups[mn]
                 if key in geo.materials.keys():
                     for mat in geo.materials[key]:
