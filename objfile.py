@@ -135,13 +135,14 @@ def loadDbzFile(filepath):
         name = figure["name"]
         if name not in dbz.objects.keys():
             dbz.objects[name] = []
-            dbz.hdobjects[name] = []
 
         if "vertices" in figure.keys():
             verts = [d2b(vec) for vec in figure["vertices"]]
             dbz.objects[name].append(verts)
 
         if "hd vertices" in figure.keys():
+            if name not in dbz.hdobjects.keys():
+                dbz.hdobjects[name] = []
             verts = [d2b(vec) for vec in figure["hd vertices"]]
             level = figure["subd level"]
             uvs = figure["hd uvs"]
@@ -250,11 +251,13 @@ def fitToFile(filepath, nodes):
                     ok = False
                 else:
                     verts = dbz.objects[nname][idx]
-                    try:
-                        highdef = dbz.hdobjects[nname][idx]
-                        print("Highdef", nname, highdef[0], len(highdef[1]))
-                    except KeyError:
-                        highdef = (0,[],[],[])
+                    highdef = None
+                    if dbz.hdobjects:
+                        try:
+                            highdef = dbz.hdobjects[nname][idx]
+                            print("Highdef", nname, highdef[0], len(highdef[1]))
+                        except KeyError:
+                            pass
                     taken[nname] += 1
                     ok = True
                 if not ok:
