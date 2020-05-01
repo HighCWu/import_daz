@@ -26,6 +26,7 @@
 # either expressed or implied, of the FreeBSD Project.
 
 import math
+from mathutils import Vector
 import os
 import bpy
 from collections import OrderedDict
@@ -53,6 +54,8 @@ class GeoNode(Node):
         self.figure = figure
         self.figureInst = None
         self.verts = None
+        self.highdef = None
+        self.hdobject = None
         self.index = figure.count
         if geo:
             geo.caller = self
@@ -87,21 +90,42 @@ class GeoNode(Node):
             self.data.buildRigidity(ob)
 
 
-    def buildData(self, context, inst, cscale, center):
-        print("BDGN", self)
-        print("  ", self.data)
-        self.data.buildData(context, self, inst, cscale, center)
-        #geonode = self.data.getNode(inst.index)
-        ob = self.rna = bpy.data.objects.new(inst.name, self.data.rna)
-        print("  ", self.data)
-        print("  ", self.rna, ob.type)
-        return ob
+    def subdivideObject(self, ob, inst, context, cscale, center):
+        from .material import copyMaterials
+        if self.highdef:
+            level,verts,uvs,hdfaces = self.highdef
+            faces = [f[0] for f in hdfaces]
+            uvfaces = [f[1] for f in hdfaces]
+            mnums = [f[4] for f in hdfaces]
+            nverts = len(verts)
+            me = bpy.data.meshes.new(ob.data.name + "_HD")
+            me.from_pydata([cscale*vco-center for vco in verts], [], faces)
+            addUvs(me, "UVSet", uvs, uvfaces)
+            for f in me.polygons:
+                f.material_index = mnums[f.index]
+                f.use_smooth = True
+            hdob = bpy.data.objects.new(ob.name + "_HD", me)
+            copyMaterials(ob, hdob)
+            self.arrangeObject(hdob, inst, context, cscale, center)            
+            self.hdobject = hdob
+            
+        if (self.type == "subdivision_surface" and
+              (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
+            mod = ob.modifiers.new(name='SUBSURF', type='SUBSURF')
+            mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
+            mod.levels = self.data.SubDIALevel
 
 
-    def postbuild(self, context):
+    def getHDMatch(self):
+        hdfaces = self.highdef[3]
+        return [f[6] for f in hdfaces]
+    
+    
+    def postbuild(self, context, inst):
         if self.rna:
             pruneUvMaps(self.rna)
-        return
+        if self.hdobject:
+            inst.parentObject(context, self.hdobject)
 
 
     def setHideInfo(self, parent):
@@ -254,6 +278,7 @@ class Geometry(Asset, Channels):
 
     def copySource(self, asset):
         asset.verts = self.verts
+        asset.highdef = self.highdef
         asset.faces = self.faces
         asset.type = self.type
         asset.materials = self.materials
@@ -588,6 +613,15 @@ def makeNewUvloop(me, name, setActive):
             uvloop.active_render = True
         me.uv_layers.active_index = len(me.uv_layers) - 1
     return uvloop
+
+
+def addUvs(me, name, uvs, uvfaces):
+    uvloop = makeNewUvloop(me, name, True)
+    m = 0
+    for f in uvfaces:
+        for vn in f:
+            uvloop.data[m].uv = uvs[vn]
+            m += 1
 
 #-------------------------------------------------------------
 #   Prune Uv textures

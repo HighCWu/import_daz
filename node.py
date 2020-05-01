@@ -340,19 +340,18 @@ class Instance(Accessor):
         self.deltaMatrix = Mult3(Matrix.Translation(trans), rotmat, scalemat)
 
 
-    def parentObject(self, context):
+    def parentObject(self, context, ob):
         from .figure import FigureInstance
         from .bone import BoneInstance
         from .geometry import GeoNode
 
-        ob = self.rna
         if ob is None:
             return
         activateObject(context, ob)
 
         if self.parent is None:
             ob.parent = None
-            self.transformObject()
+            self.transformObject(ob)
 
         elif self.parent.rna == ob:
             print("Warning: Trying to parent %s to itself" % ob)
@@ -363,7 +362,7 @@ class Instance(Accessor):
                 for pgeo in self.parent.geometries:
                     geo.setHideInfo(pgeo)
             setParent(context, ob, self.parent.rna)
-            self.transformObject()
+            self.transformObject(ob)
 
         elif isinstance(self.parent, BoneInstance):
             self.hasBoneParent = True
@@ -375,11 +374,11 @@ class Instance(Accessor):
             if bname in rig.pose.bones.keys():
                 setParent(context, ob, rig, bname)
                 pb = rig.pose.bones[bname]
-                self.transformObject(pb)
+                self.transformObject(ob, pb)
 
         elif isinstance(self.parent, Instance):
             setParent(context, ob, self.parent.rna)
-            self.transformObject()
+            self.transformObject(ob)
 
         else:
             raise RuntimeError("Unknown parent %s %s" % (self, self.parent))
@@ -408,10 +407,9 @@ class Instance(Accessor):
         return mat, offset
 
 
-    def transformObject(self, pb=None):
+    def transformObject(self, ob, pb=None):
         mat,offset = self.getTransformMatrix(pb)
         trans,quat,scale = mat.decompose()
-        ob = self.rna
         ob.location = trans - offset
         ob.rotation_euler = quat.to_euler(ob.rotation_mode)
         ob.scale = scale
@@ -595,24 +593,17 @@ class Node(Asset, Formula, Channels):
                 inst.rna = geonode.rna
         else:
             self.buildObject(context, inst, center)
-        ob = inst.rna
-        if isinstance(ob, bpy.types.Object):
-            ob.DazOrientation = inst.attributes["orientation"]
         if inst.extra:
             inst.buildExtra(context)
 
 
     def postbuild(self, context, inst):
-        from .geometry import GeoNode
-        inst.parentObject(context)
-        for geo in inst.geometries:
-            geo.postbuild(context)
+        inst.parentObject(context, inst.rna)
+        for geonode in inst.geometries:
+            geonode.postbuild(context, inst)
 
 
     def buildObject(self, context, inst, center):
-        from .geometry import Geometry
-        from .asset import normalizePath
-
         cscale = inst.getCharacterScale()
         scn = context.scene
         if isinstance(self.data, Asset):
@@ -623,27 +614,30 @@ class Node(Asset, Formula, Channels):
                 ob = bpy.data.objects.new(inst.name, self.data.rna)
         else:
             ob = bpy.data.objects.new(inst.name, self.data)
-        
-        if (self.type == "subdivision_surface" and
-            isinstance(self.data, Geometry) and 
-            (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
-            mod = ob.modifiers.new(name='SUBSURF', type='SUBSURF')
-            mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
-            mod.levels = self.data.SubDIALevel
-
         self.rna = inst.rna = ob
+        self.arrangeObject(ob, inst, context, cscale, center)
+        self.subdivideObject(ob, inst, context, cscale, center)
+        
+        
+    def arrangeObject(self, ob, inst, context, cscale, center):        
+        from .asset import normalizePath
         ob.rotation_mode = BlenderRotMode[self.rotDaz]
         ob.DazRotMode = self.rotDaz
         inst.collection.objects.link(ob)
         if bpy.app.version < (2,80,0):
-            scn.objects.link(ob)
+            context.scene.objects.link(ob)
         activateObject(context, ob)
         setSelected(ob, True)
         ob.DazId = self.id
         ob.DazUrl = normalizePath(self.url)
         ob.DazScale = theSettings.scale
         ob.DazCharacterScale = cscale
+        ob.DazOrientation = inst.attributes["orientation"]
         ob.location = -center
+
+
+    def subdivideObject(self, ob, inst, context, cscale, center):
+        pass
 
 
     def guessColor(self, scn, flag, inst):

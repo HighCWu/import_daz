@@ -407,7 +407,7 @@ class BoneInstance(Instance):
                 child.listBones()
 
 
-    def parentObject(self, context):
+    def parentObject(self, context, ob):
         pass
 
 

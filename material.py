@@ -1164,35 +1164,36 @@ class DAZ_OT_CopyMaterials(DazOperator, IsMesh):
 
     def run(self, context):
         src = context.object
-        self.mismatch = ""
+        mismatch = ""
         found = False
         for trg in getSceneObjects(context):
            if getSelected(trg) and trg != src and trg.type == 'MESH':
-               self.copyMaterials(src, trg)
+               mismatch = copyMaterials(src, trg, mismatch)
                found = True
         if not found:
-            raise DazError("No target mesh selected")               
-        if self.mismatch:
-            msg = "Material number mismatch.\n" + self.mismatch
+            raise DazError("No target mesh selected")
+        if mismatch:
+            msg = "Material number mismatch.\n" + mismatch
             raise DazError(msg, warning=True)
             
         
-    def copyMaterials(self, src, trg):
-        ntrgmats = len(trg.data.materials)
-        nsrcmats = len(src.data.materials)
-        if ntrgmats != nsrcmats:
-            self.mismatch += ("\n%s (%d materials) != %s (%d materials)" 
-                              % (src.name, nsrcmats, trg.name, ntrgmats))
-        mnums = [(f,f.material_index) for f in trg.data.polygons]
-        trglist = list(trg.data.materials)
-        trg.data.materials.clear()
-        for mat in src.data.materials:
-            trg.data.materials.append(mat)
-        for mat in trglist[nsrcmats:ntrgmats]:
-            trg.data.materials.append(mat)            
-        for f,mn in mnums:
-            f.material_index = mn
-
+def copyMaterials(src, trg, mismatch=""):
+    ntrgmats = len(trg.data.materials)
+    nsrcmats = len(src.data.materials)
+    if ntrgmats != nsrcmats:
+        mismatch += ("\n%s (%d materials) != %s (%d materials)" 
+                      % (src.name, nsrcmats, trg.name, ntrgmats))
+    mnums = [(f,f.material_index) for f in trg.data.polygons]
+    trglist = list(trg.data.materials)
+    trg.data.materials.clear()
+    for mat in src.data.materials:
+        trg.data.materials.append(mat)
+    for mat in trglist[nsrcmats:ntrgmats]:
+        trg.data.materials.append(mat)
+    for f,mn in mnums:
+        f.material_index = mn
+    return mismatch
+    
 # ---------------------------------------------------------------------
 #   Resize textures
 # ---------------------------------------------------------------------

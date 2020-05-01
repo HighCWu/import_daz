@@ -1,9 +1,9 @@
 // DAZ Studio version 4.9.4.117 filetype DAZ Script
 
-var appName = "export_to_blender";
+var appName = "export_highdef_to_blender";
 var version = 0.6;
 
-function exportToBlender()
+function exportHighdefToBlender()
 {
     // Write the line
     var filepath = FileDialog.doFileDialog( 
@@ -17,12 +17,13 @@ function exportToBlender()
         return;
     }
     
+	// fp = new DzFile( filepath );
     fp = new DzGZFile( filepath );
     debug( fp.baseName() );
     fp.open( fp.WriteOnly );
     
     fp.writeLine("{");
-    fp.writeLine("    \"application\": \"export_to_blender\",");
+    fp.writeLine("    \"application\": \"export_highdef_to_blender\",");
     fp.writeLine("    \"version\": " + version + ",");
     
     fp.writeLine("    \"figures\": [");
@@ -36,6 +37,7 @@ function exportToBlender()
         node.setWSPos(DzVec3());
         node.setWSRot(DzQuat());
         node.setWSScale(DzMatrix3(initIdentity=true));
+        // node.update();
 
         if ( node.inherits( "DzSkeleton" ) )
         {
@@ -52,6 +54,7 @@ function exportToBlender()
         node.setWSPos(pos);
         node.setWSRot(rot);
         node.setWSScale(scale);
+        // node.update();
     }
 
     fp.writeLine("    {" );
@@ -75,7 +78,7 @@ function doFigure (fp, figure)
 {
     figure.finalize();
     var flabel = figure.getLabel();
-        startObject(fp, figure.name, flabel);
+    startObject(fp, figure.name, flabel);
 
     var obj = figure.getObject();
     if (obj != null) 
@@ -125,12 +128,27 @@ function doMesh (fp, obj, start, node, str1, str2)
     var shape = obj.getCurrentShape();
     if (shape == null)
         return false;
-
-    // Turn off high resolution
     var lodctrl = shape.getLODControl();
     var lodvalue = lodctrl.getValue();
+    var level = shape.getSubDDrawLevel();    
+
+    if (start)
+    {
+        startObject(fp, node.name, "undefined");
+    }
+
+    // Write HD data
+    //obj.forceCacheUpdate(node,false);   
+    var geom = obj.getCachedGeom();
+    fp.writeLine("        \"lod\": " + lodvalue + ",");
+    fp.writeLine("        \"subd level\": " + level + ",");
+    writeVertices(geom, geom, "hd ");
+    fp.writeLine("        ],");
+    writeHDUVs(geom);
+    writeHDFaces(geom);
+
+    // Turn off high resolution
     lodctrl.setValue(0);
-    // update mesh
     obj.forceCacheUpdate(node,false);   
         
     var geom = obj.getCachedGeom();
@@ -140,19 +158,24 @@ function doMesh (fp, obj, start, node, str1, str2)
     if (mesh == null)
         return false;
 
-    if (start)
-    {
-        startObject(fp, node.name, "undefined");
-    }
+    writeVertices(mesh, geom, "")    
+    fp.writeLine(str1)
+    fp.writeLine(str2)    
+    lodctrl.setValue(lodvalue);    
+    return true;
+}
 
+    
+function writeVertices(mesh, geom, hd)
+{    
     var nv = mesh.getNumVertices();
     var ne = mesh.getNumEdges();
     var nf = mesh.getNumFacets();
         
-    fp.writeLine("        \"num verts\": " + nv + ",");
-    fp.writeLine("        \"num edges\": " + ne + ",");
-    fp.writeLine("        \"num faces\": " + nf + ",");
-    fp.writeLine("        \"vertices\": [" );
+    fp.writeLine("        \"num " + hd + "verts\": " + nv + ",");
+    fp.writeLine("        \"num " + hd + "edges\": " + ne + ",");
+    fp.writeLine("        \"num " + hd + "faces\": " + nf + ",");
+    fp.writeLine("        \"" + hd + "vertices\": [" );
     
     var c = ","
     for (var i = 0; i < nv; i++)
@@ -161,11 +184,37 @@ function doMesh (fp, obj, start, node, str1, str2)
         if (i == nv-1) c = "";
         fp.writeLine("            [" + v.x + ", " + v.y + ", " + v.z + "]" + c)
     }    
-    fp.writeLine(str1)
-    fp.writeLine(str2)
+}
+
+function writeHDUVs(geom)
+{    
+    var uvs = geom.getUVs();
+    var nuv = uvs.getNumValues();
     
-    lodctrl.setValue(lodvalue);    
-    return true;
+    fp.writeLine("        \"num hd uvs\": " + nuv + ",");
+    fp.writeLine("        \"hd uvs\": [" );    
+    var c = ","
+    for (var i = 0; i < nuv; i++)
+    {
+        var uv = uvs.getPnt2Vec(i);
+        if (i == nuv-1) c = "";
+        fp.writeLine("            [" + uv.x + ", " + uv.y + "]" + c)
+    }    
+    fp.writeLine("        ],");
+}
+
+function writeHDFaces(geom)
+{    
+    var nf = geom.getNumFacets();
+    fp.writeLine("        \"hd faces\": [" );    
+    var c = ","
+    for (var i = 0; i < nf; i++)
+    {
+        var f = geom.getFacet(i);
+        if (i == nf-1) c = "";
+        fp.writeLine("            " + f + c)
+    }    
+    fp.writeLine("        ],");
 }
 
 //==============================================================================
@@ -182,4 +231,4 @@ function getScenePath()
 //==============================================================================
 // Run it
 //==============================================================================
-exportToBlender()
+exportHighdefToBlender()

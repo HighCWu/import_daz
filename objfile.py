@@ -34,16 +34,96 @@ from .utils import *
 from .settings import theSettings
 
 #------------------------------------------------------------------
-#   JSON fitting
+#   DBZ fitting
 #------------------------------------------------------------------
 
-def loadJsonVerts(filepath):
+class DBZInfo:
+    def __init__(self):
+        self.objects = {}
+        self.hdobjects = {}
+        self.rigs = {}
+
+
+    def fitFigure(self, inst, takenfigs):
+        from .figure import FigureInstance
+        from .bone import BoneInstance
+        name = inst.node.name
+        if name in self.rigs.keys():
+            inst.clearTransforms()
+            if inst.id in takenfigs[name]:
+                return
+            elif inst.index < len(self.rigs[name]):
+                locations,transforms = self.rigs[name][inst.index]
+                takenfigs[name].append(inst.id)
+            else:
+                print("Cannot fit %s" % name)
+                return
+        else:
+            print("No fitting info for figure %s" % name)
+            for key in self.rigs.keys():
+                print("  ", key)
+            return
+
+        for child in inst.children.values():
+            if isinstance(child, FigureInstance):
+                self.fitFigure(child, takenfigs)
+            elif isinstance(child, BoneInstance):
+                self.fitBone(child, locations, transforms, takenfigs)
+
+
+    def fitBone(self, inst, locations, transforms, takenfigs):
+        from .figure import FigureInstance
+        from .bone import BoneInstance
+        if inst.node.name not in locations.keys():
+            return
+        head,tail = locations[inst.node.name]
+        inst.previewAttrs["center_point"] = head
+        inst.previewAttrs["end_point"] = tail
+        inst.clearTransforms()
+        rmat,wsloc,wsrot,wsscale = transforms[inst.node.name]
+        inst.restMatrix = rmat
+
+        for child in inst.children.values():
+            if isinstance(child, FigureInstance):
+                self.fitFigure(child, takenfigs)
+            if isinstance(child, BoneInstance):
+                self.fitBone(child, locations, transforms, takenfigs)
+
+
+    def tryGetName(self, name):
+        replacements = [
+            (" ", "_"),
+            (" ", "-"),
+            (".", "_"),
+            (".", "-"),
+        ]
+        if name in self.objects.keys():
+            return name
+        else:
+            name = name.replace("(","_").replace(")","_")
+            for old,new in replacements:
+                if name.replace(old, new) in self.objects.keys():
+                    return name.replace(old, new)
+        return None
+
+
+    def getAlternatives(self, nname):
+        alts = []
+        for oname,verts in self.objects.items():
+            if nname == oname[:-2]:
+                alts.append(verts)
+        return alts
+    
+#------------------------------------------------------------------
+#   Load DBZ file
+#------------------------------------------------------------------
+
+def loadDbzFile(filepath):
     from .load_json import loadJson
-    objects = {}
-    rigs = {}
+    dbz = DBZInfo()
     struct = loadJson(filepath)
     if ("application" not in struct.keys() or
-        struct["application"] not in ["export_basic_data", "export_to_blender"]):
+        struct["application"] not in ["export_basic_data", "export_to_blender", "export_highdef_to_blender"]):
         msg = ("The file\n" +
                filepath + "           \n" +
                "does not contain data exported from DAZ Studio")
@@ -53,21 +133,29 @@ def loadJsonVerts(filepath):
         if "num verts" in figure.keys() and figure["num verts"] == 0:
             continue
         name = figure["name"]
-        if name not in objects.keys():
-            objects[name] = []
+        if name not in dbz.objects.keys():
+            dbz.objects[name] = []
+            dbz.hdobjects[name] = []
 
         if "vertices" in figure.keys():
             verts = [d2b(vec) for vec in figure["vertices"]]
-            objects[name].append(verts)
+            dbz.objects[name].append(verts)
+
+        if "hd vertices" in figure.keys():
+            verts = [d2b(vec) for vec in figure["hd vertices"]]
+            level = figure["subd level"]
+            uvs = figure["hd uvs"]
+            faces = figure["hd faces"]
+            dbz.hdobjects[name].append((level, verts, uvs, faces))
 
         if "bones" not in figure.keys():
             continue
 
         locations = {}
         transforms = {}
-        if name not in rigs.keys():
-            rigs[name] = []
-        rigs[name].append((locations, transforms))
+        if name not in dbz.rigs.keys():
+            dbz.rigs[name] = []
+        dbz.rigs[name].append((locations, transforms))
         for bone in figure["bones"]:
             head = Vector(bone["center_point"])
             tail = Vector(bone["end_point"])
@@ -91,7 +179,7 @@ def loadJsonVerts(filepath):
             rmat.col[3][0:3] = theSettings.scale*head
             transforms[bone["name"]] = (rmat, head, rmat.to_euler(), (1,1,1))
 
-    return objects,rigs
+    return dbz
 
 #------------------------------------------------------------------
 #
@@ -119,11 +207,11 @@ def fitToFile(filepath, nodes):
     print("Fitting objects with dbz file...")
     filepath = getFitFile(filepath)
     if theSettings.fitFile:
-        objects,rigs = loadJsonVerts(filepath)
+        dbz = loadDbzFile(filepath)
         subsurfaced = False
 
-    taken = dict([(name,0) for name in objects.keys()])
-    takenfigs = dict([(name,[]) for name in rigs.keys()])
+    taken = dict([(name,0) for name in dbz.objects.keys()])
+    takenfigs = dict([(name,[]) for name in dbz.rigs.keys()])
     unfitted = []
     for node,inst in nodes:
         if inst is None:
@@ -143,25 +231,30 @@ def fitToFile(filepath, nodes):
             pass
 
         if isinstance(inst, FigureInstance):
-            if inst.node.name in rigs.keys():
-                fitFigure(inst, rigs, takenfigs)
+            if inst.node.name in dbz.rigs.keys():
+                dbz.fitFigure(inst, takenfigs)
 
         for geonode in inst.geometries:
             geo = geonode.data
             if geo is None:
                 continue
-            nname = tryGetName(node.name, objects)
+            nname = dbz.tryGetName(node.name)
             if (nname is None and
                 node.name[0].isdigit()):
-                nname = tryGetName("a"+node.name, objects)
+                nname = dbz.tryGetName("a"+node.name)
 
             if nname:
                 idx = taken[nname]
-                if idx >= len(objects[nname]):
+                if idx >= len(dbz.objects[nname]):
                     msg = ("Too many instances of object %s: %d" % (nname, idx))
                     ok = False
                 else:
-                    verts = objects[nname][idx]
+                    verts = dbz.objects[nname][idx]
+                    try:
+                        highdef = dbz.hdobjects[nname][idx]
+                        print("Highdef", nname, highdef[0], len(highdef[1]))
+                    except KeyError:
+                        highdef = (0,[],[],[])
                     taken[nname] += 1
                     ok = True
                 if not ok:
@@ -173,12 +266,14 @@ def fitToFile(filepath, nodes):
                         print(msg)
                     else:
                         geonode.verts = verts[0:len(geo.verts)]
+                        geonode.highdef = highdef
                 else:
                     if len(verts) != len(geo.verts):
                         ok = False
-                        for verts1 in getAlternatives(nname, objects):
+                        for verts1 in dbz.getAlternatives(nname):
                             if len(verts1) == len(geo.verts):
                                 geonode.verts = verts1
+                                geonode.highdef = highdef
                                 ok = True
                                 break
                         if not ok:
@@ -186,6 +281,7 @@ def fitToFile(filepath, nodes):
                             print(msg)
                     else:
                         geonode.verts = verts
+                        geonode.highdef = highdef
             elif len(geo.verts) == 0:
                 print("Zero verts:", node.name)
                 pass
@@ -198,111 +294,12 @@ def fitToFile(filepath, nodes):
         for node in unfitted:
             print('    "%s"' % node.name)
         print("The following nodes were fitted:")
-        for oname in objects.keys():
+        for oname in dbz.objects.keys():
             print('    "%s"' % oname)
 
-
-def fitFigure(inst, rigs, takenfigs):
-    from .figure import FigureInstance
-    from .bone import BoneInstance
-    name = inst.node.name
-    if name in rigs.keys():
-        inst.clearTransforms()
-        if inst.id in takenfigs[name]:
-            return
-        elif inst.index < len(rigs[name]):
-            locations,transforms = rigs[name][inst.index]
-            takenfigs[name].append(inst.id)
-        else:
-            print("Cannot fit %s" % name)
-            return
-    else:
-        print("No fitting info for figure %s" % name)
-        for key in rigs.keys():
-            print("  ", key)
-        return
-
-    for child in inst.children.values():
-        if isinstance(child, FigureInstance):
-            fitFigure(child, rigs, takenfigs)
-        elif isinstance(child, BoneInstance):
-            fitBone(child, locations, transforms, rigs, takenfigs)
-
-
-def fitBone(inst, locations, transforms, rigs, takenfigs):
-    from .figure import FigureInstance
-    from .bone import BoneInstance
-    if inst.node.name not in locations.keys():
-        return
-    head,tail = locations[inst.node.name]
-    inst.previewAttrs["center_point"] = head
-    inst.previewAttrs["end_point"] = tail
-    inst.clearTransforms()
-    rmat,wsloc,wsrot,wsscale = transforms[inst.node.name]
-    inst.restMatrix = rmat
-
-    for child in inst.children.values():
-        if isinstance(child, FigureInstance):
-            fitFigure(child, rigs, takenfigs)
-        if isinstance(child, BoneInstance):
-            fitBone(child, locations, transforms, rigs, takenfigs)
-
-
-def tryGetName(name, objects):
-    replacements = [
-        (" ", "_"),
-        (" ", "-"),
-        (".", "_"),
-        (".", "-"),
-    ]
-    if name in objects.keys():
-        return name
-    else:
-        name = name.replace("(","_").replace(")","_")
-        for old,new in replacements:
-            if name.replace(old, new) in objects.keys():
-                return name.replace(old, new)
-    return None
-
-
-def getAlternatives(nname, objects):
-    alts = []
-    for oname,verts in objects.items():
-        if nname == oname[:-2]:
-            alts.append(verts)
-    return alts
-
-
-def fitToMesh(context):
-    from .node import clearParent
-    trg = context.object
-    src = None
-    for ob in getSceneObjects(context):
-        if getSelected(ob) and ob != trg and ob.type == 'MESH':
-            src = ob
-            break
-    if src is None:
-        raise DazError("Two meshes must be selected")
-    ns = len(src.data.vertices)
-    nt = len(trg.data.vertices)
-    if ns == nt:
-        pass
-    elif ns == 4*nt:
-        print("Subsurfaced mesh:\n %d == 4*%d" % (ns, nt))
-    else:
-        raise DazError("Vertex number mismatch:\n %d != %d" % (ns, nt))
-
-    activateObject(context, src)
-    clearParent(src)
-    for mod in src.modifiers:
-        if mod.type == 'ARMATURE':
-            bpy.ops.object.modifier_remove(modifier=mod.name)
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    activateObject(context, trg)
-
-    for v in trg.data.vertices:
-        v.co = src.data.vertices[v.index].co
-
+#----------------------------------------------------------
+#   Fit Mesh to other mesh
+#----------------------------------------------------------
 
 class DAZ_OT_FitToObject(DazOperator, IsMesh):
     bl_idname = "daz.fit_mesh_to_other"
@@ -311,7 +308,34 @@ class DAZ_OT_FitToObject(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        fitToMesh(context)
+        from .node import clearParent
+        trg = context.object
+        src = None
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob != trg and ob.type == 'MESH':
+                src = ob
+                break
+        if src is None:
+            raise DazError("Two meshes must be selected")
+        ns = len(src.data.vertices)
+        nt = len(trg.data.vertices)
+        if ns == nt:
+            pass
+        elif ns == 4*nt:
+            print("Subsurfaced mesh:\n %d == 4*%d" % (ns, nt))
+        else:
+            raise DazError("Vertex number mismatch:\n %d != %d" % (ns, nt))
+
+        activateObject(context, src)
+        clearParent(src)
+        for mod in src.modifiers:
+            if mod.type == 'ARMATURE':
+                bpy.ops.object.modifier_remove(modifier=mod.name)
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        activateObject(context, trg)
+
+        for v in trg.data.vertices:
+            v.co = src.data.vertices[v.index].co
 
 #----------------------------------------------------------
 #   Initialize
@@ -337,7 +361,7 @@ class DAZ_OT_ImportJson(DazOperator, B.JsonFile, B.MultiFile, IsMesh):
 
 
     def buildMorph(self, ob, filepath):
-        objects,rigs = loadJsonVerts(filepath)
+        dbz = loadDbzFile(filepath)
         if not ob.data.shape_keys:
             basic = ob.shape_key_add(name="Basic")
         else:
@@ -347,7 +371,7 @@ class DAZ_OT_ImportJson(DazOperator, B.JsonFile, B.MultiFile, IsMesh):
             skey = ob.data.shape_keys.key_blocks[sname]
             ob.shape_key_remove(skey)
         skey = ob.shape_key_add(name=sname)
-        for name,vlist in objects.items():
+        for name,vlist in dbz.objects.items():
             verts = vlist[0]
             if len(verts) == len(ob.data.vertices):
                 for vn,co in enumerate(verts):

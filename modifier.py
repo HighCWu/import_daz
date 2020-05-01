@@ -318,6 +318,18 @@ class SkinBinding(Modifier):
         ob,rig,geonode = self.getGeoRig(context, inst, self.skin["geometry"])
         if ob is None or rig is None:
             return
+        self.makeArmatureModifier(context, ob, rig)
+        self.addVertexGroups(ob, geonode, rig)
+        if False and geonode.hdobject:
+            hdob = geonode.hdobject
+            hdob.parent = ob.parent
+            self.makeArmatureModifier(context, hdob, rig)            
+            vmatch = geonode.getHDMatch()
+            print("VMA", vmatch[0:100])
+            self.copyVertexGroups(ob, hdob, vmatch)
+        
+        
+    def makeArmatureModifier(self, context, ob, rig):        
         mod = ob.modifiers.new(self.name, 'ARMATURE')
         mod.object = rig
         mod.use_deform_preserve_volume = True
@@ -327,7 +339,17 @@ class SkinBinding(Modifier):
         ob.lock_location = (True,True,True)
         ob.lock_rotation = (True,True,True)
         ob.lock_scale = (True,True,True)
-        self.addVertexGroups(ob, geonode, rig)
+
+
+    def copyVertexGroups(self, ob, hdob, vmatch):
+        hdvgrps = {}
+        for vgrp in ob.vertex_groups:
+            hdvgrp = hdob.vertex_groups.new(name=vgrp.name)
+            hdvgrps[vgrp.index] = hdvgrp
+        for hdvn,vn in enumerate(vmatch):
+            v = ob.data.vertices[vn]
+            for g in v.groups:
+                hdvgrps[g.group].add([hdvn], g.weight, 'REPLACE')
 
 
     def getGeoRig(self, context, inst, geoname):        
