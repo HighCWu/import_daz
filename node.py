@@ -393,6 +393,8 @@ class Instance(Accessor):
 
 
     def transformObject(self, ob, pb=None):
+        if theSettings.fitFile and ob.type == 'MESH':
+            return
         mat,offset = self.getTransformMatrix(pb)
         trans,quat,scale = mat.decompose()
         ob.location = trans - offset
@@ -618,11 +620,10 @@ class Node(Asset, Formula, Channels):
         ob.DazScale = theSettings.scale
         ob.DazCharacterScale = cscale
         ob.DazOrientation = inst.attributes["orientation"]
-        ob.location = -center
 
 
     def subdivideObject(self, ob, inst, context, cscale, center):
-        pass
+        ob.location = -center
 
 
     def guessColor(self, scn, flag, inst):

@@ -415,9 +415,13 @@ class BoneInstance(Instance):
         pass
 
 
-    def getHeadTail(self, cscale, center):
-        head = cscale*(self.attributes["center_point"] - center)
-        tail = cscale*(self.attributes["end_point"] - center)
+    def getHeadTail(self, cscale, center, mayfit=True):
+        if mayfit and theSettings.fitFile:
+            head = cscale*(self.previewAttrs["center_point"] - center)
+            tail = cscale*(self.previewAttrs["end_point"] - center)
+        else:
+            head = cscale*(self.attributes["center_point"] - center)
+            tail = cscale*(self.attributes["end_point"] - center)
         if (tail-head).length < 1e-4:
             tail = head + Vector((0,0,1e-4))
         return head,tail
@@ -715,7 +719,7 @@ class Bone(Node):
         bone.DazOrientation = inst.attributes["orientation"]
 
         head,tail = inst.getHeadTail(cscale, center)
-        head0,tail0 = inst.getHeadTail(cscale, center)
+        head0,tail0 = inst.getHeadTail(cscale, center, False)
         bone.DazHead = head
         bone.DazTail = tail
         bone.DazAngle = 0

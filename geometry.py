@@ -82,6 +82,8 @@ class GeoNode(Node):
 
 
     def buildObject(self, context, inst, center):
+        if theSettings.fitFile:
+            center = Vector((0,0,0))
         Node.buildObject(self, context, inst, center)
         ob = self.rna
         self.storeRna(ob)
