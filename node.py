@@ -349,12 +349,10 @@ class Instance(Accessor):
         if ob is None:
             return
         activateObject(context, ob)
-        useTransform = not (theSettings.fitFile and ob.type == 'MESH')
 
         if self.parent is None:
             ob.parent = None
-            if useTransform:
-                self.transformObject()
+            self.transformObject()
 
         elif self.parent.rna == ob:
             print("Warning: Trying to parent %s to itself" % ob)
@@ -365,8 +363,7 @@ class Instance(Accessor):
                 for pgeo in self.parent.geometries:
                     geo.setHideInfo(pgeo)
             setParent(context, ob, self.parent.rna)
-            if useTransform:
-                self.transformObject()
+            self.transformObject()
 
         elif isinstance(self.parent, BoneInstance):
             self.hasBoneParent = True
@@ -377,14 +374,12 @@ class Instance(Accessor):
             bname = self.parent.node.name
             if bname in rig.pose.bones.keys():
                 setParent(context, ob, rig, bname)
-                if useTransform:
-                    pb = rig.pose.bones[bname]
-                    self.transformObject(pb)
+                pb = rig.pose.bones[bname]
+                self.transformObject(pb)
 
         elif isinstance(self.parent, Instance):
             setParent(context, ob, self.parent.rna)
-            if useTransform:
-                self.transformObject()
+            self.transformObject()
 
         else:
             raise RuntimeError("Unknown parent %s %s" % (self, self.parent))
@@ -595,12 +590,8 @@ class Node(Asset, Formula, Channels):
     def build(self, context, inst):
         center = d2b(inst.attributes["center_point"])
         if inst.geometries:
-            if theSettings.fitFile:
-                geocenter = Vector((0,0,0))
-            else:
-                geocenter = center
             for geonode in inst.geometries:
-                geonode.buildObject(context, inst, geocenter)
+                geonode.buildObject(context, inst, center)
                 inst.rna = geonode.rna
         else:
             self.buildObject(context, inst, center)
@@ -652,8 +643,7 @@ class Node(Asset, Formula, Channels):
         ob.DazUrl = normalizePath(self.url)
         ob.DazScale = theSettings.scale
         ob.DazCharacterScale = cscale
-        if not (theSettings.fitFile and ob.type == 'MESH'):
-            ob.location = -center
+        ob.location = -center
 
 
     def guessColor(self, scn, flag, inst):

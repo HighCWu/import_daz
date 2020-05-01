@@ -29,7 +29,14 @@ function exportToBlender()
 
     for ( var i = 0; i < Scene.getNumNodes(); i++ )
     {
-        node = Scene.getNode(i);
+        var node = Scene.getNode(i);
+        var pos = node.getWSPos();
+        var rot = node.getWSRot();
+        var scale = node.getWSScale();
+        node.setWSPos(DzVec3());
+        node.setWSRot(DzQuat());
+        node.setWSScale(DzMatrix3(initIdentity=true));
+
         if ( node.inherits( "DzSkeleton" ) )
         {
             doFigure(fp, node);
@@ -42,6 +49,9 @@ function exportToBlender()
                 doMesh(fp, obj, true, node, "        ]", "    },");
             }
         }
+        node.setWSPos(pos);
+        node.setWSRot(rot);
+        node.setWSScale(scale);
     }
 
     fp.writeLine("    {" );

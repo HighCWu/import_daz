@@ -415,13 +415,9 @@ class BoneInstance(Instance):
         pass
 
 
-    def getHeadTail(self, cscale, center, fitfile):
-        if fitfile:
-            head = cscale*(self.previewAttrs["center_point"] - center)
-            tail = cscale*(self.previewAttrs["end_point"] - center)
-        else:
-            head = cscale*(self.attributes["center_point"] - center)
-            tail = cscale*(self.attributes["end_point"] - center)
+    def getHeadTail(self, cscale, center):
+        head = cscale*(self.attributes["center_point"] - center)
+        tail = cscale*(self.attributes["end_point"] - center)
         if (tail-head).length < 1e-4:
             tail = head + Vector((0,0,1e-4))
         return head,tail
@@ -642,11 +638,11 @@ class Bone(Node):
             return None
 
 
-    def buildEdit(self, figure, rig, parent, inst, cscale, center, fitfile):
+    def buildEdit(self, figure, rig, parent, inst, cscale, center):
         if self.name in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[self.name]
         else:
-            head,tail = inst.getHeadTail(cscale, center, fitfile)
+            head,tail = inst.getHeadTail(cscale, center)
             eb = rig.data.edit_bones.new(self.name)
             figure.bones[self.name] = eb.name
             eb.parent = parent
@@ -666,7 +662,7 @@ class Bone(Node):
 
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildEdit(figure, rig, eb, child, cscale, center, fitfile)
+                child.node.buildEdit(figure, rig, eb, child, cscale, center)
 
 
     units = [Vector((1,0,0)), Vector((0,1,0)), Vector((0,0,1))]
@@ -711,15 +707,15 @@ class Bone(Node):
                 child.node.buildOrientation(rig, child, useBest)
 
 
-    def buildBoneProps(self, rig, inst, cscale, center, fitfile):
+    def buildBoneProps(self, rig, inst, cscale, center):
         if self.name not in rig.data.bones.keys():
             return
         bone = rig.data.bones[self.name]
         bone.use_inherit_scale = self.inherits_scale
         bone.DazOrientation = inst.attributes["orientation"]
 
-        head,tail = inst.getHeadTail(cscale, center, fitfile)
-        head0,tail0 = inst.getHeadTail(cscale, center, False)
+        head,tail = inst.getHeadTail(cscale, center)
+        head0,tail0 = inst.getHeadTail(cscale, center)
         bone.DazHead = head
         bone.DazTail = tail
         bone.DazAngle = 0
@@ -736,7 +732,7 @@ class Bone(Node):
 
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildBoneProps(rig, child, cscale, center, fitfile)
+                child.node.buildBoneProps(rig, child, cscale, center)
 
 
     def buildFormulas(self, rig, inst):

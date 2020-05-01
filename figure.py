@@ -245,7 +245,7 @@ class Figure(Node):
         bpy.ops.object.mode_set(mode='EDIT')
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildEdit(self, rig, None, child, cscale, center, theSettings.fitFile)
+                child.node.buildEdit(self, rig, None, child, cscale, center)
         rig.DazCharacterScale = cscale
         rig.DazRig = self.rigtype
 
@@ -257,7 +257,7 @@ class Figure(Node):
         bpy.ops.object.mode_set(mode='OBJECT')
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildBoneProps(rig, child, cscale, center, theSettings.fitFile)
+                child.node.buildBoneProps(rig, child, cscale, center)
 
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
