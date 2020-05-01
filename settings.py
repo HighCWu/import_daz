@@ -60,6 +60,9 @@ class Settings:
         self.integerFrames = True
         self.missingAssets = False
 
+        self.collection = None
+        self.refGroups = None
+
         self.useLockRot = True
         self.useLockLoc = True
         self.useLimitRot = True
@@ -87,6 +90,7 @@ class Settings:
         self.useLibraries = False
         self.useUV = False
         self.collection = None
+        self.refGroups = None
         self.fps = 30
         self.integerFrames = True
         self.missingAssets = False

@@ -71,9 +71,9 @@ def getMainAsset(filepath, context, btn):
     showProgress(30, 100)
 
     print("Preprocessing...")
-    root = makeRootCollection(filepath, context)
+    theSettings.collection = makeRootCollection(filepath, context)
     for asset,inst in main.nodes:
-        inst.preprocess(context, root)
+        inst.preprocess(context)
 
     print("Building objects...")
     for asset in main.materials:
@@ -142,9 +142,8 @@ def makeRootCollection(filepath, context):
     else:
         root = bpy.data.collections.new(name=grpname)
         context.scene.collection.children.link(root)
-    theSettings.collection = root
     return root
-
+    
 
 def finishMain(entity, filepath, t1):
     import time

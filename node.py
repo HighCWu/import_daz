@@ -129,9 +129,7 @@ class Instance(Accessor):
         node.channels = {}
         self.shell = {}
         self.dupli = None
-        self.collection = None
-        self.root = None
-        self.hidden = None
+        self.refGroup = None
         self.isGroupNode = False
         self.isNodeInstance = False
         self.node2 = None
@@ -180,7 +178,7 @@ class Instance(Accessor):
         return self.offsets["general_scale"]
 
 
-    def preprocess(self, context, root):
+    def preprocess(self, context):
         for channel in self.channels.values(): 
             if "type" not in channel.keys():
                 continue                   
@@ -196,12 +194,6 @@ class Instance(Accessor):
                 elif (words[0] == "facet" and words[1] == "group" and words[-1] == "vis"):
                     pass
 
-        self.root = root
-        if self.parent:
-            self.collection = self.parent.collection
-        else:
-            self.collection = self.root
-            
         for extra in self.extra:
             if "type" not in extra.keys():
                 continue
@@ -228,17 +220,7 @@ class Instance(Accessor):
 
         elif self.isGroupNode:
             return
-            if bpy.app.version < (2,80,0):
-                group = bpy.data.groups.new(self.name)
-                self.collection = group
-            else:
-                coll = bpy.data.collections.new(name=self.name)
-                if self.parent:
-                    self.parent.collection.children.link(coll)
-                else:
-                    self.root.children.link(coll)
-                self.collection = coll                        
-            
+
         elif self.isNodeInstance:            
             if not (self.node2 and 
                     self.rna and 
@@ -247,28 +229,31 @@ class Instance(Accessor):
                 print("Instance %s node2 %s not built" % (self.name, self.node2.name))
                 return
             ob = self.node2.rna
-            if self.node2.hidden:
-                hidden = self.node2.hidden
+            if self.node2.refGroup:
+                refGroup = self.node2.refGroup
             else:
-                hidden = self.getInstanceGroup(ob)
-            if hidden is None:
+                refGroup = self.getInstanceGroup(ob)
+            if refGroup is None:
                 obname = ob.name
-                ob.name = obname + " Hidden"
+                ob.name = obname + " REF"
                 if bpy.app.version < (2,80,0):
                     putOnHiddenLayer(ob)
-                    hidden = bpy.data.groups.new(name=ob.name)
+                    refGroup = bpy.data.groups.new(name=ob.name)
                 else:
-                    hidden = bpy.data.collections.new(name=ob.name)
-                    context.collection.children.link(hidden)
-                    layer = findLayerCollection(context.view_layer.layer_collection, hidden)
+                    refGroup = bpy.data.collections.new(name=ob.name)
+                    if theSettings.refGroups is None:
+                        theSettings.refGroups = bpy.data.collections.new(name=theSettings.collection.name + " REFS")
+                        context.collection.children.link(theSettings.refGroups)
+                    theSettings.refGroups.children.link(refGroup)
+                    layer = findLayerCollection(context.view_layer.layer_collection, refGroup)
                     layer.exclude = True
-                hidden.objects.link(ob)
+                refGroup.objects.link(ob)
                 empty = bpy.data.objects.new(obname, None)
-                self.collection.objects.link(empty)
+                theSettings.collection.objects.link(empty)
                 self.node2.dupli = empty
-                self.node2.hidden = hidden
-                self.duplicate(empty, hidden)
-            self.duplicate(self.rna, hidden)
+                self.node2.refGroup = refGroup
+                self.duplicate(empty, refGroup)
+            self.duplicate(self.rna, refGroup)
                         
 
     def getInstanceGroup(self, ob):
@@ -314,7 +299,7 @@ class Instance(Accessor):
             ob.matrix_basis = Matrix()
             for child in list(ob.children):
                 child.parent = empty
-            self.collection.objects.unlink(ob)
+            theSettings.collection.objects.unlink(ob)
 
 
     def formulate(self, key, value):
@@ -623,7 +608,7 @@ class Node(Asset, Formula, Channels):
         from .asset import normalizePath
         ob.rotation_mode = BlenderRotMode[self.rotDaz]
         ob.DazRotMode = self.rotDaz
-        inst.collection.objects.link(ob)
+        theSettings.collection.objects.link(ob)
         if bpy.app.version < (2,80,0):
             context.scene.objects.link(ob)
         activateObject(context, ob)

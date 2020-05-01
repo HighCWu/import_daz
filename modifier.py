@@ -325,7 +325,6 @@ class SkinBinding(Modifier):
             hdob.parent = ob.parent
             self.makeArmatureModifier(context, hdob, rig)            
             vmatch = geonode.getHDMatch()
-            print("VMA", vmatch[0:100])
             self.copyVertexGroups(ob, hdob, vmatch)
         
         
