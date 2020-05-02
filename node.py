@@ -128,7 +128,9 @@ class Instance(Accessor):
         self.channels = node.channels
         node.channels = {}
         self.shell = {}
+        self.center = Vector((0,0,0))
         self.dupli = None
+        self.nodeInstances = []
         self.refGroup = None
         self.isGroupNode = False
         self.isNodeInstance = False
@@ -286,6 +288,7 @@ class Instance(Accessor):
                 self.node2.refGroup = refGroup
                 self.duplicate(empty, refGroup)
             self.duplicate(self.rna, refGroup)
+            self.node2.nodeInstances.append(self)
                         
 
     def getInstanceGroup(self, ob):
@@ -332,6 +335,8 @@ class Instance(Accessor):
             for child in list(ob.children):
                 child.parent = empty
             theSettings.collection.objects.unlink(ob)
+            for inst in self.nodeInstances:
+                pass
 
 
     def formulate(self, key, value):
@@ -649,10 +654,16 @@ class Node(Asset, Formula, Channels):
         ob.DazScale = theSettings.scale
         ob.DazCharacterScale = cscale
         ob.DazOrientation = inst.attributes["orientation"]
+        self.subtractCenter(ob, inst, center)
+
+        
+    def subtractCenter(self, ob, inst, center):
+        ob.location = -center
+        inst.center = center
 
 
     def subdivideObject(self, ob, inst, context, cscale, center):
-        ob.location = -center
+        pass
 
 
     def guessColor(self, scn, flag, inst):

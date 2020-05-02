@@ -82,12 +82,18 @@ class GeoNode(Node):
 
 
     def buildObject(self, context, inst, center):
-        Node.buildObject(self, context, inst, center)
+        Node.buildObject(self, context, inst, center)            
         ob = self.rna
         self.storeRna(ob)
         scn = context.scene
         if ob and self.data:
             self.data.buildRigidity(ob)
+
+
+    def subtractCenter(self, ob, inst, center):
+        if not theSettings.fitFile:
+            ob.location = -center
+        inst.center = center
 
 
     def subdivideObject(self, ob, inst, context, cscale, center):
@@ -106,7 +112,7 @@ class GeoNode(Node):
                 f.use_smooth = True
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
             copyMaterials(ob, hdob)
-            self.arrangeObject(hdob, inst, context, cscale, center)            
+            self.arrangeObject(hdob, inst, context, cscale, center) 
             self.hdobject = hdob
             
         if (self.type == "subdivision_surface" and
@@ -436,7 +442,7 @@ class Geometry(Asset, Channels):
 
     def buildData(self, context, node, inst, cscale, center):
         if (self.rna and not theSettings.singleUser):
-            return
+            return        
 
         name = self.getName()
         me = self.rna = bpy.data.meshes.new(name)
@@ -452,7 +458,10 @@ class Geometry(Asset, Channels):
                 me.materials.append(mat.rna)
             return
 
-        me.from_pydata([cscale*vco-center for vco in verts], [], self.faces)
+        if theSettings.fitFile:
+            me.from_pydata([cscale*vco for vco in verts], [], self.faces)
+        else:
+            me.from_pydata([cscale*vco-center for vco in verts], [], self.faces)
 
         smooth = (False if self.type == "polygon_mesh" else True)
         for fn,mn in enumerate(self.material_indices):

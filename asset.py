@@ -47,6 +47,7 @@ class Accessor:
 
 
     def getRna(self, context):
+        return self.rna
         global theRnas
         if self.rna is None:
             if self.name in theRnas.keys():
