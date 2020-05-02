@@ -243,7 +243,7 @@ class Instance(Accessor):
                     refGroup = bpy.data.collections.new(name=ob.name)
                     if theSettings.refGroups is None:
                         theSettings.refGroups = bpy.data.collections.new(name=theSettings.collection.name + " REFS")
-                        context.collection.children.link(theSettings.refGroups)
+                        context.scene.collection.children.link(theSettings.refGroups)
                     theSettings.refGroups.children.link(refGroup)
                     layer = findLayerCollection(context.view_layer.layer_collection, refGroup)
                     layer.exclude = True
@@ -393,8 +393,6 @@ class Instance(Accessor):
 
 
     def transformObject(self, ob, pb=None):
-        if theSettings.fitFile and ob.type == 'MESH':
-            return
         mat,offset = self.getTransformMatrix(pb)
         trans,quat,scale = mat.decompose()
         ob.location = trans - offset
