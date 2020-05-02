@@ -179,27 +179,57 @@ class Geometry(Asset, Channels):
         Asset.__init__(self, fileref)
         Channels.__init__(self)
         self.instances = self.nodes = {}
+        
         self.verts = []
         self.faces = []
         self.materials = {}
         self.material_indices = []
         self.polygon_material_groups = []
+
         self.material_selection_sets = []
         self.type = None
         self.vertex_count = 0
         self.poly_count = 0
         self.vertex_pairs = []
+
         self.hidden_polys = []
         self.uv_set = None
         self.default_uv_set = None
         self.uv_sets = OrderedDict()
         self.rigidity = []
+
         self.root_region = None
         self.SubDIALevel = 0
         self.SubDRenderLevel = 0
         self.shell = {}
         self.shells = {}
         self.isSourced = False
+
+
+    def copySource(self, asset):
+        asset.verts = self.verts
+        asset.faces = self.faces
+        asset.materials = self.materials
+        asset.material_indices = self.material_indices
+        asset.polygon_material_groups = self.polygon_material_groups
+
+        asset.material_selection_sets = self.material_selection_sets
+        asset.type = self.type
+        asset.vertex_count = self.vertex_count
+        asset.poly_count = self.poly_count
+        asset.vertex_pairs = self.vertex_pairs
+
+        asset.hidden_polys = self.hidden_polys
+        asset.uv_set = self.uv_set
+        asset.default_uv_set = self.default_uv_set
+        asset.uv_sets = self.uv_sets
+        asset.rigidity = self.rigidity
+
+        asset.root_region = self.root_region
+        asset.SubDIALevel = self.SubDIALevel
+        asset.SubDRenderLevel = self.SubDRenderLevel
+        asset.shell = self.shell
+        asset.shells = self.shells
 
 
     def __repr__(self):
@@ -277,24 +307,6 @@ class Geometry(Asset, Channels):
         
         return self
     
-
-    def copySource(self, asset):
-        asset.verts = self.verts
-        asset.highdef = self.highdef
-        asset.faces = self.faces
-        asset.type = self.type
-        asset.materials = self.materials
-        asset.material_indices = self.material_indices
-        asset.polygon_material_groups = self.polygon_material_groups
-        asset.material_selection_sets = self.material_selection_sets
-        asset.uv_set = self.uv_set
-        asset.default_uv_set = self.default_uv_set
-        asset.uv_sets = self.uv_sets
-        asset.rigidity = self.rigidity
-        asset.root_region = self.root_region
-        asset.shell = self.shell
-        asset.shells = self.shells
-
 
     def update(self, struct):
         Asset.update(self, struct)
