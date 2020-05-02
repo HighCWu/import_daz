@@ -33,9 +33,9 @@ function exportToBlender()
         var pos = node.getWSPos();
         var rot = node.getWSRot();
         var scale = node.getWSScale();
-        node.setWSPos(DzVec3());
-        node.setWSRot(DzQuat());
-        node.setWSScale(DzMatrix3(initIdentity=true));
+        // node.setWSPos(DzVec3());
+        // node.setWSRot(DzQuat());
+        // node.setWSScale(DzMatrix3(initIdentity=true));
 
         if ( node.inherits( "DzSkeleton" ) )
         {
@@ -49,9 +49,9 @@ function exportToBlender()
                 doMesh(fp, obj, true, node, "        ]", "    },");
             }
         }
-        node.setWSPos(pos);
-        node.setWSRot(rot);
-        node.setWSScale(scale);
+        // node.setWSPos(pos);
+        // node.setWSRot(rot);
+        // node.setWSScale(scale);
     }
 
     fp.writeLine("    {" );
