@@ -208,7 +208,39 @@ class Instance(Accessor):
             geo.preprocess(context, self)
 
 
-    def buildExtra(self, context):
+    def buildChannels(self, context):
+        ob = self.rna
+        if ob is None:
+            return        
+        for channel in self.channels.values(): 
+            if ("id" not in channel.keys() or
+                ("visible" in channel.keys() and not channel["visible"])):
+                continue
+            value = getCurrentValue(channel)
+            if channel["id"] == "Renderable":
+                if not value: 
+                    ob.hide_render = True
+            elif channel["id"] == "Visible in Viewport":
+                if not value: 
+                    ob.hide_viewport = True
+            elif channel["id"] == "Visible":
+                if not value: 
+                    ob.hide_render = ob.hide_viewport = True
+            elif channel["id"] == "Selectable":
+                if not value: 
+                    ob.hide_select = True
+            elif channel["id"] == "Visible in Simulation":
+                pass
+            elif channel["id"] == "Cast Shadows":
+                pass
+            elif channel["id"] == "Instance Mode":
+                pass
+            elif channel["id"] == "Point At":
+                pass
+
+                    
+                    
+    def buildExtra(self, context):    
         if self.strand_hair:
             print("Strand-based hair is not implemented.")
             #return
@@ -526,8 +558,6 @@ class Node(Asset, Formula, Channels):
     Indices = { "x": 0, "y": 1, "z": 2 }
 
     def setAttribute(self, channel, data):
-        from .channels import getCurrentValue
-        #self.attributes[channel] = self.defaultAttributes()[channel]
         if isinstance(data, list):
             for comp in data:
                 idx = self.Indices[comp["id"]]
@@ -578,6 +608,7 @@ class Node(Asset, Formula, Channels):
                 inst.rna = geonode.rna
         else:
             self.buildObject(context, inst, center)
+        inst.buildChannels(context)
         if inst.extra:
             inst.buildExtra(context)
 
