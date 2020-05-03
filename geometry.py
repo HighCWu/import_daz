@@ -105,7 +105,9 @@ class GeoNode(Node):
             mnums = [f[4] for f in hdfaces]
             nverts = len(verts)
             me = bpy.data.meshes.new(ob.data.name + "_HD")
+            print("Build HD mesh for %s: %d verts, %d faces" % (inst.name, nverts, len(faces)))
             me.from_pydata([cscale*vco-center for vco in verts], [], faces)
+            print("HD mesh %s built" % me.name)
             addUvs(me, "UVSet", uvs, uvfaces)
             for f in me.polygons:
                 f.material_index = mnums[f.index]
@@ -458,10 +460,7 @@ class Geometry(Asset, Channels):
                 me.materials.append(mat.rna)
             return
 
-        if theSettings.fitFile:
-            me.from_pydata([cscale*vco for vco in verts], [], self.faces)
-        else:
-            me.from_pydata([cscale*vco-center for vco in verts], [], self.faces)
+        me.from_pydata([cscale*vco-center for vco in verts], [], self.faces)
 
         smooth = (False if self.type == "polygon_mesh" else True)
         for fn,mn in enumerate(self.material_indices):
