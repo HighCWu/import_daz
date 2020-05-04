@@ -252,7 +252,8 @@ class ChannelSetter:
             return (mattype == "Skin")
         elif ob.DazTweakMaterials == "Skin-Lips-Nails":
             return (mattype in ["Skin", "Red"])
-        return True            
+        else:
+            return (ob.DazTweakMaterials != "Refractive")            
 
 
     def isRefractive(self, mat):
@@ -304,8 +305,9 @@ class DAZ_OT_ChangeTweakType(bpy.types.Operator, ChannelSetter):
     bl_description = "Change the selection of materials to tweak"
 
     def draw(self, context):
-        self.layout.prop(context.scene, "DazTweakMaterials")
-        self.layout.prop(context.object, "DazActiveMaterial")
+        ob = context.object
+        self.layout.prop(ob, "DazTweakMaterials")
+        self.layout.prop(ob, "DazActiveMaterial")
                 
     def execute(self, context):
         self.addSlots(context)
