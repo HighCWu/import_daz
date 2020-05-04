@@ -322,16 +322,26 @@ class Instance(Accessor):
         pass
 
 
-    def finalize(self, context):
+    def finalize(self, context, node=None):
+        if node:
+            ob = node.rna
+        else:
+            ob = self.rna
+        if not isinstance(ob, bpy.types.Object):
+            return
         from mathutils import Matrix
         if self.dupli:
-            ob = self.rna
             empty = self.dupli
             empty.parent = ob.parent
-            wmat = ob.matrix_basis.copy()
-            empty.matrix_basis = wmat
+            wmat = ob.matrix_world.copy()
+            empty.matrix_world = wmat
             ob.parent = None
-            ob.matrix_basis = Matrix()
+            if theSettings.fitFile and ob.type == 'MESH':
+                ob.matrix_world = wmat.inverted()
+                for v in ob.data.vertices:
+                    v.co += self.center
+            else:
+                ob.matrix_world = Matrix()
             for child in list(ob.children):
                 child.parent = empty
             theSettings.collection.objects.unlink(ob)

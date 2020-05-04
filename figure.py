@@ -69,6 +69,8 @@ class FigureInstance(Instance):
             activateObject(context, rig)
         elif mesh:
             mesh.DazMesh = char    
+        for geonode in self.geometries:
+            Instance.finalize(self, context, geonode)            
             
 
     def pose(self, context):
