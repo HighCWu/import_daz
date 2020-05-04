@@ -1775,7 +1775,6 @@ classes = [
     B.DazSelectGroup,
     B.DazCustomGroup,
     B.DazCategory,
-    B.DazActiveGroup,
     
     DAZ_OT_SelectAll,
     DAZ_OT_SelectNone,
