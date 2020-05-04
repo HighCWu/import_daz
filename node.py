@@ -476,6 +476,7 @@ class Node(Asset, Formula, Channels):
         self.instances = {}
         self.count = 0
         self.data = None
+        self.center = None
         self.geometries = []
         self.materials = {}
         self.strand_hair = None
@@ -616,6 +617,7 @@ class Node(Asset, Formula, Channels):
 
 
     def build(self, context, inst):
+
         center = d2b(inst.attributes["center_point"])
         if inst.geometries:
             for geonode in inst.geometries:

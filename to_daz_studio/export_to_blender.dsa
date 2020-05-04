@@ -1,7 +1,7 @@
 // DAZ Studio version 4.9.4.117 filetype DAZ Script
 
 var appName = "export_to_blender";
-var version = 0.6;
+var version = 0.7;
 
 function exportToBlender()
 {
@@ -75,7 +75,7 @@ function doFigure (fp, figure)
 {
     figure.finalize();
     var flabel = figure.getLabel();
-        startObject(fp, figure.name, flabel);
+        startObject(fp, figure, flabel);
 
     var obj = figure.getObject();
     if (obj != null) 
@@ -112,11 +112,13 @@ function doFigure (fp, figure)
 //
 //===============================================================================
 
-function startObject(fp, name, label)
-{
+function startObject(fp, node, label)
+{        
     fp.writeLine("    {" );
-    fp.writeLine("        \"name\": \"" + name + "\",");
+    fp.writeLine("        \"name\": \"" + node.name + "\",");
     fp.writeLine("        \"label\": \"" + label + "\",");
+    fp.writeLine("        \"center_point\": " + node.getOrigin() + ",");
+    fp.writeLine("        \"end_point\": " + node.getEndPoint() + ",");     
 }
 
 
@@ -132,7 +134,7 @@ function doMesh (fp, obj, start, node, str1, str2)
     lodctrl.setValue(0);
     // update mesh
     obj.forceCacheUpdate(node,false);   
-        
+
     var geom = obj.getCachedGeom();
     if (geom == null)
         return false;
@@ -142,7 +144,7 @@ function doMesh (fp, obj, start, node, str1, str2)
 
     if (start)
     {
-        startObject(fp, node.name, "undefined");
+        startObject(fp, node, "undefined");
     }
 
     var nv = mesh.getNumVertices();

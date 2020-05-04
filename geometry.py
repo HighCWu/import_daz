@@ -66,7 +66,7 @@ class GeoNode(Node):
 
 
     def __repr__(self):
-        return ("<GeoNode %s %d %s>" % (self.id, self.index, self.rna))
+        return ("<GeoNode %s %d %s %s>" % (self.id, self.index, self.center, self.rna))
 
 
     def getCharacterScale(self):
@@ -100,8 +100,8 @@ class GeoNode(Node):
         from .material import copyMaterials
         if self.highdef:
             level,verts,uvs,hdfaces = self.highdef
-            faces = [f[0] for f in hdfaces]
-            uvfaces = [f[1] for f in hdfaces]
+            faces = self.stripNegatives([f[0] for f in hdfaces])
+            uvfaces = self.stripNegatives([f[1] for f in hdfaces])
             mnums = [f[4] for f in hdfaces]
             nverts = len(verts)
             me = bpy.data.meshes.new(ob.data.name + "_HD")
@@ -123,6 +123,10 @@ class GeoNode(Node):
             mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
             mod.levels = self.data.SubDIALevel
 
+
+    def stripNegatives(self, faces):
+        return [(f if f[-1] >= 0 else f[:-1]) for f in faces]
+        
 
     def getHDMatch(self):
         hdfaces = self.highdef[3]

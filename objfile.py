@@ -53,7 +53,7 @@ class DBZInfo:
             if inst.id in takenfigs[name]:
                 return
             elif inst.index < len(self.rigs[name]):
-                locations,transforms = self.rigs[name][inst.index]
+                locations,transforms,center = self.rigs[name][inst.index]
                 takenfigs[name].append(inst.id)
             else:
                 print("Cannot fit %s" % name)
@@ -109,9 +109,9 @@ class DBZInfo:
 
     def getAlternatives(self, nname):
         alts = []
-        for oname,verts in self.objects.items():
+        for oname,data in self.objects.items():
             if nname == oname[:-2]:
-                alts.append(verts)
+                alts.append(data)
         return alts
     
 #------------------------------------------------------------------
@@ -132,13 +132,19 @@ def loadDbzFile(filepath):
     for figure in struct["figures"]:
         if "num verts" in figure.keys() and figure["num verts"] == 0:
             continue
+
+        if "center_point" in figure.keys():
+            center = Vector(figure["center_point"])
+        else:
+            center = None
+            
         name = figure["name"]
         if name not in dbz.objects.keys():
-            dbz.objects[name] = []
+            dbz.objects[name] = []        
 
         if "vertices" in figure.keys():
             verts = [d2b(vec) for vec in figure["vertices"]]
-            dbz.objects[name].append(verts)
+            dbz.objects[name].append((verts, center))
 
         if "hd vertices" in figure.keys():
             if name not in dbz.hdobjects.keys():
@@ -156,7 +162,7 @@ def loadDbzFile(filepath):
         transforms = {}
         if name not in dbz.rigs.keys():
             dbz.rigs[name] = []
-        dbz.rigs[name].append((locations, transforms))
+        dbz.rigs[name].append((locations, transforms, center))
         for bone in figure["bones"]:
             head = Vector(bone["center_point"])
             tail = Vector(bone["end_point"])
@@ -250,7 +256,7 @@ def fitToFile(filepath, nodes):
                     msg = ("Too many instances of object %s: %d" % (nname, idx))
                     ok = False
                 else:
-                    verts = dbz.objects[nname][idx]
+                    verts,center = dbz.objects[nname][idx]
                     highdef = None
                     if dbz.hdobjects:
                         try:
@@ -269,13 +275,15 @@ def fitToFile(filepath, nodes):
                         print(msg)
                     else:
                         geonode.verts = verts[0:len(geo.verts)]
+                        geonode.center = center
                         geonode.highdef = highdef
                 else:
                     if len(verts) != len(geo.verts):
                         ok = False
-                        for verts1 in dbz.getAlternatives(nname):
+                        for verts1,center in dbz.getAlternatives(nname):
                             if len(verts1) == len(geo.verts):
                                 geonode.verts = verts1
+                                geonode.center = center
                                 geonode.highdef = highdef
                                 ok = True
                                 break
@@ -284,6 +292,7 @@ def fitToFile(filepath, nodes):
                             print(msg)
                     else:
                         geonode.verts = verts
+                        geonode.center = center
                         geonode.highdef = highdef
             elif len(geo.verts) == 0:
                 print("Zero verts:", node.name)
