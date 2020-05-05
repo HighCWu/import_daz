@@ -338,8 +338,6 @@ class Instance(Accessor):
             ob.parent = None
             if theSettings.fitFile and ob.type == 'MESH':
                 ob.matrix_world = wmat.inverted()
-                for v in ob.data.vertices:
-                    v.co += self.center
             else:
                 ob.matrix_world = Matrix()
             for child in list(ob.children):
@@ -347,6 +345,8 @@ class Instance(Accessor):
             theSettings.collection.objects.unlink(ob)
             for inst in self.nodeInstances:
                 pass
+        elif theSettings.fitFile and ob.type == 'MESH':
+            ob.matrix_world = Matrix()
 
 
     def formulate(self, key, value):

@@ -464,7 +464,10 @@ class Geometry(Asset, Channels):
                 me.materials.append(mat.rna)
             return
 
-        me.from_pydata([cscale*vco-center for vco in verts], [], self.faces)
+        if theSettings.fitFile:
+            me.from_pydata([cscale*vco for vco in verts], [], self.faces)
+        else:
+            me.from_pydata([cscale*vco-center for vco in verts], [], self.faces)
 
         smooth = (False if self.type == "polygon_mesh" else True)
         for fn,mn in enumerate(self.material_indices):
