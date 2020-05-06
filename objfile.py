@@ -153,7 +153,12 @@ def loadDbzFile(filepath):
 
         if "vertices" in figure.keys():
             verts = [d2b(vec) for vec in figure["vertices"]]
-            dbz.objects[name].append(DBZObject(verts, [], [], 0, center))
+            faces = uvs = []
+            if "faces" in figure.keys():
+                faces = figure["faces"]            
+            if "uvs" in figure.keys():
+                uvs = figure["uvs"]
+            dbz.objects[name].append(DBZObject(verts, uvs, faces, 0, center))
 
         if "hd vertices" in figure.keys():
             if name not in dbz.hdobjects.keys():
