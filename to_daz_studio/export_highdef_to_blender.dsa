@@ -146,8 +146,8 @@ function doMesh (fp, obj, start, node, str1, str2)
     fp.writeLine("        \"subd level\": " + level + ",");
     writeVertices(geom, geom, "hd ");
     fp.writeLine("        ],");
-    writeHDUVs(geom);
-    writeHDFaces(geom);
+    writeUVs(geom, "hd ");
+    writeFaces(geom, "hd ");
 
     // Turn off high resolution
     lodctrl.setValue(0);
@@ -160,6 +160,8 @@ function doMesh (fp, obj, start, node, str1, str2)
     if (mesh == null)
         return false;
 
+    writeUVs(mesh, "");
+    writeFaces(mesh, "");
     writeVertices(mesh, geom, "")    
     fp.writeLine(str1)
     fp.writeLine(str2)    
@@ -188,13 +190,13 @@ function writeVertices(mesh, geom, hd)
     }    
 }
 
-function writeHDUVs(geom)
+function writeUVs(geom, hd)
 {    
     var uvs = geom.getUVs();
     var nuv = uvs.getNumValues();
     
-    fp.writeLine("        \"num hd uvs\": " + nuv + ",");
-    fp.writeLine("        \"hd uvs\": [" );    
+    fp.writeLine("        \"num " + hd + "uvs\": " + nuv + ",");
+    fp.writeLine("        \"" + hd + "uvs\": [" );    
     var c = ","
     for (var i = 0; i < nuv; i++)
     {
@@ -205,10 +207,10 @@ function writeHDUVs(geom)
     fp.writeLine("        ],");
 }
 
-function writeHDFaces(geom)
+function writeFaces(geom, hd)
 {    
     var nf = geom.getNumFacets();
-    fp.writeLine("        \"hd faces\": [" );    
+    fp.writeLine("        \"" + hd + "faces\": [" );    
     var c = ","
     for (var i = 0; i < nf; i++)
     {
