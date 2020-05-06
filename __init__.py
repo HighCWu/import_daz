@@ -402,6 +402,7 @@ class DAZ_PT_Settings(bpy.types.Panel):
         else:
             box.prop(scn, "DazShowRiggingSettings", icon="DOWNARROW_HLT", emboss=False)
             box.prop(scn, "DazAddFaceDrivers")
+            box.prop(scn, "DazBuildHighdef")            
             box.prop(scn, "DazUseLockRot")
             box.prop(scn, "DazUseLockLoc")
             #box.prop(scn, "DazUseLimitRot")

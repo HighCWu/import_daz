@@ -26,7 +26,7 @@
 # either expressed or implied, of the FreeBSD Project.
 
 import math
-from mathutils import Vector
+from mathutils import Vector, Matrix
 import os
 import bpy
 from collections import OrderedDict
@@ -99,7 +99,9 @@ class GeoNode(Node):
     def subdivideObject(self, ob, inst, context, cscale, center):
         from .material import copyMaterials
         if self.highdef:
-            level,verts,uvs,hdfaces = self.highdef
+            verts = self.highdef.verts
+            uvs = self.highdef.uvs
+            hdfaces = self.highdef.faces
             faces = self.stripNegatives([f[0] for f in hdfaces])
             uvfaces = self.stripNegatives([f[1] for f in hdfaces])
             mnums = [f[4] for f in hdfaces]
@@ -115,7 +117,7 @@ class GeoNode(Node):
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
             copyMaterials(ob, hdob)
             self.arrangeObject(hdob, inst, context, cscale, center) 
-            self.hdobject = hdob
+            self.hdobject = hdob            
             
         if (self.type == "subdivision_surface" and
               (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):

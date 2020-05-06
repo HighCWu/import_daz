@@ -311,6 +311,11 @@ def initialize():
         description = "Make drivers for formulas",
         default = 'PROPS')
 
+    bpy.types.Scene.DazBuildHighdef = BoolProperty(
+        name = "Build HD Meshes",
+        description = "Build HD meshes if included in .dbz file",
+        default = True)
+
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shells",
         description = "Merge shell materials with object material",

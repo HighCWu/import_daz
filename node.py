@@ -617,7 +617,6 @@ class Node(Asset, Formula, Channels):
 
 
     def build(self, context, inst):
-
         center = d2b(inst.attributes["center_point"])
         if inst.geometries:
             for geonode in inst.geometries:

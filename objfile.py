@@ -113,7 +113,16 @@ class DBZInfo:
             if nname == oname[:-2]:
                 alts.append(data)
         return alts
-    
+
+
+class DBZObject:
+    def __init__(self, verts, uvs, faces, lod, center):
+        self.verts = verts
+        self.uvs = uvs
+        self.faces = faces
+        self.lod = lod
+        self.center = center
+
 #------------------------------------------------------------------
 #   Load DBZ file
 #------------------------------------------------------------------
@@ -144,16 +153,16 @@ def loadDbzFile(filepath):
 
         if "vertices" in figure.keys():
             verts = [d2b(vec) for vec in figure["vertices"]]
-            dbz.objects[name].append((verts, center))
+            dbz.objects[name].append(DBZObject(verts, [], [], 0, center))
 
         if "hd vertices" in figure.keys():
             if name not in dbz.hdobjects.keys():
                 dbz.hdobjects[name] = []
             verts = [d2b(vec) for vec in figure["hd vertices"]]
-            level = figure["subd level"]
+            lod = figure["subd level"]
             uvs = figure["hd uvs"]
             faces = figure["hd faces"]
-            dbz.hdobjects[name].append((level, verts, uvs, faces))
+            dbz.hdobjects[name].append(DBZObject(verts, uvs, faces, lod, center))
 
         if "bones" not in figure.keys():
             continue
@@ -256,12 +265,12 @@ def fitToFile(filepath, nodes):
                     msg = ("Too many instances of object %s: %d" % (nname, idx))
                     ok = False
                 else:
-                    verts,center = dbz.objects[nname][idx]
+                    base = dbz.objects[nname][idx]
                     highdef = None
                     if dbz.hdobjects:
                         try:
                             highdef = dbz.hdobjects[nname][idx]
-                            print("Highdef", nname, highdef[0], len(highdef[1]))
+                            print("Highdef", nname, highdef.lod, len(highdef.verts))
                         except KeyError:
                             pass
                     taken[nname] += 1
@@ -271,28 +280,28 @@ def fitToFile(filepath, nodes):
                     unfitted.append(node)
                 elif subsurfaced:
                     if len(verts) < len(geo.verts):
-                        msg = ("Mismatch %s, %s: %d < %d" % (node.name, geo.name, len(verts), len(geo.verts)))
+                        msg = ("Mismatch %s, %s: %d < %d" % (node.name, geo.name, len(base.verts), len(geo.verts)))
                         print(msg)
                     else:
                         geonode.verts = verts[0:len(geo.verts)]
-                        geonode.center = center
+                        geonode.center = base.center
                         geonode.highdef = highdef
                 else:
-                    if len(verts) != len(geo.verts):
+                    if len(base.verts) != len(geo.verts):
                         ok = False
-                        for verts1,center in dbz.getAlternatives(nname):
-                            if len(verts1) == len(geo.verts):
-                                geonode.verts = verts1
-                                geonode.center = center
+                        for base1 in dbz.getAlternatives(nname):
+                            if len(base1.verts) == len(geo.verts):
+                                geonode.verts = base1.verts
+                                geonode.center = base1.center
                                 geonode.highdef = highdef
                                 ok = True
                                 break
                         if not ok:
-                            msg = ("Mismatch %s, %s: %d != %d" % (node.name, geo.name, len(verts), len(geo.verts)))
+                            msg = ("Mismatch %s, %s: %d != %d" % (node.name, geo.name, len(base.verts), len(geo.verts)))
                             print(msg)
                     else:
-                        geonode.verts = verts
-                        geonode.center = center
+                        geonode.verts = base.verts
+                        geonode.center = base.center
                         geonode.highdef = highdef
             elif len(geo.verts) == 0:
                 print("Zero verts:", node.name)
@@ -383,8 +392,8 @@ class DAZ_OT_ImportJson(DazOperator, B.JsonFile, B.MultiFile, IsMesh):
             skey = ob.data.shape_keys.key_blocks[sname]
             ob.shape_key_remove(skey)
         skey = ob.shape_key_add(name=sname)
-        for name,vlist in dbz.objects.items():
-            verts = vlist[0]
+        for name in dbz.objects.keys():
+            verts = dbz.objects[name][0].verts
             if len(verts) == len(ob.data.vertices):
                 for vn,co in enumerate(verts):
                     skey.data[vn].co = co
