@@ -318,9 +318,9 @@ class Asset(Accessor):
         if "id" in struct.keys():
             self.id = getId(struct["id"], self.fileref)
         else:
-            self.id = ""
-            msg = ("Asset without id:\n%s    " % struct)
-            reportError(msg, trigger=(2,3))
+            self.id = "?"
+            msg = ("Asset without id\nin file \"%s\":\n%s    " % (self.fileref, struct))
+            reportError(msg, trigger=(1,2))
 
         if "url" in struct.keys():
             self.url = struct["url"]

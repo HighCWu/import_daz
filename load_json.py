@@ -64,7 +64,7 @@ def loadJson(filepath, mustOpen=False):
                 msg = ('JSON error while reading ascii file\n"%s"\n%s' % (filepath, err))
                 trigger=(1,2)
             except UnicodeDecodeError as err:
-                msg = ('Unicode error while reading zipped file\n"%s"\n%s' % (filepath, err))
+                msg = ('Unicode error while reading ascii file\n"%s"\n%s' % (filepath, err))
                 trigger=(1,2)
     if msg:
         reportError(msg, trigger=trigger)
