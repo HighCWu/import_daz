@@ -657,7 +657,7 @@ def addUvs(me, name, uvs, uvfaces):
 #-------------------------------------------------------------
 
 def pruneUvMaps(ob):
-    if len(getUvTextures(ob.data)) <= 1:
+    if ob.data is None or len(getUvTextures(ob.data)) <= 1:
         return
     print("Pruning UV maps")
     uvtexs = {}
