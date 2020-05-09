@@ -519,7 +519,7 @@ class CyclesTree:
 
 
     def buildOverlay(self):
-        weight = self.getValue(["Diffuse Overlay Weight"], 0)
+        weight,wttex = self.getColorTex(["Diffuse Overlay Weight"], "NONE", 0)
         if weight:
             if self.getValue(["Diffuse Overlay Weight Squared"], False):
                 power = 4
@@ -527,16 +527,17 @@ class CyclesTree:
                 power = 2
             color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE)
             if tex:
-                tex1 = self.raiseToPower(tex, power, 5)
-            else:
-                tex1 = tex
+                tex = self.raiseToPower(tex, power, 5)
+            if tex and wttex:
+                tex = self.multiplyTexs(tex, wttex)
+            elif wttex:
+                tex = wttex
             node = self.addNode(5, "ShaderNodeBsdfDiffuse")
             self.linkColor(tex, node, color, "Color")
             roughness,roughtex = self.getColorTex(["Diffuse Overlay Roughness"], "NONE", 0, False)
             self.setRoughness(node, "Roughness", roughness, roughtex)
             self.linkNormal(node)
-            print("OVV", self.active, node, tex1, weight, power, weight**power)
-            self.mixWithActive(weight**power, tex1, node, col=6)
+            self.mixWithActive(weight**power, tex, node, col=6)
 
 
     def raiseToPower(self, tex, power, col):

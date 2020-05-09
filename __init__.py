@@ -716,7 +716,7 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel):
             box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
             for morph in cat.morphs:
                 if (morph.prop in ob.keys() and
-                    scn.DazFilter in morph.prop):
+                    scn.DazFilter in morph.name):
                     row = utils.splitLayout(box, 0.8)
                     row.prop(ob, '["%s"]' % morph.prop, text=morph.name)
                     showBool(row, ob, morph.prop)
