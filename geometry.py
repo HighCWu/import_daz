@@ -595,7 +595,7 @@ class Uvset(Asset):
             return
 
         polyverts = self.getPolyVerts(me)
-        uvloop = makeNewUvloop(me, self.name, setActive)
+        uvloop = makeNewUvloop(me, self.getLabel(), setActive)
 
         m = 0
         vnmax = len(self.uvs)

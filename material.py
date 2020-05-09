@@ -179,7 +179,7 @@ class Material(Asset, Channels):
                 if key1[0:7].lower() == "default":
                     print("Alt key: '%s' = '%s'" % (key, key1))
                     return key1
-        print("Missing UV for '%s', '%s' not in %s" % (self.name, key, list(struct.keys())))
+        print("Missing UV for '%s', '%s' not in %s" % (self.getLabel(), key, list(struct.keys())))
         return key
 
 

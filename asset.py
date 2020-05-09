@@ -258,7 +258,7 @@ class Asset(Accessor):
         return ("#" + self.id.rsplit("#", 2)[-1])
 
 
-    def getLabel(self, inst):
+    def getLabel(self, inst=None):
         if inst and inst.label:
             return inst.label
         elif self.label:
