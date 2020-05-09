@@ -602,13 +602,15 @@ class DAZ_PT_Morphs:
 
         activateLayout(layout, self.type, self.prefix)
         keyLayout(layout, self.type, self.prefix)
+        layout.prop(scn, "DazFilter")
         layout.separator()
 
         if rig.DazNewStyleExpressions:
             from .formula import inStringGroup
             for key in utils.sorted(rig.keys()):
                 if (key[0:3] == self.prefix and
-                    not inStringGroup(rig.DazHiddenProps, key)):
+                    not inStringGroup(rig.DazHiddenProps, key) and
+                    scn.DazFilter in key[3:]):
                     self.displayProp(key[3:], key, rig, scn)
         else:
             names = theMorphNames[self.type]
@@ -703,6 +705,7 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel):
         row = layout.row()
         row.operator("daz.toggle_all_cats", text="Open All Categories").useOpen=True
         row.operator("daz.toggle_all_cats", text="Close All Categories").useOpen=False
+        layout.prop(scn, "DazFilter")
 
         for cat in ob.DazMorphCats:
             layout.separator()
@@ -712,7 +715,8 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel):
                 continue
             box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
             for morph in cat.morphs:
-                if morph.prop in ob.keys():
+                if (morph.prop in ob.keys() and
+                    scn.DazFilter in morph.prop):
                     row = utils.splitLayout(box, 0.8)
                     row.prop(ob, '["%s"]' % morph.prop, text=morph.name)
                     showBool(row, ob, morph.prop)
@@ -1052,6 +1056,12 @@ def initialize():
         name = "Delete Metarig",
         description = "Delete intermediate rig after Rigify",
         default = False
+    )
+
+    bpy.types.Scene.DazFilter = StringProperty(
+        name = "Filter",
+        description = "Filter string",
+        default = ""
     )
 
 
