@@ -479,8 +479,11 @@ class CyclesTree:
             #tex = self.addTexImageNode(channel, "NONE")
             _,tex = self.getColorTex("getChannelBump", "NONE", 0, False)
             if tex:
-                bump = self.addNode(3, "ShaderNodeBump")                
-                bump.inputs["Strength"].default_value = min(self.material.getChannelValue(channel, 1.0), scn.DazMaxBump)
+                bump = self.addNode(3, "ShaderNodeBump")  
+                strength = self.material.getChannelValue(channel, 1.0)
+                if scn.DazLimitBump and strength > scn.DazMaxBump:
+                    strength = scn.DazMaxBump
+                bump.inputs["Strength"].default_value = strength
                 bumpmin = self.material.getChannelValue(self.material.getChannelBumpMin(), -0.025)
                 bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.025)
                 bump.inputs["Distance"].default_value = (bumpmax-bumpmin) * theSettings.scale
@@ -525,26 +528,27 @@ class CyclesTree:
                 power = 4
             else:
                 power = 2
+            if wttex:
+                if wttex.type == 'TEX_IMAGE':
+                    img = wttex.image                    
+                    useAlpha = (img.alpha_mode == 'STRAIGHT')
+                else:
+                    useAlpha = False
+                wttex = self.raiseToPower(wttex, power, 3, useAlpha=useAlpha)
             color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE)
-            if tex:
-                tex = self.raiseToPower(tex, power, 5)
-            if tex and wttex:
-                tex = self.multiplyTexs(tex, wttex)
-            elif wttex:
-                tex = wttex
             node = self.addNode(5, "ShaderNodeBsdfDiffuse")
             self.linkColor(tex, node, color, "Color")
             roughness,roughtex = self.getColorTex(["Diffuse Overlay Roughness"], "NONE", 0, False)
             self.setRoughness(node, "Roughness", roughness, roughtex)
             self.linkNormal(node)
-            self.mixWithActive(weight**power, tex, node, col=6)
+            self.mixWithActive(weight**power, wttex, node, col=6)
 
 
-    def raiseToPower(self, tex, power, col):
+    def raiseToPower(self, tex, power, col, useAlpha=True):
         node = self.addNode(col, "ShaderNodeMath")
         node.operation = 'POWER'
         node.inputs[1].default_value = power
-        if "Alpha" in tex.outputs.keys():
+        if useAlpha and "Alpha" in tex.outputs.keys():
             slot = "Alpha"
         else:
             slot = 0
@@ -1182,17 +1186,17 @@ class CyclesTree:
         return node
 
 
-    def multiplyTexs(self, tex1, tex2):
+    def multiplyTexs(self, tex1, tex2, slot1=0, slot2=0, col=3):
         if tex1 is None:
             return tex2
         elif tex2 is None:
             return tex1
-        mix = self.addNode(3, "ShaderNodeMixRGB")
+        mix = self.addNode(col, "ShaderNodeMixRGB")
         mix.blend_type = 'MULTIPLY'
         mix.use_alpha = False
         mix.inputs[0].default_value = 1.0
-        self.links.new(tex1.outputs[0], mix.inputs[1])
-        self.links.new(tex2.outputs[0], mix.inputs[2])
+        self.links.new(tex1.outputs[slot1], mix.inputs[1])
+        self.links.new(tex2.outputs[slot2], mix.inputs[2])
         return mix
 
 
@@ -1207,7 +1211,7 @@ class CyclesTree:
             self.active = shader
 
 
-    def mixWithActive(self, fac, tex, shader, col=6):
+    def mixWithActive(self, fac, tex, shader, col=6, useAlpha=True):
         if fac == 0:
             return
         elif fac == 1 and tex is None:
@@ -1217,7 +1221,7 @@ class CyclesTree:
             mix = self.addNode(col, "ShaderNodeMixShader")
             mix.inputs[0].default_value = fac
             if tex:
-                if "Alpha" in tex.outputs.keys():
+                if useAlpha and "Alpha" in tex.outputs.keys():
                     slot = "Alpha"
                 else:
                     slot = 0

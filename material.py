@@ -174,7 +174,7 @@ class Material(Asset, Channels):
     def getUvKey(self, key, struct):
         if key in struct.keys():
             return key
-        if key[0:7].lower() == "default":
+        if False and key[0:7].lower() == "default":
             for key1 in struct.keys():
                 if key1[0:7].lower() == "default":
                     print("Alt key: '%s' = '%s'" % (key, key1))

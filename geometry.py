@@ -266,6 +266,7 @@ class Geometry(Asset, Channels):
     def addUvSet(self, uvstruct):
         uvset = self.getTypedAsset(uvstruct, Uvset)
         if uvset:
+            uvset.name = uvset.getLabel()
             self.uv_sets[uvset.name] = uvset
         return uvset
 
@@ -560,7 +561,7 @@ class Uvset(Asset):
 
 
     def __repr__(self):
-        return ("<Uvset %s '%s' %d %d %s>" % (self.id, self.getName(), len(self.uvs), len(self.polyverts), self.material))
+        return ("<Uvset %s '%s' %d %d %s>" % (self.id, self.name, len(self.uvs), len(self.polyverts), self.material))
 
 
     def parse(self, struct):
@@ -806,7 +807,7 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
 
         for uvset in asset.uvs:
             polyverts = uvset.getPolyVerts(me)
-            uvloop = makeNewUvloop(me, uvset.getName(), True)
+            uvloop = makeNewUvloop(me, uvset.getLabel(), True)
             vnmax = len(uvset.uvs)
             m = 0
             for fn,f in enumerate(me.polygons):

@@ -327,6 +327,11 @@ def initialize():
         default = 2.0,
         min = 0.1, max = 10)
 
+    bpy.types.Scene.DazLimitBump = BoolProperty(
+        name = "Limit Bump Strength",
+        description = "Limit the bump strength",
+        default = False)
+
     bpy.types.Scene.DazUseDisplacement = BoolProperty(
         name = "Displacement",
         description = "Use displacement maps. Affects internal renderer only",

@@ -418,7 +418,9 @@ class DAZ_PT_Settings(bpy.types.Panel):
             box.prop(scn, "DazShowMaterialSettings", icon="DOWNARROW_HLT", emboss=False)
             box.prop(scn, "DazChooseColors")
             box.prop(scn, "DazMergeShells")
-            box.prop(scn, "DazMaxBump")
+            box.prop(scn, "DazLimitBump")
+            if scn.DazLimitBump:
+                box.prop(scn, "DazMaxBump")
             box.prop(scn, "DazHandleRenderSettings")            
             box.separator()
             box.prop(scn, "DazUseDisplacement")
