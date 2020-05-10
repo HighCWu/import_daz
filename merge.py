@@ -209,9 +209,9 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         newname = self.getUvName(cob.data)
         for mat in cob.data.materials:
             if mat.use_nodes:
-                self.replaceNodeNames(mat, cname, newname)
+                replaceNodeNames(mat, cname, newname)
                 for aname in anames:
-                    self.replaceNodeNames(mat, aname, newname)
+                    replaceNodeNames(mat, aname, newname)
 
         # Remove unused materials
         self.mathits = dict([(mn,False) for mn in range(len(cob.data.materials))])
@@ -265,14 +265,17 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         return None
 
 
-    def replaceNodeNames(self, mat, oldname, newname):
-        for node in mat.node_tree.nodes:
-            if isinstance(node, bpy.types.ShaderNodeAttribute):
-                if node.attribute_name == oldname:
-                    node.attribute_name = newname
-            elif isinstance(node, bpy.types.ShaderNodeNormalMap):
-                if node.uv_map == oldname:
-                    node.uv_map = newname
+def replaceNodeNames(mat, oldname, newname):
+    for node in mat.node_tree.nodes:
+        if isinstance(node, bpy.types.ShaderNodeUVMap):
+            if node.uv_map == oldname:
+                node.uv_map = newname
+        elif isinstance(node, bpy.types.ShaderNodeAttribute):
+            if node.attribute_name == oldname:
+                node.attribute_name = newname
+        elif isinstance(node, bpy.types.ShaderNodeNormalMap):
+            if node.uv_map == oldname:
+                node.uv_map = newname
 
 #-------------------------------------------------------------
 #   Create graft and mask vertex groups
