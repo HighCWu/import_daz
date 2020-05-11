@@ -393,7 +393,9 @@ def setFloatProp(ob, prop, value, min=None, max=None):
     rna_ui = ob.get('_RNA_UI')
     if rna_ui is None:
         rna_ui = ob['_RNA_UI'] = {}
-    rna_ui[prop] = { "min": min, "max": max, "soft_min": min, "soft_max": max }
+    rna_ui[prop] = { "min": min, "max": max, "soft_min": min, "soft_max": max}
+    if hasattr(ob, "property_overridable_library_set"):
+        ob.property_overridable_library_set('["%s"]' % prop, True)
 
 
 def setBoolProp(ob, prop, value, desc=""):
@@ -402,11 +404,13 @@ def setBoolProp(ob, prop, value, desc=""):
     rna_ui = ob.get('_RNA_UI')
     if rna_ui is None:
         rna_ui = ob['_RNA_UI'] = {}
-    rna_ui[prop] = { "min": 0, "max": 1, "soft_min": 0, "soft_max": 1 }
+    rna_ui[prop] = { "min": 0, "max": 1 }
     setattr(bpy.types.Object, prop, 
         BoolProperty(default=value, description=desc))
     setattr(ob, prop, value)
     ob[prop] = value
+    if hasattr(ob, "property_overridable_library_set"):
+        ob.property_overridable_library_set('["%s"]' % prop, True)
 
 #-------------------------------------------------------------
 #   
