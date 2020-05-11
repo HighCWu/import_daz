@@ -348,6 +348,12 @@ class DAZ_OT_MergeUVLayers(DazOperator, IsMesh):
                 render.data[n].uv = data.uv
 
         uvtex = getUvTextures(me).active
+        actname = uvtex.name
+        rndname = render.name
+        for mat in me.materials:
+            if mat.use_nodes:
+                replaceNodeNames(mat, actname, rndname)
+
         getUvTextures(me).active_index = rndIdx
         getUvTextures(me).remove(uvtex)
         bpy.ops.object.mode_set(mode='EDIT')
