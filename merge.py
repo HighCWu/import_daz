@@ -266,16 +266,36 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
 
 
 def replaceNodeNames(mat, oldname, newname):
+    texco = None
+    for node in mat.node_tree.nodes:
+        if node.type == 'TEX_COORD':
+            texco = node
+            break
+
+    uvmaps = []
     for node in mat.node_tree.nodes:
         if isinstance(node, bpy.types.ShaderNodeUVMap):
             if node.uv_map == oldname:
                 node.uv_map = newname
+                uvmaps.append(node)
         elif isinstance(node, bpy.types.ShaderNodeAttribute):
             if node.attribute_name == oldname:
                 node.attribute_name = newname
         elif isinstance(node, bpy.types.ShaderNodeNormalMap):
             if node.uv_map == oldname:
                 node.uv_map = newname
+
+    if texco and uvmaps:
+        fromsocket = texco.outputs["UV"]
+        tosockets = []
+        for link in mat.node_tree.links:
+            if link.from_node in uvmaps:
+                tosockets.append(link.to_socket)
+        for tosocket in tosockets:
+            mat.node_tree.links.new(fromsocket, tosocket)                
+
+    for node in uvmaps:
+        mat.node_tree.nodes.remove(node)
 
 #-------------------------------------------------------------
 #   Create graft and mask vertex groups

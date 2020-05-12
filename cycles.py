@@ -522,8 +522,8 @@ class CyclesTree:
 
 
     def buildOverlay(self):
-        weight,wttex = self.getColorTex(["Diffuse Overlay Weight"], "NONE", 0)
-        if weight:
+        if self.getValue(["Diffuse Overlay Weight"], 0):
+            weight,wttex = self.getColorTex(["Diffuse Overlay Weight"], "NONE", 0)
             if self.getValue(["Diffuse Overlay Weight Squared"], False):
                 power = 4
             else:
