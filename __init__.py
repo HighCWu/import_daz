@@ -609,10 +609,11 @@ class DAZ_PT_Morphs:
 
         if rig.DazNewStyleExpressions:
             from .formula import inStringGroup
+            filter = scn.DazFilter.lower()
             for key in utils.sorted(rig.keys()):
                 if (key[0:3] == self.prefix and
                     not inStringGroup(rig.DazHiddenProps, key) and
-                    scn.DazFilter in key[3:]):
+                    filter in key[3:].lower()):
                     self.displayProp(key[3:], key, rig, scn)
         else:
             names = theMorphNames[self.type]
@@ -716,9 +717,10 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel):
                 box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
                 continue
             box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
+            filter = scn.DazFilter.lower()
             for morph in cat.morphs:
                 if (morph.prop in ob.keys() and
-                    scn.DazFilter in morph.name):
+                    filter in morph.name.lower()):
                     row = utils.splitLayout(box, 0.8)
                     row.prop(ob, '["%s"]' % morph.prop, text=morph.name)
                     showBool(row, ob, morph.prop)
