@@ -218,7 +218,8 @@ def snapFkArm(context, data):
         matchPoseScale(handFk, handIk, auto, rig)
 
     muteConstraints(cnsFk, False)
-
+    setattr(rig, prop, 0)
+    
 
 def snapIkArm(context, data):
     rig = context.object
@@ -242,6 +243,7 @@ def snapIkArm(context, data):
 
     restoreSnapProp(rig, prop, old, context)
     muteConstraints(cnsIk, False)
+    setattr(rig, prop, 1)
 
 
 def snapFkLeg(context, data):
@@ -271,6 +273,7 @@ def snapFkLeg(context, data):
         matchPoseReverse(toeFk, toeRev, auto, rig)
 
     muteConstraints(cnsFk, False)
+    setattr(rig, prop, 0)
 
 
 def snapIkLeg(context, data):
@@ -302,6 +305,7 @@ def snapIkLeg(context, data):
 
     restoreSnapProp(rig, prop, old, context)
     muteConstraints(cnsIk, False)
+    setattr(rig, prop, 1)
 
 
 SnapBonesAlpha8 = {
