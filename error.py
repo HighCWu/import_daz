@@ -28,8 +28,13 @@
 
 import bpy
 
-theMessage = "No message"
-theErrorLines = []
+def clearErrorMessage():
+    global theMessage, theErrorLines
+    theMessage = ""
+    theErrorLines = []
+    
+clearErrorMessage()
+    
 
 class ErrorOperator(bpy.types.Operator):
     bl_idname = "daz.error"
@@ -99,15 +104,13 @@ def getErrorPath():
     return os.path.realpath(os.path.expanduser(theSettings.errorPath))
 
 
-def handleDazError(context):
-    global theMessage, theUseDumpErrors, theInstances
-    import sys, traceback
+def handleDazError(context, warning=False, dump=False):
+    global theMessage, theUseDumpErrors
 
-    if not theUseDumpErrors:
+    if not (dump or theUseDumpErrors):
         return
     theUseDumpErrors = False
 
-    type,value,tb = sys.exc_info()
     filepath = getErrorPath()
     try:
         fp = open(filepath, "w", encoding="utf-8")
@@ -116,63 +119,87 @@ def handleDazError(context):
         return
     fp.write(theMessage)
 
-    fp.write("\n\nTRACEBACK:\n")
-    traceback.print_tb(tb, 30, fp)
-
     try:
-        from .settings import theTrace
-        from .asset import theAssets, theOtherAssets, theDazPaths
-
-        fp.write("\n\nFILES VISITED:\n")
-        for string in theTrace:
-            fp.write("  %s\n" % string)
-
-        fp.write("\nINSTANCES:\n")
-        refs = list(theInstances.keys())
-        refs.sort()
-        for ref in refs:
-            fp.write('"%s":    %s\n' % (ref, theInstances[ref]))
-
-        fp.write("\nASSETS:\n")
-        refs = list(theAssets.keys())
-        refs.sort()
-        for ref in refs:
-            fp.write('"%s"\n    %s\n\n' % (ref, theAssets[ref]))
-
-        fp.write("\nOTHER ASSETS:\n")
-        refs = list(theOtherAssets.keys())
-        refs.sort()
-        for ref in refs:
-            fp.write('"%s"\n    %s\n\n' % (ref, theOtherAssets[ref]))
-
-        fp.write("\nDAZ ROOT PATHS:\n")
-        for n, path in enumerate(theDazPaths):
-            fp.write('%d:   "%s"\n' % (n, path))
-
-        fp.write("\nSETTINGS:\n")
-        settings = []
-        scn = bpy.context.scene
-        for attr in dir(scn):
-            if attr[0:3] == "Daz":
-                value = getattr(scn, attr)
-                if (isinstance(value, int) or
-                    isinstance(value, float) or
-                    isinstance(value, str) or
-                    isinstance(value, bool)):
-                    settings.append((attr, value))
-        settings.sort()
-        for attr,value in settings:
-            if isinstance(value, str):
-                value = ('"%s"' % value)
-            fp.write('%25s:    %s\n' % (attr, value))
-
+        if warning:
+            string = getMissingAssets()
+            fp.write(string)
+            print(string)
+        else:
+            printTraceBack(context, fp)
     except:
         pass
-
     finally:
         fp.write("\n")
         fp.close()
         print(theMessage)
+
+
+def getMissingAssets():
+    from .settings import theSettings
+    if not theSettings.missingAssets:
+        return ""
+    string = "\nMISSING ASSETS:\n"
+    for ref in theSettings.missingAssets:
+        string += ("  %s\n" % ref)
+    return string
+        
+        
+def printTraceBack(context, fp):
+    global theInstances      
+
+    import sys, traceback
+    type,value,tb = sys.exc_info()
+    fp.write("\n\nTRACEBACK:\n")
+    traceback.print_tb(tb, 30, fp)
+
+    from .settings import theTrace
+    from .asset import theAssets, theOtherAssets, theDazPaths
+
+    fp.write("\n\nFILES VISITED:\n")
+    for string in theTrace:
+        fp.write("  %s\n" % string)
+
+    fp.write("\nINSTANCES:\n")
+    refs = list(theInstances.keys())
+    refs.sort()
+    for ref in refs:
+        fp.write('"%s":    %s\n' % (ref, theInstances[ref]))
+
+    fp.write("\nASSETS:\n")
+    refs = list(theAssets.keys())
+    refs.sort()
+    for ref in refs:
+        fp.write('"%s"\n    %s\n\n' % (ref, theAssets[ref]))
+
+    fp.write("\nOTHER ASSETS:\n")
+    refs = list(theOtherAssets.keys())
+    refs.sort()
+    for ref in refs:
+        fp.write('"%s"\n    %s\n\n' % (ref, theOtherAssets[ref]))
+
+    fp.write("\nDAZ ROOT PATHS:\n")
+    for n, path in enumerate(theDazPaths):
+        fp.write('%d:   "%s"\n' % (n, path))
+
+    string = getMissingAssets()
+    fp.write(string)
+    
+    fp.write("\nSETTINGS:\n")
+    settings = []
+    scn = bpy.context.scene
+    for attr in dir(scn):
+        if attr[0:3] == "Daz":
+            value = getattr(scn, attr)
+            if (isinstance(value, int) or
+                isinstance(value, float) or
+                isinstance(value, str) or
+                isinstance(value, bool)):
+                settings.append((attr, value))
+    settings.sort()
+    for attr,value in settings:
+        if isinstance(value, str):
+            value = ('"%s"' % value)
+        fp.write('%25s:    %s\n' % (attr, value))
 
 
 theUseDumpErrors = False

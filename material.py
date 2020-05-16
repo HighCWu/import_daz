@@ -626,7 +626,7 @@ def loadImage(url):
     global theImages
     filepath = getDazPath(url)
     if filepath is None:
-        reportError('Image not found:  \n"%s"' % filepath, trigger=(2,4))
+        reportError('Image not found:  \n"%s"' % filepath, trigger=(3,4))
         img = None
     else:
         img = bpy.data.images.load(filepath)

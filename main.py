@@ -126,7 +126,11 @@ def getMainAsset(filepath, context, btn):
 
     finishMain("File", filepath, t1)
     if theSettings.missingAssets:
-        msg = ("Some assets were not found.\nCheck that all Daz paths have been set up correctly.        ")
+        clearErrorMessage()
+        handleDazError(context, warning=True, dump=True)
+        msg = ("Some assets were not found.\n" +
+               "Check that all Daz paths have been set up correctly.        \n" +
+               "For details see\n'%s'" % getErrorPath())
         raise DazError(msg, warning=True)
 
     from .material import checkRenderSettings
