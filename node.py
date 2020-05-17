@@ -223,10 +223,11 @@ class Instance(Accessor, Channels):
                     ob.hide_render = True
             elif channel["id"] == "Visible in Viewport":
                 if not value: 
-                    ob.hide_viewport = True
+                    setattr(ob, HideViewport, True)
             elif channel["id"] == "Visible":
                 if not value: 
-                    ob.hide_render = ob.hide_viewport = True
+                    ob.hide_render = True
+                    setattr(ob, HideViewport, True)
             elif channel["id"] == "Selectable":
                 if not value: 
                     ob.hide_select = True

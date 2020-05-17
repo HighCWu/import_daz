@@ -101,7 +101,6 @@ class CameraInstance(Instance):
     def setFocusDist(self, camera, value):
         if bpy.app.version < (2,80,0):
             camera.dof_distance = value
-            camera.use_dof = True
         else:
             camera.dof.focus_distance = value
             camera.dof.use_dof = True

@@ -32,7 +32,7 @@ from .node import Node, Instance
 from .utils import *
 from .cycles import CyclesMaterial, CyclesTree
 from .internal import InternalMaterial
-from .material import WHITE, BLACK
+from .material import Material, WHITE, BLACK
 from .settings import theSettings
 from .error import reportError
 
