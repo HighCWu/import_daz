@@ -204,7 +204,7 @@ class DAZ_OT_SetUDims(DazOperator):
         "Do this on geografts before merging.")
     bl_options = {'UNDO'}
 
-    tile : IntProperty(name="Tile", min=1001, max=1010, default=1001)
+    tile : IntProperty(name="Tile", min=1001, max=1090, default=1001)
     
     @classmethod
     def poll(self, context):
