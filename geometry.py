@@ -472,11 +472,10 @@ class Geometry(Asset, Channels):
         else:
             me.from_pydata([cscale*vco-center for vco in verts], [], self.faces)
 
-        smooth = (False if self.type == "polygon_mesh" else True)
         for fn,mn in enumerate(self.material_indices):
-            p = me.polygons[fn]
-            p.material_index = mn
-            p.use_smooth = smooth
+            f = me.polygons[fn]
+            f.material_index = mn
+            f.use_smooth = True
 
         for mn,mname in enumerate(self.polygon_material_groups):
             if mname in self.materials.keys():
@@ -501,6 +500,8 @@ class Geometry(Asset, Channels):
                 me.materials.append(mat.rna)
                 if mat.uv_set and mat.uv_set.checkSize(me):
                     self.uv_set = mat.uv_set
+                me.use_auto_smooth = mat.getValue(["Smooth On"], False)
+                me.auto_smooth_angle = mat.getValue(["Smooth Angle"], 89.9)*D
 
         for key,uvset in self.uv_sets.items():
             self.buildUVSet(context, uvset, me, False)

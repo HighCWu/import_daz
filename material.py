@@ -165,6 +165,7 @@ class Material(Asset, Channels):
             shmat.shader = self.shader
         if self.thinGlass:
             mat.DazThinGlass = True
+        
 
 
     def postbuild(self, context):
