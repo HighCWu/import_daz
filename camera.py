@@ -28,7 +28,7 @@
 
 import bpy
 import math
-from .node import Node
+from .node import Node, Instance
 from .settings import theSettings
 
 class Camera(Node):
@@ -59,24 +59,27 @@ class Camera(Node):
             ob.rotation_euler[0] += math.pi/2
 
 
-    def build(self, context, inst=None):
+    def makeInstance(self, fileref, struct):
+        return CameraInstance(fileref, self, struct)
+
+
+    def build(self, context, inst):
         if self.perspective:
             self.data = bpy.data.cameras.new(self.name)
-            self.setCameraProps(self.perspective)
+            inst.setCameraProps(self.perspective)
         elif self.orthographic:
             self.data = bpy.data.cameras.new(self.name)
-            self.setCameraProps(self.orthographic)
+            inst.setCameraProps(self.orthographic)
         else:
             return None
-        #print("Camera", self.data)
-        self.buildChannels()
         Node.build(self, context, inst)
 
 
+class CameraInstance(Instance):
+
     def setCameraProps(self, props):
-        camera = self.data
+        camera = self.node.data
         for key,value in props.items():
-            #print("Camera", key, value)
             if key == "znear" :
                 camera.clip_start = value * theSettings.scale
             elif key == "zfar" :
@@ -98,8 +101,10 @@ class Camera(Node):
     def setFocusDist(self, camera, value):
         if bpy.app.version < (2,80,0):
             camera.dof_distance = value
+            camera.use_dof = True
         else:
             camera.dof.focus_distance = value
+            camera.dof.use_dof = True
 
 
     def setFStop(self, camera, value):
@@ -110,11 +115,12 @@ class Camera(Node):
             camera.dof.aperture_fstop = value
 
 
-    def buildChannels(self):
+    def buildChannels(self, context):
         from .utils import getCurrentValue, D
 
-        camera = self.data
-        camera.sensor_width = 64
+        camera = self.rna.data
+        camera.sensor_height = 64
+        camera.sensor_fit = 'VERTICAL'
         for key,channel in self.channels.items():
             value = channel["current_value"]
             if key == "Lens Shift X" :
@@ -126,12 +132,10 @@ class Camera(Node):
             elif key == "Depth of Field":
                 self.setFocusDist(camera, value * theSettings.scale * 0.1)
             elif key == "Frame Width":
-                pass
-                #camera.sensor_width = value
-                #camera.sensor_height = self.aspectRatio * value
+                # https://bitbucket.org/Diffeomorphic/import-daz/issues/75/better-cameras
+                camera.sensor_height = value
             elif key == "Aspect Ratio":
                 self.aspectRatio = value[1]/value[0]
-                #camera.sensor_height = self.aspectRatio * camera.sensor_width
             elif key == "Aperture Blades":
                 if bpy.app.version < (2,80,0):
                     camera.gpu_dof.blades = value

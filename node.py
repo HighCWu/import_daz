@@ -241,7 +241,6 @@ class Instance(Accessor):
                 pass
 
                     
-                    
     def buildExtra(self, context):    
         if self.strand_hair:
             print("Strand-based hair is not implemented.")
