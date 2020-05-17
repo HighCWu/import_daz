@@ -206,15 +206,6 @@ class Material(Asset, Channels):
         addUdim(mat, udim, 0)
 
 
-    def getImageFile(self, channel):
-        if "image_file" in channel.keys():
-            return channel["image_file"]
-        elif "literal_image" in channel.keys():
-            return channel["literal_image"]
-        else:
-            return None
-
-
     def getGamma(self, channel):
         global theGammas
         url = self.getImageFile(channel)
@@ -371,10 +362,6 @@ class Material(Asset, Channels):
         return True
 
 
-    def getValue(self, attr, default):
-        return self.getChannelValue(self.getChannel(attr), default)
-
-
     def getColor(self, attr, default):
         return self.getChannelColor(self.getChannel(attr), default)
 
@@ -393,32 +380,6 @@ class Material(Asset, Channels):
             if channel and self.hasTextures(channel):
                 return True
         return False
-
-
-    def getChannelValue(self, channel, default, warn=True):
-        if channel is None:
-            return default
-        if (not self.getImageFile(channel) and
-            "invalid_without_map" in channel.keys() and
-            channel["invalid_without_map"]):
-            return default
-        for key in ["color", "strength", "current_value", "value"]:
-            if key in channel.keys():
-                value = channel[key]
-                if isVector(default):
-                    if isVector(value):
-                        return value
-                    else:
-                        return Vector((value, value, value))
-                else:
-                    if isVector(value):
-                        return (value[0] + value[1] + value[2])/3
-                    else:
-                        return value
-        if warn and theSettings.verbosity > 2:
-            print("Did not find value for channel %s" % channel["id"])
-            print("Keys: %s" % list(channel.keys()))
-        return default
 
 
     def getChannelColor(self, channel, default, warn=True):

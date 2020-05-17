@@ -92,7 +92,7 @@ def getChannelIndex(key):
     return channel, idx
 
 
-class Instance(Accessor):
+class Instance(Accessor, Channels):
 
     def __init__(self, fileref, node, struct):
         from .asset import normalizeRef
@@ -215,8 +215,7 @@ class Instance(Accessor):
         if ob is None:
             return        
         for channel in self.channels.values(): 
-            if ("id" not in channel.keys() or
-                ("visible" in channel.keys() and not channel["visible"])):
+            if self.ignoreChannel(channel):
                 continue
             value = getCurrentValue(channel)
             if channel["id"] == "Renderable":
@@ -240,7 +239,12 @@ class Instance(Accessor):
             elif channel["id"] == "Point At":
                 pass
 
-                    
+
+    def ignoreChannel(self, channel):
+        return ("id" not in channel.keys() or
+                ("visible" in channel.keys() and not channel["visible"]))
+
+
     def buildExtra(self, context):    
         if self.strand_hair:
             print("Strand-based hair is not implemented.")

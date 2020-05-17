@@ -28,9 +28,10 @@
 
 import bpy
 import math
-from .node import Node
+from .node import Node, Instance
 from .utils import *
-from .cycles import Material, CyclesMaterial, CyclesTree
+from .cycles import CyclesMaterial, CyclesTree
+from .internal import InternalMaterial
 from .material import WHITE, BLACK
 from .settings import theSettings
 from .error import reportError
@@ -47,7 +48,6 @@ class Light(Node):
         self.info = {}
         self.presentation = {}
         self.data = None
-        self.material = None
         self.twosided = False
 
 
@@ -71,51 +71,16 @@ class Light(Node):
             print("Strange lamp", self)
 
 
-    def build(self, context, inst=None):
-        if theSettings.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
-            self.material = InternalLightMaterial(self)
-        else:
-            self.material = CyclesLightMaterial(self)
-        self.material.build(context)
-        Node.build(self, context, inst)
+    def makeInstance(self, fileref, struct):
+        return LightInstance(fileref, self, struct)
 
 
-    def postTransform(self):
-        if theSettings.zup:
-            ob = self.rna
-            ob.rotation_euler[0] += math.pi/2
-
-
-    def postbuild(self, context, inst):
-        Node.postbuild(self, context, inst)
-        if self.twosided:
-            if inst.rna:
-                ob = inst.rna
-                activateObject(context, ob)
-                bpy.ops.object.duplicate_move()
-                nob = getActiveObject(context)
-                nob.data = ob.data
-                nob.scale = -ob.scale
-
-#-------------------------------------------------------------
-#   LightMaterial
-#-------------------------------------------------------------
-
-class LightMaterial:
-    def __init__(self, light):
-        self.light = light
-        self.fluxFactor = 1
-        self.channels = light.channels
-
-
-    def build(self, context):
-        light = self.light
-        lgeo = self.getValue(["Light Geometry"], -1)
-        usePhoto = self.getValue(["Photometric Mode"], False)
-        light.twosided = self.getValue(["Two Sided"], False)       
-
-        height = self.getValue(["Height"], 0) * theSettings.scale
-        width = self.getValue(["Width"], 0) * theSettings.scale
+    def build(self, context, inst):
+        lgeo = inst.getValue(["Light Geometry"], -1)
+        usePhoto = inst.getValue(["Photometric Mode"], False)
+        self.twosided = inst.getValue(["Two Sided"], False)       
+        height = inst.getValue(["Height"], 0) * theSettings.scale
+        width = inst.getValue(["Width"], 0) * theSettings.scale
 
         # [ "Point", "Rectangle", "Disc", "Sphere", "Cylinder" ]
         if bpy.app.version < (2,80,0):
@@ -123,46 +88,47 @@ class LightMaterial:
         else:
             bpydatalamps = bpy.data.lights
         if lgeo == 1:
-            lamp = bpydatalamps.new(light.name, "AREA")
+            lamp = bpydatalamps.new(self.name, "AREA")
             lamp.shape = 'RECTANGLE'
             lamp.size = width
             lamp.size_y = height
         elif lgeo == 2 and bpy.app.version >= (2,80,0):
-            lamp = bpydatalamps.new(light.name, "AREA")
+            lamp = bpydatalamps.new(self.name, "AREA")
             lamp.shape = 'DISK'
             lamp.size = height
         elif lgeo > 1:
-            lamp = bpydatalamps.new(light.name, "POINT")
+            lamp = bpydatalamps.new(self.name, "POINT")
             lamp.shadow_soft_size = height/2
-            light.twosided = False
-        elif light.type == 'POINT':
-            lamp = bpydatalamps.new(light.name, "POINT")
+            self.twosided = False
+        elif self.type == 'POINT':
+            lamp = bpydatalamps.new(self.name, "POINT")
             lamp.shadow_soft_size = 0
             if bpy.app.version < (2,80,0):
-                self.fluxFactor = 5
+                inst.fluxFactor = 5
             else:
-                self.fluxFactor = 3
-            light.twosided = False
-        elif light.type == 'SPOT':
-            lamp = bpydatalamps.new(light.name, "SPOT")
+                inst.fluxFactor = 3
+            self.twosided = False
+        elif self.type == 'SPOT':
+            lamp = bpydatalamps.new(self.name, "SPOT")
             lamp.shadow_soft_size = height/2
-            light.twosided = False
-        elif light.type == 'DIRECTIONAL':
-            lamp = bpydatalamps.new(light.name, "SUN")
+            self.twosided = False
+        elif self.type == 'DIRECTIONAL':
+            lamp = bpydatalamps.new(self.name, "SUN")
             lamp.shadow_soft_size = height/2
-            light.twosided = False
-        elif light.type == 'light':
-            lamp = bpydatalamps.new(light.name, "AREA")
+            self.twosided = False
+        elif self.type == 'light':
+            lamp = bpydatalamps.new(self.name, "AREA")
         else:
-            msg = ("Unknown light type: %s" % light.type)
+            msg = ("Unknown light type: %s" % self.type)
             reportError(msg, trigger=(1,3))
-            lamp = bpydatalamps.new(light.name, "SPOT")
+            lamp = bpydatalamps.new(self.name, "SPOT")
             lamp.shadow_soft_size = height/2
-            light.twosided = False
+            self.twosided = False
 
-        self.setLampProps(lamp, light.info, context)
-        self.setChannels(lamp)
-        self.rna = light.data = lamp
+        self.setLampProps(lamp, self.info, context)
+        self.data = lamp
+        Node.build(self, context, inst)
+        inst.material.build(context)
 
 
     def setLampProps(self, lamp, props, context):
@@ -196,7 +162,40 @@ class LightMaterial:
                 print("Unknown lamp prop", key)
 
 
-    def setChannels(self, lamp):
+    def postTransform(self):
+        if theSettings.zup:
+            ob = self.rna
+            ob.rotation_euler[0] += math.pi/2
+
+
+    def postbuild(self, context, inst):
+        Node.postbuild(self, context, inst)
+        if self.twosided:
+            if inst.rna:
+                ob = inst.rna
+                activateObject(context, ob)
+                bpy.ops.object.duplicate_move()
+                nob = getActiveObject(context)
+                nob.data = ob.data
+                nob.scale = -ob.scale
+
+#-------------------------------------------------------------
+#   LightInstance
+#-------------------------------------------------------------
+
+class LightInstance(Instance):
+    def __init__(self, fileref, node, struct):
+        Instance.__init__(self, fileref, node, struct)
+        if theSettings.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
+            self.material = InternalLightMaterial(fileref, self)
+        else:
+            self.material = CyclesLightMaterial(fileref, self)
+        self.fluxFactor = 1
+
+
+    def buildChannels(self, context):
+        Instance.buildChannels(self, context)
+        lamp = self.rna.data
         if bpy.app.version < (2,80,0):
             if self.getValue(["Cast Shadows"], 0):
                 lamp.shadow_method = 'RAY_SHADOW'
@@ -236,30 +235,27 @@ class LightMaterial:
 #   InternalLightMaterial
 #-------------------------------------------------------------
 
-class InternalLightMaterial(Material, LightMaterial):
-    def __init__(self, light):
-        Material.__init__(self, light.fileref)
-        LightMaterial.__init__(self, light)
-
-
-    def build(self, context):
-        LightMaterial.build(self, context)
+class InternalLightMaterial(InternalMaterial):
+    def __init__(self, fileref, inst):
+        InternalMaterial.__init__(self, fileref)
+        self.name = inst.name
+        self.channels = inst.channels
+        self.instance = inst
 
 #-------------------------------------------------------------
-#   Cycles Light
+#   Cycles Light Material
 #-------------------------------------------------------------
 
-class CyclesLightMaterial(CyclesMaterial, LightMaterial):
+class CyclesLightMaterial(CyclesMaterial):
 
-    def __init__(self, light):
-        CyclesMaterial.__init__(self, light.fileref)
-        LightMaterial.__init__(self, light)
-
-    def __repr__(self):
-        return ("<CLight %s %s>" % (self.light.rna, self.rna))
+    def __init__(self, fileref, inst):
+        CyclesMaterial.__init__(self, fileref)
+        self.name = inst.name
+        self.channels = inst.channels
+        self.instance = inst
 
     def build(self, context):
-        LightMaterial.build(self, context)
+        Material.build(self, context)
         self.tree = LightTree(self)
         self.tree.build(context)
 
@@ -273,7 +269,7 @@ class LightTree(CyclesTree):
 
         emit = self.addNode(1, "ShaderNodeEmission")
         emit.inputs["Color"].default_value[0:3] = color
-        emit.inputs["Strength"].default_value = self.material.fluxFactor
+        emit.inputs["Strength"].default_value = self.material.instance.fluxFactor
         if bpy.app.version < (2,80,0):
             output = self.addNode(2, "ShaderNodeOutputLamp")
         else:
@@ -283,15 +279,6 @@ class LightTree(CyclesTree):
 
     def addTexco(self, slot):
         return
-
-
-def getValue(channel, default):
-    if "current_value" in channel.keys():
-        return channel["current_value"]
-    elif "value" in channel.keys():
-        return channel["value"]
-    else:
-        return default
 
 
 

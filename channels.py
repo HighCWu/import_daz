@@ -120,5 +120,44 @@ class Channels:
                 return False
         return True
 
+
+    def getValue(self, attr, default):
+        return self.getChannelValue(self.getChannel(attr), default)
+
+
+    def getChannelValue(self, channel, default, warn=True):
+        if channel is None:
+            return default
+        if (not self.getImageFile(channel) and
+            "invalid_without_map" in channel.keys() and
+            channel["invalid_without_map"]):
+            return default
+        for key in ["color", "strength", "current_value", "value"]:
+            if key in channel.keys():
+                value = channel[key]
+                if isVector(default):
+                    if isVector(value):
+                        return value
+                    else:
+                        return Vector((value, value, value))
+                else:
+                    if isVector(value):
+                        return (value[0] + value[1] + value[2])/3
+                    else:
+                        return value
+        if warn and theSettings.verbosity > 2:
+            print("Did not find value for channel %s" % channel["id"])
+            print("Keys: %s" % list(channel.keys()))
+        return default
+
           
+    def getImageFile(self, channel):
+        if "image_file" in channel.keys():
+            return channel["image_file"]
+        elif "literal_image" in channel.keys():
+            return channel["literal_image"]
+        else:
+            return None
+
+
 
