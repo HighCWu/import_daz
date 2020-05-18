@@ -89,21 +89,27 @@ class CameraInstance(Instance):
             elif key == "focal_length" :
                 camera.lens = value
             elif key == "depth_of_field" :
-                pass
+                self.setDOF(camera, value)
             elif key == "focal_distance" :
-                self.setFocusDist(camera, value * theSettings.scale * 0.1)
+                self.setFocusDist(camera, value)
             elif key == "fstop" :
                 self.setFStop(camera, value)
             else:
                 print("Unknown camera prop: '%s' %s" % (key, value))
 
 
+    def setDOF(self, camera, value):
+        if bpy.app.version < (2,80,0):
+            pass
+        else:
+            camera.dof.use_dof = value
+
+    
     def setFocusDist(self, camera, value):
         if bpy.app.version < (2,80,0):
-            camera.dof_distance = value
+            camera.dof_distance = value * theSettings.scale
         else:
-            camera.dof.focus_distance = value
-            camera.dof.use_dof = True
+            camera.dof.focus_distance = value * theSettings.scale
 
 
     def setFStop(self, camera, value):
@@ -128,8 +134,10 @@ class CameraInstance(Instance):
                 camera.shift_y = value * theSettings.scale
             elif key == "Focal Length":
                 camera.lens = value         # in mm
+            elif key == "DOF":
+                self.setDOF(camera, value)
             elif key == "Depth of Field":
-                self.setFocusDist(camera, value * theSettings.scale * 0.1)
+                self.setFocusDist(camera, value)
             elif key == "Frame Width":
                 # https://bitbucket.org/Diffeomorphic/import-daz/issues/75/better-cameras
                 camera.sensor_height = value
