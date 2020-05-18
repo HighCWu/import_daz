@@ -155,6 +155,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.import_visemes")
             box.operator("daz.import_custom_morphs")
             box.operator("daz.import_correctives")
+            box.operator("daz.import_flexions")
             box.label(text="Create low-poly meshes before transfers.")
             box.operator("daz.transfer_correctives")
             box.operator("daz.transfer_other_morphs")
@@ -664,7 +665,7 @@ class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
     show = "DazExpressions"
 
 
-class DAZ_PT_Viseme(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Visemes"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -1002,6 +1003,7 @@ def initialize():
     bpy.types.Object.DazUnits = StringProperty(default = "")
     bpy.types.Object.DazExpressions = StringProperty(default = "")
     bpy.types.Object.DazVisemes = StringProperty(default = "")
+    bpy.types.Object.DazFlexions = StringProperty(default = "")
     bpy.types.Object.DazCorrectives = StringProperty(default = "")
     bpy.types.Object.DazHands = StringProperty(default = "")
 
@@ -1078,7 +1080,7 @@ classes = [
     DAZ_PT_Posing,
     DAZ_PT_Units,
     DAZ_PT_Expressions,
-    DAZ_PT_Viseme,
+    DAZ_PT_Visemes,
     DAZ_PT_CustomMorphs,
     DAZ_PT_MhxLayers,
     DAZ_PT_MhxFKIK,

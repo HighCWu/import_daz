@@ -145,10 +145,11 @@ class Selector(B.FilterString):
 
 
 class StandardSelector(Selector, B.StandardAllEnums):
-    prefixes = {"All" : ["DzU", "DzE", "DzV"], 
+    prefixes = {"All" : ["DzU", "DzE", "DzV", "DzF"], 
                 "Units" : ["DzU"], 
                 "Expressions" : ["DzE"], 
-                "Visemes" : ["DzV"]
+                "Visemes" : ["DzV"],
+                "Flexions" : ["DzF"]
                }
 
     def selectCondition(self, item):
@@ -355,6 +356,7 @@ class LoadMorph(PropFormulas):
     suppressError = False
     usePropDrivers = True
     useBoneDrivers = False
+    useStages = True
 
     def __init__(self, mesh=None, rig=None):
         PropFormulas.__init__(self, rig)
@@ -420,7 +422,7 @@ class LoadMorph(PropFormulas):
                 props = [prop]
             elif self.rig and self.useBoneDrivers:
                 from .formula import buildShapeFormula
-                success = buildShapeFormula(asset, scn, self.rig, self.mesh)
+                success = buildShapeFormula(asset, scn, self.rig, self.mesh, useStages=self.useStages)
                 if self.useShapekeysOnly and not success and skey:
                     print("Could not build shape formula", skey.name)
                 if not success:
@@ -593,40 +595,6 @@ class LoadAllMorphs(LoadMorph):
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class DAZ_OT_ImportCorrectives(DazOperator, Selector, LoadAllMorphs, IsMeshArmature):
-    bl_idname = "daz.import_correctives"
-    bl_label = "Import Correctives"
-    bl_description = "Import corrective morphs"
-    bl_options = {'UNDO'}
-
-    type = "Correctives"
-    prefix = "DzC"
-    useShapekeysOnly = True
-    useSoftLimits = False
-    usePropDrivers = False
-    useBoneDrivers = True
-    
-    def getActiveMorphFiles(self, context):
-        return dict([(item.text,item.name) for item in self.getSelectedItems(context.scene)])        
-
-    def isActive(self, name, scn):
-        return True
-
-    def invoke(self, context, event):
-        global theMorphFiles
-        scn = context.scene
-        scn.DazSelector.clear()
-        if not self.setupCharacter(context, False):
-            return {'FINISHED'}
-        setupMorphPaths(scn, False)
-        for key,path in theMorphFiles[self.char]["Correctives"].items():
-            item = scn.DazSelector.add()
-            item.name = path
-            item.text = key
-            item.select = True
-        return self.invokeDialog(context)
-
-    
 class StandardMorphSelector(Selector):
                 
     def getActiveMorphFiles(self, context):
@@ -682,6 +650,36 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, Is
 
     type = "Visemes"
     prefix = "DzV"
+
+
+class DAZ_OT_ImportCorrectives(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+    bl_idname = "daz.import_correctives"
+    bl_label = "Import Correctives"
+    bl_description = "Import corrective morphs"
+    bl_options = {'UNDO'}
+
+    type = "Correctives"
+    prefix = "DzC"
+    useShapekeysOnly = True
+    useSoftLimits = False
+    usePropDrivers = False
+    useBoneDrivers = True
+    useStages = True
+    
+    
+class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+    bl_idname = "daz.import_flexions"
+    bl_label = "Import Flexions"
+    bl_description = "Import flexion morphs"
+    bl_options = {'UNDO'}
+
+    type = "Flexions"
+    prefix = "DzF"
+    useShapekeysOnly = True
+    useSoftLimits = False
+    usePropDrivers = False
+    useBoneDrivers = True
+    useStages = False
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -1379,10 +1377,11 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, I
     bl_description = "Remove specific standard morphs and their associated drivers"
     bl_options = {'UNDO'}
 
-    shows = {"All" : ["DazUnits", "DazExpressions", "DazVisemes"], 
+    shows = {"All" : ["DazUnits", "DazExpressions", "DazVisemes", "DazFlexions"], 
              "Units" : ["DazUnits"], 
              "Expressions" : ["DazExpressions"], 
-             "Visemes" : ["DazVisemes"]
+             "Visemes" : ["DazVisemes"],
+             "Flexions" : ["DazFlexions"]
             }
 
     def drawExtra(self, context):
@@ -1784,6 +1783,7 @@ classes = [
     DAZ_OT_ImportUnits,
     DAZ_OT_ImportExpressions,
     DAZ_OT_ImportVisemes,
+    DAZ_OT_ImportFlexions,
     #DAZ_OT_ImportStandardMorphs,
     DAZ_OT_ImportCustomMorphs,
     DAZ_OT_ImportCorrectives,

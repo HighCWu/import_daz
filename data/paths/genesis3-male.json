@@ -20,6 +20,12 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 3/Male/Morphs/DAZ 3D/Base Pose/"
 	},
+	"flexions" : {
+		"prefix" : "",
+		"include" : ["none"],
+		"exclude" : [],
+		"path" : "data/DAZ 3D/Genesis 3/Male/Morphs/DAZ 3D/Base/"
+	},
 	"correctives" : {
 		"prefix" : "pjcm",
 		"include" : ["pjcm"],

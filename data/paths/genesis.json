@@ -19,6 +19,12 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis/Base/Morphs/DAZ 3D/Base/"
 	},
+	"flexions" : {
+		"prefix" : "",
+		"include" : ["none"],
+		"exclude" : [],
+		"path" : "data/DAZ 3D/Genesis/Base/Morphs/DAZ 3D/Base/"
+	},
 	"correctives" : {
 		"prefix" : "",
 		"include" : ["none"],

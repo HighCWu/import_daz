@@ -25,6 +25,12 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 2/Female/Morphs/DAZ 3D/Base/"
 	},
+	"flexions" : {
+		"prefix" : "",
+		"include" : ["none"],
+		"exclude" : [],
+		"path" : "data/DAZ 3D/Genesis 2/Female/Morphs/DAZ 3D/Base/"
+	},
 	"hands" : {
 		"prefix" : "ctrl",
 		"include" : "ctrlhands",

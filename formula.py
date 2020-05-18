@@ -320,13 +320,13 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
 #   For corrective shapekeys
 #-------------------------------------------------------------
 
-def buildShapeFormula(asset, scn, rig, ob, occur=0):
+def buildShapeFormula(asset, scn, rig, ob, occur=0, useStages=True, verbose=True):
     if ob is None or ob.type != 'MESH' or ob.data.shape_keys is None:
         return False
 
     exprs = {}
     props = {}
-    if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=True, verbose=True):
+    if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=useStages, verbose=verbose):
         return False
 
     for sname,expr in exprs.items():
