@@ -1307,7 +1307,7 @@ class CyclesTree:
             return tex
         elif value == 0:
             return None
-        elif (tex and tex.type != 'TEX_IMAGE'):
+        elif (tex and tex.type not in ['TEX_IMAGE', 'GROUP']):
             return tex
         mult = self.addNode(col, "ShaderNodeMath")
         mult.operation = 'MULTIPLY'
