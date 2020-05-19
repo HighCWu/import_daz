@@ -757,6 +757,11 @@ class DazPairGroup(bpy.types.PropertyGroup):
 class DazStringStringGroup(bpy.types.PropertyGroup):
     names = CollectionProperty(type = bpy.types.PropertyGroup)
 
+class DazDriverGroup(bpy.types.PropertyGroup):
+    index = IntProperty()
+    expression = StringProperty()
+    channel = StringProperty()
+
 class DazStringGroup(bpy.types.PropertyGroup):
     s = StringProperty()
 

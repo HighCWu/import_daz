@@ -151,8 +151,8 @@ class DAZ_PT_Setup(bpy.types.Panel):
         else:
             box.prop(scn, "DazShowMorphs", icon="DOWNARROW_HLT", emboss=False)
             if ob.DazDriversDisabled:
-                layout.label(text = "Face drivers disabled")
-                layout.operator("daz.enable_drivers")
+                box.label(text = "Face drivers disabled")
+                box.operator("daz.enable_drivers")
             else:
                 box.operator("daz.import_units")
                 box.operator("daz.import_expressions")
