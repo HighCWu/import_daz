@@ -776,21 +776,85 @@ class DAZ_OT_CopyBoneDrivers(DazOperator, IsArmature):
         raise DazError("Need two selected armatures")
 
 #----------------------------------------------------------
+#   Disable and enable drivers
+#----------------------------------------------------------
+
+class DAZ_OT_DisableDrivers(DazOperator):
+    bl_idname = "daz.disable_drivers"
+    bl_label = "Disable Drivers"
+    bl_description = "Disable all face bone drivers to improve performance"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'ARMATURE' and not ob.DazDriversDisabled)
+        
+    def run(self, context):
+        rig = context.object
+        if rig and rig.animation_data:
+            rig.DazDisabledDrivers.clear()
+            fcus = []
+            for fcu in rig.animation_data.drivers:
+                words = fcu.data_path.split('"')
+                drv = fcu.driver                
+                if (words[0] == "pose.bones[" and
+                    "evalMorphs" in drv.expression and
+                    len(drv.variables) == 0):
+                    item = rig.DazDisabledDrivers.add()
+                    item.name = words[1]
+                    item.index = fcu.array_index
+                    item.expression = drv.expression
+                    item.channel = words[2].rsplit(".")[-1]
+                    fcus.append(fcu)
+            removeDriverFCurves(fcus, rig)
+            rig.DazDriversDisabled = True
+
+
+class DAZ_OT_EnableDrivers(DazOperator):
+    bl_idname = "daz.enable_drivers"
+    bl_label = "Enable Drivers"
+    bl_description = "Enable all face bone drivers"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'ARMATURE' and ob.DazDriversDisabled)
+        
+    def run(self, context):
+        rig = context.object
+        if rig:
+            for item in rig.DazDisabledDrivers:
+                pb = rig.pose.bones[item.name]
+                fcu = pb.driver_add(item.channel, item.index)
+                fcu.driver.use_self = True
+                fcu.driver.expression = item.expression
+            rig.DazDisabledDrivers.clear()
+            rig.DazDriversDisabled = False
+
+#----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
 classes = [
+    B.DazDriverGroup,
+    
     DAZ_OT_RestoreDrivers,
     DAZ_OT_RemoveUnusedDrivers,
     DAZ_OT_RetargetDrivers,
     DAZ_OT_CopyProps,
     DAZ_OT_CopyBoneDrivers,
     DAZ_OT_UpdateAll,
+    DAZ_OT_DisableDrivers,
+    DAZ_OT_EnableDrivers,
 ]
 
 def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
+    bpy.types.Object.DazDriversDisabled = BoolProperty(default=False)
+    bpy.types.Object.DazDisabledDrivers = CollectionProperty(type = B.DazDriverGroup)
 
 
 def uninitialize():

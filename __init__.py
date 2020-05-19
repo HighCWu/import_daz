@@ -150,15 +150,19 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.prop(scn, "DazShowMorphs", icon="RIGHTARROW", emboss=False)
         else:
             box.prop(scn, "DazShowMorphs", icon="DOWNARROW_HLT", emboss=False)
-            box.operator("daz.import_units")
-            box.operator("daz.import_expressions")
-            box.operator("daz.import_visemes")
-            box.operator("daz.import_custom_morphs")
-            box.operator("daz.import_correctives")
-            box.operator("daz.import_flexions")
-            box.label(text="Create low-poly meshes before transfers.")
-            box.operator("daz.transfer_correctives")
-            box.operator("daz.transfer_other_morphs")
+            if ob.DazDriversDisabled:
+                layout.label(text = "Face drivers disabled")
+                layout.operator("daz.enable_drivers")
+            else:
+                box.operator("daz.import_units")
+                box.operator("daz.import_expressions")
+                box.operator("daz.import_visemes")
+                box.operator("daz.import_custom_morphs")
+                box.operator("daz.import_correctives")
+                box.operator("daz.import_flexions")
+                box.label(text="Create low-poly meshes before transfers.")
+                box.operator("daz.transfer_correctives")
+                box.operator("daz.transfer_other_morphs")
 
         layout.separator()
         box = layout.box()
@@ -553,8 +557,8 @@ class DAZ_PT_Posing(bpy.types.Panel):
 
 
 
-def activateLayout(layout, type, prefix):
-    split = utils.splitLayout(layout, 0.3333)
+def activateLayout(layout, rig, type, prefix):
+    split = utils.splitLayout(layout, 0.25)
     split.operator("daz.prettify")
     op = split.operator("daz.activate_all")
     op.type = type
@@ -562,6 +566,10 @@ def activateLayout(layout, type, prefix):
     op = split.operator("daz.deactivate_all")
     op.type = type
     op.prefix = prefix
+    if rig.DazDriversDisabled:
+        split.operator("daz.enable_drivers")
+    else:
+        split.operator("daz.disable_drivers")
 
 
 def keyLayout(layout, type, prefix):
@@ -599,11 +607,16 @@ class DAZ_PT_Morphs:
             return
         layout = self.layout
 
+        if rig.DazDriversDisabled:
+            layout.label(text = "Face drivers disabled")
+            layout.operator("daz.enable_drivers")
+            return
+        
         if not (rig.DazNewStyleExpressions or theMorphNames):
             layout.operator("daz.update_morph_paths")
             return
 
-        activateLayout(layout, self.type, self.prefix)
+        activateLayout(layout, rig, self.type, self.prefix)
         keyLayout(layout, self.type, self.prefix)
         layout.prop(scn, "DazFilter")
         layout.separator()
@@ -698,20 +711,25 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel):
 
 
     def draw(self, context):
-        ob = morphing.getRigFromObject(context.object)
+        rig = morphing.getRigFromObject(context.object)
         scn = context.scene
-        if ob is None:
+        if rig is None:
             return
         layout = self.layout
 
-        activateLayout(layout, "CUSTOM", "")
+        if rig.DazDriversDisabled:
+            layout.label(text = "Face drivers disabled")
+            layout.operator("daz.enable_drivers")
+            return
+
+        activateLayout(layout, rig, "CUSTOM", "")
         keyLayout(layout, "CUSTOM", "")
         row = layout.row()
         row.operator("daz.toggle_all_cats", text="Open All Categories").useOpen=True
         row.operator("daz.toggle_all_cats", text="Close All Categories").useOpen=False
         layout.prop(scn, "DazFilter")
 
-        for cat in ob.DazMorphCats:
+        for cat in rig.DazMorphCats:
             layout.separator()
             box = layout.box()
             if not cat.active:
@@ -720,11 +738,11 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel):
             box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
             filter = scn.DazFilter.lower()
             for morph in cat.morphs:
-                if (morph.prop in ob.keys() and
+                if (morph.prop in rig.keys() and
                     filter in morph.name.lower()):
                     row = utils.splitLayout(box, 0.8)
-                    row.prop(ob, '["%s"]' % morph.prop, text=morph.name)
-                    showBool(row, ob, morph.prop)
+                    row.prop(rig, '["%s"]' % morph.prop, text=morph.name)
+                    showBool(row, rig, morph.prop)
                     op = row.operator("daz.pin_prop", icon='UNPINNED')
                     op.key = morph.prop
                     op.type = "CUSTOM"
