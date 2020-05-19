@@ -96,7 +96,7 @@ class AffectOptions:
     reportMissingMorphs : BoolProperty(
         name = "Report Missing Morphs",
         description = "Print a list of missing morphs.",
-        default = True)
+        default = False)
 
     affectSelectedOnly : BoolProperty(
         name = "Selected Bones Only",
