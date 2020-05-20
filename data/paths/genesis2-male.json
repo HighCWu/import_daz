@@ -31,10 +31,10 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 2/Male/Morphs/DAZ 3D/Base/"
 	},
-	"hands" : {
+	"poses" : {
 		"prefix" : "ctrl",
-		"include" : "ctrlhands",
-		"exclude" : "ctrltoes",
+		"include" : ["ctrl"],
+		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 2/Male/Morphs/DAZ 3D/Base/"
 	}
 }	

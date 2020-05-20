@@ -32,10 +32,10 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 8/Female/Morphs/DAZ 3D/Base Correctives/"
 	},
-	"hands" : {
-		"prefix" : "ctrl",
-		"include" : "pctrlhands",
-		"exclude" : "pctrltoes",
+	"poses" : {
+		"prefix" : "pctrl",
+		"include" : ["pctrl"],
+		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 8/Female/Morphs/DAZ 3D/Base Pose/"
 	}
 }	
