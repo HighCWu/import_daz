@@ -307,13 +307,15 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
             rot = expr["rotation"]["value"]
             driver = expr["rotation"]["bone"]
             if rot and driver in rig.pose.bones.keys():
-                pbDriver = rig.pose.bones[driver]
-                if pbDriver.parent == pbDriven:
-                    print("Dependency loop: %s %s" % (pbDriver.name, pbDriven.name))
-                else:
-                    umat = convertDualMatrix(rot, pbDriver, pbDriven)
-                    for idx in range(3):
-                        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, None, driver, idx, 0)
+                makeSomeBoneDriver(expr["rotation"], pbDriven, "rotation_euler", rig, None, driver, idx)
+                
+                #pbDriver = rig.pose.bones[driver]
+                #if pbDriver.parent == pbDriven:
+                #    print("Dependency loop: %s %s" % (pbDriver.name, pbDriven.name))
+                #else:
+                #    umat = convertDualMatrix(rot, pbDriver, pbDriven)
+                #    for idx in range(3):
+                #        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, None, driver, idx, 0)
 
 #-------------------------------------------------------------
 #   Build shape formula
@@ -344,38 +346,44 @@ def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True):
                         
             
 def buildSingleShapeFormula(expr, rig, ob, skey):
-    from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
     from .bone import BoneAlternatives
     
     bname = expr["bone"]
     if bname is None:
         # print("BSSF", expr, skey.name)
-        return
+        return False
     if bname not in rig.pose.bones.keys():
         if bname in BoneAlternatives.keys():
             bname = BoneAlternatives[bname]
         else:
             print("Missing bone:", bname)
-            return
+            return False
+    makeSomeBoneDriver(expr, skey, "value", rig, ob, bname, -1)
+    return True
+    
+    
+def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
+    from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
+    print("MSB", rna, bname, idx)
     pb = rig.pose.bones[bname]
-
     if "comp" in expr.keys():
-        uvec,xys = getSplinePoints(expr)
-        makeSplineBoneDriver(uvec, xys, skey, "value", rig, ob, bname, -1)
+        uvec,xys = getSplinePoints(expr, pb)
+        print("PP", uvec, xys)
+        makeSplineBoneDriver(uvec, xys, rna, channel, rig, ob, bname, idx)
     elif isinstance(expr["value"], list):
         uvecs = []
         for vec in expr["value"]:
             uvec = convertDualVector(vec/D, pb, False)
             uvecs.append(uvec)
-        makeProductBoneDriver(uvecs, skey, "value", rig, ob, bname, -1)
+        makeProductBoneDriver(uvecs, rna, channel, rig, ob, bname, idx)
     else:
         vec = expr["value"]
         uvec = convertDualVector(vec/D, pb, False)
-        makeSimpleBoneDriver(uvec, skey, "value", rig, ob, bname, -1)
-    return True
+        print("SIM", vec, uvec)
+        makeSimpleBoneDriver(uvec, rna, channel, rig, ob, bname, idx)
 
 
-def getSplinePoints(expr):    
+def getSplinePoints(expr, pb):    
     j = expr["comp"]
     points = expr["points"]
     n = len(points)
@@ -686,7 +694,11 @@ class PropFormulas(PoseboneDriver):
                 prop = asset.getProp(bname)
                 struct = expr["value"]
                 key = asset.getProp(struct["prop"])
-                val = struct["value"]
+                if "points" in struct.keys():
+                    # Should do this right some day
+                    val = struct["points"][-1][0]
+                else:
+                    val = struct["value"]
                 words = struct["output"].rsplit("?", 1)
                 if not (len(words) == 2 and words[1] == "value"):
                     continue
