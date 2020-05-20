@@ -800,6 +800,8 @@ class Bone(Node):
             zaxis = inst.figure.planes[zplane]
             setRoll(eb, zaxis)
             eb.roll += math.pi/2
+            if eb.roll > math.pi:
+                eb.roll -= 2*math.pi
             return True
         elif (xplane and
               xplane in inst.figure.planes.keys()):
