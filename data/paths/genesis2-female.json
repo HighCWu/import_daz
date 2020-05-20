@@ -32,8 +32,8 @@
 		"path" : "data/DAZ 3D/Genesis 2/Female/Morphs/DAZ 3D/Base/"
 	},
 	"poses" : {
-		"prefix" : "ctrl",
-		"include" : ["ctrl"],
+		"prefix" : ["ctrl", "pbm"],
+		"include" : ["ctrl", "pbm"],
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 2/Female/Morphs/DAZ 3D/Base/"
 	}
