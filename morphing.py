@@ -145,10 +145,11 @@ class Selector(B.FilterString):
 
 
 class StandardSelector(Selector, B.StandardAllEnums):
-    prefixes = {"All" : ["DzU", "DzE", "DzV", "DzF"], 
+    prefixes = {"All" : ["DzU", "DzE", "DzV", "DzP", "DzF"], 
                 "Units" : ["DzU"], 
                 "Expressions" : ["DzE"], 
                 "Visemes" : ["DzV"],
+                "Poses" : ["DzP"],
                 "Flexions" : ["DzF"]
                }
 
@@ -195,19 +196,8 @@ ShortForms = {
     "phmunits" : ["phmbrow", "phmcheek", "phmeye", "phmjaw", "phmlip", "phmmouth", "phmnos", "phmteeth", "phmtongue"],
 
     "ectrlunits" : ["ectrlbrow", "ectrlcheek", "ectrleye", "ectrljaw", "ectrllip", "ectrlmouth", "ectrlnos", "ectrlteeth", "ectrltongue"],
-
-    "ctrlhands" : ["ctrllfinger", "ctrllhand", "ctrllthumb", "ctrllindex", "ctrllmid", "ctrllring", "ctrllpinky",
-             "ctrlrfinger", "ctrlrhand", "ctrlrthumb", "ctrlrindex", "ctrlrmid", "ctrlrring", "ctrlrpinky"],
-
-    "ctrltoes" : ["ctrllindextoe", "ctrllmidtoe", "ctrllringtoe", "ctrllpinkytoe",
-            "ctrlrindextoe", "ctrlrmidtoe", "ctrlrringtoe", "ctrlrpinkytoe"],
-
-    "pctrlhands" : ["pctrllfinger", "pctrllhand", "pctrllthumb", "pctrllindex", "pctrllmid", "pctrllring", "pctrllpinky",
-             "pctrlrfinger", "pctrlrhand", "pctrlrthumb", "pctrlrindex", "pctrlrmid", "pctrlrring", "pctrlrpinky"],
-
-    "pctrltoes" : ["pctrllindextoe", "pctrllmidtoe", "pctrllringtoe", "pctrllpinkytoe",
-            "pctrlrindextoe", "pctrlrmidtoe", "pctrlrringtoe", "pctrlrpinkytoe"],
 }
+
 ShortForms["units"] = ShortForms["ectrlunits"] + ShortForms["phmunits"]
 
 def getShortformList(item):
@@ -650,6 +640,16 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, Is
 
     type = "Visemes"
     prefix = "DzV"
+
+
+class DAZ_OT_ImportPoseMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+    bl_idname = "daz.import_pose_morphs"
+    bl_label = "Import Pose Morphs"
+    bl_description = "Import pose morphs"
+    bl_options = {'UNDO'}
+
+    type = "Poses"
+    prefix = "DzP"
 
 
 class DAZ_OT_ImportCorrectives(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -1377,10 +1377,11 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, I
     bl_description = "Remove specific standard morphs and their associated drivers"
     bl_options = {'UNDO'}
 
-    shows = {"All" : ["DazUnits", "DazExpressions", "DazVisemes", "DazFlexions"], 
+    shows = {"All" : ["DazUnits", "DazExpressions", "DazVisemes", "DazPoses", "DazFlexions"], 
              "Units" : ["DazUnits"], 
              "Expressions" : ["DazExpressions"], 
              "Visemes" : ["DazVisemes"],
+             "Poses" : ["DazPoses"],
              "Flexions" : ["DazFlexions"]
             }
 
@@ -1783,6 +1784,7 @@ classes = [
     DAZ_OT_ImportUnits,
     DAZ_OT_ImportExpressions,
     DAZ_OT_ImportVisemes,
+    DAZ_OT_ImportPoseMorphs,
     DAZ_OT_ImportFlexions,
     #DAZ_OT_ImportStandardMorphs,
     DAZ_OT_ImportCustomMorphs,

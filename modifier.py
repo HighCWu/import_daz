@@ -222,7 +222,7 @@ class ChannelAsset(Modifier):
         if prop in self.rig.data.bones.keys():
             return prop
         prop0 = stripPrefix(prop)        
-        for pfx in ["DzU", "DzV", "DzE"]:
+        for pfx in ["DzU", "DzV", "DzE", "DzF", "DzP"]:
             if pfx+prop0 in self.rig.keys():
                 return pfx+prop0        
         return self.prefix+prop0
@@ -251,7 +251,7 @@ class ChannelAsset(Modifier):
 
 def stripPrefix(prop):
     lprop = prop.lower()
-    for prefix in ["ectrlv", "ectrl", "ctrl", "phm", "ephm", "vsm", "pjcm"]:
+    for prefix in ["ectrlv", "ectrl", "pctrl", "ctrl", "phm", "ephm", "vsm", "pjcm"]:
         n = len(prefix)
         if lprop[0:n] == prefix:
             return prop[n:]

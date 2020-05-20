@@ -157,7 +157,9 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.import_units")
                 box.operator("daz.import_expressions")
                 box.operator("daz.import_visemes")
+                box.operator("daz.import_pose_morphs")
                 box.operator("daz.import_custom_morphs")
+                box.separator()
                 box.operator("daz.import_correctives")
                 box.operator("daz.import_flexions")
                 box.label(text="Create low-poly meshes before transfers.")
@@ -693,6 +695,18 @@ class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
         self.layout.operator("daz.load_moho")
         DAZ_PT_Morphs.draw(self, context)
 
+
+class DAZ_PT_PoseMorphs(bpy.types.Panel, DAZ_PT_Morphs):
+    bl_label = "Pose Morphs"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "DAZ"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    type = "Poses"
+    prefix = "DzP"
+    show = "DazPoses"
+
 #------------------------------------------------------------------------
 #    Custom panels
 #------------------------------------------------------------------------
@@ -1021,6 +1035,7 @@ def initialize():
     bpy.types.Object.DazUnits = StringProperty(default = "")
     bpy.types.Object.DazExpressions = StringProperty(default = "")
     bpy.types.Object.DazVisemes = StringProperty(default = "")
+    bpy.types.Object.DazPoses = StringProperty(default = "")
     bpy.types.Object.DazFlexions = StringProperty(default = "")
     bpy.types.Object.DazCorrectives = StringProperty(default = "")
     bpy.types.Object.DazHands = StringProperty(default = "")
@@ -1099,6 +1114,7 @@ classes = [
     DAZ_PT_Units,
     DAZ_PT_Expressions,
     DAZ_PT_Visemes,
+    DAZ_PT_PoseMorphs,
     DAZ_PT_CustomMorphs,
     DAZ_PT_MhxLayers,
     DAZ_PT_MhxFKIK,
