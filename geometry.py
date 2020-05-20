@@ -722,6 +722,7 @@ def restoreUDims(ob):
 
 
 def addUdimsToUVs(ob, restore, udim, vdim):
+    mat = ob.data.materials[0]
     for uvloop in ob.data.uv_layers:
         m = 0
         for fn,f in enumerate(ob.data.polygons):

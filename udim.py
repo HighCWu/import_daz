@@ -227,12 +227,13 @@ class DAZ_OT_SetUDims(DazOperator):
     def setUDims(self, ob):
         from .material import addUdim
         from .geometry import addUdimsToUVs
-        udim = self.tile - 1001
-        addUdimsToUVs(ob, False, udim, 0)
+        vdim = (self.tile - 1001)//10
+        udim = self.tile - 1001 - 10*vdim
+        addUdimsToUVs(ob, False, udim, vdim)
         for mn,mat in enumerate(ob.data.materials):
-            addUdim(mat, udim - mat.DazUDim, 0)
+            addUdim(mat, udim - mat.DazUDim, vdim - mat.DazVDim)
             mat.DazUDim = udim
-            mat.DazVDim = 0
+            mat.DazVDim = vdim
 
 #----------------------------------------------------------
 #   Initialize
