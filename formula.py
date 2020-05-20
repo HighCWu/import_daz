@@ -364,11 +364,9 @@ def buildSingleShapeFormula(expr, rig, ob, skey):
     
 def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
     from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
-    print("MSB", rna, bname, idx)
     pb = rig.pose.bones[bname]
     if "comp" in expr.keys():
         uvec,xys = getSplinePoints(expr, pb)
-        print("PP", uvec, xys)
         makeSplineBoneDriver(uvec, xys, rna, channel, rig, ob, bname, idx)
     elif isinstance(expr["value"], list):
         uvecs = []
@@ -379,7 +377,6 @@ def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
     else:
         vec = expr["value"]
         uvec = convertDualVector(vec/D, pb, False)
-        print("SIM", vec, uvec)
         makeSimpleBoneDriver(uvec, rna, channel, rig, ob, bname, idx)
 
 
