@@ -320,7 +320,7 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
 #   For corrective shapekeys
 #-------------------------------------------------------------
 
-def buildShapeFormula(asset, scn, rig, ob, occur=0, useStages=True, verbose=True):
+def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True):
     if ob is None or ob.type != 'MESH' or ob.data.shape_keys is None:
         return False
 
@@ -334,26 +334,22 @@ def buildShapeFormula(asset, scn, rig, ob, occur=0, useStages=True, verbose=True
             continue
         elif sname not in ob.data.shape_keys.key_blocks.keys():
             #print("No such shapekey:", sname)
-            if occur == 0:
-                return False
-            else:
-                continue
+            return False
         skey = ob.data.shape_keys.key_blocks[sname]
         if "value" in expr.keys():
-            buildSingleShapeFormula(expr["value"], rig, ob, skey, occur)
+            buildSingleShapeFormula(expr["value"], rig, ob, skey)
             for other in expr["value"]["others"]:
-                occur += 1
-                buildSingleShapeFormula(other, rig, ob, skey, occur)
+                buildSingleShapeFormula(other, rig, ob, skey)
     return True           
                         
             
-def buildSingleShapeFormula(expr, rig, ob, skey, occur):
+def buildSingleShapeFormula(expr, rig, ob, skey):
     from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
     from .bone import BoneAlternatives
     
     bname = expr["bone"]
     if bname is None:
-        # print("BSSF", expr, skey.name, occur)
+        # print("BSSF", expr, skey.name)
         return
     if bname not in rig.pose.bones.keys():
         if bname in BoneAlternatives.keys():
@@ -364,33 +360,38 @@ def buildSingleShapeFormula(expr, rig, ob, skey, occur):
     pb = rig.pose.bones[bname]
 
     if "comp" in expr.keys():
-        j = expr["comp"]
-        points = expr["points"]
-        n = len(points)
-        if (points[0][0] > points[n-1][0]):
-            points.reverse()
-
-        diff = points[n-1][0] - points[0][0]
-        vec = Vector((0,0,0))
-        vec[j] = 1/(diff*D)
-        uvec = convertDualVector(vec, pb, False)
-        xys = []
-        for k in range(n):
-            x = points[k][0]/diff
-            y = points[k][1]
-            xys.append((x, y))
-        makeSplineBoneDriver(uvec, xys, skey, "value", rig, ob, bname, -1, occur)
+        uvec,xys = getSplinePoints(expr)
+        makeSplineBoneDriver(uvec, xys, skey, "value", rig, ob, bname, -1)
     elif isinstance(expr["value"], list):
         uvecs = []
         for vec in expr["value"]:
             uvec = convertDualVector(vec/D, pb, False)
             uvecs.append(uvec)
-        makeProductBoneDriver(uvecs, skey, "value", rig, ob, bname, -1, occur)
+        makeProductBoneDriver(uvecs, skey, "value", rig, ob, bname, -1)
     else:
         vec = expr["value"]
         uvec = convertDualVector(vec/D, pb, False)
-        makeSimpleBoneDriver(uvec, skey, "value", rig, ob, bname, -1, occur)
+        makeSimpleBoneDriver(uvec, skey, "value", rig, ob, bname, -1)
     return True
+
+
+def getSplinePoints(expr):    
+    j = expr["comp"]
+    points = expr["points"]
+    n = len(points)
+    if (points[0][0] > points[n-1][0]):
+        points.reverse()
+
+    diff = points[n-1][0] - points[0][0]
+    vec = Vector((0,0,0))
+    vec[j] = 1/(diff*D)
+    uvec = convertDualVector(vec, pb, False)
+    xys = []
+    for k in range(n):
+        x = points[k][0]/diff
+        y = points[k][1]
+        xys.append((x, y))
+    return uvec, xys
 
 
 Units = [
