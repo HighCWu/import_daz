@@ -307,15 +307,13 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
             rot = expr["rotation"]["value"]
             driver = expr["rotation"]["bone"]
             if rot and driver in rig.pose.bones.keys():
-                makeSomeBoneDriver(expr["rotation"], pbDriven, "rotation_euler", rig, None, driver, idx)
-                
-                #pbDriver = rig.pose.bones[driver]
-                #if pbDriver.parent == pbDriven:
-                #    print("Dependency loop: %s %s" % (pbDriver.name, pbDriven.name))
-                #else:
-                #    umat = convertDualMatrix(rot, pbDriver, pbDriven)
-                #    for idx in range(3):
-                #        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, None, driver, idx, 0)
+                pbDriver = rig.pose.bones[driver]
+                if pbDriver.parent == pbDriven:
+                    print("Dependency loop: %s %s" % (pbDriver.name, pbDriven.name))
+                else:
+                    umat = convertDualMatrix(rot, pbDriver, pbDriven)
+                    for idx in range(3):
+                        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, None, driver, idx)
 
 #-------------------------------------------------------------
 #   Build shape formula
