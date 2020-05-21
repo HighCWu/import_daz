@@ -34,6 +34,11 @@ def clearErrorMessage():
     theErrorLines = []
     
 clearErrorMessage()
+
+
+def getErrorMessage():
+    global theMessage
+    return theMessage
     
 
 class ErrorOperator(bpy.types.Operator):
@@ -210,6 +215,7 @@ theUseDumpErrors = False
 
 class DazOperator(bpy.types.Operator):
     def execute(self, context):
+        clearErrorMessage()
         try:
             self.run(context)
         except DazError:

@@ -150,9 +150,6 @@ class FileAsset(Asset):
                             from .render import parseRenderOptions
                             options = parseRenderOptions(estruct, self.fileref)
                             self.extras.append(options)
-                        elif (key == "simulation_options" and
-                              theSettings.useSimulations):
-                            pass
 
         msg = ("-FILE %s" % self.fileref)
         theTrace.append(msg)
