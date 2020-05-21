@@ -74,6 +74,20 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         layout.prop(self, "useEnvironment")
 
 #-------------------------------------------------------------
+#   Silent mode
+#-------------------------------------------------------------
+
+class DAZ_OT_SetSilentMode(bpy.types.Operator):
+    bl_idname = "daz.set_silent_mode"
+    bl_label = "Silent Mode"
+    bl_description = "Toggle silent mode on or off (error popups off or on)"
+
+    def execute(self, context):
+        from .error import getSilentMode, setSilentMode        
+        setSilentMode(not getSilentMode())
+        return {'FINISHED'}
+
+#-------------------------------------------------------------
 #   Property groups, for drivers
 #-------------------------------------------------------------
 
@@ -240,6 +254,7 @@ classes = [
     B.DazStringGroup,
     DAZ_OT_InspectPropGroups,
     DAZ_OT_InspectPropDependencies,
+    DAZ_OT_SetSilentMode,
 ]
 
 def initialize():

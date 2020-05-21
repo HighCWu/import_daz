@@ -36,11 +36,13 @@ class SAMPLE_OT_ImportDazFile(bpy.types.Operator):
     bl_options = {'UNDO'}
 
     def execute(self, context):
-        from ..error import getErrorMessage
+        from ..error import getErrorMessage, setSilentMode
+        setSilentMode(True)                 # Turn off error popups
+        
         bpy.ops.daz.import_daz(
             filepath = "/home/thomas/Dokument/DAZ 3D/Scenes/base8.duf",
             unitScale = 1/2.54,             # inches
-            skinColor = (0.6, 0.4, 0.25, 1.0),
+            skinColor = (1, 1, 0, 1),       # yellow skin
             clothesColor = (0, 0, 1, 1),    # blue clothes
             brightenEyes = 1.5,             # brighter eyes
             fitMeshes = 'UNIQUE',           # Don't fit meshes. Each object has unique mesh instance
@@ -50,10 +52,12 @@ class SAMPLE_OT_ImportDazFile(bpy.types.Operator):
             handleVolumetric = 'SSS',       # Subsurface scattering
             useEnvironment = False,         # Don't Load environment
             )
+
         print("Script finished")
         # The error message is the empty string if there are no errors
         msg = getErrorMessage()
         print("Error message: \"%s\"" % msg)
+        setSilentMode(False)                 # Turn error popups on again
         return {'FINISHED'}
 
 #----------------------------------------------------------

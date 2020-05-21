@@ -35,10 +35,20 @@ def clearErrorMessage():
     
 clearErrorMessage()
 
-
 def getErrorMessage():
     global theMessage
     return theMessage
+
+
+def getSilentMode():
+    global theSilentMode
+    return theSilentMode
+
+def setSilentMode(value):
+    global theSilentMode
+    theSilentMode = value
+
+setSilentMode(False)
     
 
 class ErrorOperator(bpy.types.Operator):
@@ -73,7 +83,10 @@ def invokeErrorMessage(value, warning=False):
         theMessage = "WARNING:\n" + value
     else:
         theMessage = "ERROR:\n" + value
-    bpy.ops.daz.error('INVOKE_DEFAULT')
+    if getSilentMode():
+        print(theMessage)
+    else:
+        bpy.ops.daz.error('INVOKE_DEFAULT')
 
 
 class DazError(Exception):

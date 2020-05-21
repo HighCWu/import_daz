@@ -386,6 +386,11 @@ class DAZ_PT_Settings(bpy.types.Panel):
         else:
             box.prop(scn, "DazShowGeneral", icon="DOWNARROW_HLT", emboss=False)
             box.prop(scn, "DazVerbosity")
+            from .error import getSilentMode
+            if getSilentMode():
+                box.operator("daz.set_silent_mode", text="Silent Mode ON")
+            else:
+                box.operator("daz.set_silent_mode", text="Silent Mode OFF")
             box.separator()
             box.prop(scn, "DazPropMin")
             box.prop(scn, "DazPropMax")
