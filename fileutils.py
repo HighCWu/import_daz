@@ -462,6 +462,8 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
 
+    loadSettingsDefaults()
+    
 
 def uninitialize():
     for cls in classes:
