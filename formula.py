@@ -782,7 +782,7 @@ class PropFormulas(PoseboneDriver):
                 elif prop in self.taken.keys() and self.taken[prop]: 
                     if key not in batch.keys():
                         batch[key] = []
-                    batch[key].append((factor,self.getStoredMorphs(prop)))
+                    batch[key].append((factor, prop, self.getStoredMorphs(prop)))
                     addDependency(key, prop, factor)
                     used[key] = True
                 else:
@@ -808,18 +808,23 @@ class PropFormulas(PoseboneDriver):
 
     def buildMorphBatch(self, batch):
         for prop,bdata in batch.items():
+            success = False
             if len(bdata) == 1:
-                factor,bones = bdata[0]            
+                factor1,prop1,bones = bdata[0]            
                 for pbname,pdata in bones.items():
                     pb = self.rig.pose.bones[pbname]
                     for key,channel in pdata.items():
+                        if channel:
+                            success = True
                         for idx in channel.keys():
                             value, value2, default = channel[idx]
-                            self.addMorphGroup(pb, idx, key, prop, default, factor*value)
+                            self.addMorphGroup(pb, idx, key, prop, default, factor1s*value)
+                if not success:
+                    self.addOtherShapekey(prop, prop1, factor1)
 
             elif len(bdata) == 2:
-                factor1,bones1 = bdata[0]
-                factor2,bones2 = bdata[1]
+                factor1,prop1,bones1 = bdata[0]
+                factor2,prop2,bones2 = bdata[1]
                 if factor1 > 0 and factor2 < 0:
                     simple = False
                 elif factor2 > 0 and factor1 < 0:
@@ -840,6 +845,8 @@ class PropFormulas(PoseboneDriver):
                     for key in data1.keys():
                         channel1 = data1[key]
                         channel2 = data2[key]
+                        if channel1:
+                            success = True
                         for idx in channel1.keys():
                             value11, value12, default1 = channel1[idx]
                             value21, value22, default2 = channel2[idx]
@@ -850,7 +857,19 @@ class PropFormulas(PoseboneDriver):
                                 v1 = factor1*value11+factor2*value22
                                 v2 = factor2*value21+factor1*value12
                             self.addMorphGroup(pb, idx, key, prop, default1, v1, v2)
+                if not success:
+                    self.addOtherShapekey(prop, prop1, factor1)
+                    self.addOtherShapekey(prop, prop2, factor2)
 
+
+    def addOtherShapekey(self, prop, key, factor):
+        from .driver import getShapekeyPropDriver, addVarToDriver
+        if self.mesh and self.rig:
+            skeys = self.mesh.data.shape_keys
+            if skeys and key in skeys.key_blocks.keys():
+                fcu = getShapekeyPropDriver(skeys, key)
+                addVarToDriver(fcu, self.rig, prop, factor)
+                
 
     def addMissingBones(self, bones1, bones2):
         for bname in bones1.keys():

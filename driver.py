@@ -349,6 +349,20 @@ def makeShapekeyDriver(ob, sname, value, rig, prop, min=None, max=None):
     fcu.driver.type = 'SCRIPTED'
     fcu.driver.expression = "x"
     addDriverVar(fcu, "x", prop, rig)
+    
+
+def addVarToDriver(fcu, rig, prop, factor):
+    if hasDriverVar(fcu, prop, rig):
+        print("Already", prop)
+        return
+    varnames = getAllDriverVars(fcu)
+    n = ord("A")
+    while chr(n) in varnames:
+        n += 1
+    vname = chr(n)
+    string = fcu.driver.expression
+    fcu.driver.expression = string + ("+%.4f*%s" % (factor, vname))
+    addDriverVar(fcu, vname, prop, rig)
 
 #-------------------------------------------------------------
 #   Access to properties.
@@ -404,6 +418,19 @@ def addDriverVar(fcu, vname, dname, rig):
     trg.id = rig
     trg.data_path = '["%s"]' % dname
     return trg
+
+
+def hasDriverVar(fcu, dname, rig):
+    path = '["%s"]' % dname
+    for var in fcu.driver.variables:
+        trg = var.targets[0]
+        if trg.id == rig and trg.data_path == path:
+            return True
+    return False
+
+
+def getAllDriverVars(fcu):
+    return [var.name for var in fcu.driver.variables]
 
 
 def replaceDriverBone(assoc, rna, path, idx=-1):
