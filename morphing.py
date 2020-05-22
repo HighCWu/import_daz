@@ -1297,7 +1297,7 @@ class DAZ_OT_RemoveAllMorphDrivers(DazOperator, IsMeshArmature):
             self.removeAllProps(rig)
             for ob in rig.children:
                 if ob.type == 'MESH' and ob.data.shape_keys:
-                    removePropDrivers(ob.data.shape_keys)
+                    removePropDrivers(ob.data.shape_keys, force=True)
                     self.removeAllProps(ob)
             updateScene(context)
             updateRig(rig, context)
@@ -1358,7 +1358,7 @@ class MorphRemover(B.DeleteShapekeysBool):
             paths = ['["%s"]' % prop for prop in props]
             for ob in rig.children:
                 if ob.type == 'MESH' and ob.data.shape_keys:
-                    removePropDrivers(ob.data.shape_keys, paths, rig)
+                    removePropDrivers(ob.data.shape_keys, paths, rig, force=True)
                     if self.deleteShapekeys:
                         for prop in props:
                             if prop in ob.data.shape_keys.key_blocks.keys():

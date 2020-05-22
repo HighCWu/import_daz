@@ -574,7 +574,7 @@ def removeRigDrivers(rig):
     removeDriverFCurves(fcus, rig)
 
 
-def removePropDrivers(rna, paths=None, rig=None):
+def removePropDrivers(rna, paths=None, rig=None, force=False):
     if rna is None or rna.animation_data is None:
         return False
     fcus = []
@@ -582,7 +582,7 @@ def removePropDrivers(rna, paths=None, rig=None):
     for fcu in rna.animation_data.drivers:
         if paths is None:
             fcus.append(fcu)
-        elif len(fcu.driver.variables) == 1:
+        elif force or len(fcu.driver.variables) == 1:
             if matchesPaths(fcu.driver.variables[0], paths, rig):
                 fcus.append(fcu)
         else:

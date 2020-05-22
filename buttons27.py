@@ -414,7 +414,7 @@ class DeleteShapekeysBool:
     deleteShapekeys = BoolProperty(
         name = "Delete Shapekeys",
         description = "Delete both drivers and shapekeys",
-        default = False
+        default = True
     )
     
 class DazSelectGroup(bpy.types.PropertyGroup):
