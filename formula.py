@@ -749,6 +749,7 @@ class PropFormulas(PoseboneDriver):
         remains = self.others
         sorted = []
         nremains = len(remains)
+        props = []
         for level in range(1,6):
             print("--- Pass %d (%d left) ---" % (level+1, nremains))
             batch, used, remains = self.getNextLevelMorphs(remains)
@@ -756,7 +757,8 @@ class PropFormulas(PoseboneDriver):
             for prop in batch.keys():
                 name = dzstrip(prop)
                 print(" *", name)
-                missing[name] = False        
+                missing[name] = False    
+                props.append(prop)    
             if len(remains) == nremains:
                 break
             nremains = len(remains)
@@ -767,7 +769,8 @@ class PropFormulas(PoseboneDriver):
         if remains:
             print("Missing:")
             for key in remains.keys():
-                print("-", dzstrip(key))        
+                print("-", dzstrip(key))
+        return props
 
 
     def getNextLevelMorphs(self, others):
@@ -810,7 +813,7 @@ class PropFormulas(PoseboneDriver):
         for prop,bdata in batch.items():
             success = False
             if len(bdata) == 1:
-                factor1,prop1,bones = bdata[0]            
+                factor,prop1,bones = bdata[0]            
                 for pbname,pdata in bones.items():
                     pb = self.rig.pose.bones[pbname]
                     for key,channel in pdata.items():
@@ -818,9 +821,9 @@ class PropFormulas(PoseboneDriver):
                             success = True
                         for idx in channel.keys():
                             value, value2, default = channel[idx]
-                            self.addMorphGroup(pb, idx, key, prop, default, factor1s*value)
+                            self.addMorphGroup(pb, idx, key, prop, default, factor*value)
                 if not success:
-                    self.addOtherShapekey(prop, prop1, factor1)
+                    self.addOtherShapekey(prop, prop1, factor)
 
             elif len(bdata) == 2:
                 factor1,prop1,bones1 = bdata[0]
@@ -828,8 +831,8 @@ class PropFormulas(PoseboneDriver):
                 if factor1 > 0 and factor2 < 0:
                     simple = False
                 elif factor2 > 0 and factor1 < 0:
-                    factor1,bones1 = bdata[1]
-                    factor2,bones2 = bdata[0]
+                    factor1,prop1,bones1 = bdata[1]
+                    factor2,prop2,bones2 = bdata[0]
                     simple = False
                 elif factor1 > 0 and factor2 > 0:
                     simple = True

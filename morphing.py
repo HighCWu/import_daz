@@ -76,6 +76,7 @@ class Selector(B.FilterString):
         items = [item for item in scn.DazSelector
                     if self.selectCondition(item) and 
                         self.filtered(item)]                                
+        items.sort()
         nitems = len(items)
         ncols = 6
         nrows = 24
@@ -479,7 +480,9 @@ class LoadMorph(PropFormulas):
         self.suppressError = (npaths > 1)
         passidx = 1
         missing = self.getPass(passidx, list(namepaths.items()), props, scn)
-        self.buildOthers(missing)
+        props = self.buildOthers(missing)
+        for prop in props:
+            setActivated(self.rig, prop, True)            
         missing = [key for key in missing.keys() if missing[key]]
         if missing:
             print("Failed to load the following %d morphs:\n%s\n" % (len(missing), missing))

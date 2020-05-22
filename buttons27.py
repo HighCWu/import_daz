@@ -416,13 +416,17 @@ class DeleteShapekeysBool:
         description = "Delete both drivers and shapekeys",
         default = True
     )
-    
+
+
 class DazSelectGroup(bpy.types.PropertyGroup):
-    name = StringProperty()
     text = StringProperty()
     category = StringProperty()
     index = IntProperty()
     select = BoolProperty()
+
+    def __lt__(self, other):
+        return (self.text < other.text)
+
 
 class FilterString:
     filter = StringProperty(
