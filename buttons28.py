@@ -377,13 +377,6 @@ class MorphStrings:
         default = True)
 
 
-class MorphTypes:
-    units : BoolProperty(name = "Units", default = True)
-    expressions : BoolProperty(name = "Expressions", default = True)
-    visemes : BoolProperty(name = "Visemes", default = True)
-    other : BoolProperty(name = "Other", default = False)
-
-
 class CategoryString:
     category : StringProperty(
         name = "Category",
@@ -401,6 +394,7 @@ class StandardEnums:
         items = [("Units", "Units", "Units"), 
                  ("Expressions", "Expressions", "Expressions"),
                  ("Visemes", "Visemes", "Visemes"),
+                 ("Poses", "Poses", "Poses"),
                 ],
         name = "Type",
         default = "Units")
@@ -411,6 +405,7 @@ class StandardAllEnums:
                  ("Units", "Units", "Units"), 
                  ("Expressions", "Expressions", "Expressions"),
                  ("Visemes", "Visemes", "Visemes"),
+                 ("Poses", "Poses", "Poses"),
                 ],
         name = "Type",
         default = "All")

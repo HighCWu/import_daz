@@ -70,7 +70,7 @@ class Selector(B.FilterString):
         row = self.layout.row()
         row.operator("daz.select_all")
         row.operator("daz.select_none")
-        self.layout.prop(self, "filter")       
+        self.layout.prop(self, "filter", icon='VIEWZOOM', text="")       
         self.drawExtra(context)     
         self.layout.separator()
         items = [item for item in scn.DazSelector
@@ -107,7 +107,7 @@ class Selector(B.FilterString):
 
 
     def filtered(self, item):
-        return (not self.filter or self.filter in item.text)
+        return (not self.filter or self.filter.lower() in item.text.lower())
 
 
     def getSelectedItems(self, scn):

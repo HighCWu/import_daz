@@ -773,7 +773,7 @@ class DAZ_PT_Morphs:
 
         activateLayout(layout, rig, self.type, self.prefix)
         keyLayout(layout, self.type, self.prefix)
-        layout.prop(scn, "DazFilter")
+        layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
         layout.separator()
 
         if rig.DazNewStyleExpressions:
