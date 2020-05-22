@@ -203,9 +203,10 @@ class ChannelAsset(Modifier):
 
     
     def setupPropmap(self, props, prefix, rig):
+        from .asset import normalizePath
         self.prefix = prefix
         self.rig = rig
-        self.prop = self.id.rsplit("#",2)[-1]
+        self.prop = normalizePath(self.id.rsplit("#",2)[-1])
         props.append(self.prop)
         for prop in props:        
             self.propmap[prop] = self.getExprProp(prop)
