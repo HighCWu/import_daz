@@ -132,10 +132,7 @@ else:
     ShowXRay = "show_in_front"
 
     def getCollection(context):
-        if theSettings.collection:
-            return theSettings.collection
-        else:
-            return context.collection
+        return context.collection
 
     def getSceneObjects(context):
         return context.view_layer.objects
