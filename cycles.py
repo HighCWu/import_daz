@@ -531,7 +531,7 @@ class CyclesTree:
             if wttex:
                 if wttex.type == 'TEX_IMAGE':
                     img = wttex.image                    
-                    useAlpha = (img.alpha_mode == 'STRAIGHT')
+                    useAlpha = (img.file_format in ['PNG'])
                 else:
                     useAlpha = False
                 wttex = self.raiseToPower(wttex, power, 3, useAlpha=useAlpha)
