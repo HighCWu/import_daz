@@ -480,8 +480,8 @@ class LoadMorph(PropFormulas):
         self.suppressError = (npaths > 1)
         passidx = 1
         missing = self.getPass(passidx, list(namepaths.items()), props, scn)
-        props = self.buildOthers(missing)
-        for prop in props:
+        others = self.buildOthers(missing)
+        for prop in others:
             setActivated(self.rig, prop, True)            
         missing = [key for key in missing.keys() if missing[key]]
         if missing:

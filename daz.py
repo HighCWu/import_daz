@@ -878,7 +878,8 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel):
 
 
     def draw(self, context):
-        rig = morphing.getRigFromObject(context.object)
+        from .morphing import getRigFromObject
+        rig = getRigFromObject(context.object)
         scn = context.scene
         if rig is None:
             return
