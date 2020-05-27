@@ -483,6 +483,8 @@ class ExtraBones(B.BoneLayers):
                 pb.DazRotLocks = par.DazRotLocks
                 pb.DazLocLocks = par.DazLocLocks
                 copyBoneInfo(par.bone, pb.bone)
+                pb.bone.layers[self.poseLayer-1] = True
+                par.bone.layers[self.drivenLayer-1] = True                
 
         restoreBoneDrivers(rig, drivers, "Drv")
     
