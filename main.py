@@ -199,7 +199,7 @@ class DAZ_OT_DecodeFile(DazOperator, B.DazFile, B.SingleFile):
                 bytes = fp.read()
         except IOError:
             raise DazError("Cannot decode:\n%s" % self.filepath)
-        string = bytes.decode("utf-8")
+        string = bytes.decode("utf-8-sig")
         newfile = self.filepath + ".txt"
         with safeOpen(newfile, "w") as fp:
             fp.write(string)
