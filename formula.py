@@ -930,20 +930,6 @@ class PropFormulas(PoseboneDriver):
                     success = True
         return success
     
-
-def inStringGroup(items, string):
-    for item in items:
-        if item.s == string:
-            return True
-    return False
-
-
-def addToStringGroup(items, string):
-    if inStringGroup(items, string):
-        return
-    item = items.add()
-    item.s = string
-
 #-------------------------------------------------------------
 #   Eval formulas
 #   For all kinds of drivers

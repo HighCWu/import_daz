@@ -1020,9 +1020,10 @@ def getRelevantMorphs(rig, type, prefix):
     if type == "CUSTOM":
         for cat in rig.DazMorphCats:
             morphs += cat.morphs
-    for key in rig.keys():
-        if key[0:3] == prefix:
-            morphs.append(key)
+    else:
+        for key in rig.keys():
+            if key[0:3] == prefix:
+                morphs.append(key)
     return morphs
 
 
@@ -1094,10 +1095,11 @@ def addKeySet(rig, type, prefix, scn, frame):
             for morph in cat.morphs:
                 path = "[" + '"' + morph.prop + '"' + "]"
                 aks.paths.add(rig.id_data, path)
-    for key in rig.keys():
-        if key[0:3] == prefix:
-            path = "[" + '"' + key + '"' + "]"
-            aks.paths.add(rig.id_data, path)
+    else:
+        for key in rig.keys():
+            if key[0:3] == prefix:
+                path = "[" + '"' + key + '"' + "]"
+                aks.paths.add(rig.id_data, path)
 
 
 class DAZ_OT_AddKeysets(DazOperator, B.TypePrefix, IsMeshArmature):
@@ -1127,9 +1129,10 @@ def keyMorphs(rig, type, prefix, scn, frame):
             for morph in cat.morphs:
                 if getActivated(rig, morph.prop):
                     keyProp(rig, morph.prop, frame)
-    for key in rig.keys():
-        if key[0:3] == prefix and getActivated(rig, key):
-            keyProp(rig, key, frame)
+    else:
+        for key in rig.keys():
+            if key[0:3] == prefix and getActivated(rig, key):
+                keyProp(rig, key, frame)
 
 
 class DAZ_OT_KeyMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
@@ -1158,9 +1161,10 @@ def unkeyMorphs(rig, type, prefix, scn, frame):
             for morph in cat.morphs:
                 if getActivated(rig, morph.prop):
                     unkeyProp(rig, morph.prop, frame)
-    for key in rig.keys():
-        if key[0:3] == prefix and getActivated(rig, key):
-            unkeyProp(rig, key, frame)
+    else:
+        for key in rig.keys():
+            if key[0:3] == prefix and getActivated(rig, key):            
+                unkeyProp(rig, key, frame)
 
 
 class DAZ_OT_UnkeyMorphs(DazOperator, B.TypePrefix, IsMeshArmature):

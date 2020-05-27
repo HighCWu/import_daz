@@ -769,19 +769,20 @@ class DAZ_PT_Morphs:
         activateLayout(layout, rig, self.type, self.prefix)
         keyLayout(layout, self.type, self.prefix)
         layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
-        layout.separator()
+        self.drawItems(scn, rig)
 
-        from .formula import inStringGroup
+
+    def drawItems(self, scn, rig):
+        self.layout.separator()
         filter = scn.DazFilter.lower()
         for key in sorted(rig.keys()):
             if (key[0:3] == self.prefix and
-                not inStringGroup(rig.DazHiddenProps, key) and
                 filter in key[3:].lower()):
-                self.displayProp(key[3:], key, rig, scn)
+                self.displayProp(key[3:], key, rig, self.layout, scn)
 
 
-    def displayProp(self, name, key, rig, scn):
-        row = splitLayout(self.layout, 0.8)
+    def displayProp(self, name, key, rig, layout, scn):
+        row = splitLayout(layout, 0.8)
         row.prop(rig, '["%s"]' % key, text=name)
         showBool(row, rig, key)
         op = row.operator("daz.pin_prop", icon='UNPINNED')
@@ -852,56 +853,39 @@ class DAZ_PT_PoseMorphs(bpy.types.Panel, DAZ_PT_Morphs):
 #    Custom panels
 #------------------------------------------------------------------------
 
-class DAZ_PT_CustomMorphs(bpy.types.Panel):
+class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Custom Morphs"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ"
     bl_options = {'DEFAULT_CLOSED'}
 
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.DazCustomMorphs)
+    type = "CUSTOM"
+    prefix = "DzM"
+    show = "DazCustomMorphs"
 
-
-    def draw(self, context):
-        from .morphing import getRigFromObject
-        rig = getRigFromObject(context.object)
-        scn = context.scene
-        if rig is None:
-            return
-        layout = self.layout
-
-        if rig.DazDriversDisabled:
-            layout.label(text = "Face drivers disabled")
-            layout.operator("daz.enable_drivers")
-            return
-
-        activateLayout(layout, rig, "CUSTOM", "")
-        keyLayout(layout, "CUSTOM", "")
-        row = layout.row()
+    def drawItems(self, scn, rig):
+        row = self.layout.row()
         row.operator("daz.toggle_all_cats", text="Open All Categories").useOpen=True
         row.operator("daz.toggle_all_cats", text="Close All Categories").useOpen=False
-        layout.prop(scn, "DazFilter")
+        self.layout.separator()
+        filter = scn.DazFilter.lower()
 
         for cat in rig.DazMorphCats:
-            layout.separator()
-            box = layout.box()
+            self.layout.separator()
+            box = self.layout.box()
             if not cat.active:
                 box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
                 continue
             box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
-            filter = scn.DazFilter.lower()
             for morph in cat.morphs:
                 if (morph.prop in rig.keys() and
                     filter in morph.name.lower()):
-                    row = splitLayout(box, 0.8)
-                    row.prop(rig, '["%s"]' % morph.prop, text=morph.name)
-                    showBool(row, rig, morph.prop)
-                    op = row.operator("daz.pin_prop", icon='UNPINNED')
-                    op.key = morph.prop
-                    op.type = "CUSTOM"
+                    if morph.name[0:3] == "DzM":
+                        text = morph.name[3:]
+                    else:
+                        text = morph.name
+                    self.displayProp(text, morph.prop, rig, box, scn)
 
 #------------------------------------------------------------------------
 #    Mhx Layers Panel
@@ -1427,7 +1411,6 @@ def initialize():
     bpy.types.PoseBone.DazLocProps = CollectionProperty(type = DazMorphGroup)
     bpy.types.PoseBone.DazRotProps = CollectionProperty(type = DazMorphGroup)
     bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = DazMorphGroup)
-    bpy.types.Object.DazHiddenProps = CollectionProperty(type = B.DazStringGroup)
 
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
     bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
