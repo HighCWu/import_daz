@@ -252,7 +252,7 @@ class ChannelAsset(Modifier):
 
 def stripPrefix(prop):
     lprop = prop.lower()
-    for prefix in ["ectrlv", "ectrl", "pctrl", "ctrl", "phm", "ephm", "pbm", "ppbm", "vsm", "pjcm", "jcm"]:
+    for prefix in ["ectrlv", "ectrl", "pctrl", "ctrl", "fhm", "phm", "ephm", "fbm", "pbm", "ppbm", "vsm", "pjcm", "jcm"]:
         n = len(prefix)
         if lprop[0:n] == prefix:
             return prop[n:]

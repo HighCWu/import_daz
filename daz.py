@@ -751,7 +751,6 @@ class DAZ_PT_Morphs:
         return (ob and getattr(ob, self.show) and ob.DazMesh)
 
     def draw(self, context):
-        from .morphing import theMorphNames, nameFromKey
         rig = context.object
         scn = context.scene
         if rig.type == 'MESH':
@@ -767,29 +766,18 @@ class DAZ_PT_Morphs:
             layout.operator("daz.enable_drivers")
             return
         
-        if not (rig.DazNewStyleExpressions or theMorphNames):
-            layout.operator("daz.update_morph_paths")
-            return
-
         activateLayout(layout, rig, self.type, self.prefix)
         keyLayout(layout, self.type, self.prefix)
         layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
         layout.separator()
 
-        if rig.DazNewStyleExpressions:
-            from .formula import inStringGroup
-            filter = scn.DazFilter.lower()
-            for key in sorted(rig.keys()):
-                if (key[0:3] == self.prefix and
-                    not inStringGroup(rig.DazHiddenProps, key) and
-                    filter in key[3:].lower()):
-                    self.displayProp(key[3:], key, rig, scn)
-        else:
-            names = theMorphNames[self.type]
-            for key in sorted(rig.keys()):
-                name = nameFromKey(key, names, rig)
-                if name:
-                    self.displayProp(name, key, rig, scn)
+        from .formula import inStringGroup
+        filter = scn.DazFilter.lower()
+        for key in sorted(rig.keys()):
+            if (key[0:3] == self.prefix and
+                not inStringGroup(rig.DazHiddenProps, key) and
+                filter in key[3:].lower()):
+                self.displayProp(key[3:], key, rig, scn)
 
 
     def displayProp(self, name, key, rig, scn):
@@ -1255,7 +1243,7 @@ def initialize():
     )
 
     bpy.types.Object.DazMakeupDrivers = BoolProperty(default = False)
-    bpy.types.Object.DazNewStyleExpressions = BoolProperty(default = False)
+    bpy.types.Object.DazNewStyleExpressions = BoolProperty(default = True)
 
     bpy.types.Armature.DazExtraFaceBones = BoolProperty(default = False)
     bpy.types.Armature.DazExtraDrivenBones = BoolProperty(default = False)

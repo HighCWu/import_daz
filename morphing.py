@@ -404,7 +404,7 @@ class LoadMorph(PropFormulas):
             asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits)
             skey,ob,sname = asset.rna
             if self.rig and self.usePropDrivers:
-                prop = propFromName(sname, self.type, self.prefix, self.rig)
+                prop = self.propFromName(sname)
                 skey.name = prop
                 min = skey.slider_min if theSettings.useDazPropLimits else None
                 max = skey.slider_max if theSettings.useDazPropLimits else None
@@ -520,14 +520,12 @@ class LoadMorph(PropFormulas):
         return missing
         
         
-def propFromName(key, type, prefix, rig):
-    if prefix:
-        names = theMorphNames[type]
-        name = nameFromKey(key, names, rig)
-        if name:
-            prop = prefix+name
-            return prop
-    return key
+    def propFromName(self, key):
+        from .modifier import stripPrefix
+        if self.prefix:
+            return self.prefix + stripPrefix(key)
+        else:
+            return key
 
 
 class LoadShapekey(LoadMorph):
@@ -695,7 +693,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.MultiF
     bl_options = {'UNDO'}
 
     type = "Shapes"
-    prefix = ""
+    prefix = "DzM"
     custom = "DazCustomMorphs"
 
     def draw(self, context):
@@ -1022,16 +1020,9 @@ def getRelevantMorphs(rig, type, prefix):
     if type == "CUSTOM":
         for cat in rig.DazMorphCats:
             morphs += cat.morphs
-    elif rig.DazNewStyleExpressions:
-        for key in rig.keys():
-            if key[0:3] == prefix:
-                morphs.append(key)
-    else:
-        names = theMorphNames[type]
-        for key in rig.keys():
-            name = nameFromKey(key, names, rig)
-            if name and isinstance(rig[key], float):
-                morphs.append(key)
+    for key in rig.keys():
+        if key[0:3] == prefix:
+            morphs.append(key)
     return morphs
 
 
@@ -1055,30 +1046,6 @@ def updateMorphs(rig, type, prefix, scn, frame, force):
     for key in keys:
         if getActivated(rig, key):
             autoKeyProp(rig, key, scn, frame, force)
-
-
-def nameFromKey(key, names, rig):
-    key = key.lower()
-    if rig.DazRig == "genesis8":
-        keyhd = key + "_hd"
-        if keyhd in names.keys():
-            return names[keyhd]
-        elif "e"+keyhd in names.keys():
-            return names["e"+keyhd]
-    if key in names.keys():
-        return names[key]
-    elif "e"+key in names.keys():
-        return names["e"+key]
-    else:
-        for end1,end2 in [("in-out", "out-in")]:
-            n = len(end1)
-            for prefix in ["e", ""]:
-                stem = prefix+key[:-n]
-                if key[-n:] == end1 and stem+end2 in names.keys():
-                    return names[stem+end2]
-                elif key[-n:] == end2 and stem+end1 in names.keys():
-                    return names[stem+end1]
-    return None
 
 
 class DAZ_OT_ClearMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
@@ -1127,18 +1094,10 @@ def addKeySet(rig, type, prefix, scn, frame):
             for morph in cat.morphs:
                 path = "[" + '"' + morph.prop + '"' + "]"
                 aks.paths.add(rig.id_data, path)
-    elif rig.DazNewStyleExpressions:
-        for key in rig.keys():
-            if key[0:3] == prefix:
-                path = "[" + '"' + key + '"' + "]"
-                aks.paths.add(rig.id_data, path)
-    else:
-        names = theMorphNames[type]
-        for key in rig.keys():
-            name = nameFromKey(key, names, rig)
-            if name and isinstance(rig[key], float):
-                path = "[" + '"' + key + '"' + "]"
-                aks.paths.add(rig.id_data, path)
+    for key in rig.keys():
+        if key[0:3] == prefix:
+            path = "[" + '"' + key + '"' + "]"
+            aks.paths.add(rig.id_data, path)
 
 
 class DAZ_OT_AddKeysets(DazOperator, B.TypePrefix, IsMeshArmature):
@@ -1168,16 +1127,9 @@ def keyMorphs(rig, type, prefix, scn, frame):
             for morph in cat.morphs:
                 if getActivated(rig, morph.prop):
                     keyProp(rig, morph.prop, frame)
-    elif rig.DazNewStyleExpressions:
-        for key in rig.keys():
-            if key[0:3] == prefix and getActivated(rig, key):
-                keyProp(rig, key, frame)
-    else:
-        names = theMorphNames[type]
-        for key in rig.keys():
-            name = nameFromKey(key, names, rig)
-            if name and isinstance(rig[key], float):
-                keyProp(rig, key, frame)
+    for key in rig.keys():
+        if key[0:3] == prefix and getActivated(rig, key):
+            keyProp(rig, key, frame)
 
 
 class DAZ_OT_KeyMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
@@ -1206,16 +1158,9 @@ def unkeyMorphs(rig, type, prefix, scn, frame):
             for morph in cat.morphs:
                 if getActivated(rig, morph.prop):
                     unkeyProp(rig, morph.prop, frame)
-    elif rig.DazNewStyleExpressions:
-        for key in rig.keys():
-            if key[0:3] == prefix and getActivated(rig, key):
-                unkeyProp(rig, key, frame)
-    else:
-        names = theMorphNames[type]
-        for key in rig.keys():
-            name = nameFromKey(key, names, rig)
-            if name and isinstance(rig[key], float):
-                unkeyProp(rig, key, frame)
+    for key in rig.keys():
+        if key[0:3] == prefix and getActivated(rig, key):
+            unkeyProp(rig, key, frame)
 
 
 class DAZ_OT_UnkeyMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
@@ -1605,12 +1550,6 @@ def loadMoho(context, filepath, offs):
         return
     setActiveObject(context, rig)
     bpy.ops.object.mode_set(mode='POSE')
-    if rig.DazNewStyleExpressions:
-        vprefix = "DzV"
-        prefix = "DzV"
-    else:
-        vprefix = getVisemesPrefix(rig)
-        prefix = ""
     auto = scn.tool_settings.use_keyframe_insert_auto
     scn.tool_settings.use_keyframe_insert_auto = True
     fp = safeOpen(filepath, "rU")
@@ -1622,13 +1561,13 @@ def loadMoho(context, filepath, offs):
             moho = words[1]
             frame = int(words[0]) + offs
             if words[1] == "rest":
-                clearMorphs(rig, "Visemes", prefix, scn, frame, True)
+                clearMorphs(rig, "Visemes", "DzV", scn, frame, True)
             else:
                 daz = Moho2Daz[moho]
-                key = vprefix + daz
+                key = "DzV" + daz
                 if key not in rig.keys():
                     raise DazError("Missing viseme: %s => %s" % (moho, daz))
-                pinProp(rig, scn, key, "Visemes", prefix, frame)
+                pinProp(rig, scn, key, "Visemes", "DzV", frame)
     fp.close()
     #setInterpolation(rig)
     updateScene(context)
