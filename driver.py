@@ -70,10 +70,6 @@ def getShapekeyDriver(skeys, sname):
     return getRnaDriver(skeys, 'key_blocks["%s"].value' % (sname), None)
 
 
-def getShapekeyBoneDriver(skeys, sname):
-    return getRnaDriver(skeys, 'key_blocks["%s"].value' % (sname), 'TRANSFORMS')
-
-
 def getShapekeyPropDriver(skeys, sname):
     return getRnaDriver(skeys, 'key_blocks["%s"].value' % (sname), 'SINGLE_PROP')
 

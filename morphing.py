@@ -1244,7 +1244,7 @@ def getCustomProps(ob):
 
 
 def updatePropLimits(rig, context):
-    from .driver import getShapekeyBoneDriver, setFloatProp
+    from .driver import setFloatProp
     scn = context.scene
     min = scn.DazPropMin
     max = scn.DazPropMax

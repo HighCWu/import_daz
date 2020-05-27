@@ -59,9 +59,14 @@ class MorphTransferer(Selector, B.TransferOptions):
 
 
     def transferMorphs(self, hum, clo, context):
-        from .driver import getShapekeyBoneDriver, getShapekeyPropDriver, copyDriver
+        from .driver import getShapekeyDriver, copyDriver
         from .asset import setDazPaths
 
+        if (hum.location != clo.location or
+            hum.rotation_euler != clo.rotation_euler or 
+            hum.scale != clo.scale):
+            msg = "Cannot transfer morphs between meshes       \nwith different object transformations."
+            raise DazError(msg)
         startProgress("Transfer morphs %s => %s" %(hum.name, clo.name))
         scn = context.scene
         setDazPaths(scn)
@@ -82,10 +87,7 @@ class MorphTransferer(Selector, B.TransferOptions):
             hskey = hskeys.key_blocks[sname]
 
             if self.useDriver:
-                if self.useBoneDriver:
-                    fcu = getShapekeyBoneDriver(hskeys, sname)
-                elif self.usePropDriver:
-                    fcu = getShapekeyPropDriver(hskeys, sname)
+                fcu = getShapekeyDriver(hskeys, sname)
             else:
                 fcu = None
 
@@ -206,7 +208,8 @@ class MorphTransferer(Selector, B.TransferOptions):
         hverts = [v.index for v in hum.data.vertices if (hskey.data[v.index].co - v.co).length > eps]
         for j in range(3):
             xclo = [v.co[j] for v in clo.data.vertices]
-            xkey = [hskey.data[vn].co[j] for vn in hverts]
+            # xkey = [hskey.data[vn].co[j] for vn in hverts]
+            xkey = [hum.data.vertices[vn].co[j] for vn in hverts]
             if xclo and xkey:
                 minclo = min(xclo)
                 maxclo = max(xclo)
