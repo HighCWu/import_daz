@@ -50,8 +50,12 @@ def safeOpen(filepath, rw, dirMustExist=False, fileMustExist=False, mustOpen=Fal
                    "%s          " % filepath)
             raise DazError(msg)
 
+    if rw == "w":
+        encoding="utf_8"
+    else:
+        encoding="utf_8_sig"
     try:
-        fp = open(filepath, rw, encoding="utf-8")
+        fp = open(filepath, rw, encoding=encoding)
     except FileNotFoundError:
         fp = None
 

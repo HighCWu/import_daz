@@ -44,7 +44,7 @@ def loadJson(filepath, mustOpen=False):
     trigger=(2,3)  
     if bytes:
         try:
-            string = bytes.decode("utf-8-sig")
+            string = bytes.decode("utf_8_sig")
             struct = json.loads(string)
             msg = None
         except json.decoder.JSONDecodeError as err:
@@ -55,7 +55,7 @@ def loadJson(filepath, mustOpen=False):
             trigger=(1,2)
     else:
         from .fileutils import safeOpen
-        fp = safeOpen(filepath, "rU", mustOpen=mustOpen)
+        fp = safeOpen(filepath, "r", mustOpen=mustOpen)
         if fp:
             try:
                 struct = json.load(fp)
@@ -80,7 +80,7 @@ def saveJson(struct, filepath, binary=False):
     else:
         import codecs
         string = encodeJsonData(struct, "")
-        with codecs.open(filepath, "w", encoding="utf-8") as fp:
+        with codecs.open(filepath, "w", encoding="utf_8") as fp:
             fp.write(string)
             fp.write("\n")
 

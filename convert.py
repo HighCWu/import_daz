@@ -123,7 +123,7 @@ def loadRestPoseEntry(character, table, folder):
     if not os.path.exists(filepath):
         raise DazError("File %s    \n does not exist" % filepath)
     else:
-        with safeOpen(filepath, "rU") as fp:
+        with safeOpen(filepath, "r") as fp:
             data = json.load(fp)
     table[character] = data
 
@@ -389,7 +389,7 @@ def getConverterEntry(cname):
         folder = os.path.join(os.path.dirname(__file__), "data", "converters")
         filepath = os.path.join(folder, cname + ".json")
         if os.path.exists(filepath):
-            with safeOpen(filepath, "rU") as fp:
+            with safeOpen(filepath, "r") as fp:
                 conv = Converters[cname] = json.load(fp)
             return conv
     return {}

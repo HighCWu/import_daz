@@ -131,7 +131,7 @@ def handleDazError(context, warning=False, dump=False):
 
     filepath = getErrorPath()
     try:
-        fp = open(filepath, "w", encoding="utf-8")
+        fp = open(filepath, "w", encoding="utf_8")
     except:
         print("Could not write to %s" % filepath)
         return

@@ -1556,7 +1556,7 @@ def loadMoho(context, filepath, offs):
     bpy.ops.object.mode_set(mode='POSE')
     auto = scn.tool_settings.use_keyframe_insert_auto
     scn.tool_settings.use_keyframe_insert_auto = True
-    fp = safeOpen(filepath, "rU")
+    fp = safeOpen(filepath, "r")
     for line in fp:
         words= line.split()
         if len(words) < 2:
