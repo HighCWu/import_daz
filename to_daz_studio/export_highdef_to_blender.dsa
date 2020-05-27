@@ -17,7 +17,6 @@ function exportHighdefToBlender()
         return;
     }
     
-	// fp = new DzFile( filepath );
     fp = new DzGZFile( filepath );
     debug( fp.baseName() );
     fp.open( fp.WriteOnly );
@@ -146,6 +145,7 @@ function doMesh (fp, obj, start, node, str1, str2)
     fp.writeLine("        \"subd level\": " + level + ",");
     writeVertices(geom, geom, "hd ");
     fp.writeLine("        ],");
+    writeNormals(geom, "hd ");
     writeUVs(geom, "hd ");
     writeFaces(geom, "hd ");
 
@@ -160,7 +160,9 @@ function doMesh (fp, obj, start, node, str1, str2)
     if (mesh == null)
         return false;
 
+    writeMaterials(shape);
     writeUVs(mesh, "");
+    writeNormals(mesh, "");
     writeFaces(mesh, "");
     writeVertices(mesh, geom, "")    
     fp.writeLine(str1)
@@ -169,6 +171,21 @@ function doMesh (fp, obj, start, node, str1, str2)
     return true;
 }
 
+function writeMaterials(shape)
+{
+    var nm = shape.getNumMaterials();
+    fp.writeLine("        \"num materials\": " + nm + ",");
+    fp.writeLine("        \"materials\": [" );
+
+    var c = ","
+    for (var i = 0; i < nm; i++)
+    {
+        var mat = shape.getMaterial(i);
+        if (i == nm-1) c = "";
+        fp.writeLine("            \"" + mat.name + "\"" + c);
+    }    
+    fp.writeLine("        ],");
+}
     
 function writeVertices(mesh, geom, hd)
 {    
@@ -202,7 +219,23 @@ function writeUVs(geom, hd)
     {
         var uv = uvs.getPnt2Vec(i);
         if (i == nuv-1) c = "";
-        fp.writeLine("            [" + uv.x + ", " + uv.y + "]" + c)
+        fp.writeLine("            [" + uv.x + ", " + uv.y + "]" + c);
+    }    
+    fp.writeLine("        ],");
+}
+
+function writeNormals(geom, hd)
+{    
+    var nn = geom.getNumNormals();
+    
+    fp.writeLine("        \"num " + hd + "normals\": " + nn + ",");
+    fp.writeLine("        \"" + hd + "normals\": [" );    
+    var c = ","
+    for (var i = 0; i < nn; i++)
+    {
+        var n = geom.getNormal(i);
+        if (i == nn-1) c = "";
+        fp.writeLine("            [" + n.x + ", " + n.y + ", " + n.z + "]" + c)
     }    
     fp.writeLine("        ],");
 }
