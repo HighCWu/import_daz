@@ -63,18 +63,23 @@ class CyclesMaterial(Material):
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
             if not theSettings.autoMaterials:
-                if ((self.refractive and theSettings.handleRefractive == 'EEVEE') or
-                    (not self.refractive and theSettings.handleOpaque == 'EEVEE')):
-                    self.tree = PbrTree(self)
-                    self.eevee = True
-                elif ((self.refractive and theSettings.handleRefractive in ['PRINCIPLED', 'GUESS']) or
-                      (not self.refractive and theSettings.handleOpaque == 'PRINCIPLED')):
-                    self.tree = PbrTree(self)
+                if self.refractive:
+                    if theSettings.handleRefractive in ['PRINCIPLED', 'GUESS']:
+                        self.tree = PbrTree(self)
+                    else:
+                        self.tree = CyclesTree(self)
                 else:
-                    self.tree = CyclesTree(self)
+                    if theSettings.handleOpaque == 'PRINCIPLED':
+                        self.tree = PbrTree(self)
+                    else:
+                        self.tree = CyclesTree(self)
             elif theSettings.renderMethod == 'BLENDER_EEVEE':
                 self.tree = PbrTree(self)
+                self.translucent = False
                 self.eevee = True
+                theSettings.handleOpaque = 'PRINCIPLED'
+                theSettings.handleRefractive = 'PRINCIPLED'
+                theSettings.handleVolumetric = "SSS"
             elif (self.dualLobeWeight or
                   (self.thinWalled and self.translucent)):
                 self.tree = CyclesTree(self)                
@@ -97,8 +102,7 @@ class CyclesMaterial(Material):
     def postbuild(self, context):
         geo = self.geometry
         scn = context.scene
-        if ((self.geosockets or self.hideMaterial)
-            and geo and geo.rna):
+        if (self.geosockets and geo and geo.rna):
             me = geo.rna
             mnum = 0
             for mn,mat in enumerate(me.materials):
@@ -109,46 +113,6 @@ class CyclesMaterial(Material):
             nodes = list(geo.nodes.values())
             if self.geosockets:
                 self.correctArea(nodes, me, mnum)
-            if self.hideMaterial:
-                self.hideVerts(nodes, me, mnum)
-
-
-    def hideVerts(self, nodes, me, mnum):
-        ob = nodes[0].rna
-        hname = "HiddenEevee"
-        if hname in ob.vertex_groups.keys():
-            vgrp = ob.vertex_groups[hname]
-        else:
-            vgrp = ob.vertex_groups.new(name=hname)
-
-        nverts = len(ob.data.vertices)
-        hide = dict([(vn,False) for vn in range(nverts)])
-        for f in me.polygons:
-            if f.material_index == mnum:
-                for vn in f.vertices:
-                    hide[vn] = True
-        for f in me.polygons:
-            if f.material_index != mnum:
-                for vn in f.vertices:
-                    hide[vn] = False
-        for vn in range(nverts):
-            if hide[vn]:
-                vgrp.add([vn], 1.0, 'REPLACE')
-
-        for node in nodes:
-            ob = node.rna
-            exists = False
-            for mod in ob.modifiers:
-                if mod.type == 'MASK' and mod.name == hname:
-                    exists = True
-                    break
-            if not exists:
-                mod = ob.modifiers.new(hname, 'MASK')
-                mod.vertex_group = hname
-                mod.invert_vertex_group = True
-                value = (self.scene.render.engine != 'CYCLES')
-                setattr(mod, "show_viewport", value)
-                setattr(mod, "show_render", value)
 
 
     def correctArea(self, nodes, me, mnum):
@@ -183,12 +147,6 @@ class CyclesMaterial(Material):
                 mat.transparent_shadow_method = 'HASHED'
             else:
                 mat.shadow_method = 'HASHED'
-            if False and bpy.app.version >= (2,80,0):
-                mname = mat.name.split("-")[0].lower()
-                if mname in ["cornea", "eyemoisture"]:
-                    self.hideMaterial = True
-                else:
-                    self.hideMaterial = (self.thinWalled and tex is None and value > 0.999)
 
 #-------------------------------------------------------------
 #   Cycles node tree
@@ -828,7 +786,8 @@ class CyclesTree:
 
 
     def buildEeveeGlass(self):
-        if theSettings.handleRefractive != 'EEVEE':
+        return False
+        if not self.material.eevee:
             return False
         mat = self.material
         if (not mat.refractive or
@@ -972,7 +931,6 @@ class CyclesTree:
 
     def buildVolume(self):
         if (self.material.thinWalled or 
-            self.material.eevee or
             theSettings.handleVolumetric != "VOLUMETRIC"):
             return
 

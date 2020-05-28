@@ -74,6 +74,7 @@ class PbrTree(CyclesTree):
             self.pbr.inputs["Specular"].default_value = 0
             self.removeLink(self.pbr, "Specular")
         if self.material.refractive:
+            theSettings.usedFeatures["Transparent"] = True
             if theSettings.handleRefractive == 'GUESS':
                 self.guessGlass()
             else:

@@ -233,7 +233,6 @@ class DazOptions:
     handleOpaque = EnumProperty(
         items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
                  ('PRINCIPLED', "Principled", "Node setup with principled node"),
-                 ('EEVEE', "Eevee", "Simple opaque material that works with Eevee"),
                  ],
         name = "Opaque Materials",
         description = "Default method used for opaque materials.\nIgnored by some materials.",
@@ -243,7 +242,6 @@ class DazOptions:
         items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
                  ('PRINCIPLED', "Principled", "Node setup with principled node"),
                  ('GUESS', "Guess", "Guess material properties, suitable for eyes. Turn on caustics."),
-                 ('EEVEE', "Eevee", "Simple transparent material that works with Eevee"),
                  ],
         name = "Refractive Materials",
         description = "Default method used for refractive materials.\nIgnored by some materials.",

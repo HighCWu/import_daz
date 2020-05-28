@@ -82,7 +82,6 @@ class Material(Asset, Channels):
         self.refractive = False
         self.thinGlass = False
         self.shareGlossy = False
-        self.hideMaterial = False
         self.metallic = False
         self.dualLobeWeight = 0
         self.translucent = False
@@ -127,8 +126,7 @@ class Material(Asset, Channels):
         self.shareGlossy = self.getValue(["Share Glossy Inputs"], False)
         self.metallic = (self.getValue(["Metallic Weight"], 0) > 0.5)
         self.dualLobeWeight = self.getValue(["Dual Lobe Specular Weight"], 0)
-        self.translucent = (self.getValue("getChannelTranslucencyWeight", 0) > 0.01 and
-                            theSettings.handleOpaque != 'EEVEE')
+        self.translucent = (self.getValue("getChannelTranslucencyWeight", 0) > 0.01)
 
 
     def setExtra(self, struct):
@@ -1353,6 +1351,25 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, B.MultiFile, B.ResizeOptio
 #----------------------------------------------------------
 
 def checkRenderSettings(context):
+    minSettingsCycles = {
+        "Bounces" : [("max_bounces", 8)],
+        "Diffuse" : [("diffuse_bounces", 1)],
+        "Glossy" : [("glossy_bounces", 4)],
+        "Transparent" : [("transparent_max_bounces", 16),
+                         ("transmission_bounces", 8),
+                         ("caustics_refractive", True)],
+        "Volume" : [("volume_bounces", 4)],
+    }
+
+    minSettingsEevee = {
+        "Bounces" : [],
+        "Diffuse" : [],
+        "Glossy" : [],
+        "Transparent" : [("use_ssr", True),
+                         ("use_ssr_refraction", True)],
+        "Volume" : [],
+    }
+
     scn = context.scene
     if scn.DazHandleRenderSettings == "IGNORE":
         return
@@ -1360,19 +1377,13 @@ def checkRenderSettings(context):
         return
     elif scn.render.engine == "CYCLES":    
         settings = scn.cycles
+        minSettings = minSettingsCycles
+    elif scn.render.engine == "BLENDER_EEVEE":    
+        settings = scn.eevee
+        minSettings = minSettingsEevee
     else:
         return
         
-    minSettings = {
-        "Bounces" : [("max_bounces", 8)],
-        "Diffuse" : [("diffuse_bounces", 4)],
-        "Glossy" : [("glossy_bounces", 1)],
-        "Transparent" : [("transparent_max_bounces", 8),
-                         ("transmission_bounces", 2),
-                         ("caustics_refractive", True),
-                         ("caustics_reflective", True)],
-        "Volume" : [("volume_bounces", 2)],
-    }
     ok = True
     print("Render Settings:")
     for key,used in theSettings.usedFeatures.items():
