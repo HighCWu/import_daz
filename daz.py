@@ -586,6 +586,7 @@ class DAZ_PT_Settings(bpy.types.Panel):
             box.prop(scn, "DazUseDisplacement")
             box.prop(scn, "DazUseEmission")
             box.prop(scn, "DazUseReflection")
+            box.prop(scn, "DazArnoldSSS")            
             if bpy.app.version < (2,80,0):
                 box.separator()
                 box.prop(scn, "DazDiffuseShader")
@@ -1359,6 +1360,11 @@ def initialize():
         name = "Reflection",
         description = "Use reflection maps. Affects internal renderer only",
         default = True)
+
+    bpy.types.Scene.DazArnoldSSS = BoolProperty(
+        name = "Arnold SSS",
+        description = "Use Arnold defaults for subsurface scattering. RGB = (1.0, 0.35, 0.1)",
+        default = False)
 
     bpy.types.Scene.DazDiffuseRoughness = FloatProperty(
         name = "Diffuse Roughness",

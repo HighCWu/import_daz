@@ -740,14 +740,21 @@ class CyclesTree:
                 self.linkColor(self.diffuseTex, sss, color, "Color")
             else:
                 sss.inputs["Color"].default_value[0:3] = Vector(color)
-            radius = self.getValue("getChannelSSSRadius", 1.0) * theSettings.scale
-            sss.inputs["Radius"].default_value = (radius,radius,radius)
+            rad,tex = self.getSSSRadius(scn)
+            self.linkColor(tex, sss, rad, "Radius")            
             scale = self.getValue("getChannelSSSScale", 1.0)
-            sss.inputs["Scale"].default_value = scale * 0.1 * theSettings.scale
+            sss.inputs["Scale"].default_value = scale * theSettings.scale
             self.linkNormal(sss)
             fac = clamp(wt/(1+wt))
             self.mixWithActive(wt, wttex, sss)
             theSettings.usedFeatures["Transparent"] = True
+
+
+    def getSSSRadius(self, scn):
+        if scn.DazArnoldSSS:
+            return Vector((1.0, 0.35, 0.1))*0.1, None
+        else:
+            return self.getColorTex("getChannelSSSRadius", "NONE", WHITE)
 
 #-------------------------------------------------------------
 #   Transparency

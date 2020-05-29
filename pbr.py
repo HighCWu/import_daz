@@ -140,7 +140,7 @@ class PbrTree(CyclesTree):
                 tex = self.diffuseTex
             self.linkColor(tex, self.pbr, color, "Subsurface Color")
 
-            rad,tex = self.getColorTex("getChannelSSSRadius", "NONE", WHITE)
+            rad,tex = self.getSSSRadius(scn)
             rad *= theSettings.scale
             self.linkColor(tex, self.pbr, rad, "Subsurface Radius")
 
