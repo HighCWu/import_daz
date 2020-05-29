@@ -230,7 +230,7 @@ class DazOptions:
         description = "Use best shaders for material, independent of the settings below",
         default = True)
 
-    handleOpaque : EnumProperty(
+    methodOpaque : EnumProperty(
         items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
                  ('PRINCIPLED', "Principled", "Node setup with principled node"),
                  ],
@@ -238,7 +238,7 @@ class DazOptions:
         description = "Default method used for opaque materials.\nIgnored by some materials.",
         default = 'BSDF')
 
-    handleRefractive : EnumProperty(
+    methodRefractive : EnumProperty(
         items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
                  ('PRINCIPLED', "Principled", "Node setup with principled node"),
                  ('GUESS', "Guess", "Guess material properties, suitable for eyes. Turn on caustics."),
@@ -247,7 +247,7 @@ class DazOptions:
         description = "Default method used for refractive materials.\nIgnored by some materials.",
         default = 'GUESS')
 
-    handleVolumetric : EnumProperty(
+    methodVolumetric : EnumProperty(
         items = [('VOLUMETRIC', "Volumetric", "Volumetric (Iray)"),
                  ('TRANSLUCENCY', "Translucency Only", "Translucency only"),
                  ('SSS', "SSS", "Subsurface scattering"),

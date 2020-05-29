@@ -64,12 +64,12 @@ class CyclesMaterial(Material):
         if bpy.app.version >= (2, 78, 0):
             if not theSettings.autoMaterials:
                 if self.refractive:
-                    if theSettings.handleRefractive in ['PRINCIPLED', 'GUESS']:
+                    if theSettings.methodRefractive in ['PRINCIPLED', 'GUESS']:
                         self.tree = PbrTree(self)
                     else:
                         self.tree = CyclesTree(self)
                 else:
-                    if theSettings.handleOpaque == 'PRINCIPLED':
+                    if theSettings.methodOpaque == 'PRINCIPLED':
                         self.tree = PbrTree(self)
                     else:
                         self.tree = CyclesTree(self)
@@ -77,20 +77,20 @@ class CyclesMaterial(Material):
                 self.tree = PbrTree(self)
                 self.translucent = False
                 self.eevee = True
-                theSettings.handleOpaque = 'PRINCIPLED'
-                theSettings.handleRefractive = 'PRINCIPLED'
-                theSettings.handleVolumetric = "SSS"
+                theSettings.methodOpaque = 'PRINCIPLED'
+                theSettings.methodRefractive = 'PRINCIPLED'
+                theSettings.methodVolumetric = "SSS"
             elif (self.dualLobeWeight or
                   (self.thinWalled and self.translucent)):
                 self.tree = CyclesTree(self)                
             elif self.metallic:
                 self.tree = PbrTree(self)
             elif self.refractive:
-                if theSettings.handleRefractive in ['PRINCIPLED', 'GUESS']:
+                if theSettings.methodRefractive in ['PRINCIPLED', 'GUESS']:
                     self.tree = PbrTree(self)
                 else:
                     self.tree = CyclesTree(self)
-            elif theSettings.handleOpaque == 'PRINCIPLED':
+            elif theSettings.methodOpaque == 'PRINCIPLED':
                 self.tree = PbrTree(self)
             else:
                 self.tree = CyclesTree(self)
@@ -270,8 +270,6 @@ class CyclesTree:
     def build(self, context):
         scn = context.scene
         self.makeTree()
-        if self.buildEeveeGlass():
-            return
         self.buildVolume()
         self.buildLayer(context)
         for shname,shmat,uv in self.material.shells:
@@ -290,7 +288,7 @@ class CyclesTree:
         scn = context.scene
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
-        if theSettings.handleVolumetric == "SSS":
+        if theSettings.methodVolumetric == "SSS":
             self.buildSubsurface(scn)
         elif (self.material.thinWalled or
             self.volume or
@@ -703,7 +701,7 @@ class CyclesTree:
     def buildTranslucency(self, scn):
         if (self.material.refractive or
             not self.material.translucent or
-            theSettings.handleVolumetric == "SSS"):
+            theSettings.methodVolumetric == "SSS"):
             return
         mat = self.material.rna
         color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
@@ -783,34 +781,6 @@ class CyclesTree:
         if tex:
             self.links.new(tex.outputs[0], node.inputs[slot])
         return value,tex
-
-
-    def buildEeveeGlass(self):
-        return False
-        if not self.material.eevee:
-            return False
-        mat = self.material
-        if (not mat.refractive or
-            (mat.shader == 'IRAY' and not mat.thinWalled)):
-            return False
-        strength,imgfile,channel = self.getRefraction()
-        if strength > 0 or imgfile:
-            self.material.alphaBlend(1-strength, imgfile)
-            fresnel = self.addNode(3, "ShaderNodeFresnel")
-            ior,iortex = self.getFresnelIOR()
-            fresnel.inputs["IOR"].default_value = ior
-            transp = self.addNode(3, "ShaderNodeBsdfTransparent")
-            glossy = self.addNode(3, "ShaderNodeBsdfGlossy")
-            glossy.inputs["Color"].default_value[0:3] = WHITE
-            glossy.inputs["Roughness"].default_value = 0.05
-            alpha = 0.05
-            self.active = self.addMixShader(4, alpha, channel, None, fresnel, transp, glossy)
-            self.buildOutput()
-            self.prune()
-            theSettings.usedFeatures["Transparent"] = True
-            return True
-        else:
-            return False
 
 
     def getRefraction(self):
@@ -931,7 +901,7 @@ class CyclesTree:
 
     def buildVolume(self):
         if (self.material.thinWalled or 
-            theSettings.handleVolumetric != "VOLUMETRIC"):
+            theSettings.methodVolumetric != "VOLUMETRIC"):
             return
 
         transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)

@@ -75,7 +75,7 @@ class PbrTree(CyclesTree):
             self.removeLink(self.pbr, "Specular")
         if self.material.refractive:
             theSettings.usedFeatures["Transparent"] = True
-            if theSettings.handleRefractive == 'GUESS':
+            if theSettings.methodRefractive == 'GUESS':
                 self.guessGlass()
             else:
                 self.buildRefraction()
@@ -131,7 +131,7 @@ class PbrTree(CyclesTree):
         # Subsurface scattering
         unlikely = (self.material.thinWalled or self.material.translucent)
         if (self.material.sssActive(scn) and
-            (theSettings.handleVolumetric == "SSS" or not unlikely)):
+            (theSettings.methodVolumetric == "SSS" or not unlikely)):
             wt,tex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
             self.linkScalar(tex, self.pbr, wt, "Subsurface")
             

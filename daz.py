@@ -68,9 +68,9 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         layout.prop(self, "brightenEyes")
         layout.separator()
         layout.prop(self, "useAutoMaterials")
-        layout.prop(self, "handleOpaque")
-        layout.prop(self, "handleRefractive")
-        layout.prop(self, "handleVolumetric")
+        layout.prop(self, "methodOpaque")
+        layout.prop(self, "methodRefractive")
+        layout.prop(self, "methodVolumetric")
         layout.prop(self, "useEnvironment")
 
 #-------------------------------------------------------------

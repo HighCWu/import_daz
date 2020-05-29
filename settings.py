@@ -49,9 +49,9 @@ class Settings:
         self.useDazPropLimits = True
         self.useDazPropDefault = True
         self.autoMaterials = True
-        self.handleOpaque = 'BSDF'
-        self.handleVolumetric = 'VOLUMETRIC'
-        self.handleRefractive = 'BSDF'
+        self.methodOpaque = 'BSDF'
+        self.methodVolumetric = 'VOLUMETRIC'
+        self.methodRefractive = 'BSDF'
         self.brightenEyes = 1.0
         self.useEnvironment = False
         self.renderMethod = 'PBR'
@@ -165,9 +165,9 @@ class Settings:
         self.renderMethod = scn.render.engine
 
         self.autoMaterials = btn.useAutoMaterials
-        self.handleOpaque = btn.handleOpaque
-        self.handleVolumetric = btn.handleVolumetric
-        self.handleRefractive = btn.handleRefractive
+        self.methodOpaque = btn.methodOpaque
+        self.methodVolumetric = btn.methodVolumetric
+        self.methodRefractive = btn.methodRefractive
         self.useEnvironment = btn.useEnvironment
 
         self.useStrict = True
