@@ -234,7 +234,7 @@ class DazOptions:
         items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
                  ('PRINCIPLED', "Principled", "Node setup with principled node"),
                  ],
-        name = "Opaque Materials",
+        name = "Opaque Method",
         description = "Default method used for opaque materials.\nIgnored by some materials.",
         default = 'BSDF')
 
@@ -243,7 +243,7 @@ class DazOptions:
                  ('PRINCIPLED', "Principled", "Node setup with principled node"),
                  ('GUESS', "Guess", "Guess material properties, suitable for eyes. Turn on caustics."),
                  ],
-        name = "Refractive Materials",
+        name = "Refractive Method",
         description = "Default method used for refractive materials.\nIgnored by some materials.",
         default = 'GUESS')
 
@@ -252,7 +252,7 @@ class DazOptions:
                  ('TRANSLUCENCY', "Translucency Only", "Translucency only"),
                  ('SSS', "SSS", "Subsurface scattering"),
                  ],
-        name = "Volumetric Options",
+        name = "Volumetric Method",
         description = "Method for handle volumetric (Iray skin)",
         default = 'VOLUMETRIC')
         
