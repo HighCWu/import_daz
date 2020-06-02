@@ -29,7 +29,7 @@
 import bpy
 import math
 from mathutils import Vector, Color
-from .material import Material, WHITE, GREY, BLACK
+from .material import Material, WHITE, GREY, BLACK, isWhite, isBlack
 from .settings import theSettings
 from .error import *
 from .utils import *
@@ -274,11 +274,13 @@ class PbrTree(CyclesTree):
 
 
     def guessGlass(self):
+        from .cycles import compProd
         ior = self.getValue("getChannelIOR", 1.45)
         self.pbr.inputs["Transmission"].default_value = 1
         self.removeLink(self.pbr, "Transmission")
         strength = self.getValue("getChannelSpecularStrength", 1.0)
         self.material.alphaBlend(1-strength, None)
+        color,tex,roughness,roughtex = self.getRefractionColor()
 
         if self.material.thinWalled:
             # principled transmission = 1
@@ -292,8 +294,6 @@ class PbrTree(CyclesTree):
             self.setPbrSlot("Specular", 1.0)
             self.setPbrSlot("IOR", 1.0)
             self.setPbrSlot("Roughness", 0.0)
-
-            color,tex = self.getColorTex("getChannelSpecularColor", "COLOR", WHITE)
         else:
             # principled transmission = 1
             # principled metallic = 0
@@ -304,16 +304,19 @@ class PbrTree(CyclesTree):
             self.setPbrSlot("Metallic", 0)
             self.setPbrSlot("Specular", 0.5)
             self.setPbrSlot("IOR", ior)
+            
+            transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
+            dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
+            if not (isBlack(transcolor) or dist == 0.0):
+                tex = self.multiplyTexs(tex, transtex)
+                color = compProd(color, transcolor)
 
-            color,tex,roughness,roughtex = self.getRefractionColor()
             self.setRoughness(self.pbr, "Roughness", roughness, roughtex, square=False)
             if not roughtex:
                 self.removeLink(self.pbr, "Roughness")
 
-        self.pbr.inputs["Base Color"].default_value[0:3] = color
-        if tex:
-            self.links.new(tex.outputs[0], self.pbr.inputs["Base Color"])
-        else:
+        self.linkColor(tex, self.pbr, color, slot="Base Color")
+        if not tex:
             self.removeLink(self.pbr, "Base Color")
 
         self.pbr.inputs["Subsurface"].default_value = 0
