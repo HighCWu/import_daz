@@ -289,13 +289,13 @@ class CyclesTree:
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
         if theSettings.methodVolumetric == "SSS":
-            self.buildSubsurface(scn)
+            self.buildSSS(scn)
         elif (self.material.thinWalled or
             self.volume or
             self.material.translucent):
             self.buildTranslucency(scn)
         else:
-            self.buildSubsurface(scn)
+            self.buildSSS(scn)
         self.buildOverlay()
         if self.material.dualLobeWeight == 1:
             self.buildDualLobe()
@@ -727,27 +727,38 @@ class CyclesTree:
 #   Subsurface
 #-------------------------------------------------------------
 
-    def buildSubsurface(self, scn):
-        if not self.material.sssActive(scn):
+    def buildSSS(self, scn):
+        if (self.material.thinWalled or
+            theSettings.methodVolumetric != "SSS"):
             return
-        wt,wttex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
-        if wt > 0:
-            sss = self.addNode(5, "ShaderNodeSubsurfaceScattering")
-            color,tex = self.getColorTex("getChannelSSSColor", "COLOR", WHITE)
-            if tex:
-                self.linkColor(tex, sss, color, "Color")
-            elif self.diffuseTex:
-                self.linkColor(self.diffuseTex, sss, color, "Color")
-            else:
-                sss.inputs["Color"].default_value[0:3] = Vector(color)
-            rad,tex = self.getSSSRadius(scn)
-            self.linkColor(tex, sss, rad, "Radius")            
-            scale = self.getValue("getChannelSSSScale", 1.0)
-            sss.inputs["Scale"].default_value = scale * theSettings.scale
-            self.linkNormal(sss)
-            fac = clamp(wt/(1+wt))
-            self.mixWithActive(wt, wttex, sss)
-            theSettings.usedFeatures["Transparent"] = True
+        wt = self.getValue("getChannelTranslucencyWeight", 0)
+        dist = self.getValue(["Scattering Measurement Distance"], 0.0) * theSettings.scale
+        if wt == 0 or dist == 0:
+            return            
+        color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
+        if isBlack(color):
+            return
+        wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
+        sssmode = self.getValue(["SSS Mode"], 0)
+        # [ "Mono", "Chromatic" ]
+        if sssmode == 1:
+            sss,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", WHITE)
+            radius = sss * dist
+        elif sssmode == 0:
+            sss,ssstex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
+            r = sss * dist
+            radius = (r,r,r)
+        self.linkSSS(color, coltex, wt, wttex, radius, ssstex)
+        theSettings.usedFeatures["Transparent"] = True
+
+
+    def linkSSS(self, color, coltex, wt, wttex, radius, ssstex):     
+        node = self.addNode(5, "ShaderNodeSubsurfaceScattering")
+        self.linkColor(coltex, node, color, "Color")
+        node.inputs["Scale"].default_value = 1
+        self.linkColor(ssstex, node, radius, "Radius")            
+        self.linkNormal(node)
+        self.mixWithActive(wt, wttex, node)
 
 
     def getSSSRadius(self, scn):

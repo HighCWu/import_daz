@@ -128,21 +128,8 @@ class PbrTree(CyclesTree):
         self.linkScalar(tex, self.pbr, metallicity, "Metallic")
         useTex = not (self.material.shader == 'IRAY' and self.material.basemix == 0 and metallicity > 0.5)
 
-        # Subsurface scattering
-        unlikely = (self.material.thinWalled or self.material.translucent)
-        if (self.material.sssActive(scn) and
-            (theSettings.methodVolumetric == "SSS" or not unlikely)):
-            wt,tex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
-            self.linkScalar(tex, self.pbr, wt, "Subsurface")
-            
-            color,tex = self.getColorTex("getChannelSSSColor", "COLOR", WHITE)
-            if tex is None:
-                tex = self.diffuseTex
-            self.linkColor(tex, self.pbr, color, "Subsurface Color")
-
-            rad,tex = self.getSSSRadius(scn)
-            rad *= theSettings.scale
-            self.linkColor(tex, self.pbr, rad, "Subsurface Radius")
+        # Subsurface scattering        
+        self.buildSSS(scn)
 
         # Anisotropic
         anisotropy,tex = self.getColorTex(["Glossy Anisotropy"], "NONE", 0)
@@ -222,6 +209,12 @@ class PbrTree(CyclesTree):
         if self.material.isActive("Backscattering"):
             sheen,tex = self.getColorTex(["Backscattering Weight"], "NONE", 0.0)
             self.linkScalar(tex, self.pbr, sheen, "Sheen")
+
+
+    def linkSSS(self, color, coltex, wt, wttex, radius, ssstex): 
+        self.linkColor(coltex, self.pbr, color, "Subsurface Color")
+        self.linkScalar(wttex, self.pbr, wt, "Subsurface")            
+        self.linkColor(ssstex, self.pbr, radius, "Subsurface Radius")            
 
 
     def setPbrSlot(self, slot, value):
