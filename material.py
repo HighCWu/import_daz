@@ -262,12 +262,6 @@ class Material(Asset, Channels):
         else:
             return self.getChannel(["Glossy Roughness"]), True
 
-    def getChannelTranslucencyColor(self):
-        return self.getChannel(["Translucency Color"])
-
-    def getChannelTranslucencyWeight(self):
-        return self.getChannel(["translucency", "Translucency Weight"])
-
     def getChannelOpacity(self):
         return self.getChannel(["opacity", "Opacity Strength"])
 
@@ -298,16 +292,22 @@ class Material(Asset, Channels):
     def getChannelIOR(self):
         return self.getChannel(["ior", "Refraction Index"])
 
+    def getChannelTranslucencyColor(self):
+        return self.getChannel(["Translucency Color"])
+
+    def getChannelTranslucencyWeight(self):
+        return self.getChannel(["translucency", "Translucency Weight"])
+
     def getChannelSSSColor(self):
-        return self.getChannel(["Translucency Color", "SSS Color", "Subsurface Color", "SSS Reflectance Tint"])
+        return self.getChannel(["SSS Color", "Subsurface Color"])
 
     def getChannelSSSAmount(self):
-        return self.getChannel(["translucency", "Translucency Weight", "SSS Amount", "Subsurface Strength"])
+        return self.getChannel(["SSS Amount", "Subsurface Strength"])
 
     def getChannelSSSScale(self):
         return self.getChannel(["SSS Scale", "Subsurface Scale"])
 
-    def getChannelSSSRadius(self):
+    def getChannelScatterDist(self):
         return self.getChannel(["Scattering Measurement Distance"])
 
     def getChannelSSSIOR(self):

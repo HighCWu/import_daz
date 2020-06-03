@@ -66,6 +66,8 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         layout.prop(self, "skinColor")
         layout.prop(self, "clothesColor")
         layout.prop(self, "brightenEyes")
+        if scn.render.engine  in ['BLENDER_RENDER', 'BLENDER_GAME']:
+            return
         layout.separator()
         layout.prop(self, "useAutoMaterials")
         layout.prop(self, "methodOpaque")

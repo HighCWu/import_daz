@@ -732,20 +732,24 @@ class CyclesTree:
             theSettings.methodVolumetric != "SSS"):
             return
         wt = self.getValue("getChannelTranslucencyWeight", 0)
-        dist = self.getValue(["Scattering Measurement Distance"], 0.0) * theSettings.scale
+        dist = self.getValue("getChannelScatterDist", 0.0) * theSettings.scale
         if wt == 0 or dist == 0:
             return            
-        color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
+        color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", BLACK)
         if isBlack(color):
             return
         wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         sssmode = self.getValue(["SSS Mode"], 0)
         # [ "Mono", "Chromatic" ]
         if sssmode == 1:
-            sss,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", WHITE)
+            sss,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK)
+            if isBlack(sss):
+                return
             radius = sss * dist
         elif sssmode == 0:
             sss,ssstex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
+            if sss == 0:
+                return
             r = sss * dist
             radius = (r,r,r)
         self.linkSSS(color, coltex, wt, wttex, radius, ssstex)
@@ -765,7 +769,7 @@ class CyclesTree:
         if scn.DazArnoldSSS:
             return Vector((1.0, 0.35, 0.1))*0.1, None
         else:
-            return self.getColorTex("getChannelSSSRadius", "NONE", WHITE)
+            return self.getColorTex("getChannelScatterDist", "NONE", WHITE)
 
 #-------------------------------------------------------------
 #   Transparency
@@ -926,7 +930,7 @@ class CyclesTree:
         sssmode = self.getValue(["SSS Mode"], 0)
         # [ "Mono", "Chromatic" ]
         if sssmode == 1:
-            ssscolor,ssstex = self.getColorTex(["SSS Color", "Subsurface Color"], "COLOR", BLACK)
+            ssscolor,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK)
             # https://bitbucket.org/Diffeomorphic/import-daz/issues/27/better-volumes-minor-but-important-fixes
             switch = (transcolor[1] == 0 or ssscolor[1] == 0)
         else:
@@ -945,7 +949,7 @@ class CyclesTree:
 
         scatter = None
         sss = self.getValue(["SSS Amount"], 0.0)
-        dist = self.getValue(["Scattering Measurement Distance"], 0.0)
+        dist = self.getValue("getChannelScatterDist", 0.0)
         if not (sssmode == 0 or isBlack(ssscolor) or isWhite(ssscolor) or dist == 0.0):
             if switch:
                 color,tex = ssscolor,ssstex

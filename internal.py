@@ -29,7 +29,7 @@
 import bpy
 import math
 from mathutils import Vector
-from .material import Material, WHITE, BLACK, setImageColorSpace
+from .material import Material, WHITE, BLACK, setImageColorSpace, isBlack, isWhite
 from .settings import theSettings
 
 class InternalMaterial(Material):
@@ -187,26 +187,37 @@ class InternalMaterial(Material):
 
 
     def buildSSS(self, mat):
-        channel = self.getChannelSSSAmount()
-        amount =  self.getChannelValue(channel, 0)
-        if amount == 0:
+        if self.thinWalled:
             return
+        wt = self.getValue("getChannelTranslucencyWeight", 0)
+        dist = self.getValue("getChannelScatterDist", 0.0) * 10
+        if wt == 0 or dist == 0:
+            return            
+        color = self.getValue("getChannelTranslucencyColor", BLACK)
+        if isBlack(color):
+            return
+        wt = self.getValue("getChannelTranslucencyWeight", 0)
+        sssmode = self.getValue(["SSS Mode"], 0)
+        # [ "Mono", "Chromatic" ]
+        if sssmode == 1:
+            sss = self.getValue("getChannelSSSColor", BLACK)
+            if isBlack(sss):
+                return
+            radius = sss * dist
+        elif sssmode == 0:
+            sss = self.getValue("getChannelSSSAmount", 0)
+            if sss == 0:
+                return
+            r = sss * dist
+            radius = (r,r,r)
+        theSettings.usedFeatures["Transparent"] = True
         sss = mat.subsurface_scattering
         sss.use = True
-        sss.scale = 0.1 * theSettings.scale
-        sss.color_factor = amount
-        channel = self.getChannelSSSColor()
-        if channel:
-            sss.color = self.getChannelColor(channel, WHITE)
-        channel = self.getChannelSSSScale()
-        if channel:
-            sss.scale = 0.1 * theSettings.scale * self.getChannelValue(channel, 1.0)
-        channel = self.getChannelSSSIOR()
-        if channel:
-            sss.ior = self.getChannelValue(channel, 1.3)
-        #channel = self.getChannelSSSRadius()
-        #if channel:
-        #    sss.radius = 0.1 * theSettings.scale * self.getChannelValue(channel, WHITE)
+        sss.color_factor = wt
+        sss.color = color
+        sss.scale = 0.1 * theSettings.scale 
+        sss.ior = self.getValue("getChannelSSSIOR", 1.3)
+        sss.radius = radius
 
 
     def buildTranslucency(self, mat):
