@@ -142,7 +142,7 @@ class InternalMaterial(Material):
 
 
     def buildSpecular(self, mat):
-        channel = self.getChannelSpecularColor()
+        channel = self.getChannelGlossyColor()
         mat.specular_color = self.getChannelColor(channel, WHITE)
         if channel:
             mtexs = self.buildMtexs(channel, "Non-Color", mat.specular_color)
@@ -151,7 +151,7 @@ class InternalMaterial(Material):
                     mtex.use_map_color_spec = True
                     mtex.specular_color_factor = 1
 
-        channel = self.getChannelSpecularStrength()
+        channel = self.getChannelGlossyLayeredWeight()
         mat.specular_intensity = self.getChannelValue(channel, 0)
         if channel:
             mtexs = self.buildMtexs(channel, "Non-Color")

@@ -548,8 +548,8 @@ class CyclesTree:
             return self.glossyColor, self.glossyTex
 
         #   glossy bsdf color = iray glossy color * iray glossy layered weight
-        strength,strtex = self.getColorTex("getChannelSpecularStrength", "NONE", 1.0, False)
-        color,tex = self.getColorTex("getChannelSpecularColor", "COLOR", WHITE, False)
+        strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
+        color,tex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, False)
         color = strength*color
         if tex and strtex:
             tex = self.multiplyTexs(tex, strtex)
@@ -786,7 +786,7 @@ class CyclesTree:
 
     def getRefractionColor(self):
         if self.material.shareGlossy:
-            color,tex = self.getColorTex("getChannelSpecularColor", "COLOR", WHITE)
+            color,tex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE)
             roughness, roughtex = self.getColorTex("getChannelGlossyRoughness", "NONE", 0, False, maxval=1)
         else:
             color,tex = self.getColorTex("getChannelRefractionColor", "COLOR", WHITE)

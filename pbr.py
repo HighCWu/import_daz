@@ -75,10 +75,7 @@ class PbrTree(CyclesTree):
             self.removeLink(self.pbr, "Specular")
         if self.material.refractive:
             theSettings.usedFeatures["Transparent"] = True
-            if theSettings.methodRefractive == 'GUESS':
-                self.guessGlass()
-            else:
-                self.buildRefraction()
+            self.buildRefraction()
         else:
             self.buildEmission(scn)
         return self.active        
@@ -145,12 +142,12 @@ class PbrTree(CyclesTree):
         self.addSlot(channel, self.pbr, "Roughness", roughness, value, invert)
 
         # Specular
-        strength,strtex = self.getColorTex("getChannelSpecularStrength", "NONE", 1.0, False)
+        strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
         if self.material.shader == 'IRAY':
             if self.material.basemix == 0:    # Metallic/Roughness
                 # principled specular = iray glossy reflectivity * iray glossy layered weight * iray glossy color / 0.8
                 refl,reftex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0.5, False, useTex)
-                color,coltex = self.getColorTex("getChannelSpecularColor", "COLOR", WHITE, True, useTex)
+                color,coltex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, True, useTex)
                 if reftex and coltex:
                     reftex = self.multiplyTexs(coltex, reftex)
                 elif coltex:
@@ -167,7 +164,7 @@ class PbrTree(CyclesTree):
                 value = factor * averageColor(color)
                 self.glossyColor, self.glossyTex = color, tex
         else:
-            color,coltex = self.getColorTex("getChannelSpecularColor", "COLOR", WHITE, True, useTex)
+            color,coltex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, True, useTex)
             tex = self.multiplyTexs(strtex, coltex)
             value = factor = strength * averageColor(color)
 
@@ -176,12 +173,6 @@ class PbrTree(CyclesTree):
             tex = self.multiplyScalarTex(clamp(factor), tex)
             if tex:
                 self.links.new(tex.outputs[0], self.pbr.inputs["Specular"])
-
-        if self.material.thinWalled:
-            self.pbr.inputs["IOR"].default_value = 1.0
-        else:
-            ior,tex = self.getColorTex("getChannelIOR", "NONE", 1.45)
-            self.linkScalar(tex, self.pbr, ior, "IOR")
 
         # Clearcoat
         top,toptex = self.getColorTex(["Top Coat Weight"], "NONE", 1.0, False)
@@ -222,31 +213,69 @@ class PbrTree(CyclesTree):
         self.removeLink(self.pbr, slot)
 
 
-    def buildRefraction(self):
+    def getRefractionStrength(self):        
         channel = self.material.getChannelRefractionStrength()
-        value = 0
         if channel:
-            value,tex = self.getColorTex("getChannelRefractionStrength", "NONE", 0.0)
-            self.linkScalar(tex, self.pbr, value, "Transmission")
+            return self.getColorTex("getChannelRefractionStrength", "NONE", 0.0)
+        channel = self.material.getChannelOpacity()
+        if channel:
+            value,tex = self.getColorTex("getChannelOpacity", "NONE", 1.0)
+            invtex = self.fixTex(tex, value, True)
+            return 1-value, invtex
+        return 1,None
+
+
+    def buildRefraction(self):
+        from .cycles import compProd
+        value,tex = self.getRefractionStrength()
+        self.linkScalar(tex, self.pbr, value, "Transmission")            
+        color,coltex,roughness,roughtex = self.getRefractionColor()
+        ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
+        strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
+
+        if self.material.thinWalled:
+            # if thin walled is on then there's no volume
+            # and we use the clearcoat channel for reflections
+            #  principled ior = 1
+            #  principled roughness = 0
+            #  principled clearcoat = (iray refraction index - 1) * 10 * iray glossy layered weight
+            #  principled clearcoat roughness = 0
+
+            self.setPbrSlot("IOR", 1.0)
+            self.setPbrSlot("Roughness", 0.0)
+            clearcoat = (ior-1)*10*strength
+            self.linkScalar(strtex, self.pbr, clearcoat, "Clearcoat")            
+            self.setPbrSlot("Clearcoat Roughness", 0)
         else:
-            channel = self.material.getChannelOpacity()
-            if channel:
-                value,tex = self.getColorTex("getChannelOpacity", "NONE", 1.0)
-                tex = self.fixTex(tex, value, True)
-                value = 1-value
-                self.linkScalar(tex, self.pbr, value, "Transmission")
-        if value > 0:
-            self.material.alphaBlend(1-value, tex)
-            color,tex,_roughness,_roughtex = self.getRefractionColor()
-            self.pbr.inputs["Base Color"].default_value[0:3] = color
-            if tex:
-                self.links.new(tex.outputs[0], self.pbr.inputs["Base Color"])
-            else:
-                self.removeLink(self.pbr, "Base Color")
+            # principled transmission = 1
+            # principled metallic = 0
+            # principled specular = 0.5
+            # principled ior = iray refraction index
+            # principled roughness = iray glossy roughness
+
+            self.linkScalar(tex, self.pbr, ior, "IOR")
+            self.setPbrSlot("Metallic", 0)
             self.setPbrSlot("Specular", 0.5)
-            self.setPbrSlot("Subsurface", 0.0)
-            self.removeLink(self.pbr, "Subsurface Color")
-            self.tintSpecular()
+            self.setPbrSlot("IOR", ior)
+            
+            transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
+            dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
+            if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
+                coltex = self.multiplyTexs(coltex, transtex)
+                color = compProd(color, transcolor)
+
+            self.setRoughness(self.pbr, "Roughness", roughness, roughtex, square=False)
+            if not roughtex:
+                self.removeLink(self.pbr, "Roughness")
+
+        self.linkColor(coltex, self.pbr, color, slot="Base Color")
+        if not coltex:
+            self.removeLink(self.pbr, "Base Color")
+
+        self.pbr.inputs["Subsurface"].default_value = 0
+        self.removeLink(self.pbr, "Subsurface")
+        self.removeLink(self.pbr, "Subsurface Color")
+        self.tintSpecular()
 
 
     def tintSpecular(self):
@@ -264,58 +293,6 @@ class PbrTree(CyclesTree):
         else:
             roughness = value
         return channel,invert,value,roughness
-
-
-    def guessGlass(self):
-        from .cycles import compProd
-        ior = self.getValue("getChannelIOR", 1.45)
-        self.pbr.inputs["Transmission"].default_value = 1
-        self.removeLink(self.pbr, "Transmission")
-        strength = self.getValue("getChannelSpecularStrength", 1.0)
-        self.material.alphaBlend(1-strength, None)
-        color,tex,roughness,roughtex = self.getRefractionColor()
-
-        if self.material.thinWalled:
-            # principled transmission = 1
-            # principled base color = iray glossy color (possibly with texture)
-            # principled metallic = (iray refraction index - 1) / 3 * glossy layered weight
-            # principled specular = 1
-            # principled ior = 1
-            # principled roughness = 0
-
-            self.setPbrSlot("Metallic", (ior-1)/3*strength)
-            self.setPbrSlot("Specular", 1.0)
-            self.setPbrSlot("IOR", 1.0)
-            self.setPbrSlot("Roughness", 0.0)
-        else:
-            # principled transmission = 1
-            # principled metallic = 0
-            # principled specular = 0.5
-            # principled ior = iray refraction index
-            # principled roughness = iray glossy roughness
-
-            self.setPbrSlot("Metallic", 0)
-            self.setPbrSlot("Specular", 0.5)
-            self.setPbrSlot("IOR", ior)
-            
-            transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
-            dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
-            if not (isBlack(transcolor) or dist == 0.0):
-                tex = self.multiplyTexs(tex, transtex)
-                color = compProd(color, transcolor)
-
-            self.setRoughness(self.pbr, "Roughness", roughness, roughtex, square=False)
-            if not roughtex:
-                self.removeLink(self.pbr, "Roughness")
-
-        self.linkColor(tex, self.pbr, color, slot="Base Color")
-        if not tex:
-            self.removeLink(self.pbr, "Base Color")
-
-        self.pbr.inputs["Subsurface"].default_value = 0
-        self.removeLink(self.pbr, "Subsurface")
-        self.removeLink(self.pbr, "Subsurface Color")
-        self.tintSpecular()
 
 
     def setPBRValue(self, slot, value, default, maxval=0):

@@ -241,11 +241,10 @@ class DazOptions:
     methodRefractive : EnumProperty(
         items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
                  ('PRINCIPLED', "Principled", "Node setup with principled node"),
-                 ('GUESS', "Guess", "Guess material properties, suitable for eyes. Turn on caustics."),
                  ],
         name = "Refractive Method",
         description = "Default method used for refractive materials.\nIgnored by some materials.",
-        default = 'GUESS')
+        default = 'PRINCIPLED')
 
     methodVolumetric : EnumProperty(
         items = [('VOLUMETRIC', "Volumetric", "Volumetric (Iray)"),

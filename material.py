@@ -240,10 +240,10 @@ class Material(Asset, Channels):
     def getChannelDiffuseRoughness(self):
         return self.getChannel(["Diffuse Roughness"])
 
-    def getChannelSpecularColor(self):
+    def getChannelGlossyColor(self):
         return self.getTexChannel(["Glossy Color", "specular", "Specular Color"])
 
-    def getChannelSpecularStrength(self):
+    def getChannelGlossyLayeredWeight(self):
         return self.getTexChannel(["Glossy Layered Weight", "Glossy Weight", "specular_strength", "Specular Strength"])
 
     def getChannelGlossyReflectivity(self):
