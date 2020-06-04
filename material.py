@@ -163,7 +163,7 @@ class Material(Asset, Channels):
             shmat.shader = self.shader
         if self.thinGlass:
             mat.DazThinGlass = True
-        
+
 
 
     def postbuild(self, context):
@@ -708,7 +708,7 @@ class Texture:
         elif colorSpace == "COLOR" and self.images["NONE"]:
             img = self.images["NONE"].copy()
         elif colorSpace == "NONE" and self.images["COLOR"]:
-            img = self.images["COLOR"].copy()            
+            img = self.images["COLOR"].copy()
         elif self.map.url:
             img = self.map.build()
         elif self.map.image:
@@ -723,7 +723,7 @@ class Texture:
             else:
                 img.colorspace_settings.name = colorSpace
         if img:
-            self.images[colorSpace] = img             
+            self.images[colorSpace] = img
         self.built[colorSpace] = True
         return img
 
@@ -869,7 +869,7 @@ def saveLocalTextureCopies(context):
         img.filepath = bpy.path.relpath(trg)
 
 
-def saveNodesInTree(tree, images):                    
+def saveNodesInTree(tree, images):
     for node in tree.nodes.values():
         if node.type == 'TEX_IMAGE':
             images.append(node.image)
@@ -927,14 +927,14 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
         for ob in getSceneObjects(context):
            if getSelected(ob):
                self.mergeMaterials(ob)
-    
-    
-    def keepMaterial(self, mn, mat, ob):            
+
+
+    def keepMaterial(self, mn, mat, ob):
         for mat2 in self.matlist:
             if self.areSameMaterial(mat, mat2):
                 self.reindex[mn] = self.assoc[mat2.name]
                 return False
-        return True                
+        return True
 
 
     def areSameMaterial(self, mat1, mat2):
@@ -1135,13 +1135,13 @@ class DAZ_OT_CopyMaterials(DazOperator, IsMesh):
         if mismatch:
             msg = "Material number mismatch.\n" + mismatch
             raise DazError(msg, warning=True)
-            
-        
+
+
 def copyMaterials(src, trg, mismatch=""):
     ntrgmats = len(trg.data.materials)
     nsrcmats = len(src.data.materials)
     if ntrgmats != nsrcmats:
-        mismatch += ("\n%s (%d materials) != %s (%d materials)" 
+        mismatch += ("\n%s (%d materials) != %s (%d materials)"
                       % (src.name, nsrcmats, trg.name, ntrgmats))
     mnums = [(f,f.material_index) for f in trg.data.polygons]
     trglist = list(trg.data.materials)
@@ -1153,7 +1153,7 @@ def copyMaterials(src, trg, mismatch=""):
     for f,mn in mnums:
         f.material_index = mn
     return mismatch
-    
+
 # ---------------------------------------------------------------------
 #   Resize textures
 # ---------------------------------------------------------------------
@@ -1194,7 +1194,7 @@ class ChangeResolution:
     def getBasePath(self, path):
         fname,ext = os.path.splitext(path)
         if fname[-5:] == "-res0":
-            return fname[:-5] + ext        
+            return fname[:-5] + ext
         elif fname[-5:-1] == "-res" and fname[-1].isdigit():
             return fname[:-5] + ext
         else:
@@ -1248,7 +1248,7 @@ class ChangeResolution:
             return img
 
 
-    def getNewPath(self, path):        
+    def getNewPath(self, path):
         base,ext = os.path.splitext(path)
         if self.steps == 0:
             newbase = base
@@ -1282,8 +1282,8 @@ class DAZ_OT_ChangeResolution(DazOperator, B.ResizeOptions, ChangeResolution):
         self.overwrite = False
         self.getAllTextures(context)
         self.getFileNames(self.paths.keys())
-        self.replaceTextures(context)                
-    
+        self.replaceTextures(context)
+
 
     def getAllTextures(self, context):
         self.paths = {}
@@ -1330,21 +1330,21 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, B.MultiFile, B.ResizeOptio
         from .globvars import theImageExtensions
         paths = getMultiFiles(self, theImageExtensions)
         self.getFileNames(paths)
-        
+
         program = os.path.join(os.path.dirname(__file__), "standalone/resize.py")
         if self.overwrite:
             overwrite = "-o"
         else:
             overwrite = ""
-        for path in paths:                    
+        for path in paths:
             _,newpath = self.getNewPath(self.getBasePath(path))
             if not os.path.exists(newpath):
                 cmd = ('python "%s" "%s" %d %s' % (program, path, self.steps, overwrite))
                 os.system(cmd)
             else:
                 print("Skip", os.path.basename(newpath))
-        
-        self.replaceTextures(context)                
+
+        self.replaceTextures(context)
 
 #----------------------------------------------------------
 #   Render settings
@@ -1375,21 +1375,21 @@ def checkRenderSettings(context):
         return
     if scn.render.engine in ["BLENDER_RENDER", "BLENDER_GAME"]:
         return
-    elif scn.render.engine == "CYCLES":    
+    elif scn.render.engine == "CYCLES":
         settings = scn.cycles
         minSettings = minSettingsCycles
-    elif scn.render.engine == "BLENDER_EEVEE":    
+    elif scn.render.engine == "BLENDER_EEVEE":
         settings = scn.eevee
         minSettings = minSettingsEevee
     else:
         return
-        
+
     ok = True
     print("Render Settings:")
     for key,used in theSettings.usedFeatures.items():
         if used:
             for attr,minval in minSettings[key]:
-                val = getattr(settings, attr)                
+                val = getattr(settings, attr)
                 if isinstance(val, bool) and val != minval:
                     ok = False
                     print("  %s: %d != %d" % (attr, val, minval))
@@ -1425,7 +1425,7 @@ classes = [
 def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
-        
+
     bpy.types.Object.DazLocalTextures = BoolProperty(default = False)
 
     bpy.types.Scene.DazHandleRenderSettings = EnumProperty(
@@ -1434,8 +1434,8 @@ def initialize():
                  ("UPDATE", "Update", "Update insufficient render settings")],
         name = "Render Settings",
         default = "UPDATE"
-    )                 
-    
+    )
+
 
 def uninitialize():
     for cls in classes:

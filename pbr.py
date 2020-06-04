@@ -65,7 +65,7 @@ class PbrTree(CyclesTree):
             self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Clearcoat Normal"])
         if (self.material.thinWalled or
             self.material.translucent):
-            self.buildTranslucency(scn)        
+            self.buildTranslucency(scn)
         self.buildOverlay()
         if self.material.dualLobeWeight > 0:
             self.buildDualLobe()
@@ -78,9 +78,9 @@ class PbrTree(CyclesTree):
             self.buildRefraction()
         else:
             self.buildEmission(scn)
-        return self.active        
-    
-    
+        return self.active
+
+
     def buildCutout(self):
         if "Alpha" in self.pbr.inputs.keys():
             alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1)
@@ -125,17 +125,17 @@ class PbrTree(CyclesTree):
         self.linkScalar(tex, self.pbr, metallicity, "Metallic")
         useTex = not (self.material.shader == 'IRAY' and self.material.basemix == 0 and metallicity > 0.5)
 
-        # Subsurface scattering        
+        # Subsurface scattering
         self.buildSSS(scn)
 
         # Anisotropic
         anisotropy,tex = self.getColorTex(["Glossy Anisotropy"], "NONE", 0)
-        if anisotropy > 0:  
+        if anisotropy > 0:
             self.linkScalar(tex, self.pbr, anisotropy, "Anisotropic")
             anirot,tex = self.getColorTex(["Glossy Anisotropy Rotations"], "NONE", 0)
             value = 0.75 - anirot
             self.linkScalar(tex, self.pbr, value, "Anisotropic Rotation")
-            
+
         # Roughness
         channel,invert,value,roughness = self.getGlossyRoughness()
         roughness *= (1 + anisotropy)
@@ -202,10 +202,10 @@ class PbrTree(CyclesTree):
             self.linkScalar(tex, self.pbr, sheen, "Sheen")
 
 
-    def linkSSS(self, color, coltex, wt, wttex, radius, ssstex): 
+    def linkSSS(self, color, coltex, wt, wttex, radius, ssstex):
         self.linkColor(coltex, self.pbr, color, "Subsurface Color")
-        self.linkScalar(wttex, self.pbr, wt, "Subsurface")            
-        self.linkColor(ssstex, self.pbr, radius, "Subsurface Radius")            
+        self.linkScalar(wttex, self.pbr, wt, "Subsurface")
+        self.linkColor(ssstex, self.pbr, radius, "Subsurface Radius")
 
 
     def setPbrSlot(self, slot, value):
@@ -213,7 +213,7 @@ class PbrTree(CyclesTree):
         self.removeLink(self.pbr, slot)
 
 
-    def getRefractionStrength(self):        
+    def getRefractionStrength(self):
         channel = self.material.getChannelRefractionStrength()
         if channel:
             return self.getColorTex("getChannelRefractionStrength", "NONE", 0.0)
@@ -228,7 +228,8 @@ class PbrTree(CyclesTree):
     def buildRefraction(self):
         from .cycles import compProd
         value,tex = self.getRefractionStrength()
-        self.linkScalar(tex, self.pbr, value, "Transmission")            
+        self.linkScalar(tex, self.pbr, value, "Transmission")
+        self.material.alphaBlend(1-value, tex)
         color,coltex,roughness,roughtex = self.getRefractionColor()
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
         strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
@@ -244,7 +245,7 @@ class PbrTree(CyclesTree):
             self.setPbrSlot("IOR", 1.0)
             self.setPbrSlot("Roughness", 0.0)
             clearcoat = (ior-1)*10*strength
-            self.linkScalar(strtex, self.pbr, clearcoat, "Clearcoat")            
+            self.linkScalar(strtex, self.pbr, clearcoat, "Clearcoat")
             self.setPbrSlot("Clearcoat Roughness", 0)
         else:
             # principled transmission = 1
@@ -257,7 +258,7 @@ class PbrTree(CyclesTree):
             self.setPbrSlot("Metallic", 0)
             self.setPbrSlot("Specular", 0.5)
             self.setPbrSlot("IOR", ior)
-            
+
             transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
             dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
             if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
