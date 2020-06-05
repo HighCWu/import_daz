@@ -41,7 +41,7 @@ from .node import Node, Instance
 #   Geometry
 #-------------------------------------------------------------
 
-class GeoNode(Node):    
+class GeoNode(Node):
     def __init__(self, figure, geo, ref):
         from .asset import normalizeRef
         if figure.caller:
@@ -82,7 +82,7 @@ class GeoNode(Node):
 
 
     def buildObject(self, context, inst, center):
-        Node.buildObject(self, context, inst, center)            
+        Node.buildObject(self, context, inst, center)
         ob = self.rna
         self.storeRna(ob)
         scn = context.scene
@@ -116,9 +116,9 @@ class GeoNode(Node):
                 f.use_smooth = True
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
             copyMaterials(ob, hdob)
-            self.arrangeObject(hdob, inst, context, cscale, center) 
-            self.hdobject = hdob            
-            
+            self.arrangeObject(hdob, inst, context, cscale, center)
+            self.hdobject = hdob
+
         if (self.type == "subdivision_surface" and
               (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
             mod = ob.modifiers.new(name='SUBSURF', type='SUBSURF')
@@ -128,13 +128,13 @@ class GeoNode(Node):
 
     def stripNegatives(self, faces):
         return [(f if f[-1] >= 0 else f[:-1]) for f in faces]
-        
+
 
     def getHDMatch(self):
         hdfaces = self.highdef[3]
         return [f[6] for f in hdfaces]
-    
-    
+
+
     def postbuild(self, context, inst):
         if self.rna:
             pruneUvMaps(self.rna)
@@ -191,7 +191,7 @@ class Geometry(Asset, Channels):
         Asset.__init__(self, fileref)
         Channels.__init__(self)
         self.instances = self.nodes = {}
-        
+
         self.verts = []
         self.faces = []
         self.materials = {}
@@ -274,7 +274,7 @@ class Geometry(Asset, Channels):
     def parse(self, struct):
         Asset.parse(self, struct)
         Channels.parse(self, struct)
-            
+
         vdata = struct["vertices"]["values"]
         fdata = struct["polylist"]["values"]
         if theSettings.zup:
@@ -308,7 +308,7 @@ class Geometry(Asset, Channels):
                 self.root_region = data
             elif key == "type":
                 self.type = data
-        
+
         if self.uv_set is None:
             self.uv_set = self.default_uv_set
 
@@ -317,9 +317,9 @@ class Geometry(Asset, Channels):
             if not asset.isSourced:
                 self.copySource(asset)
                 asset.isSourced = True
-        
+
         return self
-    
+
 
     def update(self, struct):
         Asset.update(self, struct)
@@ -330,14 +330,14 @@ class Geometry(Asset, Channels):
             self.SubDRenderLevel = getCurrentValue(self.channels["SubDRenderLevel"], 0)
         if self.SubDIALevel == 0 and "current_subdivision_level" in struct.keys():
             self.SubDIALevel = struct["current_subdivision_level"]
-                    
-                    
-    def setExtra(self, extra):       
+
+
+    def setExtra(self, extra):
         if extra["type"] == "studio/geometry/shell":
             self.shell = extra
         elif extra["type"] == "material_selection_sets":
             self.material_selection_sets = extra["material_selection_sets"]
-        
+
 
     def preprocess(self, context, inst):
         scn = context.scene
@@ -353,7 +353,7 @@ class Geometry(Asset, Channels):
 
             if scn.DazMergeShells:
                 if inst.node2:
-                    missing = self.addUvSets(inst.node2, inst.name, inst.material_group_vis)                    
+                    missing = self.addUvSets(inst.node2, inst.name, inst.material_group_vis)
                     for mname,shmat,uv,idx in missing:
                         msg = ("Missing shell material\n" +
                                "Material: %s\n" % mname +
@@ -363,10 +363,10 @@ class Geometry(Asset, Channels):
                                "Node2: %s\n" % inst.node2.name +
                                "UV set: %s\n" % uv)
                         reportError(msg, trigger=(2,4))
-                    
-        
-    def addUvSets(self, inst, shname, vis): 
-        missing = []        
+
+
+    def addUvSets(self, inst, shname, vis):
+        missing = []
         for key,child in inst.children.items():
             if child.shell:
                 geonode = inst.geometries[0]
@@ -378,7 +378,7 @@ class Geometry(Asset, Channels):
                     else:
                         print("Warning: no visibility for material %s" % mname)
                     shmat = shellmats[0]
-                    if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or 
+                    if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or
                         shmat.getValue("getChannelOpacity", 1) == 0):
                         continue
                     uv = self.uvs[mname]
@@ -392,12 +392,12 @@ class Geometry(Asset, Channels):
                     else:
                         missing.append((mname,shmat,uv,geonode.index))
 
-        self.matused = []                           
+        self.matused = []
         for mname,shmat,uv,idx in missing:
             for key,child in inst.children.items():
                 self.addMoreUvSets(child, mname, shname, shmat, uv, idx, "")
         return [miss for miss in missing if miss[0] not in self.matused]
-        
+
 
     def addMoreUvSets(self, inst, mname, shname, shmat, uv, idx, pprefix):
         from .figure import FigureInstance
@@ -424,7 +424,7 @@ class Geometry(Asset, Channels):
                 self.addMoreUvSets(child, mname, shname, shmat, uv, idx, prefix)
 
 
-    def addNewUvset(self, uv, geo):                                        
+    def addNewUvset(self, uv, geo):
         if uv not in geo.uv_sets.keys():
             uvset = self.findUvSet(uv, geo.id)
             if uvset:
@@ -451,7 +451,7 @@ class Geometry(Asset, Channels):
 
     def buildData(self, context, node, inst, cscale, center):
         if (self.rna and not theSettings.singleUser):
-            return        
+            return
 
         name = self.getName()
         me = self.rna = bpy.data.meshes.new(name)
@@ -519,7 +519,7 @@ class Geometry(Asset, Channels):
                 for mname in struct["materials"]:
                     item = items.names.add()
                     item.name = mname
-            
+
 
     def buildUVSet(self, context, uv_set, me, setActive):
         if uv_set:
@@ -677,7 +677,7 @@ def pruneUvMaps(ob):
     for uvtex,used in uvtexs.values():
         if not used:
             getUvTextures(ob.data).remove(uvtex)
-            
+
 
 class DAZ_OT_PruneUvMaps(DazOperator, IsMesh):
     bl_idname = "daz.prune_uv_maps"
@@ -689,8 +689,8 @@ class DAZ_OT_PruneUvMaps(DazOperator, IsMesh):
         bpy.ops.object.mode_set(mode='OBJECT')
         for ob in getSceneObjects(context):
             if ob.type == 'MESH' and getSelected(ob):
-                pruneUvMaps(ob)                    
-        
+                pruneUvMaps(ob)
+
 #-------------------------------------------------------------
 #   Collaps UDims
 #-------------------------------------------------------------
@@ -732,7 +732,7 @@ def addUdimsToUVs(ob, restore, udim, vdim):
                 vshift = mat.DazVDim
             else:
                 ushift = udim - mat.DazUDim
-                vshift = vdim - mat.DazVDim            
+                vshift = vdim - mat.DazVDim
             for n in range(len(f.vertices)):
                 uvloop.data[m].uv[0] += ushift
                 uvloop.data[m].uv[1] += vshift
@@ -839,7 +839,7 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    from bpy.props import CollectionProperty, IntProperty    
+    from bpy.props import CollectionProperty, IntProperty
     bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = B.DazRigidityGroup)
     bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = B.DazPairGroup)
     bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)

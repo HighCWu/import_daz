@@ -799,7 +799,7 @@ def rigifyMeta(context):
     for pb in meta.pose.bones:
         if hasattr(pb, "rigify_parameters"):
             if hasattr (pb.rigify_parameters, "roll_alignment"):
-                pb.rigify_parameters.roll_alignment = "manual"            
+                pb.rigify_parameters.roll_alignment = "manual"
 
     try:
         bpy.ops.pose.rigify_generate()

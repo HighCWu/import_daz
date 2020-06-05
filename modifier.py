@@ -60,9 +60,9 @@ def parseModifierAsset(asset, struct):
         #asset = Modifier(asset.fileref)
         raise NotImplementedError("Modifier asset not implemented in file %s:\n  %s" %
             (asset.fileref, list(struct.keys())))
-        
-        
-def parseChannelAsset(asset, struct):        
+
+
+def parseChannelAsset(asset, struct):
     channel = struct["channel"]
     if channel["type"] == "alias":
         return asset.parseTypedAsset(struct, Alias)
@@ -137,7 +137,7 @@ class ExtraAsset(Modifier):
                         self.extras[etype][key] = value
                 else:
                     self.extras[etype] = extra
-                
+
 
     def build(self, context, inst):
         rig, ob = getRigMesh(inst)
@@ -164,7 +164,7 @@ def getRigMesh(inst):
         return None,ob
     else:
         return None,None
-        
+
 #-------------------------------------------------------------
 #   ChannelAsset
 #-------------------------------------------------------------
@@ -201,14 +201,14 @@ class ChannelAsset(Modifier):
             "current_value" in struct["channel"].keys()):
             self.value = struct["channel"]["current_value"]
 
-    
+
     def setupPropmap(self, props, prefix, rig):
         from .asset import normalizePath
         self.prefix = prefix
         self.rig = rig
         self.prop = normalizePath(self.id.rsplit("#",2)[-1])
         props.append(self.prop)
-        for prop in props:        
+        for prop in props:
             self.propmap[prop] = self.getExprProp(prop)
 
 
@@ -218,19 +218,19 @@ class ChannelAsset(Modifier):
         else:
             return prop
 
-        
+
     def getExprProp(self, prop):
         if prop in self.rig.data.bones.keys():
             return prop
-        prop0 = stripPrefix(prop)        
+        prop0 = stripPrefix(prop)
         for pfx in ["DzU", "DzV", "DzE", "DzF", "DzP"]:
             if pfx+prop0 in self.rig.keys():
-                return pfx+prop0        
+                return pfx+prop0
         return self.prefix+prop0
-        
+
 
     def initProp(self, prop):
-        from .driver import setFloatProp, setBoolProp    
+        from .driver import setFloatProp, setBoolProp
         if prop is None:
             prop = self.getProp(self.prop)
         if theSettings.useDazPropLimits:
@@ -257,7 +257,7 @@ def stripPrefix(prop):
         if lprop[0:n] == prefix:
             return prop[n:]
     return prop
-    
+
 
 class Alias(ChannelAsset):
 
@@ -324,12 +324,12 @@ class SkinBinding(Modifier):
         if False and geonode.hdobject:
             hdob = geonode.hdobject
             hdob.parent = ob.parent
-            self.makeArmatureModifier(context, hdob, rig)            
+            self.makeArmatureModifier(context, hdob, rig)
             vmatch = geonode.getHDMatch()
             self.copyVertexGroups(ob, hdob, vmatch)
-        
-        
-    def makeArmatureModifier(self, context, ob, rig):        
+
+
+    def makeArmatureModifier(self, context, ob, rig):
         mod = ob.modifiers.new(self.name, 'ARMATURE')
         mod.object = rig
         mod.use_deform_preserve_volume = True
@@ -352,7 +352,7 @@ class SkinBinding(Modifier):
                 hdvgrps[g.group].add([hdvn], g.weight, 'REPLACE')
 
 
-    def getGeoRig(self, context, inst, geoname):        
+    def getGeoRig(self, context, inst, geoname):
         from .geometry import GeoNode
         from .figure import FigureInstance
         if isinstance(inst, FigureInstance):

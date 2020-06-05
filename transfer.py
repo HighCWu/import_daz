@@ -63,7 +63,7 @@ class MorphTransferer(Selector, B.TransferOptions):
         from .asset import setDazPaths
 
         if (hum.location != clo.location or
-            hum.rotation_euler != clo.rotation_euler or 
+            hum.rotation_euler != clo.rotation_euler or
             hum.scale != clo.scale):
             msg = "Cannot transfer morphs between meshes       \nwith different object transformations."
             raise DazError(msg)
@@ -79,7 +79,7 @@ class MorphTransferer(Selector, B.TransferOptions):
         if hum.active_shape_key_index < 0:
             hum.active_shape_key_index = 0
         clo.active_shape_key_index = 0
-        
+
         nitems = len(scn.DazSelector)
         for idx,item in enumerate(self.getSelectedItems(scn)):
             showProgress(idx, nitems)
@@ -321,7 +321,7 @@ class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
 
     def getKeys(self, context):
         ob = context.object
-        return [(skey.name,skey.name,"All") 
+        return [(skey.name,skey.name,"All")
             for skey in ob.data.shape_keys.key_blocks[1:]
                 if skey.name[0:4].lower() not in ["pjcm", "jcm"]]
 
@@ -339,8 +339,8 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
 
     def getKeys(self, context):
         ob = context.object
-        return [(skey.name,skey.name[4:],"All") 
-            for skey in ob.data.shape_keys.key_blocks[1:] 
+        return [(skey.name,skey.name[4:],"All")
+            for skey in ob.data.shape_keys.key_blocks[1:]
                 if skey.name[0:4].lower() in ["pjcm", "jcm"]]
 
 #----------------------------------------------------------

@@ -32,7 +32,7 @@ def clearErrorMessage():
     global theMessage, theErrorLines
     theMessage = ""
     theErrorLines = []
-    
+
 clearErrorMessage()
 
 def getErrorMessage():
@@ -49,7 +49,7 @@ def setSilentMode(value):
     theSilentMode = value
 
 setSilentMode(False)
-    
+
 
 class ErrorOperator(bpy.types.Operator):
     bl_idname = "daz.error"
@@ -77,7 +77,7 @@ class ErrorOperator(bpy.types.Operator):
             self.layout.label(text=line)
 
 
-def invokeErrorMessage(value, warning=False):       
+def invokeErrorMessage(value, warning=False):
     global theMessage
     if warning:
         theMessage = "WARNING:\n" + value
@@ -160,10 +160,10 @@ def getMissingAssets():
     for ref in theSettings.missingAssets:
         string += ("  %s\n" % ref)
     return string
-        
-        
+
+
 def printTraceBack(context, fp):
-    global theInstances      
+    global theInstances
 
     import sys, traceback
     type,value,tb = sys.exc_info()
@@ -201,7 +201,7 @@ def printTraceBack(context, fp):
 
     string = getMissingAssets()
     fp.write(string)
-    
+
     fp.write("\nSETTINGS:\n")
     settings = []
     scn = bpy.context.scene
@@ -236,11 +236,11 @@ class DazOperator(bpy.types.Operator):
         except KeyboardInterrupt:
             global theMessage
             theMessage = "Keyboard interrupt"
-            bpy.ops.daz.error('INVOKE_DEFAULT')            
+            bpy.ops.daz.error('INVOKE_DEFAULT')
         finally:
             wm = bpy.context.window_manager
-            wm.progress_end()            
-        return{'FINISHED'}    
+            wm.progress_end()
+        return{'FINISHED'}
 
 class DazPropsOperator(DazOperator):
     def invoke(self, context, event):

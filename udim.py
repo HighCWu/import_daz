@@ -44,14 +44,14 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
 
     umats : CollectionProperty(type = DazUdimGroup)
     #active : EnumProperty(items=[], name="Active")
-    
+
     @classmethod
     def poll(self, context):
         ob = context.object
         return (ob and ob.DazLocalTextures and len(ob.data.materials) > 0)
 
 
-    def draw(self, context):            
+    def draw(self, context):
         self.layout.label(text="Materials To Merge")
         for umat in self.umats:
             self.layout.prop(umat, "bool", text=umat.name)
@@ -70,10 +70,10 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
             item.bool = self.isUdimMaterial(mat)
             if self.trgmat is None and mat.DazUDim == 0:
                 self.trgmat = mat
-            enums.append((mat.name,mat.name,mat.name))  
+            enums.append((mat.name,mat.name,mat.name))
         if self.trgmat is None:
             self.trgmat = ob.data.materials[0]
-        #self.active = EnumProperty(items=enums, name="Active")     
+        #self.active = EnumProperty(items=enums, name="Active")
         context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
@@ -106,7 +106,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
                     tile0 = True
                 else:
                     mnums.append(mn)
-                    
+
         if amat is None:
             raise DazError("No materials selected")
 
@@ -137,7 +137,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
                 print("  UDIM", udim, mname)
                 if udim != amat.DazUDim:
                     tile = img.tiles.new(tile_number=1001+udim, label=mname)
-            
+
 
         for f in ob.data.polygons:
             if f.material_index in mnums:
@@ -155,7 +155,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
             if node.type == "TEX_IMAGE":
                 channel = self.getChannel(node, mat.node_tree.links)
                 channels[channel] = node
-        return channels              
+        return channels
 
 
     def getChannel(self, node, links):
@@ -168,7 +168,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
                 else:
                     return link.to_node.type
         return None
-                            
+
 
     def getBaseName(self, string, udim):
         du = str(1001 + udim)
@@ -176,22 +176,22 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
             return string[:-4]
         else:
             return string
-               
+
 
     def updateImage(self, img, basename, udim):
         from shutil import copyfile
         du = str(1001 + udim)
         src = bpy.path.abspath(img.filepath)
         src = bpy.path.reduce_dirs([src])[0]
-        folder = os.path.dirname(src)        
+        folder = os.path.dirname(src)
         fname,ext = os.path.splitext(bpy.path.basename(src))
         trg = os.path.join(folder, basename + du + ext)
         if src != trg and not os.path.exists(trg):
             #print("Copy %s\n => %s" % (src, trg))
             copyfile(src, trg)
         img.filepath = bpy.path.relpath(trg)
-        
-        
+
+
 #----------------------------------------------------------
 #   Set Udims to given tile
 #----------------------------------------------------------
@@ -205,15 +205,15 @@ class DAZ_OT_SetUDims(DazOperator):
     bl_options = {'UNDO'}
 
     tile : IntProperty(name="Tile", min=1001, max=1100, default=1001)
-    
+
     @classmethod
     def poll(self, context):
         ob = context.object
         return (ob and ob.type == 'MESH' and not ob.DazUDimsCollapsed)
 
-    def draw(self, context):            
+    def draw(self, context):
         self.layout.prop(self, "tile")
-        
+
     def run(self, context):
         bpy.ops.object.mode_set(mode='OBJECT')
         for ob in context.view_layer.objects:
@@ -222,7 +222,7 @@ class DAZ_OT_SetUDims(DazOperator):
 
     def invoke(self, context, event):
         context.window_manager.invoke_props_dialog(self)
-        return {'RUNNING_MODAL'}        
+        return {'RUNNING_MODAL'}
 
     def setUDims(self, ob):
         from .material import addUdim
@@ -248,10 +248,10 @@ classes = [
 def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
-        
+
 def uninitialize():
     for cls in classes:
         bpy.utils.unregister_class(cls)
-        
+
 
 

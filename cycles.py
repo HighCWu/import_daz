@@ -82,7 +82,7 @@ class CyclesMaterial(Material):
                 theSettings.methodVolumetric = "SSS"
             elif (self.dualLobeWeight or
                   (self.thinWalled and self.translucent)):
-                self.tree = CyclesTree(self)                
+                self.tree = CyclesTree(self)
             elif self.metallic:
                 self.tree = PbrTree(self)
             elif self.refractive:
@@ -240,7 +240,7 @@ class CyclesTree:
             group = classdef(node, name, self)
             group.addNodes(args)
         return node
-        
+
 
     def addShellGroup(self, context, shname, shmat):
         from .material import theShellGroups
@@ -265,7 +265,7 @@ class CyclesTree:
         group.addNodes(context, shmat)
         theShellGroups.append((shmat, node.node_tree))
         return node
-        
+
 
     def build(self, context):
         scn = context.scene
@@ -341,8 +341,8 @@ class CyclesTree:
 
         for key,uvset in self.material.uv_sets.items():
             self.addUvNode(key, uvset.name)
-            
-            
+
+
     def addUvNode(self, key, uvname):
         if True:
             node = self.addNode(1, "ShaderNodeUVMap")
@@ -369,7 +369,7 @@ class CyclesTree:
                 mapping.inputs['Location'].default_value = (dx,dy,0)
                 mapping.inputs['Scale'].default_value = (sx,sy,1)
                 if rz != 0:
-                    mapping.inputs['Rotation'].default_value = (0,0,rz)            
+                    mapping.inputs['Rotation'].default_value = (0,0,rz)
             if map and not map.invert and hasattr(mapping, "use_min"):
                 mapping.use_min = mapping.use_max = 1
             return mapping
@@ -435,7 +435,7 @@ class CyclesTree:
             #tex = self.addTexImageNode(channel, "NONE")
             _,tex = self.getColorTex("getChannelBump", "NONE", 0, False)
             if tex:
-                bump = self.addNode(3, "ShaderNodeBump")  
+                bump = self.addNode(3, "ShaderNodeBump")
                 strength = self.material.getChannelValue(channel, 1.0)
                 if scn.DazLimitBump and strength > scn.DazMaxBump:
                     strength = scn.DazMaxBump
@@ -450,7 +450,7 @@ class CyclesTree:
     def linkNormal(self, node):
         if self.normal:
             self.links.new(self.normal.outputs["Normal"], node.inputs["Normal"])
-    
+
 #-------------------------------------------------------------
 #   Diffuse and Diffuse Overlay
 #-------------------------------------------------------------
@@ -463,7 +463,7 @@ class CyclesTree:
             color = compProd(color, tint)
         return color,tex
 
-    
+
     def buildDiffuse(self, scn):
         channel = self.material.getChannelDiffuse()
         if channel:
@@ -486,7 +486,7 @@ class CyclesTree:
                 power = 2
             if wttex:
                 if wttex.type == 'TEX_IMAGE':
-                    img = wttex.image                    
+                    img = wttex.image
                     useAlpha = (img.file_format in ['PNG'])
                 else:
                     useAlpha = False
@@ -687,9 +687,9 @@ class CyclesTree:
             glossiness,glosstex = self.getColorTex(["Top Coat Glossiness"], "NONE", 1)
             roughness = 1-glossiness
             roughtex = self.invertTex(glosstex, 5)
-        
+
         top = self.addNode(6, "ShaderNodeBsdfGlossy")
-        self.linkColor(tex, top, color, "Color") 
+        self.linkColor(tex, top, color, "Color")
         self.linkScalar(roughtex, top, roughness, "Roughness")
         self.linkNormal(top)
         self.mixWithActive(0.1*topweight, weighttex, top, col=7)
@@ -722,7 +722,7 @@ class CyclesTree:
     def setMultiplier(self, node, fac):
         if node and node.type == 'MATH':
             node.inputs[0].default_value = fac
-        
+
 #-------------------------------------------------------------
 #   Subsurface
 #-------------------------------------------------------------
@@ -734,7 +734,7 @@ class CyclesTree:
         wt = self.getValue("getChannelTranslucencyWeight", 0)
         dist = self.getValue("getChannelScatterDist", 0.0) * theSettings.scale
         if wt == 0 or dist == 0:
-            return            
+            return
         color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", BLACK)
         if isBlack(color):
             return
@@ -756,11 +756,11 @@ class CyclesTree:
         theSettings.usedFeatures["Transparent"] = True
 
 
-    def linkSSS(self, color, coltex, wt, wttex, radius, ssstex):     
+    def linkSSS(self, color, coltex, wt, wttex, radius, ssstex):
         node = self.addNode(5, "ShaderNodeSubsurfaceScattering")
         self.linkColor(coltex, node, color, "Color")
         node.inputs["Scale"].default_value = 1
-        self.linkColor(ssstex, node, radius, "Radius")            
+        self.linkColor(ssstex, node, radius, "Radius")
         self.linkNormal(node)
         self.mixWithActive(wt, wttex, node)
 
@@ -882,7 +882,7 @@ class CyclesTree:
         if not scn.DazUseEmission:
             return
         color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)
-        if (color != BLACK): 
+        if (color != BLACK):
             emit = self.addNode(6, "ShaderNodeEmission")
             emit.inputs["Color"].default_value[0:3] = color
             if tex:
@@ -922,7 +922,7 @@ class CyclesTree:
 
 
     def buildVolume(self):
-        if (self.material.thinWalled or 
+        if (self.material.thinWalled or
             theSettings.methodVolumetric != "VOLUMETRIC"):
             return
 
@@ -945,7 +945,7 @@ class CyclesTree:
                 color,tex = transcolor,transtex
             absorb = self.addNode(6, "ShaderNodeVolumeAbsorption")
             absorb.inputs["Density"].default_value = 200/dist
-            self.linkColor(tex, absorb, color, "Color") 
+            self.linkColor(tex, absorb, color, "Color")
 
         scatter = None
         sss = self.getValue(["SSS Amount"], 0.0)
@@ -956,7 +956,7 @@ class CyclesTree:
             else:
                 color,tex = self.invertColor(ssscolor, ssstex, 6)
             scatter = self.addNode(6, "ShaderNodeVolumeScatter")
-            self.linkColor(tex, scatter, color, "Color")            
+            self.linkColor(tex, scatter, color, "Color")
             scatter.inputs["Density"].default_value = 100/dist
             scatter.inputs["Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
         elif sss > 0 and dist > 0.0:
@@ -974,9 +974,9 @@ class CyclesTree:
         elif absorb:
             self.volume = absorb
         elif scatter:
-            self.volume = scatter  
+            self.volume = scatter
         theSettings.usedFeatures["Volume"] = True
-            
+
 
     def buildOutput(self):
         output = self.addNode(8, "ShaderNodeOutputMaterial")
@@ -1006,7 +1006,7 @@ class CyclesTree:
             dmax = self.getValue("getChannelDispMax", 0.05)
             if strength == 0:
                 return
-            
+
             from .cgroup import DisplacementGroup
             node = self.addGroup(DisplacementGroup, "DAZ Displacement", 7)
             self.links.new(tex.outputs[0], node.inputs["Texture"])
@@ -1129,7 +1129,7 @@ class CyclesTree:
         except:
             name = "Group"
         group = LieGroup(node, name, self)
-        self.linkVector(self.texco, node)        
+        self.linkVector(self.texco, node)
         group.addTextureNodes(assets, maps, colorSpace)
         node.inputs["Alpha"].default_value = 1
         self.liegroups.append(node)
@@ -1226,7 +1226,7 @@ class CyclesTree:
             return inv
         else:
             return None
-    
+
 
     def multiplyTex(self, value, tex, col=3):
         if isinstance(value, float) or isinstance(value, int):
@@ -1278,9 +1278,9 @@ class CyclesTree:
 
 
     def multiplyAddScalarTex(self, factor, term, tex, col=3, slot=0):
-        mult = self.addNode(col, "ShaderNodeMath")   
+        mult = self.addNode(col, "ShaderNodeMath")
         try:
-            mult.operation = 'MULTIPLY_ADD'        
+            mult.operation = 'MULTIPLY_ADD'
             ok = True
         except TypeError:
             ok = False
@@ -1293,7 +1293,7 @@ class CyclesTree:
             mult.operation = 'MULTIPLY'
             self.links.new(tex.outputs[slot], mult.inputs[0])
             mult.inputs[1].default_value = factor
-            add = self.addNode(col+1, "ShaderNodeMath")       
+            add = self.addNode(col+1, "ShaderNodeMath")
             add.operation = 'ADD'
             self.links.new(mult.outputs[slot], add.inputs[0])
             return add

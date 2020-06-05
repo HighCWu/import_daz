@@ -269,7 +269,7 @@ class FrameConverter:
             elif bparname is None:
                 nparname = None
             else:
-                continue            
+                continue
             self.getMatrices(nname, rig, trgCharacter, nparname, nrestmats, ntransmats, nxyzs)
 
         for banim,vanim in anims:
@@ -279,7 +279,7 @@ class FrameConverter:
                     frames = banim[nname]
                     if "rotation" in frames.keys():
                         amat = ntransmats[nname].inverted()
-                        bmat = transmats[bname]                        
+                        bmat = transmats[bname]
                         nframes = self.convertFrames(amat, bmat, xyzs[bname], nxyzs[nname], frames["rotation"])
                         banim[nname]["rotation"] = nframes
 
@@ -317,10 +317,10 @@ class FrameConverter:
 
 class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, IsMeshArmature):
     lockMeshes = False
-    
+
     def __init__(self):
         pass
-        
+
 
     def invoke(self, context, event):
         PoseboneDriver.__init__(self, context.object)
@@ -634,7 +634,7 @@ def getRigKeys(bname, rig, props, taken, missing):
     return None
 
 
-def stripSuffix(key):                
+def stripSuffix(key):
     if key[-5:] == "_div2":
         key = key[:-5]
     if key[-3:] == "_hd":
@@ -646,7 +646,7 @@ def stripSuffix(key):
     if key[-3:-1] == "hd":
         key = key[:-3] + key[-1]
     return key
-    
+
 
 def getSynonyms(key):
     synonymList = [
@@ -657,9 +657,9 @@ def getSynonyms(key):
     for synkeys in synonymList:
         for synkey in synkeys:
             if synkey in key:
-                return [key] + [key.replace(synkey, syn) for syn in synkeys if syn != synkey]        
+                return [key] + [key.replace(synkey, syn) for syn in synkeys if syn != synkey]
     return [key]
-    
+
 
 def getAnimKeys(anim):
     return [key[0:2] for key in anim["keys"]]
@@ -953,7 +953,7 @@ class DAZ_OT_PruneAction(DazOperator):
         act = context.object.animation_data.action
         deletes = []
         for fcu in act.fcurves:
-            kpts = fcu.keyframe_points 
+            kpts = fcu.keyframe_points
             if len(kpts) == 0:
                 deletes.append(fcu)
             elif len(kpts) == 1:

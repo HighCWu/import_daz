@@ -65,7 +65,7 @@ class Accessor:
             print("Store", rna.type, self.name, rna)
         else:
             print("Store RNA", self.name, rna)
-                
+
 
     def getAsset(self, id, strict=True):
         global theAssets, theOtherAssets
@@ -283,8 +283,8 @@ class Asset(Accessor):
         return getName(string)
 
 
-    def copySourceFile(self, source): 
-        global theAssets, theSources 
+    def copySourceFile(self, source):
+        global theAssets, theSources
         file = source.rsplit("#", 1)[0]
         asset = self.parseUrlAsset({"url": source})
         old = asset.id.rsplit("#", 1)[0]
@@ -296,8 +296,8 @@ class Asset(Accessor):
             self.copySourceAssets(other, new)
         theSources[old].append(new)
         return asset
-        
-        
+
+
     def copySourceAssets(self, old, new):
         nold = len(old)
         nnew = len(new)
@@ -310,8 +310,8 @@ class Asset(Accessor):
             if key not in theOtherAssets.keys():
                 theOtherAssets[key] = asset
                 assets.append(asset)
-        
-        
+
+
     def parse(self, struct):
         self.source = struct
 
@@ -548,7 +548,7 @@ def getRelativeRef(ref):
         n = len(dazpath)
         if path[0:n].lower() == dazpath.lower():
             return ref[n:]
-    print("Not a relative path:\n  '%s'" % path) 
+    print("Not a relative path:\n  '%s'" % path)
     return ref
 
 

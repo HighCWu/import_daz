@@ -54,7 +54,7 @@ class CyclesGroup(MaterialGroup, CyclesTree):
 
     def __repr__(self):
         return ("<NodeGroup %s>" % self.group)
-    
+
 # ---------------------------------------------------------------------
 #   Shell Group
 # ---------------------------------------------------------------------
@@ -193,7 +193,7 @@ class NormalGroup(CyclesGroup):
 
         color = self.group.inputs.new("NodeSocketColor", "Color")
         color.default_value = ((0.5, 0.5, 1.0, 1.0))
-        
+
         self.group.outputs.new("NodeSocketVector", "Normal")
 
 
@@ -201,11 +201,11 @@ class NormalGroup(CyclesGroup):
         # Generate TBN from Bump Node
         frame = self.nodes.new("NodeFrame")
         frame.label = "Generate TBN from Bump Node"
-    
+
         uvmap = self.addNode(1, "ShaderNodeUVMap", parent=frame)
         if args[0]:
             uvmap.uv_map = args[0]
-        
+
         uvgrads = self.addNode(2, "ShaderNodeSeparateXYZ", label="UV Gradients", parent=frame)
         self.links.new(uvmap.outputs["UV"], uvgrads.inputs[0])
 
@@ -227,28 +227,28 @@ class NormalGroup(CyclesGroup):
 
         sep1 = self.addNode(4, "ShaderNodeSeparateXYZ", parent=frame)
         self.links.new(tangent.outputs["Normal"], sep1.inputs[0])
-        
+
         sep2 = self.addNode(4, "ShaderNodeSeparateXYZ", parent=frame)
         self.links.new(bitangent.outputs["Normal"], sep2.inputs[0])
 
         sep3 = self.addNode(4, "ShaderNodeSeparateXYZ", parent=frame)
         self.links.new(geo.outputs["Normal"], sep3.inputs[0])
-        
+
         comb1 = self.addNode(5, "ShaderNodeCombineXYZ", parent=frame)
         self.links.new(sep1.outputs[0], comb1.inputs[0])
         self.links.new(sep2.outputs[0], comb1.inputs[1])
         self.links.new(sep3.outputs[0], comb1.inputs[2])
-        
+
         comb2 = self.addNode(5, "ShaderNodeCombineXYZ", parent=frame)
         self.links.new(sep1.outputs[1], comb2.inputs[0])
         self.links.new(sep2.outputs[1], comb2.inputs[1])
         self.links.new(sep3.outputs[1], comb2.inputs[2])
-        
+
         comb3 = self.addNode(5, "ShaderNodeCombineXYZ", parent=frame)
         self.links.new(sep1.outputs[2], comb3.inputs[0])
         self.links.new(sep2.outputs[2], comb3.inputs[1])
         self.links.new(sep3.outputs[2], comb3.inputs[2])
-        
+
         # Normal Map Processing
         frame = self.nodes.new("NodeFrame")
         frame.label = "Normal Map Processing"
@@ -286,7 +286,7 @@ class NormalGroup(CyclesGroup):
         dot3.operation = 'DOT_PRODUCT'
         self.links.new(comb3.outputs[0], dot3.inputs[0])
         self.links.new(add.outputs[0], dot3.inputs[1])
-  
+
         comb = self.addNode(7, "ShaderNodeCombineXYZ", parent=frame)
         self.links.new(dot1.outputs["Value"], comb.inputs[0])
         self.links.new(dot2.outputs["Value"], comb.inputs[1])
@@ -314,19 +314,19 @@ class DisplacementGroup(CyclesGroup):
         mult1.operation = 'MULTIPLY'
         self.links.new(self.inputs.outputs["Texture"], mult1.inputs[0])
         self.links.new(self.inputs.outputs["Difference"], mult1.inputs[1])
-    
+
         add = self.addNode(2, "ShaderNodeMath")
         add.operation = 'ADD'
         self.links.new(mult1.outputs[0], add.inputs[0])
         self.links.new(self.inputs.outputs["Min"], add.inputs[1])
-    
+
         mult2 = self.addNode(3, "ShaderNodeMath")
         mult2.operation = 'MULTIPLY'
         self.links.new(self.inputs.outputs["Strength"], mult2.inputs[0])
         self.links.new(add.outputs[0], mult2.inputs[1])
- 
+
         self.links.new(mult2.outputs[0], self.outputs.inputs["Height"])
-         
+
 # ---------------------------------------------------------------------
 #   Glass Group
 # ---------------------------------------------------------------------
@@ -657,7 +657,7 @@ class LieGroup(CyclesGroup):
             alphamix.inputs[0].default_value = 1.0
             self.links.new(self.inputs.outputs["Alpha"], alphamix.inputs[0])
             self.links.new(texnode.outputs["Color"], alphamix.inputs[1])
-            
+
             masked = False
             for idx in range(1, nassets):
                 map = maps[idx]

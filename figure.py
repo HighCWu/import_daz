@@ -68,10 +68,10 @@ class FigureInstance(Instance):
             rig.DazMesh = mesh.DazMesh = char
             activateObject(context, rig)
         elif mesh:
-            mesh.DazMesh = char    
+            mesh.DazMesh = char
         for geonode in self.geometries:
-            Instance.finalize(self, context, geonode)            
-            
+            Instance.finalize(self, context, geonode)
+
 
     def pose(self, context):
         from .bone import BoneInstance
@@ -351,7 +351,7 @@ class DAZ_OT_RotateBones(DazPropsOperator, B.XYZ, IsArmature):
         self.layout.prop(self, "X")
         self.layout.prop(self, "Y")
         self.layout.prop(self, "Z")
-        
+
     def run(self, context):
         rig = context.object
         rot = Vector((self.X, self.Y, self.Z))*D
@@ -416,8 +416,8 @@ class ExtraBones(B.BoneLayers):
     def draw(self, context):
         self.layout.prop(self, "poseLayer")
         self.layout.prop(self, "drivenLayer")
-        
-        
+
+
     def addExtraBones(self, rig, getBoneNames, type, attr):
         from .driver import getBoneDrivers, removeDriverBoneSuffix, storeBoneDrivers, restoreBoneDrivers
         if rig is None:
@@ -447,7 +447,7 @@ class ExtraBones(B.BoneLayers):
             eb = rig.data.edit_bones[bname]
             eb.name = bname+"Drv"
         bpy.ops.object.mode_set(mode='OBJECT')
-    
+
         bpy.ops.object.mode_set(mode='EDIT')
         for bname in bones:
             eb = rig.data.edit_bones.new(bname)
@@ -484,10 +484,10 @@ class ExtraBones(B.BoneLayers):
                 pb.DazLocLocks = par.DazLocLocks
                 copyBoneInfo(par.bone, pb.bone)
                 pb.bone.layers[self.poseLayer-1] = True
-                par.bone.layers[self.drivenLayer-1] = True                
+                par.bone.layers[self.drivenLayer-1] = True
 
         restoreBoneDrivers(rig, drivers, "Drv")
-    
+
         for pb in rig.pose.bones:
             fcus = getBoneDrivers(rig, pb)
             if fcus:

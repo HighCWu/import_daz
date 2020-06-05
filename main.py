@@ -147,7 +147,7 @@ def makeRootCollection(filepath, context):
         root = bpy.data.collections.new(name=grpname)
         context.scene.collection.children.link(root)
     return root
-    
+
 
 def finishMain(entity, filepath, t1):
     import time
@@ -192,7 +192,7 @@ class DAZ_OT_DecodeFile(DazOperator, B.DazFile, B.SingleFile):
         import gzip
         from .asset import getDazPath
         from .fileutils import safeOpen
-    
+
         print("Decode",  self.filepath)
         try:
             with gzip.open(self.filepath, 'rb') as fp:

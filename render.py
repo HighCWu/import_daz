@@ -63,7 +63,7 @@ class RenderOptions(Asset, Channels):
         Asset.update(self, struct)
         Channels.update(self, struct)
 
-    
+
     def build(self, context):
         if theSettings.useEnvironment:
             self.world = WorldMaterial(self.fileref)
@@ -187,4 +187,4 @@ def parseRenderOptions(struct, fileref):
                 asset.parse(element)
             return asset
     return None
-    
+

@@ -257,7 +257,7 @@ class Formula:
         return True
 
 
-    def getDefaultValue(self, useBone, pb, default):            
+    def getDefaultValue(self, useBone, pb, default):
         if not useBone:
             return default
         elif pb is None:
@@ -340,12 +340,12 @@ def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True):
             buildSingleShapeFormula(expr["value"], rig, ob, skey)
             for other in expr["value"]["others"]:
                 buildSingleShapeFormula(other, rig, ob, skey)
-    return True           
-                        
-            
+    return True
+
+
 def buildSingleShapeFormula(expr, rig, ob, skey):
     from .bone import BoneAlternatives
-    
+
     bname = expr["bone"]
     if bname is None:
         # print("BSSF", expr, skey.name)
@@ -358,8 +358,8 @@ def buildSingleShapeFormula(expr, rig, ob, skey):
             return False
     makeSomeBoneDriver(expr, skey, "value", rig, ob, bname, -1)
     return True
-    
-    
+
+
 def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
     from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
     pb = rig.pose.bones[bname]
@@ -378,7 +378,7 @@ def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
         makeSimpleBoneDriver(uvec, rna, channel, rig, ob, bname, idx)
 
 
-def getSplinePoints(expr, pb):    
+def getSplinePoints(expr, pb):
     j = expr["comp"]
     points = expr["points"]
     n = len(points)
@@ -549,7 +549,7 @@ class PoseboneDriver:
         self.clearProp(props, prop, idx)
         pg = props.add()
         pg.init(prop, idx, default, factor, factor2)
-        
+
 
     def addError(self, err, prop, pb):
         if err not in self.errors.keys():
@@ -610,7 +610,7 @@ class PoseboneDriver:
 #   class PropFormulas
 #-------------------------------------------------------------
 
-def dzstrip(key):                
+def dzstrip(key):
     return (key[3:] if key[0:2] == "Dz" else key)
 
 
@@ -641,7 +641,7 @@ class PropFormulas(PoseboneDriver):
             nprop = asset.getProp(prop)
             if nprop not in self.rig.keys():
                 asset.initProp(nprop)
-        
+
         nprops = {}
         for prop,value in props.items():
             nprop = asset.getProp(prop)
@@ -651,7 +651,7 @@ class PropFormulas(PoseboneDriver):
         opencoded = {}
         self.opencode(exprs, asset, opencoded, 0)
         for prop,openlist in opencoded.items():
-            self.combineExpressions(openlist, prop, exprs, 1.0)        
+            self.combineExpressions(openlist, prop, exprs, 1.0)
         self.getOthers(exprs, asset)
 
         if self.buildBoneFormulas(asset, exprs):
@@ -659,10 +659,10 @@ class PropFormulas(PoseboneDriver):
         else:
             return []
 
-    
-    def getOthers(self, exprs, asset): 
+
+    def getOthers(self, exprs, asset):
         from .bone import getTargetName
-        for bname,expr in exprs.items():    
+        for bname,expr in exprs.items():
             bname1 = getTargetName(bname, self.rig.pose.bones)
             if bname1 is None:
                 prop = asset.getProp(bname)
@@ -677,13 +677,13 @@ class PropFormulas(PoseboneDriver):
                 self.others[prop].append((key, val))
 
 
-    def opencode(self, exprs, asset, opencoded, level): 
+    def opencode(self, exprs, asset, opencoded, level):
         from .bone import getTargetName
         from .modifier import ChannelAsset
         from .daz import addDependency
         if level > 5:
             raise DazError("Recursion too deep")
-        for bname,expr in exprs.items():    
+        for bname,expr in exprs.items():
             bname1 = getTargetName(bname, self.rig.pose.bones)
             if bname1 is None:
                 prop = asset.getProp(bname)
@@ -712,7 +712,7 @@ class PropFormulas(PoseboneDriver):
                     if key not in opencoded.keys():
                         opencoded[key] = []
                     opencoded[key].append((val,subexprs,subprops,subopen))
-    
+
 
     def combineExpressions(self, openlist, prop, exprs, value):
         from .bone import getTargetName
@@ -733,7 +733,7 @@ class PropFormulas(PoseboneDriver):
 
     def addValue(self, slot, bname, prop, exprs, subexpr, value):
         if slot not in subexpr.keys():
-            return    
+            return
         delta = value * subexpr[slot]["value"]
         if bname in exprs.keys():
             expr = exprs[bname]
@@ -743,7 +743,7 @@ class PropFormulas(PoseboneDriver):
             expr[slot]["value"] += delta
         else:
             expr[slot] = {"value" : delta, "prop" : prop}
-        
+
 
     def buildOthers(self, missing):
         remains = self.others
@@ -757,8 +757,8 @@ class PropFormulas(PoseboneDriver):
             for prop in batch.keys():
                 name = dzstrip(prop)
                 print(" *", name)
-                missing[name] = False    
-                props.append(prop)    
+                missing[name] = False
+                props.append(prop)
             if len(remains) == nremains:
                 break
             nremains = len(remains)
@@ -782,7 +782,7 @@ class PropFormulas(PoseboneDriver):
             for key,factor in data:
                 if key in self.built.keys():
                     pass
-                elif prop in self.taken.keys() and self.taken[prop]: 
+                elif prop in self.taken.keys() and self.taken[prop]:
                     if key not in batch.keys():
                         batch[key] = []
                     batch[key].append((factor, prop, self.getStoredMorphs(prop)))
@@ -793,27 +793,27 @@ class PropFormulas(PoseboneDriver):
         return batch, used, remains
 
 
-    def getStoredMorphs(self, key):        
+    def getStoredMorphs(self, key):
         stored = {}
         for pb in self.rig.pose.bones:
             if not (pb.DazLocProps or pb.DazRotProps or pb.DazScaleProps):
                 continue
             data = stored[pb.name] = {"Loc" : {}, "Rot" : {}, "Sca" : {}}
             for channel,pgs in [
-                ("Loc", pb.DazLocProps), 
+                ("Loc", pb.DazLocProps),
                 ("Rot", pb.DazRotProps),
                 ("Sca", pb.DazScaleProps)]:
                 for pg in pgs:
                     if pg.name == key:
                         data[channel][pg.index] = (pg.factor, pg.factor2, pg.default)
         return stored
-        
+
 
     def buildMorphBatch(self, batch):
         for prop,bdata in batch.items():
             success = False
             if len(bdata) == 1:
-                factor,prop1,bones = bdata[0]            
+                factor,prop1,bones = bdata[0]
                 for pbname,pdata in bones.items():
                     pb = self.rig.pose.bones[pbname]
                     for key,channel in pdata.items():
@@ -872,7 +872,7 @@ class PropFormulas(PoseboneDriver):
             if skeys and key in skeys.key_blocks.keys():
                 fcu = getShapekeyPropDriver(skeys, key)
                 addVarToDriver(fcu, self.rig, prop, factor)
-                
+
 
     def addMissingBones(self, bones1, bones2):
         for bname in bones1.keys():
@@ -891,12 +891,12 @@ class PropFormulas(PoseboneDriver):
                         channel1[idx] = (0, 0, 0)
 
 
-    def buildBoneFormulas(self, asset, exprs):            
+    def buildBoneFormulas(self, asset, exprs):
         from .bone import getTargetName
         from .transform import Transform
 
-        success = False    
-        prop,self.default = asset.initProp(None)  
+        success = False
+        prop,self.default = asset.initProp(None)
         for bname,expr in exprs.items():
             if self.rig.data.DazExtraFaceBones or self.rig.data.DazExtraDrivenBones:
                 dname = bname + "Drv"
@@ -906,8 +906,8 @@ class PropFormulas(PoseboneDriver):
             bname = getTargetName(bname, self.rig.pose.bones)
             if bname is None:
                 continue
-            self.taken[prop] = self.built[prop] = True    
-            
+            self.taken[prop] = self.built[prop] = True
+
             pb = self.rig.pose.bones[bname]
             tfm = Transform()
             nonzero = False
@@ -929,7 +929,7 @@ class PropFormulas(PoseboneDriver):
                 if self.addPoseboneDriver(pb, tfm):
                     success = True
         return success
-    
+
 #-------------------------------------------------------------
 #   Eval formulas
 #   For all kinds of drivers
@@ -950,7 +950,7 @@ def parseChannel(channel):
         msg = ("Unknown attribute: %s" % attr)
         reportError(msg)
     return attr, idx, default
-    
+
 
 def removeInitFromExpr(var, expr, init):
     import re

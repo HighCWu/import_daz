@@ -169,7 +169,7 @@ else:
         if ob.hide_viewport:
             return False
         return inCollection(context.view_layer.layer_collection, ob)
-        
+
     def inCollection(layer, ob):
         if layer.hide_viewport:
             return False
@@ -178,7 +178,7 @@ else:
         for child in layer.children:
             if inCollection(child, ob):
                 return True
-        return False            
+        return False
 
     def showSceneLayer(context, ob):
         coll = context.collection
@@ -368,7 +368,7 @@ def startProgress(string):
 def endProgress():
     wm = bpy.context.window_manager
     wm.progress_end()
-        
+
 def showProgress(n, total):
     pct = (100.0*n)/total
     wm = bpy.context.window_manager

@@ -146,16 +146,16 @@ def loadDbzFile(filepath):
             center = Vector(figure["center_point"])
         else:
             center = None
-            
+
         name = figure["name"]
         if name not in dbz.objects.keys():
-            dbz.objects[name] = []        
+            dbz.objects[name] = []
 
         if "vertices" in figure.keys():
             verts = [d2b(vec) for vec in figure["vertices"]]
             faces = uvs = []
             if "faces" in figure.keys():
-                faces = figure["faces"]            
+                faces = figure["faces"]
             if "uvs" in figure.keys():
                 uvs = figure["uvs"]
             dbz.objects[name].append(DBZObject(verts, uvs, faces, 0, center))

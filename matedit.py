@@ -34,7 +34,7 @@ from .material import WHITE, isWhite
 from collections import OrderedDict
 
 # ---------------------------------------------------------------------
-#   material.py   
+#   material.py
 #   Tweak bump strength and height
 #
 #   (node type, socket, BI use, BI factor, # components, comes from)
@@ -102,7 +102,7 @@ TweakableChannels = OrderedDict([
     ("Volume Scatter Density", ("VOLUME_SCATTER", "Density", None, None, 1, None)),
 
 ])
-  
+
 # ---------------------------------------------------------------------
 #   Mini material editor
 # ---------------------------------------------------------------------
@@ -114,8 +114,8 @@ def printItem(string, item):
 #   Channel setter
 # ---------------------------------------------------------------------
 
-class ChannelSetter:                    
-    def setChannelCycles(self, mat, item):                                    
+class ChannelSetter:
+    def setChannelCycles(self, mat, item):
         nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[item.name]
         for node in mat.node_tree.nodes.values():
             if self.matchingNode(node, nodeType, mat, fromType):
@@ -132,7 +132,7 @@ class ChannelSetter:
                         self.setSocket(fromnode.inputs[1], 1, item)
                     elif fromnode.type == "TEX_IMAGE":
                         self.multiplyTex(fromsocket, socket, mat.node_tree, item)
-            
+
 
     def setSocket(self, socket, ncomps, item):
         if item.ncomps == 1:
@@ -143,7 +143,7 @@ class ChannelSetter:
             socket.default_value = self.getValue(item.color, ncomps)
 
 
-    def setChannelInternal(self, mat, item):                 
+    def setChannelInternal(self, mat, item):
         nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[item.name]
         if not useAttr:
             return
@@ -161,7 +161,7 @@ class ChannelSetter:
                 continue
             value,ncomps = self.getChannel(ob, key)
             if ncomps == 0:
-                continue            
+                continue
             item = ob.DazSlots.add()
             item.name = key
             item.ncomps = ncomps
@@ -174,20 +174,20 @@ class ChannelSetter:
 
 
     def getChannel(self, ob, key):
-        nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[key]        
+        nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[key]
         mat = ob.data.materials[ob.DazActiveMaterial]
         if mat.use_nodes:
             return self.getChannelCycles(mat, nodeType, slot, ncomps, fromType)
         elif useAttr:
             return self.getChannelInternal(mat, useAttr, factorAttr)
         return None,0
-        
+
 
     def skipMaterial(self, mat, ob):
         item = ob.DazAffectedMaterials[mat.name]
         return (not item.active)
 
-    
+
     def getAffectedMaterials(self, context):
         ob = context.object
         ob.DazAffectedMaterials.clear()
@@ -195,12 +195,12 @@ class ChannelSetter:
             item = ob.DazAffectedMaterials.add()
             item.name = mat.name
             item.active = self.isAffected(ob, mat)
-                            
-                    
-    def getChannelCycles(self, mat, nodeType, slot, ncomps, fromType): 
-        from .cgroup import DualLobeGroup                                   
+
+
+    def getChannelCycles(self, mat, nodeType, slot, ncomps, fromType):
+        from .cgroup import DualLobeGroup
         for node in mat.node_tree.nodes.values():
-            if self.matchingNode(node, nodeType, mat, fromType):            
+            if self.matchingNode(node, nodeType, mat, fromType):
                 socket = node.inputs[slot]
                 fromnode,fromsocket = self.getFromNode(mat, node, socket)
                 if fromnode:
@@ -243,7 +243,7 @@ class ChannelSetter:
                 items = ob.data.DazMaterialSets[ob.DazTweakMaterials]
                 mname = mat.name.split(".",1)[0].split("-",1)[0]
                 return (mname in items.names.keys())
-        
+
         from .guess import getSkinMaterial
         if self.isRefractive(mat):
             return (ob.DazTweakMaterials in ["Refractive", "All"])
@@ -253,7 +253,7 @@ class ChannelSetter:
         elif ob.DazTweakMaterials == "Skin-Lips-Nails":
             return (mattype in ["Skin", "Red"])
         else:
-            return (ob.DazTweakMaterials != "Refractive")            
+            return (ob.DazTweakMaterials != "Refractive")
 
 
     def isRefractive(self, mat):
@@ -266,34 +266,34 @@ class ChannelSetter:
                         self.inputDiffers(node, "Transmission", 0)):
                         return True
             return False
-                
-                
+
+
     def inputDiffers(self, node, slot, value):
         if slot in node.inputs.keys():
             if node.inputs[slot].default_value != value:
                 return True
-        return False                
+        return False
 
 
     def getFromNode(self, mat, node, socket):
         for link in mat.node_tree.links.values():
             if link.to_node == node and link.to_socket == socket:
                 return (link.from_node, link.from_socket)
-        return None,None    
+        return None,None
 
-                
+
     def matchingNode(self, node, nodeType, mat, fromType):
         if node.type == nodeType:
             if fromType is None:
-                return True                            
+                return True
             for link in mat.node_tree.links.values():
                 if link.to_node == node and link.from_node.type == fromType:
                     return True
-            return False                
-        elif (node.type == "GROUP" and 
+            return False
+        elif (node.type == "GROUP" and
             nodeType in bpy.data.node_groups.keys()):
             return (node.node_tree == bpy.data.node_groups[nodeType])
-        return False            
+        return False
 
 # ---------------------------------------------------------------------
 #   Update button
@@ -308,12 +308,12 @@ class DAZ_OT_ChangeTweakType(bpy.types.Operator, ChannelSetter):
         ob = context.object
         self.layout.prop(ob, "DazTweakMaterials")
         self.layout.prop(ob, "DazActiveMaterial")
-                
+
     def execute(self, context):
         self.addSlots(context)
         self.getAffectedMaterials(context)
         return {'PASS_THROUGH'}
-    
+
     def invoke(self, context, event):
         wm = context.window_manager
         wm.invoke_props_dialog(self)
@@ -334,7 +334,7 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
         layout = self.layout
         affmats = list(ob.DazAffectedMaterials.items())
         while affmats:
-            row = layout.row()            
+            row = layout.row()
             for mname,item in affmats[0:3]:
                 row.prop(item, "active", text="")
                 row.label(text=mname)
@@ -351,7 +351,7 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
                 else:
                     layout.prop(self.shows[key], "show", icon="RIGHTARROW", emboss=False, text=key)
                 showing = self.shows[key].show
-            elif showing and key in ob.DazSlots.keys():            
+            elif showing and key in ob.DazSlots.keys():
                 item = ob.DazSlots[key]
                 row = layout.row()
                 if key[0:11] == "Principled ":
@@ -392,7 +392,7 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
 
 
     def setChannel(self, ob, item):
-        for mat in ob.data.materials:            
+        for mat in ob.data.materials:
             if mat:
                 if self.skipMaterial(mat, ob):
                     continue
@@ -410,7 +410,7 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
         item.name = key
         item.new = True
         return item
-   
+
 
     def setOriginal(self, socket, ncomps, mat, key):
         item = self.getObjectSlot(mat, key)
@@ -442,8 +442,8 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
             tree.links.new(fromsocket, mult.inputs[1])
             tree.links.new(mult.outputs[0], tosocket)
             return mult
-            
-                    
+
+
 # ---------------------------------------------------------------------
 #   Reset button
 # ---------------------------------------------------------------------
@@ -461,7 +461,7 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
 
 
     def resetObject(self, ob):
-        for mat in ob.data.materials:            
+        for mat in ob.data.materials:
             if mat:
                 if mat.use_nodes:
                     for item in mat.DazSlots:
@@ -495,12 +495,12 @@ def getTweakMaterials(scn, context):
                 ("All", "All", "All"),
                 ("Skin", "Skin", "Skin"),
                 ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
-                ]    
+                ]
 
 def getActiveMaterial(scn, context):
     ob = context.object
-    return [(mat.name, mat.name, mat.name) for mat in ob.data.materials]    
-                
+    return [(mat.name, mat.name, mat.name) for mat in ob.data.materials]
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -517,7 +517,7 @@ classes = [
 def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
-        
+
     bpy.types.Material.DazSlots = CollectionProperty(type = B.EditSlotGroup)
     bpy.types.Object.DazSlots = CollectionProperty(type = B.EditSlotGroup)
     bpy.types.Object.DazAffectedMaterials = CollectionProperty(type = B.DazActiveGroup)
@@ -526,7 +526,7 @@ def initialize():
         items = getActiveMaterial,
         name = "Active Material",
         description = "Material actually being edited")
-    
+
     bpy.types.Object.DazTweakMaterials = EnumProperty(
         items = getTweakMaterials,
         name = "Material Type",

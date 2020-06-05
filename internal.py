@@ -192,7 +192,7 @@ class InternalMaterial(Material):
         wt = self.getValue("getChannelTranslucencyWeight", 0)
         dist = self.getValue("getChannelScatterDist", 0.0) * 10
         if wt == 0 or dist == 0:
-            return            
+            return
         color = self.getValue("getChannelTranslucencyColor", BLACK)
         if isBlack(color):
             return
@@ -215,7 +215,7 @@ class InternalMaterial(Material):
         sss.use = True
         sss.color_factor = wt
         sss.color = color
-        sss.scale = 0.1 * theSettings.scale 
+        sss.scale = 0.1 * theSettings.scale
         sss.ior = self.getValue("getChannelSSSIOR", 1.3)
         sss.radius = radius
 

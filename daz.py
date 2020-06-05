@@ -85,7 +85,7 @@ class DAZ_OT_SetSilentMode(bpy.types.Operator):
     bl_description = "Toggle silent mode on or off (error popups off or on)"
 
     def execute(self, context):
-        from .error import getSilentMode, setSilentMode        
+        from .error import getSilentMode, setSilentMode
         setSilentMode(not getSilentMode())
         return {'FINISHED'}
 
@@ -99,7 +99,7 @@ class DazMorphGroup(bpy.types.PropertyGroup, B.DazMorphGroupProps):
 
     def eval(self, rig):
         if self.simple:
-            return self.factor*(rig[self.name]-self.default) 
+            return self.factor*(rig[self.name]-self.default)
         else:
             value = rig[self.name]-self.default
             return (self.factor*(value > 0) + self.factor2*(value < 0))*value
@@ -110,7 +110,7 @@ class DazMorphGroup(bpy.types.PropertyGroup, B.DazMorphGroupProps):
     def init(self, prop, idx, default, factor, factor2):
         self.name = prop
         self.index = idx
-        self.factor = factor        
+        self.factor = factor
         self.default = default
         if factor2 is None:
             self.factor2 = 0
@@ -157,7 +157,7 @@ def addSelfRef(rig, pb):
     cns.target = rig
     cns.mute = True
 
-        
+
 def copyPropGroups(rig1, rig2, pb2):
     if pb2.name not in rig1.pose.bones.keys():
         return
@@ -207,10 +207,10 @@ class DAZ_OT_InspectPropGroups(DazOperator, IsArmature):
 def clearDependecies():
     global theDependecies
     theDependecies = {}
-    
+
 clearDependecies()
-    
-    
+
+
 def addDependency(key, prop, factor):
     global theDependecies
     if key not in theDependecies.keys():
@@ -218,7 +218,7 @@ def addDependency(key, prop, factor):
     else:
         deps = theDependecies[key]
     deps.append((prop,factor))
-        
+
 
 class DAZ_OT_InspectPropDependencies(DazOperator, IsArmature):
     bl_idname = "daz.inspect_prop_dependencies"
@@ -496,8 +496,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.separator()
             box.operator("daz.update_hair")
             box.operator("daz.color_hair")
-            #box.operator("daz.connect_hair")        
-    
+            #box.operator("daz.connect_hair")
+
 
 class DAZ_PT_Settings(bpy.types.Panel):
     bl_label = "Settings"
@@ -564,7 +564,7 @@ class DAZ_PT_Settings(bpy.types.Panel):
         else:
             box.prop(scn, "DazShowRiggingSettings", icon="DOWNARROW_HLT", emboss=False)
             box.prop(scn, "DazAddFaceDrivers")
-            box.prop(scn, "DazBuildHighdef")            
+            box.prop(scn, "DazBuildHighdef")
             box.prop(scn, "DazUseLockRot")
             box.prop(scn, "DazUseLockLoc")
             #box.prop(scn, "DazUseLimitRot")
@@ -583,12 +583,12 @@ class DAZ_PT_Settings(bpy.types.Panel):
             box.prop(scn, "DazLimitBump")
             if scn.DazLimitBump:
                 box.prop(scn, "DazMaxBump")
-            box.prop(scn, "DazHandleRenderSettings")            
+            box.prop(scn, "DazHandleRenderSettings")
             box.separator()
             box.prop(scn, "DazUseDisplacement")
             box.prop(scn, "DazUseEmission")
             box.prop(scn, "DazUseReflection")
-            box.prop(scn, "DazArnoldSSS")            
+            box.prop(scn, "DazArnoldSSS")
             if bpy.app.version < (2,80,0):
                 box.separator()
                 box.prop(scn, "DazDiffuseShader")
@@ -610,7 +610,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
         layout.operator("daz.decode_file")
         layout.separator()
         layout.operator("daz.inspect_prop_groups")
-        layout.operator("daz.inspect_prop_dependencies")        
+        layout.operator("daz.inspect_prop_dependencies")
         layout.separator()
         box = layout.box()
         box.label(text = "Information About Active Object")
@@ -768,7 +768,7 @@ class DAZ_PT_Morphs:
             layout.label(text = "Face drivers disabled")
             layout.operator("daz.enable_drivers")
             return
-        
+
         activateLayout(layout, rig, self.type, self.prefix)
         keyLayout(layout, self.type, self.prefix)
         layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")

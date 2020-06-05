@@ -47,7 +47,7 @@ def getHideMannequinName():
 #------------------------------------------------------------------------
 
 class HidersHandler:
-    
+
     def run(self, context):
         from .morphing import prettifyAll
         from .driver import updateAll
@@ -61,8 +61,8 @@ class HidersHandler:
         setActiveObject(context, rig)
 
 
-    def getMeshesInGroup(self, context, rig):        
-        self.collection = None  
+    def getMeshesInGroup(self, context, rig):
+        self.collection = None
         meshes = list(rig.children)
         if bpy.app.version >= (2,80,0):
             for coll in bpy.data.collections:
@@ -82,7 +82,7 @@ class HidersHandler:
             prop = getHidePropName(clo.name)
         self.handleProp(prop, clo, rig, context)
         if clo.DazMannequin:
-            return            
+            return
         modname = getMaskName(clo.name)
         for ob in rig.children:
             for mod in ob.modifiers:
@@ -95,13 +95,13 @@ class DAZ_OT_AddHiders(DazPropsOperator, HidersHandler, B.HideOnlyMasked):
     bl_label = "Add Visibility Drivers"
     bl_description = "Control visibility with rig property. For file linking."
     bl_options = {'UNDO'}
-    
+
     flag = "DazVisibilityDrivers"
     value = True
 
     def draw(self, context):
         self.layout.prop(self, "hideOnlyMasked")
-    
+
     @classmethod
     def poll(self, context):
         ob = context.object
@@ -115,7 +115,7 @@ class DAZ_OT_AddHiders(DazPropsOperator, HidersHandler, B.HideOnlyMasked):
             for ob in rig.children:
                 if ob.type == 'MESH':
                     for mod in ob.modifiers:
-                        if (mod.type == 'MASK' and 
+                        if (mod.type == 'MASK' and
                             mod.name == getMaskName(clo.name)):
                             masked = True
                             break
@@ -125,7 +125,7 @@ class DAZ_OT_AddHiders(DazPropsOperator, HidersHandler, B.HideOnlyMasked):
         makePropDriver(prop, clo, HideViewport, rig, expr="not(x)")
         makePropDriver(prop, clo, "hide_render", rig, expr="not(x)")
 
-    
+
     def handleMod(self, prop, rig, mod):
         from .driver import makePropDriver
         makePropDriver(prop, mod, "show_viewport", rig, expr="x")
@@ -161,16 +161,16 @@ class DAZ_OT_RemoveHiders(DazOperator, HidersHandler):
 #------------------------------------------------------------------------
 
 if bpy.app.version >= (2,80,0):
-    
+
     class DAZ_OT_AddHiderCollections(DazOperator, HidersHandler):
         bl_idname = "daz.add_hide_collections"
         bl_label = "Add Visibility Collections"
         bl_description = "Control visibility with rig property. For file linking."
         bl_options = {'UNDO'}
-        
+
         flag = "DazVisibilityCollections"
         value = True
-    
+
         @classmethod
         def poll(self, context):
             ob = context.object
@@ -179,7 +179,7 @@ if bpy.app.version >= (2,80,0):
         def getMeshesInGroup(self, context, rig):
             meshes = HidersHandler.getMeshesInGroup(self, context, rig)
             return [rig] + meshes
-        
+
         def handleProp(self, prop, clo, rig, context):
             if self.collection is None:
                 return
@@ -188,29 +188,29 @@ if bpy.app.version >= (2,80,0):
             if clo in self.collection.objects.values():
                 self.collection.objects.unlink(clo)
             subcoll.objects.link(clo)
-        
+
         def handleMod(self, prop, rig, mod):
             return
-    
-    
+
+
     class DAZ_OT_RemoveHiderCollections(DazOperator, HidersHandler):
         bl_idname = "daz.remove_hide_collections"
         bl_label = "Remove Visibility Collections"
         bl_description = "Remove ability to control visibility from rig property"
         bl_options = {'UNDO'}
-    
+
         flag = "DazVisibilityCollections"
         value = False
-    
+
         @classmethod
         def poll(self, context):
             ob = context.object
             return (ob and ob.type == 'ARMATURE' and ob.DazVisibilityCollections)
-    
+
         def getMeshesInGroup(self, context, rig):
             meshes = HidersHandler.getMeshesInGroup(self, context, rig)
             return [rig] + meshes
-        
+
         def handleProp(self, prop, clo, rig, context):
             if self.collection is None:
                 return
@@ -221,7 +221,7 @@ if bpy.app.version >= (2,80,0):
                     subcoll.objects.unlink(clo)
                     self.collection.objects.link(clo)
                     break
-    
+
         def handleMod(self, prop, rig, mod):
             return
 
@@ -230,8 +230,8 @@ if bpy.app.version >= (2,80,0):
 #------------------------------------------------------------------------
 
 def setAllVisibility(context, prefix, value):
-    from .morphing import autoKeyProp 
-    from .driver import updateAll   
+    from .morphing import autoKeyProp
+    from .driver import updateAll
     rig = context.object
     scn = context.scene
     if rig is None:
@@ -341,7 +341,7 @@ class DAZ_OT_CreateCollections(DazOperator):
                 coll.children.link(subcoll)
                 coll.objects.unlink(ob)
                 subcoll.objects.link(ob)
-        
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------

@@ -67,7 +67,7 @@ def safeOpen(filepath, rw, dirMustExist=False, fileMustExist=False, mustOpen=Fal
         msg = ("Could not open file for %s:   \n" % mode +
                "%s          " % filepath)
         if mustOpen:
-            raise DazError(msg)            
+            raise DazError(msg)
         reportError(msg, warnPaths=True, trigger=(2,4))
     return fp
 
@@ -467,7 +467,7 @@ def initialize():
         bpy.utils.register_class(cls)
 
     loadSettingsDefaults()
-    
+
 
 def uninitialize():
     for cls in classes:

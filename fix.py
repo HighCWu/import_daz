@@ -82,7 +82,7 @@ def fixPelvis(rig):
 def fixCustomShape(rig, bnames, factor, offset=0):
     for bname in bnames:
         if bname in rig.pose.bones.keys():
-            pb = rig.pose.bones[bname] 
+            pb = rig.pose.bones[bname]
             if pb.custom_shape:
                 pb.custom_shape_scale = factor
                 if offset:
@@ -499,7 +499,7 @@ def addWinder(context):
         infl = 2*pb.bone.length/length
         cns1 = copyRotation(pb, target, (True,True,True), rig)
         cns1.use_offset = True
-        cns1.influence = infl        
+        cns1.influence = infl
         #cns2 = copyScale(pb, target, (True,True,True), rig)
         #cns2.use_offset = True
         #cns2.influence = infl

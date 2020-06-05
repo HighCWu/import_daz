@@ -62,6 +62,6 @@ def getActiveCategories(scn, context):
     cats = [(cat.name,cat.name,cat.name) for cat in rig.DazMorphCats]
     cats.sort()
     return [("All", "All", "All")] + cats
-        
-  
+
+
 

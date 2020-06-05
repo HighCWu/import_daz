@@ -63,13 +63,13 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
 
         if len(anatomies) < 1:
             raise DazError("At least two meshes must be selected.\nGeografts selected and target active.")
-            
+
         for aob in anatomies:
             if aob.data.DazVertexCount != ncverts:
                 if cob.data.DazVertexCount == len(aob.data.vertices):
                     msg = ("Meshes selected in wrong order.\nGeografts selected and target active.   ")
                 else:
-                    msg = ("Geograft %s fits mesh with %d vertices,      \nbut %s has %d vertices." % 
+                    msg = ("Geograft %s fits mesh with %d vertices,      \nbut %s has %d vertices." %
                         (aob.name, aob.data.DazVertexCount, cob.name, ncverts))
                 raise DazError(msg)
 
@@ -77,7 +77,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         anames = []
         drivers = {}
 
-        # Keep extra UVs 
+        # Keep extra UVs
         self.keepUv = []
         for uvtex in getUvTextures(cob.data):
             if not uvtex.active_render:
@@ -101,7 +101,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         for f in cob.data.polygons:
             for vn in f.vertices:
                 vfaces[vn].append(f.index)
-                
+
         nfaces = len(cob.data.polygons)
         fmasked = dict([(fn,False) for fn in range(nfaces)])
         for aob in anatomies:
@@ -118,7 +118,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        # Select body verts to delete            
+        # Select body verts to delete
         vdeleted = dict([(vn,False) for vn in range(nverts)])
         for aob in anatomies:
             paired = [pair.b for pair in aob.data.DazGraftGroup]
@@ -138,14 +138,14 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
                     cob.data.vertices[vn].select = True
                     vdeleted[vn] = True
 
-        # Build association table between new and old vertex numbers        
+        # Build association table between new and old vertex numbers
         assoc = {}
         vn2 = 0
         for vn in range(nverts):
             if not vdeleted[vn]:
                 assoc[vn] = vn2
                 vn2 += 1
-        
+
         # Delete the masked verts
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.delete(type='VERT')
@@ -166,7 +166,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
-        
+
         # Select verts on common boundary
         names = []
         for aob in anatomies:
@@ -195,7 +195,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
-    
+
         # Update cob graft group
         if cob.data.DazGraftGroup and selected:
             for pair in cob.data.DazGraftGroup:
@@ -203,7 +203,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
                 dists = [((x-y).length, vn) for vn,y in selected.items()]
                 dists.sort()
                 pair.a = dists[0][1]
-        
+
         self.joinUvTextures(cob.data)
 
         newname = self.getUvName(cob.data)
@@ -221,14 +221,14 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
 
         copyShapeKeyDrivers(cob, drivers)
         updateDrivers(cob)
-        
+
 
     def keepMaterial(self, mn, mat, ob):
         keep = self.mathits[mn]
         if not keep:
             print("Remove material %s" % mat.name)
         return keep
-                        
+
 
     def moveGraftVerts(self, aob, cob):
         for pair in aob.data.DazGraftGroup:
@@ -292,7 +292,7 @@ def replaceNodeNames(mat, oldname, newname):
             if link.from_node in uvmaps:
                 tosockets.append(link.to_socket)
         for tosocket in tosockets:
-            mat.node_tree.links.new(fromsocket, tosocket)                
+            mat.node_tree.links.new(fromsocket, tosocket)
 
     for node in uvmaps:
         mat.node_tree.nodes.remove(node)
@@ -485,7 +485,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
             mcoll = bpy.data.collections.new(name= rig.name + " Meshes")
             for coll in bpy.data.collections:
                 if rig in coll.objects.values():
-                    coll.children.link(mcoll)  
+                    coll.children.link(mcoll)
                     removes.append(coll)
             adds = [mcoll]
 
@@ -538,7 +538,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
         for grp in removes:
             if ob.name in grp.objects:
                 grp.objects.unlink(ob)
-    
+
 
     def changeArmatureModifier(self, ob, rig, context):
         from .node import setParent
@@ -584,7 +584,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
                 eb.layers = layers
                 storage[bname].realname = eb.name
             bpy.ops.object.mode_set(mode='OBJECT')
-            for bname in extras:     
+            for bname in extras:
                 bone = rig.data.bones[bname]
                 copyBoneInfo(ob.data.bones[bname], bone)
                 bone.layers[self.clothesLayer-1] = True
@@ -732,7 +732,7 @@ def mergeBonesAndVgroups(rig, mergers, parents, context):
     from .driver import removeBoneDrivers
 
     activateObject(context, rig)
-    
+
     bpy.ops.object.mode_set(mode='OBJECT')
     for bones in mergers.values():
         removeBoneDrivers(rig, bones)

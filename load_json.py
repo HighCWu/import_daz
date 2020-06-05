@@ -40,8 +40,8 @@ def loadJson(filepath, mustOpen=False):
         bytes = None
 
     struct = {}
-    msg = ("Could not load %s" % filepath)  
-    trigger=(2,3)  
+    msg = ("Could not load %s" % filepath)
+    trigger=(2,3)
     if bytes:
         try:
             string = bytes.decode("utf_8_sig")

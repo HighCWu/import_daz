@@ -104,7 +104,7 @@ class CameraInstance(Instance):
         else:
             camera.dof.use_dof = value
 
-    
+
     def setFocusDist(self, camera, value):
         if bpy.app.version < (2,80,0):
             camera.dof_distance = value * theSettings.scale
@@ -165,7 +165,7 @@ class CameraInstance(Instance):
                         "Display Persistence", "Sight Line Opacity",
                         "Focal Point Scale", "FOV Color", "FOV Opacity", "FOV Length",
                         "DOF Plane Visibility", "DOF Plane Color",
-                        "Visible in Viewport", 
+                        "Visible in Viewport",
                         "DOF Overlay Color", "DOF Overlay Opacity", "Near DOF Plane Visibility", "Far DOF Plane Visibility",
                         ]:
                 #print("Unused", key, value)

@@ -78,7 +78,7 @@ class Light(Node):
     def build(self, context, inst):
         lgeo = inst.getValue(["Light Geometry"], -1)
         usePhoto = inst.getValue(["Photometric Mode"], False)
-        self.twosided = inst.getValue(["Two Sided"], False)       
+        self.twosided = inst.getValue(["Two Sided"], False)
         height = inst.getValue(["Height"], 0) * theSettings.scale
         width = inst.getValue(["Width"], 0) * theSettings.scale
 

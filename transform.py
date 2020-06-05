@@ -70,7 +70,7 @@ class Transform:
         if subtract:
             self.scale = Vector(scale) - Vector((1,1,1))
         else:
-            self.scale = Vector(scale)         
+            self.scale = Vector(scale)
         self.scaleProp = prop
 
     def noGeneral(self):
@@ -81,7 +81,7 @@ class Transform:
         if subtract:
             self.general = Vector(general) - Vector((1,1,1))
         else:
-            self.general = Vector(general)         
+            self.general = Vector(general)
         self.generalProp = prop
         print("GGG", self.general)
 

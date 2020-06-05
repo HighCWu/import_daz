@@ -219,7 +219,7 @@ def snapFkArm(context, data):
 
     muteConstraints(cnsFk, False)
     setattr(rig, prop, 0)
-    
+
 
 def snapIkArm(context, data):
     rig = context.object
@@ -449,7 +449,7 @@ def isKeyed(rig, pb, path):
             for fcu in act.fcurves:
                 if fcu.data_path == path:
                     return True
-    return False                    
+    return False
 
 #
 #   updatePose(context):

@@ -214,7 +214,7 @@ class DazOptions:
         name = "Brighten Eyes",
         description = "Brighten eye textures with this factor\nto avoid dark eyes problem for Genesis 8",
         default = 1.0,
-        min = 0.1, max = 10)        
+        min = 0.1, max = 10)
 
     fitMeshes = EnumProperty(
     items = [('SHARED', "Unmorphed Shared", "Don't fit meshes. All objects share the same mesh."),
@@ -254,7 +254,7 @@ class DazOptions:
         name = "Volumetric Method",
         description = "Method for handle volumetric (Iray skin)",
         default = 'VOLUMETRIC')
-        
+
     useEnvironment = BoolProperty(
         name = "Environment",
         description = "Load environment",
@@ -276,7 +276,7 @@ class ResizeOptions:
         description = "Resize original images with this number of steps",
         min = 0, max = 8,
         default = 2)
-        
+
     overwrite = BoolProperty(
         name = "Overwrite Files",
         description = "Overwrite the original image files.",
@@ -298,7 +298,7 @@ class ColorProp:
 
 class EditSlotGroup(bpy.types.PropertyGroup):
     ncomps = IntProperty(default = 0)
-    
+
     color = FloatVectorProperty(
         name = "Color",
         subtype = "COLOR",
@@ -307,7 +307,7 @@ class EditSlotGroup(bpy.types.PropertyGroup):
         max = 1.0,
         default = (1,1,1,1)
     )
-    
+
     vector = FloatVectorProperty(
         name = "Vector",
         size = 3,
@@ -315,11 +315,11 @@ class EditSlotGroup(bpy.types.PropertyGroup):
         max = 1.0,
         default = (0,0,0)
     )
-    
+
     number = FloatProperty(default = 0.0)
     new = BoolProperty()
-    
-    
+
+
 class ShowGroup(bpy.types.PropertyGroup):
     show = BoolProperty(default = False)
 
@@ -347,7 +347,7 @@ class XYZ:
     X = FloatProperty(name = "X")
     Y = FloatProperty(name = "Y")
     Z = FloatProperty(name = "Z")
-    
+
 #-------------------------------------------------------------
 #   merge.py
 #-------------------------------------------------------------
@@ -388,7 +388,7 @@ class CustomEnums:
 
 class StandardEnums:
     type = EnumProperty(
-        items = [("Units", "Units", "Units"), 
+        items = [("Units", "Units", "Units"),
                  ("Expressions", "Expressions", "Expressions"),
                  ("Visemes", "Visemes", "Visemes"),
                  ("Poses", "Poses", "Poses"),
@@ -399,7 +399,7 @@ class StandardEnums:
 class StandardAllEnums:
     type = EnumProperty(
         items = [("All", "All", "All"),
-                 ("Units", "Units", "Units"), 
+                 ("Units", "Units", "Units"),
                  ("Expressions", "Expressions", "Expressions"),
                  ("Visemes", "Visemes", "Visemes"),
                  ("Poses", "Poses", "Poses"),
@@ -431,7 +431,7 @@ class FilterString:
         description = "Show only items containing this string",
         default = ""
         )
-        
+
 #-------------------------------------------------------------
 #   convert.py
 #-------------------------------------------------------------
@@ -463,7 +463,7 @@ class FractionFloat:
         description = "Fraction of strands to keep",
         min = 0.0, max = 1.0,
         default = 0.5)
-    
+
 class IterationsInt:
     iterations = IntProperty(
         name = "Iterations",
@@ -763,7 +763,7 @@ class DazActiveGroup(bpy.types.PropertyGroup):
     active = BoolProperty(default = True)
 
 class DazCustomGroup(bpy.types.PropertyGroup):
-    prop = StringProperty()    
+    prop = StringProperty()
 
 class DazCategory(bpy.types.PropertyGroup):
     custom = StringProperty()

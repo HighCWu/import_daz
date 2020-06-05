@@ -1,4 +1,4 @@
-    # Copyright (c) 2016-2020, Thomas Larsson
+# Copyright (c) 2016-2020, Thomas Larsson
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -181,9 +181,9 @@ class Instance(Accessor, Channels):
 
 
     def preprocess(self, context):
-        for channel in self.channels.values(): 
+        for channel in self.channels.values():
             if "type" not in channel.keys():
-                continue                   
+                continue
             elif channel["type"] == "node" and "node" in channel.keys():
                 ref = channel["node"]
                 node = self.getAsset(ref)
@@ -213,23 +213,23 @@ class Instance(Accessor, Channels):
     def buildChannels(self, context):
         ob = self.rna
         if ob is None:
-            return        
-        for channel in self.channels.values(): 
+            return
+        for channel in self.channels.values():
             if self.ignoreChannel(channel):
                 continue
             value = getCurrentValue(channel)
             if channel["id"] == "Renderable":
-                if not value: 
+                if not value:
                     ob.hide_render = True
             elif channel["id"] == "Visible in Viewport":
-                if not value: 
+                if not value:
                     setattr(ob, HideViewport, True)
             elif channel["id"] == "Visible":
-                if not value: 
+                if not value:
                     ob.hide_render = True
                     setattr(ob, HideViewport, True)
             elif channel["id"] == "Selectable":
-                if not value: 
+                if not value:
                     ob.hide_select = True
             elif channel["id"] == "Visible in Simulation":
                 pass
@@ -246,7 +246,7 @@ class Instance(Accessor, Channels):
                 ("visible" in channel.keys() and not channel["visible"]))
 
 
-    def buildExtra(self, context):    
+    def buildExtra(self, context):
         if self.strand_hair:
             print("Strand-based hair is not implemented.")
             #return
@@ -259,9 +259,9 @@ class Instance(Accessor, Channels):
         elif self.isGroupNode:
             return
 
-        elif self.isNodeInstance:            
-            if not (self.node2 and 
-                    self.rna and 
+        elif self.isNodeInstance:
+            if not (self.node2 and
+                    self.rna and
                     self.rna.type == 'EMPTY' and
                     self.node2.rna):
                 print("Instance %s node2 %s not built" % (self.name, self.node2.name))
@@ -293,7 +293,7 @@ class Instance(Accessor, Channels):
                 self.duplicate(empty, refGroup)
             self.duplicate(self.rna, refGroup)
             self.node2.nodeInstances.append(self)
-                        
+
 
     def getInstanceGroup(self, ob):
         if bpy.app.version < (2,80,0):
@@ -311,8 +311,8 @@ class Instance(Accessor, Channels):
                         return group
                 return ob.instance_collection
         return None
-            
-    
+
+
     def duplicate(self, empty, group):
         if bpy.app.version < (2,80,0):
             empty.dupli_type = 'GROUP'
@@ -456,8 +456,8 @@ def printExtra(self, name):
     print(name, self.id)
     for extra in self.extra:
         print("  ", extra.keys())
-    
-    
+
+
 def findLayerCollection(layer, coll):
     if layer.collection == coll:
         return layer
@@ -466,7 +466,7 @@ def findLayerCollection(layer, coll):
         if clayer:
             return clayer
     return None
-            
+
 #-------------------------------------------------------------
 #   Node
 #-------------------------------------------------------------
@@ -573,7 +573,7 @@ class Node(Asset, Formula, Channels):
         if extra["type"] == "studio/node/strand_hair":
             self.strand_hair = extra["data"]
             print("STRAND")
-    
+
 
     Indices = { "x": 0, "y": 1, "z": 2 }
 
@@ -653,9 +653,9 @@ class Node(Asset, Formula, Channels):
         self.rna = inst.rna = ob
         self.arrangeObject(ob, inst, context, cscale, center)
         self.subdivideObject(ob, inst, context, cscale, center)
-        
-        
-    def arrangeObject(self, ob, inst, context, cscale, center):        
+
+
+    def arrangeObject(self, ob, inst, context, cscale, center):
         from .asset import normalizePath
         ob.rotation_mode = BlenderRotMode[self.rotDaz]
         ob.DazRotMode = self.rotDaz
@@ -671,7 +671,7 @@ class Node(Asset, Formula, Channels):
         ob.DazOrientation = inst.attributes["orientation"]
         self.subtractCenter(ob, inst, center)
 
-        
+
     def subtractCenter(self, ob, inst, center):
         ob.location = -center
         inst.center = center

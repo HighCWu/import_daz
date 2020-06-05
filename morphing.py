@@ -49,7 +49,7 @@ class DAZ_OT_SelectAll(bpy.types.Operator):
         for item in context.scene.DazSelector:
             item.select = True
         return {'PASS_THROUGH'}
-        
+
 
 class DAZ_OT_SelectNone(bpy.types.Operator):
     bl_idname = "daz.select_none"
@@ -60,22 +60,22 @@ class DAZ_OT_SelectNone(bpy.types.Operator):
         for item in context.scene.DazSelector:
             item.select = False
         return {'PASS_THROUGH'}
-        
+
 
 class Selector(B.FilterString):
     defaultSelect = False
-    
+
     def draw(self, context):
         scn = context.scene
         row = self.layout.row()
         row.operator("daz.select_all")
         row.operator("daz.select_none")
-        self.layout.prop(self, "filter", icon='VIEWZOOM', text="")       
-        self.drawExtra(context)     
+        self.layout.prop(self, "filter", icon='VIEWZOOM', text="")
+        self.drawExtra(context)
         self.layout.separator()
         items = [item for item in scn.DazSelector
-                    if self.selectCondition(item) and 
-                        self.filtered(item)]                                
+                    if self.selectCondition(item) and
+                        self.filtered(item)]
         items.sort()
         nitems = len(items)
         ncols = 6
@@ -95,14 +95,14 @@ class Selector(B.FilterString):
                     item = col[m]
                     row.prop(item, "select", text="")
                     row.label(text=item.text)
-                else:                    
+                else:
                     row.label(text="")
 
 
     def drawExtra(self, context):
         pass
-        
-        
+
+
     def selectCondition(self, item):
         return True
 
@@ -112,15 +112,15 @@ class Selector(B.FilterString):
 
 
     def getSelectedItems(self, scn):
-        return [item for item in scn.DazSelector 
-            if item.select and 
+        return [item for item in scn.DazSelector
+            if item.select and
             self.filtered(item) and
             self.selectCondition(item)]
 
 
     def getSelectedProps(self, scn):
         return [item.name for item in self.getSelectedItems(scn)]
-        
+
 
     def invokeDialog(self, context):
         wm = context.window_manager
@@ -129,8 +129,8 @@ class Selector(B.FilterString):
             ncols = 6
         wm.invoke_props_dialog(self, width=ncols*180)
         return {'RUNNING_MODAL'}
-    
-    
+
+
     def invoke(self, context, event):
         scn = context.scene
         scn.DazSelector.clear()
@@ -146,9 +146,9 @@ class Selector(B.FilterString):
 
 
 class StandardSelector(Selector, B.StandardAllEnums):
-    prefixes = {"All" : ["DzU", "DzE", "DzV", "DzP", "DzF"], 
-                "Units" : ["DzU"], 
-                "Expressions" : ["DzE"], 
+    prefixes = {"All" : ["DzU", "DzE", "DzV", "DzP", "DzF"],
+                "Units" : ["DzU"],
+                "Expressions" : ["DzE"],
                 "Visemes" : ["DzV"],
                 "Poses" : ["DzP"],
                 "Flexions" : ["DzF"]
@@ -156,11 +156,11 @@ class StandardSelector(Selector, B.StandardAllEnums):
 
     def selectCondition(self, item):
         return (item.name[0:3] in self.prefixes[self.type])
-     
+
     def draw(self, context):
         self.layout.prop(self, "type")
         Selector.draw(self, context)
-        
+
     def getKeys(self, context):
         rig = getRigFromObject(context.object)
         prefixes = self.prefixes[self.type]
@@ -175,7 +175,7 @@ class CustomSelector(Selector, B.CustomEnums):
 
     def selectCondition(self, item):
         return (self.custom == "All" or item.category == self.custom)
-     
+
     def draw(self, context):
         self.layout.prop(self, "custom")
         Selector.draw(self, context)
@@ -455,8 +455,8 @@ class LoadMorph(PropFormulas):
     def getAllMorphs(self, namepaths, context):
         import time
         from .asset import clearAssets
-        from .main import finishMain  
-        from .daz import clearDependecies      
+        from .main import finishMain
+        from .daz import clearDependecies
 
         scn = context.scene
         if self.mesh:
@@ -482,12 +482,12 @@ class LoadMorph(PropFormulas):
         missing = self.getPass(passidx, list(namepaths.items()), props, scn)
         others = self.buildOthers(missing)
         for prop in others:
-            setActivated(self.rig, prop, True)            
+            setActivated(self.rig, prop, True)
         missing = [key for key in missing.keys() if missing[key]]
         if missing:
             print("Failed to load the following %d morphs:\n%s\n" % (len(missing), missing))
         updateDrivers(self.rig)
-        updateDrivers(self.mesh)                       
+        updateDrivers(self.mesh)
         finishMain("Folder", folder, t1)
         if self.errors:
             print("but there were errors:")
@@ -518,8 +518,8 @@ class LoadMorph(PropFormulas):
             else:
                 print("-", name)
         return missing
-        
-        
+
+
     def propFromName(self, key):
         from .modifier import stripPrefix
         if self.prefix:
@@ -555,11 +555,11 @@ class LoadAllMorphs(LoadMorph):
                 addDrivers = True
         if not self.char:
             from .error import invokeErrorMessage
-            msg = ("Can not add morphs to this mesh:\n %s" % ob.name) 
+            msg = ("Can not add morphs to this mesh:\n %s" % ob.name)
             invokeErrorMessage(msg)
             return False
         return True
-        
+
 
     def getMorphFiles(self):
         try:
@@ -569,9 +569,9 @@ class LoadAllMorphs(LoadMorph):
 
 
     def getPaths(self, context):
-        return 
+        return
 
-        
+
     def run(self, context):
         scn = context.scene
         setupMorphPaths(scn, False)
@@ -587,9 +587,9 @@ class LoadAllMorphs(LoadMorph):
 #------------------------------------------------------------------------
 
 class StandardMorphSelector(Selector):
-                
+
     def getActiveMorphFiles(self, context):
-        return dict([(item.text,item.name) for item in self.getSelectedItems(context.scene)])        
+        return dict([(item.text,item.name) for item in self.getSelectedItems(context.scene)])
 
     def isActive(self, name, scn):
         return True
@@ -666,8 +666,8 @@ class DAZ_OT_ImportCorrectives(DazOperator, StandardMorphSelector, LoadAllMorphs
     usePropDrivers = False
     useBoneDrivers = True
     useStages = True
-    
-    
+
+
 class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_flexions"
     bl_label = "Import Flexions"
@@ -782,7 +782,7 @@ class DAZ_OT_RenameCategory(DazPropsOperator, B.CustomEnums, B.CategoryString, I
         cat.name = self.category
 
 
-def removeFromPropGroups(rig, prop, keep=False):             
+def removeFromPropGroups(rig, prop, keep=False):
     for pb in rig.pose.bones:
         removeFromPropGroup(pb.DazLocProps, prop)
         removeFromPropGroup(pb.DazRotProps, prop)
@@ -804,8 +804,8 @@ def removeFromPropGroup(pgrps, prop):
             idxs.append(n)
     idxs.reverse()
     for n in idxs:
-        pgrps.remove(n)            
-            
+        pgrps.remove(n)
+
 
 class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
     bl_idname = "daz.remove_categories"
@@ -931,15 +931,15 @@ def getActivated(rig, key, force=False):
     else:
         pg = getActivateGroup(rig, key)
         return pg.active
-        
+
 
 def getExistingActivateGroup(rig, key):
     if key in rig.DazActivated.keys():
         return rig.DazActivated[key]
     else:
         return None
-        
-        
+
+
 def getActivateGroup(rig, key):
     if key in rig.DazActivated.keys():
         return rig.DazActivated[key]
@@ -978,7 +978,7 @@ def prettifyAll(context):
                 if prop[0:7] == "DazShow":
                     setattr(bpy.types.Object, prop, BoolProperty(default=True))
                 elif prop[0:3] in ["Mhh", "DzM"]:
-                    setattr(bpy.types.Object, prop, BoolProperty(default=True))                            
+                    setattr(bpy.types.Object, prop, BoolProperty(default=True))
 
 
 class DAZ_OT_Prettify(DazOperator):
@@ -1163,7 +1163,7 @@ def unkeyMorphs(rig, type, prefix, scn, frame):
                     unkeyProp(rig, morph.prop, frame)
     else:
         for key in rig.keys():
-            if key[0:3] == prefix and getActivated(rig, key):            
+            if key[0:3] == prefix and getActivated(rig, key):
                 unkeyProp(rig, key, frame)
 
 
@@ -1206,7 +1206,7 @@ def updatePropLimits(rig, context):
                     skey.slider_max = max
 
     for prop in rig.keys():
-        if (prop in props or 
+        if (prop in props or
             (prop[0:2] == "Dz" and prop[0:3] != "DzA")):
             setFloatProp(rig, prop, rig[prop], min, max)
     updateScene(context)
@@ -1288,7 +1288,7 @@ class DAZ_OT_RemoveAllMorphDrivers(DazOperator, IsMeshArmature):
             if key[0:2] == "Dz":
                 ob[key] = 0.0
                 del ob[key]
-        
+
         for mtype in theMorphNames.keys():
             key = "Daz"+mtype
             if key in ob.keys():
@@ -1306,7 +1306,7 @@ class MorphRemover(B.DeleteShapekeysBool):
         scn = context.scene
         if rig:
             props = self.getSelectedProps(scn)
-            print("Remove", props)            
+            print("Remove", props)
             paths = ['["%s"]' % prop for prop in props]
             for ob in rig.children:
                 if ob.type == 'MESH' and ob.data.shape_keys:
@@ -1329,9 +1329,9 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, I
     bl_description = "Remove specific standard morphs and their associated drivers"
     bl_options = {'UNDO'}
 
-    shows = {"All" : ["DazUnits", "DazExpressions", "DazVisemes", "DazPoses", "DazFlexions"], 
-             "Units" : ["DazUnits"], 
-             "Expressions" : ["DazExpressions"], 
+    shows = {"All" : ["DazUnits", "DazExpressions", "DazVisemes", "DazPoses", "DazFlexions"],
+             "Units" : ["DazUnits"],
+             "Expressions" : ["DazExpressions"],
              "Visemes" : ["DazVisemes"],
              "Poses" : ["DazPoses"],
              "Flexions" : ["DazFlexions"]
@@ -1339,7 +1339,7 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, I
 
     def drawExtra(self, context):
         self.layout.prop(self, "deleteShapekeys")
-        
+
     def finalize(self, rig):
         return
         if self.selectAll:
@@ -1366,7 +1366,7 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMes
                 for cat in rig.DazMorphCats:
                     self.deleteCategory(rig, cat)
             else:
-                cat = rig.DazMorphCats[self.custom]                
+                cat = rig.DazMorphCats[self.custom]
                 self.deleteCategory(rig, cat)
 
 
@@ -1390,7 +1390,7 @@ class AddRemoveDriver:
                 self.handleShapekey(sname, rig, ob)
             updateDrivers(rig)
 
-        
+
     def invoke(self, context, event):
         context.scene.DazSelector.clear()
         ob = context.object
@@ -1413,7 +1413,7 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.Catego
         self.layout.prop(self, "category")
         Selector.draw(self, context)
 
-    def handleShapekey(self, sname, rig, ob):                    
+    def handleShapekey(self, sname, rig, ob):
         from .driver import makeShapekeyDriver
         skey = ob.data.shape_keys.key_blocks[sname]
         makeShapekeyDriver(ob, sname, skey.value, rig, sname)
@@ -1428,7 +1428,7 @@ class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, IsMes
     bl_description = "Remove rig drivers from shapekeys"
     bl_options = {'UNDO'}
 
-    def handleShapekey(self, sname, rig, ob):                    
+    def handleShapekey(self, sname, rig, ob):
         #skey = ob.data.shape_keys.key_blocks[sname]
         self.removeShapekeyDriver(ob, sname)
         rig = ob.parent
@@ -1657,9 +1657,9 @@ class MorphsToShapes:
         for n,item in enumerate(items):
             showProgress(n, nitems)
             key = item.name
-            mname = item.text            
+            mname = item.text
             rig[key] = 0.0
-            if (ob.data.shape_keys and 
+            if (ob.data.shape_keys and
                 mname in ob.data.shape_keys.key_blocks.keys()):
                 print("Skip", mname)
                 continue
@@ -1675,7 +1675,7 @@ class MorphsToShapes:
         updateScene(context)
         updateRig(rig, context)
         updateDrivers(rig)
-    
+
 
     def applyArmature(self, ob, rig, mod, mname):
         mod.name = mname
@@ -1693,7 +1693,7 @@ class MorphsToShapes:
             ob.active_shape_key_index = 0
         nmod = ob.modifiers.new(rig.name, "ARMATURE")
         nmod.object = rig
-        nmod.use_deform_preserve_volume = True   
+        nmod.use_deform_preserve_volume = True
         for i in range(len(ob.modifiers)-1):
             bpy.ops.object.modifier_move_up(modifier=nmod.name)
 
@@ -1721,10 +1721,10 @@ classes = [
     B.DazSelectGroup,
     B.DazCustomGroup,
     B.DazCategory,
-    
+
     DAZ_OT_SelectAll,
     DAZ_OT_SelectNone,
-    
+
     DAZ_OT_Update,
     DAZ_OT_SelectAllMorphs,
     DAZ_OT_ImportUnits,
@@ -1757,7 +1757,7 @@ classes = [
     DAZ_OT_LoadMoho,
     DAZ_OT_DeleteLipsync,
     DAZ_OT_ConvertStandardMorphsToShapes,
-    DAZ_OT_ConvertCustomMorphsToShapes,        
+    DAZ_OT_ConvertCustomMorphsToShapes,
 ]
 
 def initialize():
@@ -1766,7 +1766,7 @@ def initialize():
 
     bpy.types.Object.DazCustomMorphs = BoolProperty(default = False)
     bpy.types.Object.DazCustomPoses = BoolProperty(default = False)
-    
+
     bpy.types.Object.DazActivated = CollectionProperty(type = B.DazActiveGroup)
     bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory)
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
@@ -1783,5 +1783,5 @@ def initialize():
 def uninitialize():
     for cls in classes:
         bpy.utils.unregister_class(cls)
-    
-    
+
+

@@ -282,7 +282,7 @@ class DAZ_OT_ConvertRigPose(DazPropsOperator, B.NewRig):
         return (ob and ob.type == 'ARMATURE' and ob.DazRig[0:7] == "genesis")
 
     def draw(self, context):
-        self.layout.prop(self, "newRig")        
+        self.layout.prop(self, "newRig")
 
     def run(self, context):
         from .merge import applyRestPoses

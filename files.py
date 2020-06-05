@@ -73,7 +73,7 @@ class FileAsset(Asset):
             from .geometry import Geometry
             for gstruct in struct["geometry_library"]:
                 asset = self.parseTypedAsset(gstruct, Geometry)
-        
+
         if theSettings.useNodes and "node_library" in struct.keys():
             from .node import parseNode
             for nstruct in struct["node_library"]:

@@ -58,7 +58,7 @@ class Channels:
                 self.setChannel(data["channel"])
 
 
-    def setChannel(self, channel):                
+    def setChannel(self, channel):
         if ("visible" in channel.keys() and not channel["visible"]):
             return
         self.channels[channel["id"]] = channel
@@ -77,18 +77,18 @@ class Channels:
                             if isinstance(cstruct, dict) and "channel" in cstruct.keys():
                                 self.replaceChannel(cstruct["channel"])
             elif isinstance(data, dict) and "channel" in data.keys():
-                self.replaceChannel(data["channel"])        
+                self.replaceChannel(data["channel"])
 
 
     def setExtra(self, struct):
         pass
-        
+
 
     def replaceChannel(self, channel, key=None):
         if ("visible" in channel.keys() and not channel["visible"]):
             return
         if key is None:
-            key = channel["id"]        
+            key = channel["id"]
         if key in self.channels.keys():
             oldchannel = self.channels[key]
             self.channels[key] = channel
@@ -111,7 +111,7 @@ class Channels:
                     channel["visible"]):
                     return channel
         return None
-                            
+
 
     def equalChannels(self, other):
         for key,value in self.channels.items():
@@ -150,7 +150,7 @@ class Channels:
             print("Keys: %s" % list(channel.keys()))
         return default
 
-          
+
     def getImageFile(self, channel):
         if "image_file" in channel.keys():
             return channel["image_file"]

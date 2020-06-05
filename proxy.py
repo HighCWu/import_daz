@@ -1067,7 +1067,7 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
 
     def draw(self, context):
         self.layout.prop(self, "fraction")
-        
+
     def run(self, context):
         checkObjectMode(context)
         ob = context.object
@@ -1192,7 +1192,7 @@ def addMannequins(self, context):
     meshes = [ob for ob in objects if (getSelected(ob) and ob.type == 'MESH')]
     for ob in meshes:
         addMannequin(ob, context, rig, coll, mangrp, self.headType)
-        
+
     for ob in getSceneObjects(context):
         if ob in selected:
             setSelected(ob, True)
@@ -1244,7 +1244,7 @@ def addMannequin(ob, context, rig, coll, mangrp, headType):
                 print("Using shapekey %s for %s locations" % (skey.name, ob.name))
                 obverts = skey.data
                 vmax = skey.value
-    
+
     nobs = []
     for vgrp in ob.vertex_groups:
         if (vgrp.name not in rig.pose.bones.keys() or

@@ -111,7 +111,7 @@ class Driver:
         drv.expression = self.expression
         for var in self.variables:
             var.create(drv.variables.new())
-        
+
 
 class Variable:
     def __init__(self, var):
@@ -119,25 +119,25 @@ class Variable:
         self.name = var.name
         self.target = Target(var.targets[0])
 
-    def create(self, var):           
+    def create(self, var):
         var.name = self.name
         var.type = self.type
         self.target.create(var.targets[0])
-        
-        
+
+
 class Target:
     def __init__(self, trg):
         self.id = trg.id
         self.bone_target = trg.bone_target
         self.transform_type = trg.transform_type
         self.transform_space = trg.transform_space
-                          
+
     def create(self, trg):
         trg.id = self.id
         trg.bone_target = self.bone_target
         trg.transform_type = self.transform_type
         trg.transform_space = self.transform_space
-                          
+
 #-------------------------------------------------------------
 #
 #-------------------------------------------------------------
@@ -345,7 +345,7 @@ def makeShapekeyDriver(ob, sname, value, rig, prop, min=None, max=None):
     fcu.driver.type = 'SCRIPTED'
     fcu.driver.expression = "x"
     addDriverVar(fcu, "x", prop, rig)
-    
+
 
 def addVarToDriver(fcu, rig, prop, factor):
     if hasDriverVar(fcu, prop, rig):
@@ -365,14 +365,14 @@ def addVarToDriver(fcu, rig, prop, factor):
 #   Don't know whether to use custom attributes or custom props with RNA_UI
 #-------------------------------------------------------------
 
-def truncateProp(prop):    
+def truncateProp(prop):
     if len(prop) > 63:
         print('Truncate property "%s"' % prop)
         return prop[:63]
     else:
         return prop
 
-    
+
 def setFloatProp(ob, prop, value, min=None, max=None):
     value = float(value)
     min = float(min) if min is not None and theSettings.useDazPropLimits else theSettings.propMin
@@ -394,7 +394,7 @@ def setBoolProp(ob, prop, value, desc=""):
     if rna_ui is None:
         rna_ui = ob['_RNA_UI'] = {}
     rna_ui[prop] = { "min": 0, "max": 1 }
-    setattr(bpy.types.Object, prop, 
+    setattr(bpy.types.Object, prop,
         BoolProperty(default=value, description=desc))
     setattr(ob, prop, value)
     ob[prop] = value
@@ -402,7 +402,7 @@ def setBoolProp(ob, prop, value, desc=""):
         ob.property_overridable_library_set('["%s"]' % prop, True)
 
 #-------------------------------------------------------------
-#   
+#
 #-------------------------------------------------------------
 
 def addDriverVar(fcu, vname, dname, rig):
@@ -519,7 +519,7 @@ def getAllBoneDrivers(rig, bones):
                 fcus[bname] = []
             fcus[bname].append(fcu)
     return fcus
-    
+
 
 def storeBoneDrivers(rig, bones):
     fcus = getAllBoneDrivers(rig, bones)
@@ -527,7 +527,7 @@ def storeBoneDrivers(rig, bones):
     for bname in fcus.keys():
         drivers[bname] = []
         for fcu in fcus[bname]:
-            drivers[bname].append(Driver(fcu))            
+            drivers[bname].append(Driver(fcu))
     removeDriverFCurves(flatten(fcus.values()), rig)
     return drivers
 
@@ -537,8 +537,8 @@ def flatten(lists):
     for list in lists:
         flat.extend(list)
     return flat
-    
-    
+
+
 def restoreBoneDrivers(rig, drivers, suffix):
     for bname,bdrivers in drivers.items():
         for driver in bdrivers:
@@ -556,7 +556,7 @@ def removeDriverFCurves(fcus, rig):
             rig.driver_remove(fcu.data_path, fcu.array_index)
         except TypeError:
             pass
-    
+
 
 def removeRigDrivers(rig):
     if rig.animation_data is None:
@@ -605,7 +605,7 @@ def matchesPaths(var, paths, rig):
 #   Update button
 #----------------------------------------------------------
 
-def updateAll(context):            
+def updateAll(context):
     updateScene(context, updateDepsGraph=True)
     for ob in getSceneObjects(context):
         updateDrivers(ob)
@@ -791,7 +791,7 @@ class DAZ_OT_DisableDrivers(DazOperator):
     def poll(self, context):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and not ob.DazDriversDisabled)
-        
+
     def run(self, context):
         rig = context.object
         if rig and rig.animation_data:
@@ -799,7 +799,7 @@ class DAZ_OT_DisableDrivers(DazOperator):
             fcus = []
             for fcu in rig.animation_data.drivers:
                 words = fcu.data_path.split('"')
-                drv = fcu.driver                
+                drv = fcu.driver
                 if (words[0] == "pose.bones[" and
                     "evalMorphs" in drv.expression and
                     len(drv.variables) == 0):
@@ -823,7 +823,7 @@ class DAZ_OT_EnableDrivers(DazOperator):
     def poll(self, context):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and ob.DazDriversDisabled)
-        
+
     def run(self, context):
         rig = context.object
         if rig:
@@ -841,7 +841,7 @@ class DAZ_OT_EnableDrivers(DazOperator):
 
 classes = [
     B.DazDriverGroup,
-    
+
     DAZ_OT_RestoreDrivers,
     DAZ_OT_RemoveUnusedDrivers,
     DAZ_OT_RetargetDrivers,
