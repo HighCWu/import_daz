@@ -269,7 +269,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
     bl_label = "Make Hair"
     bl_description = "Make particle hair from mesh hair"
     bl_options = {'UNDO'}
-    
+
     def draw(self, context):
         self.layout.prop(self, "color")
         self.layout.prop(self, "resizeHair")
@@ -277,7 +277,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         self.layout.prop(self, "resizeInBlocks")
         self.layout.prop(self, "sparsity")
         self.layout.prop(self, "skullType")
-            
+
     def run(self, context):
         self.nonquads = []
         scn = context.scene
@@ -386,7 +386,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         if self.nonquads:
             #print("The following non-quad faces were ignored: %s" % self.nonquads)
             print("Ignored %d non-quad faces out of %d faces" % (len(self.nonquads), len(hair.data.polygons)))
-    
+
 
     def clearHair(self, hum, hair, color, scn):
         nsys = len(hum.particle_systems)
@@ -483,7 +483,7 @@ def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
             cset.mass = 0.05
             deflector = findDeflector(hum)
 
-        updateHair(context, hum)        
+        psys = updateHair(context, hum, psys)
         for m,hair in enumerate(psys.particles):
             verts = strands[m]
             hair.location = verts[0]
@@ -494,22 +494,23 @@ def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
                 v.co = verts[n]
                 #print("  ", n, verts[n], v.co)
                 pass
-        updateHair(context, hum)
-        setEditProperties(context, hum)    
+        psys = updateHair(context, hum, psys)
+        setEditProperties(context, hum)
 
 
-def updateHair(context, hum):        
-    if bpy.app.version < (2,80,0):        
+def updateHair(context, hum, psys):
+    if bpy.app.version < (2,80,0):
         bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
         bpy.ops.object.mode_set(mode='OBJECT')
+        return psys
     else:
         dg = context.evaluated_depsgraph_get()
-        psys = hum.evaluated_get(dg).particle_systems.active
+        return hum.evaluated_get(dg).particle_systems.active
 
 
 def setEditProperties(context, hum):
     scn = context.scene
-    activateObject(context, hum)    
+    activateObject(context, hum)
     bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
     pedit = scn.tool_settings.particle_edit
     pedit.use_emitter_deflect = False
@@ -616,7 +617,7 @@ class IsHair:
     def poll(self, context):
         ob = context.object
         return (ob and ob.type == 'MESH' and ob.particle_systems.active)
-            
+
 
 class DAZ_OT_UpdateHair(DazOperator, IsHair):
     bl_idname = "daz.update_hair"
@@ -633,13 +634,13 @@ class DAZ_OT_UpdateHair(DazOperator, IsHair):
         csettings = getSettings(psys0.cloth.settings)
         for idx,psys in enumerate(hum.particle_systems):
             if idx == idx0:
-                continue            
-            updateHair(context, hum)
+                continue
+            psys = updateHair(context, hum, psys)
             hum.particle_systems.active_index = idx
             setSettings(psys.settings, psettings)
             psys.use_hair_dynamics = hdyn0
             #setSettings(psys.cloth.settings, csettings)
-        updateHair(context, hum)
+        psys = updateHair(context, hum, psys)
         hum.particle_systems.active_index = idx0
 
 
