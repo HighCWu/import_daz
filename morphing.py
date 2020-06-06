@@ -1331,7 +1331,7 @@ class MorphRemover(B.DeleteShapekeysBool):
                                 ob.shape_key_remove(skey)
             for prop in props:
                 removeFromPropGroups(rig, prop)
-            self.finalize(rig)
+            self.finalize(rig, props)
             updateScene(context)
             updateRig(rig, context)
 
@@ -1353,14 +1353,8 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, I
     def drawExtra(self, context):
         self.layout.prop(self, "deleteShapekeys")
 
-    def finalize(self, rig):
+    def finalize(self, rig, props):
         return
-        if self.selectAll:
-            for show in self.shows[self.type]:
-                setattr(rig, show, "")
-            for ob in rig.children:
-                for show in self.shows[self.type]:
-                    setattr(ob, show, "")
 
 
 class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMeshArmature):
@@ -1372,22 +1366,17 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMes
     def drawExtra(self, context):
         self.layout.prop(self, "deleteShapekeys")
 
-    def finalize(self, rig):
-        return
-        if self.selectAll:
-            if self.custom == "All":
-                for cat in rig.DazMorphCats:
-                    self.deleteCategory(rig, cat)
-            else:
-                cat = rig.DazMorphCats[self.custom]
-                self.deleteCategory(rig, cat)
-
-
-    def deleteCategory(self, rig, cat):
-        for n,cat1 in enumerate(rig.DazMorphCats):
-            if cat == cat1:
-                rig.DazMorphCats.remove(n)
-                return
+    def finalize(self, rig, props):
+        for cat in rig.DazMorphCats:
+            for prop in props:
+                removeFromPropGroup(cat.morphs, prop)
+        removes = []
+        for cat in rig.DazMorphCats:
+            if len(cat.morphs) == 0:
+                removes.append(cat.name)
+        for catname in removes:
+            print("Remove category", catname)
+            removeFromPropGroup(rig.DazMorphCats, catname)
 
 #-------------------------------------------------------------
 #   Add and remove driver
