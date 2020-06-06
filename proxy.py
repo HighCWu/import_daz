@@ -1105,6 +1105,74 @@ class DAZ_OT_ApplyMorphs(DazOperator, IsMesh):
                 applyShapeKeys(ob)
 
 #-------------------------------------------------------------
+#   Apply subsurf modifier
+#-------------------------------------------------------------
+
+class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
+    bl_idname = "daz.apply_subsurf"
+    bl_label = "Apply Subsurf"
+    bl_description = "Apply subsurf modifier, maintaining shapekeys"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        checkObjectMode(context)
+        ob = context.object
+        modname = None
+        for mod in ob.modifiers:
+            if mod.type == 'SUBSURF':
+                modname = mod.name
+        if modname is None:
+            raise DazError("Object %s\n has no subsurface modifier.    " % ob.name)
+
+        startProgress("Apply Subsurf Modifier")
+        coords = []
+        if ob.data.shape_keys:
+            # Store shapekey coordinates
+            for skey in ob.data.shape_keys.key_blocks:
+                coord = [v.co.copy() for v in skey.data]
+                coords.append((skey.name, coord))
+
+            # Remove shapekeys
+            skeys = list(ob.data.shape_keys.key_blocks)
+            skeys.reverse()
+            for skey in skeys:
+                ob.shape_key_remove(skey)
+
+        # Duplicate object and apply subsurf modifier
+        activateObject(context, ob)
+        bpy.ops.object.duplicate()
+        nob = context.object
+        bpy.ops.object.modifier_apply(apply_as='DATA', modifier=modname)
+        nskeys = len(coords)
+
+        # For each shapekey, duplicate shapekey and apply subsurf modifier.
+        # Then create subsurfed shapekey
+        idx = 0
+        if coords:
+            nob.shape_key_add(name=coords[0][0])
+            for sname,coord in coords[1:]:
+                idx += 1
+                showProgress(idx, nskeys)
+                print("Copy shapekey", sname)
+                activateObject(context, ob)
+                bpy.ops.object.duplicate()
+                tob = context.object
+                verts = tob.data.vertices
+                for vn,co in enumerate(coord):
+                    verts[vn].co = co
+                bpy.ops.object.modifier_apply(apply_as='DATA', modifier=modname)
+                skey = nob.shape_key_add(name=sname)
+                for vn,v in enumerate(tob.data.vertices):
+                    skey.data[vn].co = v.co.copy()
+                activateObject(context, tob)
+                bpy.ops.object.delete(use_global=False)
+
+        # Delete original object and activate the subsurfed one
+        activateObject(context, ob)
+        bpy.ops.object.delete(use_global=False)
+        activateObject(context, nob)
+
+#-------------------------------------------------------------
 #   Print statistics
 #-------------------------------------------------------------
 
@@ -1313,24 +1381,6 @@ class DAZ_OT_AddMannequin(DazPropsOperator, IsMesh, B.Mannequin):
 #   Add push
 #-------------------------------------------------------------
 
-def addPush(context):
-    hasShapeKeys = []
-    for ob in getSceneObjects(context):
-        if getSelected(ob) and ob.type == 'MESH':
-            #applyShapeKeys(ob)
-            if ob.data.shape_keys:
-                hasShapeKeys.append(ob)
-            else:
-                basic = ob.shape_key_add(name="Basic")
-            skey = ob.shape_key_add(name="Push")
-            scale = ob.DazScale
-            for n,v in enumerate(ob.data.vertices):
-                skey.data[n].co += v.normal*scale
-    if hasShapeKeys:
-        msg = ("Push added to meshes with shapekeys:\n  " + "\n  ".join([ob.name for ob in hasShapeKeys]))
-        raise DazError(msg, True)
-
-
 class DAZ_OT_AddPush(DazOperator, IsMesh):
     bl_idname = "daz.add_push"
     bl_label = "Add Push"
@@ -1339,19 +1389,25 @@ class DAZ_OT_AddPush(DazOperator, IsMesh):
 
     def run(self, context):
         checkObjectMode(context)
-        addPush(context)
+        hasShapeKeys = []
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob.type == 'MESH':
+                #applyShapeKeys(ob)
+                if ob.data.shape_keys:
+                    hasShapeKeys.append(ob)
+                else:
+                    basic = ob.shape_key_add(name="Basic")
+                skey = ob.shape_key_add(name="Push")
+                scale = ob.DazScale
+                for n,v in enumerate(ob.data.vertices):
+                    skey.data[n].co += v.normal*scale
+        if hasShapeKeys:
+            msg = ("Push added to meshes with shapekeys:\n  " + "\n  ".join([ob.name for ob in hasShapeKeys]))
+            raise DazError(msg, True)
 
 #-------------------------------------------------------------
 #   Add subsurf
 #-------------------------------------------------------------
-
-def addSubsurf(context):
-    for ob in getSceneObjects(context):
-        if getSelected(ob) and ob.type == 'MESH':
-            mod = ob.modifiers.new('SUBSURF', 'SUBSURF')
-            mod.levels = 0
-            mod.render_levels = 1
-
 
 class DAZ_OT_AddSubsurf(DazOperator, IsMesh):
     bl_idname = "daz.add_subsurf"
@@ -1361,7 +1417,11 @@ class DAZ_OT_AddSubsurf(DazOperator, IsMesh):
 
     def run(self, context):
         checkObjectMode(context)
-        addSubsurf(context)
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob.type == 'MESH':
+                mod = ob.modifiers.new('SUBSURF', 'SUBSURF')
+                mod.levels = 0
+                mod.render_levels = 1
 
 #-------------------------------------------------------------
 #   Make deflection
@@ -1414,6 +1474,7 @@ classes = [
     DAZ_OT_FindSeams,
     DAZ_OT_SelectRandomStrands,
     DAZ_OT_ApplyMorphs,
+    DAZ_OT_ApplySubsurf,
     DAZ_OT_PrintStatistics,
     DAZ_OT_AddMannequin,
     DAZ_OT_AddPush,

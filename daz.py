@@ -300,7 +300,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.prop(scn, "DazShowMorphs", icon="RIGHTARROW", emboss=False)
         else:
             box.prop(scn, "DazShowMorphs", icon="DOWNARROW_HLT", emboss=False)
-            if ob.DazDriversDisabled:
+            if ob and ob.DazDriversDisabled:
                 box.label(text = "Face drivers disabled")
                 box.operator("daz.enable_drivers")
             else:
@@ -418,6 +418,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.prop(scn, "DazShowMesh", icon="RIGHTARROW", emboss=False)
         else:
             box.prop(scn, "DazShowMesh", icon="DOWNARROW_HLT", emboss=False)
+            box.operator("daz.apply_subsurf")
             box.operator("daz.fit_mesh_to_other")
             box.operator("daz.find_seams")
             box.operator("daz.prune_vertex_groups")
