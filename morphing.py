@@ -46,8 +46,8 @@ class DAZ_OT_SelectAll(bpy.types.Operator):
     bl_description = "Select all"
 
     def execute(self, context):
-        for item in context.scene.DazSelector:
-            item.select = True
+        global theSelector
+        theSelector.selectAll(context)
         return {'PASS_THROUGH'}
 
 
@@ -57,12 +57,12 @@ class DAZ_OT_SelectNone(bpy.types.Operator):
     bl_description = "Select none"
 
     def execute(self, context):
-        for item in context.scene.DazSelector:
-            item.select = False
+        global theSelector
+        theSelector.selectNone(context)
         return {'PASS_THROUGH'}
 
 
-class Selector(B.FilterString):
+class Selector(B.Selection):
     defaultSelect = False
 
     def draw(self, context):
@@ -73,9 +73,7 @@ class Selector(B.FilterString):
         self.layout.prop(self, "filter", icon='VIEWZOOM', text="")
         self.drawExtra(context)
         self.layout.separator()
-        items = [item for item in scn.DazSelector
-                    if self.selectCondition(item) and
-                        self.filtered(item)]
+        items = [item for item in self.selection if self.isSelected(item)]
         items.sort()
         nitems = len(items)
         ncols = 6
@@ -103,6 +101,22 @@ class Selector(B.FilterString):
         pass
 
 
+    def selectAll(self, context):
+        for item in self.selection:
+            if self.isSelected(item):
+                item.select = True
+
+
+    def selectNone(self, context):
+        for item in self.selection:
+            if self.isSelected(item):
+                item.select = False
+
+
+    def isSelected(self, item):
+        return (self.selectCondition(item) and self.filtered(item))
+
+
     def selectCondition(self, item):
         return True
 
@@ -112,10 +126,7 @@ class Selector(B.FilterString):
 
 
     def getSelectedItems(self, scn):
-        return [item for item in scn.DazSelector
-            if item.select and
-            self.filtered(item) and
-            self.selectCondition(item)]
+        return [item for item in self.selection if item.select and self.isSelected(item)]
 
 
     def getSelectedProps(self, scn):
@@ -123,8 +134,10 @@ class Selector(B.FilterString):
 
 
     def invokeDialog(self, context):
+        global theSelector
+        theSelector = self
         wm = context.window_manager
-        ncols = len(context.scene.DazSelector)//24 + 1
+        ncols = len(self.selection)//24 + 1
         if ncols > 6:
             ncols = 6
         wm.invoke_props_dialog(self, width=ncols*180)
@@ -133,10 +146,10 @@ class Selector(B.FilterString):
 
     def invoke(self, context, event):
         scn = context.scene
-        scn.DazSelector.clear()
+        self.selection.clear()
         for idx,data in enumerate(self.getKeys(context)):
             prop,text,cat = data
-            item = scn.DazSelector.add()
+            item = self.selection.add()
             item.name = prop
             item.text = text
             item.category = cat
@@ -600,12 +613,12 @@ class StandardMorphSelector(Selector):
     def invoke(self, context, event):
         global theMorphFiles
         scn = context.scene
-        scn.DazSelector.clear()
+        self.selection.clear()
         if not self.setupCharacter(context, True):
             return {'FINISHED'}
         setupMorphPaths(scn, False)
         for key,path in theMorphFiles[self.char][self.type].items():
-            item = scn.DazSelector.add()
+            item = self.selection.add()
             item.name = path
             item.text = key
             item.category = self.type
@@ -1392,12 +1405,11 @@ class AddRemoveDriver:
 
 
     def invoke(self, context, event):
-        context.scene.DazSelector.clear()
+        self.selection.clear()
         ob = context.object
-        scn = context.scene
         if ob.data.shape_keys:
             for skey in ob.data.shape_keys.key_blocks[1:]:
-                item = scn.DazSelector.add()
+                item = self.selection.add()
                 item.name = item.text = skey.name
                 item.select = False
         return self.invokeDialog(context)

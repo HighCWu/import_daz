@@ -425,7 +425,9 @@ class DazSelectGroup(bpy.types.PropertyGroup):
         return (self.text < other.text)
 
 
-class FilterString:
+class Selection:
+    selection : CollectionProperty(type = DazSelectGroup)
+
     filter : StringProperty(
         name = "Filter",
         description = "Show only items containing this string",
