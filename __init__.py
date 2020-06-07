@@ -80,6 +80,12 @@ import bpy
 importModules()
 
 #----------------------------------------------------------
+#   Import documented functions available for external scripting
+#----------------------------------------------------------
+
+from .error import getErrorMessage, setSilentMode
+
+#----------------------------------------------------------
 #   Register
 #----------------------------------------------------------
 

@@ -36,6 +36,12 @@ def clearErrorMessage():
 clearErrorMessage()
 
 def getErrorMessage():
+    """getErrorMessage()
+
+    Returns:
+    The error message from previous operator invokation if it raised
+    an error, or the empty string if the operator exited without errors.
+    """
     global theMessage
     return theMessage
 
@@ -45,6 +51,13 @@ def getSilentMode():
     return theSilentMode
 
 def setSilentMode(value):
+    """setSilentMode(value)
+
+    In silent mode, operators fail silently if they encounters an error.
+    This is useful for scripting.
+
+    value: True turns silent mode on, False turns it off.
+    """
     global theSilentMode
     theSilentMode = value
 
