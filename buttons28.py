@@ -693,6 +693,11 @@ class JsonFile:
     filter_glob : StringProperty(default="*.json", options={'HIDDEN'})
 
 
+class DbzFile:
+    filename_ext = ".dbz"
+    filter_glob : StringProperty(default="*.dbz;*.json", options={'HIDDEN'})
+
+
 class JsonExportFile(ExportHelper):
     filename_ext = ".json"
     filter_glob : StringProperty(default="*.json", options={'HIDDEN'})
