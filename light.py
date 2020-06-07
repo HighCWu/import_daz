@@ -125,16 +125,23 @@ class Light(Node):
             lamp.shadow_soft_size = height/2
             self.twosided = False
 
-        self.setLampProps(lamp, self.info, context)
+        if context.scene.render.engine in ["BLENDER_RENDER", "BLENDER_GAME"]:
+            self.setInternalProps(lamp)
+        else:
+            self.setCyclesProps(lamp)
         self.data = lamp
         Node.build(self, context, inst)
         inst.material.build(context)
 
 
-    def setLampProps(self, lamp, props, context):
-        if context.scene.render.engine not in ["BLENDER_RENDER", "BLENDER_GAME"]:
-            return
-        for key,value in props.items():
+    def setCyclesProps(self, lamp):
+        lamp.use_shadow = True
+        if hasattr(lamp, "use_contact_shadow"):
+            lamp.use_contact_shadow = True
+
+
+    def setInternalProps(self, lamp):
+        for key,value in self.info.items():
             if key == "intensity":
                 lamp.energy = value
             elif key == "shadow_type":
