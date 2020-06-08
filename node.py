@@ -713,14 +713,22 @@ def setParent(context, ob, rig, bname=None, update=True):
     if update:
         updateScene(context)
     if ob.parent != rig:
-        mat = ob.matrix_world.copy()
+        wmat = ob.matrix_world.copy()
         ob.parent = rig
         if bname:
             ob.parent_bone = bname
             ob.parent_type = 'BONE'
         else:
             ob.parent_type = 'OBJECT'
-        ob.matrix_world = mat
+        ob.matrix_world = wmat
+
+
+def reParent(context, ob, rig, update=False):
+    if ob.parent_type == 'BONE':
+        bname = ob.parent_bone
+    else:
+        bname = None
+    setParent(context, ob, rig, bname, update)
 
 
 def clearParent(ob):

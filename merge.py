@@ -436,13 +436,39 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
 #   Merge rigs
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
+def eliminateEmpties(context, rig):
+    deletes = []
+    for empty in rig.children:
+        if empty.type == 'EMPTY':
+            for ob in empty.children:
+                if ob.type == 'MESH':
+                    deletes.append(empty)
+                    wmat = ob.matrix_world.copy()
+                    if empty.parent_type == 'OBJECT':
+                        ob.parent = rig
+                        ob.parent_type = 'OBJECT'
+                        ob.matrix_world = wmat
+                    elif empty.parent_type == 'BONE':
+                        bone = rig.data.bones[empty.parent_bone]
+                        ob.parent = rig
+                        ob.parent_type = 'BONE'
+                        ob.parent_bone = empty.parent_bone
+                        ob.matrix_world = wmat
+                    else:
+                        raise DazError("Unknown parent type: %s %s" % (ob.name, empty.parent_type))
+                        halt
+    for empty in deletes:
+        deleteObject(context, empty)
+
+
+class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
     bl_idname = "daz.merge_rigs"
     bl_label = "Merge Rigs"
     bl_description = "Merge selected rigs to active rig"
     bl_options = {'UNDO'}
 
     def draw(self, context):
+        self.layout.prop(self, "useEliminateEmpties")
         self.layout.prop(self, "clothesLayer")
 
 
@@ -450,8 +476,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
         rig,subrigs = getSelectedRigs(context)
         theSettings.forAnimation(None, rig, context.scene)
         if rig is None:
-            print("No rigs to merge")
-            return
+            raise DazError("No rigs to merge")
         oldvis = list(rig.data.layers)
         rig.data.layers = 32*[True]
         try:
@@ -463,23 +488,22 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
 
     def mergeRigs(self, rig, subrigs, context):
         from .proxy import stripName
-        from .node import clearParent
+        from .node import clearParent, reParent
         scn = context.scene
 
-        meshes = []
-        for ob in getSceneObjects(context):
-            if ob.type in 'MESH':
-                if ob.data in meshes:
-                    ob.data = ob.data.copy()
-                else:
-                    meshes.append(ob.data)
-
         print("Merge rigs to %s:" % rig.name)
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        if self.useEliminateEmpties:
+            eliminateEmpties(context, rig)
+            for subrig in subrigs:
+                eliminateEmpties(context, subrig)
+
         adds = []
         removes = []
         if bpy.app.version < (2,80,0):
             for grp in bpy.data.groups:
-                if ob.name in grp.objects:
+                if rig.name in grp.objects:
                     adds.append(grp)
         else:
             mcoll = bpy.data.collections.new(name= rig.name + " Meshes")
@@ -493,6 +517,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
             if ob.type == 'MESH':
                 self.changeArmatureModifier(ob, rig, context)
                 self.addToGroups(ob, adds, removes)
+            elif ob.type == 'EMPTY':
+                reParent(context, ob, rig)
 
         self.mainBones = [bone.name for bone in rig.data.bones]
         for subrig in subrigs:
@@ -516,6 +542,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
                         ob.name = stripName(ob.name)
                         ob.data.name = stripName(ob.data.name)
                         ob.parent = rig
+                    elif ob.type == 'EMPTY':
+                        reParent(context, ob, rig)
 
                 subrig.parent = None
                 deleteObject(context, subrig)
@@ -541,8 +569,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.ClothesLayer):
 
 
     def changeArmatureModifier(self, ob, rig, context):
-        from .node import setParent
-        setParent(context, ob, rig)
+        from .node import reParent
+        reParent(context, ob, rig)
         if ob.parent_type != 'BONE':
             for mod in ob.modifiers:
                 if mod.type == "ARMATURE":
