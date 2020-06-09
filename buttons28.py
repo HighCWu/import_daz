@@ -353,11 +353,6 @@ class XYZ:
 #-------------------------------------------------------------
 
 class MergeRigs:
-    useEliminateEmpties : BoolProperty(
-        name = "Eliminate Empties",
-        description  = "Delete empties with mesh children, parenting the meshes to the rig instead",
-        default = True)
-
     clothesLayer : IntProperty(
         name = "Clothes Layer",
         description = "Bone layer used for extra bones when merging clothes",

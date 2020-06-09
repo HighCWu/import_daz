@@ -261,6 +261,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
         else:
             box.prop(scn, "DazShowCorrections", icon="DOWNARROW_HLT", emboss=False)
             box.operator("daz.merge_rigs")
+            box.operator("daz.eliminate_empties")
             box.operator("daz.merge_toes")
             box.operator("daz.add_extra_face_bones")
             box.operator("daz.make_all_bones_posable")

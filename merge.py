@@ -436,29 +436,43 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
 #   Merge rigs
 #-------------------------------------------------------------
 
-def eliminateEmpties(context, rig):
-    deletes = []
-    for empty in rig.children:
-        if empty.type == 'EMPTY':
-            for ob in empty.children:
-                if ob.type == 'MESH':
-                    deletes.append(empty)
-                    wmat = ob.matrix_world.copy()
-                    if empty.parent_type == 'OBJECT':
-                        ob.parent = rig
-                        ob.parent_type = 'OBJECT'
-                        ob.matrix_world = wmat
-                    elif empty.parent_type == 'BONE':
-                        bone = rig.data.bones[empty.parent_bone]
-                        ob.parent = rig
-                        ob.parent_type = 'BONE'
-                        ob.parent_bone = empty.parent_bone
-                        ob.matrix_world = wmat
-                    else:
-                        raise DazError("Unknown parent type: %s %s" % (ob.name, empty.parent_type))
-                        halt
-    for empty in deletes:
-        deleteObject(context, empty)
+class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
+    bl_idname = "daz.eliminate_empties"
+    bl_label = "Eliminate Empties"
+    bl_description = "Delete empties with mesh children, parenting the meshes to the rig instead"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        rig = context.object
+        deletes = []
+        for empty in rig.children:
+            if empty.type == 'EMPTY' and not isDuplicated(empty):
+                for ob in empty.children:
+                    if ob.type == 'MESH':
+                        deletes.append(empty)
+                        wmat = ob.matrix_world.copy()
+                        if empty.parent_type == 'OBJECT':
+                            ob.parent = rig
+                            ob.parent_type = 'OBJECT'
+                            ob.matrix_world = wmat
+                        elif empty.parent_type == 'BONE':
+                            bone = rig.data.bones[empty.parent_bone]
+                            ob.parent = rig
+                            ob.parent_type = 'BONE'
+                            ob.parent_bone = empty.parent_bone
+                            ob.matrix_world = wmat
+                        else:
+                            raise DazError("Unknown parent type: %s %s" % (ob.name, empty.parent_type))
+
+        for empty in deletes:
+            deleteObject(context, empty)
+
+
+def isDuplicated(ob):
+    if bpy.app.version < (2,80,0):
+        return (ob.dupli_type != 'NONE')
+    else:
+        return (ob.instance_type != 'NONE')
 
 
 class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
@@ -468,7 +482,6 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
     bl_options = {'UNDO'}
 
     def draw(self, context):
-        self.layout.prop(self, "useEliminateEmpties")
         self.layout.prop(self, "clothesLayer")
 
 
@@ -493,11 +506,6 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
 
         print("Merge rigs to %s:" % rig.name)
         bpy.ops.object.mode_set(mode='OBJECT')
-
-        if self.useEliminateEmpties:
-            eliminateEmpties(context, rig)
-            for subrig in subrigs:
-                eliminateEmpties(context, subrig)
 
         adds = []
         removes = []
@@ -874,6 +882,7 @@ classes = [
     DAZ_OT_MergeUVLayers,
     DAZ_OT_CopyPoses,
     DAZ_OT_MergeRigs,
+    DAZ_OT_EliminateEmpties,
     DAZ_OT_CopyBones,
     DAZ_OT_ApplyRestPoses,
     DAZ_OT_ReparentToes,
