@@ -522,12 +522,12 @@ class LoadMorph(PropFormulas):
             showProgress(idx, npaths)
             idx += 1
             props1,miss = self.getSingleMorph(name, path, scn)
-            if miss:
-                print("?", name)
-                missing[name] = True
-            elif props1:
+            if props1:
                 print("*", name)
                 props += props1
+            elif miss:
+                print("?", name)
+                missing[name] = True
             else:
                 print("-", name)
         return missing
@@ -669,7 +669,7 @@ class DAZ_OT_ImportPoseMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs,
 class DAZ_OT_ImportCorrectives(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_correctives"
     bl_label = "Import Correctives"
-    bl_description = "Import corrective morphs"
+    bl_description = "Import standard corrective morphs"
     bl_options = {'UNDO'}
 
     type = "Correctives"
@@ -699,7 +699,29 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.MultiFile, B.MorphStrings, IsMeshArmature):
+class ImportCustom(B.DazImageFile, B.MultiFile):
+
+    def invoke(self, context, event):
+        from .fileutils import getFolder
+        from .finger import getFingeredCharacter
+        self.rig, self.mesh, char = getFingeredCharacter(context.object)
+        folder = getFolder(self.mesh, context.scene, ["Morphs/", ""])
+        if folder is not None:
+            self.properties.filepath = folder
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    def getNamePaths(self):
+        from .fileutils import getMultiFiles
+        namepaths = {}
+        folder = ""
+        for path in getMultiFiles(self, ["duf", "dsf"]):
+            name = os.path.splitext(os.path.basename(path))[0]
+            namepaths[name] = path
+        return namepaths
+
+
+class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStrings, IsMeshArmature):
     bl_idname = "daz.import_custom_morphs"
     bl_label = "Import Custom Morphs"
     bl_description = "Import morphs from native DAZ files (*.duf, *.dsf)"
@@ -713,26 +735,8 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.MultiF
         self.layout.prop(self, "usePropDrivers")
         self.layout.prop(self, "catname")
 
-
-    def invoke(self, context, event):
-        from .fileutils import getFolder
-        from .finger import getFingeredCharacter
-        self.rig, self.mesh, char = getFingeredCharacter(context.object)
-        folder = getFolder(self.mesh, context.scene, ["Morphs/", ""])
-        if folder is not None:
-            self.properties.filepath = folder
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
     def run(self, context):
-        from .driver import setBoolProp
-        from .fileutils import getMultiFiles
-        namepaths = {}
-        folder = ""
-        for path in getMultiFiles(self, ["duf", "dsf"]):
-            name = os.path.splitext(os.path.basename(path))[0]
-            namepaths[name] = path
+        namepaths = self.getNamePaths()
         props = self.getAllMorphs(namepaths, context)
         addToCategories(self.rig, props, self.catname)
         if self.rig:
@@ -741,6 +745,26 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.MultiF
             setBoolProp(self.mesh, self.custom, True)
         if self.errors:
             raise DazError(theLimitationsMessage)
+
+
+class DAZ_OT_ImportCustomCorrectives(DazOperator, LoadMorph, ImportCustom, IsMeshArmature):
+    bl_idname = "daz.import_custom_correctives"
+    bl_label = "Import Custom Correctives"
+    bl_description = "Import corrective morphs from native DAZ files (*.duf, *.dsf)"
+    bl_options = {'UNDO'}
+
+    type = "Correctives"
+    prefix = "DzN"
+    useShapekeysOnly = True
+    useSoftLimits = False
+    usePropDrivers = False
+    useBoneDrivers = True
+    useStages = True
+    custom = "DazCustomCorrectives"
+
+    def run(self, context):
+        namepaths = self.getNamePaths()
+        self.getAllMorphs(namepaths, context)
 
 #------------------------------------------------------------------------
 #   Categories
@@ -1743,6 +1767,7 @@ classes = [
     #DAZ_OT_ImportStandardMorphs,
     DAZ_OT_ImportCustomMorphs,
     DAZ_OT_ImportCorrectives,
+    DAZ_OT_ImportCustomCorrectives,
     DAZ_OT_RenameCategory,
     DAZ_OT_RemoveCategories,
     DAZ_OT_Prettify,
