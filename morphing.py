@@ -820,11 +820,14 @@ def removeFromPropGroup(pgrps, prop):
         pgrps.remove(n)
 
 
-class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
+class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature, B.DeleteShapekeysBool):
     bl_idname = "daz.remove_categories"
     bl_label = "Remove Categories"
     bl_description = "Remove selected categories and associated drivers"
     bl_options = {'UNDO'}
+
+    def drawExtra(self, context):
+        self.layout.prop(self, "deleteShapekeys")
 
     def run(self, context):
         from .driver import removePropDrivers
@@ -843,6 +846,10 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
                     if ob.type == 'MESH':
                         if removePropDrivers(ob.data.shape_keys, path, rig):
                             keep = True
+                        if self.deleteShapekeys and ob.data.shape_keys:
+                            if pg.prop in ob.data.shape_keys.key_blocks.keys():
+                                skey = ob.data.shape_keys.key_blocks[pg.prop]
+                                ob.shape_key_remove(skey)
                 if pg.prop in rig.keys():
                     removeFromPropGroups(rig, pg.prop, keep)
             rig.DazMorphCats.remove(idx)
