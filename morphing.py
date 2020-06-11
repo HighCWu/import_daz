@@ -666,10 +666,10 @@ class DAZ_OT_ImportPoseMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs,
     prefix = "DzP"
 
 
-class DAZ_OT_ImportCorrectives(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
-    bl_idname = "daz.import_correctives"
-    bl_label = "Import Correctives"
-    bl_description = "Import standard corrective morphs"
+class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+    bl_idname = "daz.import_standard_jcms"
+    bl_label = "Import Standard JCMs"
+    bl_description = "Import standard joint corrective morphs"
     bl_options = {'UNDO'}
 
     type = "Correctives"
@@ -747,10 +747,10 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
             raise DazError(theLimitationsMessage)
 
 
-class DAZ_OT_ImportCustomCorrectives(DazOperator, LoadMorph, ImportCustom, IsMeshArmature):
-    bl_idname = "daz.import_custom_correctives"
-    bl_label = "Import Custom Correctives"
-    bl_description = "Import corrective morphs from native DAZ files (*.duf, *.dsf)"
+class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMeshArmature):
+    bl_idname = "daz.import_custom_jcms"
+    bl_label = "Import Custom JCMs"
+    bl_description = "Import joint corrective morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
 
     type = "Correctives"
@@ -1766,8 +1766,8 @@ classes = [
     DAZ_OT_ImportFlexions,
     #DAZ_OT_ImportStandardMorphs,
     DAZ_OT_ImportCustomMorphs,
-    DAZ_OT_ImportCorrectives,
-    DAZ_OT_ImportCustomCorrectives,
+    DAZ_OT_ImportStandardJCMs,
+    DAZ_OT_ImportCustomJCMs,
     DAZ_OT_RenameCategory,
     DAZ_OT_RemoveCategories,
     DAZ_OT_Prettify,
