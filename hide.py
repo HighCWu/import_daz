@@ -327,20 +327,31 @@ class DAZ_OT_CreateSelectedMasks(DazOperator, IsMesh):
 #   Create collections
 #----------------------------------------------------------
 
-class DAZ_OT_CreateCollections(DazOperator):
+class DAZ_OT_CreateCollections(DazPropsOperator, B.NameString):
     bl_idname = "daz.create_collections"
     bl_label = "Create Collections"
-    bl_description = "Create collections for each empty in scene"
+    bl_description = "Create collections for selected objects"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "name")
+
     def run(self, context):
+        newcoll = bpy.data.collections.new(self.name)
         coll = context.collection
-        for ob in list(coll.objects):
-            if ob.type == 'EMPTY':
-                subcoll = bpy.data.collections.new(ob.name)
-                coll.children.link(subcoll)
-                coll.objects.unlink(ob)
-                subcoll.objects.link(ob)
+        coll.children.link(newcoll)
+        for ob in coll.objects:
+            if ob.select_get():
+                if ob.type == 'EMPTY':
+                    subcoll = bpy.data.collections.new(ob.name)
+                    newcoll.children.link(subcoll)
+                    ob.hide_select = True
+                    subcoll.objects.link(ob)
+                    coll.objects.unlink(ob)
+                else:
+                    ob.show_in_front = True
+                    newcoll.objects.link(ob)
+                    coll.objects.unlink(ob)
 
 #----------------------------------------------------------
 #   Initialize
