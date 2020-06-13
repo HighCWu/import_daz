@@ -340,11 +340,15 @@ class DAZ_OT_CreateCollections(DazPropsOperator, B.NameString):
         newcoll = bpy.data.collections.new(self.name)
         coll = context.collection
         coll.children.link(newcoll)
+        meshcoll = None
         for ob in coll.objects:
             if ob.select_get():
                 if ob.type == 'EMPTY':
+                    if meshcoll is None:
+                        meshcoll = bpy.data.collections.new(self.name + " Meshes")
+                        newcoll.children.link(meshcoll)
                     subcoll = bpy.data.collections.new(ob.name)
-                    newcoll.children.link(subcoll)
+                    meshcoll.children.link(subcoll)
                     ob.hide_select = True
                     subcoll.objects.link(ob)
                     coll.objects.unlink(ob)
