@@ -69,8 +69,6 @@ class PbrTree(CyclesTree):
         self.buildOverlay()
         if self.material.dualLobeWeight > 0:
             self.buildDualLobe()
-            self.links.new(self.active.outputs[0], self.dualLobe.inputs["Shader"])
-            self.active = self.dualLobe
             self.pbr.inputs["Specular"].default_value = 0
             self.removeLink(self.pbr, "Specular")
         if self.material.refractive:

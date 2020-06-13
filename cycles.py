@@ -168,9 +168,7 @@ class CyclesTree:
         self.diffuseTex = None
         self.glossyColor = WHITE
         self.glossyTex = None
-        self.glossy = None
         self.fresnel = None
-        self.dualLobe = None
         self.normal = None
         self.texco = None
         self.texcos = {}
@@ -302,10 +300,9 @@ class CyclesTree:
         elif self.material.dualLobeWeight == 0:
             self.buildGlossy()
         else:
-            self.buildDualLobe()
             self.buildGlossy()
+            self.buildDualLobe()
         self.buildRefraction()
-        self.linkGlossy()
         self.buildTopCoat()
         self.buildEmission(scn)
         return self.active
@@ -563,31 +560,34 @@ class CyclesTree:
 
     def buildDualLobe(self):
         from .cgroup import DualLobeGroup
-        self.dualLobe = self.addGroup(DualLobeGroup, "DAZ Dual Lobe", 7)
+        node = self.addGroup(DualLobeGroup, "DAZ Dual Lobe", 7)
 
         value,tex = self.getColorTex(["Dual Lobe Specular Weight"], "NONE", 0.5, False)
-        self.dualLobe.inputs["Weight"].default_value = value
+        node.inputs["Weight"].default_value = value
         if tex:
             wttex = self.multiplyScalarTex(value, tex)
             if wttex:
-                self.links.new(wttex.outputs[0], self.dualLobe.inputs["Weight"])
+                self.links.new(wttex.outputs[0], node.inputs["Weight"])
 
         value,tex = self.getColorTex(["Dual Lobe Specular Reflectivity"], "NONE", 0.5, False)
-        self.dualLobe.inputs["IOR"].default_value = 1.1 + 0.7*value
+        node.inputs["IOR"].default_value = 1.1 + 0.7*value
         if tex:
             iortex = self.multiplyAddScalarTex(0.7*value, 1.1, tex)
-            self.links.new(iortex.outputs[0], self.dualLobe.inputs["IOR"])
+            self.links.new(iortex.outputs[0], node.inputs["IOR"])
 
         value,tex = self.getColorTex(["Specular Lobe 1 Roughness"], "NONE", 0.0, False)
-        self.setRoughness(self.dualLobe, "Roughness 1", value, tex)
+        self.setRoughness(node, "Roughness 1", value, tex)
 
         value,tex = self.getColorTex(["Specular Lobe 2 Roughness"], "NONE", 0.0, False)
-        self.setRoughness(self.dualLobe, "Roughness 2", value, tex)
+        self.setRoughness(node, "Roughness 2", value, tex)
 
         fac = self.getValue(["Dual Lobe Specular Ratio"], 1.0)
-        self.dualLobe.inputs["Fac"].default_value = fac
+        node.inputs["Fac"].default_value = fac
 
-        self.linkNormal(self.dualLobe)
+        # Don't link normal to dual node, to avoid problems with seams
+        # self.linkNormal(node)
+        self.links.new(self.active.outputs[0], node.inputs["Shader"])
+        self.active = node
         theSettings.usedFeatures["Glossy"] = True
 
 
@@ -595,12 +595,12 @@ class CyclesTree:
         color,tex = self.getGlossyColor()
         if isBlack(color):
             return
-        self.glossy = self.addNode(5, "ShaderNodeBsdfGlossy")
-        self.glossy.inputs["Color"].default_value[0:3] = color
+        glossy = self.addNode(5, "ShaderNodeBsdfGlossy")
+        glossy.inputs["Color"].default_value[0:3] = color
         if tex:
-            self.links.new(tex.outputs[0], self.glossy.inputs[0])
+            self.links.new(tex.outputs[0], glossy.inputs[0])
 
-        #   self.glossy bsdf roughness = iray self.glossy roughness ^ 2
+        #   glossy bsdf roughness = iray glossy roughness ^ 2
         channel,invert = self.material.getChannelGlossiness()
         invert = not invert             # roughness = invert glossiness
         value = clamp( self.material.getChannelValue(channel, 0.0) )
@@ -612,8 +612,8 @@ class CyclesTree:
         if bpy.app.version < (2,80):
             roughness = roughness**2
             value = value**2
-        roughtex = self.addSlot(channel, self.glossy, "Roughness", roughness, value, invert)
-        self.linkNormal(self.glossy)
+        roughtex = self.addSlot(channel, glossy, "Roughness", roughness, value, invert)
+        self.linkNormal(glossy)
 
         from .cgroup import FresnelGroup
         fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 5)
@@ -628,35 +628,6 @@ class CyclesTree:
         self.fresnel = fresnel
         theSettings.usedFeatures["Glossy"] = True
 
-
-    def getFresnelIOR(self):
-        #   fresnel ior = 1.1 + iray self.glossy reflectivity * 0.7
-        #   fresnel ior = 1.1 + iray self.glossy specular / 0.078
-        ior = 1.45
-        iortex = None
-        if self.material.shader == 'IRAY':
-            if self.material.basemix == 0:    # Metallic/Roughness
-                value,tex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0, False)
-                factor = 0.7 * value
-            elif self.material.basemix == 1:  # Specular/Glossiness
-                color,tex = self.getColorTex("getChannelGlossySpecular", "COLOR", WHITE, False)
-                factor = 0.7 * averageColor(color) / 0.078
-            ior = 1.1 + factor
-            if tex:
-                iortex = self.multiplyAddScalarTex(factor, 1.1, tex)
-        return ior, iortex
-
-
-    def linkGlossy(self):
-        if self.dualLobe:
-            self.links.new(self.active.outputs[0], self.dualLobe.inputs["Shader"])
-            if self.glossy:
-                mix = self.addMixShader(6, 0.5, None, None, self.fresnel, self.active, self.glossy)
-                self.active = self.addMixShader(6, self.material.dualLobeWeight, None, None, None, mix, self.dualLobe)
-            else:
-                self.active = self.dualLobe
-            return
-
         if self.active and self.refraction:
             channel = self.material.getChannelRefractionStrength()
             strength = self.material.getChannelValue(channel, 0.0)
@@ -670,7 +641,25 @@ class CyclesTree:
             print("No node")
             print(self.material)
             node = None
-        self.active = self.addMixShader(6, 0.5, None, None, self.fresnel, node, self.glossy)
+        self.active = self.addMixShader(6, 0.5, None, None, self.fresnel, node, glossy)
+
+
+    def getFresnelIOR(self):
+        #   fresnel ior = 1.1 + iray glossy reflectivity * 0.7
+        #   fresnel ior = 1.1 + iray glossy specular / 0.078
+        ior = 1.45
+        iortex = None
+        if self.material.shader == 'IRAY':
+            if self.material.basemix == 0:    # Metallic/Roughness
+                value,tex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0, False)
+                factor = 0.7 * value
+            elif self.material.basemix == 1:  # Specular/Glossiness
+                color,tex = self.getColorTex("getChannelGlossySpecular", "COLOR", WHITE, False)
+                factor = 0.7 * averageColor(color) / 0.078
+            ior = 1.1 + factor
+            if tex:
+                iortex = self.multiplyAddScalarTex(factor, 1.1, tex)
+        return ior, iortex
 
 #-------------------------------------------------------------
 #   Top Coat
