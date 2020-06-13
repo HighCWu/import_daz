@@ -155,10 +155,10 @@ function doMesh (fp, obj, start, node, str1, str2)
         
     var geom = obj.getCachedGeom();
     if (geom == null)
-        return false;
+    	return endMesh(fp, str1, str2);
     var mesh = shape.getFacetMesh( false );
     if (mesh == null)
-        return false;
+    	return endMesh(fp, str1, str2);
 
     writeMaterials(shape);
     writeUVs(mesh, "");
@@ -169,6 +169,13 @@ function doMesh (fp, obj, start, node, str1, str2)
     fp.writeLine(str2)    
     lodctrl.setValue(lodvalue);    
     return true;
+}
+
+function endMesh(fp, str1, str2)
+{
+    fp.writeLine("        \"dummy\": 0")
+    fp.writeLine(str2);
+    return false;
 }
 
 function writeMaterials(shape)

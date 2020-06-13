@@ -97,7 +97,6 @@ class GeoNode(Node):
 
 
     def subdivideObject(self, ob, inst, context, cscale, center):
-        from .material import copyMaterials
         if self.highdef:
             verts = self.highdef.verts
             uvs = self.highdef.uvs
@@ -115,7 +114,9 @@ class GeoNode(Node):
                 f.material_index = mnums[f.index]
                 f.use_smooth = True
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
-            copyMaterials(ob, hdob)
+            for mat in ob.data.materials:
+                print("APP", mat.name)
+                hdob.data.materials.append(mat)
             self.arrangeObject(hdob, inst, context, cscale, center)
             self.hdobject = hdob
 
