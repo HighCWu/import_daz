@@ -270,6 +270,19 @@ class SlotString:
 class UseInternalBool:
     useInternal : BoolProperty(default=True)
 
+
+class CopyMaterials:
+    useMatchNames : BoolProperty(
+        name = "Match Names",
+        description = "Match materials based on names rather than material number",
+        default = False)
+
+    errorMismatch : BoolProperty(
+        name = "Error On Mismatch",
+        description = "Raise an error if the number of source and target materials are different",
+        default = True)
+
+
 class ResizeOptions:
     steps : IntProperty(
         name = "Steps",
