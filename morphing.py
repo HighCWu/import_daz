@@ -736,6 +736,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
         self.layout.prop(self, "catname")
 
     def run(self, context):
+        from .driver import setBoolProp
         namepaths = self.getNamePaths()
         props = self.getAllMorphs(namepaths, context)
         addToCategories(self.rig, props, self.catname)
@@ -811,7 +812,6 @@ class DAZ_OT_RenameCategory(DazPropsOperator, B.CustomEnums, B.CategoryString, I
        self.layout.prop(self, "category", text="New Name")
 
     def run(self, context):
-        from .driver import setBoolProp
         rig = context.object
         if self.custom == "All":
             raise DazError("Cannot rename all categories")
@@ -949,7 +949,6 @@ def removeDrivingProps(rig, props):
 
 class Activator(B.PrefixString, B.TypeString):
     def run(self, context):
-        from .driver import setBoolProp
         rig = getRigFromObject(context.object)
         keys = getRelevantMorphs(rig, self.type, self.prefix)
         if self.type == "CUSTOM":
