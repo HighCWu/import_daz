@@ -131,6 +131,7 @@ def getMainAsset(filepath, context, btn):
         msg = ("Some assets were not found.\n" +
                "Check that all Daz paths have been set up correctly.        \n" +
                "For details see\n'%s'" % getErrorPath())
+        print(msg)
         raise DazError(msg, warning=True)
 
     from .material import checkRenderSettings

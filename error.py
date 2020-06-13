@@ -170,7 +170,7 @@ def getMissingAssets():
     if not theSettings.missingAssets:
         return ""
     string = "\nMISSING ASSETS:\n"
-    for ref in theSettings.missingAssets:
+    for ref in theSettings.missingAssets.keys():
         string += ("  %s\n" % ref)
     return string
 

@@ -57,7 +57,7 @@ class Settings:
         self.renderMethod = 'PBR'
         self.fps = 30
         self.integerFrames = True
-        self.missingAssets = []
+        self.missingAssets = {}
 
         self.collection = None
         self.refGroups = None
@@ -92,7 +92,7 @@ class Settings:
         self.refGroups = None
         self.fps = 30
         self.integerFrames = True
-        self.missingAssets = []
+        self.missingAssets = {}
 
 
     def __repr__(self):

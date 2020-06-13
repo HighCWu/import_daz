@@ -129,7 +129,7 @@ class Accessor:
             reportError(msg, warnPaths=True, trigger=(3,4))
             return None
 
-        theSettings.missingAssets.append(ref)
+        theSettings.missingAssets[ref] = True
         if strict and theSettings.useStrict:
             msg =("Missing asset:\n  '%s'\n" % ref +
                   "Fileref\n   %s\n" % fileref +
@@ -577,7 +577,7 @@ def getDazPath(ref):
             print("Found", filepath)
         return filepath
 
-    theSettings.missingAssets.append(ref)
+    theSettings.missingAssets[ref] = True
     msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (filepath, ref))
     reportError(msg, trigger=(3,4))
     return None
