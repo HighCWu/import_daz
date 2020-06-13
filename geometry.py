@@ -115,8 +115,16 @@ class GeoNode(Node):
                 f.use_smooth = True
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
             for mat in ob.data.materials:
-                print("APP", mat.name)
                 hdob.data.materials.append(mat)
+
+            if self.data.vertex_pairs:
+                # Geograft
+                inst = list(self.figure.instances.values())[0]
+                par = inst.parent.geometries[0]
+                if par and par.hdobject:
+                    for mat in ob.data.materials:
+                        par.hdobject.data.materials.append(mat)
+
             self.arrangeObject(hdob, inst, context, cscale, center)
             self.hdobject = hdob
 
