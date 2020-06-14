@@ -113,26 +113,27 @@ class GeoNode(Node):
             for f in me.polygons:
                 f.material_index = mnums[f.index]
                 f.use_smooth = True
-            hdob = bpy.data.objects.new(ob.name + "_HD", me)
-            for mat in ob.data.materials:
-                hdob.data.materials.append(mat)
-
-            if self.data.vertex_pairs:
-                # Geograft
-                inst = list(self.figure.instances.values())[0]
-                par = inst.parent.geometries[0]
-                if par and par.hdobject:
-                    for mat in ob.data.materials:
-                        par.hdobject.data.materials.append(mat)
-
-            self.arrangeObject(hdob, inst, context, cscale, center)
-            self.hdobject = hdob
+            self.hdobject = bpy.data.objects.new(ob.name + "_HD", me)
+            self.addHDMaterials(ob.data.materials)
+            self.arrangeObject(self.hdobject, inst, context, cscale, center)
 
         if (self.type == "subdivision_surface" and
               (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
             mod = ob.modifiers.new(name='SUBSURF', type='SUBSURF')
             mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
             mod.levels = self.data.SubDIALevel
+
+
+    def addHDMaterials(self, mats):
+        for mat in mats:
+            print("ADDHD", self.hdobject.name, mat.name)
+            self.hdobject.data.materials.append(mat)
+        if self.data.vertex_pairs:
+            # Geograft
+            inst = list(self.figure.instances.values())[0]
+            par = inst.parent.geometries[0]
+            if par and par.hdobject:
+                par.addHDMaterials(mats)
 
 
     def stripNegatives(self, faces):

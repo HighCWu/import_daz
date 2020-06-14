@@ -163,7 +163,7 @@ class Formula:
         else:
             bname1 = getTargetName(bname, rig.pose.bones)
             if bname1 is None:
-                print("Missing bone:", bname)
+                print("Missing bone (evalFormula):", bname)
                 return False
             else:
                 bname = bname1
@@ -354,7 +354,7 @@ def buildSingleShapeFormula(expr, rig, ob, skey):
         if bname in BoneAlternatives.keys():
             bname = BoneAlternatives[bname]
         else:
-            print("Missing bone:", bname)
+            print("Missing bone (buildSingleShapeFormula):", bname)
             return False
     makeSomeBoneDriver(expr, skey, "value", rig, ob, bname, -1)
     return True

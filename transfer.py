@@ -80,8 +80,9 @@ class MorphTransferer(Selector, B.TransferOptions):
             hum.active_shape_key_index = 0
         clo.active_shape_key_index = 0
 
-        nitems = len(scn.DazSelector)
-        for idx,item in enumerate(self.getSelectedItems(scn)):
+        items = self.getSelectedItems(scn)
+        nitems = len(items)
+        for idx,item in enumerate(items):
             showProgress(idx, nitems)
             sname = item.name
             hskey = hskeys.key_blocks[sname]

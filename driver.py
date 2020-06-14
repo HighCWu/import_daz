@@ -752,7 +752,7 @@ def copyBoneDrivers(rig1, rig2):
                 words[0] == "pose.bones["):
                 bname = words[1]
                 if bname not in rig2.data.bones.keys():
-                    print("Missing bone:", bname)
+                    print("Missing bone (copyBoneDrivers):", bname)
                     continue
                 copyDriver(fcu, rig2, id=rig2)
 
