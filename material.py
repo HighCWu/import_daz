@@ -1185,16 +1185,39 @@ class DAZ_OT_CopyMaterials(DazPropsOperator, IsMesh, B.CopyMaterials):
 #   Resize textures
 # ---------------------------------------------------------------------
 
-class ChangeResolution:
+class ChangeResolution(B.ResizeOptions):
     def __init__(self):
         self.filenames = []
         self.images = {}
 
+    def draw(self, context):
+        self.layout.prop(self, "steps")
+        self.layout.prop(self, "useBmp")
+        self.layout.prop(self, "useJpeg")
+        self.layout.prop(self, "usePng")
+        self.layout.prop(self, "useTiff")
+
 
     def getFileNames(self, paths):
         for path in paths:
-            fname = bpy.path.basename(self.getBasePath(path))
-            self.filenames.append(fname)
+            if self.affectExtension(path):
+                fname = bpy.path.basename(self.getBasePath(path))
+                self.filenames.append(fname)
+
+
+    def affectExtension(self, path):
+        ext = os.path.splitext(path)[1].lower()
+        if ext == ".bmp":
+            return self.useBmp
+        elif ext in [".jpg", ".jpeg"]:
+            return self.useJpeg
+        elif ext == ".png":
+            return self.usePng
+        elif ext in [".tif", ".tiff"]:
+            return self.useTiff
+        else:
+            print("Unknown file extension", ext)
+            return False
 
 
     def replaceTextures(self, context):
@@ -1286,7 +1309,7 @@ class ChangeResolution:
         return newname, newpath
 
 
-class DAZ_OT_ChangeResolution(DazOperator, B.ResizeOptions, ChangeResolution):
+class DAZ_OT_ChangeResolution(DazOperator, ChangeResolution):
     bl_idname = "daz.change_resolution"
     bl_label = "Change Resolution"
     bl_description = (
@@ -1297,9 +1320,6 @@ class DAZ_OT_ChangeResolution(DazOperator, B.ResizeOptions, ChangeResolution):
     @classmethod
     def poll(self, context):
         return (context.object and context.object.DazLocalTextures)
-
-    def draw(self, context):
-        self.layout.prop(self, "steps")
 
     def invoke(self, context, event):
         context.window_manager.invoke_props_dialog(self)
@@ -1334,7 +1354,7 @@ class DAZ_OT_ChangeResolution(DazOperator, B.ResizeOptions, ChangeResolution):
                 self.resizeTree(node.node_tree)
 
 
-class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, B.MultiFile, B.ResizeOptions, ChangeResolution):
+class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, B.MultiFile, ChangeResolution):
     bl_idname = "daz.resize_textures"
     bl_label = "Resize Textures"
     bl_description = (

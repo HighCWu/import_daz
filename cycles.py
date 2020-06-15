@@ -584,8 +584,7 @@ class CyclesTree:
         fac = self.getValue(["Dual Lobe Specular Ratio"], 1.0)
         node.inputs["Fac"].default_value = fac
 
-        # Don't link normal to dual node, to avoid problems with seams
-        # self.linkNormal(node)
+        self.linkNormal(node)
         self.links.new(self.active.outputs[0], node.inputs["Shader"])
         self.active = node
         theSettings.usedFeatures["Glossy"] = True
