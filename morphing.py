@@ -414,11 +414,14 @@ class LoadMorph(PropFormulas):
                     else:
                         raise DazError(msg)
                 return [],miss
-            asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits)
+            if self.rig and self.usePropDrivers:
+                prefix = self.prefix
+            else:
+                prefix = None
+            asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits, prefix=prefix)
             skey,ob,sname = asset.rna
             if self.rig and self.usePropDrivers:
-                prop = self.propFromName(sname)
-                skey.name = prop
+                prop = skey.name
                 min = skey.slider_min if theSettings.useDazPropLimits else None
                 max = skey.slider_max if theSettings.useDazPropLimits else None
                 makeShapekeyDriver(ob, prop, skey.value, self.rig, prop, min=min, max=max)
@@ -531,14 +534,6 @@ class LoadMorph(PropFormulas):
             else:
                 print("-", name)
         return missing
-
-
-    def propFromName(self, key):
-        from .modifier import stripPrefix
-        if self.prefix:
-            return self.prefix + stripPrefix(key)
-        else:
-            return key
 
 
 class LoadShapekey(LoadMorph):

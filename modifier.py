@@ -259,6 +259,13 @@ def stripPrefix(prop):
     return prop
 
 
+def propFromName(key, prefix):
+    if prefix:
+        return prefix + stripPrefix(key)
+    else:
+        return key
+
+
 class Alias(ChannelAsset):
 
     def __init__(self, fileref):
@@ -662,12 +669,13 @@ class Morph(FormulaAsset):
             me.vertices[vn].co += scale * d2bu(delta[1:])
 
 
-    def buildMorph(self, ob, cscale, useSoftLimits=False):
+    def buildMorph(self, ob, cscale, useSoftLimits=False, prefix=None):
         if not ob.data.shape_keys:
             basic = ob.shape_key_add(name="Basic")
         else:
             basic = ob.data.shape_keys.key_blocks[0]
         sname = getName(self.id)
+        sname = propFromName(sname, prefix)
         if sname in ob.data.shape_keys.key_blocks.keys():
             skey = ob.data.shape_keys.key_blocks[sname]
             ob.shape_key_remove(skey)
