@@ -461,6 +461,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.prop(scn, "DazShowAdvancedMorph", icon="DOWNARROW_HLT", emboss=False)
             box.operator("daz.remove_standard_morphs")
             box.operator("daz.remove_custom_morphs")
+            box.operator("daz.remove_jcms")
             box.separator()
             box.operator("daz.rename_category")
             box.operator("daz.remove_categories")

@@ -1335,7 +1335,6 @@ class DAZ_OT_RemoveAllMorphDrivers(DazOperator, IsMeshArmature):
 
 class MorphRemover(B.DeleteShapekeysBool):
     def run(self, context):
-        from .driver import removePropDrivers
         rig = getRigFromObject(context.object)
         scn = context.scene
         if rig:
@@ -1344,7 +1343,7 @@ class MorphRemover(B.DeleteShapekeysBool):
             paths = ['["%s"]' % prop for prop in props]
             for ob in rig.children:
                 if ob.type == 'MESH' and ob.data.shape_keys:
-                    removePropDrivers(ob.data.shape_keys, paths, rig, force=True)
+                    self.removeShapekeyDrivers(ob, paths, props, rig)
                     if self.deleteShapekeys:
                         for prop in props:
                             if prop in ob.data.shape_keys.key_blocks.keys():
@@ -1355,6 +1354,15 @@ class MorphRemover(B.DeleteShapekeysBool):
             self.finalize(rig, props)
             updateScene(context)
             updateRig(rig, context)
+
+
+    def removeShapekeyDrivers(self, ob, paths, props, rig):
+        from .driver import removePropDrivers
+        removePropDrivers(ob.data.shape_keys, paths, rig, force=True)
+
+
+    def finalize(self, rig, props):
+        return
 
 
 class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, IsMeshArmature):
@@ -1373,9 +1381,6 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, I
 
     def drawExtra(self, context):
         self.layout.prop(self, "deleteShapekeys")
-
-    def finalize(self, rig, props):
-        return
 
 
 class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMeshArmature):
@@ -1398,6 +1403,34 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMes
         for catname in removes:
             print("Remove category", catname)
             removeFromPropGroup(rig.DazMorphCats, catname)
+
+
+class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
+    bl_idname = "daz.remove_jcms"
+    bl_label = "Remove JCMs"
+    bl_description = "Remove specific JCMs"
+    bl_options = {'UNDO'}
+
+    def getKeys(self, context):
+        ob = context.object
+        if ob.data.shape_keys:
+            skeys = ob.data.shape_keys.key_blocks
+            return [(key,key[3:],"All") for key in skeys.keys() if key[0:3] in ["DzC", "DzN"]]
+        else:
+            return []
+
+
+    def removeShapekeyDrivers(self, ob, paths, snames, rig):
+        from .driver import getShapekeyDriver
+        skeys = ob.data.shape_keys
+        for sname in snames:
+            fcu = getShapekeyDriver(skeys, sname)
+            skeys.driver_remove(fcu.data_path, fcu.array_index)
+
+
+    def run(self, context):
+        self.deleteShapekeys = True
+        MorphRemover.run(self, context)
 
 #-------------------------------------------------------------
 #   Add and remove driver
@@ -1772,6 +1805,7 @@ classes = [
     DAZ_OT_UpdatePropLimits,
     DAZ_OT_RemoveStandardMorphs,
     DAZ_OT_RemoveCustomMorphs,
+    DAZ_OT_RemoveJCMs,
     DAZ_OT_RemoveAllMorphDrivers,
     DAZ_OT_AddShapekeyDrivers,
     DAZ_OT_RemoveShapekeyDrivers,
