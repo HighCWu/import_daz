@@ -414,11 +414,7 @@ class LoadMorph(PropFormulas):
                     else:
                         raise DazError(msg)
                 return [],miss
-            if self.rig and self.usePropDrivers:
-                prefix = self.prefix
-            else:
-                prefix = None
-            asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits, prefix=prefix)
+            asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits, prefix=self.prefix)
             skey,ob,sname = asset.rna
             if self.rig and self.usePropDrivers:
                 prop = skey.name
@@ -429,7 +425,7 @@ class LoadMorph(PropFormulas):
                 props = [prop]
             elif self.rig and self.useBoneDrivers:
                 from .formula import buildShapeFormula
-                success = buildShapeFormula(asset, scn, self.rig, self.mesh, useStages=self.useStages)
+                success = buildShapeFormula(asset, scn, self.rig, self.mesh, useStages=self.useStages, prefix=self.prefix)
                 if self.useShapekeysOnly and not success and skey:
                     print("Could not build shape formula", skey.name)
                 if not success:
@@ -439,7 +435,7 @@ class LoadMorph(PropFormulas):
             from .formula import buildShapeFormula
             if isinstance(asset, FormulaAsset) and asset.formulas:
                 if self.useShapekeys:
-                    success = buildShapeFormula(asset, scn, self.rig, self.mesh)
+                    success = buildShapeFormula(asset, scn, self.rig, self.mesh, prefix=self.prefix)
                     if self.useShapekeysOnly and not success and skey:
                         print("Could not build shape formula", skey.name)
                     if not success:

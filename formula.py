@@ -320,7 +320,7 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
 #   For corrective shapekeys
 #-------------------------------------------------------------
 
-def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True):
+def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True, prefix=None):
     if ob is None or ob.type != 'MESH' or ob.data.shape_keys is None:
         return False
 
@@ -329,10 +329,12 @@ def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True):
     if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=useStages, verbose=verbose):
         return False
 
-    for sname,expr in exprs.items():
-        if sname in rig.data.bones.keys():
+    from .modifier import propFromName
+    for key,expr in exprs.items():
+        if key in rig.data.bones.keys():
             continue
-        elif sname not in ob.data.shape_keys.key_blocks.keys():
+        sname = propFromName(key, prefix)
+        if sname not in ob.data.shape_keys.key_blocks.keys():
             #print("No such shapekey:", sname)
             return False
         skey = ob.data.shape_keys.key_blocks[sname]
