@@ -114,7 +114,7 @@ class GeoNode(Node):
                 f.material_index = mnums[f.index]
                 f.use_smooth = True
             self.hdobject = bpy.data.objects.new(ob.name + "_HD", me)
-            self.addHDMaterials(ob.data.materials)
+            self.addHDMaterials(ob.data.materials, "")
             self.arrangeObject(self.hdobject, inst, context, cscale, center)
 
         if (self.type == "subdivision_surface" and
@@ -124,16 +124,18 @@ class GeoNode(Node):
             mod.levels = self.data.SubDIALevel
 
 
-    def addHDMaterials(self, mats):
+    def addHDMaterials(self, mats, prefix):
+        from .material import getMatKey
         for mat in mats:
-            print("ADDHD", self.hdobject.name, mat.name)
-            self.hdobject.data.materials.append(mat)
+            pg = self.hdobject.data.DazHDMaterials.add()
+            pg.name = prefix + getMatKey(mat.name)
+            pg.prop = mat.name
         if self.data.vertex_pairs:
             # Geograft
             inst = list(self.figure.instances.values())[0]
             par = inst.parent.geometries[0]
             if par and par.hdobject:
-                par.addHDMaterials(mats)
+                par.addHDMaterials(mats, inst.name + "?" + prefix)
 
 
     def stripNegatives(self, faces):
@@ -148,7 +150,29 @@ class GeoNode(Node):
     def postbuild(self, context, inst):
         if self.rna:
             pruneUvMaps(self.rna)
-        if self.hdobject:
+        if self.highdef:
+            from .material import getMatKey
+            me = self.hdobject.data
+            matgroups = [(mname,mn) for mn,mname in enumerate(self.highdef.matgroups)]
+            matnames = [(pg.name,pg.prop) for pg in me.DazHDMaterials]
+            matgroups.sort()
+            matnames.sort()
+            diff = len(matnames) - len(matgroups)
+            matnums = []
+            n = 0
+            for mname1,mname in matnames:
+                mname2,mn = matgroups[n]
+                ename = mname1.rsplit("?",1)[-1]
+                if not mname2.endswith(ename) and diff > 0:
+                    diff -= 1
+                else:
+                    matnums.append((mn, mname))
+                    n += 1
+            matnums.sort()
+            for _,mname in matnums:
+                mat = bpy.data.materials[mname]
+                me.materials.append(mat)
+
             inst.parentObject(context, self.hdobject)
 
 
@@ -843,6 +867,7 @@ classes = [
     B.DazPairGroup,
     B.DazRigidityGroup,
     B.DazStringStringGroup,
+    B.DazCustomGroup,
 ]
 
 def initialize():
@@ -855,6 +880,7 @@ def initialize():
     bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)
     bpy.types.Mesh.DazVertexCount = IntProperty(default=0)
     bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = B.DazStringStringGroup)
+    bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = B.DazCustomGroup)
 
 
 def uninitialize():

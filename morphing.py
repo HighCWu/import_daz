@@ -1774,7 +1774,6 @@ class DAZ_OT_ConvertCustomMorphsToShapes(DazOperator, CustomSelector, MorphsToSh
 classes = [
     B.DazFormula,
     B.DazSelectGroup,
-    B.DazCustomGroup,
     B.DazCategory,
 
     DAZ_OT_SelectAll,

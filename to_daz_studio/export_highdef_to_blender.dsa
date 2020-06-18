@@ -148,6 +148,7 @@ function doMesh (fp, obj, start, node, str1, str2)
     writeNormals(geom, "hd ");
     writeUVs(geom, "hd ");
     writeFaces(geom, "hd ");
+    writeMaterialGroups(geom, "hd ");
 
     // Turn off high resolution
     lodctrl.setValue(0);
@@ -193,7 +194,23 @@ function writeMaterials(shape)
     }    
     fp.writeLine("        ],");
 }
-    
+
+function writeMaterialGroups(geom, hd)
+{
+    var nm = geom.getNumMaterialGroups();
+    fp.writeLine("        \"num " + hd + "material groups\": " + nm + ",");
+    fp.writeLine("        \"" + hd + "material groups\": [" );
+
+    var c = ","
+    for (var i = 0; i < nm; i++)
+    {
+        var mat = geom.getMaterialGroup(i);
+        if (i == nm-1) c = "";
+        fp.writeLine("            \"" + mat.name + "\"" + c);
+    }    
+    fp.writeLine("        ],");
+}
+
 function writeVertices(mesh, geom, hd)
 {    
     var nv = mesh.getNumVertices();

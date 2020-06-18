@@ -116,10 +116,11 @@ class DBZInfo:
 
 
 class DBZObject:
-    def __init__(self, verts, uvs, faces, lod, center):
+    def __init__(self, verts, uvs, faces, matgroups, lod, center):
         self.verts = verts
         self.uvs = uvs
         self.faces = faces
+        self.matgroups = matgroups
         self.lod = lod
         self.center = center
 
@@ -158,7 +159,7 @@ def loadDbzFile(filepath):
                 faces = figure["faces"]
             if "uvs" in figure.keys():
                 uvs = figure["uvs"]
-            dbz.objects[name].append(DBZObject(verts, uvs, faces, 0, center))
+            dbz.objects[name].append(DBZObject(verts, uvs, faces, [], 0, center))
 
         if "hd vertices" in figure.keys():
             if name not in dbz.hdobjects.keys():
@@ -167,7 +168,10 @@ def loadDbzFile(filepath):
             lod = figure["subd level"]
             uvs = figure["hd uvs"]
             faces = figure["hd faces"]
-            dbz.hdobjects[name].append(DBZObject(verts, uvs, faces, lod, center))
+            matgroups = []
+            if "hd material groups" in figure.keys():
+                matgroups = figure["hd material groups"]
+            dbz.hdobjects[name].append(DBZObject(verts, uvs, faces, matgroups, lod, center))
 
         if "bones" not in figure.keys():
             continue
