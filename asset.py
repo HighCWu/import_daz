@@ -287,6 +287,8 @@ class Asset(Accessor):
         global theAssets, theSources
         file = source.rsplit("#", 1)[0]
         asset = self.parseUrlAsset({"url": source})
+        if asset is None:
+            return None
         old = asset.id.rsplit("#", 1)[0]
         new = self.id.rsplit("#", 1)[0]
         self.copySourceAssets(old, new)

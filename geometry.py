@@ -348,7 +348,7 @@ class Geometry(Asset, Channels):
 
         if "source" in struct.keys():
             asset = self.copySourceFile(struct["source"])
-            if not asset.isSourced:
+            if asset and not asset.isSourced:
                 self.copySource(asset)
                 asset.isSourced = True
 
