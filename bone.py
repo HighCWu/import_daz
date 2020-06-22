@@ -739,7 +739,7 @@ class Bone(Node):
                 child.node.buildBoneProps(rig, child, cscale, center)
 
 
-    def buildFormulas(self, rig, inst):
+    def buildFormulas(self, rig, inst, hide):
         from .formula import buildBoneFormula
         if (self.formulas and
             self.name in rig.pose.bones.keys()):
@@ -747,9 +747,13 @@ class Bone(Node):
             pb.rotation_mode = self.rotDaz
             errors = []
             buildBoneFormula(self, rig, pb, errors)
+        if hide or not inst.getValue(["Visible"], True):
+            inst.figure.hiddenBones[self.name] = True
+            bone = rig.data.bones[self.name]
+            hide = bone.hide = True
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildFormulas(rig, child)
+                child.node.buildFormulas(rig, child, hide)
 
 
     def findRoll(self, inst, eb, figure):

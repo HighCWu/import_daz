@@ -206,6 +206,26 @@ class GeoNode(Node):
         return verts
 
 
+    def hideVertexGroups(self, hidden):
+        ob = self.rna
+        if ob is None:
+            return
+        idxs = []
+        for vgrp in ob.vertex_groups:
+            if vgrp.name in hidden:
+                idxs.append(vgrp.index)
+        vgname = "_HIDDEN_"
+        vgrp = ob.vertex_groups.new(name=vgname)
+        for v in ob.data.vertices:
+            for g in v.groups:
+                if g.group in idxs:
+                    vgrp.add([v.index], 1, 'REPLACE')
+                    break
+        mod = ob.modifiers.new(vgname, 'MASK')
+        mod.vertex_group = vgname
+        mod.invert_vertex_group = True
+
+
 def isEmpty(vgrp, ob):
     idx = vgrp.index
     for v in ob.data.vertices:

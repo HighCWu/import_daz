@@ -49,6 +49,7 @@ class FigureInstance(Instance):
         self.figure = self
         self.planes = {}
         self.bones = {}
+        self.hiddenBones = {}
 
 
     def __repr__(self):
@@ -71,6 +72,9 @@ class FigureInstance(Instance):
             mesh.DazMesh = char
         for geonode in self.geometries:
             Instance.finalize(self, context, geonode)
+        if self.hiddenBones:
+            for geonode in self.geometries:
+                geonode.hideVertexGroups(self.hiddenBones.keys())
 
 
     def pose(self, context):
@@ -263,7 +267,7 @@ class Figure(Node):
 
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildFormulas(rig, child)
+                child.node.buildFormulas(rig, child, False)
 
 
 def getModifierPath(moddir, folder, tfile):
