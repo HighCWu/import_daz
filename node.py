@@ -212,14 +212,12 @@ class Instance(Accessor, Channels):
 
     def buildChannels(self, context):
         ob = self.rna
-        print("BCC", self)
         if ob is None:
             return
         for channel in self.channels.values():
             if self.ignoreChannel(channel):
                 continue
             value = getCurrentValue(channel)
-            print("  CC", channel["id"])
             if channel["id"] == "Renderable":
                 if not value:
                     ob.hide_render = True
