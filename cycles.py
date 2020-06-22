@@ -932,7 +932,7 @@ class CyclesTree:
             else:
                 color,tex = transcolor,transtex
             absorb = self.addNode(6, "ShaderNodeVolumeAbsorption")
-            absorb.inputs["Density"].default_value = 200/dist
+            absorb.inputs["Density"].default_value = 100/dist
             self.linkColor(tex, absorb, color, "Color")
 
         scatter = None
@@ -945,14 +945,14 @@ class CyclesTree:
                 color,tex = self.invertColor(ssscolor, ssstex, 6)
             scatter = self.addNode(6, "ShaderNodeVolumeScatter")
             self.linkColor(tex, scatter, color, "Color")
-            scatter.inputs["Density"].default_value = 100/dist
+            scatter.inputs["Density"].default_value = 50/dist
             scatter.inputs["Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
         elif sss > 0 and dist > 0.0:
             scatter = self.addNode(6, "ShaderNodeVolumeScatter")
             sss,tex = self.getColorTex(["SSS Amount"], "NONE", 0.0)
             color = (sss,sss,sss)
             self.linkColor(tex, scatter, color, "Color")
-            scatter.inputs["Density"].default_value = 100/dist
+            scatter.inputs["Density"].default_value = 50/dist
             scatter.inputs["Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
 
         if absorb and scatter:
