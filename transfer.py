@@ -324,7 +324,7 @@ class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
         ob = context.object
         return [(skey.name,skey.name,"All")
             for skey in ob.data.shape_keys.key_blocks[1:]
-                if skey.name[0:4].lower() not in ["pjcm", "jcm"]]
+                if skey.name[0:3] not in ["DzC", "DzN"]]
 
 
 class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
@@ -340,9 +340,9 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
 
     def getKeys(self, context):
         ob = context.object
-        return [(skey.name,skey.name[4:],"All")
+        return [(skey.name,skey.name[3:],"All")
             for skey in ob.data.shape_keys.key_blocks[1:]
-                if skey.name[0:4].lower() in ["pjcm", "jcm"]]
+                if skey.name[0:3] in ["DzC", "DzN"]]
 
 #----------------------------------------------------------
 #   Merge Shapekeys
