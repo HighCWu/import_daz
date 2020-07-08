@@ -64,7 +64,7 @@ class CyclesMaterial(Material):
         if bpy.app.version >= (2, 78, 0):
             if not theSettings.autoMaterials:
                 if self.refractive:
-                    if theSettings.methodRefractive in ['PRINCIPLED', 'GUESS']:
+                    if theSettings.methodRefractive == 'PRINCIPLED':
                         self.tree = PbrTree(self)
                     else:
                         self.tree = CyclesTree(self)
@@ -80,16 +80,16 @@ class CyclesMaterial(Material):
                 theSettings.methodOpaque = 'PRINCIPLED'
                 theSettings.methodRefractive = 'PRINCIPLED'
                 theSettings.methodVolumetric = "SSS"
+            elif self.refractive:
+                if theSettings.methodRefractive == 'PRINCIPLED':
+                    self.tree = PbrTree(self)
+                else:
+                    self.tree = CyclesTree(self)
             elif (self.dualLobeWeight or
                   (self.thinWalled and self.translucent)):
                 self.tree = CyclesTree(self)
             elif self.metallic:
                 self.tree = PbrTree(self)
-            elif self.refractive:
-                if theSettings.methodRefractive in ['PRINCIPLED', 'GUESS']:
-                    self.tree = PbrTree(self)
-                else:
-                    self.tree = CyclesTree(self)
             elif theSettings.methodOpaque == 'PRINCIPLED':
                 self.tree = PbrTree(self)
             else:
