@@ -34,7 +34,7 @@ bl_info = {
     "location": "File > Import-Export",
     "description": "Import-Export DAZ",
     "warning": "",
-    "wiki_url": "http://diffeomorphic.blogspot.se/p/daz-importer-version-14.html",
+    "wiki_url": "http://diffeomorphic.blogspot.se/p/daz-importer-version-15.html",
     "tracker_url": "https://bitbucket.org/Diffeomorphic/import_daz/issues?status=new&status=open",
     "category": "Import-Export"}
 

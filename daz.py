@@ -242,7 +242,7 @@ class DAZ_OT_InspectPropDependencies(DazOperator, IsArmature):
 #----------------------------------------------------------
 
 class DAZ_PT_Setup(bpy.types.Panel):
-    bl_label = "Setup (version 1.4.2)"
+    bl_label = "Setup (version 1.5.0)"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ"
