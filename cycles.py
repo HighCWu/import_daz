@@ -1060,6 +1060,7 @@ class CyclesTree:
                 texnode.name = img.name
                 if hasattr(texnode, "image_user"):
                     texnode.image_user.frame_duration = 1
+                    texnode.image_user.frame_current = 1
                 isnew = True
                 if not hasMap:
                     self.setTexNode(key, texnode, colorSpace)

@@ -150,6 +150,12 @@ with safeOpen("/home/hkeys.txt", "w") as fp:
 #-------------------------------------------------------------
 
 def getMultiFiles(self, extensions):
+    if not self.files:
+        path = getFilePath(self.filepath, extensions)
+        if path:
+            return [path]
+        else:
+            return []
     paths = []
     for file_elem in self.files:
         filepath = os.path.join(self.directory, file_elem.name)
