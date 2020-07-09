@@ -103,15 +103,6 @@ class PbrTree(CyclesTree):
             CyclesTree.buildEmission(self, scn)
 
 
-    def mixGlass(self, scn):
-        strength,imgfile,channel = self.getRefraction()
-        if strength < 1 or imgfile:
-            self.active = self.addMixShader(7, strength, channel, imgfile, None, self.pbr, self.glass)
-        else:
-            self.active = self.glass
-        self.tintSpecular()
-
-
     def buildPBRNode(self, scn):
         # Basic
         color,tex = self.getDiffuseColor()

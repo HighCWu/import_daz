@@ -779,17 +779,6 @@ class CyclesTree:
         return value,tex
 
 
-    def getRefraction(self):
-        channel = self.material.getChannelRefractionStrength()
-        if channel:
-            strength = self.material.getChannelValue(channel, 0.0)
-            imgfile = self.material.getImageFile(channel)
-        else:
-            strength = 0
-            imgfile = None
-        return strength,imgfile,channel
-
-
     def setRoughness(self, node, channel, roughness, roughtex, square=True):
         if square and bpy.app.version < (2,80,0):
             roughness = roughness * roughness
@@ -801,10 +790,9 @@ class CyclesTree:
 
 
     def buildRefraction(self):
-        strength,imgfile,channel = self.getRefraction()
-        if strength > 0 or imgfile:
+        ref = self.getValue("getChannelRefractionStrength", 0.0)
+        if ref > 0:
             node = self.addNode(5, "ShaderNodeBsdfRefraction")
-            self.material.alphaBlend(1-strength, imgfile)
             color,tex,roughness,roughtex = self.getRefractionColor()
             node.inputs["Color"].default_value[0:3] = color
             if tex:
@@ -831,7 +819,9 @@ class CyclesTree:
                     self.removeLink(self.fresnel, "IOR")
 
             self.linkNormal(node)
-            self.mixWithActive(strength, imgfile, node)
+            ref,reftex = self.getColorTex("getChannelRefractionStrength", "NONE", 0.0)
+            self.material.alphaBlend(1-ref, reftex)
+            self.mixWithActive(ref, reftex, node)
             theSettings.usedFeatures["Transparent"] = True
 
 
