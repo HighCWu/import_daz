@@ -623,10 +623,7 @@ class CyclesTree:
         self.linkNormal(fresnel)
         self.fresnel = fresnel
         theSettings.usedFeatures["Glossy"] = True
-        if self.active:
-            self.active = self.addMixShader(6, 0.5, None, None, self.fresnel, self.active, glossy)
-        else:
-            self.active = glossy
+        self.mixWithActive(1.0, self.fresnel, glossy, col=6, useAlpha=False)
 
 
     def getFresnelIOR(self):
@@ -826,17 +823,13 @@ class CyclesTree:
 
 
     def buildCutout(self):
-        channel = self.material.getChannelCutoutOpacity()
-        if channel:
-            alpha = self.material.getChannelValue(channel, 1.0)
-            imgfile = self.material.getImageFile(channel)
-            if imgfile or alpha < 1:
-                self.useCutout = True
-                node = self.addNode(3, "ShaderNodeBsdfTransparent")
-                self.material.alphaBlend(alpha, imgfile)
-                #node.inputs["Color"].default_value[0:3] = (value,value,value)
-                self.active = self.addMixShader(5, alpha, channel, imgfile, None, node, self.active)
-                theSettings.usedFeatures["Transparent"] = True
+        alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
+        if alpha < 1 or tex:
+            self.useCutout = True
+            node = self.addNode(3, "ShaderNodeBsdfTransparent")
+            self.material.alphaBlend(alpha, tex)
+            self.mixWithActive(1-alpha, tex, node, useAlpha=False, flip=True)
+            theSettings.usedFeatures["Transparent"] = True
 
 #-------------------------------------------------------------
 #   Emission
@@ -980,28 +973,6 @@ class CyclesTree:
             self.displacement = node
 
 
-    def addMixShader(self, column, fac, channel, imgfile, slot0, slot1, slot2):
-        if slot1 is None:
-            return slot2
-        elif slot2 is None:
-            return slot1
-        elif not (imgfile or slot0):
-            if fac == 0:
-                return slot1
-            elif fac == 1:
-                return slot2
-        mix = self.addNode(column, "ShaderNodeMixShader")
-        mix.inputs["Fac"].default_value = fac
-        if imgfile:
-            tex = self.addTexImageNode(channel, "NONE")
-            self.links.new(tex.outputs[0], mix.inputs["Fac"])
-        elif slot0:
-            self.links.new(slot0.outputs[0], mix.inputs["Fac"])
-        self.links.new(slot1.outputs[0], mix.inputs[1])
-        self.links.new(slot2.outputs[0], mix.inputs[2])
-        return mix
-
-
     def getLinkFrom(self, node, name):
         mat = self.material.rna
         for link in mat.node_tree.links:
@@ -1128,8 +1099,8 @@ class CyclesTree:
             self.active = shader
 
 
-    def mixWithActive(self, fac, tex, shader, col=6, useAlpha=True):
-        if fac == 0:
+    def mixWithActive(self, fac, tex, shader, col=6, useAlpha=True, flip=False):
+        if fac == 0 and tex is None:
             return
         elif fac == 1 and tex is None:
             self.active = shader
@@ -1143,8 +1114,12 @@ class CyclesTree:
                 else:
                     slot = 0
                 self.links.new(tex.outputs[slot], mix.inputs[0])
-            self.links.new(self.active.outputs[0], mix.inputs[1])
-            self.links.new(shader.outputs[0], mix.inputs[2])
+            if flip:
+                self.links.new(self.active.outputs[0], mix.inputs[2])
+                self.links.new(shader.outputs[0], mix.inputs[1])
+            else:
+                self.links.new(self.active.outputs[0], mix.inputs[1])
+                self.links.new(shader.outputs[0], mix.inputs[2])
             self.active = mix
         else:
             self.active = shader
