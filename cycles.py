@@ -164,7 +164,6 @@ class CyclesTree:
         self.groups = {}
         self.liegroups = []
 
-        self.diffuse = None
         self.diffuseTex = None
         self.glossyColor = WHITE
         self.glossyTex = None
@@ -174,8 +173,6 @@ class CyclesTree:
         self.texcos = {}
         self.mapping = None
         self.displacement = None
-        self.refraction = None
-        self.transmission = None
         self.volume = None
         self.useCutout = False
 
@@ -466,11 +463,11 @@ class CyclesTree:
         if channel:
             color,tex = self.getDiffuseColor()
             self.diffuseTex = tex
-            self.diffuse = self.active = self.addNode(5, "ShaderNodeBsdfDiffuse")
-            self.linkColor(tex, self.diffuse, color, "Color")
+            node = self.active = self.addNode(5, "ShaderNodeBsdfDiffuse")
+            self.linkColor(tex, node, color, "Color")
             roughness = clamp( self.getValue(["Diffuse Roughness"], scn.DazDiffuseRoughness) )
-            self.addSlot(channel, self.diffuse, "Roughness", roughness, roughness, False)
-            self.linkNormal(self.diffuse)
+            self.addSlot(channel, node, "Roughness", roughness, roughness, False)
+            self.linkNormal(node)
             theSettings.usedFeatures["Diffuse"] = True
 
 
@@ -626,21 +623,10 @@ class CyclesTree:
         self.linkNormal(fresnel)
         self.fresnel = fresnel
         theSettings.usedFeatures["Glossy"] = True
-
-        if self.active and self.refraction:
-            channel = self.material.getChannelRefractionStrength()
-            strength = self.material.getChannelValue(channel, 0.0)
-            imgfile = self.material.getImageFile(channel)
-            node = self.addMixShader(6, strength, channel, imgfile, None, self.active, self.refraction)
-        elif self.active:
-            node = self.active
-        elif self.refraction:
-            node = self.refraction
+        if self.active:
+            self.active = self.addMixShader(6, 0.5, None, None, self.fresnel, self.active, glossy)
         else:
-            print("No node")
-            print(self.material)
-            node = None
-        self.active = self.addMixShader(6, 0.5, None, None, self.fresnel, node, glossy)
+            self.active = glossy
 
 
     def getFresnelIOR(self):
@@ -845,7 +831,7 @@ class CyclesTree:
                     self.removeLink(self.fresnel, "IOR")
 
             self.linkNormal(node)
-            self.refraction = node
+            self.mixWithActive(strength, imgfile, node)
             theSettings.usedFeatures["Transparent"] = True
 
 
