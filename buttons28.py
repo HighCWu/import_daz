@@ -295,26 +295,6 @@ class ResizeOptions:
         description = "Overwrite the original image files.",
         default = False)
 
-    useBmp : BoolProperty(
-        name = "BMP",
-        description = "Affect bmp (.bmp) files",
-        default = True)
-
-    useJpeg : BoolProperty(
-        name = "JPEG",
-        description = "Affect jpeg (.jpg, .jpeg) files",
-        default = True)
-
-    usePng : BoolProperty(
-        name = "PNG",
-        description = "Affect png (.png) files",
-        default = True)
-
-    useTiff : BoolProperty(
-        name = "TIFF",
-        description = "Affect tiff (.tif, .tiff) files",
-        default = False)
-
 
 class ColorProp:
     color : FloatVectorProperty(

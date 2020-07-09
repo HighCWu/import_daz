@@ -1192,32 +1192,12 @@ class ChangeResolution(B.ResizeOptions):
 
     def draw(self, context):
         self.layout.prop(self, "steps")
-        self.layout.prop(self, "useBmp")
-        self.layout.prop(self, "useJpeg")
-        self.layout.prop(self, "usePng")
-        self.layout.prop(self, "useTiff")
 
 
     def getFileNames(self, paths):
         for path in paths:
-            if self.affectExtension(path):
-                fname = bpy.path.basename(self.getBasePath(path))
-                self.filenames.append(fname)
-
-
-    def affectExtension(self, path):
-        ext = os.path.splitext(path)[1].lower()
-        if ext == ".bmp":
-            return self.useBmp
-        elif ext in [".jpg", ".jpeg"]:
-            return self.useJpeg
-        elif ext == ".png":
-            return self.usePng
-        elif ext in [".tif", ".tiff"]:
-            return self.useTiff
-        else:
-            print("Unknown file extension", ext)
-            return False
+            fname = bpy.path.basename(self.getBasePath(path))
+            self.filenames.append(fname)
 
 
     def replaceTextures(self, context):
@@ -1254,6 +1234,11 @@ class ChangeResolution(B.ResizeOptions):
     def replaceImage(self, img):
         if img is None:
             return None
+        if hasattr(img, "colorspace_settings"):
+            colorSpace = img.colorspace_settings.name
+        else:
+            colorSpace = None
+
         path = self.getBasePath(img.filepath)
         filename = bpy.path.basename(path)
         if filename not in self.filenames:
@@ -1266,6 +1251,8 @@ class ChangeResolution(B.ResizeOptions):
                 print("Reload", img.filepath)
                 img.reload()
                 newimg = img
+                if colorSpace:
+                    newimg.colorspace_settings.name = colorSpace
             except RuntimeError:
                 newimg = None
             if newimg:
@@ -1288,6 +1275,8 @@ class ChangeResolution(B.ResizeOptions):
             try:
                 print("Replace '%s'\n   with '%s'" % (img.filepath, newpath))
                 newimg = bpy.data.images.load(newpath)
+                if colorSpace:
+                    newimg.colorspace_settings.name = colorSpace
             except RuntimeError:
                 newimg = None
         if newimg:
