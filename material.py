@@ -1236,8 +1236,12 @@ class ChangeResolution(B.ResizeOptions):
             return None
         if hasattr(img, "colorspace_settings"):
             colorSpace = img.colorspace_settings.name
+            if colorSpace not in self.images.keys():
+                self.images[colorSpace] = {}
+            images = self.images[colorSpace]
         else:
             colorSpace = None
+            images = self.images
 
         path = self.getBasePath(img.filepath)
         filename = bpy.path.basename(path)
@@ -1245,8 +1249,8 @@ class ChangeResolution(B.ResizeOptions):
             return img
 
         if self.overwrite:
-            if img.filepath in self.images.keys():
-                return self.images[img.filepath][1]
+            if img.filepath in images.keys():
+                return images[img.filepath][1]
             try:
                 print("Reload", img.filepath)
                 img.reload()
@@ -1256,7 +1260,7 @@ class ChangeResolution(B.ResizeOptions):
             except RuntimeError:
                 newimg = None
             if newimg:
-                self.images[img.filepath] = (img, newimg)
+                images[img.filepath] = (img, newimg)
                 return newimg
             else:
                 print("Cannot reload '%s'" % img.filepath)
@@ -1265,8 +1269,8 @@ class ChangeResolution(B.ResizeOptions):
         newname,newpath = self.getNewPath(path)
         if newpath == img.filepath:
             return img
-        elif newpath in self.images.keys():
-            return self.images[newpath][1]
+        elif newpath in images.keys():
+            return images[newpath][1]
         elif newname in bpy.data.images.keys():
             return bpy.data.images[newname]
         elif newpath in bpy.data.images.keys():
@@ -1280,7 +1284,7 @@ class ChangeResolution(B.ResizeOptions):
             except RuntimeError:
                 newimg = None
         if newimg:
-            self.images[newpath] = (img, newimg)
+            images[newpath] = (img, newimg)
             return newimg
         else:
             print('"%s" does not exist' % newpath)
