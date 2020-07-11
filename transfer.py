@@ -312,7 +312,7 @@ def findVertsInGroup(ob, vgrp):
 class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
     bl_idname = "daz.transfer_other_morphs"
     bl_label = "Transfer Other Morphs"
-    bl_description = "Transfer all shapekeys except correctives with drivers from active to selected"
+    bl_description = "Transfer all shapekeys except JCMs (bone driven) with drivers from active to selected"
     bl_options = {'UNDO'}
 
     useBoneDriver = False
@@ -322,15 +322,21 @@ class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
 
     def getKeys(self, context):
         ob = context.object
-        return [(skey.name,skey.name,"All")
-            for skey in ob.data.shape_keys.key_blocks[1:]
-                if skey.name[0:3] not in ["DzC", "DzN"]]
+        keys = []
+        for skey in ob.data.shape_keys.key_blocks[1:]:
+            if skey.name[0:3] not in ["DzC", "DzN", "DzF"]:
+                if skey.name[0:2] == "Dz":
+                    text = skey.name[3:]
+                else:
+                    text = skey.name
+                keys.append((skey.name,text,"All"))
+        return keys
 
 
 class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
-    bl_idname = "daz.transfer_correctives"
-    bl_label = "Transfer Correctives"
-    bl_description = "Transfer corrective shapekeys and drivers from active to selected"
+    bl_idname = "daz.transfer_jcms"
+    bl_label = "Transfer JCMs"
+    bl_description = "Transfer JCMs (joint corrective shapekeys) and drivers from active to selected"
     bl_options = {'UNDO'}
 
     useBoneDriver = True
@@ -342,7 +348,7 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
         ob = context.object
         return [(skey.name,skey.name[3:],"All")
             for skey in ob.data.shape_keys.key_blocks[1:]
-                if skey.name[0:3] in ["DzC", "DzN"]]
+                if skey.name[0:3] in ["DzC", "DzN", "DzF"]]
 
 #----------------------------------------------------------
 #   Merge Shapekeys

@@ -1415,7 +1415,7 @@ class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
         ob = context.object
         if ob.data.shape_keys:
             skeys = ob.data.shape_keys.key_blocks
-            return [(key,key[3:],"All") for key in skeys.keys() if key[0:3] in ["DzC", "DzN"]]
+            return [(key,key[3:],"All") for key in skeys.keys() if key[0:3] in ["DzC", "DzN", "DzF"]]
         else:
             return []
 

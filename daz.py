@@ -315,7 +315,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.import_custom_jcms")
                 box.operator("daz.import_flexions")
                 box.label(text="Create low-poly meshes before transfers.")
-                box.operator("daz.transfer_correctives")
+                box.operator("daz.transfer_jcms")
                 box.operator("daz.transfer_other_morphs")
 
         layout.separator()
