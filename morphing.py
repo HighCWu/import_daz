@@ -199,7 +199,11 @@ class CustomSelector(Selector, B.CustomEnums):
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 key = morph.prop
-                keys.append((key,key,cat.name))
+                if key[0:2] == "Dz":
+                    text = key[3:]
+                else:
+                    text = key
+                keys.append((key,text,cat.name))
         return keys
 
 #------------------------------------------------------------------

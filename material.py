@@ -1370,6 +1370,7 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, B.MultiFile, ChangeResolut
         from .globvars import theImageExtensions
         paths = getMultiFiles(self, theImageExtensions)
         self.getFileNames(paths)
+        self.getGreys(context, paths)
 
         program = os.path.join(os.path.dirname(__file__), "standalone/resize.py")
         if self.overwrite:
@@ -1379,12 +1380,44 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, B.MultiFile, ChangeResolut
         for path in paths:
             _,newpath = self.getNewPath(self.getBasePath(path))
             if not os.path.exists(newpath):
-                cmd = ('python "%s" "%s" %d %s' % (program, path, self.steps, overwrite))
+                path0 = bpy.path.basename(path)
+                if path0 in self.greys.keys() and self.greys[path0]:
+                    grey = "-g"
+                else:
+                    grey = ""
+                cmd = ('python "%s" "%s" %d %s %s' % (program, path, self.steps, overwrite, grey))
                 os.system(cmd)
             else:
                 print("Skip", os.path.basename(newpath))
 
         self.replaceTextures(context)
+
+
+    def getGreys(self, context, paths):
+        self.greys = {}
+        for ob in getSceneObjects(context):
+            if ob.type == 'MESH' and getSelected(ob):
+                for mat in ob.data.materials:
+                    if mat.node_tree:
+                        self.getGreyTree(mat.node_tree)
+                    else:
+                        for mtex in mat.texture_slots:
+                            if mtex and mtex.texture.type == 'IMAGE':
+                                path = bpy.path.basename(mtex.texture.image.filepath)
+                                self.greys[path] = False
+
+
+    def getGreyTree(self, tree):
+        for link in tree.links.values():
+            if link.to_node:
+                node = link.from_node
+                if node.type == 'TEX_IMAGE':
+                    path0 = bpy.path.basename(node.image.filepath)
+                    if link.to_node.type == "BUMP":
+                        if path0 not in self.greys.keys():
+                            self.greys[path0] = True
+                    else:
+                        self.greys[path0] = False
 
 #----------------------------------------------------------
 #   Render settings

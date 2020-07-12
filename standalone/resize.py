@@ -7,6 +7,7 @@ def main():
     parser.add_argument("file", type=str, help="Name of input file.")
     parser.add_argument("steps", type=int, help="Number of steps")
     parser.add_argument("--overwrite", "-o", dest="overwrite", action="store_true")
+    parser.add_argument("--grey", "-g", dest="grey", action="store_true")
     args = parser.parse_args()
 
     if args.steps == 0:
@@ -38,6 +39,9 @@ def main():
     newrows = max(4, int(factor*rows))
     newcols = max(4, int(factor*cols))
     newimg = cv2.resize(img, (newcols,newrows), interpolation=cv2.INTER_AREA)
+    if args.grey:
+        print("Greyscale", args.file)
+        newimg = cv2.cvtColor(newimg, cv2.COLOR_BGR2GRAY)
     print("%s: (%d, %d) => (%d %d)" % (os.path.basename(newfile), rows, cols, newrows, newcols))
     cv2.imwrite(os.path.join(args.file, newfile), newimg)
 
