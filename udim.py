@@ -36,6 +36,11 @@ class DazUdimGroup(bpy.types.PropertyGroup):
     bool : BoolProperty()
 
 
+def getTargetMaterial(scn, context):
+    ob = context.object
+    return [(mat.name, mat.name, mat.name) for mat in ob.data.materials]
+
+
 class DAZ_OT_UdimizeMaterials(DazOperator):
     bl_idname = "daz.make_udim_materials"
     bl_label = "Make UDIM Materials"
@@ -43,7 +48,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
     bl_options = {'UNDO'}
 
     umats : CollectionProperty(type = DazUdimGroup)
-    #active : EnumProperty(items=[], name="Active")
+    trgmat : EnumProperty(items=getTargetMaterial, name="Active")
 
     @classmethod
     def poll(self, context):
@@ -52,28 +57,19 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
 
 
     def draw(self, context):
+        self.layout.prop(self, "trgmat")
         self.layout.label(text="Materials To Merge")
         for umat in self.umats:
             self.layout.prop(umat, "bool", text=umat.name)
-        self.layout.separator()
-        self.layout.label(text="Target Material: %s" % self.trgmat.name)
 
 
     def invoke(self, context, event):
         ob = context.object
-        enums = []
-        self.trgmat = None
         self.umats.clear()
         for mat in ob.data.materials:
             item = self.umats.add()
             item.name = mat.name
             item.bool = self.isUdimMaterial(mat)
-            if self.trgmat is None and mat.DazUDim == 0:
-                self.trgmat = mat
-            enums.append((mat.name,mat.name,mat.name))
-        if self.trgmat is None:
-            self.trgmat = ob.data.materials[0]
-        #self.active = EnumProperty(items=enums, name="Active")
         context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
