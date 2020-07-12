@@ -748,15 +748,21 @@ def createMeta(context):
     # Add rigify properties to spine bones
     bpy.ops.object.mode_set(mode='OBJECT')
     disconnect = []
-    for _dname,rname,_pname in spineBones:
-        pb = meta.pose.bones[rname]
+    connect = []
+    for pb in meta.pose.bones:
         if "rigify_type" in pb.keys():
-            # print("%s: %s" % (rname, pb["rigify_type"]))
             if pb["rigify_type"] == "spines.super_head":
                 disconnect.append(pb.name)
-                #pb["rigify_type"] = ""
-        else:
-            pb["rigify_type"] = ""
+            elif pb["rigify_type"] == "limbs.super_finger":
+                connect += getChildren(pb)
+            elif pb["rigify_type"] == "basic.super_copy":
+                pass
+            elif pb["rigify_type"] == "limbs.super_limb":
+                pass
+            elif pb["rigify_type"] == "limbs.super_palm":
+                pass
+            else:
+                print("RIGIFYTYPE %s: %s" % (pb.name, pb["rigify_type"]))
 
     for rname,prop,value in RigifyParams:
         if rname in meta.pose.bones:
@@ -768,6 +774,9 @@ def createMeta(context):
     for rname in disconnect:
         eb = meta.data.edit_bones[rname]
         eb.use_connect = False
+    for rname in connect:
+        eb = meta.data.edit_bones[rname]
+        eb.use_connect = True
     bpy.ops.object.mode_set(mode='OBJECT')
 
     print("Metarig created")
@@ -1034,6 +1043,14 @@ def rigifyMeta(context):
     bpy.ops.object.mode_set(mode='POSE')
     print("Rigify created")
     return gen
+
+
+def getChildren(pb):
+    chlist = []
+    for child in pb.children:
+        chlist.append(child.name)
+        chlist += getChildren(child)
+    return chlist
 
 
 def rigifySplitGroup(rname, dname, ob, rig, before, meta):
