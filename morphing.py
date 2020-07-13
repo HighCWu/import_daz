@@ -473,8 +473,10 @@ class LoadMorph(PropFormulas):
         from .asset import clearAssets
         from .main import finishMain
         from .daz import clearDependecies
+        from .finger import getFingeredCharacter
 
         scn = context.scene
+        self.rig, self.mesh, char = getFingeredCharacter(context.object)
         if self.mesh:
             ob = self.mesh
         elif self.rig:
@@ -1147,7 +1149,6 @@ class DAZ_OT_AddKeysets(DazOperator, B.TypePrefix, IsMeshArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        from .finger import getFingeredCharacter
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
