@@ -40,6 +40,16 @@ from .settings import theSettings
 #   Morph selector
 #-------------------------------------------------------------
 
+theFilePaths = []
+
+def setFilePaths(files):
+    global theFilePaths
+    if isinstance(files, list):
+        theFilePaths = files
+    else:
+        raise DazError("File paths must be a list of strings")
+
+
 class DAZ_OT_SelectAll(bpy.types.Operator):
     bl_idname = "daz.select_all"
     bl_label = "All"
@@ -101,6 +111,10 @@ class Selector(B.Selection):
         pass
 
 
+    def cleanup(self, context):
+        setFilePaths([])
+
+
     def selectAll(self, context):
         for item in self.selection:
             if self.isSelected(item):
@@ -136,6 +150,7 @@ class Selector(B.Selection):
     def invokeDialog(self, context):
         global theSelector
         theSelector = self
+        setFilePaths([])
         wm = context.window_manager
         ncols = len(self.selection)//24 + 1
         if ncols > 6:
@@ -366,9 +381,10 @@ class LoadMorph(PropFormulas):
     useBoneDrivers = False
     useStages = True
 
-    def __init__(self, mesh=None, rig=None):
-        PropFormulas.__init__(self, rig)
-        self.mesh = mesh
+    def __init__(self):
+        from .finger import getFingeredCharacter
+        self.rig, self.mesh, self.char = getFingeredCharacter(bpy.context.object)
+        PropFormulas.__init__(self, self.rig)
 
 
     @classmethod
@@ -473,10 +489,8 @@ class LoadMorph(PropFormulas):
         from .asset import clearAssets
         from .main import finishMain
         from .daz import clearDependecies
-        from .finger import getFingeredCharacter
 
         scn = context.scene
-        self.rig, self.mesh, char = getFingeredCharacter(context.object)
         if self.mesh:
             ob = self.mesh
         elif self.rig:
@@ -551,9 +565,7 @@ class LoadAllMorphs(LoadMorph):
     suppressError = True
 
     def setupCharacter(self, context, rigIsMesh):
-        from .finger import getFingeredCharacter
         ob = context.object
-        self.rig, self.mesh, self.char = getFingeredCharacter(ob)
         if self.mesh is None and rigIsMesh:
             if self.rig.DazRig == "genesis3":
                 self.char = "Genesis3-female"
@@ -599,7 +611,17 @@ class LoadAllMorphs(LoadMorph):
 class StandardMorphSelector(Selector):
 
     def getActiveMorphFiles(self, context):
-        return dict([(item.text,item.name) for item in self.getSelectedItems(context.scene)])
+        global theFilePaths
+        paths = {}
+        if theFilePaths:
+            for path in theFilePaths:
+                text = os.path.splitext(os.path.basename(path))[0]
+                paths[text] = path
+        else:
+            for item in self.getSelectedItems(context.scene):
+                paths[item.text] = item.name
+        return paths
+
 
     def isActive(self, name, scn):
         return True
@@ -700,8 +722,8 @@ class ImportCustom(B.DazImageFile, B.MultiFile):
 
     def invoke(self, context, event):
         from .fileutils import getFolder
-        from .finger import getFingeredCharacter
-        self.rig, self.mesh, char = getFingeredCharacter(context.object)
+        #from .finger import getFingeredCharacter
+        #self.rig, self.mesh, char = getFingeredCharacter(context.object)
         folder = getFolder(self.mesh, context.scene, ["Morphs/", ""])
         if folder is not None:
             self.properties.filepath = folder

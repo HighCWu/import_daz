@@ -253,7 +253,12 @@ class DazOperator(bpy.types.Operator):
         finally:
             wm = bpy.context.window_manager
             wm.progress_end()
+            self.cleanup(context)
         return{'FINISHED'}
+
+    def cleanup(self, context):
+        pass
+
 
 class DazPropsOperator(DazOperator):
     def invoke(self, context, event):
