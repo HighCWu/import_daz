@@ -342,7 +342,7 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
             return offset
         animations = self.parseAnimation(struct["scene"])
         if rig.type == 'ARMATURE':
-            bpy.ops.object.mode_set(mode='OBJECT')
+            bpy.ops.object.mode_set(mode='POSE')
             self.prepareRig(rig)
         self.clearPose(rig, offset)
         animations,locks = self.convertAnimations(animations, rig)
@@ -355,6 +355,7 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
         for pb,lock in locks:
             pb.lock_location = lock
         updateDrivers(rig)
+        bpy.ops.object.mode_set(mode='OBJECT')
         return result
 
 
