@@ -32,6 +32,7 @@ from mathutils import Vector, Quaternion, Matrix
 from .error import *
 from .utils import *
 from .settings import theSettings
+from .fileutils import MultiFile
 
 #------------------------------------------------------------------
 #   DBZ fitting
@@ -371,7 +372,7 @@ class DAZ_OT_FitToObject(DazOperator, IsMesh):
 #   Initialize
 #----------------------------------------------------------
 
-class DAZ_OT_ImportDBZ(DazOperator, B.DbzFile, B.MultiFile, IsMesh):
+class DAZ_OT_ImportDBZ(DazOperator, B.DbzFile, MultiFile, IsMesh):
     bl_idname = "daz.import_dbz"
     bl_label = "Import DBZ Morph(s)"
     bl_description = "Import DBZ or JSON file(s) (*.dbz, *.dbz) as morphs"

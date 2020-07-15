@@ -38,6 +38,7 @@ from .channels import Channels
 from .utils import *
 from .settings import theSettings
 from .error import *
+from .fileutils import MultiFile
 from mathutils import Vector, Matrix
 
 WHITE = Vector((1.0,1.0,1.0))
@@ -1347,7 +1348,7 @@ class DAZ_OT_ChangeResolution(DazOperator, ChangeResolution):
                 self.resizeTree(node.node_tree)
 
 
-class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, B.MultiFile, ChangeResolution):
+class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolution):
     bl_idname = "daz.resize_textures"
     bl_label = "Resize Textures"
     bl_description = (
@@ -1362,8 +1363,7 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, B.MultiFile, ChangeResolut
     def invoke(self, context, event):
         texpath = os.path.join(os.path.dirname(bpy.data.filepath), "textures/")
         self.properties.filepath = texpath
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        return MultiFile.invoke(self, context, event)
 
     def run(self, context):
         from .fileutils import getMultiFiles

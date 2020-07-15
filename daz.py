@@ -712,11 +712,6 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.separator()
         layout.operator("daz.save_current_pose")
         layout.operator("daz.load_pose")
-        return
-
-        layout.separator()
-        layout.operator("daz.import_node_poses")
-
 
 
 def activateLayout(layout, rig, type, prefix):

@@ -35,6 +35,7 @@ from .error import *
 from .utils import *
 from . import utils
 from .settings import theSettings
+from .fileutils import MultiFile
 
 #-------------------------------------------------------------
 #   Morph selector
@@ -102,8 +103,8 @@ class Selector(B.Selection):
 
 
     def cleanup(self, context):
-        from .fileutils import setFilePaths
-        setFilePaths([])
+        from .fileutils import clearFilePaths
+        clearFilePaths()
 
 
     def selectAll(self, context):
@@ -141,8 +142,8 @@ class Selector(B.Selection):
     def invokeDialog(self, context):
         global theSelector
         theSelector = self
-        from .fileutils import setFilePaths
-        setFilePaths([])
+        from .fileutils import clearFilePaths
+        clearFilePaths()
         wm = context.window_manager
         ncols = len(self.selection)//24 + 1
         if ncols > 6:
@@ -641,7 +642,7 @@ class StandardMorphSelector(Selector):
 class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_units"
     bl_label = "Import Units"
-    bl_description = "Import face unit morphs"
+    bl_description = "Import selected face unit morphs"
     bl_options = {'UNDO'}
 
     type = "Units"
@@ -651,7 +652,7 @@ class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMe
 class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_expressions"
     bl_label = "Import Expressions"
-    bl_description = "Import expression morphs"
+    bl_description = "Import selected expression morphs"
     bl_options = {'UNDO'}
 
     type = "Expressions"
@@ -661,7 +662,7 @@ class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs
 class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_visemes"
     bl_label = "Import Visemes"
-    bl_description = "Import viseme morphs"
+    bl_description = "Import selected viseme morphs"
     bl_options = {'UNDO'}
 
     type = "Visemes"
@@ -671,7 +672,7 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, Is
 class DAZ_OT_ImportPoseMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_pose_morphs"
     bl_label = "Import Pose Morphs"
-    bl_description = "Import pose morphs"
+    bl_description = "Import selected pose morphs"
     bl_options = {'UNDO'}
 
     type = "Poses"
@@ -681,7 +682,7 @@ class DAZ_OT_ImportPoseMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs,
 class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_standard_jcms"
     bl_label = "Import Standard JCMs"
-    bl_description = "Import standard joint corrective morphs"
+    bl_description = "Import selected standard joint corrective morphs"
     bl_options = {'UNDO'}
 
     type = "Correctives"
@@ -696,7 +697,7 @@ class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorph
 class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_flexions"
     bl_label = "Import Flexions"
-    bl_description = "Import flexion morphs"
+    bl_description = "Import selected flexion morphs"
     bl_options = {'UNDO'}
 
     type = "Flexions"
@@ -711,17 +712,15 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class ImportCustom(B.DazImageFile, B.MultiFile):
+class ImportCustom(B.DazImageFile, MultiFile):
 
     def invoke(self, context, event):
         from .fileutils import getFolder
-        #from .finger import getFingeredCharacter
-        #self.rig, self.mesh, char = getFingeredCharacter(context.object)
         folder = getFolder(self.mesh, context.scene, ["Morphs/", ""])
         if folder is not None:
             self.properties.filepath = folder
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        return MultiFile.invoke(self, context, event)
+
 
     def getNamePaths(self):
         from .fileutils import getMultiFiles
@@ -736,7 +735,7 @@ class ImportCustom(B.DazImageFile, B.MultiFile):
 class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStrings, IsMeshArmature):
     bl_idname = "daz.import_custom_morphs"
     bl_label = "Import Custom Morphs"
-    bl_description = "Import morphs from native DAZ files (*.duf, *.dsf)"
+    bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
 
     type = "Shapes"
@@ -763,7 +762,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
 class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMeshArmature):
     bl_idname = "daz.import_custom_jcms"
     bl_label = "Import Custom JCMs"
-    bl_description = "Import joint corrective morphs from native DAZ files (*.duf, *.dsf)"
+    bl_description = "Import selected joint corrective morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
 
     type = "Correctives"

@@ -37,6 +37,7 @@ from .transform import Transform
 from .settings import theSettings
 from .globvars import theDazExtensions, theRestPoseItems
 from .formula import PoseboneDriver
+from .fileutils import MultiFile
 
 
 def framesToVectors(frames):
@@ -315,7 +316,7 @@ class FrameConverter:
 #   AnimatorBase class
 #-------------------------------------------------------------
 
-class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, IsMeshArmature):
+class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, IsMeshArmature):
     lockMeshes = False
 
     def __init__(self):
@@ -324,8 +325,7 @@ class AnimatorBase(B.AnimatorFile, B.MultiFile, FrameConverter, PoseboneDriver, 
 
     def invoke(self, context, event):
         PoseboneDriver.__init__(self, context.object)
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        return MultiFile.invoke(self, context, event)
 
 
     def getSingleAnimation(self, filepath, rig, scn, offset, missing):
@@ -753,21 +753,6 @@ class StandardAnimation:
                 "Check results carefully.", warning=True)
 
 
-class DAZ_OT_ImportNodePoses(DazOperator, B.AffectOptions, B.ConvertOptions, B.ActionOptions, AnimatorBase, StandardAnimation):
-    bl_idname = "daz.import_node_poses"
-    bl_label = "Import Node Poses"
-    bl_description = "Import node poses from native DAZ file(s) (*.duf, *.dsf)"
-    bl_options = {'UNDO'}
-
-    loadType = 'NODES'
-    verbose = False
-
-    def draw(self, context):
-        B.AffectOptions.draw(self, context)
-        B.ConvertOptions.draw(self, context)
-        B.ActionOptions.draw(self, context)
-
-
 class DAZ_OT_ImportAction(DazOperator, B.AffectOptions, B.ConvertOptions, B.ActionOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_action"
     bl_label = "Import Action"
@@ -972,7 +957,6 @@ class DAZ_OT_PruneAction(DazOperator):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_ImportNodePoses,
     DAZ_OT_ImportAction,
     DAZ_OT_ImportPoseLib,
     DAZ_OT_ImportSinglePose,
