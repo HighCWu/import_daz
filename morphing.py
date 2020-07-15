@@ -40,16 +40,6 @@ from .settings import theSettings
 #   Morph selector
 #-------------------------------------------------------------
 
-theFilePaths = []
-
-def setFilePaths(files):
-    global theFilePaths
-    if isinstance(files, list):
-        theFilePaths = files
-    else:
-        raise DazError("File paths must be a list of strings")
-
-
 class DAZ_OT_SelectAll(bpy.types.Operator):
     bl_idname = "daz.select_all"
     bl_label = "All"
@@ -112,6 +102,7 @@ class Selector(B.Selection):
 
 
     def cleanup(self, context):
+        from .fileutils import setFilePaths
         setFilePaths([])
 
 
@@ -150,6 +141,7 @@ class Selector(B.Selection):
     def invokeDialog(self, context):
         global theSelector
         theSelector = self
+        from .fileutils import setFilePaths
         setFilePaths([])
         wm = context.window_manager
         ncols = len(self.selection)//24 + 1
@@ -611,16 +603,17 @@ class LoadAllMorphs(LoadMorph):
 class StandardMorphSelector(Selector):
 
     def getActiveMorphFiles(self, context):
-        global theFilePaths
-        paths = {}
-        if theFilePaths:
-            for path in theFilePaths:
+        from .fileutils import getFilePaths
+        pathdir = {}
+        paths = getFilePaths()
+        if paths:
+            for path in paths:
                 text = os.path.splitext(os.path.basename(path))[0]
-                paths[text] = path
+                pathdir[text] = path
         else:
             for item in self.getSelectedItems(context.scene):
-                paths[item.text] = item.name
-        return paths
+                pathdir[item.text] = item.name
+        return pathdir
 
 
     def isActive(self, name, scn):

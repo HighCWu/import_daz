@@ -84,7 +84,7 @@ importModules()
 #----------------------------------------------------------
 
 from .error import getErrorMessage, setSilentMode
-from .morphing import setFilePaths
+from .fileutils import setFilePaths, getFilePaths
 
 #----------------------------------------------------------
 #   Register

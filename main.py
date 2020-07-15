@@ -45,8 +45,8 @@ def getMainAsset(filepath, context, btn):
     print("Scale", theSettings.scale)
     t1 = time.perf_counter()
 
-    from .fileutils import getFilePath
-    path = getFilePath(filepath, ["duf", "dsf", "dse"])
+    from .fileutils import getTypedFilePath
+    path = getTypedFilePath(filepath, ["duf", "dsf", "dse"])
     if path is None:
         raise DazError("Found no .duf file matching\n%s        " % filepath)
     filepath = path

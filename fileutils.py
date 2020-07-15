@@ -146,27 +146,41 @@ with safeOpen("/home/hkeys.txt", "w") as fp:
 """
 
 #-------------------------------------------------------------
+#   Active file paths used from python
+#-------------------------------------------------------------
+
+theFilePaths = []
+
+def getFilePaths():
+    global theFilePaths
+    return theFilePaths
+
+def setFilePaths(files):
+    global theFilePaths
+    if isinstance(files, list):
+        theFilePaths = files
+    else:
+        raise DazError("File paths must be a list of strings")
+
+#-------------------------------------------------------------
 #   Multifiles
 #-------------------------------------------------------------
 
 def getMultiFiles(self, extensions):
-    if not self.files:
-        path = getFilePath(self.filepath, extensions)
-        if path:
-            return [path]
-        else:
-            return []
+    paths = getFilePaths()
+    if paths:
+        return paths
     paths = []
     for file_elem in self.files:
         filepath = os.path.join(self.directory, file_elem.name)
         if os.path.isfile(filepath):
-            path = getFilePath(filepath, extensions)
+            path = getTypedFilePath(filepath, extensions)
             if path:
                 paths.append(path)
     return paths
 
 
-def getFilePath(filepath, exts):
+def getTypedFilePath(filepath, exts):
     words = os.path.splitext(filepath)
     if len(words) == 2:
         fname,ext = words
