@@ -149,23 +149,23 @@ with safeOpen("/home/hkeys.txt", "w") as fp:
 #   Active file paths used from python
 #-------------------------------------------------------------
 
-def clearFilePaths():
+def clearSelection():
     global theFilePaths
     theFilePaths = []
     print("File paths cleared")
 
-def getFilePaths():
+def getSelection():
     global theFilePaths
     return theFilePaths
 
-def setFilePaths(files):
+def setSelection(files):
     global theFilePaths
     if isinstance(files, list):
         theFilePaths = files
     else:
         raise DazError("File paths must be a list of strings")
 
-clearFilePaths()
+clearSelection()
 
 #-------------------------------------------------------------
 #   Multifiles
@@ -173,13 +173,13 @@ clearFilePaths()
 
 class MultiFile(B.MultiFile):
     def invoke(self, context, event):
-        clearFilePaths()
+        clearSelection()
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
 
 def getMultiFiles(self, extensions):
-    paths = getFilePaths()
+    paths = getSelection()
     if paths:
         return paths
     paths = []

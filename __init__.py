@@ -84,7 +84,7 @@ importModules()
 #----------------------------------------------------------
 
 from .error import getErrorMessage, setSilentMode
-from .fileutils import setFilePaths, getFilePaths, clearFilePaths
+from .fileutils import setSelection, getSelection, clearSelection
 
 #----------------------------------------------------------
 #   Register

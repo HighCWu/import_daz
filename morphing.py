@@ -102,11 +102,6 @@ class Selector(B.Selection):
         pass
 
 
-    def cleanup(self, context):
-        from .fileutils import clearFilePaths
-        clearFilePaths()
-
-
     def selectAll(self, context):
         for item in self.selection:
             if self.isSelected(item):
@@ -142,8 +137,8 @@ class Selector(B.Selection):
     def invokeDialog(self, context):
         global theSelector
         theSelector = self
-        from .fileutils import clearFilePaths
-        clearFilePaths()
+        from .fileutils import clearSelection
+        clearSelection()
         wm = context.window_manager
         ncols = len(self.selection)//24 + 1
         if ncols > 6:
@@ -604,9 +599,9 @@ class LoadAllMorphs(LoadMorph):
 class StandardMorphSelector(Selector):
 
     def getActiveMorphFiles(self, context):
-        from .fileutils import getFilePaths
+        from .fileutils import getSelection
         pathdir = {}
-        paths = getFilePaths()
+        paths = getSelection()
         if paths:
             for path in paths:
                 text = os.path.splitext(os.path.basename(path))[0]
