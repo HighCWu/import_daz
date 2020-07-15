@@ -131,7 +131,11 @@ class Selector(B.Selection):
 
 
     def getSelectedProps(self, scn):
-        return [item.name for item in self.getSelectedItems(scn)]
+        from .fileutils import getSelection
+        if getSelection():
+            return getSelection()
+        else:
+            return [item.name for item in self.getSelectedItems(scn)]
 
 
     def invokeDialog(self, context):

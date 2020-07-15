@@ -80,11 +80,11 @@ class MorphTransferer(Selector, B.TransferOptions):
             hum.active_shape_key_index = 0
         clo.active_shape_key_index = 0
 
-        items = self.getSelectedItems(scn)
-        nitems = len(items)
-        for idx,item in enumerate(items):
-            showProgress(idx, nitems)
-            sname = item.name
+        snames = self.getSelectedProps(scn)
+        print("TTT", snames)
+        nskeys = len(snames)
+        for idx,sname in enumerate(snames):
+            showProgress(idx, nskeys)
             hskey = hskeys.key_blocks[sname]
 
             if self.useDriver:
