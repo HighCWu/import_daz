@@ -64,14 +64,14 @@ class FigureInstance(Instance):
         from .finger import getFingeredCharacter
         Instance.finalize(self, context)
         rig,mesh,char = getFingeredCharacter(self.rna)
-        if mesh and mesh.name == self.name:
-            mesh.name += " Mesh"
-        self.rna.name = self.name
         if rig and mesh:
+            if mesh.name == self.name:
+                mesh.name += " Mesh"
             rig.DazMesh = mesh.DazMesh = char
             activateObject(context, rig)
         elif mesh:
             mesh.DazMesh = char
+        self.rna.name = self.name
         for geonode in self.geometries:
             Instance.finalize(self, context, geonode)
         if self.hiddenBones:
