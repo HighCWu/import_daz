@@ -673,6 +673,9 @@ class DAZ_OT_RemoveUnusedDrivers(DazOperator, IsObject):
                     self.removeUnused(ob.data)
                 if ob.type == 'MESH' and ob.data.shape_keys:
                     self.removeUnused(ob.data.shape_keys)
+                    self.removeShapekeys(ob.data.shape_keys)
+                updateDrivers(ob)
+        updateScene(context)
 
 
     def removeUnused(self, rna):
@@ -686,6 +689,19 @@ class DAZ_OT_RemoveUnusedDrivers(DazOperator, IsObject):
             for fcu in fcus:
                 if fcu.data_path:
                     rna.driver_remove(fcu.data_path)
+
+
+    def removeShapekeys(self, skeys):
+        paths = []
+        if skeys and skeys.animation_data:
+            for fcu in skeys.animation_data.drivers:
+                words = fcu.data_path.split('"')
+                if words[0] == "key_blocks[":
+                    if words[1] not in skeys.key_blocks.keys():
+                        paths.append(fcu.data_path)
+        for path in paths:
+            skeys.driver_remove(path)
+        updateDrivers(skeys)
 
 #----------------------------------------------------------
 #   Retarget mesh drivers
