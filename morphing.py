@@ -1470,11 +1470,17 @@ class AddRemoveDriver:
     def invoke(self, context, event):
         self.selection.clear()
         ob = context.object
-        if ob.data.shape_keys:
-            for skey in ob.data.shape_keys.key_blocks[1:]:
-                item = self.selection.add()
-                item.name = item.text = skey.name
-                item.select = False
+        rig = ob.parent
+        if (rig and rig.type != 'ARMATURE'):
+            rig = None
+        skeys = ob.data.shape_keys
+        if skeys:
+            for skey in skeys.key_blocks[1:]:
+                if self.includeShapekey(skeys, skey.name):
+                    item = self.selection.add()
+                    item.name = item.text = skey.name
+                    item.category = self.getCategory(rig, skey.name)
+                    item.select = False
         return self.invokeDialog(context)
 
 
@@ -1488,6 +1494,7 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.Catego
         self.layout.prop(self, "category")
         Selector.draw(self, context)
 
+
     def handleShapekey(self, sname, rig, ob):
         from .driver import makeShapekeyDriver
         skey = ob.data.shape_keys.key_blocks[sname]
@@ -1497,7 +1504,16 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.Catego
         rig.DazCustomMorphs = True
 
 
-class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, IsMesh):
+    def includeShapekey(self, skeys, sname):
+        from .driver import getShapekeyDriver
+        return (not getShapekeyDriver(skeys, sname))
+
+
+    def getCategory(self, rig, sname):
+        return ""
+
+
+class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, CustomSelector, IsMesh):
     bl_idname = "daz.remove_shapekey_drivers"
     bl_label = "Remove Shapekey Drivers"
     bl_description = "Remove rig drivers from shapekeys"
@@ -1511,6 +1527,7 @@ class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, IsMes
             sname in rig.keys()):
             del rig[sname]
 
+
     def removeShapekeyDriver(self, ob, sname):
         adata = ob.data.shape_keys.animation_data
         if (adata and adata.drivers):
@@ -1521,6 +1538,21 @@ class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, IsMes
                     ob.data.shape_keys.driver_remove(fcu.data_path)
                     return
         #raise DazError("Did not find driver for shapekey %s" % skey.name)
+
+
+    def includeShapekey(self, skeys, sname):
+        from .driver import getShapekeyDriver
+        return getShapekeyDriver(skeys, sname)
+
+
+    def getCategory(self, rig, sname):
+        if rig is None:
+            return ""
+        for cat in rig.DazMorphCats:
+            for morph in cat.morphs:
+                if sname == morph.prop:
+                    return cat.name
+        return ""
 
 #-------------------------------------------------------------
 #
