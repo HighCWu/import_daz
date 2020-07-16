@@ -1281,10 +1281,10 @@ class DAZ_OT_UpdatePropLimits(DazOperator, IsMeshArmature):
 #   Remove all morph drivers
 #------------------------------------------------------------------
 
-class DAZ_OT_RemoveAllMorphDrivers(DazOperator, IsMeshArmature):
-    bl_idname = "daz.remove_all_morph_drivers"
-    bl_label = "Remove All Morph Drivers"
-    bl_description = "Remove drivers associated with morphs (not corrective shapekeys)"
+class DAZ_OT_RemoveAllShapekeyDrivers(DazOperator, IsMeshArmature):
+    bl_idname = "daz.remove_all_shapekey_drivers"
+    bl_label = "Remove All Shapekey Drivers"
+    bl_description = "Remove all shapekey drivers"
     bl_options = {'UNDO'}
 
     def run(self, context):
@@ -1292,7 +1292,6 @@ class DAZ_OT_RemoveAllMorphDrivers(DazOperator, IsMeshArmature):
         rig = getRigFromObject(context.object)
         scn = context.scene
         prefix = "Dz"
-        print("REMALL", rig)
         if rig:
             setupMorphPaths(scn, False)
             removeRigDrivers(rig)
@@ -1857,7 +1856,7 @@ classes = [
     DAZ_OT_RemoveStandardMorphs,
     DAZ_OT_RemoveCustomMorphs,
     DAZ_OT_RemoveJCMs,
-    DAZ_OT_RemoveAllMorphDrivers,
+    DAZ_OT_RemoveAllShapekeyDrivers,
     DAZ_OT_AddShapekeyDrivers,
     DAZ_OT_RemoveShapekeyDrivers,
     DAZ_OT_ToggleAllCats,

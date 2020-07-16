@@ -594,6 +594,11 @@ def removePropDrivers(rna, paths=None, rig=None, force=False):
     return keep
 
 
+def isPropDriver(fcu):
+    vars = fcu.driver.variables
+    return (len(vars) > 0 and vars[0].type == 'SINGLE_PROP')
+
+
 def matchesPaths(var, paths, rig):
     if var.type == 'SINGLE_PROP':
         trg = var.targets[0]

@@ -472,7 +472,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.add_shapekey_drivers")
             box.operator("daz.remove_shapekey_drivers")
             box.operator("daz.remove_unused_drivers")
-            box.operator("daz.remove_all_morph_drivers")
+            box.operator("daz.remove_all_shapekey_drivers")
             box.separator()
             box.operator("daz.copy_props")
             box.operator("daz.copy_bone_drivers")
