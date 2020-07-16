@@ -1442,8 +1442,10 @@ class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
         from .driver import getShapekeyDriver
         skeys = ob.data.shape_keys
         for sname in snames:
-            fcu = getShapekeyDriver(skeys, sname)
-            skeys.driver_remove(fcu.data_path, fcu.array_index)
+            if sname in skeys.key_blocks.keys():
+                skey = skeys.key_blocks[sname]
+                if getShapekeyDriver(skeys, sname):
+                    skey.driver_remove("value")
 
 
     def run(self, context):
