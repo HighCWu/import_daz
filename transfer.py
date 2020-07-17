@@ -81,7 +81,6 @@ class MorphTransferer(Selector, B.TransferOptions):
         clo.active_shape_key_index = 0
 
         snames = self.getSelectedProps(scn)
-        print("TTT", snames)
         nskeys = len(snames)
         for idx,sname in enumerate(snames):
             showProgress(idx, nskeys)

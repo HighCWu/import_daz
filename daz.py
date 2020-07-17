@@ -449,9 +449,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
                 box.operator("daz.add_to_group")
                 box.operator("daz.remove_from_groups")
                 box.prop(scn, "DazGroup")
-            box.separator()
-            box.operator("daz.list_bones")
-            box.operator("daz.get_finger_print")
 
         layout.separator()
         box = layout.box()
@@ -613,9 +610,6 @@ class DAZ_PT_Utils(bpy.types.Panel):
         layout = self.layout
         layout.operator("daz.decode_file")
         layout.separator()
-        layout.operator("daz.inspect_prop_groups")
-        layout.operator("daz.inspect_prop_dependencies")
-        layout.separator()
         box = layout.box()
         box.label(text = "Information About Active Object")
         if ob:
@@ -628,6 +622,12 @@ class DAZ_PT_Utils(bpy.types.Panel):
             box.operator("daz.print_statistics")
         else:
             box.label(text = "No active object")
+        layout.separator()
+        layout.operator("daz.list_bones")
+        layout.operator("daz.get_finger_print")
+        layout.separator()
+        layout.operator("daz.inspect_prop_groups")
+        layout.operator("daz.inspect_prop_dependencies")
 
 
 class DAZ_PT_Addons(bpy.types.Panel):
