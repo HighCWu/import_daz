@@ -1398,6 +1398,7 @@ def checkRenderSettings(context):
         "Transparent" : [("transparent_max_bounces", 16),
                          ("transmission_bounces", 8),
                          ("caustics_refractive", True)],
+        "SSS" : [],
         "Volume" : [("volume_bounces", 4)],
     }
 
@@ -1407,6 +1408,7 @@ def checkRenderSettings(context):
         "Glossy" : [],
         "Transparent" : [("use_ssr", True),
                          ("use_ssr_refraction", True)],
+        "SSS" : [("light_threshold", 0.001)],
         "Volume" : [],
     }
 
@@ -1438,6 +1440,11 @@ def checkRenderSettings(context):
                 elif isinstance(val, int) and val < minval:
                     ok = False
                     print("  %s: %d < %d" % (attr, val, minval))
+                    if scn.DazHandleRenderSettings == "UPDATE":
+                        setattr(settings, attr, minval)
+                elif isinstance(val, float) and val > minval:
+                    ok = False
+                    print("  %s: %f > %f" % (attr, val, minval))
                     if scn.DazHandleRenderSettings == "UPDATE":
                         setattr(settings, attr, minval)
     if not ok:

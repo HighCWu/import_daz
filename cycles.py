@@ -710,21 +710,26 @@ class CyclesTree:
         if isBlack(color):
             return
         wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
+        transcolor = Vector(self.getValue(["Transmitted Color"], BLACK))
+        if isWhite(transcolor):
+            transcolor = BLACK
+
         sssmode = self.getValue(["SSS Mode"], 0)
         # [ "Mono", "Chromatic" ]
-        if sssmode == 1:
+        if sssmode == 1:    # Chromatic
             sss,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK)
-            if isBlack(sss):
-                return
-            radius = sss * dist
-        elif sssmode == 0:
-            sss,ssstex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
-            if sss == 0:
-                return
-            r = sss * dist
-            radius = (r,r,r)
+            if isWhite(sss):
+                sss = BLACK
+        elif sssmode == 0:  # Mono
+            s,ssstex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
+            if s == 1:
+                s = 0
+            sss = Vector((s,s,s))
+        radius = (sss + transcolor*0.02) * dist
         self.linkSSS(color, coltex, wt, wttex, radius, ssstex)
-        theSettings.usedFeatures["Transparent"] = True
+        theSettings.usedFeatures["SSS"] = True
+        mat = self.material.rna
+        mat.use_sss_translucency = True
 
 
     def linkSSS(self, color, coltex, wt, wttex, radius, ssstex):
@@ -734,13 +739,6 @@ class CyclesTree:
         self.linkColor(ssstex, node, radius, "Radius")
         self.linkNormal(node)
         self.mixWithActive(wt, wttex, node)
-
-
-    def getSSSRadius(self, scn):
-        if scn.DazArnoldSSS:
-            return Vector((1.0, 0.35, 0.1))*0.1, None
-        else:
-            return self.getColorTex("getChannelScatterDist", "NONE", WHITE)
 
 #-------------------------------------------------------------
 #   Transparency

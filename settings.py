@@ -143,6 +143,7 @@ class Settings:
             "Diffuse" : False,
             "Glossy" : False,
             "Transparent" : False,
+            "SSS" : False,
             "Volume" : False,
         }
 
