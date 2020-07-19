@@ -317,6 +317,8 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.label(text="Create low-poly meshes before transfers.")
                 box.operator("daz.transfer_jcms")
                 box.operator("daz.transfer_other_morphs")
+                box.separator()
+                box.operator("daz.merge_shapekeys")
 
         layout.separator()
         box = layout.box()
@@ -329,7 +331,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.merge_geografts")
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.make_udim_materials")
-            box.operator("daz.merge_shapekeys")
             box.operator("daz.merge_uv_layers")
 
             box.separator()
