@@ -1266,11 +1266,16 @@ def updatePropLimits(rig, context):
     print("Property limits updated")
 
 
-class DAZ_OT_UpdatePropLimits(DazOperator, IsMeshArmature):
+class DAZ_OT_UpdatePropLimits(DazPropsOperator, IsMeshArmature):
     bl_idname = "daz.update_prop_limits"
     bl_label = "Update Property Limits"
     bl_description = "Update min and max value for properties"
     bl_options = {'UNDO'}
+
+    def draw(self, context):
+        scn = context.scene
+        self.layout.prop(scn, "DazPropMin")
+        self.layout.prop(scn, "DazPropMax")
 
     def run(self, context):
         rig = getRigFromObject(context.object)
