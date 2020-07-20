@@ -313,6 +313,41 @@ class FrameConverter:
         return vectorsToFrames(nvecs)
 
 #-------------------------------------------------------------
+#   HideOperator class
+#-------------------------------------------------------------
+
+class HideOperator(DazOperator):
+    def prequel(self, context):
+        DazOperator.prequel(self, context)
+        if bpy.app.version >= (2,80,0):
+            self.layerColls = []
+            rig = context.object
+            self.hideLayerColls(rig, context.view_layer.layer_collection)
+
+
+    def hideLayerColls(self, rig, layer):
+        if layer.exclude:
+            return True
+        ok = True
+        for ob in layer.collection.objects:
+            if ob == rig:
+                ok = False
+        for child in layer.children:
+            ok = (self.hideLayerColls(rig, child) and ok)
+        if ok:
+            self.layerColls.append(layer)
+            layer.exclude = True
+            print("HIDE", layer)
+        return ok
+
+
+    def sequel(self, context):
+        DazOperator.prequel(self, context)
+        if bpy.app.version >= (2,80,0):
+            for layer in self.layerColls:
+                layer.exclude = False
+
+#-------------------------------------------------------------
 #   AnimatorBase class
 #-------------------------------------------------------------
 
@@ -753,7 +788,7 @@ class StandardAnimation:
                 "Check results carefully.", warning=True)
 
 
-class DAZ_OT_ImportAction(DazOperator, B.AffectOptions, B.ConvertOptions, B.ActionOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportAction(HideOperator, B.AffectOptions, B.ConvertOptions, B.ActionOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_action"
     bl_label = "Import Action"
     bl_description = "Import poses from native DAZ file(s) (*.duf, *.dsf) to action"
@@ -771,7 +806,7 @@ class DAZ_OT_ImportAction(DazOperator, B.AffectOptions, B.ConvertOptions, B.Acti
         StandardAnimation.run(self, context)
 
 
-class DAZ_OT_ImportPoseLib(DazOperator, B.AffectOptions, B.ConvertOptions, B.PoseLibOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportPoseLib(HideOperator, B.AffectOptions, B.ConvertOptions, B.PoseLibOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_poselib"
     bl_label = "Import Pose Library"
     bl_description = "Import poses from native DAZ file(s) (*.duf, *.dsf) to pose library"
@@ -790,7 +825,7 @@ class DAZ_OT_ImportPoseLib(DazOperator, B.AffectOptions, B.ConvertOptions, B.Pos
         StandardAnimation.run(self, context)
 
 
-class DAZ_OT_ImportSinglePose(DazOperator, B.AffectOptions, B.ConvertOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportSinglePose(HideOperator, B.AffectOptions, B.ConvertOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_single_pose"
     bl_label = "Import Pose"
     bl_description = "Import a pose from native DAZ file(s) (*.duf, *.dsf)"

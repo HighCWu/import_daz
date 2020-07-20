@@ -813,7 +813,8 @@ def mergeBonesAndVgroups(rig, mergers, parents, context):
                     if w > 1e-3:
                         vgrp.add([vn], w, 'REPLACE')
 
-    doHardUpdate(context, rig)
+    #doHardUpdate(context, rig)
+    updateDrivers(rig)
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
