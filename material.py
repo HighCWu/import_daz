@@ -1454,6 +1454,8 @@ def checkSettings(engine, settings, handle, render):
     for key,used in theSettings.usedFeatures.items():
         if used and key in settings.keys():
             for attr,minval in settings[key]:
+                if not hasattr(engine, attr):
+                    continue
                 val = getattr(engine, attr)
                 if not checkSetting(attr, val, minval):
                     ok = False
