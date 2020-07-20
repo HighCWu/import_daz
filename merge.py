@@ -48,7 +48,6 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
     def run(self, context):
         from .driver import getShapekeyDrivers, copyShapeKeyDrivers
 
-        bpy.ops.object.mode_set(mode='OBJECT')
         cob = context.object
         ncverts = len(cob.data.vertices)
 

@@ -322,12 +322,6 @@ def averageColor(value):
         return value
 
 
-def checkObjectMode(context):
-    import bpy
-    if context.object is not None:
-        bpy.ops.object.mode_set(mode='OBJECT')
-
-
 def match(tests, string):
     for test in tests:
         if test in string:

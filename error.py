@@ -241,9 +241,13 @@ theUseDumpErrors = False
 
 class DazOperator(bpy.types.Operator):
     def execute(self, context):
+        if context.object:
+            bpy.ops.object.mode_set(mode='OBJECT')
         clearErrorMessage()
         try:
             self.run(context)
+            if context.object:
+                bpy.ops.object.mode_set(mode='OBJECT')
         except DazError:
             handleDazError(context)
         except KeyboardInterrupt:

@@ -328,12 +328,9 @@ class DAZ_OT_ConvertRigPose(DazPropsOperator, B.NewRig):
                         eb.head = (1,2,3)
                         eb.tail = head
                         eb.head = tail
-                        #bpy.ops.object.mode_set(mode='OBJECT')
-                        #bpy.ops.object.mode_set(mode='EDIT')
                 else:
                     eb.name = data
         bpy.ops.object.mode_set(mode='OBJECT')
-
 
 #-------------------------------------------------------------
 #   Bone conversion

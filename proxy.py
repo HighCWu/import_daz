@@ -173,7 +173,6 @@ class DAZ_OT_FindPolys(DazOperator, IsMeshArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        checkObjectMode(context)
         findPolys(context)
 
 #-------------------------------------------------------------
@@ -865,7 +864,6 @@ def deselectEverything(ob, context):
 class MakeProxy(IsMesh):
 
     def run(self, context):
-        checkObjectMode(context)
         meshes,active = getSelectedObjects(context, 'MESH')
         print("-----")
         errors = []
@@ -1052,7 +1050,6 @@ class DAZ_OT_FindSeams(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        checkObjectMode(context)
         findSeams(context.object)
 
 #-------------------------------------------------------------
@@ -1069,7 +1066,6 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
         self.layout.prop(self, "fraction")
 
     def run(self, context):
-        checkObjectMode(context)
         ob = context.object
         Proxifier(ob).selectRandomComponents(context, self.fraction)
 
@@ -1099,7 +1095,6 @@ class DAZ_OT_ApplyMorphs(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        checkObjectMode(context)
         for ob in getSceneObjects(context):
             if getSelected(ob):
                 applyShapeKeys(ob)
@@ -1115,7 +1110,6 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        checkObjectMode(context)
         ob = context.object
         modname = None
         for mod in ob.modifiers:
@@ -1187,7 +1181,6 @@ class DAZ_OT_PrintStatistics(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        checkObjectMode(context)
         print("--------- Statistics ------------")
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':
@@ -1374,7 +1367,6 @@ class DAZ_OT_AddMannequin(DazPropsOperator, IsMesh, B.Mannequin):
         self.layout.prop(self, "group")
 
     def run(self, context):
-        checkObjectMode(context)
         addMannequins(self, context)
 
 #-------------------------------------------------------------
@@ -1388,7 +1380,6 @@ class DAZ_OT_AddPush(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        checkObjectMode(context)
         hasShapeKeys = []
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':
@@ -1416,7 +1407,6 @@ class DAZ_OT_AddSubsurf(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        checkObjectMode(context)
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':
                 mod = ob.modifiers.new('SUBSURF', 'SUBSURF')

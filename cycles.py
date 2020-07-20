@@ -727,7 +727,7 @@ class CyclesTree:
             trans = BLACK
 
         rad,radtex = self.sumColors(sss, ssstex, trans, transtex)
-        radius = rad*0.02
+        radius = rad * 0.02 * theSettings.scale
         self.linkSSS(color, coltex, wt, wttex, radius, radtex)
         theSettings.usedFeatures["SSS"] = True
         mat = self.material.rna
