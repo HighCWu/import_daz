@@ -135,9 +135,13 @@ class Light(Node):
 
 
     def setCyclesProps(self, lamp):
-        lamp.use_shadow = True
-        if hasattr(lamp, "use_contact_shadow"):
-            lamp.use_contact_shadow = True
+        settings = [("use_shadow", True),
+                    ("use_contact_shadow", True),
+                    ("shadow_buffer_bias", 0.01),
+                    ("contact_shadow_bias", 0.02)]
+        for attr,value in settings:
+            if hasattr(lamp, attr):
+                setattr(lamp, attr, value)
 
 
     def setInternalProps(self, lamp):
@@ -158,7 +162,8 @@ class Light(Node):
             elif key == "shadow_softness":
                 lamp.shadow_buffer_soft = value
             elif key == "shadow_bias":
-                lamp.shadow_buffer_bias = value
+                #lamp.shadow_buffer_bias = value
+                print("Lamp %s shadow bias: %s" % (lamp.name, value))
             elif key == "falloff_angle":
                 if hasattr(lamp, "spot_size"):
                     lamp.spot_size = value*D
@@ -229,10 +234,10 @@ class LightInstance(Instance):
         lamp.shadow_color = self.getValue(["Shadow Color"], BLACK)
         if hasattr(lamp, "shadow_buffer_soft"):
             lamp.shadow_buffer_soft = self.getValue(["Shadow Softness"], False)
-        if hasattr(lamp, "shadow_buffer_bias"):
-            bias = self.getValue(["Shadow Bias"], None)
-            if bias:
-                lamp.shadow_buffer_bias = bias
+        #if hasattr(lamp, "shadow_buffer_bias"):
+        #    bias = self.getValue(["Shadow Bias"], None)
+        #    if bias:
+        #        lamp.shadow_buffer_bias = bias
         if hasattr(lamp, "falloff_type"):
             value = self.getValue(["Decay"], 2)
             dtypes = ['CONSTANT', 'INVERSE_LINEAR', 'INVERSE_SQUARE']

@@ -584,6 +584,7 @@ class DAZ_PT_Settings(bpy.types.Panel):
             if scn.DazLimitBump:
                 box.prop(scn, "DazMaxBump")
             box.prop(scn, "DazHandleRenderSettings")
+            box.prop(scn, "DazHandleLightSettings")
             box.separator()
             box.prop(scn, "DazUseDisplacement")
             box.prop(scn, "DazUseEmission")

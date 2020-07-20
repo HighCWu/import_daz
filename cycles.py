@@ -546,7 +546,7 @@ class CyclesTree:
         color,tex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, False)
         color = strength*color
         if tex and strtex:
-            tex = self.multiplyTexs(tex, strtex)
+            tex = self.mixTexs('MULTIPLY', tex, strtex)
         elif strtex:
             tex = strtex
         if tex:
@@ -710,9 +710,6 @@ class CyclesTree:
         if isBlack(color):
             return
         wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
-        transcolor = Vector(self.getValue(["Transmitted Color"], BLACK))
-        if isWhite(transcolor):
-            transcolor = BLACK
 
         sssmode = self.getValue(["SSS Mode"], 0)
         # [ "Mono", "Chromatic" ]
@@ -725,8 +722,13 @@ class CyclesTree:
             if s == 1:
                 s = 0
             sss = Vector((s,s,s))
-        radius = (sss + transcolor*0.02) * dist
-        self.linkSSS(color, coltex, wt, wttex, radius, ssstex)
+        trans,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
+        if isWhite(trans):
+            trans = BLACK
+
+        rad,radtex = self.sumColors(sss, ssstex, trans, transtex)
+        radius = rad*0.02
+        self.linkSSS(color, coltex, wt, wttex, radius, radtex)
         theSettings.usedFeatures["SSS"] = True
         mat = self.material.rna
         mat.use_sss_translucency = True
@@ -744,10 +746,19 @@ class CyclesTree:
 #   Transparency
 #-------------------------------------------------------------
 
+    def sumColors(self, color, tex, color2, tex2):
+        color = Vector(color) + Vector(color2)
+        if tex and tex2:
+            tex = self.mixTexs('ADD', tex, tex2)
+        elif tex2:
+            tex = tex2
+        return color,tex
+
+
     def multiplyColors(self, color, tex, color2, tex2):
         color = compProd(color, color2)
         if tex and tex2:
-            tex = self.multiplyTexs(tex, tex2)
+            tex = self.mixTexs('MULTIPLY', tex, tex2)
         elif tex2:
             tex = tex2
         return color,tex
@@ -1072,13 +1083,13 @@ class CyclesTree:
         return node
 
 
-    def multiplyTexs(self, tex1, tex2, slot1=0, slot2=0, col=3):
+    def mixTexs(self, op, tex1, tex2, slot1=0, slot2=0, col=3):
         if tex1 is None:
             return tex2
         elif tex2 is None:
             return tex1
         mix = self.addNode(col, "ShaderNodeMixRGB")
-        mix.blend_type = 'MULTIPLY'
+        mix.blend_type = op
         mix.use_alpha = False
         mix.inputs[0].default_value = 1.0
         self.links.new(tex1.outputs[slot1], mix.inputs[1])

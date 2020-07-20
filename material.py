@@ -1391,71 +1391,96 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolutio
 #----------------------------------------------------------
 
 def checkRenderSettings(context):
-    minSettingsCycles = {
+    renderSettingsCycles = {
         "Bounces" : [("max_bounces", 8)],
         "Diffuse" : [("diffuse_bounces", 1)],
         "Glossy" : [("glossy_bounces", 4)],
         "Transparent" : [("transparent_max_bounces", 16),
                          ("transmission_bounces", 8),
                          ("caustics_refractive", True)],
-        "SSS" : [],
         "Volume" : [("volume_bounces", 4)],
     }
 
-    minSettingsEevee = {
-        "Bounces" : [],
-        "Diffuse" : [],
-        "Glossy" : [],
+    renderSettingsEevee = {
         "Transparent" : [("use_ssr", True),
                          ("use_ssr_refraction", True)],
         "SSS" : [("light_threshold", 0.001)],
-        "Volume" : [],
+    }
+
+    lightSettings = {
+        "Bounces" : [("use_shadow", True),
+                     ("use_contact_shadow", True),
+                     ("shadow_buffer_bias", 0.01),
+                     ("contact_shadow_bias", 0.02)],
     }
 
     scn = context.scene
-    if scn.DazHandleRenderSettings == "IGNORE":
-        return
     if scn.render.engine in ["BLENDER_RENDER", "BLENDER_GAME"]:
         return
     elif scn.render.engine == "CYCLES":
-        settings = scn.cycles
-        minSettings = minSettingsCycles
+        engine = scn.cycles
+        renderSettings = renderSettingsCycles
     elif scn.render.engine == "BLENDER_EEVEE":
-        settings = scn.eevee
-        minSettings = minSettingsEevee
+        engine = scn.eevee
+        renderSettings = renderSettingsEevee
     else:
         return
 
-    ok = True
-    print("Render Settings:")
-    for key,used in theSettings.usedFeatures.items():
-        if used:
-            for attr,minval in minSettings[key]:
-                val = getattr(settings, attr)
-                if isinstance(val, bool) and val != minval:
-                    ok = False
-                    print("  %s: %d != %d" % (attr, val, minval))
-                    if scn.DazHandleRenderSettings == "UPDATE":
-                        setattr(settings, attr, minval)
-                elif isinstance(val, int) and val < minval:
-                    ok = False
-                    print("  %s: %d < %d" % (attr, val, minval))
-                    if scn.DazHandleRenderSettings == "UPDATE":
-                        setattr(settings, attr, minval)
-                elif isinstance(val, float) and val > minval:
-                    ok = False
-                    print("  %s: %f > %f" % (attr, val, minval))
-                    if scn.DazHandleRenderSettings == "UPDATE":
-                        setattr(settings, attr, minval)
-    if not ok:
-        if scn.DazHandleRenderSettings == "WARN":
-            msg = "Render settings are insufficient to render this scene correctly."
-        else:
-            msg = "Render settings have been update to minimal requirements for this scene."
-        msg += "\nSee http://diffeomorphic.blogspot.com/2020/04/minimal-render-settings.html for details."
+    msg = ""
+    msg += checkSettings(engine, renderSettings, scn.DazHandleRenderSettings, "Render")
+
+    if bpy.app.version < (2,80,0):
+        bpydatalamps = bpy.data.lamps
+        lamptype = "Lamp"
+    else:
+        bpydatalamps = bpy.data.lights
+        lamptype = "Light"
+    for lamp in bpydatalamps:
+        msg += checkSettings(lamp, lightSettings, scn.DazHandleLightSettings, '%s "%s"' % (lamptype, lamp.name))
+
+    if msg:
+        msg += "See http://diffeomorphic.blogspot.com/2020/04/minimal-render-settings.html for details."
         return msg
     else:
         return ""
+
+
+def checkSettings(engine, settings, handle, render):
+    msg = ""
+    if handle == "IGNORE":
+        return msg
+    header = ("%s Settings:" % render)
+    ok = True
+    for key,used in theSettings.usedFeatures.items():
+        if used and key in settings.keys():
+            for attr,minval in settings[key]:
+                val = getattr(engine, attr)
+                if not checkSetting(attr, val, minval):
+                    ok = False
+                    if header:
+                        print(header)
+                        header = None
+                    if handle == "UPDATE":
+                        setattr(engine, attr, minval)
+    if not ok:
+        if handle == "WARN":
+            msg = ("%s settings are insufficient to render this scene correctly.\n" % render)
+        else:
+            msg = ("%s settings have been updated to minimal requirements for this scene.\n" % render)
+    return msg
+
+
+def checkSetting(attr, val, minval):
+    if isinstance(val, bool) and val != minval:
+        print("  %s: %d != %d" % (attr, val, minval))
+        return False
+    elif isinstance(val, int) and val < minval:
+        print("  %s: %d < %d" % (attr, val, minval))
+        return False
+    elif isinstance(val, float) and val > minval:
+        print("  %s: %f > %f" % (attr, val, minval))
+        return False
+    return True
 
 #----------------------------------------------------------
 #   Initialize
@@ -1481,6 +1506,14 @@ def initialize():
                  ("UPDATE", "Update", "Update insufficient render settings")],
         name = "Render Settings",
         default = "UPDATE"
+    )
+
+    bpy.types.Scene.DazHandleLightSettings = EnumProperty(
+        items = [("IGNORE", "Ignore", "Ignore insufficient light settings"),
+                 ("WARN", "Warn", "Warn about insufficient light settings"),
+                 ("UPDATE", "Update", "Update insufficient light settings")],
+        name = "Light Settings",
+        default = "WARN"
     )
 
 

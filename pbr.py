@@ -138,23 +138,23 @@ class PbrTree(CyclesTree):
                 refl,reftex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0.5, False, useTex)
                 color,coltex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, True, useTex)
                 if reftex and coltex:
-                    reftex = self.multiplyTexs(coltex, reftex)
+                    reftex = self.mixTexs('MULTIPLY', coltex, reftex)
                 elif coltex:
                     reftex = coltex
-                tex = self.multiplyTexs(strtex, reftex)
+                tex = self.mixTexs('MULTIPLY', strtex, reftex)
                 factor = 1.25 * refl * strength
                 value = factor * averageColor(color)
                 self.glossyColor, self.glossyTex = color, tex
             elif self.material.basemix == 1:  # Specular/Glossiness
                 # principled specular = iray glossy specular * iray glossy layered weight * 16
                 color,reftex = self.getColorTex("getChannelGlossySpecular", "COLOR", WHITE, True, useTex)
-                tex = self.multiplyTexs(strtex, reftex)
+                tex = self.mixTexs('MULTIPLY', strtex, reftex)
                 factor = 16 * strength
                 value = factor * averageColor(color)
                 self.glossyColor, self.glossyTex = color, tex
         else:
             color,coltex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, True, useTex)
-            tex = self.multiplyTexs(strtex, coltex)
+            tex = self.mixTexs('MULTIPLY', strtex, coltex)
             value = factor = strength * averageColor(color)
 
         self.pbr.inputs["Specular"].default_value = clamp(value)
@@ -168,7 +168,7 @@ class PbrTree(CyclesTree):
         if self.material.shader == 'IRAY':
             if self.material.basemix == 0:    # Metallic/Roughness
                 refl,reftex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0.5, False, useTex)
-                tex = self.multiplyTexs(toptex, reftex)
+                tex = self.mixTexs('MULTIPLY', toptex, reftex)
                 value = 1.25 * refl * top
             else:
                 tex = toptex
@@ -251,7 +251,7 @@ class PbrTree(CyclesTree):
             transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
             dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
             if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
-                coltex = self.multiplyTexs(coltex, transtex)
+                coltex = self.mixTexs('MULTIPLY', coltex, transtex)
                 color = compProd(color, transcolor)
 
             self.setRoughness(self.pbr, "Roughness", roughness, roughtex, square=False)
