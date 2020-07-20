@@ -642,7 +642,7 @@ class Bone(Node):
             return None
 
 
-    def buildEdit(self, figure, rig, parent, inst, cscale, center):
+    def buildEdit(self, figure, rig, parent, inst, cscale, center, isFace):
         if self.name in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[self.name]
         else:
@@ -656,7 +656,7 @@ class Bone(Node):
             if self.useRoll:
                 eb.roll = self.roll
             else:
-                self.findRoll(inst, eb, figure)
+                self.findRoll(inst, eb, figure, isFace)
             self.roll = eb.roll
             self.useRoll = True
             if theSettings.useConnect and parent:
@@ -664,9 +664,12 @@ class Bone(Node):
                 if dist.length < 1e-4*theSettings.scale:
                     eb.use_connect = True
 
+        if self.name in ["upperFaceRig", "lowerFaceRig"]:
+            print("Face", self.name)
+            isFace = True
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildEdit(figure, rig, eb, child, cscale, center)
+                child.node.buildEdit(figure, rig, eb, child, cscale, center, isFace)
 
 
     units = [Vector((1,0,0)), Vector((0,1,0)), Vector((0,0,1))]
@@ -756,13 +759,16 @@ class Bone(Node):
                 child.node.buildFormulas(rig, child, hide)
 
 
-    def findRoll(self, inst, eb, figure):
+    def findRoll(self, inst, eb, figure, isFace):
         from .merge import GenesisToes
         if (self.getRollFromPlane(inst, eb, figure)):
             return
 
         if self.name in RotateRoll.keys():
             rr = RotateRoll[self.name]
+        elif isFace or self.name in ["lEye", "rEye"]:
+            self.fixEye(eb)
+            rr = 0
         elif self.name in GenesisToes["lToe"]:
             rr = -90
         elif self.name in GenesisToes["rToe"]:
@@ -790,6 +796,14 @@ class Bone(Node):
             mat[nz][2] = 0
             mat.normalize()
             eb.matrix = mat
+
+
+    def fixEye(self, eb):
+        vec = eb.tail - eb.head
+        y = Vector((0,-1,0))
+        if vec.dot(y) > 0.99*eb.length:
+            print("Fix eye", eb.name)
+            eb.tail = eb.head + eb.length*y
 
 
     def getRollFromPlane(self, inst, eb, figure):

@@ -253,7 +253,7 @@ class Figure(Node):
         bpy.ops.object.mode_set(mode='EDIT')
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildEdit(self, rig, None, child, cscale, center)
+                child.node.buildEdit(self, rig, None, child, cscale, center, False)
         rig.DazCharacterScale = cscale
         rig.DazRig = self.rigtype
 
