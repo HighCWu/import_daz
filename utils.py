@@ -351,6 +351,21 @@ def getCurrentValue(struct, default=None):
         return default
 
 #-------------------------------------------------------------
+#   Profiling
+#-------------------------------------------------------------
+
+from time import perf_counter
+
+class Timer:
+    def __init__(self):
+        self.t = perf_counter()
+
+    def print(self, msg):
+        t = perf_counter()
+        print("%8.6f: %s" % (t-self.t, msg))
+        self.t = t
+
+#-------------------------------------------------------------
 #   Progress
 #-------------------------------------------------------------
 

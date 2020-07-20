@@ -241,9 +241,7 @@ theUseDumpErrors = False
 
 class DazOperator(bpy.types.Operator):
     def execute(self, context):
-        if context.object:
-            bpy.ops.object.mode_set(mode='OBJECT')
-        clearErrorMessage()
+        self.prequel(context)
         try:
             self.run(context)
             if context.object:
@@ -255,9 +253,17 @@ class DazOperator(bpy.types.Operator):
             theMessage = "Keyboard interrupt"
             bpy.ops.daz.error('INVOKE_DEFAULT')
         finally:
-            wm = bpy.context.window_manager
-            wm.progress_end()
+            self.sequel(context)
         return{'FINISHED'}
+
+    def prequel(self, context):
+        if context.object:
+            bpy.ops.object.mode_set(mode='OBJECT')
+        clearErrorMessage()
+
+    def sequel(self, context):
+        wm = bpy.context.window_manager
+        wm.progress_end()
 
 
 class DazPropsOperator(DazOperator):
