@@ -665,7 +665,6 @@ class Bone(Node):
                     eb.use_connect = True
 
         if self.name in ["upperFaceRig", "lowerFaceRig"]:
-            print("Face", self.name)
             isFace = True
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
@@ -802,7 +801,6 @@ class Bone(Node):
         vec = eb.tail - eb.head
         y = Vector((0,-1,0))
         if vec.dot(y) > 0.99*eb.length:
-            print("Fix eye", eb.name)
             eb.tail = eb.head + eb.length*y
 
 
