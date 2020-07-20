@@ -434,8 +434,8 @@ class CyclesTree:
                 if scn.DazLimitBump and strength > scn.DazMaxBump:
                     strength = scn.DazMaxBump
                 bump.inputs["Strength"].default_value = strength
-                bumpmin = self.material.getChannelValue(self.material.getChannelBumpMin(), -0.025)
-                bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.025)
+                bumpmin = self.material.getChannelValue(self.material.getChannelBumpMin(), -0.01)
+                bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.01)
                 bump.inputs["Distance"].default_value = (bumpmax-bumpmin) * theSettings.scale
                 self.links.new(tex.outputs[0], bump.inputs["Height"])
                 self.linkNormal(bump)

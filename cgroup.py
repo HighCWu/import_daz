@@ -150,8 +150,8 @@ class DualLobeGroup(CyclesGroup):
 
 
     def addNodes(self, args=None):
-        glossy1 = self.addGlossy("Roughness 1")
-        glossy2 = self.addGlossy("Roughness 2")
+        glossy1 = self.addGlossy("Roughness 1", True)
+        glossy2 = self.addGlossy("Roughness 2", False)
         mix = self.addNode(3, "ShaderNodeMixShader")
         self.links.new(self.inputs.outputs["Fac"], mix.inputs[0])
         self.links.new(glossy1.outputs[0], mix.inputs[2])
@@ -159,15 +159,17 @@ class DualLobeGroup(CyclesGroup):
         self.links.new(mix.outputs[0], self.outputs.inputs["BSDF"])
 
 
-    def addGlossy(self, roughness):
+    def addGlossy(self, roughness, useNormal):
         glossy = self.addNode(1, "ShaderNodeBsdfGlossy")
         self.links.new(self.inputs.outputs["Weight"], glossy.inputs["Color"])
         self.links.new(self.inputs.outputs[roughness], glossy.inputs["Roughness"])
-        self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
+        if useNormal:
+            self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
 
         fresnel = self.addNode(1, "ShaderNodeFresnel")
         self.links.new(self.inputs.outputs["IOR"], fresnel.inputs["IOR"])
-        self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
+        if useNormal:
+            self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
 
         mix = self.addNode(2, "ShaderNodeMixShader")
         self.links.new(fresnel.outputs[0], mix.inputs[0])
