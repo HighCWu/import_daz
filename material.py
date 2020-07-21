@@ -1395,6 +1395,8 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolutio
 #----------------------------------------------------------
 
 def checkRenderSettings(context):
+    from .light import getMinLightSettings
+
     renderSettingsCycles = {
         "Bounces" : [("max_bounces", 8)],
         "Diffuse" : [("diffuse_bounces", 1)],
@@ -1408,14 +1410,15 @@ def checkRenderSettings(context):
     renderSettingsEevee = {
         "Transparent" : [("use_ssr", True),
                          ("use_ssr_refraction", True)],
-        "SSS" : [("light_threshold", 0.001)],
+        "Bounces" : [("shadow_cube_size", "1024"),
+                 ("shadow_cascade_size", "2048"),
+                 ("use_shadow_high_bitdepth", True),
+                 ("light_threshold", 0.001),
+                ],
     }
 
     lightSettings = {
-        "Bounces" : [("use_shadow", True),
-                     ("use_contact_shadow", True),
-                     ("shadow_buffer_bias", 0.01),
-                     ("contact_shadow_bias", 0.02)],
+        "Bounces" : getMinLightSettings(),
     }
 
     scn = context.scene
@@ -1486,6 +1489,10 @@ def checkSetting(attr, val, minval):
     elif isinstance(val, float) and val > minval:
         print("  %s: %f > %f" % (attr, val, minval))
         return False
+    elif isinstance(val, str):
+        if int(val) < int(minval):
+            print("  %s: %s < %s" % (attr, val, minval))
+            return False
     return True
 
 #----------------------------------------------------------

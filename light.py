@@ -40,6 +40,16 @@ from .error import reportError
 #   Light base class
 #-------------------------------------------------------------
 
+def getMinLightSettings():
+    return [("use_shadow", True),
+            ("shadow_buffer_clip_start", 1.0*theSettings.scale),
+            ("shadow_buffer_bias", 0.01),
+            ("use_contact_shadow", True),
+            ("contact_shadow_bias", 0.02),
+            ("contact_shadow_distance", 2.0*theSettings.scale),
+           ]
+
+
 class Light(Node):
 
     def __init__(self, fileref):
@@ -135,11 +145,7 @@ class Light(Node):
 
 
     def setCyclesProps(self, lamp):
-        settings = [("use_shadow", True),
-                    ("use_contact_shadow", True),
-                    ("shadow_buffer_bias", 0.01),
-                    ("contact_shadow_bias", 0.02)]
-        for attr,value in settings:
+        for attr,value in getMinLightSettings():
             if hasattr(lamp, attr):
                 setattr(lamp, attr, value)
 

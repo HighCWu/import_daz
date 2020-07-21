@@ -105,6 +105,7 @@ class WorldMaterial(CyclesMaterial):
         # [Dome and Scene, Dome Only, Sun-Skies Only, Scene Only]
 
         self.envmap = self.getChannel(["Environment Map"])
+        fixray = False
         if mode in [0,1] and self.envmap:
             print("Draw environment", mode)
             if not self.getValue(["Draw Dome"], False):
@@ -116,6 +117,7 @@ class WorldMaterial(CyclesMaterial):
         elif mode in [0,3] and self.render.backgroundColor:
             print("Draw backdrop", mode)
             self.envmap = None
+            fixray = True
         else:
             print("Dont draw environment. Environment mode == %d" % mode)
             return
@@ -124,6 +126,13 @@ class WorldMaterial(CyclesMaterial):
         world.use_nodes = True
         self.tree.build(context)
         context.scene.world = world
+        if fixray:
+            vis = world.cycles_visibility
+            vis.camera = True
+            vis.diffuse = False
+            vis.glossy = False
+            vis.transmission = False
+            vis.scatter = False
 
 #-------------------------------------------------------------
 #   World Tree
@@ -139,12 +148,11 @@ class WorldTree(CyclesTree):
     def build(self, context):
         from mathutils import Euler, Matrix
 
-        self.makeTree(slot="Generated")
-
         background = self.material.render.backgroundColor
         backdrop = self.material.render.backdrop
         envmap = self.material.envmap
         if envmap:
+            self.makeTree(slot="Generated")
             rot = self.getValue(["Dome Rotation"], 0)
             orx = self.getValue(["Dome Orientation X"], 0)
             ory = self.getValue(["Dome Orientation Y"], 0)
@@ -165,16 +173,17 @@ class WorldTree(CyclesTree):
             self.links.new(self.texco, tex.inputs["Vector"])
             strength = self.getValue(["Environment Intensity"], 1) * value
         elif backdrop:
+            self.makeTree(slot="Window")
             strength = 1
             color = background
             img = self.getImage(backdrop, "COLOR")
             tex = self.addTextureNode(2, img, "COLOR")
             self.linkVector(self.texco, tex)
         else:
+            self.makeTree()
             strength = 1
             color = background
-            tex = self.addNode(1, "ShaderNodeRGB")
-            tex.outputs["Color"].default_value[0:3] = color
+            tex = None
 
         bg = self.addNode(4, "ShaderNodeBackground")
         bg.inputs["Strength"].default_value = strength
