@@ -370,9 +370,9 @@ class CyclesTree:
         return None
 
 
-    def prune(self):
+    def prune(self, output = "Material Output"):
         marked = dict([(node.name, False) for node in self.nodes])
-        if "Material Output" not in marked.keys():
+        if output not in marked.keys():
             print("No output node")
             return
         marked["Material Output"] = True
@@ -1010,13 +1010,7 @@ class CyclesTree:
             if not hasMap and texnode:
                 return texnode, False
             else:
-                texnode = self.addNode(col, "ShaderNodeTexImage")
-                texnode.image = img
-                self.setColorSpace(texnode, colorSpace)
-                texnode.name = img.name
-                if hasattr(texnode, "image_user"):
-                    texnode.image_user.frame_duration = 1
-                    texnode.image_user.frame_current = 1
+                texnode = self.addTextureNode(col, img, colorSpace)
                 isnew = True
                 if not hasMap:
                     self.setTexNode(key, texnode, colorSpace)
@@ -1024,6 +1018,17 @@ class CyclesTree:
             texnode = self.addNode(col, "ShaderNodeRGB")
             texnode.outputs["Color"].default_value[0:3] = asset.map.color
         return texnode, isnew
+
+
+    def addTextureNode(self, col, img, colorSpace):
+        node = self.addNode(col, "ShaderNodeTexImage")
+        node.image = img
+        self.setColorSpace(node, colorSpace)
+        node.name = img.name
+        if hasattr(node, "image_user"):
+            node.image_user.frame_duration = 1
+            node.image_user.frame_current = 1
+        return node
 
 
     def setColorSpace(self, node, colorSpace):

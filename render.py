@@ -43,6 +43,19 @@ class RenderOptions(Asset, Channels):
         Asset.__init__(self, fileref)
         Channels.__init__(self)
         self.world = None
+        self.backgroundColor = None
+        self.backdrop = None
+
+
+    def initSettings(self, settings, backdrop):
+        for key,value in settings.items():
+            if key == "background_color":
+                self.backgroundColor = value
+            if ("backdrop_visible" in settings.keys() and
+                backdrop and
+                settings["backdrop_visible"] and
+                settings["backdrop_visible_in_render"]):
+                self.backdrop = backdrop
 
 
     def __repr__(self):
@@ -66,8 +79,8 @@ class RenderOptions(Asset, Channels):
 
     def build(self, context):
         if theSettings.useEnvironment:
-            self.world = WorldMaterial(self.fileref)
-            self.world.build(context, self.channels)
+            self.world = WorldMaterial(self, self.fileref)
+            self.world.build(context)
 
 #-------------------------------------------------------------
 #   World Material
@@ -75,28 +88,36 @@ class RenderOptions(Asset, Channels):
 
 class WorldMaterial(CyclesMaterial):
 
-    def __init__(self, fileref):
+    def __init__(self, render, fileref):
         CyclesMaterial.__init__(self, fileref)
         self.name = os.path.splitext(os.path.basename(fileref))[0] + " World"
+        self.render = render
+        self.envmap = None
 
 
-    def build(self, context, channels):
+    def build(self, context):
         self.refractive = False
         Material.build(self, context)
-        self.channels = channels
         self.tree = WorldTree(self)
-
-        if not self.getValue(["Draw Dome"], False):
-            print("Don't draw environment. Draw Dome turned off")
-            return
+        self.channels = self.render.channels
 
         mode = self.getValue(["Environment Mode"], 0)
-        if mode not in [0,1]:
+        # [Dome and Scene, Dome Only, Sun-Skies Only, Scene Only]
+
+        self.envmap = self.getChannel(["Environment Map"])
+        if mode in [0,1] and self.envmap:
+            print("Draw environment", mode)
+            if not self.getValue(["Draw Dome"], False):
+                print("Don't draw environment. Draw Dome turned off")
+                return
+            if self.getImageFile(self.envmap) is None:
+                print("Don't draw environment. Image file not found")
+                return
+        elif mode in [0,3] and self.render.backgroundColor:
+            print("Draw backdrop", mode)
+            self.envmap = None
+        else:
             print("Dont draw environment. Environment mode == %d" % mode)
-            return
-        channel = self.getChannel(["Environment Map"])
-        if not (channel and self.getImageFile(channel)):
-            print("Don't draw environment. Image file not found")
             return
 
         world = self.rna = bpy.data.worlds.new(self.name)
@@ -120,31 +141,47 @@ class WorldTree(CyclesTree):
 
         self.makeTree(slot="Generated")
 
-        rot = self.getValue(["Dome Rotation"], 0)
-        orx = self.getValue(["Dome Orientation X"], 0)
-        ory = self.getValue(["Dome Orientation Y"], 0)
-        orz = self.getValue(["Dome Orientation Z"], 0)
+        background = self.material.render.backgroundColor
+        backdrop = self.material.render.backdrop
+        envmap = self.material.envmap
+        if envmap:
+            rot = self.getValue(["Dome Rotation"], 0)
+            orx = self.getValue(["Dome Orientation X"], 0)
+            ory = self.getValue(["Dome Orientation Y"], 0)
+            orz = self.getValue(["Dome Orientation Z"], 0)
 
-        if rot != 0 or orx != 0 or ory != 0 or orz != 0:
-            mat1 = Euler((0,0,-rot*D)).to_matrix()
-            mat2 = Euler((0,-orz*D,0)).to_matrix()
-            mat3 = Euler((orx*D,0,0)).to_matrix()
-            mat4 = Euler((0,0,ory*D)).to_matrix()
-            mat = Mult4(mat1, mat2, mat3, mat4)
-            self.addMapping(mat.to_euler())
+            if rot != 0 or orx != 0 or ory != 0 or orz != 0:
+                mat1 = Euler((0,0,-rot*D)).to_matrix()
+                mat2 = Euler((0,-orz*D,0)).to_matrix()
+                mat3 = Euler((orx*D,0,0)).to_matrix()
+                mat4 = Euler((0,0,ory*D)).to_matrix()
+                mat = Mult4(mat1, mat2, mat3, mat4)
+                self.addMapping(mat.to_euler())
 
-        channel = self.material.getChannel(["Environment Map"])
-        value = self.material.getChannelValue(channel, 1)
-        tex = self.addTexEnvNode(channel, "NONE")
-        self.links.new(self.texco, tex.inputs["Vector"])
+            color = WHITE
+            value = self.material.getChannelValue(envmap, 1)
+            img = self.getImage(envmap, "NONE")
+            tex = self.addTexEnvNode(img, "NONE")
+            self.links.new(self.texco, tex.inputs["Vector"])
+            strength = self.getValue(["Environment Intensity"], 1) * value
+        elif backdrop:
+            strength = 1
+            color = background
+            img = self.getImage(backdrop, "COLOR")
+            tex = self.addTextureNode(2, img, "COLOR")
+            self.linkVector(self.texco, tex)
+        else:
+            strength = 1
+            color = background
+            tex = self.addNode(1, "ShaderNodeRGB")
+            tex.outputs["Color"].default_value[0:3] = color
 
-        bg = self.addNode(5, "ShaderNodeBackground")
-        strength = self.getValue(["Environment Intensity"], 1)
-        bg.inputs["Strength"].default_value = strength * value
-        self.links.new(tex.outputs[0], bg.inputs["Color"])
-
+        bg = self.addNode(4, "ShaderNodeBackground")
+        bg.inputs["Strength"].default_value = strength
+        self.linkColor(tex, bg, color)
         output = self.addNode(5, "ShaderNodeOutputWorld")
         self.links.new(bg.outputs[0], output.inputs["Surface"])
+        #self.prune(output = "World Output")
 
 
     def addMapping(self, rot):
@@ -158,14 +195,17 @@ class WorldTree(CyclesTree):
         self.texco = mapping.outputs["Vector"]
 
 
-    def addTexEnvNode(self, channel, colorSpace):
+    def getImage(self, channel, colorSpace):
         assets,maps = self.material.getTextures(channel)
         asset = assets[0]
         img = asset.images[colorSpace]
         if img is None:
             img = asset.buildCycles(colorSpace)
+        return img
 
-        tex = self.addNode(4, "ShaderNodeTexEnvironment")
+
+    def addTexEnvNode(self, img, colorSpace):
+        tex = self.addNode(2, "ShaderNodeTexEnvironment")
         self.setColorSpace(tex, colorSpace)
         if img:
             tex.image = img
@@ -177,13 +217,15 @@ class WorldTree(CyclesTree):
 #
 #-------------------------------------------------------------
 
-def parseRenderOptions(struct, fileref):
+def parseRenderOptions(renderSettings, sceneSettings, backdrop, fileref):
     if theSettings.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
         return None
     else:
-        if "render_elements" in struct.keys():
+        renderOptions = renderSettings["render_options"]
+        if "render_elements" in renderOptions.keys():
             asset = RenderOptions(fileref)
-            for element in struct["render_elements"]:
+            asset.initSettings(sceneSettings, backdrop)
+            for element in renderOptions["render_elements"]:
                 asset.parse(element)
             return asset
     return None

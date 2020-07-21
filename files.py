@@ -46,6 +46,7 @@ class FileAsset(Asset):
         self.toplevel = toplevel
         if toplevel:
             self.caller = self
+            self.camera = None
 
 
     def __repr__(self):
@@ -143,19 +144,33 @@ class FileAsset(Asset):
                     self.modifiers.append((asset,inst))
                     asset.addModifier(inst)
 
-            if self.toplevel and "extra" in scene.keys():
-                for extra in scene["extra"]:
-                    for key,estruct in extra.items():
-                        if key == "render_options":
-                            from .render import parseRenderOptions
-                            options = parseRenderOptions(estruct, self.fileref)
-                            self.extras.append(options)
+            if self.toplevel:
+                self.parseRender(scene)
 
         msg = ("-FILE %s" % self.fileref)
         theTrace.append(msg)
         if theSettings.verbosity > 4:
             print(msg)
         return self
+
+
+    def parseRender(self, scene):
+        if "current_camera" in scene.keys():
+            self.camera = self.getAsset(scene["current_camera"])
+        backdrop = {}
+        if "backdrop" in scene.keys():
+            backdrop = scene["backdrop"]
+        if "extra" in scene.keys():
+            sceneSettings = renderSettings = {}
+            for extra in scene["extra"]:
+                if extra["type"] == "studio_scene_settings":
+                    sceneSettings = extra
+                elif extra["type"] == "studio_render_settings":
+                    renderSettings = extra
+            if renderSettings:
+                from .render import parseRenderOptions
+                options = parseRenderOptions(renderSettings, sceneSettings, backdrop, self.fileref)
+                self.extras.append(options)
 
 
     def getModifierType(self, name):

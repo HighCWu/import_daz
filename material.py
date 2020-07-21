@@ -569,17 +569,21 @@ class Map:
 
 
     def build(self):
-        global theImages
         if self.image:
             return self.image
         elif self.url:
-            if self.url in theImages.keys():
-                self.image = theImages[self.url]
-            else:
-                self.image = loadImage(self.url)
+            self.image = getImage(self.url)
             return self.image
         else:
             return self
+
+
+def getImage(url):
+    global theImages
+    if url in theImages.keys():
+        return theImages[url]
+    else:
+        return loadImage(url)
 
 
 def loadImage(url):
