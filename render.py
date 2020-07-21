@@ -181,7 +181,7 @@ class WorldTree(CyclesTree):
         self.linkColor(tex, bg, color)
         output = self.addNode(5, "ShaderNodeOutputWorld")
         self.links.new(bg.outputs[0], output.inputs["Surface"])
-        #self.prune(output = "World Output")
+        self.prune(output = "World Output")
 
 
     def addMapping(self, rot):

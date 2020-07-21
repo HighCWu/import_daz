@@ -375,7 +375,7 @@ class CyclesTree:
         if output not in marked.keys():
             print("No output node")
             return
-        marked["Material Output"] = True
+        marked[output] = True
         nmarked = 0
         n = 1
         while n > nmarked:
