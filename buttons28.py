@@ -618,20 +618,53 @@ class TransferOptions:
         default = False)
 
 
-def shapekeyItems(self, context):
-    return [(sname,sname,sname) for sname in context.object.data.shape_keys.key_blocks.keys()[1:]]
-
-
-class MergeShapekeysOptions:
+class MixShapekeysOptions:
     shape1 : EnumProperty(
-        items = shapekeyItems,
+        items = G.shapekeyItems1,
         name = "Shapekey 1",
-        description = "Shapekey to keep")
+        description = "First shapekey")
 
     shape2 : EnumProperty(
-        items = shapekeyItems,
+        items = G.shapekeyItems2,
         name = "Shapekey 2",
-        description = "Shapekey to merge")
+        description = "Second shapekey")
+
+    factor1 : FloatProperty(
+        name = "Factor 1",
+        description = "First factor",
+        default = 1.0)
+
+    factor2 : FloatProperty(
+        name = "Factor 2",
+        description = "Second factor",
+        default = 1.0)
+
+    overwrite : BoolProperty(
+        name = "Overwrite First",
+        description = "Overwrite the first shapekey",
+        default = True)
+
+    delete : BoolProperty(
+        name = "Delete Merged",
+        description = "Delete unused shapekeys after merge",
+        default = True)
+
+    newName : StringProperty(
+        name = "New shapekey",
+        description = "Name of new shapekey",
+        default = "Shapekey")
+
+    filter1 : StringProperty(
+        name = "Filter 1",
+        description = "Show only items containing this string",
+        default = ""
+        )
+
+    filter2 : StringProperty(
+        name = "Filter 2",
+        description = "Show only items containing this string",
+        default = ""
+        )
 
 #-------------------------------------------------------------
 #   String properties

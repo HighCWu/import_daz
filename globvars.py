@@ -63,5 +63,22 @@ def getActiveCategories(scn, context):
     cats.sort()
     return [("All", "All", "All")] + cats
 
+#-------------------------------------------------------------
+#   transfer.py
+#-------------------------------------------------------------
+
+def shapekeyItems1(self, context):
+    filter = self.filter1.lower()
+    return [(sname,sname,sname)
+            for sname in context.object.data.shape_keys.key_blocks.keys()[1:]
+            if filter in sname.lower()
+           ]
 
 
+def shapekeyItems2(self, context):
+    filter = self.filter2.lower()
+    enums = [(sname,sname,sname)
+              for sname in context.object.data.shape_keys.key_blocks.keys()[1:]
+              if filter in sname.lower()
+            ]
+    return [("-", "-", "None")] + enums

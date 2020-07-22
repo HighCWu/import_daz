@@ -350,13 +350,13 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
                 if skey.name[0:3] in ["DzC", "DzN", "DzF"]]
 
 #----------------------------------------------------------
-#   Merge Shapekeys
+#   Mix Shapekeys
 #----------------------------------------------------------
 
-class DAZ_OT_MergeShapekeys(DazOperator, B.MergeShapekeysOptions):
-    bl_idname = "daz.merge_shapekeys"
-    bl_label = "Merge Shapekeys"
-    bl_description = "Merge shapekeys"
+class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
+    bl_idname = "daz.mix_shapekeys"
+    bl_label = "Mix Shapekeys"
+    bl_description = "Mix shapekeys"
     bl_options = {'UNDO'}
 
     @classmethod
@@ -366,25 +366,73 @@ class DAZ_OT_MergeShapekeys(DazOperator, B.MergeShapekeysOptions):
 
 
     def draw(self, context):
-        self.layout.prop(self, "shape1")
-        self.layout.prop(self, "shape2")
+        row = splitLayout(self.layout, 0.2)
+        row.label(text="")
+        row.prop(self, "overwrite")
+        row.prop(self, "delete")
+        if not self.overwrite:
+            row = splitLayout(self.layout, 0.2)
+            row.label(text="")
+            row.prop(self, "newName")
+        row = splitLayout(self.layout, 0.2)
+        row.label(text="")
+        row.label(text="First")
+        row.label(text="Second")
+        row = splitLayout(self.layout, 0.2)
+        row.label(text="")
+        row.prop(self, "filter1", icon='VIEWZOOM', text="")
+        row.prop(self, "filter2", icon='VIEWZOOM', text="")
+        row = splitLayout(self.layout, 0.2)
+        row.label(text="Factor")
+        row.prop(self, "factor1", text="")
+        row.prop(self, "factor2", text="")
+        row = splitLayout(self.layout, 0.2)
+        row.label(text="Shapekey")
+        row.prop(self, "shape1", text="")
+        row.prop(self, "shape2", text="")
 
 
     def invoke(self, context, event):
-        context.window_manager.invoke_props_dialog(self)
+        context.window_manager.invoke_props_dialog(self, width=500)
         return {'RUNNING_MODAL'}
 
 
     def run(self, context):
         ob = context.object
-        skeys = ob.data.shape_keys.key_blocks
+        skeys = ob.data.shape_keys
         if self.shape1 == self.shape2:
             raise DazError("Cannot merge shapekey to itself")
-        skey1 = skeys[self.shape1]
-        skey2 = skeys[self.shape2]
-        for n,v in enumerate(ob.data.vertices):
-            skey1.data[n].co += skey2.data[n].co - v.co
-        idx = skeys.keys().index(self.shape2)
+        skey1 = skeys.key_blocks[self.shape1]
+        if self.shape2 == "-":
+            skey2 = None
+            factor = self.factor1 - 1
+            coords = [(self.factor1 * skey1.data[n].co - factor * v.co)
+                       for n,v in enumerate(ob.data.vertices)]
+        else:
+            skey2 = skeys.key_blocks[self.shape2]
+            factor = self.factor1 + self.factor2 - 1
+            coords = [(self.factor1 * skey1.data[n].co +
+                       self.factor2 * skey2.data[n].co - factor * v.co)
+                       for n,v in enumerate(ob.data.vertices)]
+        if self.overwrite:
+            skey = skey1
+        else:
+            skey = ob.shape_key_add(name=self.newName)
+        for n,co in enumerate(coords):
+            skey.data[n].co = co
+        if self.delete:
+            if skey2:
+                self.deleteShape(ob, skeys, self.shape2)
+            if not self.overwrite:
+                self.deleteShape(ob, skeys, self.shape1)
+
+
+    def deleteShape(self, ob, skeys, sname):
+        if skeys.animation_data:
+            path = 'key_blocks["%s"].value' % sname
+            skeys.driver_remove(path)
+        updateDrivers(skeys)
+        idx = skeys.key_blocks.keys().index(sname)
         ob.active_shape_key_index = idx
         bpy.ops.object.shape_key_remove()
 
@@ -395,7 +443,7 @@ class DAZ_OT_MergeShapekeys(DazOperator, B.MergeShapekeysOptions):
 classes = [
     DAZ_OT_TransferCorrectives,
     DAZ_OT_TransferOtherMorphs,
-    DAZ_OT_MergeShapekeys,
+    DAZ_OT_MixShapekeys,
 ]
 
 def initialize():
