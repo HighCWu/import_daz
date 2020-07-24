@@ -401,22 +401,22 @@ class CustomEnums:
         name = "Category")
 
 class StandardEnums:
-    type : EnumProperty(
+    morphset : EnumProperty(
         items = [("Units", "Units", "Units"),
                  ("Expressions", "Expressions", "Expressions"),
                  ("Visemes", "Visemes", "Visemes"),
-                 ("Poses", "Poses", "Poses"),
+                 ("Body", "Body", "Body"),
                 ],
         name = "Type",
         default = "Units")
 
 class StandardAllEnums:
-    type : EnumProperty(
+    morphset : EnumProperty(
         items = [("All", "All", "All"),
                  ("Units", "Units", "Units"),
                  ("Expressions", "Expressions", "Expressions"),
                  ("Visemes", "Visemes", "Visemes"),
-                 ("Poses", "Poses", "Poses"),
+                 ("Body", "Body", "Body"),
                 ],
         name = "Type",
         default = "All")
@@ -694,8 +694,8 @@ class NameString:
 class ActionString:
     action : StringProperty()
 
-class TypePrefix:
-    type : StringProperty(default = "")
+class MorphsetString:
+    morphset : StringProperty(default = "")
     prefix : StringProperty(default = "")
 
 class UseOpenBool:
@@ -818,6 +818,14 @@ class DazActiveGroup(bpy.types.PropertyGroup):
 
 class DazCustomGroup(bpy.types.PropertyGroup):
     prop : StringProperty()
+
+
+class DazTextGroup(bpy.types.PropertyGroup):
+    text : StringProperty()
+
+    def __lt__(self, other):
+        return (self.text < other.text)
+
 
 class DazCategory(bpy.types.PropertyGroup):
     custom : StringProperty()

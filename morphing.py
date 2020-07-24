@@ -38,6 +38,30 @@ from .settings import theSettings
 from .fileutils import MultiFile
 
 #-------------------------------------------------------------
+#   Morph sets
+#-------------------------------------------------------------
+
+theStandardMorphSets = ["Units", "Expressions", "Visemes", "Body", "StandardJCMs", "Flexions"]
+theCustomMorphSets = ["Custom", "CustomJCMs"]
+theMorphSets = theStandardMorphSets + theCustomMorphSets
+
+def getMorphs(rig, morphset, sets=[]):
+    if morphset == "All":
+        return getMorphs(rig, sets, sets)
+    elif isinstance(morphset, list):
+        items = []
+        for mset in morphset:
+            items += getMorphs(rig, mset, sets)
+    elif morphset in sets:
+        pg = getattr(rig, "Daz"+morphset)
+        items = list(pg.values())
+    else:
+        print("getMorphs", morphset, sets)
+        halt
+    items.sort()
+    return items
+
+#-------------------------------------------------------------
 #   Morph selector
 #-------------------------------------------------------------
 
@@ -166,28 +190,21 @@ class Selector(B.Selection):
 
 
 class StandardSelector(Selector, B.StandardAllEnums):
-    prefixes = {"All" : ["DzU", "DzE", "DzV", "DzP", "DzF"],
-                "Units" : ["DzU"],
-                "Expressions" : ["DzE"],
-                "Visemes" : ["DzV"],
-                "Poses" : ["DzP"],
-                "Flexions" : ["DzF"]
-               }
 
     def selectCondition(self, item):
-        return (item.name[0:3] in self.prefixes[self.type])
+        return True
 
     def draw(self, context):
-        self.layout.prop(self, "type")
+        self.layout.prop(self, "morphset")
         Selector.draw(self, context)
 
     def getKeys(self, context):
         rig = getRigFromObject(context.object)
-        prefixes = self.prefixes[self.type]
-        return [(key,key[3:],"All") for key in rig.keys() if key[0:3] in prefixes]
+        morphs = getMorphs(rig, self.morphset, sets=theStandardMorphSets)
+        return [(item.name, item.text, "All") for item in morphs]
 
     def invoke(self, context, event):
-        self.type = "All"
+        self.morphset = "All"
         return Selector.invoke(self, context, event)
 
 
@@ -346,7 +363,7 @@ class DAZ_OT_SelectAllMorphs(DazOperator, B.TypeString, B.ValueBool):
 
     def run(self, context):
         scn = context.scene
-        names = theMorphNames[self.type]
+        names = theMorphNames[self.morphset]
         for name in names.values():
             scn["Daz"+name] = self.value
 
@@ -426,7 +443,7 @@ class LoadMorph(PropFormulas):
                     else:
                         raise DazError(msg)
                 return [],miss
-            asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits, prefix=self.prefix)
+            asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits, morphset=self.morphset)
             skey,ob,sname = asset.rna
             if self.rig and self.usePropDrivers:
                 prop = skey.name
@@ -437,7 +454,7 @@ class LoadMorph(PropFormulas):
                 props = [prop]
             elif self.rig and self.useBoneDrivers:
                 from .formula import buildShapeFormula
-                success = buildShapeFormula(asset, scn, self.rig, self.mesh, useStages=self.useStages, prefix=self.prefix)
+                success = buildShapeFormula(asset, scn, self.rig, self.mesh, useStages=self.useStages, morphset=self.morphset)
                 if self.useShapekeysOnly and not success and skey:
                     print("Could not build shape formula", skey.name)
                 if not success:
@@ -447,19 +464,19 @@ class LoadMorph(PropFormulas):
             from .formula import buildShapeFormula
             if isinstance(asset, FormulaAsset) and asset.formulas:
                 if self.useShapekeys:
-                    success = buildShapeFormula(asset, scn, self.rig, self.mesh, prefix=self.prefix)
+                    success = buildShapeFormula(asset, scn, self.rig, self.mesh, morphset=self.morphset)
                     if self.useShapekeysOnly and not success and skey:
                         print("Could not build shape formula", skey.name)
                     if not success:
                         miss = True
                 if not self.useShapekeysOnly:
-                    prop = asset.clearProp(self.prefix, self.rig)
+                    prop = asset.clearProp(self.morphset, self.rig)
                     self.taken[prop] = False
                     props = self.buildPropFormula(asset, filepath)
             elif isinstance(asset, Morph):
                 pass
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
-                prop = asset.clearProp(self.prefix, self.rig)
+                prop = asset.clearProp(self.morphset, self.rig)
                 self.taken[prop] = False
                 props = []
                 miss = True
@@ -577,7 +594,7 @@ class LoadAllMorphs(LoadMorph):
 
     def getMorphFiles(self):
         try:
-            return theMorphFiles[self.char][self.type]
+            return theMorphFiles[self.char][self.morphset]
         except KeyError:
             return []
 
@@ -590,9 +607,10 @@ class LoadAllMorphs(LoadMorph):
         scn = context.scene
         setupMorphPaths(scn, False)
         self.usePropDrivers = (scn.DazAddFaceDrivers and not self.useShapekeysOnly)
-        self.rig["Daz"+self.type] = self.char
-        self.mesh["Daz"+self.type] = self.char
-        self.rig.DazNewStyleExpressions = True
+        self.rig["Daz"+self.morphset] = self.char
+        self.mesh["Daz"+self.morphset] = self.char
+        self.rig.DazMorphPrefixes = True
+        self.mesh.DazMorphPrefixes = True
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
 
@@ -629,11 +647,11 @@ class StandardMorphSelector(Selector):
         if not self.setupCharacter(context, True):
             return {'FINISHED'}
         setupMorphPaths(scn, False)
-        for key,path in theMorphFiles[self.char][self.type].items():
+        for key,path in theMorphFiles[self.char][self.morphset].items():
             item = self.selection.add()
             item.name = path
             item.text = key
-            item.category = self.type
+            item.category = self.morphset
             item.select = True
         return self.invokeDialog(context)
 
@@ -644,8 +662,7 @@ class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMe
     bl_description = "Import selected face unit morphs"
     bl_options = {'UNDO'}
 
-    type = "Units"
-    prefix = "DzU"
+    morphset = "Units"
 
 
 class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -654,8 +671,7 @@ class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs
     bl_description = "Import selected expression morphs"
     bl_options = {'UNDO'}
 
-    type = "Expressions"
-    prefix = "DzE"
+    morphset = "Expressions"
 
 
 class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -664,18 +680,16 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, Is
     bl_description = "Import selected viseme morphs"
     bl_options = {'UNDO'}
 
-    type = "Visemes"
-    prefix = "DzV"
+    morphset = "Visemes"
 
 
-class DAZ_OT_ImportPoseMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
-    bl_idname = "daz.import_pose_morphs"
-    bl_label = "Import Pose Morphs"
-    bl_description = "Import selected pose morphs"
+class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+    bl_idname = "daz.import_body_morphs"
+    bl_label = "Import Body Morphs"
+    bl_description = "Import selected body morphs"
     bl_options = {'UNDO'}
 
-    type = "Poses"
-    prefix = "DzP"
+    morphset = "Poses"
 
 
 class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -684,8 +698,8 @@ class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorph
     bl_description = "Import selected standard joint corrective morphs"
     bl_options = {'UNDO'}
 
-    type = "Correctives"
-    prefix = "DzC"
+    morphset = "Correctives"
+
     useShapekeysOnly = True
     useSoftLimits = False
     usePropDrivers = False
@@ -699,8 +713,8 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
     bl_description = "Import selected flexion morphs"
     bl_options = {'UNDO'}
 
-    type = "Flexions"
-    prefix = "DzF"
+    morphset = "Flexions"
+
     useShapekeysOnly = True
     useSoftLimits = False
     usePropDrivers = False
@@ -738,7 +752,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
     bl_options = {'UNDO'}
 
     type = "Shapes"
-    prefix = "DzM"
     custom = "DazCustomMorphs"
 
     def draw(self, context):
@@ -765,7 +778,6 @@ class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMeshArmatu
     bl_options = {'UNDO'}
 
     type = "Correctives"
-    prefix = "DzN"
     useShapekeysOnly = True
     useSoftLimits = False
     usePropDrivers = False
@@ -834,6 +846,10 @@ def removeFromPropGroups(rig, prop, keep=False):
         removeFromPropGroup(pb.DazLocProps, prop)
         removeFromPropGroup(pb.DazRotProps, prop)
         removeFromPropGroup(pb.DazScaleProps, prop)
+
+    for morphset in theStandardMorphSets:
+        pg = getattr(rig, "Daz" + morphset)
+        removeFromPropGroup(pg, prop)
 
     if not keep:
         rig[prop] = 0
@@ -957,11 +973,11 @@ def removeDrivingProps(rig, props):
 #   Select and unselect all
 #------------------------------------------------------------------------
 
-class Activator(B.PrefixString, B.TypeString):
+class Activator(B.MorphsetString):
     def run(self, context):
         rig = getRigFromObject(context.object)
-        keys = getRelevantMorphs(rig, self.type, self.prefix)
-        if self.type == "CUSTOM":
+        keys = getRelevantMorphs(rig, self.morphset, self.prefix)
+        if self.morphset == "DazCustom":
             for key in keys:
                 setActivated(rig, key.prop, self.activate)
         else:
@@ -1066,24 +1082,29 @@ class DAZ_OT_ForceUpdate(DazOperator):
 #   Clear morphs
 #------------------------------------------------------------------
 
-def getRelevantMorphs(rig, type, prefix):
+def getRelevantMorphs(rig, morphset, prefix):
     morphs = []
     if rig is None:
         return morphs
-    if type == "CUSTOM":
+    if type == "DazCustom":
         for cat in rig.DazMorphCats:
             morphs += cat.morphs
+    elif rig.DazMorphPrefixes:
+        pg = getattr(rig, "Daz"+morphset)
+        for key in pg.keys():
+            morphs.append(key)
     else:
         for key in rig.keys():
             if key[0:3] == prefix:
                 morphs.append(key)
+                raise DazError("OLD morphs", rig, key)
     return morphs
 
 
-def clearMorphs(rig, type, prefix, scn, frame, force):
-    keys = getRelevantMorphs(rig, type, prefix)
+def clearMorphs(rig, morphset, prefix, scn, frame, force):
+    keys = getRelevantMorphs(rig, morphset, prefix)
 
-    if type == "CUSTOM":
+    if type == "DazCustom":
         for key in keys:
             if getActivated(rig, key.prop, force):
                 rig[key.prop] = 0.0
@@ -1095,14 +1116,14 @@ def clearMorphs(rig, type, prefix, scn, frame, force):
                 autoKeyProp(rig, key, scn, frame, force)
 
 
-def updateMorphs(rig, type, prefix, scn, frame, force):
-    keys = getRelevantMorphs(rig, type, prefix)
+def updateMorphs(rig, morphset, prefix, scn, frame, force):
+    keys = getRelevantMorphs(rig, morphset, prefix)
     for key in keys:
         if getActivated(rig, key):
             autoKeyProp(rig, key, scn, frame, force)
 
 
-class DAZ_OT_ClearMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
+class DAZ_OT_ClearMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
     bl_idname = "daz.clear_morphs"
     bl_label = "Clear"
     bl_description = "Set all morphs of specified type to zero"
@@ -1112,13 +1133,13 @@ class DAZ_OT_ClearMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            clearMorphs(rig, self.type, self.prefix, scn, scn.frame_current, False)
+            clearMorphs(rig, self.morphset, self.prefix, scn, scn.frame_current, False)
             updateRig(rig, context)
             if scn.tool_settings.use_keyframe_insert_auto:
                 updateScene(context)
 
 
-class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.TypePrefix, IsMeshArmature):
+class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArmature):
     bl_idname = "daz.update_morphs"
     bl_label = "Update"
     bl_description = "Set keys at current frame for all props of specified type with keys"
@@ -1128,7 +1149,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.TypePrefix, IsMeshArmature
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            updateMorphs(rig, self.type, self.prefix, scn, scn.frame_current)
+            updateMorphs(rig, self.morphset, self.prefix, scn, scn.frame_current)
             updateScene(context)
             updateRig(rig, context)
 
@@ -1143,7 +1164,7 @@ def addKeySet(rig, type, prefix, scn, frame):
     if aksi <= -1:
         aks = scn.keying_sets.new(idname = "daz_morphs", name = "daz_morphs")
     aks = scn.keying_sets.active
-    if type == "CUSTOM":
+    if type == "DazCustom":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 path = "[" + '"' + morph.prop + '"' + "]"
@@ -1155,7 +1176,7 @@ def addKeySet(rig, type, prefix, scn, frame):
                 aks.paths.add(rig.id_data, path)
 
 
-class DAZ_OT_AddKeysets(DazOperator, B.TypePrefix, IsMeshArmature):
+class DAZ_OT_AddKeysets(DazOperator, B.MorphsetString, IsMeshArmature):
     bl_idname = "daz.add_keyset"
     bl_label = "Keyset"
     bl_description = "Add category morphs to active custom keying set, or make new one"
@@ -1165,7 +1186,7 @@ class DAZ_OT_AddKeysets(DazOperator, B.TypePrefix, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            addKeySet(rig, self.type, self.prefix, scn, scn.frame_current)
+            addKeySet(rig, self.morphset, self.prefix, scn, scn.frame_current)
             updateScene(context)
             updateRig(rig, context)
 
@@ -1176,7 +1197,7 @@ class DAZ_OT_AddKeysets(DazOperator, B.TypePrefix, IsMeshArmature):
 def keyMorphs(rig, type, prefix, scn, frame):
     if rig is None:
         return
-    if type == "CUSTOM":
+    if type == "DazCustom":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 if getActivated(rig, morph.prop):
@@ -1187,7 +1208,7 @@ def keyMorphs(rig, type, prefix, scn, frame):
                 keyProp(rig, key, frame)
 
 
-class DAZ_OT_KeyMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
+class DAZ_OT_KeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
     bl_idname = "daz.key_morphs"
     bl_label = "Set Keys"
     bl_description = "Set keys for all morphs of specified type at current frame"
@@ -1197,7 +1218,7 @@ class DAZ_OT_KeyMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            keyMorphs(rig, self.type, self.prefix, scn, scn.frame_current)
+            keyMorphs(rig, self.morphset, self.prefix, scn, scn.frame_current)
             updateScene(context)
             updateRig(rig, context)
 
@@ -1208,7 +1229,7 @@ class DAZ_OT_KeyMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
 def unkeyMorphs(rig, type, prefix, scn, frame):
     if rig is None:
         return
-    if type == "CUSTOM":
+    if type == "DazCustom":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 if getActivated(rig, morph.prop):
@@ -1219,7 +1240,7 @@ def unkeyMorphs(rig, type, prefix, scn, frame):
                 unkeyProp(rig, key, frame)
 
 
-class DAZ_OT_UnkeyMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
+class DAZ_OT_UnkeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
     bl_idname = "daz.unkey_morphs"
     bl_label = "Remove Keys"
     bl_description = "Remove keys from all morphs of specified type at current frame"
@@ -1229,7 +1250,7 @@ class DAZ_OT_UnkeyMorphs(DazOperator, B.TypePrefix, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig and rig.animation_data and rig.animation_data.action:
             scn = context.scene
-            unkeyMorphs(rig, self.type, self.prefix, scn, scn.frame_current)
+            unkeyMorphs(rig, self.morphset, self.prefix, scn, scn.frame_current)
             updateScene(context)
             updateRig(rig, context)
 
@@ -1392,14 +1413,6 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, I
     bl_label = "Remove Standard Morphs"
     bl_description = "Remove specific standard morphs and their associated drivers"
     bl_options = {'UNDO'}
-
-    shows = {"All" : ["DazUnits", "DazExpressions", "DazVisemes", "DazPoses", "DazFlexions"],
-             "Units" : ["DazUnits"],
-             "Expressions" : ["DazExpressions"],
-             "Visemes" : ["DazVisemes"],
-             "Poses" : ["DazPoses"],
-             "Flexions" : ["DazFlexions"]
-            }
 
     def drawExtra(self, context):
         self.layout.prop(self, "deleteShapekeys")
@@ -1609,14 +1622,14 @@ def autoKeyProp(rig, key, scn, frame, force):
             keyProp(rig, key, frame)
 
 
-def pinProp(rig, scn, key, type, prefix, frame):
+def pinProp(rig, scn, key, morphset, prefix, frame):
     if rig:
-        clearMorphs(rig, type, prefix, scn, frame, True)
+        clearMorphs(rig, morphset, prefix, scn, frame, True)
         rig[key] = 1.0
         autoKeyProp(rig, key, scn, frame, True)
 
 
-class DAZ_OT_PinProp(DazOperator, B.KeyString, B.TypePrefix, IsMeshArmature):
+class DAZ_OT_PinProp(DazOperator, B.KeyString, B.MorphsetString, IsMeshArmature):
     bl_idname = "daz.pin_prop"
     bl_label = ""
     bl_description = "Pin property"
@@ -1626,7 +1639,7 @@ class DAZ_OT_PinProp(DazOperator, B.KeyString, B.TypePrefix, IsMeshArmature):
         rig = getRigFromObject(context.object)
         scn = context.scene
         setupMorphPaths(scn, False)
-        pinProp(rig, scn, self.key, self.type, self.prefix, scn.frame_current)
+        pinProp(rig, scn, self.key, self.morphset, self.prefix, scn.frame_current)
         updateScene(context)
         updateRig(rig, context)
 
@@ -1831,6 +1844,7 @@ classes = [
     B.DazFormula,
     B.DazSelectGroup,
     B.DazCategory,
+    B.DazTextGroup,
 
     DAZ_OT_SelectAll,
     DAZ_OT_SelectNone,
@@ -1840,7 +1854,7 @@ classes = [
     DAZ_OT_ImportUnits,
     DAZ_OT_ImportExpressions,
     DAZ_OT_ImportVisemes,
-    DAZ_OT_ImportPoseMorphs,
+    DAZ_OT_ImportBodyMorphs,
     DAZ_OT_ImportFlexions,
     #DAZ_OT_ImportStandardMorphs,
     DAZ_OT_ImportCustomMorphs,
@@ -1878,6 +1892,10 @@ def initialize():
 
     bpy.types.Object.DazCustomMorphs = BoolProperty(default = False)
     bpy.types.Object.DazCustomPoses = BoolProperty(default = False)
+
+    bpy.types.Object.DazMorphPrefixes = BoolProperty(default = False)
+    for morphset in theMorphSets:
+        setattr(bpy.types.Object, "Daz"+morphset, CollectionProperty(type = B.DazTextGroup))
 
     bpy.types.Object.DazActivated = CollectionProperty(type = B.DazActiveGroup)
     bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory)

@@ -308,7 +308,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.import_units")
                 box.operator("daz.import_expressions")
                 box.operator("daz.import_visemes")
-                box.operator("daz.import_pose_morphs")
+                box.operator("daz.import_body_morphs")
                 box.operator("daz.import_custom_morphs")
                 box.separator()
                 box.operator("daz.import_standard_jcms")
@@ -713,35 +713,35 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.load_pose")
 
 
-def activateLayout(layout, rig, type, prefix):
+def activateLayout(layout, rig, self):
     split = splitLayout(layout, 0.25)
     split.operator("daz.prettify")
     op = split.operator("daz.activate_all")
-    op.type = type
-    op.prefix = prefix
+    op.morphset = self.morphset
+    op.prefix = self.prefix
     op = split.operator("daz.deactivate_all")
-    op.type = type
-    op.prefix = prefix
+    op.morphset = self.morphset
+    op.prefix = self.prefix
     if rig.DazDriversDisabled:
         split.operator("daz.enable_drivers")
     else:
         split.operator("daz.disable_drivers")
 
 
-def keyLayout(layout, type, prefix):
+def keyLayout(layout, self):
     split = splitLayout(layout, 0.25)
     op = split.operator("daz.add_keyset", text="", icon='KEYINGSET')
-    op.type = type
-    op.prefix = prefix
+    op.morphset = self.morphset
+    op.prefix = self.prefix
     op = split.operator("daz.key_morphs", text="", icon='KEY_HLT')
-    op.type = type
-    op.prefix = prefix
+    op.morphset = self.morphset
+    op.prefix = self.prefix
     op = split.operator("daz.unkey_morphs", text="", icon='KEY_DEHLT')
-    op.type = type
-    op.prefix = prefix
+    op.morphset = self.morphset
+    op.prefix = self.prefix
     op = split.operator("daz.clear_morphs", text="", icon='X')
-    op.type = type
-    op.prefix = prefix
+    op.morphset = self.morphset
+    op.prefix = self.prefix
 
 
 class DAZ_PT_Morphs:
@@ -767,8 +767,8 @@ class DAZ_PT_Morphs:
             layout.operator("daz.enable_drivers")
             return
 
-        activateLayout(layout, rig, self.type, self.prefix)
-        keyLayout(layout, self.type, self.prefix)
+        activateLayout(layout, rig, self)
+        keyLayout(layout, self)
         layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
         self.drawItems(scn, rig)
 
@@ -776,19 +776,21 @@ class DAZ_PT_Morphs:
     def drawItems(self, scn, rig):
         self.layout.separator()
         filter = scn.DazFilter.lower()
-        for key in sorted(rig.keys()):
-            if (key[0:3] == self.prefix and
-                filter in key[3:].lower()):
-                self.displayProp(key[3:], key, rig, self.layout, scn)
+        pg = getattr(rig, "Daz"+self.morphset)
+        for item in pg.values():
+            if filter in item.text.lower():
+                self.displayProp(item.text, item.name, rig, self.layout, scn)
 
 
     def displayProp(self, name, key, rig, layout, scn):
+        if key not in rig.keys():
+            return
         row = splitLayout(layout, 0.8)
         row.prop(rig, '["%s"]' % key, text=name)
         showBool(row, rig, key)
         op = row.operator("daz.pin_prop", icon='UNPINNED')
         op.key = key
-        op.type = self.type
+        op.morphset = self.morphset
         op.prefix = self.prefix
 
 
@@ -806,7 +808,7 @@ class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
     bl_category = "DAZ"
     bl_options = {'DEFAULT_CLOSED'}
 
-    type = "Units"
+    morphset = "Units"
     prefix = "DzU"
     show = "DazUnits"
 
@@ -818,7 +820,7 @@ class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
     bl_category = "DAZ"
     bl_options = {'DEFAULT_CLOSED'}
 
-    type = "Expressions"
+    morphset = "Expressions"
     prefix = "DzE"
     show = "DazExpressions"
 
@@ -830,7 +832,7 @@ class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
     bl_category = "DAZ"
     bl_options = {'DEFAULT_CLOSED'}
 
-    type = "Visemes"
+    morphset = "Visemes"
     prefix = "DzV"
     show = "DazVisemes"
 
@@ -839,16 +841,16 @@ class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
         DAZ_PT_Morphs.draw(self, context)
 
 
-class DAZ_PT_PoseMorphs(bpy.types.Panel, DAZ_PT_Morphs):
-    bl_label = "Pose Morphs"
+class DAZ_PT_BodyMorphs(bpy.types.Panel, DAZ_PT_Morphs):
+    bl_label = "Body Morphs"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ"
     bl_options = {'DEFAULT_CLOSED'}
 
-    type = "Poses"
+    morphset = "Body"
     prefix = "DzP"
-    show = "DazPoses"
+    show = "DazBody"
 
 #------------------------------------------------------------------------
 #    Custom panels
@@ -861,7 +863,7 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
     bl_category = "DAZ"
     bl_options = {'DEFAULT_CLOSED'}
 
-    type = "CUSTOM"
+    morphset = "Custom"
     prefix = "DzM"
     show = "DazCustomMorphs"
 
@@ -1110,7 +1112,7 @@ classes = [
     DAZ_PT_Units,
     DAZ_PT_Expressions,
     DAZ_PT_Visemes,
-    DAZ_PT_PoseMorphs,
+    DAZ_PT_BodyMorphs,
     DAZ_PT_CustomMorphs,
     DAZ_PT_MhxLayers,
     DAZ_PT_MhxFKIK,
@@ -1228,7 +1230,6 @@ def initialize():
     )
 
     bpy.types.Object.DazMakeupDrivers = BoolProperty(default = False)
-    bpy.types.Object.DazNewStyleExpressions = BoolProperty(default = True)
 
     bpy.types.Armature.DazExtraFaceBones = BoolProperty(default = False)
     bpy.types.Armature.DazExtraDrivenBones = BoolProperty(default = False)

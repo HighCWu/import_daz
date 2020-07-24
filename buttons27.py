@@ -402,21 +402,21 @@ class CustomEnums:
 
 class StandardEnums:
     type = EnumProperty(
-        items = [("Units", "Units", "Units"),
+        morphset = [("Units", "Units", "Units"),
                  ("Expressions", "Expressions", "Expressions"),
                  ("Visemes", "Visemes", "Visemes"),
-                 ("Poses", "Poses", "Poses"),
+                 ("Body", "Body", "Body"),
                 ],
         name = "Type",
         default = "Units")
 
 class StandardAllEnums:
     type = EnumProperty(
-        items = [("All", "All", "All"),
+        morphset = [("All", "All", "All"),
                  ("Units", "Units", "Units"),
                  ("Expressions", "Expressions", "Expressions"),
                  ("Visemes", "Visemes", "Visemes"),
-                 ("Poses", "Poses", "Poses"),
+                 ("Body", "Body", "Body"),
                 ],
         name = "Type",
         default = "All")
@@ -695,8 +695,8 @@ class NameString:
 class ActionString:
     action = StringProperty()
 
-class TypePrefix:
-    type = StringProperty(default = "")
+class MorphsetString:
+    morphset = StringProperty(default = "")
     prefix = StringProperty(default = "")
 
 class UseOpenBool:

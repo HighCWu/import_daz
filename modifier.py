@@ -202,9 +202,9 @@ class ChannelAsset(Modifier):
             self.value = struct["channel"]["current_value"]
 
 
-    def setupPropmap(self, props, prefix, rig):
+    def setupPropmap(self, props, morphset, rig):
         from .asset import normalizePath
-        self.prefix = prefix
+        self.morphset = morphset
         self.rig = rig
         self.prop = normalizePath(self.id.rsplit("#",2)[-1])
         props.append(self.prop)
@@ -222,11 +222,16 @@ class ChannelAsset(Modifier):
     def getExprProp(self, prop):
         if prop in self.rig.data.bones.keys():
             return prop
-        prop0 = stripPrefix(prop)
-        for pfx in ["DzU", "DzV", "DzE", "DzF", "DzP"]:
-            if pfx+prop0 in self.rig.keys():
-                return pfx+prop0
-        return self.prefix+prop0
+        if prop[0].lower() != "e":
+            print("PP", prop)
+            halt
+        pg = getattr(self.rig, "Daz"+self.morphset)
+        if prop not in pg.keys():
+            item = pg.add()
+            item.name = prop
+            item.text = stripPrefix(prop)
+            print("Add", self.rig, item)
+        return prop
 
 
     def initProp(self, prop):
@@ -244,8 +249,8 @@ class ChannelAsset(Modifier):
         return prop,value
 
 
-    def clearProp(self, prefix, rig):
-        self.setupPropmap([], prefix, rig)
+    def clearProp(self, morphset, rig):
+        self.setupPropmap([], morphset, rig)
         prop,_value = self.initProp(None)
         return prop
 
@@ -264,6 +269,15 @@ def propFromName(key, prefix):
         return prefix + stripPrefix(key)
     else:
         return key
+
+
+def addToMorphSet(ob, morphset, key):
+    print("ADD", ob, morphset, key)
+    pg = getattr(ob, "Daz"+morphset)
+    print("PB", pg)
+    item = pg.add(key)
+    item.text = stripPrefix(key)
+    print("IIT", item)
 
 
 class Alias(ChannelAsset):
@@ -669,13 +683,14 @@ class Morph(FormulaAsset):
             me.vertices[vn].co += scale * d2bu(delta[1:])
 
 
-    def buildMorph(self, ob, cscale, useSoftLimits=False, prefix=None):
+    def buildMorph(self, ob, cscale, useSoftLimits=False, morphset=None):
         if not ob.data.shape_keys:
             basic = ob.shape_key_add(name="Basic")
         else:
             basic = ob.data.shape_keys.key_blocks[0]
         sname = getName(self.id)
-        sname = propFromName(sname, prefix)
+        #sname = propFromName(sname, prefix)
+        addToMorphSet(ob, morphset, sname)
         if sname in ob.data.shape_keys.key_blocks.keys():
             skey = ob.data.shape_keys.key_blocks[sname]
             ob.shape_key_remove(skey)
