@@ -222,9 +222,6 @@ class ChannelAsset(Modifier):
     def getExprProp(self, prop):
         if prop in self.rig.data.bones.keys():
             return prop
-        if prop[0].lower() != "e":
-            print("PP", prop)
-            halt
         pg = getattr(self.rig, "Daz"+self.morphset)
         if prop not in pg.keys():
             item = pg.add()
@@ -274,10 +271,9 @@ def propFromName(key, prefix):
 def addToMorphSet(ob, morphset, key):
     print("ADD", ob, morphset, key)
     pg = getattr(ob, "Daz"+morphset)
-    print("PB", pg)
-    item = pg.add(key)
+    item = pg.add()
+    item.name = key
     item.text = stripPrefix(key)
-    print("IIT", item)
 
 
 class Alias(ChannelAsset):

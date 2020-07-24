@@ -177,8 +177,10 @@ class Selector(B.Selection):
 
     def invoke(self, context, event):
         scn = context.scene
+        ob = context.object
+        rig = self.rig = getRigFromObject(ob)
         self.selection.clear()
-        for idx,data in enumerate(self.getKeys(context)):
+        for idx,data in enumerate(self.getKeys(rig, ob)):
             prop,text,cat = data
             item = self.selection.add()
             item.name = prop
@@ -192,14 +194,21 @@ class Selector(B.Selection):
 class StandardSelector(Selector, B.StandardAllEnums):
 
     def selectCondition(self, item):
-        return True
+        if self.morphset == "All":
+            names = []
+            for morphset in theStandardMorphSets:
+                pg = getattr(self.rig, "Daz"+morphset)
+                names += list(pg.keys())
+        else:
+            pg = getattr(self.rig, "Daz"+self.morphset)
+            names = list(pg.keys())
+        return (item.name in names)
 
     def draw(self, context):
         self.layout.prop(self, "morphset")
         Selector.draw(self, context)
 
-    def getKeys(self, context):
-        rig = getRigFromObject(context.object)
+    def getKeys(self, rig, ob):
         morphs = getMorphs(rig, self.morphset, sets=theStandardMorphSets)
         return [(item.name, item.text, "All") for item in morphs]
 
@@ -217,17 +226,12 @@ class CustomSelector(Selector, B.CustomEnums):
         self.layout.prop(self, "custom")
         Selector.draw(self, context)
 
-    def getKeys(self, context):
-        rig = getRigFromObject(context.object)
+    def getKeys(self, rig, ob):
+        morphs = getMorphs(rig, self.morphset, sets=theCustomMorphSets)
         keys = []
         for cat in rig.DazMorphCats:
-            for morph in cat.morphs:
-                key = morph.prop
-                if key[0:2] == "Dz":
-                    text = key[3:]
-                else:
-                    text = key
-                keys.append((key,text,cat.name))
+            for item in cat.morphs:
+                keys.append((item.name,item.prop,cat.name))
         return keys
 
 #------------------------------------------------------------------
@@ -608,9 +612,7 @@ class LoadAllMorphs(LoadMorph):
         setupMorphPaths(scn, False)
         self.usePropDrivers = (scn.DazAddFaceDrivers and not self.useShapekeysOnly)
         self.rig["Daz"+self.morphset] = self.char
-        self.mesh["Daz"+self.morphset] = self.char
         self.rig.DazMorphPrefixes = True
-        self.mesh.DazMorphPrefixes = True
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
 
@@ -689,7 +691,7 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs,
     bl_description = "Import selected body morphs"
     bl_options = {'UNDO'}
 
-    morphset = "Poses"
+    morphset = "Body"
 
 
 class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -698,7 +700,7 @@ class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorph
     bl_description = "Import selected standard joint corrective morphs"
     bl_options = {'UNDO'}
 
-    morphset = "Correctives"
+    morphset = "StandardJCMs"
 
     useShapekeysOnly = True
     useSoftLimits = False
@@ -751,8 +753,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
     bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
 
-    type = "Shapes"
-    custom = "DazCustomMorphs"
+    morphset = "Custom"
 
     def draw(self, context):
         self.layout.prop(self, "usePropDrivers")
@@ -763,10 +764,10 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
         namepaths = self.getNamePaths()
         props = self.getAllMorphs(namepaths, context)
         addToCategories(self.rig, props, self.catname)
-        if self.rig:
-            setBoolProp(self.rig, self.custom, True)
-        if self.mesh:
-            setBoolProp(self.mesh, self.custom, True)
+        #if self.rig:
+        #    setBoolProp(self.rig, self.custom, True)
+        #if self.mesh:
+        #    setBoolProp(self.mesh, self.custom, True)
         if self.errors:
             raise DazError(theLimitationsMessage)
 
@@ -777,13 +778,13 @@ class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMeshArmatu
     bl_description = "Import selected joint corrective morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
 
-    type = "Correctives"
+    morphset = "CustomJCMs"
+
     useShapekeysOnly = True
     useSoftLimits = False
     usePropDrivers = False
     useBoneDrivers = True
     useStages = True
-    custom = "DazCustomCorrectives"
 
     def run(self, context):
         namepaths = self.getNamePaths()
@@ -915,8 +916,7 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature, B.DeleteShapeke
         return True
 
 
-    def getKeys(self, context):
-        rig = getRigFromObject(context.object)
+    def getKeys(self, rig, ob):
         keys = []
         for cat in rig.DazMorphCats:
             key = cat.name
@@ -977,7 +977,7 @@ class Activator(B.MorphsetString):
     def run(self, context):
         rig = getRigFromObject(context.object)
         keys = getRelevantMorphs(rig, self.morphset, self.prefix)
-        if self.morphset == "DazCustom":
+        if self.morphset == "Custom":
             for key in keys:
                 setActivated(rig, key.prop, self.activate)
         else:
@@ -1086,7 +1086,7 @@ def getRelevantMorphs(rig, morphset, prefix):
     morphs = []
     if rig is None:
         return morphs
-    if type == "DazCustom":
+    if morphset == "Custom":
         for cat in rig.DazMorphCats:
             morphs += cat.morphs
     elif rig.DazMorphPrefixes:
@@ -1104,7 +1104,7 @@ def getRelevantMorphs(rig, morphset, prefix):
 def clearMorphs(rig, morphset, prefix, scn, frame, force):
     keys = getRelevantMorphs(rig, morphset, prefix)
 
-    if type == "DazCustom":
+    if morphset == "Custom":
         for key in keys:
             if getActivated(rig, key.prop, force):
                 rig[key.prop] = 0.0
@@ -1157,14 +1157,14 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
 #   Add morphs to keyset
 #------------------------------------------------------------------
 
-def addKeySet(rig, type, prefix, scn, frame):
+def addKeySet(rig, morphset, prefix, scn, frame):
     if rig is None:
         return
     aksi = scn.keying_sets.active_index
     if aksi <= -1:
         aks = scn.keying_sets.new(idname = "daz_morphs", name = "daz_morphs")
     aks = scn.keying_sets.active
-    if type == "DazCustom":
+    if morphset == "Custom":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 path = "[" + '"' + morph.prop + '"' + "]"
@@ -1194,10 +1194,10 @@ class DAZ_OT_AddKeysets(DazOperator, B.MorphsetString, IsMeshArmature):
 #   Set morph keys
 #------------------------------------------------------------------
 
-def keyMorphs(rig, type, prefix, scn, frame):
+def keyMorphs(rig, morphset, prefix, scn, frame):
     if rig is None:
         return
-    if type == "DazCustom":
+    if morphset == "DazCustom":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 if getActivated(rig, morph.prop):
@@ -1226,10 +1226,10 @@ class DAZ_OT_KeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
 #   Remove morph keys
 #------------------------------------------------------------------
 
-def unkeyMorphs(rig, type, prefix, scn, frame):
+def unkeyMorphs(rig, morphset, prefix, scn, frame):
     if rig is None:
         return
-    if type == "DazCustom":
+    if morphset == "Custom":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 if getActivated(rig, morph.prop):
@@ -1424,6 +1424,8 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMes
     bl_description = "Remove specific custom morphs and their associated drivers"
     bl_options = {'UNDO'}
 
+    morphset = "Custom"
+
     def drawExtra(self, context):
         self.layout.prop(self, "deleteShapekeys")
 
@@ -1446,11 +1448,12 @@ class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
     bl_description = "Remove specific JCMs"
     bl_options = {'UNDO'}
 
-    def getKeys(self, context):
-        ob = context.object
+    def getKeys(self, rig, ob):
         if ob.data.shape_keys:
+            morphsets = ["StandardJCMs", "Flexions", "CustomJCMs"]
+            morphs = getMorphs(rig, morphsets, morphsets)
             skeys = ob.data.shape_keys.key_blocks
-            return [(key,key[3:],"All") for key in skeys.keys() if key[0:3] in ["DzC", "DzN", "DzF"]]
+            return [(item.name, item.text, "All") for item in morphs if item.name in skeys.keys()]
         else:
             return []
 

@@ -865,7 +865,7 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
 
     morphset = "Custom"
     prefix = "DzM"
-    show = "DazCustomMorphs"
+    show = "DazCustom"
 
     def drawItems(self, scn, rig):
         row = self.layout.row()
@@ -1195,10 +1195,9 @@ def initialize():
     bpy.types.Object.DazUnits = StringProperty(default = "")
     bpy.types.Object.DazExpressions = StringProperty(default = "")
     bpy.types.Object.DazVisemes = StringProperty(default = "")
-    bpy.types.Object.DazPoses = StringProperty(default = "")
+    bpy.types.Object.DazBodies = StringProperty(default = "")
     bpy.types.Object.DazFlexions = StringProperty(default = "")
     bpy.types.Object.DazCorrectives = StringProperty(default = "")
-    bpy.types.Object.DazHands = StringProperty(default = "")
 
     bpy.types.Object.DazRotMode = StringProperty(default = 'XYZ')
     bpy.types.PoseBone.DazRotMode = StringProperty(default = 'XYZ')

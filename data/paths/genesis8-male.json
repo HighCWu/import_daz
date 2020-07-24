@@ -26,13 +26,13 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 8/Male/Morphs/DAZ 3D/Base Flexions/"
 	},
-	"correctives" : {
+	"standardjcms" : {
 		"prefix" : "pjcm",
 		"include" : ["pjcm"],
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 8/Male/Morphs/DAZ 3D/Base Correctives/"
 	},
-	"poses" : {
+	"body" : {
 		"prefix" : ["pctrl", "ppbm"],
 		"include" : ["pctrl", "ppbm"],
 		"exclude" : [],

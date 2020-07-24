@@ -25,13 +25,13 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis/Base/Morphs/DAZ 3D/Base/"
 	},
-	"correctives" : {
+	"standardjcms" : {
 		"prefix" : "",
 		"include" : ["none"],
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis/Base/Morphs/DAZ 3D/Base/"
 	},
-	"poses" : {
+	"body" : {
 		"prefix" : ["ctrl", "pbm"],
 		"include" : ["ctrl", "pbm"],
 		"exclude" : [],

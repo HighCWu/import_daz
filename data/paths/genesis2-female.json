@@ -19,7 +19,7 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 2/Female/Morphs/DAZ 3D/Base/"
 	},
-	"correctives" : {
+	"standardjcms" : {
 		"prefix" : "",
 		"include" : ["none"],
 		"exclude" : [],
@@ -31,7 +31,7 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 2/Female/Morphs/DAZ 3D/Base/"
 	},
-	"poses" : {
+	"body" : {
 		"prefix" : ["ctrl", "pbm"],
 		"include" : ["ctrl", "pbm"],
 		"exclude" : [],

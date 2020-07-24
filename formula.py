@@ -329,7 +329,7 @@ def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True, morphse
     if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=useStages, verbose=verbose):
         return False
 
-    from .modifier import propFromName
+    from .modifier import propFromName, addToMorphSet
     for key,expr in exprs.items():
         if key in rig.data.bones.keys():
             continue

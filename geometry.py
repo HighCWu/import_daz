@@ -541,7 +541,6 @@ class Geometry(Asset, Channels):
                     mat = mats[inst.index]
                 else:
                     mat = mats[0]
-                    print("KK", self, node, inst, mats)
             else:
                 mat = None
                 print("\nMaterial \"%s\" not found in %s" % (mname, self))
