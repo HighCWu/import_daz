@@ -612,7 +612,7 @@ class LoadAllMorphs(LoadMorph):
         setupMorphPaths(scn, False)
         self.usePropDrivers = (scn.DazAddFaceDrivers and not self.useShapekeysOnly)
         self.rig["Daz"+self.morphset] = self.char
-        self.rig.DazMorphPrefixes = True
+        self.rig.DazMorphPrefixes = False
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
 
@@ -1090,14 +1090,14 @@ def getRelevantMorphs(rig, morphset, prefix):
         for cat in rig.DazMorphCats:
             morphs += cat.morphs
     elif rig.DazMorphPrefixes:
-        pg = getattr(rig, "Daz"+morphset)
-        for key in pg.keys():
-            morphs.append(key)
-    else:
         for key in rig.keys():
             if key[0:3] == prefix:
                 morphs.append(key)
                 raise DazError("OLD morphs", rig, key)
+    else:
+        pg = getattr(rig, "Daz"+morphset)
+        for key in pg.keys():
+            morphs.append(key)
     return morphs
 
 
@@ -1114,13 +1114,6 @@ def clearMorphs(rig, morphset, prefix, scn, frame, force):
             if getActivated(rig, key, force):
                 rig[key] = 0.0
                 autoKeyProp(rig, key, scn, frame, force)
-
-
-def updateMorphs(rig, morphset, prefix, scn, frame, force):
-    keys = getRelevantMorphs(rig, morphset, prefix)
-    for key in keys:
-        if getActivated(rig, key):
-            autoKeyProp(rig, key, scn, frame, force)
 
 
 class DAZ_OT_ClearMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
@@ -1141,17 +1134,33 @@ class DAZ_OT_ClearMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
 
 class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArmature):
     bl_idname = "daz.update_morphs"
-    bl_label = "Update"
-    bl_description = "Set keys at current frame for all props of specified type with keys"
+    bl_label = "Update Morphs For Version 1.5"
+    bl_description = "Update morphs for the new morph system in version 1.5"
     bl_options = {'UNDO'}
 
+    prefixes = {"DzU" : "Units",
+                "DzE" : "Expressions",
+                "DzV" : "Visemes",
+                "DzP" : "Body",
+                "DzC" : "StandardJCMs",
+                "DzF" : "Flexions",
+                "DzM" : "Custom",
+                "DzN" : "CustomJCMs"
+                }
+
     def run(self, context):
-        rig = getRigFromObject(context.object)
+        ob = context.object
+        rig = getRigFromObject(ob)
         if rig:
-            scn = context.scene
-            updateMorphs(rig, self.morphset, self.prefix, scn, scn.frame_current)
-            updateScene(context)
-            updateRig(rig, context)
+            for key in rig.keys():
+                if key[0:2] == "Dz":
+                    pg = getattr(rig, "Daz" + self.prefixes[key[0:3]])
+                    if key not in pg.keys():
+                        item = pg.add()
+                        item.name = key
+                        item.text = key[3:]
+            rig.DazMorphPrefixes = False
+        ob.DazMorphPrefixes = False
 
 #------------------------------------------------------------------
 #   Add morphs to keyset
@@ -1896,7 +1905,7 @@ def initialize():
     bpy.types.Object.DazCustomMorphs = BoolProperty(default = False)
     bpy.types.Object.DazCustomPoses = BoolProperty(default = False)
 
-    bpy.types.Object.DazMorphPrefixes = BoolProperty(default = False)
+    bpy.types.Object.DazMorphPrefixes = BoolProperty(default = True)
     for morphset in theMorphSets:
         setattr(bpy.types.Object, "Daz"+morphset, CollectionProperty(type = B.DazTextGroup))
 
