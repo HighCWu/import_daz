@@ -43,14 +43,14 @@ class RenderOptions(Asset, Channels):
         Asset.__init__(self, fileref)
         Channels.__init__(self)
         self.world = None
-        self.backgroundColor = None
+        self.background = None
         self.backdrop = None
 
 
     def initSettings(self, settings, backdrop):
         for key,value in settings.items():
             if key == "background_color":
-                self.backgroundColor = value
+                self.background = value
             if ("backdrop_visible" in settings.keys() and
                 backdrop and
                 settings["backdrop_visible"] and
@@ -91,7 +91,9 @@ class WorldMaterial(CyclesMaterial):
     def __init__(self, render, fileref):
         CyclesMaterial.__init__(self, fileref)
         self.name = os.path.splitext(os.path.basename(fileref))[0] + " World"
-        self.render = render
+        self.channels = render.channels
+        self.background = self.srgbToLinear(render.background)
+        self.backdrop = render.backdrop
         self.envmap = None
 
 
@@ -99,7 +101,6 @@ class WorldMaterial(CyclesMaterial):
         self.refractive = False
         Material.build(self, context)
         self.tree = WorldTree(self)
-        self.channels = self.render.channels
 
         mode = self.getValue(["Environment Mode"], 0)
         # [Dome and Scene, Dome Only, Sun-Skies Only, Scene Only]
@@ -114,7 +115,7 @@ class WorldMaterial(CyclesMaterial):
             if self.getImageFile(self.envmap) is None:
                 print("Don't draw environment. Image file not found")
                 return
-        elif mode in [0,3] and self.render.backgroundColor:
+        elif mode in [0,3] and self.background:
             print("Draw backdrop", mode)
             self.envmap = None
             fixray = True
@@ -148,9 +149,10 @@ class WorldTree(CyclesTree):
     def build(self, context):
         from mathutils import Euler, Matrix
 
-        background = self.material.render.backgroundColor
-        backdrop = self.material.render.backdrop
+        background = self.material.background
+        backdrop = self.material.backdrop
         envmap = self.material.envmap
+        eeveefix = False
         if envmap:
             self.makeTree(slot="Generated")
             rot = self.getValue(["Dome Rotation"], 0)
@@ -176,6 +178,7 @@ class WorldTree(CyclesTree):
             self.makeTree(slot="Window")
             strength = 1
             color = background
+            eeveefix = True
             img = self.getImage(backdrop, "COLOR")
             tex = self.addTextureNode(2, img, "COLOR")
             self.linkVector(self.texco, tex)
@@ -183,13 +186,21 @@ class WorldTree(CyclesTree):
             self.makeTree()
             strength = 1
             color = background
+            eeveefix = True
             tex = None
 
         bg = self.addNode(4, "ShaderNodeBackground")
         bg.inputs["Strength"].default_value = strength
         self.linkColor(tex, bg, color)
-        output = self.addNode(5, "ShaderNodeOutputWorld")
-        self.links.new(bg.outputs[0], output.inputs["Surface"])
+        output = self.addNode(6, "ShaderNodeOutputWorld")
+        if eeveefix:
+            lightpath = self.addNode(4, "ShaderNodeLightPath")
+            mix = self.addNode(5, "ShaderNodeMixShader")
+            self.links.new(lightpath.outputs[0], mix.inputs[0])
+            self.links.new(bg.outputs[0], mix.inputs[2])
+            self.links.new(mix.outputs[0], output.inputs["Surface"])
+        else:
+            self.links.new(bg.outputs[0], output.inputs["Surface"])
         self.prune(output = "World Output")
 
 
