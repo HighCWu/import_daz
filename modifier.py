@@ -223,10 +223,12 @@ class ChannelAsset(Modifier):
         if prop in self.rig.data.bones.keys():
             return prop
         pg = getattr(self.rig, "Daz"+self.morphset)
-        if prop not in pg.keys():
+        if prop in pg.keys():
+            item = pg[prop]
+        else:
             item = pg.add()
-            item.name = prop
-            item.text = stripPrefix(prop)
+        item.name = prop
+        item.text = stripPrefix(prop)
         return prop
 
 
@@ -253,7 +255,7 @@ class ChannelAsset(Modifier):
 
 def stripPrefix(prop):
     lprop = prop.lower()
-    for prefix in ["ectrlv", "ectrl", "pctrl", "ctrl", "phm", "ephm", "pbm", "ppbm", "vsm", "pjcm", "jcm"]:
+    for prefix in ["ectrlv", "ectrl", "pctrl", "ctrl", "phm", "ephm", "pbm", "ppbm", "vsm", "pjcm", "ejcm", "jcm", "mcm"]:
         n = len(prefix)
         if lprop[0:n] == prefix:
             return prop[n:]
@@ -262,7 +264,10 @@ def stripPrefix(prop):
 
 def addToMorphSet(ob, morphset, key):
     pg = getattr(ob, "Daz"+morphset)
-    item = pg.add()
+    if key in pg.keys():
+        item = pg[key]
+    else:
+        item = pg.add()
     item.name = key
     item.text = stripPrefix(key)
 

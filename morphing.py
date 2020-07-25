@@ -44,23 +44,50 @@ from .fileutils import MultiFile
 theStandardMorphSets = ["Units", "Expressions", "Visemes", "Body"]
 theCustomMorphSets = ["Custom"]
 theJCMMorphSets = ["Jcms", "Flexions", "CustomJcms"]
-theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets
+theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
 
-def getMorphs(rig, morphset, sets=None):
+def getMorphs0(rig, morphset, sets=None):
     if morphset == "All":
-        return getMorphs(rig, sets, sets)
+        return getMorphs0(rig, sets)
     elif isinstance(morphset, list):
-        items = []
+        pgs = []
         for mset in morphset:
-            items += getMorphs(rig, mset, sets)
+            pgs += getMorphs0(rig, mset, sets)
+        return pgs
     elif sets is None or morphset in sets:
         pg = getattr(rig, "Daz"+morphset)
-        items = list(pg.values())
+        prunePropGroup(rig, pg)
+        return [pg]
     else:
-        print("getMorphs", morphset, sets)
+        print("getMorphList", morphset, sets)
         halt
-    items.sort()
-    return items
+
+
+def prunePropGroup(rig, pg):
+    idxs = [n for n,item in enumerate(pg.values()) if item.name not in rig.keys()]
+    if idxs:
+        print("Prune", idxs, [item.name for item in pg.values()])
+        idxs.reverse()
+        for idx in idxs:
+            pg.remove(idx)
+
+
+def getMorphList(rig, morphset, sets=None):
+    pgs = getMorphs0(rig, morphset, sets)
+    mlist = []
+    for pg in pgs:
+        mlist += list(pg.values())
+    mlist.sort()
+    return mlist
+
+
+def getMorphs(rig, morphset, sets=None):
+    pgs = getMorphs0(rig, morphset, sets)
+    mdict = {}
+    for pg in pgs:
+        for item in pg.values():
+            mdict[item.name] = item
+    return mdict
 
 #-------------------------------------------------------------
 #   Morph selector
@@ -212,7 +239,7 @@ class StandardSelector(Selector, B.StandardAllEnums):
         Selector.draw(self, context)
 
     def getKeys(self, rig, ob):
-        morphs = getMorphs(rig, self.morphset, sets=self.allSets)
+        morphs = getMorphList(rig, self.morphset, sets=self.allSets)
         return [(item.name, item.text, "All") for item in morphs]
 
     def invoke(self, context, event):
@@ -230,7 +257,7 @@ class CustomSelector(Selector, B.CustomEnums):
         Selector.draw(self, context)
 
     def getKeys(self, rig, ob):
-        morphs = getMorphs(rig, self.morphset, sets=theCustomMorphSets)
+        morphs = getMorphList(rig, self.morphset, sets=theCustomMorphSets)
         keys = []
         for cat in rig.DazMorphCats:
             for item in cat.morphs:
@@ -1146,6 +1173,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
                  "DzF" : "Flexions",
                  "DzM" : "Custom",
                  "DzN" : "CustomJcms",
+                 "Mhh" : "Visibility"
                 }
 
     def run(self, context):
@@ -1158,7 +1186,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
             ob.DazMorphPrefixes = False
 
     def updateKey(self, ob, key):
-        if key[0:2] == "Dz":
+        if key[0:2] == "Dz" or key[0:3] == "Mhh":
             pg = getattr(ob, "Daz" + self.morphsets[key[0:3]])
             if key not in pg.keys():
                 item = pg.add()
@@ -1399,7 +1427,7 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, B.MorphSets, IsMeshArmat
 
 
     def removeMorphSets(self, ob, morphsets):
-        for item in getMorphs(ob, morphsets):
+        for item in getMorphList(ob, morphsets):
             key = item.name
             if key in ob.keys():
                 ob[key] = 0.0
@@ -1490,7 +1518,7 @@ class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
 
     def getKeys(self, rig, ob):
         if ob.data.shape_keys:
-            morphs = getMorphs(ob, theJCMMorphSets)
+            morphs = getMorphList(ob, theJCMMorphSets)
             skeys = ob.data.shape_keys.key_blocks
             return [(item.name, item.text, "All") for item in morphs if item.name in skeys.keys()]
         else:

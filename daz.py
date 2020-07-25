@@ -304,9 +304,10 @@ class DAZ_PT_Setup(bpy.types.Panel):
             if ob and ob.DazDriversDisabled:
                 box.label(text = "Face drivers disabled")
                 box.operator("daz.enable_drivers")
-            elif ob and ob.DazMorphPrefixes:
-                box.operator("daz.update_morphs")
-            else:
+            elif ob and ob.type in ['ARMATURE', 'MESH']:
+                if ob.DazMorphPrefixes:
+                    box.operator("daz.update_morphs")
+                    return
                 box.operator("daz.import_units")
                 box.operator("daz.import_expressions")
                 box.operator("daz.import_visemes")
