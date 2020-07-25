@@ -26,7 +26,7 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 8/Male/Morphs/DAZ 3D/Base Flexions/"
 	},
-	"standardjcms" : {
+	"jcms" : {
 		"prefix" : "pjcm",
 		"include" : ["pjcm"],
 		"exclude" : [],

@@ -227,7 +227,6 @@ class ChannelAsset(Modifier):
             item = pg.add()
             item.name = prop
             item.text = stripPrefix(prop)
-            print("Add", self.rig, item)
         return prop
 
 
@@ -261,15 +260,7 @@ def stripPrefix(prop):
     return prop
 
 
-def propFromName(key, prefix):
-    if prefix:
-        return prefix + stripPrefix(key)
-    else:
-        return key
-
-
 def addToMorphSet(ob, morphset, key):
-    print("ADD", ob, morphset, key)
     pg = getattr(ob, "Daz"+morphset)
     item = pg.add()
     item.name = key
@@ -685,7 +676,6 @@ class Morph(FormulaAsset):
         else:
             basic = ob.data.shape_keys.key_blocks[0]
         sname = getName(self.id)
-        #sname = propFromName(sname, prefix)
         addToMorphSet(ob, morphset, sname)
         if sname in ob.data.shape_keys.key_blocks.keys():
             skey = ob.data.shape_keys.key_blocks[sname]

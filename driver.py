@@ -488,15 +488,6 @@ def copyShapeKeyDrivers(ob, drivers):
         copyDriver(fcu, skey)
 
 
-def hasSuchTarget(fcu, prefix):
-    n = len(prefix)
-    for var in fcu.driver.variables:
-        for trg in var.targets:
-            if trg.data_path[0:n] == prefix:
-                return True
-    return False
-
-
 def isNumber(string):
     try:
         float(string)
@@ -564,7 +555,6 @@ def removeRigDrivers(rig):
     fcus = []
     for fcu in rig.animation_data.drivers:
         if ("evalMorphs" in fcu.driver.expression or
-            "evalMorphs2" in fcu.driver.expression or
             isNumber(fcu.driver.expression)):
             fcus.append(fcu)
     removeDriverFCurves(fcus, rig)

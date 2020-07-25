@@ -329,12 +329,10 @@ def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True, morphse
     if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=useStages, verbose=verbose):
         return False
 
-    from .modifier import propFromName, addToMorphSet
-    for key,expr in exprs.items():
-        if key in rig.data.bones.keys():
+    from .modifier import addToMorphSet
+    for sname,expr in exprs.items():
+        if sname in rig.data.bones.keys():
             continue
-        #sname = propFromName(key, prefix)
-        sname = key
         addToMorphSet(rig, morphset, sname)
         addToMorphSet(ob, morphset, sname)
         if sname not in ob.data.shape_keys.key_blocks.keys():
@@ -615,12 +613,7 @@ class PoseboneDriver:
 #   class PropFormulas
 #-------------------------------------------------------------
 
-def dzstrip(key):
-    return (key[3:] if key[0:2] == "Dz" else key)
-
-
 class PropFormulas(PoseboneDriver):
-    prefix = ""
 
     def __init__(self, rig):
         PoseboneDriver.__init__(self, rig)
@@ -760,9 +753,8 @@ class PropFormulas(PoseboneDriver):
             batch, used, remains = self.getNextLevelMorphs(remains)
             self.buildMorphBatch(batch)
             for prop in batch.keys():
-                name = dzstrip(prop)
-                print(" *", name)
-                missing[name] = False
+                print(" *", prop)
+                missing[prop] = False
                 props.append(prop)
             if len(remains) == nremains:
                 break
@@ -774,7 +766,7 @@ class PropFormulas(PoseboneDriver):
         if remains:
             print("Missing:")
             for key in remains.keys():
-                print("-", dzstrip(key))
+                print("-", key)
         return props
 
 

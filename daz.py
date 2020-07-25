@@ -720,10 +720,8 @@ def activateLayout(layout, rig, self):
     split.operator("daz.prettify")
     op = split.operator("daz.activate_all")
     op.morphset = self.morphset
-    op.prefix = self.prefix
     op = split.operator("daz.deactivate_all")
     op.morphset = self.morphset
-    op.prefix = self.prefix
     if rig.DazDriversDisabled:
         split.operator("daz.enable_drivers")
     else:
@@ -734,16 +732,12 @@ def keyLayout(layout, self):
     split = splitLayout(layout, 0.25)
     op = split.operator("daz.add_keyset", text="", icon='KEYINGSET')
     op.morphset = self.morphset
-    op.prefix = self.prefix
     op = split.operator("daz.key_morphs", text="", icon='KEY_HLT')
     op.morphset = self.morphset
-    op.prefix = self.prefix
     op = split.operator("daz.unkey_morphs", text="", icon='KEY_DEHLT')
     op.morphset = self.morphset
-    op.prefix = self.prefix
     op = split.operator("daz.clear_morphs", text="", icon='X')
     op.morphset = self.morphset
-    op.prefix = self.prefix
 
 
 class DAZ_PT_Morphs:
@@ -751,15 +745,19 @@ class DAZ_PT_Morphs:
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (ob and getattr(ob, self.show) and ob.DazMesh)
+        if ob and ob.DazMesh:
+            if ob.type == 'MESH' and ob.parent:
+                ob = ob.parent
+            return getattr(ob, "Daz"+self.morphset)
+        return False
+
 
     def draw(self, context):
         rig = context.object
-        scn = context.scene
         if rig.type == 'MESH':
             rig = rig.parent
-            if rig is None:
-                return
+        if rig is None:
+            return
         if rig.type != 'ARMATURE':
             return
         layout = self.layout
@@ -769,6 +767,7 @@ class DAZ_PT_Morphs:
             layout.operator("daz.enable_drivers")
             return
 
+        scn = context.scene
         activateLayout(layout, rig, self)
         keyLayout(layout, self)
         layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
@@ -793,7 +792,6 @@ class DAZ_PT_Morphs:
         op = row.operator("daz.pin_prop", icon='UNPINNED')
         op.key = key
         op.morphset = self.morphset
-        op.prefix = self.prefix
 
 
 def showBool(layout, ob, key, text=""):
@@ -811,8 +809,6 @@ class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
     bl_options = {'DEFAULT_CLOSED'}
 
     morphset = "Units"
-    prefix = "DzU"
-    show = "DazUnits"
 
 
 class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
@@ -823,8 +819,6 @@ class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
     bl_options = {'DEFAULT_CLOSED'}
 
     morphset = "Expressions"
-    prefix = "DzE"
-    show = "DazExpressions"
 
 
 class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
@@ -835,8 +829,6 @@ class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
     bl_options = {'DEFAULT_CLOSED'}
 
     morphset = "Visemes"
-    prefix = "DzV"
-    show = "DazVisemes"
 
     def draw(self, context):
         self.layout.operator("daz.load_moho")
@@ -851,8 +843,6 @@ class DAZ_PT_BodyMorphs(bpy.types.Panel, DAZ_PT_Morphs):
     bl_options = {'DEFAULT_CLOSED'}
 
     morphset = "Body"
-    prefix = "DzP"
-    show = "DazBody"
 
 #------------------------------------------------------------------------
 #    Custom panels
@@ -866,8 +856,12 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
     bl_options = {'DEFAULT_CLOSED'}
 
     morphset = "Custom"
-    prefix = "DzM"
-    show = "DazCustom"
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.DazCustomMorphs)
+
 
     def drawItems(self, scn, rig):
         row = self.layout.row()
@@ -1036,7 +1030,7 @@ class DAZ_PT_MhxProperties(bpy.types.Panel):
             row.prop(ob, right, text=right[3:-2])
 
 #------------------------------------------------------------------------
-#   Visibility and Makeup panels
+#   Visibility panels
 #------------------------------------------------------------------------
 
 class DAZ_PT_Hide:
@@ -1068,21 +1062,6 @@ class DAZ_PT_Visibility(DAZ_PT_Hide, bpy.types.Panel):
     def poll(cls, context):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and ob.DazVisibilityDrivers)
-
-
-class DAZ_PT_Makeup(DAZ_PT_Hide, bpy.types.Panel):
-    bl_label = "Makeup"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = Region
-    bl_category = "DAZ"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    prefix = "DzM"
-
-    @classmethod
-    def poll(cls, context):
-        ob = context.object
-        return (ob and ob.type == 'ARMATURE' and ob.DazMakeupDrivers)
 
 #-------------------------------------------------------------
 #   Initialize
@@ -1120,7 +1099,6 @@ classes = [
     DAZ_PT_MhxFKIK,
     DAZ_PT_MhxProperties,
     DAZ_PT_Visibility,
-    DAZ_PT_Makeup,
 
     ErrorOperator
 ]

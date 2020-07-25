@@ -448,6 +448,22 @@ class Selection:
         default = ""
         )
 
+class MorphSets:
+    useStandard = BoolProperty(
+        name = "Standard Morphs",
+        description = "Remove drivers to all standard morphs",
+        default = True)
+
+    useCustom = BoolProperty(
+        name = "Custom Morphs",
+        description = "Remove drivers to all custom morphs",
+        default = True)
+
+    useJCM = BoolProperty(
+        name = "JCMs",
+        description = "Remove drivers to all JCMs",
+        default = False)
+
 #-------------------------------------------------------------
 #   convert.py
 #-------------------------------------------------------------

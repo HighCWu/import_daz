@@ -319,16 +319,13 @@ class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
     useCorrectives = False
     defaultSelect = True
 
-    def getKeys(self, context):
-        ob = context.object
+    def getKeys(self, rig, ob):
+        from .morphing import getMorphs, theJCMMorphSets
+        jcms = [item.name for item in getMorphs(ob, theJCMMorphSets)]
         keys = []
         for skey in ob.data.shape_keys.key_blocks[1:]:
-            if skey.name[0:3] not in ["DzC", "DzN", "DzF"]:
-                if skey.name[0:2] == "Dz":
-                    text = skey.name[3:]
-                else:
-                    text = skey.name
-                keys.append((skey.name,text,"All"))
+            if skey.name not in jcms:
+                keys.append((skey.name, skey.name, "All"))
         return keys
 
 
@@ -343,11 +340,14 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
     useCorrectives = True
     defaultSelect = True
 
-    def getKeys(self, context):
-        ob = context.object
-        return [(skey.name,skey.name[3:],"All")
-            for skey in ob.data.shape_keys.key_blocks[1:]
-                if skey.name[0:3] in ["DzC", "DzN", "DzF"]]
+    def getKeys(self, rig, ob):
+        from .morphing import getMorphs, theJCMMorphSets
+        jcms = [item.name for item in getMorphs(ob, theJCMMorphSets)]
+        keys = []
+        for skey in ob.data.shape_keys.key_blocks[1:]:
+            if skey.name in jcms:
+                keys.append((skey.name, skey.name, "All"))
+        return keys
 
 #----------------------------------------------------------
 #   Mix Shapekeys

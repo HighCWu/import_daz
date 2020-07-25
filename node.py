@@ -659,6 +659,7 @@ class Node(Asset, Formula, Channels):
         from .asset import normalizePath
         ob.rotation_mode = BlenderRotMode[self.rotDaz]
         ob.DazRotMode = self.rotDaz
+        ob.DazMorphPrefixes = False
         theSettings.collection.objects.link(ob)
         if bpy.app.version < (2,80,0):
             context.scene.objects.link(ob)
