@@ -1446,7 +1446,8 @@ def checkRenderSettings(context):
         msg += checkSettings(lamp, lightSettings, scn.DazHandleLightSettings, '%s "%s"' % (lamptype, lamp.name))
 
     if msg:
-        msg += "See http://diffeomorphic.blogspot.com/2020/04/minimal-render-settings.html for details."
+        msg += "See http://diffeomorphic.blogspot.com/2020/04/render-settings.html for details."
+        print(msg)
         return msg
     else:
         return ""
