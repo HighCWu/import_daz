@@ -398,7 +398,7 @@ class Material(Asset, Channels):
             # else:
             #     l = ((s+0.055)/1.055)**2.4
             #   this is the gamma 2.2 approximation used by iray
-            l = round(s**2.2, 6)
+            l = round(abs(s)**2.2, 6)
             lin.append(l)
         return Vector(lin)
 
