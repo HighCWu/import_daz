@@ -257,10 +257,10 @@ class Figure(Node):
         rig.DazCharacterScale = cscale
         rig.DazRig = self.rigtype
 
-        if scn.DazOrientation or scn.DazBestOrientation:
+        if scn.DazOrientation or theSettings.useDazOrientation:
             for child in inst.children.values():
                 if isinstance(child, BoneInstance):
-                    child.node.buildOrientation(rig, child, scn.DazBestOrientation)
+                    child.node.buildOrientation(rig, child)
 
         bpy.ops.object.mode_set(mode='OBJECT')
         for child in inst.children.values():

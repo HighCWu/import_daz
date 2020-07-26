@@ -436,6 +436,8 @@ class BoneInstance(Instance):
         if length < 0.1*theSettings.scale:
             length = 0.1*theSettings.scale
             tail = head + Vector((0,0,length))
+        if not theSettings.useDazBones:
+            return head,tail,0
 
         vec,roll1,roll2,j = self.RollTable[self.rotDaz]
         orient = Euler(self.attributes["orientation"]*D)
@@ -446,9 +448,7 @@ class BoneInstance(Instance):
         else:
             tail = head - length*rmat.col[j]
             roll = roll2
-
-        rmat = rmat.to_4x4()
-        return head,tail,rmat,roll
+        return head,tail,roll
 
 
     def buildPose(self, figure, inFace, targets, missing):
@@ -670,26 +670,25 @@ class Bone(Node):
         if self.name in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[self.name]
         else:
-            head,tail,rmat,roll = inst.getHeadTail(cscale, center)
+            head,tail,roll = inst.getHeadTail(cscale, center)
             eb = rig.data.edit_bones.new(self.name)
             figure.bones[self.name] = eb.name
             eb.parent = parent
             eb.head = d2b(head)
             eb.tail = d2b(tail)
-            #eb.roll = roll
-
-            if self.useRoll:
-                eb.roll = self.roll
+            if False and theSettings.useDazOrientation:
+                eb.roll = 0
             else:
-                self.findRoll(inst, eb, figure, isFace)
-            self.roll = eb.roll
-            self.useRoll = True
+                if self.useRoll:
+                    eb.roll = self.roll
+                else:
+                    self.findRoll(inst, eb, figure, isFace)
+                self.roll = eb.roll
+                self.useRoll = True
             if theSettings.useConnect and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*theSettings.scale:
                     eb.use_connect = True
-
-
         if self.name in ["upperFaceRig", "lowerFaceRig"]:
             isFace = True
         for child in inst.children.values():
@@ -700,29 +699,28 @@ class Bone(Node):
     units = [Vector((1,0,0)), Vector((0,1,0)), Vector((0,0,1))]
 
     posRotators = [
-        Matrix.Rotation(-pi/2, 4, 'Z'),
-        Matrix(),
-        Matrix.Rotation(pi/2, 4, 'X'),
+        Matrix.Rotation(-pi/2, 4, 'Z').to_3x3(),
+        Matrix().to_3x3(),
+        Matrix.Rotation(pi/2, 4, 'X').to_3x3(),
     ]
 
     negRotators = [
-        Matrix.Rotation(pi/2, 4, 'Z'),
-        Matrix.Rotation(pi, 4, 'X'),
-        Matrix.Rotation(-pi/2, 4, 'X'),
+        Matrix.Rotation(pi/2, 4, 'Z').to_3x3(),
+        Matrix.Rotation(pi, 4, 'X').to_3x3(),
+        Matrix.Rotation(-pi/2, 4, 'X').to_3x3(),
     ]
 
-    def buildOrientation(self, rig, inst, useBest):
-        return
+    def buildOrientation(self, rig, inst):
         if self.name not in rig.data.edit_bones.keys():
             return
         eb = rig.data.edit_bones[self.name]
         orient = Vector(inst.attributes["orientation"])
         mat = Euler(orient*D, 'XYZ').to_matrix()
-        if useBest:
+        if theSettings.useDazOrientation:
             vec = eb.tail - eb.head
             projs = []
             for n in range(3):
-                proj = vec.dot(Mult2(mat, self.units[n]))
+                proj = vec.dot(mat.col[n])
                 projs.append((abs(proj), (proj<0), n))
             projs.sort()
             _,neg,idx = projs[2]
@@ -730,14 +728,13 @@ class Bone(Node):
                 rmat = self.negRotators[idx]
             else:
                 rmat = self.posRotators[idx]
-            mat = Mult2(rmat, mat.to_4x4())
-        else:
-            mat = mat.to_4x4()
-        mat.col[3] = eb.matrix.col[3]
-        eb.matrix = mat
+            mat = Mult2(rmat, mat)
+        roll = eb.roll
+        eb.roll = getRollFromQuat(mat.to_quaternion())
+        #print("RR", self.name, eb.name, roll/D, eb.roll/D)
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildOrientation(rig, child, useBest)
+                child.node.buildOrientation(rig, child)
 
 
     def buildBoneProps(self, rig, inst, cscale, center):
@@ -747,8 +744,8 @@ class Bone(Node):
         bone.use_inherit_scale = self.inherits_scale
         bone.DazOrientation = inst.attributes["orientation"]
 
-        head,tail,rmat,roll = inst.getHeadTail(cscale, center)
-        head0,tail0,rmat0,roll0 = inst.getHeadTail(cscale, center, False)
+        head,tail,roll = inst.getHeadTail(cscale, center)
+        head0,tail0,roll0 = inst.getHeadTail(cscale, center, False)
         bone.DazHead = head
         bone.DazTail = tail
         bone.DazAngle = 0

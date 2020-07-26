@@ -62,6 +62,11 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         box.label(text = "Mesh Fitting")
         box.prop(self, "fitMeshes", expand=True)
 
+        box = layout.box()
+        box.label(text = "Armature")
+        box.prop(self, "useDazBones")
+        box.prop(self, "useDazOrientation")
+
         layout.separator()
         layout.prop(self, "skinColor")
         layout.prop(self, "clothesColor")
@@ -557,7 +562,6 @@ class DAZ_PT_Settings(bpy.types.Panel):
             box.separator()
             box.prop(scn, "DazZup")
             box.prop(scn, "DazOrientation")
-            box.prop(scn, "DazBestOrientation")
             box.prop(scn, "DazCaseSensitivePaths")
 
         layout.separator()
@@ -1278,11 +1282,6 @@ def initialize():
     bpy.types.Scene.DazOrientation = BoolProperty(
         name = "DAZ Orientation",
         description = "Treat bones as nodes with same orientation as in Daz Studio",
-        default = False)
-
-    bpy.types.Scene.DazBestOrientation = BoolProperty(
-        name = "DAZ Best Orientation",
-        description = "Treat bones as nodes with same orientation as in Daz Studio,\nbut flip axes to make Y point along bone as well as possible.",
         default = False)
 
     from sys import platform

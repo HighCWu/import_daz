@@ -58,6 +58,8 @@ class Settings:
         self.fps = 30
         self.integerFrames = True
         self.missingAssets = {}
+        self.useDazBones = False
+        self.useDazOrientation = False
 
         self.collection = None
         self.refGroups = None
@@ -93,6 +95,8 @@ class Settings:
         self.fps = 30
         self.integerFrames = True
         self.missingAssets = {}
+        self.useDazBones = False
+        self.useDazOrientation = False
 
 
     def __repr__(self):
@@ -170,6 +174,8 @@ class Settings:
         self.methodVolumetric = btn.methodVolumetric
         self.methodRefractive = btn.methodRefractive
         self.useEnvironment = btn.useEnvironment
+        self.useDazBones = btn.useDazBones
+        self.useDazOrientation = btn.useDazOrientation
 
         self.useStrict = True
         self.singleUser = True
