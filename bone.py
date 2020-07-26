@@ -28,6 +28,7 @@
 
 import bpy
 import math
+from math import pi
 from mathutils import *
 from .asset import *
 from .utils import *
@@ -415,6 +416,15 @@ class BoneInstance(Instance):
         pass
 
 
+    RollTable = {
+        "XYZ" : (Vector((1,0,0)), pi, pi, 0),
+        "XZY" : (Vector((1,0,0)), -pi/2, pi/2, 0),
+        "YXZ" : (Vector((0,1,0)), -pi/2, pi/2, 1),
+        "YZX" : (Vector((0,1,0)), 0, 0, 1),
+        "ZXY" : (Vector((0,0,1)), -pi/2, -pi/2, 2),
+        "ZYX" : (Vector((0,0,1)), -pi, 0, 2),
+        }
+
     def getHeadTail(self, cscale, center, mayfit=True):
         if mayfit and theSettings.fitFile:
             head = cscale*(self.previewAttrs["center_point"] - center)
@@ -422,9 +432,23 @@ class BoneInstance(Instance):
         else:
             head = cscale*(self.attributes["center_point"] - center)
             tail = cscale*(self.attributes["end_point"] - center)
-        if (tail-head).length < 1e-4:
-            tail = head + Vector((0,0,1e-4))
-        return head,tail
+        length = (tail-head).length
+        if length < 0.1*theSettings.scale:
+            length = 0.1*theSettings.scale
+            tail = head + Vector((0,0,length))
+
+        vec,roll1,roll2,j = self.RollTable[self.rotDaz]
+        orient = Euler(self.attributes["orientation"]*D)
+        rmat = orient.to_matrix()
+        if vec.dot(tail-head) >= 0:
+            tail = head + length*rmat.col[j]
+            roll = roll1
+        else:
+            tail = head - length*rmat.col[j]
+            roll = roll2
+
+        rmat = rmat.to_4x4()
+        return head,tail,rmat,roll
 
 
     def buildPose(self, figure, inFace, targets, missing):
@@ -646,13 +670,14 @@ class Bone(Node):
         if self.name in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[self.name]
         else:
-            head,tail = inst.getHeadTail(cscale, center)
+            head,tail,rmat,roll = inst.getHeadTail(cscale, center)
             eb = rig.data.edit_bones.new(self.name)
             figure.bones[self.name] = eb.name
             eb.parent = parent
-
             eb.head = d2b(head)
             eb.tail = d2b(tail)
+            #eb.roll = roll
+
             if self.useRoll:
                 eb.roll = self.roll
             else:
@@ -664,6 +689,7 @@ class Bone(Node):
                 if dist.length < 1e-4*theSettings.scale:
                     eb.use_connect = True
 
+
         if self.name in ["upperFaceRig", "lowerFaceRig"]:
             isFace = True
         for child in inst.children.values():
@@ -674,18 +700,19 @@ class Bone(Node):
     units = [Vector((1,0,0)), Vector((0,1,0)), Vector((0,0,1))]
 
     posRotators = [
-        Matrix.Rotation(-math.pi/2, 4, 'Z'),
+        Matrix.Rotation(-pi/2, 4, 'Z'),
         Matrix(),
-        Matrix.Rotation(math.pi/2, 4, 'X'),
+        Matrix.Rotation(pi/2, 4, 'X'),
     ]
 
     negRotators = [
-        Matrix.Rotation(math.pi/2, 4, 'Z'),
-        Matrix.Rotation(math.pi, 4, 'X'),
-        Matrix.Rotation(-math.pi/2, 4, 'X'),
+        Matrix.Rotation(pi/2, 4, 'Z'),
+        Matrix.Rotation(pi, 4, 'X'),
+        Matrix.Rotation(-pi/2, 4, 'X'),
     ]
 
     def buildOrientation(self, rig, inst, useBest):
+        return
         if self.name not in rig.data.edit_bones.keys():
             return
         eb = rig.data.edit_bones[self.name]
@@ -720,8 +747,8 @@ class Bone(Node):
         bone.use_inherit_scale = self.inherits_scale
         bone.DazOrientation = inst.attributes["orientation"]
 
-        head,tail = inst.getHeadTail(cscale, center)
-        head0,tail0 = inst.getHeadTail(cscale, center, False)
+        head,tail,rmat,roll = inst.getHeadTail(cscale, center)
+        head0,tail0,rmat0,roll0 = inst.getHeadTail(cscale, center, False)
         bone.DazHead = head
         bone.DazTail = tail
         bone.DazAngle = 0
@@ -815,9 +842,9 @@ class Bone(Node):
              not xplane)):
             zaxis = inst.figure.planes[zplane]
             setRoll(eb, zaxis)
-            eb.roll += math.pi/2
-            if eb.roll > math.pi:
-                eb.roll -= 2*math.pi
+            eb.roll += pi/2
+            if eb.roll > pi:
+                eb.roll -= 2*pi
             return True
         elif (xplane and
               xplane in inst.figure.planes.keys()):
@@ -848,7 +875,7 @@ def getRoll(xaxis, yaxis, zaxis):
 
 def getRollFromQuat(quat):
     if abs(quat.w) < 1e-4:
-        roll = math.pi
+        roll = pi
     else:
         roll = 2*math.atan(quat.y/quat.w)
     return roll
