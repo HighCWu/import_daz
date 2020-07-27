@@ -334,7 +334,6 @@ def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True, morphse
         if sname in rig.data.bones.keys():
             continue
         addToMorphSet(rig, morphset, sname)
-        addToMorphSet(ob, morphset, sname)
         if sname not in ob.data.shape_keys.key_blocks.keys():
             #print("No such shapekey:", sname)
             return False
@@ -634,17 +633,10 @@ class PropFormulas(PoseboneDriver):
             if theSettings.verbosity > 4:
                 print(asset.formulas)
 
-        asset.setupPropmap(list(props.keys()) + list(exprs.keys()), self.morphset, self.rig)
+        asset.setupProps(list(props.keys()) + list(exprs.keys()), self.morphset, self.rig)
         for prop in props.keys():
-            nprop = asset.getProp(prop)
-            if nprop not in self.rig.keys():
-                asset.initProp(nprop)
-
-        nprops = {}
-        for prop,value in props.items():
-            nprop = asset.getProp(prop)
-            nprops[nprop] = value
-        props = nprops
+            if prop not in self.rig.keys():
+                asset.initProp(prop)
 
         opencoded = {}
         self.opencode(exprs, asset, opencoded, 0)
@@ -660,14 +652,13 @@ class PropFormulas(PoseboneDriver):
 
     def getOthers(self, exprs, asset):
         from .bone import getTargetName
-        for bname,expr in exprs.items():
-            bname1 = getTargetName(bname, self.rig.pose.bones)
-            if bname1 is None:
-                prop = asset.getProp(bname)
+        for prop,expr in exprs.items():
+            bname = getTargetName(prop, self.rig.pose.bones)
+            if bname is None:
                 if prop in self.built.keys() and self.built[prop]:
                     continue
                 struct = expr["value"]
-                key = asset.getProp(struct["prop"])
+                key = struct["prop"]
                 self.taken[key] = False
                 val = struct["value"]
                 if prop not in self.others.keys():
@@ -681,12 +672,11 @@ class PropFormulas(PoseboneDriver):
         from .daz import addDependency
         if level > 5:
             raise DazError("Recursion too deep")
-        for bname,expr in exprs.items():
-            bname1 = getTargetName(bname, self.rig.pose.bones)
-            if bname1 is None:
-                prop = asset.getProp(bname)
+        for prop,expr in exprs.items():
+            bname = getTargetName(prop, self.rig.pose.bones)
+            if bname is None:
                 struct = expr["value"]
-                key = asset.getProp(struct["prop"])
+                key = struct["prop"]
                 if "points" in struct.keys():
                     # Should do this right some day
                     val = struct["points"][-1][0]
@@ -696,8 +686,8 @@ class PropFormulas(PoseboneDriver):
                 if not (len(words) == 2 and words[1] == "value"):
                     continue
                 url = words[0].split(":")[-1]
-                if url[0] == "#" and url[1:] == bname:
-                    #print("Recursive definition:", bname, asset.selfref())
+                if url[0] == "#" and url[1:] == prop:
+                    #print("Recursive definition:", prop, asset.selfref())
                     continue
                 addDependency(key, prop, val)
                 subasset = asset.getTypedAsset(url, ChannelAsset)
@@ -744,6 +734,7 @@ class PropFormulas(PoseboneDriver):
 
 
     def buildOthers(self, missing):
+        from .modifier import stripPrefix
         remains = self.others
         sorted = []
         nremains = len(remains)
@@ -752,7 +743,8 @@ class PropFormulas(PoseboneDriver):
             print("--- Pass %d (%d left) ---" % (level+1, nremains))
             batch, used, remains = self.getNextLevelMorphs(remains)
             self.buildMorphBatch(batch)
-            for prop in batch.keys():
+            for key in batch.keys():
+                prop = stripPrefix(key)
                 print(" *", prop)
                 missing[prop] = False
                 props.append(prop)
@@ -766,7 +758,8 @@ class PropFormulas(PoseboneDriver):
         if remains:
             print("Missing:")
             for key in remains.keys():
-                print("-", key)
+                prop = stripPrefix(key)
+                print("-", prop)
         return props
 
 
@@ -909,16 +902,16 @@ class PropFormulas(PoseboneDriver):
             tfm = Transform()
             nonzero = False
             if "translation" in expr.keys():
-                tfm.setTrans(expr["translation"]["value"], asset.getProp(expr["translation"]["prop"]))
+                tfm.setTrans(expr["translation"]["value"], expr["translation"]["prop"])
                 nonzero = True
             if "rotation" in expr.keys():
-                tfm.setRot(expr["rotation"]["value"], asset.getProp(expr["rotation"]["prop"]))
+                tfm.setRot(expr["rotation"]["value"], expr["rotation"]["prop"])
                 nonzero = True
             if "scale" in expr.keys():
-                tfm.setScale(expr["scale"]["value"], False, asset.getProp(expr["scale"]["prop"]))
+                tfm.setScale(expr["scale"]["value"], False, expr["scale"]["prop"])
                 nonzero = True
             if "general_scale" in expr.keys():
-                tfm.setGeneral(expr["general_scale"]["value"], False, asset.getProp(expr["general_scale"]["prop"]))
+                tfm.setGeneral(expr["general_scale"]["value"], False, expr["general_scale"]["prop"])
                 nonzero = True
             if nonzero:
                 # Fix: don't assume that the rest pose is at slider value 0.0.

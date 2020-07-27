@@ -177,7 +177,6 @@ class ChannelAsset(Modifier):
         self.value = 0
         self.min = None
         self.max = None
-        self.propmap = {}
 
     def __repr__(self):
         return ("<Channel %s %s>" % (self.id, self.type))
@@ -202,40 +201,20 @@ class ChannelAsset(Modifier):
             self.value = struct["channel"]["current_value"]
 
 
-    def setupPropmap(self, props, morphset, rig):
+    def setupProps(self, props, morphset, rig):
         from .asset import normalizePath
         self.morphset = morphset
         self.rig = rig
         self.prop = normalizePath(self.id.rsplit("#",2)[-1])
         props.append(self.prop)
         for prop in props:
-            self.propmap[prop] = self.getExprProp(prop)
-
-
-    def getProp(self, prop):
-        if prop in self.propmap.keys():
-            return self.propmap[prop]
-        else:
-            return prop
-
-
-    def getExprProp(self, prop):
-        if prop in self.rig.data.bones.keys():
-            return prop
-        pg = getattr(self.rig, "Daz"+self.morphset)
-        if prop in pg.keys():
-            item = pg[prop]
-        else:
-            item = pg.add()
-        item.name = prop
-        item.text = stripPrefix(prop)
-        return prop
+            addToMorphSet(rig, morphset, prop)
 
 
     def initProp(self, prop):
-        from .driver import setFloatProp, setBoolProp
+        from .driver import setFloatProp
         if prop is None:
-            prop = self.getProp(self.prop)
+            prop = self.prop
         if theSettings.useDazPropLimits:
             value = self.value
             min = self.min
@@ -248,7 +227,7 @@ class ChannelAsset(Modifier):
 
 
     def clearProp(self, morphset, rig):
-        self.setupPropmap([], morphset, rig)
+        self.setupProps([], morphset, rig)
         prop,_value = self.initProp(None)
         return prop
 
@@ -262,14 +241,26 @@ def stripPrefix(prop):
     return prop
 
 
-def addToMorphSet(ob, morphset, key):
-    pg = getattr(ob, "Daz"+morphset)
-    if key in pg.keys():
-        item = pg[key]
+def addToMorphSet(rig, morphset, prop):
+    from .driver import setFloatProp
+    from .morphing import theJCMMorphSets
+    if (rig is None or
+        prop in rig.data.bones.keys()):
+        return
+    if rig.type != 'ARMATURE':
+        print("BUG. Not armature", rig)
+        halt
+    if (prop not in rig.keys() and
+        morphset not in theJCMMorphSets):
+        setFloatProp(rig, prop, 0.0)
+    pg = getattr(rig, "Daz"+morphset)
+    if prop in pg.keys():
+        item = pg[prop]
     else:
         item = pg.add()
-    item.name = key
-    item.text = stripPrefix(key)
+    item.name = prop
+    item.text = stripPrefix(prop)
+    return prop
 
 
 class Alias(ChannelAsset):
@@ -681,7 +672,7 @@ class Morph(FormulaAsset):
         else:
             basic = ob.data.shape_keys.key_blocks[0]
         sname = getName(self.id)
-        addToMorphSet(ob, morphset, sname)
+        addToMorphSet(ob.parent, morphset, sname)
         if sname in ob.data.shape_keys.key_blocks.keys():
             skey = ob.data.shape_keys.key_blocks[sname]
             ob.shape_key_remove(skey)

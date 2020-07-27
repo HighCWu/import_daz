@@ -56,14 +56,16 @@ def getMorphs0(rig, morphset, sets=None):
         return pgs
     elif sets is None or morphset in sets:
         pg = getattr(rig, "Daz"+morphset)
-        prunePropGroup(rig, pg)
+        prunePropGroup(rig, pg, morphset)
         return [pg]
     else:
         print("getMorphList", morphset, sets)
         halt
 
 
-def prunePropGroup(rig, pg):
+def prunePropGroup(rig, pg, morphset):
+    if morphset in theJCMMorphSets:
+        return
     idxs = [n for n,item in enumerate(pg.values()) if item.name not in rig.keys()]
     if idxs:
         print("Prune", idxs, [item.name for item in pg.values()])
@@ -679,7 +681,6 @@ class StandardMorphSelector(Selector):
         if not self.setupCharacter(context, True):
             return {'FINISHED'}
         setupMorphPaths(scn, False)
-        print("kKK", theMorphFiles[self.char].keys())
         for key,path in theMorphFiles[self.char][self.morphset].items():
             item = self.selection.add()
             item.name = path
@@ -1415,26 +1416,26 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, B.MorphSets, IsMeshArmat
             pb.scale = (1,1,1)
 
 
-    def removeCustom(self, ob, morphsets):
-        ob.DazCustomMorphs = False
-        for cat in ob.DazMorphCats:
+    def removeCustom(self, rig, morphsets):
+        rig.DazCustomMorphs = False
+        for cat in rig.DazMorphCats:
             for morph in cat.morphs:
                 key = morph.prop
-                if key in ob.keys():
-                    ob[key] = 0.0
-                    del ob[key]
-        ob.DazMorphCats.clear()
+                if key in rig.keys():
+                    rig[key] = 0.0
+                    del rig[key]
+        rig.DazMorphCats.clear()
 
 
-    def removeMorphSets(self, ob, morphsets):
-        for item in getMorphList(ob, morphsets):
+    def removeMorphSets(self, rig, morphsets):
+        for item in getMorphList(rig, morphsets):
             key = item.name
-            if key in ob.keys():
-                ob[key] = 0.0
-                del ob[key]
+            if key in rig.keys():
+                rig[key] = 0.0
+                del rig[key]
 
         for morphset in morphsets:
-            pg = getattr(ob, "Daz"+morphset)
+            pg = getattr(rig, "Daz"+morphset)
             pg.clear()
 
 
@@ -1518,7 +1519,7 @@ class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
 
     def getKeys(self, rig, ob):
         if ob.data.shape_keys:
-            morphs = getMorphList(ob, theJCMMorphSets)
+            morphs = getMorphList(rig, theJCMMorphSets)
             skeys = ob.data.shape_keys.key_blocks
             return [(item.name, item.text, "All") for item in morphs if item.name in skeys.keys()]
         else:
