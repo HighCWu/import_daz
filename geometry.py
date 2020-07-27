@@ -118,7 +118,8 @@ class GeoNode(Node):
             self.arrangeObject(self.hdobject, inst, context, cscale, center)
 
         if (self.type == "subdivision_surface" and
-              (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
+            self.data and
+            (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
             mod = ob.modifiers.new(name='SUBSURF', type='SUBSURF')
             mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
             mod.levels = self.data.SubDIALevel
@@ -130,7 +131,7 @@ class GeoNode(Node):
             pg = self.hdobject.data.DazHDMaterials.add()
             pg.name = prefix + getMatKey(mat.name)
             pg.text = mat.name
-        if self.data.vertex_pairs:
+        if self.data and self.data.vertex_pairs:
             # Geograft
             inst = list(self.figure.instances.values())[0]
             par = inst.parent.geometries[0]
@@ -178,7 +179,7 @@ class GeoNode(Node):
 
     def setHideInfo(self, parent):
         par = parent.rna
-        if par is None:
+        if par is None or self.data is None:
             return
         me = self.rna.data
         me.DazVertexCount = self.data.vertex_count
