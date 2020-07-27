@@ -201,14 +201,12 @@ class ChannelAsset(Modifier):
             self.value = struct["channel"]["current_value"]
 
 
-    def setupProps(self, props, morphset, rig):
+    def setupProp(self, morphset, rig, usePropDrivers):
         from .asset import normalizePath
         self.morphset = morphset
         self.rig = rig
         self.prop = normalizePath(self.id.rsplit("#",2)[-1])
-        props.append(self.prop)
-        for prop in props:
-            addToMorphSet(rig, morphset, prop)
+        addToMorphSet(rig, morphset, self.prop, usePropDrivers)
 
 
     def initProp(self, prop):
@@ -227,7 +225,7 @@ class ChannelAsset(Modifier):
 
 
     def clearProp(self, morphset, rig):
-        self.setupProps([], morphset, rig)
+        self.setupProp(morphset, rig, False)
         prop,_value = self.initProp(None)
         return prop
 
@@ -241,18 +239,21 @@ def stripPrefix(prop):
     return prop
 
 
-def addToMorphSet(rig, morphset, prop):
+def addToMorphSet(rig, morphset, prop, usePropDrivers, asset=None):
     from .driver import setFloatProp
     from .morphing import theJCMMorphSets
     if (rig is None or
         prop in rig.data.bones.keys()):
         return
-    if rig.type != 'ARMATURE':
+    if (usePropDrivers and rig.type != 'ARMATURE'):
         print("BUG. Not armature", rig)
         halt
-    if (prop not in rig.keys() and
-        morphset not in theJCMMorphSets):
-        setFloatProp(rig, prop, 0.0)
+    if (usePropDrivers and prop not in rig.keys()):
+        print("INIT", rig, prop)
+        if asset:
+            asset.initProp(rig, prop)
+        else:
+            setFloatProp(rig, prop, 0.0)
     pg = getattr(rig, "Daz"+morphset)
     if prop in pg.keys():
         item = pg[prop]
@@ -666,13 +667,13 @@ class Morph(FormulaAsset):
             me.vertices[vn].co += scale * d2bu(delta[1:])
 
 
-    def buildMorph(self, ob, cscale, useSoftLimits=False, morphset=None):
+    def buildMorph(self, ob, cscale, useSoftLimits=False, morphset=None, usePropDrivers=False):
         if not ob.data.shape_keys:
             basic = ob.shape_key_add(name="Basic")
         else:
             basic = ob.data.shape_keys.key_blocks[0]
         sname = getName(self.id)
-        addToMorphSet(ob.parent, morphset, sname)
+        addToMorphSet(ob.parent, morphset, sname, usePropDrivers)
         if sname in ob.data.shape_keys.key_blocks.keys():
             skey = ob.data.shape_keys.key_blocks[sname]
             ob.shape_key_remove(skey)

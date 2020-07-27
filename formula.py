@@ -320,7 +320,7 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
 #   For corrective shapekeys
 #-------------------------------------------------------------
 
-def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True, morphset=None):
+def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True, morphset=None, usePropDrivers=False):
     if ob is None or ob.type != 'MESH' or ob.data.shape_keys is None:
         return False
 
@@ -333,7 +333,7 @@ def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True, morphse
     for sname,expr in exprs.items():
         if sname in rig.data.bones.keys():
             continue
-        addToMorphSet(rig, morphset, sname)
+        addToMorphSet(rig, morphset, sname, usePropDrivers)
         if sname not in ob.data.shape_keys.key_blocks.keys():
             #print("No such shapekey:", sname)
             return False
@@ -633,10 +633,7 @@ class PropFormulas(PoseboneDriver):
             if theSettings.verbosity > 4:
                 print(asset.formulas)
 
-        asset.setupProps(list(props.keys()) + list(exprs.keys()), self.morphset, self.rig)
-        for prop in props.keys():
-            if prop not in self.rig.keys():
-                asset.initProp(prop)
+        asset.setupProp(self.morphset, self.rig, self.usePropDrivers)
 
         opencoded = {}
         self.opencode(exprs, asset, opencoded, 0)
