@@ -46,17 +46,26 @@ theCustomMorphSets = ["Custom"]
 theJCMMorphSets = ["Jcms", "Flexions", "CustomJcms"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
 
-def getMorphs0(rig, morphset, sets=None):
+def getMorphs0(rig, morphset, sets, category):
     if morphset == "All":
-        return getMorphs0(rig, sets)
+        return getMorphs0(rig, sets, None, category)
     elif isinstance(morphset, list):
         pgs = []
         for mset in morphset:
-            pgs += getMorphs0(rig, mset, sets)
+            pgs += getMorphs0(rig, mset, sets, category)
         return pgs
     elif sets is None or morphset in sets:
         if morphset == "Custom":
-            pgs = [cat.morphs for cat in rig.DazMorphCats]
+            if category:
+                if isinstance(category, list):
+                    cats = category
+                elif isinstance(category, str):
+                    cats = [category]
+                else:
+                    raise DazError("Category must be a string or list but got '%s'" % category)
+                pgs = [cat.morphs for cat in rig.DazMorphCats if cat.name in cats]
+            else:
+                pgs = [cat.morphs for cat in rig.DazMorphCats]
             return pgs
         else:
             pg = getattr(rig, "Daz"+morphset)
@@ -78,7 +87,7 @@ def prunePropGroup(rig, pg, morphset):
 
 
 def getMorphList(rig, morphset, sets=None):
-    pgs = getMorphs0(rig, morphset, sets)
+    pgs = getMorphs0(rig, morphset, sets, None)
     mlist = []
     for pg in pgs:
         mlist += list(pg.values())
@@ -86,10 +95,10 @@ def getMorphList(rig, morphset, sets=None):
     return mlist
 
 
-def getMorphs(rig, morphset):
+def getMorphs(rig, morphset, category=None):
     if morphset not in ["All"] + theMorphSets:
         raise DazError("Morphset must be 'All' or one of %s, not '%s'" % (theMorphSets, morphset))
-    pgs = getMorphs0(rig, morphset)
+    pgs = getMorphs0(rig, morphset, None, category)
     mdict = {}
     for pg in pgs:
         for item in pg.values():
@@ -268,7 +277,7 @@ class CustomSelector(Selector, B.CustomEnums):
         keys = []
         for cat in rig.DazMorphCats:
             for item in cat.morphs:
-                keys.append((item.name,item.prop,cat.name))
+                keys.append((item.name,item.text,cat.name))
         return keys
 
 #------------------------------------------------------------------
@@ -923,17 +932,17 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature, B.DeleteShapeke
             for pg in cat.morphs:
                 if pg.name in rig.keys():
                     rig[pg.name] = 0.0
-                path = ('["%s"]' % pg.prop)
+                path = ('["%s"]' % pg.name)
                 keep = removePropDrivers(rig, path, rig)
                 for ob in rig.children:
                     if ob.type == 'MESH':
                         if removePropDrivers(ob.data.shape_keys, path, rig):
                             keep = True
                         if self.deleteShapekeys and ob.data.shape_keys:
-                            if pg.prop in ob.data.shape_keys.key_blocks.keys():
-                                skey = ob.data.shape_keys.key_blocks[pg.prop]
+                            if pg.name in ob.data.shape_keys.key_blocks.keys():
+                                skey = ob.data.shape_keys.key_blocks[pg.name]
                                 ob.shape_key_remove(skey)
-                if pg.prop in rig.keys():
+                if pg.name in rig.keys():
                     removeFromPropGroups(rig, pg.name, keep)
             rig.DazMorphCats.remove(idx)
 
