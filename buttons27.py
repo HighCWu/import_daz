@@ -843,12 +843,15 @@ class DazKeys(bpy.types.PropertyGroup):
 class DazActiveGroup(bpy.types.PropertyGroup):
     active = BoolProperty(default = True)
 
-class DazCustomGroup(bpy.types.PropertyGroup):
-    prop = StringProperty()
+class DazTextGroup(bpy.types.PropertyGroup):
+    text = StringProperty()
+
+    def __lt__(self, other):
+        return (self.text < other.text)
 
 class DazCategory(bpy.types.PropertyGroup):
     custom = StringProperty()
-    morphs = CollectionProperty(type = DazCustomGroup)
+    morphs = CollectionProperty(type = DazTextGroup)
     active = BoolProperty(default=False)
 
 class DazFormula(bpy.types.PropertyGroup):

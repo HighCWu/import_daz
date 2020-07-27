@@ -55,12 +55,15 @@ def getMorphs0(rig, morphset, sets=None):
             pgs += getMorphs0(rig, mset, sets)
         return pgs
     elif sets is None or morphset in sets:
-        pg = getattr(rig, "Daz"+morphset)
-        prunePropGroup(rig, pg, morphset)
-        return [pg]
+        if morphset == "Custom":
+            pgs = [cat.morphs for cat in rig.DazMorphCats]
+            return pgs
+        else:
+            pg = getattr(rig, "Daz"+morphset)
+            prunePropGroup(rig, pg, morphset)
+            return [pg]
     else:
-        print("getMorphList", morphset, sets)
-        halt
+        raise DazError("BUG getMorphs: %s %s" % (morphset, sets))
 
 
 def prunePropGroup(rig, pg, morphset):
@@ -83,8 +86,10 @@ def getMorphList(rig, morphset, sets=None):
     return mlist
 
 
-def getMorphs(rig, morphset, sets=None):
-    pgs = getMorphs0(rig, morphset, sets)
+def getMorphs(rig, morphset):
+    if morphset not in ["All"] + theMorphSets:
+        raise DazError("Morphset must be 'All' or one of %s, not '%s'" % (theMorphSets, morphset))
+    pgs = getMorphs0(rig, morphset)
     mdict = {}
     for pg in pgs:
         for item in pg.values():
@@ -838,14 +843,14 @@ def addToCategories(rig, snames, catname):
             cat = cats[catname]
         setBoolProp(cat, "active", True)
 
-        morphs = dict([(morph.prop,morph) for morph in cat.morphs])
+        morphs = dict([(morph.text,morph) for morph in cat.morphs])
         for sname in snames:
             if sname not in morphs.keys():
                 morph = cat.morphs.add()
             else:
                 morph = morphs[sname]
-            morph.prop = sname
-            morph.name = stripPrefix(sname)
+            morph.name = sname
+            morph.text = stripPrefix(sname)
 
 #------------------------------------------------------------------------
 #   Rename category
@@ -916,8 +921,8 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature, B.DeleteShapeke
         for idx,key in items:
             cat = rig.DazMorphCats[key]
             for pg in cat.morphs:
-                if pg.prop in rig.keys():
-                    rig[pg.prop] = 0.0
+                if pg.name in rig.keys():
+                    rig[pg.name] = 0.0
                 path = ('["%s"]' % pg.prop)
                 keep = removePropDrivers(rig, path, rig)
                 for ob in rig.children:
@@ -929,7 +934,7 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature, B.DeleteShapeke
                                 skey = ob.data.shape_keys.key_blocks[pg.prop]
                                 ob.shape_key_remove(skey)
                 if pg.prop in rig.keys():
-                    removeFromPropGroups(rig, pg.prop, keep)
+                    removeFromPropGroups(rig, pg.name, keep)
             rig.DazMorphCats.remove(idx)
 
         if len(rig.DazMorphCats) == 0:
@@ -1006,7 +1011,7 @@ class Activator(B.MorphsetString):
         keys = getRelevantMorphs(rig, self.morphset)
         if self.morphset == "Custom":
             for key in keys:
-                setActivated(rig, key.prop, self.activate)
+                setActivated(rig, key.name, self.activate)
         else:
             for key in keys:
                 setActivated(rig, key, self.activate)
@@ -1132,9 +1137,9 @@ def clearMorphs(rig, morphset, scn, frame, force):
 
     if morphset == "Custom":
         for key in keys:
-            if getActivated(rig, key.prop, force):
-                rig[key.prop] = 0.0
-                autoKeyProp(rig, key.prop, scn, frame, force)
+            if getActivated(rig, key.name, force):
+                rig[key.name] = 0.0
+                autoKeyProp(rig, key.name, scn, frame, force)
     else:
         for key in keys:
             if getActivated(rig, key, force):
@@ -1208,7 +1213,7 @@ def addKeySet(rig, morphset, scn, frame):
     if morphset == "Custom":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
-                path = "[" + '"' + morph.prop + '"' + "]"
+                path = "[" + '"' + morph.name + '"' + "]"
                 aks.paths.add(rig.id_data, path)
     else:
         pg = getattr(rig, "Daz"+morphset)
@@ -1242,8 +1247,8 @@ def keyMorphs(rig, morphset, scn, frame):
     if morphset == "DazCustom":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
-                if getActivated(rig, morph.prop):
-                    keyProp(rig, morph.prop, frame)
+                if getActivated(rig, morph.name):
+                    keyProp(rig, morph.name, frame)
     else:
         pg = getattr(rig, "Daz"+morphset)
         for key in pg.keys():
@@ -1275,8 +1280,8 @@ def unkeyMorphs(rig, morphset, scn, frame):
     if morphset == "Custom":
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
-                if getActivated(rig, morph.prop):
-                    unkeyProp(rig, morph.prop, frame)
+                if getActivated(rig, morph.name):
+                    unkeyProp(rig, morph.name, frame)
     else:
         pg = getattr(rig, "Daz"+morphset)
         for key in pg.keys():
@@ -1305,7 +1310,7 @@ class DAZ_OT_UnkeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
 def getCustomProps(ob):
     props = []
     for cat in ob.DazMorphCats:
-        props += [morph.prop for morph in cat.morphs]
+        props += [morph.name for morph in cat.morphs]
     return props
 
 
@@ -1418,7 +1423,7 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, B.MorphSets, IsMeshArmat
         rig.DazCustomMorphs = False
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
-                key = morph.prop
+                key = morph.name
                 if key in rig.keys():
                     rig[key] = 0.0
                     del rig[key]
@@ -1636,7 +1641,7 @@ class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, CustomSelector,
             return ""
         for cat in rig.DazMorphCats:
             for morph in cat.morphs:
-                if sname == morph.prop:
+                if sname == morph.name:
                     return cat.name
         return ""
 
@@ -1914,7 +1919,6 @@ classes = [
     B.DazFormula,
     B.DazSelectGroup,
     B.DazCategory,
-    B.DazTextGroup,
 
     DAZ_OT_SelectAll,
     DAZ_OT_SelectNone,

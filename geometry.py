@@ -129,7 +129,7 @@ class GeoNode(Node):
         for mat in mats:
             pg = self.hdobject.data.DazHDMaterials.add()
             pg.name = prefix + getMatKey(mat.name)
-            pg.prop = mat.name
+            pg.text = mat.name
         if self.data.vertex_pairs:
             # Geograft
             inst = list(self.figure.instances.values())[0]
@@ -154,7 +154,7 @@ class GeoNode(Node):
             from .material import getMatKey
             me = self.hdobject.data
             matgroups = [(mname,mn) for mn,mname in enumerate(self.highdef.matgroups)]
-            matnames = [(pg.name,pg.prop) for pg in me.DazHDMaterials]
+            matnames = [(pg.name,pg.text) for pg in me.DazHDMaterials]
             matgroups.sort()
             matnames.sort()
             diff = len(matnames) - len(matgroups)
@@ -886,7 +886,7 @@ classes = [
     B.DazPairGroup,
     B.DazRigidityGroup,
     B.DazStringStringGroup,
-    B.DazCustomGroup,
+    B.DazTextGroup,
 ]
 
 def initialize():
@@ -899,7 +899,7 @@ def initialize():
     bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)
     bpy.types.Mesh.DazVertexCount = IntProperty(default=0)
     bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = B.DazStringStringGroup)
-    bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = B.DazCustomGroup)
+    bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = B.DazTextGroup)
 
 
 def uninitialize():

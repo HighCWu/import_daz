@@ -209,7 +209,7 @@ class ChannelAsset(Modifier):
         addToMorphSet(rig, None, morphset, self.prop, usePropDrivers, self)
 
 
-    def initProp(self, prop):
+    def initProp(self, ob, prop):
         from .driver import setFloatProp
         if prop is None:
             prop = self.prop
@@ -220,13 +220,13 @@ class ChannelAsset(Modifier):
         else:
             value = 0.0
             min = max = None
-        setFloatProp(self.rig, prop, value, min=min, max=max)
+        setFloatProp(ob, prop, value, min=min, max=max)
         return prop,value
 
 
     def clearProp(self, morphset, rig):
         self.setupProp(morphset, rig, False)
-        prop,_value = self.initProp(None)
+        prop,_value = self.initProp(rig, None)
         return prop
 
 

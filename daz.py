@@ -883,13 +883,9 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
                 continue
             box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
             for morph in cat.morphs:
-                if (morph.prop in rig.keys() and
-                    filter in morph.name.lower()):
-                    if morph.name[0:3] == "DzM":
-                        text = morph.name[3:]
-                    else:
-                        text = morph.name
-                    self.displayProp(text, morph.prop, rig, box, scn)
+                if (morph.name in rig.keys() and
+                    filter in morph.text.lower()):
+                    self.displayProp(morph.text, morph.name, rig, box, scn)
 
 #------------------------------------------------------------------------
 #    Mhx Layers Panel

@@ -328,7 +328,6 @@ class ShapeFormulas:
         exprs = {}
         props = {}
         if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=self.useStages, verbose=verbose):
-            halt
             return False
 
         from .modifier import addToMorphSet
@@ -337,7 +336,7 @@ class ShapeFormulas:
                 continue
             addToMorphSet(rig, ob, self.morphset, sname, self.usePropDrivers, asset)
             if sname not in ob.data.shape_keys.key_blocks.keys():
-                print("No such shapekey:", sname)
+                #print("No such shapekey:", sname)
                 return False
             skey = ob.data.shape_keys.key_blocks[sname]
             if "value" in expr.keys():
@@ -885,7 +884,7 @@ class PropFormulas(PoseboneDriver):
         from .transform import Transform
 
         success = False
-        prop,self.default = asset.initProp(None)
+        prop,self.default = asset.initProp(self.rig, None)
         for bname,expr in exprs.items():
             if self.rig.data.DazExtraFaceBones or self.rig.data.DazExtraDrivenBones:
                 dname = bname + "Drv"
