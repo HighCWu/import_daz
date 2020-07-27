@@ -1193,6 +1193,11 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
         for ob in context.scene.objects:
             for key in ob.keys():
                 self.updateKey(ob, key)
+            for cat in ob.DazMorphCats:
+                for item in cat.morphs:
+                    item.text = item.name
+                    if item.text[0:2] == "Dz":
+                        item.text = item.text[3:]
             if ob.type == 'MESH' and ob.data.shape_keys:
                 for key in ob.data.shape_keys.key_blocks.keys():
                     self.updateKey(ob, key)
