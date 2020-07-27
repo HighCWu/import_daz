@@ -414,9 +414,9 @@ due to Blender limitations.
 See console for details.
 ''')
 
-from .formula import PropFormulas
+from .formula import PropFormulas, ShapeFormulas
 
-class LoadMorph(PropFormulas):
+class LoadMorph(PropFormulas, ShapeFormulas):
 
     useSoftLimits = True
     useShapekeysOnly = False
@@ -489,18 +489,16 @@ class LoadMorph(PropFormulas):
                 self.taken[prop] = self.built[prop] = True
                 props = [prop]
             elif self.rig and self.useBoneDrivers:
-                from .formula import buildShapeFormula
-                success = buildShapeFormula(asset, scn, self.rig, self.mesh, useStages=self.useStages, morphset=self.morphset)
+                success = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
                 if self.useShapekeysOnly and not success and skey:
                     print("Could not build shape formula", skey.name)
                 if not success:
                     miss = True
 
         if self.usePropDrivers and self.rig:
-            from .formula import buildShapeFormula
             if isinstance(asset, FormulaAsset) and asset.formulas:
                 if self.useShapekeys:
-                    success = buildShapeFormula(asset, scn, self.rig, self.mesh, morphset=self.morphset)
+                    success = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
                     if self.useShapekeysOnly and not success and skey:
                         print("Could not build shape formula", skey.name)
                     if not success:
@@ -726,7 +724,7 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs,
     morphset = "Body"
 
 
-class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
     bl_idname = "daz.import_standard_jcms"
     bl_label = "Import Standard JCMs"
     bl_description = "Import selected standard joint corrective morphs"
@@ -741,7 +739,7 @@ class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorph
     useStages = True
 
 
-class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
     bl_idname = "daz.import_flexions"
     bl_label = "Import Flexions"
     bl_description = "Import selected flexion morphs"
@@ -805,7 +803,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
             raise DazError(theLimitationsMessage)
 
 
-class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMeshArmature):
+class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMesh):
     bl_idname = "daz.import_custom_jcms"
     bl_label = "Import Custom JCMs"
     bl_description = "Import selected joint corrective morphs from native DAZ files (*.duf, *.dsf)"
@@ -1519,7 +1517,7 @@ class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
 
     def getKeys(self, rig, ob):
         if ob.data.shape_keys:
-            morphs = getMorphList(rig, theJCMMorphSets)
+            morphs = getMorphList(ob, theJCMMorphSets)
             skeys = ob.data.shape_keys.key_blocks
             return [(item.name, item.text, "All") for item in morphs if item.name in skeys.keys()]
         else:

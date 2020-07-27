@@ -321,7 +321,7 @@ class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
 
     def getKeys(self, rig, ob):
         from .morphing import getMorphList, theJCMMorphSets
-        jcms = [item.name for item in getMorphList(rig, theJCMMorphSets)]
+        jcms = [item.name for item in getMorphList(ob, theJCMMorphSets)]
         keys = []
         for skey in ob.data.shape_keys.key_blocks[1:]:
             if skey.name not in jcms:
@@ -342,7 +342,7 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
 
     def getKeys(self, rig, ob):
         from .morphing import getMorphList, theJCMMorphSets
-        jcms = [item.name for item in getMorphList(rig, theJCMMorphSets)]
+        jcms = [item.name for item in getMorphList(ob, theJCMMorphSets)]
         keys = []
         for skey in ob.data.shape_keys.key_blocks[1:]:
             if skey.name in jcms:

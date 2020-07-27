@@ -206,7 +206,7 @@ class ChannelAsset(Modifier):
         self.morphset = morphset
         self.rig = rig
         self.prop = normalizePath(self.id.rsplit("#",2)[-1])
-        addToMorphSet(rig, morphset, self.prop, usePropDrivers)
+        addToMorphSet(rig, None, morphset, self.prop, usePropDrivers, self)
 
 
     def initProp(self, prop):
@@ -239,22 +239,27 @@ def stripPrefix(prop):
     return prop
 
 
-def addToMorphSet(rig, morphset, prop, usePropDrivers, asset=None):
+def addToMorphSet(rig, ob, morphset, prop, usePropDrivers, asset):
     from .driver import setFloatProp
     from .morphing import theJCMMorphSets
-    if (rig is None or
-        prop in rig.data.bones.keys()):
-        return
-    if (usePropDrivers and rig.type != 'ARMATURE'):
-        print("BUG. Not armature", rig)
-        halt
-    if (usePropDrivers and prop not in rig.keys()):
-        print("INIT", rig, prop)
-        if asset:
-            asset.initProp(rig, prop)
-        else:
-            setFloatProp(rig, prop, 0.0)
-    pg = getattr(rig, "Daz"+morphset)
+    if usePropDrivers:
+        if (rig is None or
+            prop in rig.data.bones.keys()):
+            return
+        if rig.type != 'ARMATURE':
+            print("BUG. Not armature", rig)
+            halt
+        if prop not in rig.keys():
+            if asset:
+                asset.initProp(rig, prop)
+            else:
+                setFloatProp(rig, prop, 0.0)
+        pg = getattr(rig, "Daz"+morphset)
+    else:
+        if ob is None:
+            return
+        pg = getattr(ob, "Daz"+morphset)
+
     if prop in pg.keys():
         item = pg[prop]
     else:
@@ -673,7 +678,7 @@ class Morph(FormulaAsset):
         else:
             basic = ob.data.shape_keys.key_blocks[0]
         sname = getName(self.id)
-        addToMorphSet(ob.parent, morphset, sname, usePropDrivers)
+        addToMorphSet(ob.parent, ob, morphset, sname, usePropDrivers, self)
         if sname in ob.data.shape_keys.key_blocks.keys():
             skey = ob.data.shape_keys.key_blocks[sname]
             ob.shape_key_remove(skey)

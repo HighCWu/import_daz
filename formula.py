@@ -320,46 +320,48 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
 #   For corrective shapekeys
 #-------------------------------------------------------------
 
-def buildShapeFormula(asset, scn, rig, ob, useStages=True, verbose=True, morphset=None, usePropDrivers=False):
-    if ob is None or ob.type != 'MESH' or ob.data.shape_keys is None:
-        return False
-
-    exprs = {}
-    props = {}
-    if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=useStages, verbose=verbose):
-        return False
-
-    from .modifier import addToMorphSet
-    for sname,expr in exprs.items():
-        if sname in rig.data.bones.keys():
-            continue
-        addToMorphSet(rig, morphset, sname, usePropDrivers)
-        if sname not in ob.data.shape_keys.key_blocks.keys():
-            #print("No such shapekey:", sname)
+class ShapeFormulas:
+    def buildShapeFormula(self, asset, scn, rig, ob, verbose=True):
+        if ob is None or ob.type != 'MESH' or ob.data.shape_keys is None:
             return False
-        skey = ob.data.shape_keys.key_blocks[sname]
-        if "value" in expr.keys():
-            buildSingleShapeFormula(expr["value"], rig, ob, skey)
-            for other in expr["value"]["others"]:
-                buildSingleShapeFormula(other, rig, ob, skey)
-    return True
 
-
-def buildSingleShapeFormula(expr, rig, ob, skey):
-    from .bone import BoneAlternatives
-
-    bname = expr["bone"]
-    if bname is None:
-        # print("BSSF", expr, skey.name)
-        return False
-    if bname not in rig.pose.bones.keys():
-        if bname in BoneAlternatives.keys():
-            bname = BoneAlternatives[bname]
-        else:
-            print("Missing bone (buildSingleShapeFormula):", bname)
+        exprs = {}
+        props = {}
+        if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=self.useStages, verbose=verbose):
+            halt
             return False
-    makeSomeBoneDriver(expr, skey, "value", rig, ob, bname, -1)
-    return True
+
+        from .modifier import addToMorphSet
+        for sname,expr in exprs.items():
+            if sname in rig.data.bones.keys():
+                continue
+            addToMorphSet(rig, ob, self.morphset, sname, self.usePropDrivers, asset)
+            if sname not in ob.data.shape_keys.key_blocks.keys():
+                print("No such shapekey:", sname)
+                return False
+            skey = ob.data.shape_keys.key_blocks[sname]
+            if "value" in expr.keys():
+                self.buildSingleShapeFormula(expr["value"], rig, ob, skey)
+                for other in expr["value"]["others"]:
+                    self.buildSingleShapeFormula(other, rig, ob, skey)
+        return True
+
+
+    def buildSingleShapeFormula(self, expr, rig, ob, skey):
+        from .bone import BoneAlternatives
+
+        bname = expr["bone"]
+        if bname is None:
+            # print("BSSF", expr, skey.name)
+            return False
+        if bname not in rig.pose.bones.keys():
+            if bname in BoneAlternatives.keys():
+                bname = BoneAlternatives[bname]
+            else:
+                print("Missing bone (buildSingleShapeFormula):", bname)
+                return False
+        makeSomeBoneDriver(expr, skey, "value", rig, ob, bname, -1)
+        return True
 
 
 def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
