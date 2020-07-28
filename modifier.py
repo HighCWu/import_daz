@@ -242,6 +242,8 @@ def stripPrefix(prop):
 def addToMorphSet(rig, ob, morphset, prop, usePropDrivers, asset):
     from .driver import setFloatProp
     from .morphing import theJCMMorphSets
+    if morphset is None:
+        return
     if usePropDrivers:
         if (rig is None or
             prop in rig.data.bones.keys()):

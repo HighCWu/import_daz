@@ -439,10 +439,13 @@ class LoadMorph(PropFormulas, ShapeFormulas):
     usePropDrivers = True
     useBoneDrivers = False
     useStages = True
+    morphset = None
 
-    def __init__(self):
+    def __init__(self, mesh=None):
         from .finger import getFingeredCharacter
         self.rig, self.mesh, self.char = getFingeredCharacter(bpy.context.object)
+        if mesh:
+            self.mesh = mesh
         PropFormulas.__init__(self, self.rig)
 
 
