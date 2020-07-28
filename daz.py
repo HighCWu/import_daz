@@ -429,6 +429,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.prop(scn, "DazShowMesh", icon="RIGHTARROW", emboss=False)
         else:
             box.prop(scn, "DazShowMesh", icon="DOWNARROW_HLT", emboss=False)
+            box.operator("daz.limit_vertex_groups")
             box.operator("daz.apply_subsurf")
             box.operator("daz.fit_mesh_to_other")
             box.operator("daz.find_seams")

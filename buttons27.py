@@ -475,6 +475,18 @@ class MorphSets:
         default = False)
 
 #-------------------------------------------------------------
+#   geometry.py
+#-------------------------------------------------------------
+
+class LimitInt:
+    limit = IntProperty(
+        name = "Limit",
+        description = "Max number of vertex group per vertex",
+        default = 4,
+        min = 1, max = 10
+    )
+
+#-------------------------------------------------------------
 #   convert.py
 #-------------------------------------------------------------
 

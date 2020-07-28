@@ -805,7 +805,6 @@ class DAZ_OT_CollapseUDims(DazOperator):
         return (ob and ob.type == 'MESH' and not ob.DazUDimsCollapsed)
 
     def run(self, context):
-        bpy.ops.object.mode_set(mode='OBJECT')
         for ob in getSceneObjects(context):
             if ob.type == 'MESH' and getSelected(ob):
                 collapseUDims(ob)
@@ -823,7 +822,6 @@ class DAZ_OT_RestoreUDims(DazOperator):
         return (ob and ob.type == 'MESH' and ob.DazUDimsCollapsed)
 
     def run(self, context):
-        bpy.ops.object.mode_set(mode='OBJECT')
         for ob in getSceneObjects(context):
             if ob.type == 'MESH' and getSelected(ob):
                 restoreUDims(ob)
@@ -851,7 +849,6 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
         from .load_json import loadJson
         from .files import parseAssetFile
 
-        bpy.ops.object.mode_set(mode='OBJECT')
         ob = context.object
         me = ob.data
         scn = context.scene
@@ -875,6 +872,44 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
                     m += 1
 
 #----------------------------------------------------------
+#   Prune vertex groups
+#----------------------------------------------------------
+
+class DAZ_OT_LimitVertexGroups(DazPropsOperator, IsMesh, B.LimitInt):
+    bl_idname = "daz.limit_vertex_groups"
+    bl_label = "Limit Vertex Groups"
+    bl_description = "Limit the number of vertex groups per vertex"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "limit")
+
+    def run(self, context):
+        for ob in getSceneObjects(context):
+            if ob.type == 'MESH' and getSelected(ob):
+                self.limitVertexGroups(ob)
+
+    def limitVertexGroups(self, ob):
+        deletes = dict([(vgrp.index, []) for vgrp in ob.vertex_groups])
+        weights = dict([(vgrp.index, []) for vgrp in ob.vertex_groups])
+        for v in ob.data.vertices:
+            data = [(g.weight, g.group) for g in v.groups]
+            if len(data) > self.limit:
+                data.sort()
+                vnmin = len(data) - self.limit
+                for w,gn in data[0:vnmin]:
+                    deletes[gn].append(v.index)
+                wsum = sum([w for w,gn in data[vnmin:]])
+                for w,gn in data[vnmin:]:
+                    weights[gn].append((v.index, w/wsum))
+        for vgrp in ob.vertex_groups:
+            vnums = deletes[vgrp.index]
+            if vnums:
+                vgrp.remove(vnums)
+            for vn,w in weights[vgrp.index]:
+                vgrp.add([vn], w, 'REPLACE')
+
+#----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
@@ -883,6 +918,7 @@ classes = [
     DAZ_OT_CollapseUDims,
     DAZ_OT_RestoreUDims,
     DAZ_OT_LoadUV,
+    DAZ_OT_LimitVertexGroups,
     B.DazIntGroup,
     B.DazPairGroup,
     B.DazRigidityGroup,
