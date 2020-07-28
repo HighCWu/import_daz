@@ -228,7 +228,7 @@ class DazOptions:
     useDazBones : BoolProperty(
         name = "Daz Bones",
         description = "Match bones exactly with Daz Studio",
-        default = False)
+        default = True)
 
     useDazOrientation : BoolProperty(
         name = "Daz Orientation",

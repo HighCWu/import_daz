@@ -416,15 +416,6 @@ class BoneInstance(Instance):
         pass
 
 
-    RollTable = {
-        "XYZ" : (Vector((1,0,0)), pi, pi, 0),
-        "XZY" : (Vector((1,0,0)), -pi/2, pi/2, 0),
-        "YXZ" : (Vector((0,1,0)), -pi/2, pi/2, 1),
-        "YZX" : (Vector((0,1,0)), 0, 0, 1),
-        "ZXY" : (Vector((0,0,1)), -pi/2, -pi/2, 2),
-        "ZYX" : (Vector((0,0,1)), -pi, 0, 2),
-        }
-
     def getHeadTail(self, cscale, center, mayfit=True):
         if mayfit and theSettings.fitFile:
             head = cscale*(self.previewAttrs["center_point"] - center)
@@ -439,15 +430,26 @@ class BoneInstance(Instance):
         if not theSettings.useDazBones:
             return head,tail,0
 
-        vec,roll1,roll2,j = self.RollTable[self.rotDaz]
-        orient = Euler(self.attributes["orientation"]*D)
-        rmat = orient.to_matrix()
-        if vec.dot(tail-head) >= 0:
-            tail = head + length*rmat.col[j]
-            roll = roll1
+        # Twist, Second, Bend = Y Z X"
+        j = (ord(self.rotDaz[0]) - ord("X"))
+        k = (ord(self.rotDaz[1]) - ord("X"))
+        i = (ord(self.rotDaz[2]) - ord("X"))
+        omat = Euler(self.attributes["orientation"]*D).to_matrix()
+        rmat = Matrix().to_3x3()
+        x = rmat.col[0] = omat.col[i]
+        y = rmat.col[1] = omat.col[j]
+        z = rmat.col[2] = omat.col[k]
+        if rmat.determinant() < 0:
+            rmat.col[0] = x
+            rmat.col[2] = -z
+        if tail[j]-head[j] >= 0:
+            tail = head + length*y
+            neg = "P"
         else:
-            tail = head - length*rmat.col[j]
-            roll = roll2
+            tail = head - length*y
+            neg = "N"
+        roll = getRollFromQuat(rmat.to_quaternion())
+        #print("ROT", self.rotDaz, i, j, k, neg)
         return head,tail,roll
 
 
@@ -677,7 +679,7 @@ class Bone(Node):
             eb.head = d2b(head)
             eb.tail = d2b(tail)
             if False and theSettings.useDazOrientation:
-                eb.roll = 0
+                eb.roll = roll
             else:
                 if self.useRoll:
                     eb.roll = self.roll
@@ -685,6 +687,7 @@ class Bone(Node):
                     self.findRoll(inst, eb, figure, isFace)
                 self.roll = eb.roll
                 self.useRoll = True
+                #print("ROL %s %s %4f %4f" % (self.name, self.rotDaz, eb.roll/D, roll/D))
             if theSettings.useConnect and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*theSettings.scale:
@@ -731,7 +734,6 @@ class Bone(Node):
             mat = Mult2(rmat, mat)
         roll = eb.roll
         eb.roll = getRollFromQuat(mat.to_quaternion())
-        #print("RR", self.name, eb.name, roll/D, eb.roll/D)
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
                 child.node.buildOrientation(rig, child)
