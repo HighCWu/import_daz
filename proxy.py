@@ -1069,6 +1069,11 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
         ob = context.object
         Proxifier(ob).selectRandomComponents(context, self.fraction)
 
+    def sequel(self, context):
+        DazPropsOperator.sequel(self, context)
+        if context.object:
+            bpy.ops.object.mode_set(mode='EDIT')
+
 #-------------------------------------------------------------
 #  Apply morphs
 #-------------------------------------------------------------

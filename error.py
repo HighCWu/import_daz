@@ -244,8 +244,6 @@ class DazOperator(bpy.types.Operator):
         self.prequel(context)
         try:
             self.run(context)
-            if context.object:
-                bpy.ops.object.mode_set(mode='OBJECT')
         except DazError:
             handleDazError(context)
         except KeyboardInterrupt:
@@ -264,6 +262,8 @@ class DazOperator(bpy.types.Operator):
     def sequel(self, context):
         wm = bpy.context.window_manager
         wm.progress_end()
+        if context.object:
+            bpy.ops.object.mode_set(mode='OBJECT')
 
 
 class DazPropsOperator(DazOperator):

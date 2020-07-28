@@ -342,7 +342,7 @@ class HideOperator(DazOperator):
 
 
     def sequel(self, context):
-        DazOperator.prequel(self, context)
+        DazOperator.sequel(self, context)
         if bpy.app.version >= (2,80,0):
             for layer in self.layerColls:
                 layer.exclude = False

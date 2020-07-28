@@ -421,8 +421,8 @@ class StandardEnums:
         default = "Units")
 
 class StandardAllEnums:
-    type = EnumProperty(
-        morphset = [("All", "All", "All"),
+    morphset = EnumProperty(
+        items = [("All", "All", "All"),
                  ("Units", "Units", "Units"),
                  ("Expressions", "Expressions", "Expressions"),
                  ("Visemes", "Visemes", "Visemes"),

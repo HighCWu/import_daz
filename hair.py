@@ -697,7 +697,10 @@ def buildHairMaterial(mat, color, scn):
         buildHairMaterialInternal(mat, list(color[0:3]))
     else:
         buildHairMaterialCycles(mat, list(color[0:3]))
-        mat.diffuse_color = color
+        if bpy.app.version < (2,80,0):
+            mat.diffuse_color = color[0:3]
+        else:
+            mat.diffuse_color = color
     return mat
 
 # ---------------------------------------------------------------------
