@@ -731,7 +731,8 @@ class CyclesTree:
         self.linkSSS(color, coltex, wt, wttex, radius, radtex)
         theSettings.usedFeatures["SSS"] = True
         mat = self.material.rna
-        mat.use_sss_translucency = True
+        if hasattr(mat, "use_sss_translucency"):
+            mat.use_sss_translucency = True
 
 
     def linkSSS(self, color, coltex, wt, wttex, radius, ssstex):
