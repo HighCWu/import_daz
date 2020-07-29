@@ -1252,6 +1252,7 @@ class CyclesTree:
             mult.inputs[1].default_value = factor
             add = self.addNode(col+1, "ShaderNodeMath")
             add.operation = 'ADD'
+            add.inputs[1].default_value = term
             self.links.new(mult.outputs[slot], add.inputs[0])
             return add
 
