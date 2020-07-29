@@ -98,7 +98,9 @@ def getMorphList(ob, morphset, sets=None):
 def getMorphs(ob, morphset, category=None):
     if not isinstance(ob, bpy.types.Object):
         raise DazError("getMorphs: First argument must be a Blender object, but got '%s'" % ob)
-    if morphset not in ["All"] + theMorphSets:
+    if morphset == "All":
+        morphset = theMorphSets
+    elif morphset not in theMorphSets:
         raise DazError("getMorphs: Morphset must be 'All' or one of %s, not '%s'" % (theMorphSets, morphset))
     pgs = getMorphs0(ob, morphset, None, category)
     mdict = {}
