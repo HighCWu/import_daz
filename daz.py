@@ -141,8 +141,8 @@ def evalMorphs(pb, idx, key):
 # New style evalMorphs
 def evalMorphs2(pb, idx, key):
     rig = pb.constraints[0].target
-    props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
-    return sum([pg.eval(rig) for pg in props if pg.index == idx])
+    pgs = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
+    return sum([pg.eval(rig) for pg in pgs if pg.index == idx])
 
 
 def hasSelfRef(pb):

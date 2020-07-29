@@ -540,18 +540,21 @@ class PoseboneDriver:
                 fcu.modifiers.remove(fmod)
 
 
-    def clearProp(self, props, prop, idx):
-        for n,pg in enumerate(props):
-            if (pg.prop == prop or pg.name == prop) and pg.index == idx:
-                props.remove(n)
+    def clearProp(self, pgs, prop, idx):
+        for n,pg in enumerate(pgs):
+            if pg.name == prop and pg.index == idx:
+                pgs.remove(n)
                 return
 
 
     def addMorphGroup(self, pb, idx, key, prop, default, factor, factor2=None):
-        props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
-        self.clearProp(props, prop, idx)
-        pg = props.add()
+        pgs = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
+        self.clearProp(pgs, prop, idx)
+        pg = pgs.add()
         pg.init(prop, idx, default, factor, factor2)
+        if prop not in self.rig.keys():
+            from .driver import setFloatProp
+            setFloatProp(self.rig, prop, 0.0)
 
 
     def addError(self, err, prop, pb):
