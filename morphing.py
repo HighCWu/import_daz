@@ -46,13 +46,13 @@ theCustomMorphSets = ["Custom"]
 theJCMMorphSets = ["Jcms", "Flexions", "CustomJcms"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
 
-def getMorphs0(rig, morphset, sets, category):
+def getMorphs0(ob, morphset, sets, category):
     if morphset == "All":
-        return getMorphs0(rig, sets, None, category)
+        return getMorphs0(ob, sets, None, category)
     elif isinstance(morphset, list):
         pgs = []
         for mset in morphset:
-            pgs += getMorphs0(rig, mset, sets, category)
+            pgs += getMorphs0(ob, mset, sets, category)
         return pgs
     elif sets is None or morphset in sets:
         if morphset == "Custom":
@@ -63,22 +63,22 @@ def getMorphs0(rig, morphset, sets, category):
                     cats = [category]
                 else:
                     raise DazError("Category must be a string or list but got '%s'" % category)
-                pgs = [cat.morphs for cat in rig.DazMorphCats if cat.name in cats]
+                pgs = [cat.morphs for cat in ob.DazMorphCats if cat.name in cats]
             else:
-                pgs = [cat.morphs for cat in rig.DazMorphCats]
+                pgs = [cat.morphs for cat in ob.DazMorphCats]
             return pgs
         else:
-            pg = getattr(rig, "Daz"+morphset)
-            prunePropGroup(rig, pg, morphset)
+            pg = getattr(ob, "Daz"+morphset)
+            prunePropGroup(ob, pg, morphset)
             return [pg]
     else:
         raise DazError("BUG getMorphs: %s %s" % (morphset, sets))
 
 
-def prunePropGroup(rig, pg, morphset):
+def prunePropGroup(ob, pg, morphset):
     if morphset in theJCMMorphSets:
         return
-    idxs = [n for n,item in enumerate(pg.values()) if item.name not in rig.keys()]
+    idxs = [n for n,item in enumerate(pg.values()) if item.name not in ob.keys()]
     if idxs:
         print("Prune", idxs, [item.name for item in pg.values()])
         idxs.reverse()
@@ -86,8 +86,8 @@ def prunePropGroup(rig, pg, morphset):
             pg.remove(idx)
 
 
-def getMorphList(rig, morphset, sets=None):
-    pgs = getMorphs0(rig, morphset, sets, None)
+def getMorphList(ob, morphset, sets=None):
+    pgs = getMorphs0(ob, morphset, sets, None)
     mlist = []
     for pg in pgs:
         mlist += list(pg.values())
@@ -95,14 +95,30 @@ def getMorphList(rig, morphset, sets=None):
     return mlist
 
 
-def getMorphs(rig, morphset, category=None):
+def getMorphs(ob, morphset, category=None):
+    if not isinstance(ob, bpy.types.Object):
+        raise DazError("getMorphs: First argument must be a Blender object, but got '%s'" % ob)
     if morphset not in ["All"] + theMorphSets:
-        raise DazError("Morphset must be 'All' or one of %s, not '%s'" % (theMorphSets, morphset))
-    pgs = getMorphs0(rig, morphset, None, category)
+        raise DazError("getMorphs: Morphset must be 'All' or one of %s, not '%s'" % (theMorphSets, morphset))
+    pgs = getMorphs0(ob, morphset, None, category)
     mdict = {}
-    for pg in pgs:
-        for item in pg.values():
-            mdict[item.name] = item
+    if ob.type == 'ARMATURE':
+        #if morphset in theJCMMorphSets:
+        #    raise DazError("JCM morphs are stored in the mesh object")
+        for pg in pgs:
+            for key in pg.keys():
+                if key in ob.keys():
+                    mdict[key] = ob[key]
+    elif ob.type == 'MESH':
+        #if morphset not in theJCMMorphSets:
+        #    raise DazError("Only JCM morphs are stored in the mesh object")
+        skeys = ob.data.shape_keys
+        if skeys is None:
+            return mdict
+        for pg in pgs:
+            for key in pg.keys():
+                if key in skeys.key_blocks.keys():
+                    mdict[key] = skeys.key_blocks[key].value
     return mdict
 
 #-------------------------------------------------------------
