@@ -19,7 +19,7 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 2/Female/Morphs/DAZ 3D/Base/"
 	},
-	"jcms" : {
+	"standardjcms" : {
 		"prefix" : "",
 		"include" : ["none"],
 		"exclude" : [],

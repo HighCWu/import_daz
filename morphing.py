@@ -43,7 +43,7 @@ from .fileutils import MultiFile
 
 theStandardMorphSets = ["Units", "Expressions", "Visemes", "Body"]
 theCustomMorphSets = ["Custom"]
-theJCMMorphSets = ["Jcms", "Flexions", "CustomJcms"]
+theJCMMorphSets = ["Standardjcms", "Flexions", "Customjcms"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
 
 def getMorphs0(ob, morphset, sets, category):
@@ -98,6 +98,7 @@ def getMorphList(ob, morphset, sets=None):
 def getMorphs(ob, morphset, category=None):
     if not isinstance(ob, bpy.types.Object):
         raise DazError("getMorphs: First argument must be a Blender object, but got '%s'" % ob)
+    morphset = morphset.capitalize()
     if morphset == "All":
         morphset = theMorphSets
     elif morphset not in theMorphSets:
@@ -765,7 +766,7 @@ class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorph
     bl_description = "Import selected standard joint corrective morphs"
     bl_options = {'UNDO'}
 
-    morphset = "Jcms"
+    morphset = "Standardjcms"
 
     useShapekeysOnly = True
     useSoftLimits = False
@@ -844,7 +845,7 @@ class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMesh):
     bl_description = "Import selected joint corrective morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
 
-    morphset = "CustomJcms"
+    morphset = "Customjcms"
 
     useShapekeysOnly = True
     useSoftLimits = False
@@ -1203,10 +1204,10 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
                  "DzE" : "Expressions",
                  "DzV" : "Visemes",
                  "DzP" : "Body",
-                 "DzC" : "Jcms",
+                 "DzC" : "Standardjcms",
                  "DzF" : "Flexions",
                  "DzM" : "Custom",
-                 "DzN" : "CustomJcms",
+                 "DzN" : "Customjcms",
                  "Mhh" : "Visibility"
                 }
 
