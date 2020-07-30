@@ -150,15 +150,33 @@ with safeOpen("/home/hkeys.txt", "w") as fp:
 #-------------------------------------------------------------
 
 def clearSelection():
+    """getSelection()
+
+    Clear the active file selection to be loaded by consecutive operators.
+    """
     global theFilePaths
     theFilePaths = []
     print("File paths cleared")
 
 def getSelection():
+    """getSelection()
+
+    Get the active file selection to be loaded by consecutive operators.
+
+    Returns:
+    The active list of file paths (strings).
+    """
     global theFilePaths
     return theFilePaths
 
 def setSelection(files):
+    """setSelection(files)
+
+    Set the active file selection to be loaded by consecutive operators.
+
+    Arguments:
+    ?files: A list of file paths (strings).
+    """
     global theFilePaths
     if isinstance(files, list):
         theFilePaths = files

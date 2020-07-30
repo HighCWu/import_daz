@@ -85,7 +85,7 @@ importModules()
 
 from .error import getErrorMessage, setSilentMode
 from .fileutils import setSelection, getSelection, clearSelection
-from .morphing import getMorphList, getMorphs
+from .morphing import getMorphs
 
 #----------------------------------------------------------
 #   Register

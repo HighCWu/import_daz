@@ -96,6 +96,21 @@ def getMorphList(ob, morphset, sets=None):
 
 
 def getMorphs(ob, morphset, category=None):
+    """getMorphs(ob, type, category=None)
+    Get all morph names and values of the specified type from the object.
+
+    Returns:
+    A dictonary of morph names - morph values for all morphs in the specified morphsets.
+
+    Arguments:
+    ?ob: Object (armature or mesh) which owns the morphs
+
+    ?type: Either a string in ["Units", "Expressions", "Visemes", "Body", "Custom", "Standardjcms", "Flexions", "Customjcms"],
+        or a list of such strings, or the keyword "All" signifying all morphset in the list.
+
+    ?category (optional): The category name for Custom morphs.
+    """
+
     if not isinstance(ob, bpy.types.Object):
         raise DazError("getMorphs: First argument must be a Blender object, but got '%s'" % ob)
     morphset = morphset.capitalize()
