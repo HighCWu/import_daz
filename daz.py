@@ -258,6 +258,8 @@ class DAZ_PT_Setup(bpy.types.Panel):
         layout = self.layout
 
         layout.operator("daz.import_daz")
+        layout.separator()
+        layout.operator("daz.global_settings")
 
         layout.separator()
         box = layout.box()
@@ -1070,6 +1072,92 @@ class DAZ_PT_Visibility(DAZ_PT_Hide, bpy.types.Panel):
         return (ob and ob.type == 'ARMATURE' and ob.DazVisibilityDrivers)
 
 #-------------------------------------------------------------
+#   Settings popup
+#-------------------------------------------------------------
+
+class DAZ_OT_GlobalSettings(DazOperator):
+    bl_idname = "daz.global_settings"
+    bl_label = "Global Settings"
+    bl_description = "Show or update global settings"
+
+    def draw(self, context):
+        scn = context.scene
+        split = splitLayout(self.layout, 0.4)
+        col = split.column()
+        box = col.box()
+        box.label(text = "DAZ Root Paths")
+        box.prop(scn, "DazNumPaths")
+        for n in range(scn.DazNumPaths):
+            box.prop(scn, "DazPath%d" % (n+1), text="")
+        box.label(text = "Path to output errors:")
+        box.prop(scn, "DazErrorPath", text="")
+
+        col = split.column()
+        box = col.box()
+        box.label(text = "General")
+        box.prop(scn, "DazVerbosity")
+        from .error import getSilentMode
+        if getSilentMode():
+            box.operator("daz.set_silent_mode", text="Silent Mode ON")
+        else:
+            box.operator("daz.set_silent_mode", text="Silent Mode OFF")
+        box.separator()
+        box.prop(scn, "DazPropMin")
+        box.prop(scn, "DazPropMax")
+        box.prop(scn, "DazUsePropLimits")
+        box.prop(scn, "DazUsePropDefault")
+        box.separator()
+        box.prop(scn, "DazZup")
+        box.prop(scn, "DazOrientation")
+        box.prop(scn, "DazCaseSensitivePaths")
+
+        col = split.column()
+        box = col.box()
+        box.label(text = "Rigging")
+        box.prop(scn, "DazAddFaceDrivers")
+        box.prop(scn, "DazBuildHighdef")
+        box.prop(scn, "DazUseLockRot")
+        box.prop(scn, "DazUseLockLoc")
+        #box.prop(scn, "DazUseLimitRot")
+        #box.prop(scn, "DazUseLimitLoc")
+        box.prop(scn, "DazDeleteMeta")
+        box.prop(scn, "DazMakeDrivers")
+
+        box = split.box()
+        box.label(text = "Materials")
+        box.prop(scn, "DazChooseColors")
+        box.prop(scn, "DazMergeShells")
+        box.prop(scn, "DazLimitBump")
+        if scn.DazLimitBump:
+            box.prop(scn, "DazMaxBump")
+        box.prop(scn, "DazHandleRenderSettings")
+        box.prop(scn, "DazHandleLightSettings")
+        box.separator()
+        box.prop(scn, "DazUseDisplacement")
+        box.prop(scn, "DazUseEmission")
+        box.prop(scn, "DazUseReflection")
+        if bpy.app.version < (2,80,0):
+            box.separator()
+            box.prop(scn, "DazDiffuseShader")
+            box.prop(scn, "DazSpecularShader")
+            box.prop(scn, "DazDiffuseRoughness")
+            box.prop(scn, "DazSpecularRoughness")
+
+        row = self.layout.row()
+        row.operator("daz.load_factory_settings")
+        row.operator("daz.save_settings_file")
+        row.operator("daz.load_settings_file")
+
+
+    def run(self, context):
+        print("Settings")
+
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=900)
+
+#-------------------------------------------------------------
 #   Initialize
 #-------------------------------------------------------------
 
@@ -1084,6 +1172,7 @@ def updateHandler(scn):
 
 classes = [
     ImportDAZ,
+    DAZ_OT_GlobalSettings,
     DazMorphGroup,
     B.DazStringGroup,
     DAZ_OT_InspectPropGroups,
