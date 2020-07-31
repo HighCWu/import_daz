@@ -28,7 +28,7 @@
 import bpy
 import math
 from mathutils import Vector
-from .settings import theSettings
+from .settings import GS, LS
 
 #-------------------------------------------------------------
 #   Blender 2.8 compatibility
@@ -454,11 +454,11 @@ def d2bs(v):
 
 def vector(comp, value):
     if comp == "x":
-        return theSettings.scale*Vector((value,0,0))
+        return LS.scale*Vector((value,0,0))
     elif comp == "y":
-        return theSettings.scale*Vector((0,value,0))
+        return LS.scale*Vector((0,value,0))
     elif comp == "z":
-        return theSettings.scale*Vector((0,0,value))
+        return LS.scale*Vector((0,0,value))
 
 CompIndex = { "x" : 0, "y" : 1, "z" : 2 }
 IndexComp = { 0 : "x", 1 : "y", 2 : "z" }

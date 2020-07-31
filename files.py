@@ -29,7 +29,6 @@
 import bpy
 from .asset import *
 from .error import reportError
-from .settings import theSettings
 
 class FileAsset(Asset):
 
@@ -57,40 +56,40 @@ class FileAsset(Asset):
         from .settings import theTrace
         msg = ("+FILE %s" % self.fileref)
         theTrace.append(msg)
-        if theSettings.verbosity > 4:
+        if GS.verbosity > 4:
             print(msg)
 
         sources = []
         if "asset_info" in struct.keys():
             Asset.parse(self, struct["asset_info"])
 
-        if theSettings.useUV and "uv_set_library" in struct.keys():
+        if LS.useUV and "uv_set_library" in struct.keys():
             from .geometry import Uvset
             for ustruct in struct["uv_set_library"]:
                 asset = self.parseTypedAsset(ustruct, Uvset)
                 self.uvs.append(asset)
 
-        if theSettings.useGeometries and "geometry_library" in struct.keys():
+        if LS.useGeometries and "geometry_library" in struct.keys():
             from .geometry import Geometry
             for gstruct in struct["geometry_library"]:
                 asset = self.parseTypedAsset(gstruct, Geometry)
 
-        if theSettings.useNodes and "node_library" in struct.keys():
+        if LS.useNodes and "node_library" in struct.keys():
             from .node import parseNode
             for nstruct in struct["node_library"]:
                 asset = parseNode(self, nstruct)
 
-        if theSettings.useModifiers and "modifier_library" in struct.keys():
+        if LS.useModifiers and "modifier_library" in struct.keys():
             from .modifier import parseModifierAsset
             for mstruct in struct["modifier_library"]:
                 asset = parseModifierAsset(self, mstruct)
 
-        if theSettings.useImages and "image_library" in struct.keys():
+        if LS.useImages and "image_library" in struct.keys():
             from .material import Images
             for mstruct in struct["image_library"]:
                 asset = self.parseTypedAsset(mstruct, Images)
 
-        if theSettings.useMaterials and "material_library" in struct.keys():
+        if LS.useMaterials and "material_library" in struct.keys():
             from .material import getRenderMaterial
             for mstruct in struct["material_library"]:
                 asset = self.parseTypedAsset(mstruct, getRenderMaterial(mstruct, None))
@@ -98,7 +97,7 @@ class FileAsset(Asset):
         if "scene" in struct.keys():
             scene = struct["scene"]
 
-            if theSettings.useNodes and "nodes" in scene.keys():
+            if LS.useNodes and "nodes" in scene.keys():
                 from .node import Node
                 from .geometry import Geometry
                 from .bone import Bone
@@ -113,7 +112,7 @@ class FileAsset(Asset):
                     self.instances[inst.id] = inst
                     self.nodes.append((asset, inst))
 
-            if theSettings.useMaterials and "materials" in scene.keys():
+            if LS.useMaterials and "materials" in scene.keys():
                 for mstruct in scene["materials"]:
                     from .material import getRenderMaterial
                     from copy import deepcopy
@@ -128,7 +127,7 @@ class FileAsset(Asset):
                     asset.update(mstruct)
                     self.materials.append(asset)
 
-            if theSettings.useModifiers and "modifiers" in scene.keys():
+            if LS.useModifiers and "modifiers" in scene.keys():
                 for mstruct in scene["modifiers"]:
                     asset = self.parseUrlAsset(mstruct)
                     if asset is None:
@@ -149,7 +148,7 @@ class FileAsset(Asset):
 
         msg = ("-FILE %s" % self.fileref)
         theTrace.append(msg)
-        if theSettings.verbosity > 4:
+        if GS.verbosity > 4:
             print(msg)
         return self
 
@@ -278,7 +277,7 @@ def parseAssetFile(struct, toplevel=False, fileref=None):
 
     if asset is None:
         return None
-    elif theSettings.useMorph:
+    elif LS.useMorph:
         from .modifier import parseMorph
         return parseMorph(asset, struct)
     else:

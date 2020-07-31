@@ -29,7 +29,7 @@
 import bpy
 import math
 from .node import Node, Instance
-from .settings import theSettings
+from .utils import *
 
 class Camera(Node):
 
@@ -53,8 +53,7 @@ class Camera(Node):
 
 
     def postTransform(self):
-        from .settings import theSettings
-        if theSettings.zup:
+        if GS.zup:
             ob = self.rna
             ob.rotation_euler[0] += math.pi/2
 
@@ -81,9 +80,9 @@ class CameraInstance(Instance):
         camera = self.node.data
         for key,value in props.items():
             if key == "znear" :
-                camera.clip_start = value * theSettings.scale
+                camera.clip_start = value * LS.scale
             elif key == "zfar" :
-                camera.clip_end = value * theSettings.scale
+                camera.clip_end = value * LS.scale
             elif key == "yfov" :
                 pass
             elif key == "focal_length" :
@@ -107,9 +106,9 @@ class CameraInstance(Instance):
 
     def setFocusDist(self, camera, value):
         if bpy.app.version < (2,80,0):
-            camera.dof_distance = value * theSettings.scale
+            camera.dof_distance = value * LS.scale
         else:
-            camera.dof.focus_distance = value * theSettings.scale
+            camera.dof.focus_distance = value * LS.scale
 
 
     def setFStop(self, camera, value):
@@ -129,9 +128,9 @@ class CameraInstance(Instance):
         for key,channel in self.channels.items():
             value = channel["current_value"]
             if key == "Lens Shift X" :
-                camera.shift_x = value * theSettings.scale
+                camera.shift_x = value * LS.scale
             elif key == "Lens Shift Y" :
-                camera.shift_y = value * theSettings.scale
+                camera.shift_y = value * LS.scale
             elif key == "Focal Length":
                 camera.lens = value         # in mm
             elif key == "DOF":

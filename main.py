@@ -28,7 +28,6 @@
 
 import os
 import bpy
-from .settings import theSettings
 from .error import *
 from .utils import *
 
@@ -41,8 +40,8 @@ def getMainAsset(filepath, context, btn):
     from .objfile import getFitFile, fitToFile
 
     scn = context.scene
-    theSettings.forImport(btn, scn)
-    print("Scale", theSettings.scale)
+    LS.forImport(btn, scn)
+    print("Scale", LS.scale)
     t1 = time.perf_counter()
 
     from .fileutils import getTypedFilePath
@@ -51,7 +50,7 @@ def getMainAsset(filepath, context, btn):
         raise DazError("Found no .duf file matching\n%s        " % filepath)
     filepath = path
     startProgress("\nLoading %s" % filepath)
-    if theSettings.fitFile:
+    if LS.fitFile:
         getFitFile(filepath)
 
     from .load_json import loadJson
@@ -66,12 +65,12 @@ def getMainAsset(filepath, context, btn):
         raise DazError(msg)
     showProgress(20, 100)
 
-    if theSettings.fitFile:
+    if LS.fitFile:
         fitToFile(filepath, main.nodes)
     showProgress(30, 100)
 
     print("Preprocessing...")
-    theSettings.collection = makeRootCollection(filepath, context)
+    LS.collection = makeRootCollection(filepath, context)
     for asset,inst in main.nodes:
         inst.preprocess(context)
 
@@ -118,13 +117,13 @@ def getMainAsset(filepath, context, btn):
     for extra in main.extras:
         extra.build(context)
 
-    if (theSettings.useMaterials and
-        theSettings.chooseColors != 'WHITE'):
+    if (LS.useMaterials and
+        GS.chooseColors != 'WHITE'):
         for asset,inst in main.nodes:
-            asset.guessColor(scn, theSettings.chooseColors, inst)
+            asset.guessColor(scn, GS.chooseColors, inst)
 
     finishMain("File", filepath, t1)
-    if theSettings.missingAssets:
+    if LS.missingAssets:
         clearErrorMessage()
         handleDazError(context, warning=True, dump=True)
         msg = ("Some assets were not found.\n" +

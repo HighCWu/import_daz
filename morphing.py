@@ -34,7 +34,6 @@ from mathutils import Vector
 from .error import *
 from .utils import *
 from . import utils
-from .settings import theSettings
 from .fileutils import MultiFile
 
 #-------------------------------------------------------------
@@ -339,7 +338,7 @@ theMorphNames = {}
 def setupMorphPaths(scn, force):
     global theMorphFiles, theMorphNames
     from collections import OrderedDict
-    from .asset import getDazPaths, fixBrokenPath
+    from .asset import fixBrokenPath
     from .load_json import loadJson
 
     if theMorphFiles and not force:
@@ -380,7 +379,7 @@ def setupMorphPaths(scn, force):
             if "exclude2" in struct.keys():
                 excludes += getShortformList(struct["exclude2"])
 
-            for dazpath in getDazPaths(scn):
+            for dazpath in GS.getDazPath():
                 folderpath = os.path.join(dazpath, folder)
                 if not os.path.exists(folderpath):
                     folderpath = fixBrokenPath(folderpath)
@@ -511,7 +510,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         asset = parseAssetFile(struct)
         props = []
         if asset is None:
-            if theSettings.verbosity > 1:
+            if GS.verbosity > 1:
                 msg = ("Not a morph asset:\n  '%s'" % filepath)
                 if self.suppressError:
                     print(msg)
@@ -523,7 +522,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         prop = None
         if self.useShapekeys and isinstance(asset, Morph) and self.mesh and self.mesh.type == 'MESH':
             if asset.vertex_count != len(self.mesh.data.vertices):
-                if theSettings.verbosity > 2:
+                if GS.verbosity > 2:
                     msg = ("Vertex count mismatch:\n  %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
                     if self.suppressError:
                         print(msg)
@@ -534,8 +533,8 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             skey,ob,sname = asset.rna
             if self.rig and self.usePropDrivers:
                 prop = skey.name
-                min = skey.slider_min if theSettings.useDazPropLimits else None
-                max = skey.slider_max if theSettings.useDazPropLimits else None
+                min = skey.slider_min if GS.useDazPropLimits else None
+                max = skey.slider_max if GS.useDazPropLimits else None
                 makeShapekeyDriver(ob, prop, skey.value, self.rig, prop, min=min, max=max)
                 self.taken[prop] = self.built[prop] = True
                 props = [prop]
@@ -591,7 +590,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             ob = self.rig
         else:
             raise DazError("Neither mesh nor rig selected")
-        theSettings.forMorphLoad(ob, scn)
+        LS.forMorphLoad(ob, scn)
         clearDependecies()
 
         self.errors = {}

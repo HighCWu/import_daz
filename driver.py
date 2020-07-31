@@ -30,7 +30,6 @@ import bpy
 from bpy.props import *
 from .error import *
 from .utils import *
-from .settings import theSettings
 
 #-------------------------------------------------------------
 #   Check if RNA is driven
@@ -375,8 +374,8 @@ def truncateProp(prop):
 
 def setFloatProp(ob, prop, value, min=None, max=None):
     value = float(value)
-    min = float(min) if min is not None and theSettings.useDazPropLimits else theSettings.propMin
-    max = float(max) if max is not None and theSettings.useDazPropLimits else theSettings.propMax
+    min = float(min) if min is not None and GS.useDazPropLimits else GS.propMin
+    max = float(max) if max is not None and GS.useDazPropLimits else GS.propMax
     prop = truncateProp(prop)
     ob[prop] = value
     rna_ui = ob.get('_RNA_UI')

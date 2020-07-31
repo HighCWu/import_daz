@@ -33,7 +33,6 @@ from mathutils import *
 from .error import DazError, reportError
 from .asset import *
 from .utils import *
-from .settings import theSettings
 
 #-------------------------------------------------------------
 #   Formula
@@ -47,7 +46,7 @@ class Formula:
 
 
     def parse(self, struct):
-        if (theSettings.useFormulas and
+        if (LS.useFormulas and
             "formulas" in struct.keys()):
             self.formulas = struct["formulas"]
 
@@ -86,7 +85,7 @@ class Formula:
     def postbuild(self, context, inst):
         from .modifier import Morph
         from .node import Node
-        if not theSettings.useMorph:
+        if not LS.useMorph:
             return
         for formula in self.formulas:
             ref,key,value = self.computeFormula(formula)
@@ -156,7 +155,7 @@ class Formula:
         bname,channel = driven.split("?")
         if channel == "value":
             if False and mesh is None:
-                if theSettings.verbosity > 3:
+                if GS.verbosity > 3:
                     print("Cannot drive properties", bname)
                 return False
             pb = None
@@ -227,7 +226,7 @@ class Formula:
                 stages.append((asset,bone,channel))
             else:
                 msg = ("Cannot push asset:\n'%s'    " % last["url"])
-                if theSettings.verbosity > 1:
+                if GS.verbosity > 1:
                     print(msg)
         elif op == "spline_tcb":
             expr["points"] = [ops[n]["val"] for n in range(1,len(ops)-2)]
@@ -632,9 +631,9 @@ class PropFormulas(PoseboneDriver):
         asset.evalFormulas(exprs, props, self.rig, None, False)
 
         if not props:
-            if theSettings.verbosity > 3:
+            if GS.verbosity > 3:
                 print("Cannot evaluate formula")
-            if theSettings.verbosity > 4:
+            if GS.verbosity > 4:
                 print(asset.formulas)
 
         asset.setupProp(self.morphset, self.rig, self.usePropDrivers)

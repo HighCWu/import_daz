@@ -31,7 +31,6 @@ from .asset import Asset
 from .channels import Channels
 from .material import Material, WHITE
 from .cycles import CyclesMaterial, CyclesTree
-from .settings import theSettings
 from .utils import *
 
 #-------------------------------------------------------------
@@ -78,7 +77,7 @@ class RenderOptions(Asset, Channels):
 
 
     def build(self, context):
-        if theSettings.useEnvironment:
+        if LS.useEnvironment:
             self.world = WorldMaterial(self, self.fileref)
             self.world.build(context)
 
@@ -238,7 +237,7 @@ class WorldTree(CyclesTree):
 #-------------------------------------------------------------
 
 def parseRenderOptions(renderSettings, sceneSettings, backdrop, fileref):
-    if theSettings.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
+    if LS.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
         return None
     else:
         renderOptions = renderSettings["render_options"]

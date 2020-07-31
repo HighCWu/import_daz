@@ -31,7 +31,6 @@ import os
 from mathutils import Vector, Quaternion, Matrix
 from .error import *
 from .utils import *
-from .settings import theSettings
 from .fileutils import MultiFile
 
 #------------------------------------------------------------------
@@ -202,7 +201,7 @@ def loadDbzFile(filepath):
                 rmat = Mult2(smat, rmat)
             locations[bone["name"]] = (head, tail)
             rmat = rmat.to_4x4()
-            rmat.col[3][0:3] = theSettings.scale*head
+            rmat.col[3][0:3] = LS.scale*head
             transforms[bone["name"]] = (rmat, head, rmat.to_euler(), (1,1,1))
 
     return dbz
@@ -232,7 +231,7 @@ def fitToFile(filepath, nodes):
 
     print("Fitting objects with dbz file...")
     filepath = getFitFile(filepath)
-    if theSettings.fitFile:
+    if LS.fitFile:
         dbz = loadDbzFile(filepath)
         subsurfaced = False
 
@@ -250,7 +249,7 @@ def fitToFile(filepath, nodes):
                 (inst.parent.hasBoneParent or
                  not isinstance(inst.parent, FigureInstance))):
             inst.hasBoneParent = True
-            #if theSettings.verbosity > 1:
+            #if GS.verbosity > 1:
             #    print("  Dont fit %s" % inst.id)
             #continue
         else:
@@ -384,7 +383,7 @@ class DAZ_OT_ImportDBZ(DazOperator, B.DbzFile, MultiFile, IsMesh):
                    if getSelected(ob) and ob.type == 'MESH']
         if not objects:
             return
-        theSettings.scale = objects[0].DazScale
+        LS.scale = objects[0].DazScale
         paths = getMultiFiles(self, ["dbz", "json"])
         for path in paths:
             for ob in objects:

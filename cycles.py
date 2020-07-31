@@ -31,7 +31,6 @@ import math
 import os
 from mathutils import Vector, Matrix, Color
 from .material import Material, WHITE, GREY, BLACK, isWhite, isBlack
-from .settings import theSettings
 from .error import DazError
 from .utils import *
 
@@ -62,26 +61,26 @@ class CyclesMaterial(Material):
 
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
-            if not theSettings.autoMaterials:
+            if not LS.autoMaterials:
                 if self.refractive:
-                    if theSettings.methodRefractive == 'PRINCIPLED':
+                    if LS.methodRefractive == 'PRINCIPLED':
                         self.tree = PbrTree(self)
                     else:
                         self.tree = CyclesTree(self)
                 else:
-                    if theSettings.methodOpaque == 'PRINCIPLED':
+                    if LS.methodOpaque == 'PRINCIPLED':
                         self.tree = PbrTree(self)
                     else:
                         self.tree = CyclesTree(self)
-            elif theSettings.renderMethod == 'BLENDER_EEVEE':
+            elif LS.renderMethod == 'BLENDER_EEVEE':
                 self.tree = PbrTree(self)
                 self.translucent = False
                 self.eevee = True
-                theSettings.methodOpaque = 'PRINCIPLED'
-                theSettings.methodRefractive = 'PRINCIPLED'
-                theSettings.methodVolumetric = "SSS"
+                LS.methodOpaque = 'PRINCIPLED'
+                LS.methodRefractive = 'PRINCIPLED'
+                LS.methodVolumetric = "SSS"
             elif self.refractive:
-                if theSettings.methodRefractive == 'PRINCIPLED':
+                if LS.methodRefractive == 'PRINCIPLED':
                     self.tree = PbrTree(self)
                 else:
                     self.tree = CyclesTree(self)
@@ -90,7 +89,7 @@ class CyclesMaterial(Material):
                 self.tree = CyclesTree(self)
             elif self.metallic:
                 self.tree = PbrTree(self)
-            elif theSettings.methodOpaque == 'PRINCIPLED':
+            elif LS.methodOpaque == 'PRINCIPLED':
                 self.tree = PbrTree(self)
             else:
                 self.tree = CyclesTree(self)
@@ -126,7 +125,7 @@ class CyclesMaterial(Material):
         ob.matrix_world = mat
         bpy.data.meshes.remove(me2, do_unlink=True)
 
-        area *= 1e-4/(theSettings.scale*theSettings.scale)
+        area *= 1e-4/(LS.scale*LS.scale)
         for socket in self.geosockets:
             socket.default_value /= area
             for link in self.tree.links:
@@ -283,7 +282,7 @@ class CyclesTree:
         scn = context.scene
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
-        if theSettings.methodVolumetric == "SSS":
+        if LS.methodVolumetric == "SSS":
             self.buildSSS(scn)
         elif (self.material.thinWalled or
             self.volume or
@@ -431,12 +430,12 @@ class CyclesTree:
             if tex:
                 bump = self.addNode(3, "ShaderNodeBump")
                 strength = self.material.getChannelValue(channel, 1.0)
-                if scn.DazLimitBump and strength > scn.DazMaxBump:
-                    strength = scn.DazMaxBump
+                if GS.limitBump and strength > GS.maxBump:
+                    strength = GS.maxBump
                 bump.inputs["Strength"].default_value = strength
                 bumpmin = self.material.getChannelValue(self.material.getChannelBumpMin(), -0.01)
                 bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.01)
-                bump.inputs["Distance"].default_value = (bumpmax-bumpmin) * theSettings.scale
+                bump.inputs["Distance"].default_value = (bumpmax-bumpmin) * LS.scale
                 self.links.new(tex.outputs[0], bump.inputs["Height"])
                 self.linkNormal(bump)
                 self.normal = bump
@@ -468,7 +467,7 @@ class CyclesTree:
             roughness = clamp( self.getValue(["Diffuse Roughness"], scn.DazDiffuseRoughness) )
             self.addSlot(channel, node, "Roughness", roughness, roughness, False)
             self.linkNormal(node)
-            theSettings.usedFeatures["Diffuse"] = True
+            LS.usedFeatures["Diffuse"] = True
 
 
     def buildOverlay(self):
@@ -584,7 +583,7 @@ class CyclesTree:
         self.linkNormal(node)
         self.links.new(self.active.outputs[0], node.inputs["Shader"])
         self.active = node
-        theSettings.usedFeatures["Glossy"] = True
+        LS.usedFeatures["Glossy"] = True
 
 
     def buildGlossy(self):
@@ -622,7 +621,7 @@ class CyclesTree:
             self.links.new(roughtex.outputs[0], fresnel.inputs["Roughness"])
         self.linkNormal(fresnel)
         self.fresnel = fresnel
-        theSettings.usedFeatures["Glossy"] = True
+        LS.usedFeatures["Glossy"] = True
         self.mixWithActive(1.0, self.fresnel, glossy, col=6, useAlpha=False)
 
 
@@ -672,7 +671,7 @@ class CyclesTree:
     def buildTranslucency(self, scn):
         if (self.material.refractive or
             not self.material.translucent or
-            theSettings.methodVolumetric == "SSS"):
+            LS.methodVolumetric == "SSS"):
             return
         mat = self.material.rna
         color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
@@ -687,7 +686,7 @@ class CyclesTree:
             fac = 0.5 + fac/2
             self.setMultiplier(factex, fac)
         self.mixWithActive(fac, factex, luc)
-        theSettings.usedFeatures["Transparent"] = True
+        LS.usedFeatures["Transparent"] = True
 
 
     def setMultiplier(self, node, fac):
@@ -700,10 +699,10 @@ class CyclesTree:
 
     def buildSSS(self, scn):
         if (self.material.thinWalled or
-            theSettings.methodVolumetric != "SSS"):
+            LS.methodVolumetric != "SSS"):
             return
         wt = self.getValue("getChannelTranslucencyWeight", 0)
-        dist = self.getValue("getChannelScatterDist", 0.0) * theSettings.scale
+        dist = self.getValue("getChannelScatterDist", 0.0) * LS.scale
         if wt == 0 or dist == 0:
             return
         color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", BLACK)
@@ -727,9 +726,9 @@ class CyclesTree:
             trans = BLACK
 
         rad,radtex = self.sumColors(sss, ssstex, trans, transtex)
-        radius = rad * 2.0 * theSettings.scale
+        radius = rad * 2.0 * LS.scale
         self.linkSSS(color, coltex, wt, wttex, radius, radtex)
-        theSettings.usedFeatures["SSS"] = True
+        LS.usedFeatures["SSS"] = True
         mat = self.material.rna
         if hasattr(mat, "use_sss_translucency"):
             mat.use_sss_translucency = True
@@ -829,7 +828,7 @@ class CyclesTree:
             ref,reftex = self.getColorTex("getChannelRefractionStrength", "NONE", 0.0)
             self.material.alphaBlend(1-ref, reftex)
             self.mixWithActive(ref, reftex, node)
-            theSettings.usedFeatures["Transparent"] = True
+            LS.usedFeatures["Transparent"] = True
 
 
     def buildCutout(self):
@@ -839,14 +838,14 @@ class CyclesTree:
             node = self.addNode(3, "ShaderNodeBsdfTransparent")
             self.material.alphaBlend(alpha, tex)
             self.mixWithActive(1-alpha, tex, node, useAlpha=False, flip=True)
-            theSettings.usedFeatures["Transparent"] = True
+            LS.usedFeatures["Transparent"] = True
 
 #-------------------------------------------------------------
 #   Emission
 #-------------------------------------------------------------
 
     def buildEmission(self, scn):
-        if not scn.DazUseEmission:
+        if not GS.useEmission:
             return
         color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)
         if (color != BLACK):
@@ -890,7 +889,7 @@ class CyclesTree:
 
     def buildVolume(self):
         if (self.material.thinWalled or
-            theSettings.methodVolumetric != "VOLUMETRIC"):
+            LS.methodVolumetric != "VOLUMETRIC"):
             return
 
         transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
@@ -942,7 +941,7 @@ class CyclesTree:
             self.volume = absorb
         elif scatter:
             self.volume = scatter
-        theSettings.usedFeatures["Volume"] = True
+        LS.usedFeatures["Volume"] = True
 
 
     def buildOutput(self):
@@ -964,7 +963,7 @@ class CyclesTree:
         channel = self.material.getChannelDisplacement()
         if not( channel and
                 self.material.isActive("Displacement") and
-                scn.DazUseDisplacement):
+                GS.useDisplacement):
             return
         tex = self.addTexImageNode(channel, "NONE")
         if tex:
@@ -977,7 +976,7 @@ class CyclesTree:
             from .cgroup import DisplacementGroup
             node = self.addGroup(DisplacementGroup, "DAZ Displacement", 7)
             self.links.new(tex.outputs[0], node.inputs["Texture"])
-            node.inputs["Strength"].default_value = theSettings.scale * strength
+            node.inputs["Strength"].default_value = LS.scale * strength
             node.inputs["Difference"].default_value = dmax - dmin
             node.inputs["Min"].default_value = dmin
             self.displacement = node

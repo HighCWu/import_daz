@@ -117,11 +117,10 @@ class DazError(Exception):
 
 def reportError(msg, instances={}, warnPaths=False, trigger=(2,3), force=False):
     global theUseDumpErrors, theInstances
-    from .settings import theSettings
     trigWarning,trigError = trigger
-    if theSettings.verbosity >= trigWarning or force:
+    if GS.verbosity >= trigWarning or force:
         print(msg)
-    if theSettings.verbosity >= trigError or force:
+    if GS.verbosity >= trigError or force:
         theUseDumpErrors = True
         theInstances = instances
         if warnPaths:
@@ -134,8 +133,7 @@ def reportError(msg, instances={}, warnPaths=False, trigger=(2,3), force=False):
 
 def getErrorPath():
     import os
-    from .settings import theSettings
-    return os.path.realpath(os.path.expanduser(theSettings.errorPath))
+    return os.path.realpath(os.path.expanduser(GS.errorPath))
 
 
 def handleDazError(context, warning=False, dump=False):
@@ -169,11 +167,10 @@ def handleDazError(context, warning=False, dump=False):
 
 
 def getMissingAssets():
-    from .settings import theSettings
-    if not theSettings.missingAssets:
+    if not LS.missingAssets:
         return ""
     string = "\nMISSING ASSETS:\n"
-    for ref in theSettings.missingAssets.keys():
+    for ref in LS.missingAssets.keys():
         string += ("  %s\n" % ref)
     return string
 

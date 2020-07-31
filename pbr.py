@@ -30,7 +30,6 @@ import bpy
 import math
 from mathutils import Vector, Color
 from .material import Material, WHITE, GREY, BLACK, isWhite, isBlack
-from .settings import theSettings
 from .error import *
 from .utils import *
 from .cycles import CyclesTree
@@ -72,7 +71,7 @@ class PbrTree(CyclesTree):
             self.pbr.inputs["Specular"].default_value = 0
             self.removeLink(self.pbr, "Specular")
         if self.material.refractive:
-            theSettings.usedFeatures["Transparent"] = True
+            LS.usedFeatures["Transparent"] = True
             self.buildRefraction()
         else:
             self.buildEmission(scn)
@@ -93,7 +92,7 @@ class PbrTree(CyclesTree):
 
 
     def buildEmission(self, scn):
-        if not scn.DazUseEmission:
+        if not GS.useEmission:
             return
         elif "Emission" in self.pbr.inputs.keys():
             color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)

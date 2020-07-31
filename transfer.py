@@ -103,9 +103,8 @@ class MorphTransferer(Selector, B.TransferOptions):
             path = self.getMorphPath(sname, clo, scn)
             if path is not None:
                 from .morphing import LoadShapekey
-                from .settings import theSettings
                 loader = LoadShapekey(mesh=clo)
-                theSettings.forMorphLoad(clo, scn)
+                LS.forMorphLoad(clo, scn)
                 loader.errors = {}
                 loader.getSingleMorph(sname, path, scn)
                 if sname in clo.data.shape_keys.key_blocks.keys():

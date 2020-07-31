@@ -417,17 +417,17 @@ class BoneInstance(Instance):
 
 
     def getHeadTail(self, cscale, center, mayfit=True):
-        if mayfit and theSettings.fitFile:
+        if mayfit and LS.fitFile:
             head = cscale*(self.previewAttrs["center_point"] - center)
             tail = cscale*(self.previewAttrs["end_point"] - center)
         else:
             head = cscale*(self.attributes["center_point"] - center)
             tail = cscale*(self.attributes["end_point"] - center)
         length = (tail-head).length
-        if length < 0.1*theSettings.scale:
-            length = 0.1*theSettings.scale
+        if length < 0.1*LS.scale:
+            length = 0.1*LS.scale
             tail = head + Vector((0,0,length))
-        if not theSettings.useDazBones:
+        if not LS.useDazBones:
             return head,tail,0
 
         # Twist, Second, Bend = Y Z X"
@@ -490,7 +490,7 @@ class BoneInstance(Instance):
 
         setBoneTransform(tfm, pb)
 
-        if theSettings.useLockRot:
+        if GS.useLockRot:
             self.setRotationLock(pb)
         if theSettings.useLockLoc:
             self.setLocationLock(pb)
@@ -547,7 +547,7 @@ class BoneInstance(Instance):
                     useLimits = True
         for idx,lock in enumerate(locks):
             pb.lock_rotation[idx] = lock
-        if theSettings.useLimitRot and useLimits:
+        if GS.useLimitRot and useLimits:
             cns = pb.constraints.new('LIMIT_ROTATION')
             cns.owner_space = 'LOCAL'
             for idx,limit in enumerate(limits):
@@ -574,7 +574,7 @@ class BoneInstance(Instance):
                     useLimits = True
         for idx,lock in enumerate(locks):
             pb.lock_rotation[idx] = lock
-        if theSettings.useLimitLoc and useLimits:
+        if GS.useLimitLoc and useLimits:
             cns = pb.constraints.new('LIMIT_LOCATION')
             cns.owner_space = 'LOCAL'
             for idx,limit in enumerate(limits):
@@ -622,7 +622,7 @@ class Bone(Node):
             return self.instances[BoneAlternatives[iref]]
         except KeyError:
             pass
-        if (theSettings.verbosity <= 2 and
+        if (GS.verbosity <= 2 and
             len(self.instances.values()) > 0):
             return list(self.instances.values())[0]
         msg = ("Did not find instance %s in %s" % (iref, list(self.instances.keys())))
@@ -678,7 +678,7 @@ class Bone(Node):
             eb.parent = parent
             eb.head = d2b(head)
             eb.tail = d2b(tail)
-            if False and theSettings.useDazOrientation:
+            if False and LS.useDazOrientation:
                 eb.roll = roll
             else:
                 if self.useRoll:
@@ -688,9 +688,9 @@ class Bone(Node):
                 self.roll = eb.roll
                 self.useRoll = True
                 #print("ROL %s %s %4f %4f" % (self.name, self.rotDaz, eb.roll/D, roll/D))
-            if theSettings.useConnect and parent:
+            if GS.useConnect and parent:
                 dist = parent.tail - eb.head
-                if dist.length < 1e-4*theSettings.scale:
+                if dist.length < 1e-4*LS.scale:
                     eb.use_connect = True
         if self.name in ["upperFaceRig", "lowerFaceRig"]:
             isFace = True

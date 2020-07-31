@@ -32,7 +32,6 @@ from collections import OrderedDict
 from .asset import Accessor, Asset
 from .channels import Channels
 from .formula import Formula
-from .settings import theSettings
 from .error import *
 from .utils import *
 
@@ -279,15 +278,15 @@ class Instance(Accessor, Channels):
                     refGroup = bpy.data.groups.new(name=ob.name)
                 else:
                     refGroup = bpy.data.collections.new(name=ob.name)
-                    if theSettings.refGroups is None:
-                        theSettings.refGroups = bpy.data.collections.new(name=theSettings.collection.name + " REFS")
-                        context.scene.collection.children.link(theSettings.refGroups)
-                    theSettings.refGroups.children.link(refGroup)
+                    if LS.refGroups is None:
+                        LS.refGroups = bpy.data.collections.new(name=LS.collection.name + " REFS")
+                        context.scene.collection.children.link(LS.refGroups)
+                    LS.refGroups.children.link(refGroup)
                     layer = findLayerCollection(context.view_layer.layer_collection, refGroup)
                     layer.exclude = True
                 refGroup.objects.link(ob)
                 empty = bpy.data.objects.new(obname, None)
-                theSettings.collection.objects.link(empty)
+                LS.collection.objects.link(empty)
                 self.node2.dupli = empty
                 self.node2.refGroup = refGroup
                 self.duplicate(empty, refGroup)
@@ -340,16 +339,16 @@ class Instance(Accessor, Channels):
             wmat = ob.matrix_world.copy()
             empty.matrix_world = wmat
             ob.parent = None
-            if theSettings.fitFile and ob.type == 'MESH':
+            if LS.fitFile and ob.type == 'MESH':
                 ob.matrix_world = wmat.inverted()
             else:
                 ob.matrix_world = Matrix()
             for child in list(ob.children):
                 child.parent = empty
-            theSettings.collection.objects.unlink(ob)
+            LS.collection.objects.unlink(ob)
             for inst in self.nodeInstances:
                 pass
-        elif theSettings.fitFile and ob.type == 'MESH':
+        elif LS.fitFile and ob.type == 'MESH':
             ob.matrix_world = Matrix()
 
 
@@ -421,8 +420,7 @@ class Instance(Accessor, Channels):
 
 
     def getTransformMatrix(self, pb):
-        from .settings import theSettings
-        if theSettings.zup:
+        if GS.zup:
             wmat = Matrix.Rotation(math.pi/2, 4, 'X')
         else:
             wmat = Matrix()
@@ -643,7 +641,7 @@ class Node(Asset, Formula, Channels):
         cscale = inst.getCharacterScale()
         scn = context.scene
         if isinstance(self.data, Asset):
-            if self.data.shell and scn.DazMergeShells:
+            if self.data.shell and LS.mergeShells:
                 return
             ob = self.data.buildData(context, self, inst, cscale, center)
             if not isinstance(ob, bpy.types.Object):
@@ -660,14 +658,14 @@ class Node(Asset, Formula, Channels):
         ob.rotation_mode = BlenderRotMode[self.rotDaz]
         ob.DazRotMode = self.rotDaz
         ob.DazMorphPrefixes = False
-        theSettings.collection.objects.link(ob)
+        LS.collection.objects.link(ob)
         if bpy.app.version < (2,80,0):
             context.scene.objects.link(ob)
         activateObject(context, ob)
         setSelected(ob, True)
         ob.DazId = self.id
         ob.DazUrl = normalizePath(self.url)
-        ob.DazScale = theSettings.scale
+        ob.DazScale = LS.scale
         ob.DazCharacterScale = cscale
         ob.DazOrientation = inst.attributes["orientation"]
         self.subtractCenter(ob, inst, center)
@@ -686,7 +684,7 @@ class Node(Asset, Formula, Channels):
         from .guess import guessColor
         for node in inst.geometries:
             if node.rna:
-                guessColor(node.rna, scn, flag, theSettings.skinColor, theSettings.clothesColor, False)
+                guessColor(node.rna, scn, flag, LS.skinColor, LS.clothesColor, False)
 
 BlenderRotMode = {
     'XYZ' : 'XZY',
@@ -748,7 +746,7 @@ def getTransformMatrices(pb):
     else:
         rmat = Matrix()
 
-    if theSettings.zup:
+    if GS.zup:
         bmat = Mult2(Matrix.Rotation(-90*D, 4, 'X'), pb.bone.matrix_local)
     else:
         bmat = pb.bone.matrix_local

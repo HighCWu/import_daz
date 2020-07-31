@@ -34,7 +34,6 @@ from .asset import Asset
 from .channels import Channels
 from .utils import *
 from .error import *
-from .settings import theSettings
 from .node import Node, Instance
 
 #-------------------------------------------------------------
@@ -91,7 +90,7 @@ class GeoNode(Node):
 
 
     def subtractCenter(self, ob, inst, center):
-        if not theSettings.fitFile:
+        if not LS.fitFile:
             ob.location = -center
         inst.center = center
 
@@ -332,7 +331,7 @@ class Geometry(Asset, Channels):
 
         vdata = struct["vertices"]["values"]
         fdata = struct["polylist"]["values"]
-        if theSettings.zup:
+        if GS.zup:
             self.verts = [d2b90(v) for v in vdata]
         else:
             self.verts = [d2b00(v) for v in vdata]
@@ -406,7 +405,7 @@ class Geometry(Asset, Channels):
                     if "material_uvs" in extra.keys():
                         self.uvs = dict(extra["material_uvs"])
 
-            if scn.DazMergeShells:
+            if LS.mergeShells:
                 if inst.node2:
                     missing = self.addUvSets(inst.node2, inst.name, inst.material_group_vis)
                     for mname,shmat,uv,idx in missing:
@@ -505,7 +504,7 @@ class Geometry(Asset, Channels):
 
 
     def buildData(self, context, node, inst, cscale, center):
-        if (self.rna and not theSettings.singleUser):
+        if (self.rna and not LS.singleUser):
             return
 
         name = self.getName()
@@ -522,7 +521,7 @@ class Geometry(Asset, Channels):
                 me.materials.append(mat.rna)
             return
 
-        if theSettings.fitFile:
+        if LS.fitFile:
             me.from_pydata([cscale*vco for vco in verts], [], self.faces)
         else:
             me.from_pydata([cscale*vco-center for vco in verts], [], self.faces)
@@ -675,7 +674,7 @@ class Uvset(Asset):
                     udim = math.floor((umin+umax)/2)
                 else:
                     udim = 0
-                    if theSettings.verbosity > 2:
+                    if GS.verbosity > 2:
                         print("UV coordinate difference %f - %f > 1" % (umax, umin))
                 key = geo.polygon_material_groups[mn]
                 if key in geo.materials.keys():
@@ -852,7 +851,7 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
         ob = context.object
         me = ob.data
         scn = context.scene
-        theSettings.forUV(ob, scn)
+        LS.forUV(ob, scn)
         struct = loadJson(self.filepath)
         asset = parseAssetFile(struct)
         if asset is None or len(asset.uvs) == 0:

@@ -29,8 +29,8 @@
 import bpy
 import math
 from mathutils import Vector
+from .utils import *
 from .material import Material, WHITE, BLACK, setImageColorSpace, isBlack, isWhite
-from .settings import theSettings
 
 class InternalMaterial(Material):
 
@@ -52,19 +52,19 @@ class InternalMaterial(Material):
         self.buildDiffuse(mat, scn)
         if self.isActive("Specular"):
             self.buildSpecular(mat)
-        if scn.DazUseReflection and self.isActive("Reflection"):
+        if GS.useReflection and self.isActive("Reflection"):
             self.buildReflection(mat)
         if self.sssActive(scn):
             self.buildSSS(mat)
         if self.isActive("Translucency"):
             self.buildTranslucency(mat)
-        if scn.DazUseEmission and self.isActive("Emission"):
+        if GS.useEmission and self.isActive("Emission"):
             self.buildEmission(mat)
         if self.isActive("Normal"):
             self.buildNormal(mat)
         if self.isActive("Bump"):
             self.buildBump(mat)
-        if scn.DazUseDisplacement and self.isActive("Displacement"):
+        if GS.useDisplacement and self.isActive("Displacement"):
             self.buildDisplacement(mat)
         self.buildTransparency(mat)
 
@@ -210,12 +210,12 @@ class InternalMaterial(Material):
                 return
             r = sss * dist
             radius = (r,r,r)
-        theSettings.usedFeatures["Transparent"] = True
+        LS.usedFeatures["Transparent"] = True
         sss = mat.subsurface_scattering
         sss.use = True
         sss.color_factor = wt
         sss.color = color
-        sss.scale = 0.1 * theSettings.scale
+        sss.scale = 0.1 * LS.scale
         sss.ior = self.getValue("getChannelSSSIOR", 1.3)
         sss.radius = radius
 
@@ -308,7 +308,7 @@ class InternalMaterial(Material):
 
     def setDisplacementSettings(self, channel, mtex):
         mtex.use_map_displacement = True
-        mtex.displacement_factor = theSettings.scale * self.getChannelValue(channel, 1)
+        mtex.displacement_factor = LS.scale * self.getChannelValue(channel, 1)
         mtex.use_rgb_to_intensity = True
 
 #-------------------------------------------------------------

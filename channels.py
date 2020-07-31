@@ -145,7 +145,7 @@ class Channels:
                         return (value[0] + value[1] + value[2])/3
                     else:
                         return value
-        if warn and theSettings.verbosity > 2:
+        if warn and GS.verbosity > 2:
             print("Did not find value for channel %s" % channel["id"])
             print("Keys: %s" % list(channel.keys()))
         return default

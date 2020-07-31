@@ -33,7 +33,6 @@ import os
 from .asset import Asset
 from .utils import *
 from .error import *
-from .settings import theSettings
 from .formula import Formula
 
 #-------------------------------------------------------------
@@ -183,7 +182,7 @@ class ChannelAsset(Modifier):
 
     def parse(self, struct):
         Modifier.parse(self, struct)
-        if not theSettings.useMorph:
+        if not LS.useMorph:
             return
         if "channel" in struct.keys():
             channel = struct["channel"]
@@ -213,7 +212,7 @@ class ChannelAsset(Modifier):
         from .driver import setFloatProp
         if prop is None:
             prop = self.prop
-        if theSettings.useDazPropLimits:
+        if GS.useDazPropLimits:
             value = self.value
             min = self.min
             max = self.max
@@ -517,9 +516,10 @@ class FormulaAsset(Formula, ChannelAsset):
     def __repr__(self):
         return ("<Formula %s %f>" % (self.id, self.value))
 
+
     def parse(self, struct):
         ChannelAsset.parse(self, struct)
-        if not theSettings.useMorph:
+        if not LS.useMorph:
             return
         if "group" in struct.keys():
             words = struct["group"].split("/")
@@ -529,19 +529,16 @@ class FormulaAsset(Formula, ChannelAsset):
                 self.group = words[2]
         Formula.parse(self, struct)
 
+
     def build(self, context, inst):
-        if not theSettings.useMorph:
+        if not LS.useMorph:
             return
         Formula.prebuild(self, context, inst)
-        if self.group in ["Feet", "Legs", "Arms", "Head", "Torso", "Hip"]:
-            if theSettings.makeDrivers in ['PEOPLE', 'ALL']:
-                Formula.build(self, context, inst)
-        else:
-            if theSettings.makeDrivers in ['PROPS', 'ALL']:
-                Formula.build(self, context, inst)
+        Formula.build(self, context, inst)
+
 
     def postbuild(self, context, inst):
-        if not theSettings.useMorph:
+        if not LS.useMorph:
             return
         Formula.postbuild(self, context, inst)
 
@@ -563,7 +560,7 @@ class Morph(FormulaAsset):
 
     def parse(self, struct):
         FormulaAsset.parse(self, struct)
-        if not theSettings.useMorph:
+        if not LS.useMorph:
             return
         self.parent = struct["parent"]
         self.deltas = struct["morph"]["deltas"]["values"]
@@ -574,7 +571,7 @@ class Morph(FormulaAsset):
         from .geometry import GeoNode, Geometry
         from .figure import Figure, FigureInstance
         FormulaAsset.update(self, struct)
-        if not theSettings.useMorph:
+        if not LS.useMorph:
             return
 
         parent = self.getAsset(self.parent)
@@ -612,7 +609,7 @@ class Morph(FormulaAsset):
         from .figure import FigureInstance
         from .bone import BoneInstance
 
-        if not theSettings.useMorph:
+        if not LS.useMorph:
             return self
         Formula.prebuild(self, context, inst)
         Modifier.build(self, context)
@@ -649,7 +646,7 @@ class Morph(FormulaAsset):
             elif self.name in geonode.morphsValues.keys():
                 self.value = geonode.morphsValues[self.name]
             else:
-                if theSettings.verbosity > 3:
+                if GS.verbosity > 3:
                     print("MMMO", self.name)
                     print("  ", geonode)
                     print("  ", geonode.morphsValues.keys())
@@ -657,7 +654,7 @@ class Morph(FormulaAsset):
 
             if ob is None:
                 continue
-            elif theSettings.applyMorphs:
+            elif LS.applyMorphs:
                 self.addMorphToVerts(ob.data, cscale)
             elif self.value > 0.0:
                 self.buildMorph(ob, cscale)
@@ -668,7 +665,7 @@ class Morph(FormulaAsset):
         if self.value == 0.0:
             return
 
-        scale = self.value * cscale * theSettings.scale
+        scale = self.value * cscale * LS.scale
         for delta in self.deltas:
             vn = delta[0]
             me.vertices[vn].co += scale * d2bu(delta[1:])
@@ -686,8 +683,8 @@ class Morph(FormulaAsset):
             ob.shape_key_remove(skey)
         skey = ob.shape_key_add(name=sname)
         if useSoftLimits:
-            skey.slider_min = self.min if self.min is not None and theSettings.useDazPropLimits else theSettings.propMin
-            skey.slider_max = self.max if self.max is not None and theSettings.useDazPropLimits else theSettings.propMax
+            skey.slider_min = self.min if self.min is not None and GS.useDazPropLimits else GS.propMin
+            skey.slider_max = self.max if self.max is not None and GS.useDazPropLimits else GS.propMax
         skey.value = self.value
         self.rna = (skey, ob, sname)
         self.buildShapeKey(ob, skey, cscale)
@@ -697,8 +694,8 @@ class Morph(FormulaAsset):
         for v in ob.data.vertices:
             skey.data[v.index].co = v.co
 
-        scale = cscale * theSettings.scale
-        if theSettings.zup:
+        scale = cscale * LS.scale
+        if GS.zup:
             for delta in self.deltas:
                 vn = delta[0]
                 skey.data[vn].co += scale * d2b90u(delta[1:])
@@ -718,7 +715,7 @@ class Morph(FormulaAsset):
             skey.value = value
             self.buildShapeKey(ob, skey, cscale)
         else:
-            if theSettings.applyMorphs:
+            if LS.applyMorphs:
                 self.addMorphToVerts(ob.data, cscale)
             elif ob:
                 if self.value > 0.0:

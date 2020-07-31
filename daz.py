@@ -1108,7 +1108,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUsePropDefault")
         box.separator()
         box.prop(scn, "DazZup")
-        box.prop(scn, "DazOrientation")
         box.prop(scn, "DazCaseSensitivePaths")
 
         col = split.column()
@@ -1151,9 +1150,11 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
     def run(self, context):
         print("Settings")
+        GS.fromScene(context.scene)
 
 
     def invoke(self, context, event):
+        GS.toScene(context.scene)
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=900)
 

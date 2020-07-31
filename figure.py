@@ -32,7 +32,6 @@ from mathutils import *
 from bpy.props import IntProperty
 from .asset import *
 from .utils import *
-from .settings import theSettings
 from .error import *
 from .node import Node, Instance
 
@@ -93,12 +92,12 @@ class FigureInstance(Instance):
         for child in self.children.values():
             if isinstance(child, BoneInstance):
                 child.buildPose(self, False, tchildren, missing)
-        if missing and theSettings.verbosity > 2:
+        if missing and GS.verbosity > 2:
             print("Missing bones when posing %s" % self.name)
             print("  %s" % [inst.node.name for inst in missing])
-        if theSettings.useLockRot:
+        if GS.useLockRot:
             rig.DazUseRotLocks = True
-        if theSettings.useLockLoc:
+        if GS.useLockLoc:
             rig.DazUseLocLocks = True
         self.fixDependencyLoops(rig)
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -117,7 +116,7 @@ class FigureInstance(Instance):
                             needfix[pb.name] = (child.name, fcus)
 
         if needfix:
-            if theSettings.verbosity > 1:
+            if GS.verbosity > 1:
                 print("Fix dependency loops:", list(needfix.keys()))
             bpy.ops.object.mode_set(mode = 'EDIT')
             for bname in needfix.keys():
@@ -257,7 +256,7 @@ class Figure(Node):
         rig.DazCharacterScale = cscale
         rig.DazRig = self.rigtype
 
-        if scn.DazOrientation or theSettings.useDazOrientation:
+        if scn.DazOrientation or LS.useDazOrientation:
             for child in inst.children.values():
                 if isinstance(child, BoneInstance):
                     child.node.buildOrientation(rig, child)

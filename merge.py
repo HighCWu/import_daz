@@ -32,7 +32,6 @@ import bpy
 from bpy.props import *
 from .utils import *
 from .error import *
-from .settings import theSettings
 from .material import MaterialMerger
 
 #-------------------------------------------------------------
@@ -486,7 +485,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
 
     def run(self, context):
         rig,subrigs = getSelectedRigs(context)
-        theSettings.forAnimation(None, rig, context.scene)
+        LS.forAnimation(None, rig, context.scene)
         if rig is None:
             raise DazError("No rigs to merge")
         oldvis = list(rig.data.layers)
@@ -677,7 +676,7 @@ class DAZ_OT_ApplyRestPoses(DazOperator, IsArmature):
 def applyRestPoses(context):
     scn = context.scene
     rig,subrigs = getSelectedRigs(context)
-    theSettings.forAnimation(None, rig, scn)
+    LS.forAnimation(None, rig, scn)
     rigs = [rig] + subrigs
     for subrig in rigs:
         for ob in subrig.children:
@@ -697,7 +696,7 @@ def setRestPose(ob, rig, context):
     if ob.parent_type == 'BONE' or ob.type != 'MESH':
         return
 
-    if theSettings.fitFile:
+    if LS.fitFile:
         for mod in ob.modifiers:
             if mod.type == 'ARMATURE':
                 mod.object = rig

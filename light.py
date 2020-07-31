@@ -33,7 +33,6 @@ from .utils import *
 from .cycles import CyclesMaterial, CyclesTree
 from .internal import InternalMaterial
 from .material import Material, WHITE, BLACK
-from .settings import theSettings
 from .error import reportError
 
 #-------------------------------------------------------------
@@ -42,11 +41,11 @@ from .error import reportError
 
 def getMinLightSettings():
     return [("use_shadow", True),
-            ("shadow_buffer_clip_start", 1.0*theSettings.scale),
+            ("shadow_buffer_clip_start", 1.0*LS.scale),
             ("shadow_buffer_bias", 0.01),
             ("use_contact_shadow", True),
             ("contact_shadow_bias", 0.02),
-            ("contact_shadow_distance", 2.0*theSettings.scale),
+            ("contact_shadow_distance", 2.0*LS.scale),
            ]
 
 
@@ -89,8 +88,8 @@ class Light(Node):
         lgeo = inst.getValue(["Light Geometry"], -1)
         usePhoto = inst.getValue(["Photometric Mode"], False)
         self.twosided = inst.getValue(["Two Sided"], False)
-        height = inst.getValue(["Height"], 0) * theSettings.scale
-        width = inst.getValue(["Width"], 0) * theSettings.scale
+        height = inst.getValue(["Height"], 0) * LS.scale
+        width = inst.getValue(["Width"], 0) * LS.scale
 
         # [ "Point", "Rectangle", "Disc", "Sphere", "Cylinder" ]
         if bpy.app.version < (2,80,0):
@@ -181,7 +180,7 @@ class Light(Node):
 
 
     def postTransform(self):
-        if theSettings.zup:
+        if GS.zup:
             ob = self.rna
             ob.rotation_euler[0] += math.pi/2
 
@@ -204,7 +203,7 @@ class Light(Node):
 class LightInstance(Instance):
     def __init__(self, fileref, node, struct):
         Instance.__init__(self, fileref, node, struct)
-        if theSettings.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
+        if LS.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
             self.material = InternalLightMaterial(fileref, self)
         else:
             self.material = CyclesLightMaterial(fileref, self)

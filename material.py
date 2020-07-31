@@ -36,7 +36,6 @@ from collections import OrderedDict
 from .asset import Asset
 from .channels import Channels
 from .utils import *
-from .settings import theSettings
 from .error import *
 from .fileutils import MultiFile
 from mathutils import Vector, Matrix
@@ -222,12 +221,12 @@ class Material(Asset, Channels):
 
     def getChannelDiffuse(self):
         channel = self.getChannel(["diffuse", "Diffuse Color"])
-        if (theSettings.brightenEyes != 1.0 and
+        if (LS.brightenEyes != 1.0 and
             self.name[0:6].lower() in ["irises", "sclera"]):
             if bpy.app.version < (2,80,0):
-                factor = theSettings.brightenEyes
+                factor = LS.brightenEyes
             else:
-                factor = math.sqrt(theSettings.brightenEyes)
+                factor = math.sqrt(LS.brightenEyes)
             if "value" in channel.keys():
                 channel["value"] = factor*Vector(channel["value"])
             if "current_value" in channel.keys():
@@ -517,7 +516,7 @@ def getRenderMaterial(struct, base):
     elif isinstance(base, InternalMaterial):
         return InternalMaterial
 
-    if theSettings.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
+    if LS.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
         return InternalMaterial
     else:
         return CyclesMaterial
@@ -1437,7 +1436,7 @@ def checkRenderSettings(context):
         return
 
     msg = ""
-    msg += checkSettings(engine, renderSettings, scn.DazHandleRenderSettings, "Render")
+    msg += checkSettings(engine, renderSettings, GS.handleRenderSettings, "Render")
 
     if bpy.app.version < (2,80,0):
         bpydatalamps = bpy.data.lamps
@@ -1446,7 +1445,7 @@ def checkRenderSettings(context):
         bpydatalamps = bpy.data.lights
         lamptype = "Light"
     for lamp in bpydatalamps:
-        msg += checkSettings(lamp, lightSettings, scn.DazHandleLightSettings, '%s "%s"' % (lamptype, lamp.name))
+        msg += checkSettings(lamp, lightSettings, GS.handleLightSettings, '%s "%s"' % (lamptype, lamp.name))
 
     if msg:
         msg += "See http://diffeomorphic.blogspot.com/2020/04/render-settings.html for details."
@@ -1462,7 +1461,7 @@ def checkSettings(engine, settings, handle, render):
         return msg
     header = ("%s Settings:" % render)
     ok = True
-    for key,used in theSettings.usedFeatures.items():
+    for key,used in LS.usedFeatures.items():
         if used and key in settings.keys():
             for attr,minval in settings[key]:
                 if not hasattr(engine, attr):

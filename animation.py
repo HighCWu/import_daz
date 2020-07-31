@@ -34,7 +34,6 @@ from mathutils import *
 from .error import *
 from .utils import *
 from .transform import Transform
-from .settings import theSettings
 from .globvars import theDazExtensions, theRestPoseItems
 from .formula import PoseboneDriver
 from .fileutils import MultiFile
@@ -116,8 +115,8 @@ def addFrames(bname, channel, nmax, cname, frames):
         if comp not in channel.keys():
             continue
         for t,y in channel[comp]:
-            n = t*theSettings.fps
-            if theSettings.integerFrames:
+            n = t*LS.fps
+            if LS.integerFrames:
                 n = int(round(n))
             if n not in frames.keys():
                 frame = frames[n] = {}
@@ -602,7 +601,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             return
         pb = rig.pose.bones[bname]
         if False and isFaceBoneDriven(rig, pb):
-            if theSettings.verbosity > 4:
+            if GS.verbosity > 4:
                 print("Face driven", pb.name)
             pass
         elif pb.bone.select or not self.affectSelectedOnly:
@@ -748,7 +747,7 @@ class StandardAnimation:
         scn = context.scene
         if not self.affectSelectedOnly:
             selected = selectAll(rig, True)
-        theSettings.forAnimation(self, rig, scn)
+        LS.forAnimation(self, rig, scn)
         if scn.tool_settings.use_keyframe_insert_auto:
             self.insertKeys = True
         else:

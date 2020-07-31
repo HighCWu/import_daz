@@ -33,7 +33,6 @@ import gzip
 import copy
 from .error import reportError
 from .utils import *
-from .settings import theSettings
 
 #-------------------------------------------------------------
 #   Accessor base class
@@ -129,8 +128,8 @@ class Accessor:
             reportError(msg, warnPaths=True, trigger=(3,4))
             return None
 
-        theSettings.missingAssets[ref] = True
-        if strict and theSettings.useStrict:
+        LS.missingAssets[ref] = True
+        if strict and GS.useStrict:
             msg =("Missing asset:\n  '%s'\n" % ref +
                   "Fileref\n   %s\n" % fileref +
                   "Filepath:\n  '%s'\n" % filepath +
@@ -219,7 +218,7 @@ class Accessor:
             ref2 = normalizeRef(ref2)
             if ref2 in theAssets.keys():
                 asset2 = theAssets[ref2]
-                if asset != asset2 and theSettings.verbosity > 1:
+                if asset != asset2 and GS.verbosity > 1:
                     msg = ("Duplicate asset definition\n" +
                            "  Asset 1: %s\n" % asset +
                            "  Asset 2: %s\n" % asset2 +
@@ -465,18 +464,11 @@ clearAssets()
 #   Paths
 #-------------------------------------------------------------
 
-def getDazPaths(scn):
-    filepaths = []
-    for n in range(scn.DazNumPaths):
-        filepaths.append(getattr(scn, "DazPath%d" % (n+1)))
-    return filepaths
-
-
 def setDazPaths(scn):
     from .error import DazError
     global theDazPaths
     filepaths = []
-    for path in getDazPaths(scn):
+    for path in GS.getDazPaths():
         if path:
             if not os.path.exists(path):
                 msg = ("The DAZ library path\n" +
@@ -497,6 +489,8 @@ def setDazPaths(scn):
                                 subpath = path + "/" + fname
                                 filepaths.append(subpath)
     theDazPaths = filepaths
+    print("DAZ Paths", theDazPaths)
+    halt
 
 
 def fixBrokenPath(path):
@@ -560,14 +554,14 @@ def getDazPath(ref):
     path = normalizePath(ref)
     if path[2] == ":":
         filepath = path[1:]
-        if theSettings.verbosity > 2:
+        if GS.verbosity > 2:
             print("Load", filepath)
     elif path[0] == "/":
         for folder in theDazPaths:
             filepath = folder + path
             if os.path.exists(filepath):
                 return filepath
-            elif theSettings.caseSensitivePaths:
+            elif GS.caseSensitivePaths:
                 filepath = fixBrokenPath(filepath)
                 if os.path.exists(filepath):
                     return filepath
@@ -575,11 +569,11 @@ def getDazPath(ref):
         filepath = path
 
     if os.path.exists(filepath):
-        if theSettings.verbosity > 2:
+        if GS.verbosity > 2:
             print("Found", filepath)
         return filepath
 
-    theSettings.missingAssets[ref] = True
+    LS.missingAssets[ref] = True
     msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (filepath, ref))
     reportError(msg, trigger=(3,4))
     return None
