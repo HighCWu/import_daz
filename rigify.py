@@ -751,10 +751,14 @@ def createMeta(context):
     connect = []
     for pb in meta.pose.bones:
         if "rigify_type" in pb.keys():
-            if pb["rigify_type"] == "spines.super_head":
+            if pb["rigify_type"] == "":
+                pass
+            elif pb["rigify_type"] == "spines.super_head":
                 disconnect.append(pb.name)
             elif pb["rigify_type"] == "limbs.super_finger":
                 connect += getChildren(pb)
+            elif pb["rigify_type"] == "spines.basic_spine":
+                pass
             elif pb["rigify_type"] == "basic.super_copy":
                 pass
             elif pb["rigify_type"] == "limbs.super_limb":
@@ -783,7 +787,7 @@ def createMeta(context):
     return meta
 
 
-def rigifyMeta(context):
+def rigifyMeta(context, deleteMeta):
     from .driver import getBoneDrivers, copyDriver, changeBoneTarget, changeDriverTarget
     from .node import setParent, clearParent
     from .daz import copyPropGroups
@@ -1035,7 +1039,7 @@ def rigifyMeta(context):
     name = rig.name
     activateObject(context, rig)
     deleteObject(context, rig)
-    if GS.deleteMeta:
+    if deleteMeta:
         activateObject(context, meta)
         deleteObject(context, meta)
     activateObject(context, gen)
@@ -1114,7 +1118,7 @@ def setBoneName(bone, gen):
 #  Buttons
 #-------------------------------------------------------------
 
-class DAZ_OT_RigifyDaz(DazOperator):
+class DAZ_OT_RigifyDaz(DazPropsOperator, B.Rigify):
     bl_idname = "daz.rigify_daz"
     bl_label = "Convert To Rigify"
     bl_description = "Convert active rig to rigify"
@@ -1125,6 +1129,9 @@ class DAZ_OT_RigifyDaz(DazOperator):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and not ob.DazRigifyType)
 
+    def draw(self, context):
+        self.layout.prop(self, "deleteMeta")
+
     def run(self, context):
         import time
         t1 = time.perf_counter()
@@ -1132,7 +1139,7 @@ class DAZ_OT_RigifyDaz(DazOperator):
         rig = context.object
         rname = rig.name
         createMeta(context)
-        gen = rigifyMeta(context)
+        gen = rigifyMeta(context, self.deleteMeta)
         t2 = time.perf_counter()
         print("DAZ rig %s successfully rigified in %.3f seconds" % (rname, t2-t1))
 
@@ -1163,7 +1170,7 @@ class DAZ_OT_RigifyMetaRig(DazOperator):
         return (context.object and context.object.DazRigifyType)
 
     def run(self, context):
-        rigifyMeta(context)
+        rigifyMeta(context, False)
 
 #-------------------------------------------------------------
 #   Rigify action

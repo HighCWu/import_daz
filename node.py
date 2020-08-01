@@ -641,7 +641,7 @@ class Node(Asset, Formula, Channels):
         cscale = inst.getCharacterScale()
         scn = context.scene
         if isinstance(self.data, Asset):
-            if self.data.shell and LS.mergeShells:
+            if self.data.shell and GS.mergeShells:
                 return
             ob = self.data.buildData(context, self, inst, cscale, center)
             if not isinstance(ob, bpy.types.Object):

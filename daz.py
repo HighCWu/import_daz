@@ -1014,6 +1014,7 @@ class DAZ_OT_LoadSettingsFile(DazOperator, B.SingleFile, B.JsonFile):
     def execute(self, context):
         GS.load(self.filepath)
         GS.toScene(context.scene)
+        print("Settings file %s saved" % self.filepath)
         return {'PASS_THROUGH'}
 
     def invoke(self, context, event):
@@ -1063,7 +1064,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazBuildHighdef")
         box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLockLoc")
-        box.prop(scn, "DazDeleteMeta")
         box.prop(scn, "DazMakeDrivers")
 
         box = split.box()
@@ -1093,7 +1093,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
 
     def run(self, context):
-        print("Settings")
         GS.fromScene(context.scene)
         GS.saveDefaults()
 
@@ -1265,12 +1264,6 @@ def initialize():
     bpy.types.Scene.DazShowGeneral = BoolProperty(name = "General", default = False)
     bpy.types.Scene.DazShowPaths = BoolProperty(name = "Paths To DAZ Library", default = False)
     bpy.types.Scene.DazShowSettings = BoolProperty(name = "Load/Save Settings", default = False)
-
-    bpy.types.Scene.DazDeleteMeta = BoolProperty(
-        name = "Delete Metarig",
-        description = "Delete intermediate rig after Rigify",
-        default = False
-    )
 
     bpy.types.Scene.DazFilter = StringProperty(
         name = "Filter",

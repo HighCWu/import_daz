@@ -84,7 +84,6 @@ class GlobalSettings:
         self.useLimitLoc = False
         self.useConnect = True
 
-        self.deleteMeta = True
         self.makeDrivers = 'PROPS'
         self.buildHighdef = True
         self.addFaceDrivers = True
@@ -120,7 +119,6 @@ class GlobalSettings:
         "DazUseLockRot" : "useLockRot",
         "DazUseLockLoc" : "useLockLoc",
 
-        "DazDeleteMeta" : "deleteMeta",
         "DazMakeDrivers" : "makeDrivers",
         "DazBuildHighdef" : "buildHighdef",
         "DazAddFaceDrivers" : "addFaceDrivers",
@@ -162,7 +160,10 @@ class GlobalSettings:
 
     def load(self, filepath):
         filepath = os.path.expanduser(filepath)
-        fp = open(filepath, "r", encoding="utf-8-sig")
+        try:
+            fp = open(filepath, "r", encoding="utf-8-sig")
+        except:
+            fp = None
         if fp:
             import json
             try:
@@ -177,10 +178,19 @@ class GlobalSettings:
             return
         print("Load settings from", filepath)
         if "daz-settings" in struct.keys():
-            for prop,value in struct["daz-settings"].items():
+            settings = struct["daz-settings"]
+            for prop,value in settings.items():
                 if prop in self.SceneTable.keys():
                     key = self.SceneTable[prop]
                     setattr(self, key, value)
+            self.dazpaths = []
+            for n in range(self.numpaths):
+                prop = "DazPath%d" % (n+1)
+                if prop in settings.keys():
+                    path = self.fixPath(settings[prop])
+                else:
+                    path = ""
+                self.dazpaths.append(path)
         else:
             raise DazError("Not a settings file   :\n'%s'" % filepath)
 
@@ -195,6 +205,9 @@ class GlobalSettings:
                 isinstance(value, bool) or
                 isinstance(value, str)):
                 struct[prop] = value
+        for n in range(self.numpaths):
+            path = self.fixPath(self.dazpaths[n])
+            struct["DazPath%d" % (n+1)] = path
         filepath = os.path.expanduser(filepath)
         filepath = os.path.splitext(filepath)[0] + ".json"
         saveJson({"daz-settings" : struct}, filepath)

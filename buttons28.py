@@ -228,7 +228,7 @@ class DazOptions:
     useDazBones : BoolProperty(
         name = "Daz Bones",
         description = "Match bones exactly with Daz Studio",
-        default = True)
+        default = False)
 
     useDazOrientation : BoolProperty(
         name = "Daz Orientation",
@@ -485,6 +485,13 @@ class LimitInt:
         description = "Max number of vertex group per vertex",
         default = 4,
         min = 1, max = 10
+    )
+
+class Rigify:
+    deleteMeta : BoolProperty(
+        name = "Delete Metarig",
+        description = "Delete intermediate rig after Rigify",
+        default = False
     )
 
 #-------------------------------------------------------------

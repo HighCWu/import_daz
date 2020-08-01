@@ -27,6 +27,7 @@
 
 
 import bpy
+from .settings import GS, LS
 
 def clearErrorMessage():
     global theMessage, theErrorLines

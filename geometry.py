@@ -161,6 +161,8 @@ class GeoNode(Node):
             matnums = []
             n = 0
             for mname1,mname in matnames:
+                if n >= len(matgroups):
+                    break
                 mname2,mn = matgroups[n]
                 ename = mname1.rsplit("?",1)[-1]
                 if not mname2.endswith(ename) and diff > 0:
@@ -405,7 +407,7 @@ class Geometry(Asset, Channels):
                     if "material_uvs" in extra.keys():
                         self.uvs = dict(extra["material_uvs"])
 
-            if LS.mergeShells:
+            if GS.mergeShells:
                 if inst.node2:
                     missing = self.addUvSets(inst.node2, inst.name, inst.material_group_vis)
                     for mname,shmat,uv,idx in missing:

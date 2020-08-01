@@ -486,6 +486,13 @@ class LimitInt:
         min = 1, max = 10
     )
 
+class Rigify:
+    deleteMeta = BoolProperty(
+        name = "Delete Metarig",
+        description = "Delete intermediate rig after Rigify",
+        default = False
+    )
+
 #-------------------------------------------------------------
 #   convert.py
 #-------------------------------------------------------------
