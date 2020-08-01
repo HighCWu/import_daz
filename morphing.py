@@ -379,7 +379,7 @@ def setupMorphPaths(scn, force):
             if "exclude2" in struct.keys():
                 excludes += getShortformList(struct["exclude2"])
 
-            for dazpath in GS.getDazPath():
+            for dazpath in GS.getDazPaths():
                 folderpath = os.path.join(dazpath, folder)
                 if not os.path.exists(folderpath):
                     folderpath = fixBrokenPath(folderpath)
@@ -690,7 +690,7 @@ class LoadAllMorphs(LoadMorph):
     def run(self, context):
         scn = context.scene
         setupMorphPaths(scn, False)
-        self.usePropDrivers = (scn.DazAddFaceDrivers and not self.useShapekeysOnly)
+        self.usePropDrivers = (GS.addFaceDrivers and not self.useShapekeysOnly)
         self.rig["Daz"+self.morphset] = self.char
         self.rig.DazMorphPrefixes = False
         namepaths = self.getActiveMorphFiles(context)
@@ -1367,8 +1367,8 @@ def getCustomProps(ob):
 def updatePropLimits(rig, context):
     from .driver import setFloatProp
     scn = context.scene
-    min = scn.DazPropMin
-    max = scn.DazPropMax
+    min = GS.propMin
+    max = GS.propMax
     props = getCustomProps(rig)
     for ob in rig.children:
         if ob.type == 'MESH' and ob.data.shape_keys:

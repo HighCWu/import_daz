@@ -256,7 +256,7 @@ class Figure(Node):
         rig.DazCharacterScale = cscale
         rig.DazRig = self.rigtype
 
-        if scn.DazOrientation or LS.useDazOrientation:
+        if GS.dazOrientation or LS.useDazOrientation:
             for child in inst.children.values():
                 if isinstance(child, BoneInstance):
                     child.node.buildOrientation(rig, child)

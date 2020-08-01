@@ -464,7 +464,7 @@ class CyclesTree:
             self.diffuseTex = tex
             node = self.active = self.addNode(5, "ShaderNodeBsdfDiffuse")
             self.linkColor(tex, node, color, "Color")
-            roughness = clamp( self.getValue(["Diffuse Roughness"], scn.DazDiffuseRoughness) )
+            roughness = clamp( self.getValue(["Diffuse Roughness"], GS.diffuseRoughness) )
             self.addSlot(channel, node, "Roughness", roughness, roughness, False)
             self.linkNormal(node)
             LS.usedFeatures["Diffuse"] = True

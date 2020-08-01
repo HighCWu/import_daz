@@ -1035,7 +1035,7 @@ def rigifyMeta(context):
     name = rig.name
     activateObject(context, rig)
     deleteObject(context, rig)
-    if scn.DazDeleteMeta:
+    if GS.deleteMeta:
         activateObject(context, meta)
         deleteObject(context, meta)
     activateObject(context, gen)

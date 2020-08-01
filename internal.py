@@ -46,8 +46,8 @@ class InternalMaterial(Material):
         scn = context.scene
         mat = self.rna
         mat.specular_intensity = 0.05
-        mat.diffuse_shader = scn.DazDiffuseShader
-        mat.specular_shader = scn.DazSpecularShader
+        mat.diffuse_shader = GS.diffuseShader
+        mat.specular_shader = GS.specularShader
 
         self.buildDiffuse(mat, scn)
         if self.isActive("Specular"):
@@ -106,7 +106,7 @@ class InternalMaterial(Material):
                     mtex.use_rgb_to_intensity = True
 
         channel = self.getChannelDiffuseRoughness()
-        mat.roughness = self.getChannelValue(channel, scn.DazDiffuseRoughness)
+        mat.roughness = self.getChannelValue(channel, GS.diffuseRoughness)
 
 
     def buildShellMTex(self, shell, attr, uv, colorspace):

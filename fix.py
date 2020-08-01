@@ -518,54 +518,50 @@ class DAZ_OT_AddWinder(DazOperator, IsArmature):
 #   Add To Group
 #-------------------------------------------------------------
 
-def addToGroup(context):
-    gname = context.scene.DazGroup
-    if gname in bpy.data.groups.keys():
-        group = bpy.data.groups[gname]
-    else:
-        group = bpy.data.groups.new(gname)
-    for ob in getSceneObjects(context):
-        if (getSelected(ob) and
-            ob.name not in group.objects.keys()):
-            group.objects.link(ob)
-
-
-class DAZ_OT_AddToGroup(DazOperator):
+class DAZ_OT_AddToGroup(DazPropsOperator, B.NameString):
     bl_idname = "daz.add_to_group"
     bl_label = "Add To Group"
     bl_description = "Add all selected objects to group"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "name", text="Group")
+
     def run(self, context):
-        addToGroup(context)
+        if self.name in bpy.data.groups.keys():
+            group = bpy.data.groups[self.name]
+        else:
+            group = bpy.data.groups.new(self.name)
+        for ob in getSceneObjects(context):
+            if (getSelected(ob) and
+                ob.name not in group.objects.keys()):
+                group.objects.link(ob)
 
 #-------------------------------------------------------------
 #   Remove from groups
 #-------------------------------------------------------------
 
-def removeFromGroups(context):
-    gname = context.scene.DazGroup
-    if gname in bpy.data.groups.keys():
-        groups = [bpy.data.groups[gname]]
-    elif gname == "":
-        groups = list(bpy.data.groups.values())
-    else:
-        groups = []
-    for group in groups:
-        for ob in getSceneObjects(context):
-            if (getSelected(ob) and
-                ob.name in group.objects.keys()):
-                group.objects.unlink(ob)
-
-
-class DAZ_OT_RemoveFromGroups(DazOperator):
+class DAZ_OT_RemoveFromGroups(DazPropsOperator, B.NameString):
     bl_idname = "daz.remove_from_groups"
     bl_label = "Remove From Group(s)"
     bl_description = "Remove selected objects from group (or all groups if none given)"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "name", text="Group")
+
     def run(self, context):
-        removeFromGroups(context)
+        if self.name in bpy.data.groups.keys():
+            groups = [bpy.data.groups[self.name]]
+        elif self.name == "":
+            groups = list(bpy.data.groups.values())
+        else:
+            groups = []
+        for group in groups:
+            for ob in getSceneObjects(context):
+                if (getSelected(ob) and
+                    ob.name in group.objects.keys()):
+                    group.objects.unlink(ob)
 
 #----------------------------------------------------------
 #   Initialize

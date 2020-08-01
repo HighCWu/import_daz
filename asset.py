@@ -129,7 +129,7 @@ class Accessor:
             return None
 
         LS.missingAssets[ref] = True
-        if strict and GS.useStrict:
+        if strict and LS.useStrict:
             msg =("Missing asset:\n  '%s'\n" % ref +
                   "Fileref\n   %s\n" % fileref +
                   "Filepath:\n  '%s'\n" % filepath +
@@ -489,8 +489,7 @@ def setDazPaths(scn):
                                 subpath = path + "/" + fname
                                 filepaths.append(subpath)
     theDazPaths = filepaths
-    print("DAZ Paths", theDazPaths)
-    halt
+    print("DAZ Root Paths", theDazPaths)
 
 
 def fixBrokenPath(path):

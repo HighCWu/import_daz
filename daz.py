@@ -460,7 +460,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
                 box.separator()
                 box.operator("daz.add_to_group")
                 box.operator("daz.remove_from_groups")
-                box.prop(scn, "DazGroup")
 
         layout.separator()
         box = layout.box()
@@ -508,103 +507,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.update_hair")
             box.operator("daz.color_hair")
             #box.operator("daz.connect_hair")
-
-
-class DAZ_PT_Settings(bpy.types.Panel):
-    bl_label = "Settings"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = Region
-    bl_category = "DAZ"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        scn = context.scene
-        layout = self.layout
-
-        layout.separator()
-        box = layout.box()
-        if not scn.DazShowSettings:
-            box.prop(scn, "DazShowSettings", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowSettings", icon="DOWNARROW_HLT", emboss=False)
-            box.operator("daz.load_factory_settings")
-            box.operator("daz.save_default_settings")
-            box.operator("daz.load_default_settings")
-            box.operator("daz.save_settings_file")
-            box.operator("daz.load_settings_file")
-
-        layout.separator()
-        box = layout.box()
-        if not scn.DazShowPaths:
-            box.prop(scn, "DazShowPaths", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowPaths", icon="DOWNARROW_HLT", emboss=False)
-            box.prop(scn, "DazNumPaths")
-            for n in range(scn.DazNumPaths):
-                box.prop(scn, "DazPath%d" % (n+1), text="")
-            box.label(text = "Path to output errors:")
-            box.prop(scn, "DazErrorPath", text="")
-
-        layout.separator()
-        box = layout.box()
-        if not scn.DazShowGeneral:
-            box.prop(scn, "DazShowGeneral", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowGeneral", icon="DOWNARROW_HLT", emboss=False)
-            box.prop(scn, "DazVerbosity")
-            from .error import getSilentMode
-            if getSilentMode():
-                box.operator("daz.set_silent_mode", text="Silent Mode ON")
-            else:
-                box.operator("daz.set_silent_mode", text="Silent Mode OFF")
-            box.separator()
-            box.prop(scn, "DazPropMin")
-            box.prop(scn, "DazPropMax")
-            box.prop(scn, "DazUsePropLimits")
-            box.prop(scn, "DazUsePropDefault")
-            box.separator()
-            box.prop(scn, "DazZup")
-            box.prop(scn, "DazOrientation")
-            box.prop(scn, "DazCaseSensitivePaths")
-
-        layout.separator()
-        box = layout.box()
-        if not scn.DazShowRiggingSettings:
-            box.prop(scn, "DazShowRiggingSettings", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowRiggingSettings", icon="DOWNARROW_HLT", emboss=False)
-            box.prop(scn, "DazAddFaceDrivers")
-            box.prop(scn, "DazBuildHighdef")
-            box.prop(scn, "DazUseLockRot")
-            box.prop(scn, "DazUseLockLoc")
-            #box.prop(scn, "DazUseLimitRot")
-            #box.prop(scn, "DazUseLimitLoc")
-            box.prop(scn, "DazDeleteMeta")
-            box.prop(scn, "DazMakeDrivers")
-
-        layout.separator()
-        box = layout.box()
-        if not scn.DazShowMaterialSettings:
-            box.prop(scn, "DazShowMaterialSettings", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowMaterialSettings", icon="DOWNARROW_HLT", emboss=False)
-            box.prop(scn, "DazChooseColors")
-            box.prop(scn, "DazMergeShells")
-            box.prop(scn, "DazLimitBump")
-            if scn.DazLimitBump:
-                box.prop(scn, "DazMaxBump")
-            box.prop(scn, "DazHandleRenderSettings")
-            box.prop(scn, "DazHandleLightSettings")
-            box.separator()
-            box.prop(scn, "DazUseDisplacement")
-            box.prop(scn, "DazUseEmission")
-            box.prop(scn, "DazUseReflection")
-            if bpy.app.version < (2,80,0):
-                box.separator()
-                box.prop(scn, "DazDiffuseShader")
-                box.prop(scn, "DazSpecularShader")
-                box.prop(scn, "DazDiffuseRoughness")
-                box.prop(scn, "DazSpecularRoughness")
 
 
 class DAZ_PT_Utils(bpy.types.Panel):
@@ -1137,8 +1039,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
             box.prop(scn, "DazPath%d" % (n+1), text="")
         box.label(text = "Path To Output Errors:")
         box.prop(scn, "DazErrorPath", text="")
-        box.label(text = "Global Settings Path:")
-        box.prop(scn, "DazSettingsPath", text="")
 
         col = split.column()
         box = col.box()
@@ -1163,8 +1063,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazBuildHighdef")
         box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLockLoc")
-        #box.prop(scn, "DazUseLimitRot")
-        #box.prop(scn, "DazUseLimitLoc")
         box.prop(scn, "DazDeleteMeta")
         box.prop(scn, "DazMakeDrivers")
 
@@ -1233,7 +1131,6 @@ classes = [
 
     DAZ_PT_Setup,
     DAZ_PT_Advanced,
-    DAZ_PT_Settings,
     DAZ_PT_Utils,
     DAZ_PT_Addons,
     DAZ_PT_Posing,
@@ -1266,58 +1163,28 @@ def initialize():
         name = "Error Path",
         description = "Path to error report file")
 
-    bpy.types.Scene.DazSettingsPath = StringProperty(
-        name = "Settings Path",
-        description = "File where global settings are stored")
-
     bpy.types.Scene.DazVerbosity = IntProperty(
         name = "Verbosity",
         description = "Controls the number of warning messages when loading files",
         min=1, max = 5)
 
-    bpy.types.Scene.DazStrictMorphs = BoolProperty(
-        name = "Strict Morphs",
-        description = "Require that mesh and morph vertex counts are equal",
-        default = True)
-
-    bpy.types.Scene.DazLoadAllMorphs = BoolProperty(
-        name = "Load All Morphs",
-        description = "Load all morphs in selected directory",
-        default = False)
-
     bpy.types.Scene.DazPropMin = FloatProperty(
         name = "Property Minima",
         description = "Minimum value of properties",
-        min = -10.0, max = 0.0,
-        default = -1.0)
+        min = -10.0, max = 0.0)
 
     bpy.types.Scene.DazPropMax = FloatProperty(
         name = "Property Maxima",
         description = "Maximum value of properties",
-        min = 0.0, max = 10.0,
-        default = 1.0)
+        min = 0.0, max = 10.0)
 
     bpy.types.Scene.DazUsePropLimits = BoolProperty(
         name = "DAZ Property Limits",
-        description = "Use the minima and maxima from DAZ files if available",
-        default = True)
+        description = "Use the minima and maxima from DAZ files if available")
 
     bpy.types.Scene.DazUsePropDefault = BoolProperty(
         name = "DAZ Property Defaults",
-        description = "Use the default values from DAZ files as default slider values.",
-        default = True)
-
-    bpy.types.Scene.DazShareThreshold = FloatProperty(
-        name = "Sharing Threshold",
-        description = "Maximum allowed distance for sharing meshes",
-        min = 0.0, max = 0.01,
-        precision = 5,
-        default = 0.001)
-
-    bpy.types.Scene.DazGroup = StringProperty(
-        name = "Group",
-        description = "Add/Remove objects to/from this group",
-        default = "Group")
+        description = "Use the default values from DAZ files as default slider values.")
 
     bpy.types.Object.DazId = StringProperty(
         name = "ID",
@@ -1416,28 +1283,15 @@ def initialize():
                  ('GUESS', "Guess", "Guess colors based on name"),
                  ],
         name = "Color Choice",
-        description = "Method to use object colors",
-        default = 'GUESS')
+        description = "Method to use object colors")
 
     bpy.types.Scene.DazUseLockRot = BoolProperty(
         name = "Rotation Locks",
-        description = "Use rotation locks",
-        default = True)
+        description = "Use rotation locks")
 
     bpy.types.Scene.DazUseLockLoc = BoolProperty(
         name = "Location Locks",
-        description = "Use location locks",
-        default = True)
-
-    bpy.types.Scene.DazUseLimitRot = BoolProperty(
-        name = "Limit Rotation",
-        description = "Create Limit Rotation constraints",
-        default = False)
-
-    bpy.types.Scene.DazUseLimitLoc = BoolProperty(
-        name = "Limit Location",
-        description = "Create Limit Location constraints",
-        default = False)
+        description = "Use location locks")
 
     bpy.types.Scene.DazZup = BoolProperty(
         name = "Z Up",
@@ -1449,16 +1303,13 @@ def initialize():
         description = "Treat bones as nodes with same orientation as in Daz Studio",
         default = False)
 
-    from sys import platform
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(
         name = "Case-Sensitive Paths",
-        description = "Convert URLs to lowercase. Works best on Windows.",
-        default = (platform != 'win32'))
+        description = "Convert URLs to lowercase. Works best on Windows.")
 
     bpy.types.Scene.DazAddFaceDrivers = BoolProperty(
         name = "Add Face Drivers",
-        description = "Add drivers to facial morphs. Only for Genesis 1 and 2.",
-        default = True)
+        description = "Add drivers to facial morphs. Only for Genesis 1 and 2.")
 
     bpy.types.Scene.DazMakeDrivers = EnumProperty(
         items = [('NONE', "None", "Never make drivers"),
@@ -1467,55 +1318,45 @@ def initialize():
                  ('ALL', "All", "Make drivers for all figures"),
                  ],
         name = "Make Drivers",
-        description = "Make drivers for formulas",
-        default = 'PROPS')
+        description = "Make drivers for formulas")
 
     bpy.types.Scene.DazBuildHighdef = BoolProperty(
         name = "Build HD Meshes",
-        description = "Build HD meshes if included in .dbz file",
-        default = True)
+        description = "Build HD meshes if included in .dbz file")
 
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shells",
-        description = "Merge shell materials with object material",
-        default = True)
+        description = "Merge shell materials with object materials")
 
     bpy.types.Scene.DazMaxBump = FloatProperty(
         name = "Max Bump Strength",
         description = "Max bump strength",
-        default = 2.0,
         min = 0.1, max = 10)
 
     bpy.types.Scene.DazLimitBump = BoolProperty(
         name = "Limit Bump Strength",
-        description = "Limit the bump strength",
-        default = False)
+        description = "Limit the bump strength")
 
     bpy.types.Scene.DazUseDisplacement = BoolProperty(
         name = "Displacement",
-        description = "Use displacement maps. Affects internal renderer only",
-        default = True)
+        description = "Use displacement maps. Affects internal renderer only")
 
     bpy.types.Scene.DazUseEmission = BoolProperty(
         name = "Emission",
-        description = "Use emission.",
-        default = True)
+        description = "Use emission.")
 
     bpy.types.Scene.DazUseReflection = BoolProperty(
         name = "Reflection",
-        description = "Use reflection maps. Affects internal renderer only",
-        default = True)
+        description = "Use reflection maps. Affects internal renderer only")
 
     bpy.types.Scene.DazDiffuseRoughness = FloatProperty(
         name = "Diffuse Roughness",
         description = "Default diffuse roughness",
-        default = 0.3,
         min = 0, max = 1.0)
 
     bpy.types.Scene.DazSpecularRoughness = FloatProperty(
         name = "Specular Roughness",
         description = "Default specular roughness",
-        default = 0.3,
         min = 0, max = 1.0)
 
     bpy.types.Scene.DazDiffuseShader = EnumProperty(
@@ -1527,8 +1368,7 @@ def initialize():
             ('LAMBERT', "Lambert", "")
         ],
         name = "Diffuse Shader",
-        description = "Diffuse shader (Blender Internal)",
-        default = 'OREN_NAYAR')
+        description = "Diffuse shader (Blender Internal)")
 
     bpy.types.Scene.DazSpecularShader = EnumProperty(
         items = [
@@ -1539,8 +1379,7 @@ def initialize():
             ('COOKTORR', "CookTorr", "")
         ],
         name = "Specular Shader",
-        description = "Specular shader (Blender Internal)",
-        default = 'BLINN')
+        description = "Specular shader (Blender Internal)")
 
     bpy.types.Material.DazRenderEngine = StringProperty(default='NONE')
     bpy.types.Material.DazShader = StringProperty(default='NONE')
