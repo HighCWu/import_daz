@@ -300,7 +300,7 @@ def instRef(ref):
 
 
 def tolower(url):
-    if not theSettings.caseSensitivePaths:
+    if not GS.caseSensitivePaths:
         return url.lower()
     else:
         return url
@@ -402,10 +402,10 @@ def getCoord(p):
 
 
 def d2b90(v):
-    return theSettings.scale*Vector((v[0], -v[2], v[1]))
+    return GS.scale*Vector((v[0], -v[2], v[1]))
 
 def b2d90(v):
-    return Vector((v[0], v[2], -v[1]))/theSettings.scale
+    return Vector((v[0], v[2], -v[1]))/GS.scale
 
 def d2b90u(v):
     return Vector((v[0], -v[2], v[1]))
@@ -415,10 +415,10 @@ def d2b90s(v):
 
 
 def d2b00(v):
-    return theSettings.scale*Vector(v)
+    return GS.scale*Vector(v)
 
 def b2d00(v):
-    return Vector(v)/theSettings.scale
+    return Vector(v)/GS.scale
 
 def d2b00u(v):
     return Vector(v)
@@ -428,25 +428,25 @@ def d2b00s(v):
 
 
 def d2b(v):
-    if theSettings.zup:
+    if GS.zup:
         return d2b90(v)
     else:
         return d2b00(v)
 
 def b2d(v):
-    if theSettings.zup:
+    if GS.zup:
         return b2d90(v)
     else:
         return b2d00(v)
 
 def d2bu(v):
-    if theSettings.zup:
+    if GS.zup:
         return d2b90u(v)
     else:
         return d2b00u(v)
 
 def d2bs(v):
-    if theSettings.zup:
+    if GS.zup:
         return d2b90s(v)
     else:
         return d2b00s(v)

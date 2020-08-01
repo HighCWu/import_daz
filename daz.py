@@ -1075,6 +1075,51 @@ class DAZ_PT_Visibility(DAZ_PT_Hide, bpy.types.Panel):
 #   Settings popup
 #-------------------------------------------------------------
 
+class DAZ_OT_SaveSettingsFile(DazOperator, B.SingleFile, B.JsonExportFile):
+    bl_idname = "daz.save_settings_file"
+    bl_label = "Save Settings File"
+    bl_description = "Save current settings to file"
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        GS.fromScene(context.scene)
+        GS.save(self.filepath)
+        return {'PASS_THROUGH'}
+
+    def invoke(self, context, event):
+        self.properties.filepath = os.path.dirname(GS.settingsPath)
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
+class DAZ_OT_LoadFactorySettings(DazOperator):
+    bl_idname = "daz.load_factory_settings"
+    bl_label = "Load Factory Settings"
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        GS.__init__()
+        GS.toScene(context.scene)
+        return {'PASS_THROUGH'}
+
+
+class DAZ_OT_LoadSettingsFile(DazOperator, B.SingleFile, B.JsonFile):
+    bl_idname = "daz.load_settings_file"
+    bl_label = "Load Settings File"
+    bl_description = "Load settings from file"
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        GS.load(self.filepath)
+        GS.toScene(context.scene)
+        return {'PASS_THROUGH'}
+
+    def invoke(self, context, event):
+        self.properties.filepath = os.path.dirname(GS.settingsPath)
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
 class DAZ_OT_GlobalSettings(DazOperator):
     bl_idname = "daz.global_settings"
     bl_label = "Global Settings"
@@ -1086,16 +1131,20 @@ class DAZ_OT_GlobalSettings(DazOperator):
         col = split.column()
         box = col.box()
         box.label(text = "DAZ Root Paths")
+        box.prop(scn, "DazCaseSensitivePaths")
         box.prop(scn, "DazNumPaths")
         for n in range(scn.DazNumPaths):
             box.prop(scn, "DazPath%d" % (n+1), text="")
-        box.label(text = "Path to output errors:")
+        box.label(text = "Path To Output Errors:")
         box.prop(scn, "DazErrorPath", text="")
+        box.label(text = "Global Settings Path:")
+        box.prop(scn, "DazSettingsPath", text="")
 
         col = split.column()
         box = col.box()
         box.label(text = "General")
         box.prop(scn, "DazVerbosity")
+        box.prop(scn, "DazZup")
         from .error import getSilentMode
         if getSilentMode():
             box.operator("daz.set_silent_mode", text="Silent Mode ON")
@@ -1106,9 +1155,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazPropMax")
         box.prop(scn, "DazUsePropLimits")
         box.prop(scn, "DazUsePropDefault")
-        box.separator()
-        box.prop(scn, "DazZup")
-        box.prop(scn, "DazCaseSensitivePaths")
 
         col = split.column()
         box = col.box()
@@ -1151,6 +1197,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
     def run(self, context):
         print("Settings")
         GS.fromScene(context.scene)
+        GS.saveDefaults()
 
 
     def invoke(self, context, event):
@@ -1173,12 +1220,16 @@ def updateHandler(scn):
 
 classes = [
     ImportDAZ,
-    DAZ_OT_GlobalSettings,
     DazMorphGroup,
     B.DazStringGroup,
     DAZ_OT_InspectPropGroups,
     DAZ_OT_InspectPropDependencies,
     DAZ_OT_SetSilentMode,
+
+    DAZ_OT_LoadFactorySettings,
+    DAZ_OT_SaveSettingsFile,
+    DAZ_OT_LoadSettingsFile,
+    DAZ_OT_GlobalSettings,
 
     DAZ_PT_Setup,
     DAZ_PT_Advanced,
@@ -1200,6 +1251,29 @@ classes = [
 ]
 
 def initialize():
+    bpy.types.Scene.DazNumPaths = IntProperty(
+        name = "Number Of DAZ Paths",
+        description = "The number of DAZ library paths",
+        min=1, max = 9)
+
+    for n in range(1, 10):
+        setattr(bpy.types.Scene, "DazPath%d" % n,
+            StringProperty(
+                name = "DAZ Path %d" % n,
+                description = "Search path for DAZ Studio assets"))
+
+    bpy.types.Scene.DazErrorPath = StringProperty(
+        name = "Error Path",
+        description = "Path to error report file")
+
+    bpy.types.Scene.DazSettingsPath = StringProperty(
+        name = "Settings Path",
+        description = "File where global settings are stored")
+
+    bpy.types.Scene.DazVerbosity = IntProperty(
+        name = "Verbosity",
+        description = "Controls the number of warning messages when loading files",
+        min=1, max = 5)
 
     bpy.types.Scene.DazStrictMorphs = BoolProperty(
         name = "Strict Morphs",

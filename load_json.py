@@ -80,7 +80,7 @@ def saveJson(struct, filepath, binary=False):
     else:
         import codecs
         string = encodeJsonData(struct, "")
-        with codecs.open(filepath, "w", encoding="utf_8") as fp:
+        with codecs.open(filepath, "w", encoding="utf_8_sig") as fp:
             fp.write(string)
             fp.write("\n")
 

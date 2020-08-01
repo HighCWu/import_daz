@@ -32,12 +32,25 @@
 import os
 import bpy
 
+#-------------------------------------------------------------
+#   Local settings
+#-------------------------------------------------------------
+
 class GlobalSettings:
     def __init__(self):
-        self.numpaths = 0
-        self.dazpaths = []
+        self.numpaths = 3
+        self.dazpaths = [
+            "~/Documents/DAZ 3D/Studio/My Library",
+            "C:/Users/Public/Documents/My DAZ 3D Library",
+            "C:/Program Files/DAZ 3D/DAZStudio4/shaders/iray",
+        ]
+        self.errorPath = "~/Documents/daz_importer_errors.txt"
+        if bpy.app.version < (2,80,0):
+            self.settingsPath = "~/import-daz-settings-27x.json"
+        else:
+            self.settingsPath = "~/import-daz-settings-28x.json"
 
-        self.verbosity = 1
+        self.verbosity = 2
         self.zup = True
         self.chooseColors = 'GUESS'
         self.dazOrientation = False
@@ -63,10 +76,9 @@ class GlobalSettings:
 
         self.useLockRot = True
         self.useLockLoc = True
-        self.useLimitRot = True
-        self.useLimitLoc = True
+        self.useLimitRot = False
+        self.useLimitLoc = False
         self.useConnect = True
-        self.errorPath = ""
 
 
     SceneTable = {
@@ -74,6 +86,7 @@ class GlobalSettings:
         "DazVerbosity" : "verbosity",
         "DazZup" : "zup",
         "DazErrorPath" : "errorPath",
+        "DazSettingsPath" : "settingsPath",
         "DazCaseSensitivePaths" : "caseSensitivePaths",
 
         "DazChooseColors" : "chooseColors",
@@ -110,7 +123,12 @@ class GlobalSettings:
         self.dazpaths = []
         for n in range(self.numpaths):
             path = getattr(scn, "DazPath%d" % (n+1))
+            path = os.path.expanduser(path).replace("\\", "/")
             self.dazpaths.append(path)
+        path = getattr(scn, "DazErrorPath")
+        self.errorPath = os.path.expanduser(path).replace("\\", "/")
+        path = getattr(scn, "DazSettingsPath")
+        self.settingsPath = os.path.expanduser(path).replace("\\", "/")
 
 
     def toScene(self, scn):
@@ -120,13 +138,98 @@ class GlobalSettings:
                 setattr(scn, prop, value)
             else:
                 print("MIS", prop, key)
+        if self.numpaths > len(self.dazpaths):
+            self.numpaths = len(self.dazpaths)
         for n in range(self.numpaths):
-            setattr(scn, "DazPath%d" % (n+1), self.dazpaths[n])
+            path = self.dazpaths[n]
+            path = os.path.expanduser(path).replace("\\", "/")
+            setattr(scn, "DazPath%d" % (n+1), path)
+        path = os.path.expanduser(self.errorPath).replace("\\", "/")
+        setattr(scn, "DazErrorPath", path)
+        path = os.path.expanduser(self.settingsPath).replace("\\", "/")
+        setattr(scn, "DazSettingsPath", path)
+
+
+    def load(self, filepath):
+        filepath = os.path.expanduser(filepath)
+        fp = open(filepath, "r", encoding="utf-8-sig")
+        if fp:
+            import json
+            try:
+                struct = json.load(fp)
+            except json.decoder.JSONDecodeError as err:
+                print("File %s is corrupt" % filepath)
+                print("Error: %s" % err)
+                return
+            finally:
+                fp.close()
+        else:
+            return
+        print("Load settings from", filepath)
+        if "daz-settings" in struct.keys():
+            for prop,value in struct["daz-settings"].items():
+                if prop in self.SceneTable.keys():
+                    key = self.SceneTable[prop]
+                    setattr(self, key, value)
+        else:
+            raise DazError("Not a settings file   :\n'%s'" % filepath)
+
+
+    def save(self, filepath):
+        from .load_json import saveJson
+        struct = {}
+        for key in dir(self):
+            if key[0] == "_":
+                continue
+            value = getattr(self, key)
+            if (isinstance(value, int) or
+                isinstance(value, float) or
+                isinstance(value, bool) or
+                isinstance(value, str)):
+                struct[key] = value
+        filepath = os.path.expanduser(filepath)
+        filepath = os.path.splitext(filepath)[0] + ".json"
+        saveJson({"daz-settings" : struct}, filepath)
+        print("Settings file %s saved" % filepath)
+
+
+    def loadDefaults(self):
+        self.load(self.settingsPath)
+
+
+    def saveDefaults(self):
+        self.save(self.settingsPath)
 
 
     def getDazPaths(self):
         return self.dazpaths[0:self.numpaths]
 
+#-------------------------------------------------------------
+#   Path to Documents folder on various Windows systems
+#-------------------------------------------------------------
+
+def getMyDocuments():
+    import sys
+    if sys.platform == 'win32':
+        import winreg
+        try:
+            k = winreg.HKEY_CURRENT_USER
+            for x in ['Software', 'Microsoft', 'Windows', 'CurrentVersion', 'Explorer', 'Shell Folders']:
+                k = winreg.OpenKey(k, x)
+
+            name, type = winreg.QueryValueEx(k, 'Personal')
+
+            if type == 1:
+                #print("Found My Documents folder: %s" % name)
+                return name
+        except Exception as e:
+            print("Did not find path to My Documents folder")
+
+    return os.path.expanduser("~")
+
+#-------------------------------------------------------------
+#   Local settings
+#-------------------------------------------------------------
 
 class LocalSettings:
     def __init__(self):

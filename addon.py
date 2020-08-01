@@ -52,11 +52,10 @@ def loadEnabledAddons():
 
 
 def getAddonsList():
-    from .fileutils import getHomeDir
     if bpy.app.version < (2,80,0):
-        return getHomeDir() + "/import-daz-addons-27x.json"
+        return os.path.expanduser("~/import-daz-addons-27x.json")
     else:
-        return getHomeDir() + "/import-daz-addons-28x.json"
+        return os.path.expanduser("~/import-daz-addons-28x.json")
 
 
 def loadAllAddons():
@@ -171,7 +170,7 @@ class DAZ_OT_SaveAddons(DazOperator, B.NameString):
 
     def run(self, context):
         import json
-        from .fileutils import getHomeDir, safeOpen
+        from .fileutils import safeOpen
         addons = []
         for key in theAddons.keys():
             _,enabled,show,_ = theAddons[key]

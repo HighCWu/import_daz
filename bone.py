@@ -33,7 +33,6 @@ from mathutils import *
 from .asset import *
 from .utils import *
 from .transform import Transform
-from .settings import theSettings
 from .error import *
 from .node import Node, Instance
 
@@ -492,7 +491,7 @@ class BoneInstance(Instance):
 
         if GS.useLockRot:
             self.setRotationLock(pb)
-        if theSettings.useLockLoc:
+        if GS.useLockLoc:
             self.setLocationLock(pb)
 
         for child in self.children.values():
@@ -719,7 +718,7 @@ class Bone(Node):
         eb = rig.data.edit_bones[self.name]
         orient = Vector(inst.attributes["orientation"])
         mat = Euler(orient*D, 'XYZ').to_matrix()
-        if theSettings.useDazOrientation:
+        if LS.useDazOrientation:
             vec = eb.tail - eb.head
             projs = []
             for n in range(3):

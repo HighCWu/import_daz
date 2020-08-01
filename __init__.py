@@ -103,7 +103,6 @@ def register():
     daz.initialize()
     driver.initialize()
     figure.initialize()
-    fileutils.initialize()
     finger.initialize()
     fix.initialize()
     fkik.initialize()
@@ -131,6 +130,8 @@ def register():
     else:
         bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 
+    settings.GS.loadDefaults()
+
 
 def unregister():
     animation.uninitialize()
@@ -138,7 +139,6 @@ def unregister():
     daz.uninitialize()
     driver.uninitialize()
     figure.uninitialize()
-    fileutils.uninitialize()
     finger.uninitialize()
     fix.uninitialize()
     fkik.uninitialize()
@@ -165,7 +165,6 @@ def unregister():
         bpy.types.INFO_MT_file_import.remove(menu_func_import)
     else:
         bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
-
 
 
 if __name__ == "__main__":
