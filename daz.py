@@ -250,7 +250,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
     bl_label = "Setup (version 1.5.0)"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
 
     def draw(self, context):
         scn = context.scene
@@ -380,7 +380,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
     bl_label = "Advanced Setup"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -513,7 +513,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
     bl_label = "Utilities"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -545,7 +545,7 @@ class DAZ_PT_Addons(bpy.types.Panel):
     bl_label = "Add-Ons"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -588,7 +588,7 @@ class DAZ_PT_Posing(bpy.types.Panel):
     bl_label = "Posing"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
@@ -715,7 +715,7 @@ class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Face Units"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     morphset = "Units"
@@ -725,7 +725,7 @@ class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Expressions"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     morphset = "Expressions"
@@ -735,7 +735,7 @@ class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Visemes"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     morphset = "Visemes"
@@ -749,7 +749,7 @@ class DAZ_PT_BodyMorphs(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Body Morphs"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     morphset = "Body"
@@ -762,7 +762,7 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Custom Morphs"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     morphset = "Custom"
@@ -804,7 +804,7 @@ class DAZ_PT_MhxLayers(bpy.types.Panel):
     bl_label = "MHX Layers"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
@@ -841,7 +841,7 @@ class DAZ_PT_MhxFKIK(bpy.types.Panel):
     bl_label = "MHX FK/IK Switch"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
@@ -916,7 +916,7 @@ class DAZ_PT_MhxProperties(bpy.types.Panel):
     bl_label = "MHX Properties"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
@@ -963,7 +963,7 @@ class DAZ_PT_Visibility(DAZ_PT_Hide, bpy.types.Panel):
     bl_label = "Visibility"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
-    bl_category = "DAZ"
+    bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
     prefix = "Mhh"
