@@ -196,8 +196,11 @@ class DAZ_OT_DecodeFile(DazOperator, B.DazFile, B.SingleFile):
         try:
             with gzip.open(self.filepath, 'rb') as fp:
                 bytes = fp.read()
-        except IOError:
-            raise DazError("Cannot decode:\n%s" % self.filepath)
+        except IOError as err:
+            msg = ("Cannot decode:\n%s" % self.filepath +
+                   "Error: %s" % err)
+            print(msg)
+            raise DazError(msg)
         string = bytes.decode("utf_8_sig")
         newfile = self.filepath + ".txt"
         with safeOpen(newfile, "w") as fp:
