@@ -397,8 +397,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.split_ngons")
             box.operator("daz.quadify")
             box.separator()
-            box.operator("daz.select_random_strands")
-            box.separator()
             box.operator("daz.add_push")
             box.operator("daz.add_subsurf")
             box.separator()
@@ -494,6 +492,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         else:
             box.prop(scn, "DazShowHair", icon="DOWNARROW_HLT", emboss=False)
             from .hair import getHairAndHuman
+            box.operator("daz.select_random_strands")
+            box.separator()
             box.operator("daz.make_hair")
             hair,hum = getHairAndHuman(context, False)
             box.label(text = "  Hair:  %s" % (hair.name if hair else None))

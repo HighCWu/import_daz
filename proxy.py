@@ -1059,7 +1059,8 @@ class DAZ_OT_FindSeams(DazOperator, IsMesh):
 class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
     bl_idname = "daz.select_random_strands"
     bl_label = "Select Random Strands"
-    bl_description = "Select random subset of strands selected in UV space"
+    bl_description = ("Select random subset of strands selected in UV space.\n" +
+                      "Useful for reducing the number of strands before making particle hair")
     bl_options = {'UNDO'}
 
     def draw(self, context):
