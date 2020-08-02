@@ -344,36 +344,39 @@ class DAZ_OT_CreateGraftGroups(DazOperator):
 #   Merge UV sets
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeUVLayers(DazOperator, IsMesh):
+class DAZ_OT_MergeUVLayers(DazPropsOperator, IsMesh, B.MergeUVLayers):
     bl_idname = "daz.merge_uv_layers"
     bl_label = "Merge UV Layers"
-    bl_description = "Merge active UV layer with render UV layer"
+    bl_description = "Merge two UV layers"
     bl_options = {'UNDO'}
+    
+    def draw(self, context):
+        self.layout.prop(self, "layer1")
+        self.layout.prop(self, "layer2")
+
 
     def run(self, context):
         me = context.object.data
-        actIdx = rndIdx = 0
-        for n,uvtex in enumerate(getUvTextures(me).values()):
-            if uvtex.active:
-                actIdx = n
-            if uvtex.active_render:
-                rndIdx = n
-        if actIdx == rndIdx:
-            raise DazError("Active and render UV textures are equal")
-        render = me.uv_layers[rndIdx]
-        for n,data in enumerate(me.uv_layers[actIdx].data):
+        keepIdx = int(self.layer1)
+        mergeIdx = int(self.layer2)
+        if keepIdx == mergeIdx:
+            raise DazError("Keep and merge UV layers are equal")
+        keepLayer = me.uv_layers[keepIdx]
+        mergeLayer = me.uv_layers[mergeIdx]
+        for n,data in enumerate(mergeLayer.data):
             if data.uv.length > 1e-6:
-                render.data[n].uv = data.uv
+                keepLayer.data[n].uv = data.uv
 
-        uvtex = getUvTextures(me).active
-        actname = uvtex.name
-        rndname = render.name
         for mat in me.materials:
             if mat.use_nodes:
-                replaceNodeNames(mat, actname, rndname)
+                replaceNodeNames(mat, mergeLayer.name, keepLayer.name)
 
-        getUvTextures(me).active_index = rndIdx
-        getUvTextures(me).remove(uvtex)
+        if bpy.app.version < (2,80,0):
+            me.uv_textures.active_index = keepIdx
+            me.uv_textures.remove(me.uv_textures[mergeIdx])
+        else:
+            me.uv_layers.active_index = keepIdx
+            me.uv_layers.remove(mergeLayer)
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')

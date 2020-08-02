@@ -373,6 +373,27 @@ class MergeRigs:
         min = 1, max = 32,
         default = 3)
 
+
+def getUVTextures(scn, context):
+    ob = context.object
+    enums = []
+    for n,uv in enumerate(ob.data.uv_textures):
+        ename = "%s (%d)" % (uv.name, n)
+        enums.append((str(n), ename, ename))
+    return enums
+
+
+class MergeUVLayers:
+    layer1 = EnumProperty(
+        items = getUVTextures,
+        name = "Layer To Keep",
+        description = "UV layer that the other layer is merged with")
+        
+    layer2 = EnumProperty(
+        items = getUVTextures,
+        name = "Layer To Merge",
+        description = "UV layer that is merged with the other layer")
+        
 #-------------------------------------------------------------
 #   morphing.py
 #-------------------------------------------------------------
