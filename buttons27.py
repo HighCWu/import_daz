@@ -530,6 +530,13 @@ class SingleProp:
         description = "Mask name",
         default = "All")
 
+
+class ActiveMesh:    
+    activeMesh = EnumProperty(
+        items = G.getActiveMesh,
+        name = "Active Mesh",
+        description = "Active mesh")
+  
 #-------------------------------------------------------------
 #   proxy.py
 #-------------------------------------------------------------

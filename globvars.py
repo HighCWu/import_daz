@@ -53,6 +53,17 @@ for file in os.listdir(theRestPoseFolder):
     theRestPoseItems.append((fname, name, name))
 
 #-------------------------------------------------------------
+#   hide.py
+#-------------------------------------------------------------
+
+def getActiveMesh(scn, context):
+    enums = []
+    for ob in context.object.children:
+        if ob.type == 'MESH':
+            enums.append((ob.name, ob.name, ob.name))
+    return enums
+
+#-------------------------------------------------------------
 #   morphing.py
 #-------------------------------------------------------------
 

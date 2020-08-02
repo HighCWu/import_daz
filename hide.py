@@ -39,9 +39,54 @@ def getMaskName(string):
 def getHidePropName(string):
     return "Mhh" + string.split(".",1)[0]
 
-def getHideMannequinName():
+def isHideProp(string):
+    return (string[0:3] == "Mhh")
+
+def getMannequinName(string):
     return "MhhMannequin"
 
+#------------------------------------------------------------------------
+#   Object selection
+#------------------------------------------------------------------------
+
+class ObjectSelection(B.SingleProp):
+    def draw(self, context):
+        row = self.layout.row()
+        row.operator("daz.select_all")
+        row.operator("daz.select_none")
+        for pg in context.scene.DazSelector:
+            row = self.layout.row()
+            row.prop(pg, "select", text="")
+            row.label(text = pg.text)
+
+    def selectAll(self, context):
+        for pg in context.scene.DazSelector:
+            pg.select = True
+        
+    def selectNone(self, context):
+        for pg in context.scene.DazSelector:
+            pg.select = False
+
+    def getSelectedMeshes(self, context):
+        selected = []
+        for pg in context.scene.DazSelector:
+            if pg.select:
+                ob = bpy.data.objects[pg.text]
+                selected.append(ob)
+        return selected    
+    
+    def invoke(self, context, event):
+        from .morphing import setSelector
+        setSelector(self)
+        pgs = context.scene.DazSelector
+        pgs.clear()
+        for ob in getSceneObjects(context):
+            if ob.type == self.type and ob != context.object:
+                pg = pgs.add()
+                pg.text = ob.name
+                pg.select = True
+        return DazPropsOperator.invoke(self, context, event)
+        
 #------------------------------------------------------------------------
 #    Setup: Add and remove hide drivers
 #------------------------------------------------------------------------
@@ -75,11 +120,7 @@ class HidersHandler:
 
 
     def handleHideDrivers(self, clo, rig, context):
-        if clo.DazMannequin:
-            prop = getHideMannequinName()
-            return
-        else:
-            prop = getHidePropName(clo.name)
+        prop = getHidePropName(clo.name)
         self.handleProp(prop, clo, rig, context)
         if clo.DazMannequin:
             return
@@ -90,71 +131,97 @@ class HidersHandler:
                     self.handleMod(prop, rig, mod)
 
 
-class DAZ_OT_AddHiders(DazPropsOperator, HidersHandler, B.HideOnlyMasked):
-    bl_idname = "daz.add_hide_drivers"
+class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.SingleProp, IsArmature):
+    bl_idname = "daz.add_visibility_drivers"
     bl_label = "Add Visibility Drivers"
     bl_description = "Control visibility with rig property. For file linking."
     bl_options = {'UNDO'}
 
-    flag = "DazVisibilityDrivers"
-    value = True
+    type = 'MESH'
 
-    def draw(self, context):
-        self.layout.prop(self, "hideOnlyMasked")
+    def draw(self, context):    
+        self.layout.prop(self, "singleProp")
+        if self.singleProp:
+            self.layout.prop(self, "maskName")
+        self.layout.prop(self, "activeMesh")
+        ObjectSelection.draw(self, context)
+        
+        
+    def run(self, context):
+        rig = context.object
+        print("Create visibility drivers for %s:" % rig.name)
+        selected = self.getSelectedMeshes(context)
+        ob = bpy.data.objects[self.activeMesh]
+        if self.singleProp:      
+            for clo in selected:
+                self.createObjectVisibility(rig, clo, self.maskName)            
+            self.createMaskVisibility(rig, ob, self.maskName)
+        else:
+            for clo in selected:
+                self.createObjectVisibility(rig, clo, clo.name)
+                self.createMaskVisibility(rig, ob, clo.name)
+        rig.DazVisibilityDrivers = True
+        updateDrivers(rig)
+        print("Visibility drivers created")
+ 
+ 
+    def createObjectVisibility(self, rig, ob, obname):
+        from .driver import makePropDriver, setBoolProp
+        prop = getHidePropName(obname)
+        setBoolProp(rig, prop, True, "Show %s" % prop)
+        makePropDriver(prop, ob, HideViewport, rig, expr="not(x)")
+        makePropDriver(prop, ob, "hide_render", rig, expr="not(x)")
 
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'ARMATURE' and not ob.DazVisibilityDrivers)
 
-
-    def handleProp(self, prop, clo, rig, context):
-        from .driver import setBoolProp, makePropDriver
-        if self.hideOnlyMasked:
-            masked = False
-            for ob in rig.children:
-                if ob.type == 'MESH':
-                    for mod in ob.modifiers:
-                        if (mod.type == 'MASK' and
-                            mod.name == getMaskName(clo.name)):
-                            masked = True
-                            break
-            if not masked:
-                return
-        setBoolProp(rig, prop, True, "Show %s" % clo.name)
-        makePropDriver(prop, clo, HideViewport, rig, expr="not(x)")
-        makePropDriver(prop, clo, "hide_render", rig, expr="not(x)")
-
-
-    def handleMod(self, prop, rig, mod):
+    def createMaskVisibility(self, rig, ob, obname):
         from .driver import makePropDriver
-        makePropDriver(prop, mod, "show_viewport", rig, expr="x")
-        makePropDriver(prop, mod, "show_render", rig, expr="x")
+        prop = getHidePropName(obname)
+        modname = getMaskName(obname)
+        masked = False
+        for mod in ob.modifiers:
+            if (mod.type == 'MASK' and
+                mod.name == modname):
+                masked = True
+                break
+        if masked:
+            makePropDriver(prop, mod, "show_viewport", rig, expr="x")
+            makePropDriver(prop, mod, "show_render", rig, expr="x")
 
 
-class DAZ_OT_RemoveHiders(DazOperator, HidersHandler):
-    bl_idname = "daz.remove_hide_drivers"
+    def invoke(self, context, event):
+        return ObjectSelection.invoke(self, context, event)
+
+
+class DAZ_OT_RemoveVisibility(DazOperator, HidersHandler):
+    bl_idname = "daz.remove_visibility_drivers"
     bl_label = "Remove Visibility Drivers"
     bl_description = "Remove ability to control visibility from rig property"
     bl_options = {'UNDO'}
-
-    flag = "DazVisibilityDrivers"
-    value = False
 
     @classmethod
     def poll(self, context):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and ob.DazVisibilityDrivers)
 
-    def handleProp(self, prop, clo, rig, context):
-        if prop in rig.keys():
-            del rig[prop]
-        clo.driver_remove(HideViewport)
-        clo.driver_remove("hide_render")
-
-    def handleMod(self, prop, rig, mod):
-        mod.driver_remove("show_viewport")
-        mod.driver_remove("show_render")
+    def run(self, context):
+        rig = context.object
+        for ob in rig.children:
+            ob.driver_remove(HideViewport)
+            ob.driver_remove("hide_render")
+            setattr(ob, HideViewport, False)
+            ob.hide_render = False
+            for mod in ob.modifiers:
+                if mod.type == 'MASK':
+                    mod.driver_remove("show_viewport")
+                    mod.driver_remove("show_render")
+                    mod.show_viewport = True
+                    mod.show_render = True
+        for prop in rig.keys():
+            if isHideProp(prop):
+                del rig[prop]
+        updateDrivers(rig)
+        rig.DazVisibilityDrivers = False
+        print("Visibility drivers removed")
 
 #------------------------------------------------------------------------
 #   Hider collections
@@ -266,48 +333,6 @@ class DAZ_OT_HideAll(DazOperator, B.PrefixString):
         setAllVisibility(context, self.prefix, False)
 
 #------------------------------------------------------------------------
-#   Object selection
-#------------------------------------------------------------------------
-
-class ObjectSelection(B.SingleProp):
-    def draw(self, context):
-        row = self.layout.row()
-        row.operator("daz.select_all")
-        row.operator("daz.select_none")
-        for pg in context.scene.DazSelector:
-            row = self.layout.row()
-            row.prop(pg, "select", text="")
-            row.label(text = pg.text)
-
-    def selectAll(self, context):
-        for pg in context.scene.DazSelector:
-            pg.select = True
-        
-    def selectNone(self, context):
-        for pg in context.scene.DazSelector:
-            pg.select = False
-
-    def getSelectedMeshes(self, context):
-        selected = []
-        for pg in context.scene.DazSelector:
-            if pg.select:
-                ob = bpy.data.objects[pg.text]
-                selected.append(ob)
-        return selected    
-    
-    def invoke(self, context, event):
-        from .morphing import setSelector
-        setSelector(self)
-        pgs = context.scene.DazSelector
-        pgs.clear()
-        for ob in getSceneObjects(context):
-            if ob.type == self.type and ob != context.object:
-                pg = pgs.add()
-                pg.text = ob.name
-                pg.select = True
-        return DazPropsOperator.invoke(self, context, event)
-        
-#------------------------------------------------------------------------
 #   Mask modifiers
 #------------------------------------------------------------------------
 
@@ -323,7 +348,8 @@ class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection):
         self.layout.prop(self, "singleProp")
         if self.singleProp:
             self.layout.prop(self, "maskName")
-        ObjectSelection.draw(self, context)
+        else:
+            ObjectSelection.draw(self, context)
         
     
     def run(self, context):
@@ -397,8 +423,8 @@ class DAZ_OT_CreateCollections(DazPropsOperator, B.NameString):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_AddHiders,
-    DAZ_OT_RemoveHiders,
+    DAZ_OT_AddVisibility,
+    DAZ_OT_RemoveVisibility,
     DAZ_OT_ShowAll,
     DAZ_OT_HideAll,
     DAZ_OT_CreateMasks,

@@ -409,8 +409,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         else:
             box.prop(scn, "DazShowVisibility", icon="DOWNARROW_HLT", emboss=False)
             box.operator("daz.create_masks")
-            box.operator("daz.add_hide_drivers")
-            box.operator("daz.remove_hide_drivers")
+            box.operator("daz.add_visibility_drivers")
+            box.operator("daz.remove_visibility_drivers")
             if bpy.app.version >= (2,80,0):
                 box.separator()
                 box.operator("daz.add_hide_collections")
