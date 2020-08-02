@@ -142,14 +142,22 @@ def getMorphs(ob, morphset, category=None):
 #   Morph selector
 #-------------------------------------------------------------
 
+def getSelector():
+    global theSelector
+    return theSelector
+    
+def setSelector(selector):
+    global theSelector
+    theSelector = selector
+    
+    
 class DAZ_OT_SelectAll(bpy.types.Operator):
     bl_idname = "daz.select_all"
     bl_label = "All"
     bl_description = "Select all"
 
     def execute(self, context):
-        global theSelector
-        theSelector.selectAll(context)
+        getSelector().selectAll(context)
         return {'PASS_THROUGH'}
 
 
@@ -159,8 +167,7 @@ class DAZ_OT_SelectNone(bpy.types.Operator):
     bl_description = "Select none"
 
     def execute(self, context):
-        global theSelector
-        theSelector.selectNone(context)
+        getSelector().selectNone(context)
         return {'PASS_THROUGH'}
 
 
@@ -240,8 +247,7 @@ class Selector(B.Selection):
 
 
     def invokeDialog(self, context):
-        global theSelector
-        theSelector = self
+        setSelector(self)
         from .fileutils import clearSelection
         clearSelection()
         wm = context.window_manager

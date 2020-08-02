@@ -519,11 +519,16 @@ class NewRig:
 #   hide.py
 #-------------------------------------------------------------
 
-class HideOnlyMasked:
-    hideOnlyMasked = BoolProperty(
-        name = "Hide Only Masked",
-        description = "Create visibility drivers only for masked meshes",
+class SingleProp:
+    singleProp = BoolProperty(
+        name = "Use Single Prop",
+        description = "Control visibility of all meshes with a single property",
         default = False)
+        
+    maskName = StringProperty(
+        name = "Mask Name",
+        description = "Mask name",
+        default = "All")
 
 #-------------------------------------------------------------
 #   proxy.py

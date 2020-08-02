@@ -266,62 +266,97 @@ class DAZ_OT_HideAll(DazOperator, B.PrefixString):
         setAllVisibility(context, self.prefix, False)
 
 #------------------------------------------------------------------------
+#   Object selection
+#------------------------------------------------------------------------
+
+class ObjectSelection(B.SingleProp):
+    def draw(self, context):
+        row = self.layout.row()
+        row.operator("daz.select_all")
+        row.operator("daz.select_none")
+        for pg in context.scene.DazSelector:
+            row = self.layout.row()
+            row.prop(pg, "select", text="")
+            row.label(text = pg.text)
+
+    def selectAll(self, context):
+        for pg in context.scene.DazSelector:
+            pg.select = True
+        
+    def selectNone(self, context):
+        for pg in context.scene.DazSelector:
+            pg.select = False
+
+    def getSelectedMeshes(self, context):
+        selected = []
+        for pg in context.scene.DazSelector:
+            if pg.select:
+                ob = bpy.data.objects[pg.text]
+                selected.append(ob)
+        return selected    
+    
+    def invoke(self, context, event):
+        from .morphing import setSelector
+        setSelector(self)
+        pgs = context.scene.DazSelector
+        pgs.clear()
+        for ob in getSceneObjects(context):
+            if ob.type == self.type and ob != context.object:
+                pg = pgs.add()
+                pg.text = ob.name
+                pg.select = True
+        return DazPropsOperator.invoke(self, context, event)
+        
+#------------------------------------------------------------------------
 #   Mask modifiers
 #------------------------------------------------------------------------
 
-def createMaskModifiers(context, useSelectedOnly):
-    from .proxy import getSelectedObjects
-    selected,_ = getSelectedObjects(context, 'MESH')
-    ob = context.object
-    scn = context.scene
-    rig = ob.parent
-    print("Create masks for %s:" % ob.name)
-    if rig:
-        for child in rig.children:
-            if child.type == 'ARMATURE' and child.children:
-                mesh = child.children[0]
-            elif child.type == 'MESH':
-                mesh = child
-            else:
-                mesh = None
-            if mesh and mesh != ob:
-                if useSelectedOnly and mesh not in selected:
-                    continue
-                mod = None
-                for mod1 in ob.modifiers:
-                    modname = getMaskName(mesh.name)
-                    if mod1.type == 'MASK' and mod1.name == modname:
-                        mod = mod1
-                if modname in ob.vertex_groups.keys():
-                    vgrp = ob.vertex_groups[modname]
-                else:
-                    vgrp = ob.vertex_groups.new(name=modname)
-                print("  ", mesh.name)
-                if mod is None:
-                    mod = ob.modifiers.new(modname, 'MASK')
-                mod.vertex_group = modname
-                mod.invert_vertex_group = True
-    print("Masks created")
-
-
-class DAZ_OT_CreateMasks(DazOperator, IsMesh):
-    bl_idname = "daz.create_all_masks"
-    bl_label = "Create All Masks"
-    bl_description = "Create vertex groups and mask modifiers in active mesh for all meshes belonging to same character"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        createMaskModifiers(context, False)
-
-
-class DAZ_OT_CreateSelectedMasks(DazOperator, IsMesh):
-    bl_idname = "daz.create_selected_masks"
-    bl_label = "Create Selected Masks"
+class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection):
+    bl_idname = "daz.create_masks"
+    bl_label = "Create Masks"
     bl_description = "Create vertex groups and mask modifiers in active mesh for selected meshes"
     bl_options = {'UNDO'}
 
+    type = 'MESH'
+
+    def draw(self, context):    
+        self.layout.prop(self, "singleProp")
+        if self.singleProp:
+            self.layout.prop(self, "maskName")
+        ObjectSelection.draw(self, context)
+        
+    
     def run(self, context):
-        createMaskModifiers(context, True)
+        print("Create masks for %s:" % context.object.name)
+        if self.singleProp:
+            modname = getMaskName(self.maskName)
+            print("  ", modname)
+            self.createMask(context.object, modname)
+        else:
+            for ob in self.getSelectedMeshes(context):
+                modname = getMaskName(ob.name)
+                print("  ", ob.name, modname)
+                self.createMask(context.object, modname)
+        print("Masks created")
+            
+            
+    def createMask(self, ob, modname):            
+        mod = None
+        for mod1 in ob.modifiers:
+            if mod1.type == 'MASK' and mod1.name == modname:
+                mod = mod1
+        if modname in ob.vertex_groups.keys():
+            vgrp = ob.vertex_groups[modname]
+        else:
+            vgrp = ob.vertex_groups.new(name=modname)
+        if mod is None:
+            mod = ob.modifiers.new(modname, 'MASK')
+        mod.vertex_group = modname
+        mod.invert_vertex_group = True
+
+    
+    def invoke(self, context, event):
+        return ObjectSelection.invoke(self, context, event)
 
 #----------------------------------------------------------
 #   Create collections
@@ -367,7 +402,6 @@ classes = [
     DAZ_OT_ShowAll,
     DAZ_OT_HideAll,
     DAZ_OT_CreateMasks,
-    DAZ_OT_CreateSelectedMasks,
 ]
 
 if bpy.app.version >= (2,80,0):

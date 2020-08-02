@@ -408,8 +408,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.prop(scn, "DazShowVisibility", icon="RIGHTARROW", emboss=False)
         else:
             box.prop(scn, "DazShowVisibility", icon="DOWNARROW_HLT", emboss=False)
-            box.operator("daz.create_all_masks")
-            box.operator("daz.create_selected_masks")
+            box.operator("daz.create_masks")
             box.operator("daz.add_hide_drivers")
             box.operator("daz.remove_hide_drivers")
             if bpy.app.version >= (2,80,0):
