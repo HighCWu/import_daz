@@ -142,7 +142,7 @@ class Instance(Accessor, Channels):
         node.materials = {}
         self.material_group_vis = {}
         self.attributes = copyElements(node.attributes)
-        self.previewAttrs = copyElements(node.previewAttrs)
+        self.restdata = None
         self.updateMatrices()
         node.clearTransforms()
 
@@ -486,10 +486,6 @@ class Node(Asset, Formula, Channels):
         self.rotDaz = 'XYZ'
         self.attributes = self.defaultAttributes()
         self.origAttrs = self.defaultAttributes()
-        self.previewAttrs = {
-            "center_point": Vector((0,0,0)),
-            "end_point": Vector((0,0,0)),
-        }
         self.figure = None
 
 
@@ -510,10 +506,6 @@ class Node(Asset, Formula, Channels):
         default = self.defaultAttributes()
         for key in ["translation", "rotation", "scale", "general_scale"]:
             self.attributes[key] = default[key]
-        self.previewAttrs = {
-            "center_point": Vector((0,0,0)),
-            "end_point": Vector((0,0,0)),
-        }
 
 
     def __repr__(self):
@@ -584,14 +576,6 @@ class Node(Asset, Formula, Channels):
                     self.attributes[channel][idx] = value
         else:
             self.attributes[channel] = getCurrentValue(data)
-
-
-    def preview(self, struct):
-        if "preview" in struct.keys():
-            pstruct = struct["preview"]
-            for key in ["center_point", "end_point"]:
-                if key in pstruct.keys():
-                    self.previewAttrs[key] = Vector(pstruct[key])
 
 
     def update(self, struct):

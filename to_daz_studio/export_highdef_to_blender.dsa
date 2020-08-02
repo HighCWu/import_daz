@@ -30,13 +30,6 @@ function exportHighdefToBlender()
     for ( var i = 0; i < Scene.getNumNodes(); i++ )
     {
         var node = Scene.getNode(i);
-        var pos = node.getWSPos();
-        var rot = node.getWSRot();
-        var scale = node.getWSScale();
-        //node.setWSPos(DzVec3());
-        //node.setWSRot(DzQuat());
-        //node.setWSScale(DzMatrix3(initIdentity=true));
-        // node.update();
 
         if ( node.inherits( "DzSkeleton" ) )
         {
@@ -50,10 +43,6 @@ function exportHighdefToBlender()
                 doMesh(fp, obj, true, node, "        ]", "    },");
             }
         }
-        //node.setWSPos(pos);
-        //node.setWSRot(rot);
-        //node.setWSScale(scale);
-        // node.update();
     }
 
     fp.writeLine("    {" );
@@ -99,6 +88,9 @@ function doFigure (fp, figure)
         fp.writeLine("                \"name\": \""+ bone.name + "\",");
         fp.writeLine("                \"center_point\": " + bone.getOrigin() + ",");
         fp.writeLine("                \"end_point\": " + bone.getEndPoint() + ",");     
+        fp.writeLine("                \"orientation\": " + bone.getOrientation() + ",");             
+        fp.writeLine("                \"origin\": " + bone.getOrigin() + ",");             
+        fp.writeLine("                \"rotation_order\": \"" + bone.getRotationOrder() + "\",");             
         fp.writeLine("                \"ws_pos\": " + bone.getWSPos() + ",");     
         fp.writeLine("                \"ws_rot\": " + bone.getWSRot() + ",");     
         fp.writeLine("                \"ws_scale\": " + bone.getWSScale() + ",");     

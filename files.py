@@ -107,7 +107,6 @@ class FileAsset(Asset):
                         asset = asset.getNode(0)
                     if not isinstance(asset, Node):
                         continue
-                    asset.preview(nstruct)
                     inst = asset.makeInstance(self.fileref, nstruct)
                     self.instances[inst.id] = inst
                     self.nodes.append((asset, inst))

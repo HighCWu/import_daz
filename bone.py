@@ -416,24 +416,35 @@ class BoneInstance(Instance):
 
 
     def getHeadTail(self, cscale, center, mayfit=True):
-        if mayfit and LS.fitFile:
-            head = cscale*(self.previewAttrs["center_point"] - center)
-            tail = cscale*(self.previewAttrs["end_point"] - center)
+        if mayfit and self.restdata:
+            cp,ep,orient,xyz,origin = self.restdata
+            head = cscale*(cp - center)
+            tail = cscale*(ep - center)
+            if orient:
+                x,y,z,w = orient
+                orient = Quaternion((-w,x,y,z)).to_euler()
+            else:
+                orient = Euler(self.attributes["orientation"]*D)
+                xyz = self.rotDaz
         else:
             head = cscale*(self.attributes["center_point"] - center)
             tail = cscale*(self.attributes["end_point"] - center)
+            orient = Euler(self.attributes["orientation"]*D)
+            xyz = self.rotDaz
+
         length = (tail-head).length
         if length < 0.1*LS.scale:
             length = 0.1*LS.scale
             tail = head + Vector((0,0,length))
+
         if not LS.useDazBones:
             return head,tail,0
 
         # Twist, Second, Bend = Y Z X"
-        j = (ord(self.rotDaz[0]) - ord("X"))
-        k = (ord(self.rotDaz[1]) - ord("X"))
-        i = (ord(self.rotDaz[2]) - ord("X"))
-        omat = Euler(self.attributes["orientation"]*D).to_matrix()
+        j = (ord(xyz[0]) - ord("X"))
+        k = (ord(xyz[1]) - ord("X"))
+        i = (ord(xyz[2]) - ord("X"))
+        omat = orient.to_matrix()
         rmat = Matrix().to_3x3()
         x = rmat.col[0] = omat.col[i]
         y = rmat.col[1] = omat.col[j]
@@ -448,6 +459,9 @@ class BoneInstance(Instance):
             tail = head - length*y
             neg = "N"
         roll = getRollFromQuat(rmat.to_quaternion())
+        if xyz == "ZYX":
+            roll -= math.copysign(pi/2, roll)
+
         #print("ROT", self.rotDaz, i, j, k, neg)
         return head,tail,roll
 
@@ -686,7 +700,7 @@ class Bone(Node):
                     self.findRoll(inst, eb, figure, isFace)
                 self.roll = eb.roll
                 self.useRoll = True
-                #print("ROL %s %s %4f %4f" % (self.name, self.rotDaz, eb.roll/D, roll/D))
+                print("ROL %s %s %s %4f %4f" % (self.name, self.attributes["orientation"], self.rotDaz, eb.roll/D, roll/D))
             if GS.useConnect and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*LS.scale:

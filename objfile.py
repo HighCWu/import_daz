@@ -53,7 +53,7 @@ class DBZInfo:
             if inst.id in takenfigs[name]:
                 return
             elif inst.index < len(self.rigs[name]):
-                locations,transforms,center = self.rigs[name][inst.index]
+                restdata,transforms,center = self.rigs[name][inst.index]
                 takenfigs[name].append(inst.id)
             else:
                 print("Cannot fit %s" % name)
@@ -68,17 +68,15 @@ class DBZInfo:
             if isinstance(child, FigureInstance):
                 self.fitFigure(child, takenfigs)
             elif isinstance(child, BoneInstance):
-                self.fitBone(child, locations, transforms, takenfigs)
+                self.fitBone(child, restdata, transforms, takenfigs)
 
 
-    def fitBone(self, inst, locations, transforms, takenfigs):
+    def fitBone(self, inst, restdata, transforms, takenfigs):
         from .figure import FigureInstance
         from .bone import BoneInstance
-        if inst.node.name not in locations.keys():
+        if inst.node.name not in restdata.keys():
             return
-        head,tail = locations[inst.node.name]
-        inst.previewAttrs["center_point"] = head
-        inst.previewAttrs["end_point"] = tail
+        inst.restdata = restdata[inst.node.name]
         inst.clearTransforms()
         rmat,wsloc,wsrot,wsscale = transforms[inst.node.name]
         inst.restMatrix = rmat
@@ -87,7 +85,7 @@ class DBZInfo:
             if isinstance(child, FigureInstance):
                 self.fitFigure(child, takenfigs)
             if isinstance(child, BoneInstance):
-                self.fitBone(child, locations, transforms, takenfigs)
+                self.fitBone(child, restdata, transforms, takenfigs)
 
 
     def tryGetName(self, name):
@@ -176,11 +174,11 @@ def loadDbzFile(filepath):
         if "bones" not in figure.keys():
             continue
 
-        locations = {}
+        restdata = {}
         transforms = {}
         if name not in dbz.rigs.keys():
             dbz.rigs[name] = []
-        dbz.rigs[name].append((locations, transforms, center))
+        dbz.rigs[name].append((restdata, transforms, center))
         for bone in figure["bones"]:
             head = Vector(bone["center_point"])
             tail = Vector(bone["end_point"])
@@ -199,7 +197,13 @@ def loadDbzFile(filepath):
                 smat = Matrix([ws[0:3], ws[3:6], ws[6:9]])
                 tail = head + Mult3(vec, smat, rmat)
                 rmat = Mult2(smat, rmat)
-            locations[bone["name"]] = (head, tail)
+            if "orientation" in bone.keys():
+                orient = bone["orientation"]
+                xyz = bone["rotation_order"]
+                origin = bone["origin"]
+            else:
+                orient = xyz = origin = None
+            restdata[bone["name"]] = (head, tail, orient, xyz, origin)
             rmat = rmat.to_4x4()
             rmat.col[3][0:3] = LS.scale*head
             transforms[bone["name"]] = (rmat, head, rmat.to_euler(), (1,1,1))
