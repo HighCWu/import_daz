@@ -57,7 +57,8 @@ class GlobalSettings:
         self.verbosity = 2
         self.zup = True
         self.chooseColors = 'GUESS'
-        self.dazOrientation = False
+        self.useDazBones = False
+        self.useDazOrientation = False
         self.caseSensitivePaths = (platform != 'win32')
         self.mergeShells = True
 
@@ -84,7 +85,6 @@ class GlobalSettings:
         self.useLimitLoc = False
         self.useConnect = True
 
-        self.makeDrivers = 'PROPS'
         self.buildHighdef = True
         self.addFaceDrivers = True
 
@@ -115,11 +115,11 @@ class GlobalSettings:
         "DazUsePropLimits" : "useDazPropLimits",
         "DazUsePropDefault" : "useDazPropDefault",
 
-        "DazOrientation" : "dazOrientation",
+        "DazBones" : "useDazBones",
+        "DazOrientation" : "useDazOrientation",
         "DazUseLockRot" : "useLockRot",
         "DazUseLockLoc" : "useLockLoc",
 
-        "DazMakeDrivers" : "makeDrivers",
         "DazBuildHighdef" : "buildHighdef",
         "DazAddFaceDrivers" : "addFaceDrivers",
     }
@@ -242,8 +242,6 @@ class LocalSettings:
         self.brightenEyes = 1.0
         self.useEnvironment = False
         self.renderMethod = 'PBR'
-        self.useDazBones = False
-        self.useDazOrientation = False
 
         self.useNodes = False
         self.useGeometries = False
@@ -260,8 +258,6 @@ class LocalSettings:
         self.fps = 30
         self.integerFrames = True
         self.missingAssets = {}
-        self.useDazBones = False
-        self.useDazOrientation = False
         self.singleUser = False
 
         self.usedFeatures = {
@@ -316,8 +312,6 @@ class LocalSettings:
         self.methodVolumetric = btn.methodVolumetric
         self.methodRefractive = btn.methodRefractive
         self.useEnvironment = btn.useEnvironment
-        self.useDazBones = btn.useDazBones
-        self.useDazOrientation = btn.useDazOrientation
 
         self.useStrict = True
         self.singleUser = True

@@ -62,11 +62,6 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         box.label(text = "Mesh Fitting")
         box.prop(self, "fitMeshes", expand=True)
 
-        box = layout.box()
-        box.label(text = "Armature")
-        box.prop(self, "useDazBones")
-        box.prop(self, "useDazOrientation")
-
         layout.separator()
         layout.prop(self, "skinColor")
         layout.prop(self, "clothesColor")
@@ -1064,7 +1059,8 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazBuildHighdef")
         box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLockLoc")
-        box.prop(scn, "DazMakeDrivers")
+        box.prop(scn, "DazBones")
+        box.prop(scn, "DazOrientation")
 
         box = split.box()
         box.label(text = "Materials")
@@ -1185,6 +1181,19 @@ def initialize():
         name = "DAZ Property Defaults",
         description = "Use the default values from DAZ files as default slider values.")
 
+    bpy.types.Scene.DazBones = BoolProperty(
+        name = "Daz Bones",
+        description = "Match bones exactly with Daz Studio",
+        default = False)
+
+    bpy.types.Scene.DazOrientation = BoolProperty(
+        name = "Daz Orientation",
+        description = "Orient bones as in Daz Studio",
+        default = False)
+
+
+    # Object properties
+
     bpy.types.Object.DazId = StringProperty(
         name = "ID",
         default = "")
@@ -1303,15 +1312,6 @@ def initialize():
     bpy.types.Scene.DazAddFaceDrivers = BoolProperty(
         name = "Add Face Drivers",
         description = "Add drivers to facial morphs. Only for Genesis 1 and 2.")
-
-    bpy.types.Scene.DazMakeDrivers = EnumProperty(
-        items = [('NONE', "None", "Never make drivers"),
-                 ('PROPS', "Props", "Make drivers for props"),
-                 ('PEOPLE', "People", "Make drivers for people"),
-                 ('ALL', "All", "Make drivers for all figures"),
-                 ],
-        name = "Make Drivers",
-        description = "Make drivers for formulas")
 
     bpy.types.Scene.DazBuildHighdef = BoolProperty(
         name = "Build HD Meshes",

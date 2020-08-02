@@ -437,7 +437,7 @@ class BoneInstance(Instance):
             length = 0.1*LS.scale
             tail = head + Vector((0,0,length))
 
-        if not LS.useDazBones:
+        if not GS.useDazBones:
             return head,tail,0
 
         # Twist, Second, Bend = Y Z X"
@@ -459,9 +459,6 @@ class BoneInstance(Instance):
             tail = head - length*y
             neg = "N"
         roll = getRollFromQuat(rmat.to_quaternion())
-        if xyz == "ZYX":
-            roll -= math.copysign(pi/2, roll)
-
         #print("ROT", self.rotDaz, i, j, k, neg)
         return head,tail,roll
 
@@ -691,7 +688,7 @@ class Bone(Node):
             eb.parent = parent
             eb.head = d2b(head)
             eb.tail = d2b(tail)
-            if False and LS.useDazOrientation:
+            if False and GS.useDazOrientation:
                 eb.roll = roll
             else:
                 if self.useRoll:
@@ -700,7 +697,7 @@ class Bone(Node):
                     self.findRoll(inst, eb, figure, isFace)
                 self.roll = eb.roll
                 self.useRoll = True
-                print("ROL %s %s %s %4f %4f" % (self.name, self.attributes["orientation"], self.rotDaz, eb.roll/D, roll/D))
+                #print("ROL %s %s %s %4f %4f" % (self.name, self.attributes["orientation"], self.rotDaz, eb.roll/D, roll/D))
             if GS.useConnect and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*LS.scale:
@@ -710,46 +707,6 @@ class Bone(Node):
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
                 child.node.buildEdit(figure, rig, eb, child, cscale, center, isFace)
-
-
-    units = [Vector((1,0,0)), Vector((0,1,0)), Vector((0,0,1))]
-
-    posRotators = [
-        Matrix.Rotation(-pi/2, 4, 'Z').to_3x3(),
-        Matrix().to_3x3(),
-        Matrix.Rotation(pi/2, 4, 'X').to_3x3(),
-    ]
-
-    negRotators = [
-        Matrix.Rotation(pi/2, 4, 'Z').to_3x3(),
-        Matrix.Rotation(pi, 4, 'X').to_3x3(),
-        Matrix.Rotation(-pi/2, 4, 'X').to_3x3(),
-    ]
-
-    def buildOrientation(self, rig, inst):
-        if self.name not in rig.data.edit_bones.keys():
-            return
-        eb = rig.data.edit_bones[self.name]
-        orient = Vector(inst.attributes["orientation"])
-        mat = Euler(orient*D, 'XYZ').to_matrix()
-        if LS.useDazOrientation:
-            vec = eb.tail - eb.head
-            projs = []
-            for n in range(3):
-                proj = vec.dot(mat.col[n])
-                projs.append((abs(proj), (proj<0), n))
-            projs.sort()
-            _,neg,idx = projs[2]
-            if neg:
-                rmat = self.negRotators[idx]
-            else:
-                rmat = self.posRotators[idx]
-            mat = Mult2(rmat, mat)
-        roll = eb.roll
-        eb.roll = getRollFromQuat(mat.to_quaternion())
-        for child in inst.children.values():
-            if isinstance(child, BoneInstance):
-                child.node.buildOrientation(rig, child)
 
 
     def buildBoneProps(self, rig, inst, cscale, center):

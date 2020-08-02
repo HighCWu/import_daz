@@ -225,16 +225,6 @@ class DazOptions:
         description = "Mesh fitting method",
         default = 'DBZFILE')
 
-    useDazBones = BoolProperty(
-        name = "Daz Bones",
-        description = "Match bones exactly with Daz Studio",
-        default = False)
-
-    useDazOrientation = BoolProperty(
-        name = "Daz Orientation",
-        description = "Orient bones as in Daz Studio",
-        default = False)
-
     useAutoMaterials = BoolProperty(
         name = "Auto Material Method",
         description = "Use best shaders for material, independent of the settings below",
