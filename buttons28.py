@@ -520,15 +520,15 @@ class NewRig:
 #   hide.py
 #-------------------------------------------------------------
 
-class SingleProp:
-    singleProp : BoolProperty(
-        name = "Use Single Prop",
-        description = "Control visibility of all meshes with a single property",
+class SingleGroup:
+    singleGroup : BoolProperty(
+        name = "Single Group",
+        description = "Treat all selected meshes as a single group",
         default = False)
         
-    maskName : StringProperty(
-        name = "Mask Name",
-        description = "Mask name",
+    groupName : StringProperty(
+        name = "Group Name",
+        description = "Name of the single group",
         default = "All")
 
 

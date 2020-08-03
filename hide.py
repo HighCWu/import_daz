@@ -91,7 +91,7 @@ class ObjectSelection:
 #    Setup: Add and remove hide drivers
 #------------------------------------------------------------------------
 
-class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.SingleProp, IsArmature):
+class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.SingleGroup, IsArmature):
     bl_idname = "daz.add_visibility_drivers"
     bl_label = "Add Visibility Drivers"
     bl_description = "Control visibility with rig property. For file linking."
@@ -100,9 +100,9 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.Si
     type = 'MESH'
 
     def draw(self, context):    
-        self.layout.prop(self, "singleProp")
-        if self.singleProp:
-            self.layout.prop(self, "maskName")
+        self.layout.prop(self, "singleGroup")
+        if self.singleGroup:
+            self.layout.prop(self, "groupName")
         self.layout.prop(self, "activeMesh")
         ObjectSelection.draw(self, context)
         
@@ -112,10 +112,10 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.Si
         print("Create visibility drivers for %s:" % rig.name)
         selected = self.getSelectedMeshes(context)
         ob = bpy.data.objects[self.activeMesh]
-        if self.singleProp:      
+        if self.singleGroup:      
             for clo in selected:
-                self.createObjectVisibility(rig, clo, self.maskName)            
-            self.createMaskVisibility(rig, ob, self.maskName)
+                self.createObjectVisibility(rig, clo, self.groupName)            
+            self.createMaskVisibility(rig, ob, self.groupName)
         else:
             for clo in selected:
                 self.createObjectVisibility(rig, clo, clo.name)
@@ -206,7 +206,7 @@ if bpy.app.version >= (2,80,0):
                 newcoll.objects.link(ob)
 
             
-    class DAZ_OT_AddVisibilityCollections(DazPropsOperator, ObjectSelection, B.SingleProp, IsArmature):
+    class DAZ_OT_AddVisibilityCollections(DazPropsOperator, ObjectSelection, B.SingleGroup, IsArmature):
         bl_idname = "daz.add_visibility_collections"
         bl_label = "Add Visibility Collections"
         bl_description = "Create new collections and move meshes there. For file linking."
@@ -215,9 +215,9 @@ if bpy.app.version >= (2,80,0):
         type = 'MESH'
     
         def draw(self, context):    
-            self.layout.prop(self, "singleProp")
-            if self.singleProp:
-                self.layout.prop(self, "maskName")
+            self.layout.prop(self, "singleGroup")
+            if self.singleGroup:
+                self.layout.prop(self, "groupName")
             ObjectSelection.draw(self, context)
             
             
@@ -228,8 +228,8 @@ if bpy.app.version >= (2,80,0):
                 raise DazError("No collection found")                
             print("Create visibility collections for %s:" % rig.name)
             selected = self.getSelectedMeshes(context)
-            if self.singleProp:
-                coll = self.createCollection(context, self.maskName)
+            if self.singleGroup:
+                coll = self.createCollection(context, self.groupName)
                 for ob in selected:
                     moveToCollection(ob, coll)            
             else:
@@ -278,7 +278,7 @@ if bpy.app.version >= (2,80,0):
                     else:
                         ob.show_in_front = True
                         newcoll.objects.link(ob)
-                    coll.objects.unlink(ob)
+                        coll.objects.unlink(ob)
 
 #------------------------------------------------------------------------
 #   Show/Hide all
@@ -324,7 +324,7 @@ class DAZ_OT_HideAll(DazOperator, B.PrefixString):
 #   Mask modifiers
 #------------------------------------------------------------------------
 
-class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection):
+class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection, B.SingleGroup):
     bl_idname = "daz.create_masks"
     bl_label = "Create Masks"
     bl_description = "Create vertex groups and mask modifiers in active mesh for selected meshes"
@@ -333,17 +333,17 @@ class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection):
     type = 'MESH'
 
     def draw(self, context):    
-        self.layout.prop(self, "singleProp")
-        if self.singleProp:
-            self.layout.prop(self, "maskName")
+        self.layout.prop(self, "singleGroup")
+        if self.singleGroup:
+            self.layout.prop(self, "groupName")
         else:
             ObjectSelection.draw(self, context)
         
     
     def run(self, context):
         print("Create masks for %s:" % context.object.name)
-        if self.singleProp:
-            modname = getMaskName(self.maskName)
+        if self.singleGroup:
+            modname = getMaskName(self.groupName)
             print("  ", modname)
             self.createMask(context.object, modname)
         else:
