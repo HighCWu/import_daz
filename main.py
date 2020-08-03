@@ -133,7 +133,7 @@ def getMainAsset(filepath, context, btn):
         raise DazError(msg, warning=True)
 
     from .material import checkRenderSettings
-    msg = checkRenderSettings(context)
+    msg = checkRenderSettings(context, False)
     if msg:
         raise DazError(msg, warning=True)
 

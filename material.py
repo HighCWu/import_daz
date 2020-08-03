@@ -1396,7 +1396,7 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolutio
 #   Render settings
 #----------------------------------------------------------
 
-def checkRenderSettings(context):
+def checkRenderSettings(context, force):
     from .light import getMinLightSettings
 
     renderSettingsCycles = {
@@ -1435,8 +1435,12 @@ def checkRenderSettings(context):
     else:
         return
 
+    handle = GS.handleRenderSettings
+    if force:
+        handle = "UPDATE"
+    header = "Render settings"
     msg = ""
-    msg += checkSettings(engine, renderSettings, GS.handleRenderSettings, "Render")
+    msg += checkSettings(engine, renderSettings, handle, header)
 
     if bpy.app.version < (2,80,0):
         bpydatalamps = bpy.data.lamps
@@ -1444,8 +1448,12 @@ def checkRenderSettings(context):
     else:
         bpydatalamps = bpy.data.lights
         lamptype = "Light"
+    handle = GS.handleLightSettings
+    if force:
+        handle = "UPDATE"
     for lamp in bpydatalamps:
-        msg += checkSettings(lamp, lightSettings, GS.handleLightSettings, '%s "%s"' % (lamptype, lamp.name))
+        header = '%s "%s" settings' % (lamptype, lamp.name)
+        msg += checkSettings(lamp, lightSettings, handle, header)
 
     if msg:
         msg += "See http://diffeomorphic.blogspot.com/2020/04/render-settings.html for details."
@@ -1455,11 +1463,10 @@ def checkRenderSettings(context):
         return ""
 
 
-def checkSettings(engine, settings, handle, render):
+def checkSettings(engine, settings, handle, header):
     msg = ""
     if handle == "IGNORE":
         return msg
-    header = ("%s Settings:" % render)
     ok = True
     for key,used in LS.usedFeatures.items():
         if used and key in settings.keys():
@@ -1467,36 +1474,46 @@ def checkSettings(engine, settings, handle, render):
                 if not hasattr(engine, attr):
                     continue
                 val = getattr(engine, attr)
-                if not checkSetting(attr, val, minval):
+                if not checkSetting(attr, val, minval, ok, header):
                     ok = False
-                    if header:
-                        print(header)
-                        header = None
                     if handle == "UPDATE":
                         setattr(engine, attr, minval)
     if not ok:
         if handle == "WARN":
-            msg = ("%s settings are insufficient to render this scene correctly.\n" % render)
+            msg = ("%s are insufficient to render this scene correctly.\n" % header)
         else:
-            msg = ("%s settings have been updated to minimal requirements for this scene.\n" % render)
+            msg = ("%s have been updated to minimal requirements for this scene.\n" % header)
     return msg
 
 
-def checkSetting(attr, val, minval):
+def checkSetting(attr, val, minval, first, header):
+    msg = None
     if isinstance(val, bool) and val != minval:
-        print("  %s: %d != %d" % (attr, val, minval))
-        return False
+        msg = ("  %s: %d != %d" % (attr, val, minval))
     elif isinstance(val, int) and val < minval:
-        print("  %s: %d < %d" % (attr, val, minval))
-        return False
+        msg = ("  %s: %d < %d" % (attr, val, minval))
     elif isinstance(val, float) and val > minval:
-        print("  %s: %f > %f" % (attr, val, minval))
-        return False
+        msg = ("  %s: %f > %f" % (attr, val, minval))
     elif isinstance(val, str):
         if int(val) < int(minval):
-            print("  %s: %s < %s" % (attr, val, minval))
-            return False
-    return True
+            msg = ("  %s: %s < %s" % (attr, val, minval))
+    if msg:
+        if first:
+            print("%s:" % header)
+        print(msg)
+        return False
+    else:
+        return True
+
+
+class DAZ_OT_UpdateSettings(DazOperator):
+    bl_idname = "daz.update_settings"
+    bl_label = "Update Render Settings"
+    bl_description = "Update render and lamp settings if they are inadequate"
+    bl_options = {'UNDO'}
+    
+    def run(self, context):
+        checkRenderSettings(context, True)
 
 #----------------------------------------------------------
 #   Initialize
@@ -1508,6 +1525,7 @@ classes = [
     DAZ_OT_CopyMaterials,
     DAZ_OT_ChangeResolution,
     DAZ_OT_ResizeTextures,
+    DAZ_OT_UpdateSettings,
 ]
 
 def initialize():

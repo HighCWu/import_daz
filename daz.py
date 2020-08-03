@@ -275,6 +275,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.prop(scn, "DazShowMaterials", icon="RIGHTARROW", emboss=False)
         else:
             box.prop(scn, "DazShowMaterials", icon="DOWNARROW_HLT", emboss=False)
+            box.operator("daz.update_settings")
             box.operator("daz.save_local_textures")
             box.operator("daz.resize_textures")
             box.operator("daz.change_resolution")
