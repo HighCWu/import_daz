@@ -530,13 +530,6 @@ class SingleGroup:
         description = "Name of the single group",
         default = "All")
 
-
-class ActiveMesh:    
-    activeMesh = EnumProperty(
-        items = G.getActiveMesh,
-        name = "Active Mesh",
-        description = "Active mesh")
-  
 #-------------------------------------------------------------
 #   proxy.py
 #-------------------------------------------------------------

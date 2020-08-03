@@ -91,7 +91,7 @@ class ObjectSelection:
 #    Setup: Add and remove hide drivers
 #------------------------------------------------------------------------
 
-class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.SingleGroup, IsArmature):
+class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.SingleGroup, IsArmature):
     bl_idname = "daz.add_visibility_drivers"
     bl_label = "Add Visibility Drivers"
     bl_description = "Control visibility with rig property. For file linking."
@@ -103,7 +103,6 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.Si
         self.layout.prop(self, "singleGroup")
         if self.singleGroup:
             self.layout.prop(self, "groupName")
-        self.layout.prop(self, "activeMesh")
         ObjectSelection.draw(self, context)
         
         
@@ -111,15 +110,18 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.Si
         rig = context.object
         print("Create visibility drivers for %s:" % rig.name)
         selected = self.getSelectedMeshes(context)
-        ob = bpy.data.objects[self.activeMesh]
         if self.singleGroup:      
-            for clo in selected:
-                self.createObjectVisibility(rig, clo, self.groupName)            
-            self.createMaskVisibility(rig, ob, self.groupName)
+            obnames = [self.groupName]
+            for ob in selected:
+                self.createObjectVisibility(rig, ob, self.groupName) 
         else:
-            for clo in selected:
-                self.createObjectVisibility(rig, clo, clo.name)
-                self.createMaskVisibility(rig, ob, clo.name)
+            obnames = []
+            for ob in selected:
+                self.createObjectVisibility(rig, ob, ob.name)
+                obnames.append(ob.name)
+        for ob in rig.children:
+            if ob.type == 'MESH':
+                self.createMaskVisibility(rig, ob, obnames)
         rig.DazVisibilityDrivers = True
         updateDrivers(rig)
         print("Visibility drivers created")
@@ -133,19 +135,19 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.Si
         makePropDriver(prop, ob, "hide_render", rig, expr="not(x)")
 
 
-    def createMaskVisibility(self, rig, ob, obname):
+    def createMaskVisibility(self, rig, ob, obnames):
         from .driver import makePropDriver
-        prop = getHidePropName(obname)
-        modname = getMaskName(obname)
+        props = {}
+        for obname in obnames:
+            modname = getMaskName(obname)
+            props[modname] = getHidePropName(obname)
         masked = False
         for mod in ob.modifiers:
             if (mod.type == 'MASK' and
-                mod.name == modname):
-                masked = True
-                break
-        if masked:
-            makePropDriver(prop, mod, "show_viewport", rig, expr="x")
-            makePropDriver(prop, mod, "show_render", rig, expr="x")
+                mod.name in props.keys()):
+                prop = props[mod.name]
+                makePropDriver(prop, mod, "show_viewport", rig, expr="x")
+                makePropDriver(prop, mod, "show_render", rig, expr="x")
 
 
     def invoke(self, context, event):
