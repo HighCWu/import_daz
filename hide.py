@@ -91,7 +91,7 @@ class ObjectSelection:
 #    Setup: Add and remove hide drivers
 #------------------------------------------------------------------------
 
-class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.SingleGroup, IsArmature):
+class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.SingleGroup, B.UseCollectionsBool, IsArmature):
     bl_idname = "daz.add_visibility_drivers"
     bl_label = "Add Visibility Drivers"
     bl_description = "Control visibility with rig property. For file linking."
@@ -103,6 +103,8 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.SingleGroup, IsA
         self.layout.prop(self, "singleGroup")
         if self.singleGroup:
             self.layout.prop(self, "groupName")
+        if bpy.app.version >= (2,80,0):
+            self.layout.prop(self, "useCollections")
         ObjectSelection.draw(self, context)
         
         
@@ -124,6 +126,10 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.SingleGroup, IsA
                 self.createMaskVisibility(rig, ob, obnames)
         rig.DazVisibilityDrivers = True
         updateDrivers(rig)
+
+        if self.useCollections:
+            self.addCollections(context, rig, selected)
+            
         print("Visibility drivers created")
  
  
@@ -148,6 +154,47 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.SingleGroup, IsA
                 prop = props[mod.name]
                 makePropDriver(prop, mod, "show_viewport", rig, expr="x")
                 makePropDriver(prop, mod, "show_render", rig, expr="x")
+
+
+    def addCollections(self, context, rig, selected):
+        self.getCollection(rig)
+        if self.collection is None:
+            raise DazError("No collection found")    
+        print("Create visibility collections for %s:" % rig.name)
+        if self.singleGroup:
+            coll = self.createCollection(context, self.groupName)
+            for ob in selected:
+                self.moveToCollection(ob, coll)
+        else:
+            for ob in selected:
+                coll = self.createCollection(context, ob.name)
+                self.moveToCollection(ob, coll)
+        rig.DazVisibilityCollections = True
+        print("Visibility collections created")
+
+
+    def createCollection(self, context, cname):
+        coll = bpy.data.collections.new(cname)
+        context.collection.children.link(coll)    
+        return coll
+
+
+    def getCollection(self, rig):
+        self.collection = None
+        for coll in bpy.data.collections:
+            if rig in coll.all_objects.values():
+                for ob in rig.children:
+                    if ob in coll.all_objects.values():
+                        self.collection = coll
+                        break
+
+
+    def moveToCollection(self, ob, newcoll):
+        for coll in bpy.data.collections:
+            if ob in coll.objects.values():
+                coll.objects.unlink(ob)
+            if ob not in newcoll.objects.values():
+                newcoll.objects.link(ob)
 
 
     def invoke(self, context, event):
@@ -190,67 +237,6 @@ class DAZ_OT_RemoveVisibility(DazOperator):
 #------------------------------------------------------------------------
 
 if bpy.app.version >= (2,80,0):
-
-    def getCollection(rig):
-        for coll in bpy.data.collections:
-            if rig in coll.all_objects.values():
-                for ob in rig.children:
-                    if ob in coll.all_objects.values():
-                        return coll
-        return None
-
-
-    def moveToCollection(ob, newcoll):
-        for coll in bpy.data.collections:
-            if ob in coll.objects.values():
-                coll.objects.unlink(ob)
-            if ob not in newcoll.objects.values():
-                newcoll.objects.link(ob)
-
-            
-    class DAZ_OT_AddVisibilityCollections(DazPropsOperator, ObjectSelection, B.SingleGroup, IsArmature):
-        bl_idname = "daz.add_visibility_collections"
-        bl_label = "Add Visibility Collections"
-        bl_description = "Create new collections and move meshes there. For file linking."
-        bl_options = {'UNDO'}
-
-        type = 'MESH'
-    
-        def draw(self, context):    
-            self.layout.prop(self, "singleGroup")
-            if self.singleGroup:
-                self.layout.prop(self, "groupName")
-            ObjectSelection.draw(self, context)
-            
-            
-        def run(self, context):
-            rig = context.object
-            self.collection = getCollection(rig)
-            if self.collection is None:
-                raise DazError("No collection found")                
-            print("Create visibility collections for %s:" % rig.name)
-            selected = self.getSelectedMeshes(context)
-            if self.singleGroup:
-                coll = self.createCollection(context, self.groupName)
-                for ob in selected:
-                    moveToCollection(ob, coll)            
-            else:
-                for ob in selected:
-                    coll = self.createCollection(context, ob.name)
-                    moveToCollection(ob, coll)            
-            rig.DazVisibilityCollections = True
-            print("Visibility collections created")
-
-
-        def createCollection(self, context, cname):
-            coll = bpy.data.collections.new(cname)
-            context.collection.children.link(coll)                
-            return coll
-
-
-        def invoke(self, context, event):
-            return ObjectSelection.invoke(self, context, event)
-
     
     class DAZ_OT_CreateCollections(DazPropsOperator, B.NameString):
         bl_idname = "daz.create_collections"
@@ -374,8 +360,6 @@ class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection, B.SingleGrou
     def invoke(self, context, event):
         return ObjectSelection.invoke(self, context, event)
 
-
-
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -390,7 +374,6 @@ classes = [
 
 if bpy.app.version >= (2,80,0):
     classes += [
-        DAZ_OT_AddVisibilityCollections,
         DAZ_OT_CreateCollections,
     ]
 

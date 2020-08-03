@@ -531,6 +531,13 @@ class SingleGroup:
         description = "Name of the single group",
         default = "All")
 
+
+class UseCollectionsBool:
+    useCollections : BoolProperty(
+        name = "Add Collections",
+        description = "Move selected meshes to new collections",
+        default = True)
+
 #-------------------------------------------------------------
 #   proxy.py
 #-------------------------------------------------------------

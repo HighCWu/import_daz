@@ -530,6 +530,9 @@ class SingleGroup:
         description = "Name of the single group",
         default = "All")
 
+class UseCollectionsBool:
+    useCollections = False
+
 #-------------------------------------------------------------
 #   proxy.py
 #-------------------------------------------------------------
