@@ -49,7 +49,7 @@ def getMannequinName(string):
 #   Object selection
 #------------------------------------------------------------------------
 
-class ObjectSelection(B.SingleProp):
+class ObjectSelection:
     def draw(self, context):
         row = self.layout.row()
         row.operator("daz.select_all")
@@ -90,46 +90,6 @@ class ObjectSelection(B.SingleProp):
 #------------------------------------------------------------------------
 #    Setup: Add and remove hide drivers
 #------------------------------------------------------------------------
-
-class HidersHandler:
-
-    def run(self, context):
-        from .morphing import prettifyAll
-        from .driver import updateAll
-        rig = context.object
-        for ob in self.getMeshesInGroup(context, rig):
-            self.handleHideDrivers(ob, rig, context)
-            setattr(ob, self.flag, self.value)
-        setattr(rig, self.flag, self.value)
-        prettifyAll(context)
-        updateAll(context)
-        setActiveObject(context, rig)
-
-
-    def getMeshesInGroup(self, context, rig):
-        self.collection = None
-        meshes = list(rig.children)
-        if bpy.app.version >= (2,80,0):
-            for coll in bpy.data.collections:
-                if rig in coll.all_objects.values():
-                    for ob in meshes:
-                        if ob in coll.all_objects.values():
-                            self.collection = coll
-                            return meshes
-        return meshes
-
-
-    def handleHideDrivers(self, clo, rig, context):
-        prop = getHidePropName(clo.name)
-        self.handleProp(prop, clo, rig, context)
-        if clo.DazMannequin:
-            return
-        modname = getMaskName(clo.name)
-        for ob in rig.children:
-            for mod in ob.modifiers:
-                if (mod.type == 'MASK' and mod.name == modname):
-                    self.handleMod(prop, rig, mod)
-
 
 class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.SingleProp, IsArmature):
     bl_idname = "daz.add_visibility_drivers"
@@ -192,7 +152,7 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.ActiveMesh, B.Si
         return ObjectSelection.invoke(self, context, event)
 
 
-class DAZ_OT_RemoveVisibility(DazOperator, HidersHandler):
+class DAZ_OT_RemoveVisibility(DazOperator):
     bl_idname = "daz.remove_visibility_drivers"
     bl_label = "Remove Visibility Drivers"
     bl_description = "Remove ability to control visibility from rig property"
@@ -224,73 +184,101 @@ class DAZ_OT_RemoveVisibility(DazOperator, HidersHandler):
         print("Visibility drivers removed")
 
 #------------------------------------------------------------------------
-#   Hider collections
+#   Visibility collections
 #------------------------------------------------------------------------
 
 if bpy.app.version >= (2,80,0):
 
-    class DAZ_OT_AddHiderCollections(DazOperator, HidersHandler):
-        bl_idname = "daz.add_hide_collections"
+    def getCollection(rig):
+        for coll in bpy.data.collections:
+            if rig in coll.all_objects.values():
+                for ob in rig.children:
+                    if ob in coll.all_objects.values():
+                        return coll
+        return None
+
+
+    def moveToCollection(ob, newcoll):
+        for coll in bpy.data.collections:
+            if ob in coll.objects.values():
+                coll.objects.unlink(ob)
+            if ob not in newcoll.objects.values():
+                newcoll.objects.link(ob)
+
+            
+    class DAZ_OT_AddVisibilityCollections(DazPropsOperator, ObjectSelection, B.SingleProp, IsArmature):
+        bl_idname = "daz.add_visibility_collections"
         bl_label = "Add Visibility Collections"
-        bl_description = "Control visibility with rig property. For file linking."
+        bl_description = "Create new collections and move meshes there. For file linking."
         bl_options = {'UNDO'}
 
-        flag = "DazVisibilityCollections"
-        value = True
-
-        @classmethod
-        def poll(self, context):
-            ob = context.object
-            return (ob and ob.type == 'ARMATURE' and not ob.DazVisibilityCollections)
-
-        def getMeshesInGroup(self, context, rig):
-            meshes = HidersHandler.getMeshesInGroup(self, context, rig)
-            return [rig] + meshes
-
-        def handleProp(self, prop, clo, rig, context):
+        type = 'MESH'
+    
+        def draw(self, context):    
+            self.layout.prop(self, "singleProp")
+            if self.singleProp:
+                self.layout.prop(self, "maskName")
+            ObjectSelection.draw(self, context)
+            
+            
+        def run(self, context):
+            rig = context.object
+            self.collection = getCollection(rig)
             if self.collection is None:
-                return
-            subcoll = bpy.data.collections.new(clo.name)
-            self.collection.children.link(subcoll)
-            if clo in self.collection.objects.values():
-                self.collection.objects.unlink(clo)
-            subcoll.objects.link(clo)
+                raise DazError("No collection found")                
+            print("Create visibility collections for %s:" % rig.name)
+            selected = self.getSelectedMeshes(context)
+            if self.singleProp:
+                coll = self.createCollection(context, self.maskName)
+                for ob in selected:
+                    moveToCollection(ob, coll)            
+            else:
+                for ob in selected:
+                    coll = self.createCollection(context, ob.name)
+                    moveToCollection(ob, coll)            
+            rig.DazVisibilityCollections = True
+            print("Visibility collections created")
 
-        def handleMod(self, prop, rig, mod):
-            return
+
+        def createCollection(self, context, cname):
+            coll = bpy.data.collections.new(cname)
+            context.collection.children.link(coll)                
+            return coll
 
 
-    class DAZ_OT_RemoveHiderCollections(DazOperator, HidersHandler):
-        bl_idname = "daz.remove_hide_collections"
-        bl_label = "Remove Visibility Collections"
-        bl_description = "Remove ability to control visibility from rig property"
+        def invoke(self, context, event):
+            return ObjectSelection.invoke(self, context, event)
+
+    
+    class DAZ_OT_CreateCollections(DazPropsOperator, B.NameString):
+        bl_idname = "daz.create_collections"
+        bl_label = "Create Collections"
+        bl_description = "Create collections for selected objects. After file linking."
         bl_options = {'UNDO'}
-
-        flag = "DazVisibilityCollections"
-        value = False
-
-        @classmethod
-        def poll(self, context):
-            ob = context.object
-            return (ob and ob.type == 'ARMATURE' and ob.DazVisibilityCollections)
-
-        def getMeshesInGroup(self, context, rig):
-            meshes = HidersHandler.getMeshesInGroup(self, context, rig)
-            return [rig] + meshes
-
-        def handleProp(self, prop, clo, rig, context):
-            if self.collection is None:
-                return
-            for subcoll in self.collection.children.values():
-                if clo in subcoll.objects.values():
-                    if subcoll in self.collection.children.values():
-                        self.collection.children.unlink(subcoll)
-                    subcoll.objects.unlink(clo)
-                    self.collection.objects.link(clo)
-                    break
-
-        def handleMod(self, prop, rig, mod):
-            return
+    
+        def draw(self, context):
+            self.layout.prop(self, "name")
+    
+        def run(self, context):
+            newcoll = bpy.data.collections.new(self.name)
+            coll = context.collection
+            coll.children.link(newcoll)
+            meshcoll = None
+            for ob in coll.objects:
+                if ob.select_get():
+                    if ob.type == 'EMPTY':
+                        if meshcoll is None:
+                            meshcoll = bpy.data.collections.new(self.name + " Meshes")
+                            newcoll.children.link(meshcoll)
+                        subcoll = bpy.data.collections.new(ob.name)
+                        meshcoll.children.link(subcoll)
+                        ob.hide_select = True
+                        subcoll.objects.link(ob)
+                        coll.objects.unlink(ob)
+                    else:
+                        ob.show_in_front = True
+                        newcoll.objects.link(ob)
+                    coll.objects.unlink(ob)
 
 #------------------------------------------------------------------------
 #   Show/Hide all
@@ -384,39 +372,7 @@ class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection):
     def invoke(self, context, event):
         return ObjectSelection.invoke(self, context, event)
 
-#----------------------------------------------------------
-#   Create collections
-#----------------------------------------------------------
 
-class DAZ_OT_CreateCollections(DazPropsOperator, B.NameString):
-    bl_idname = "daz.create_collections"
-    bl_label = "Create Collections"
-    bl_description = "Create collections for selected objects"
-    bl_options = {'UNDO'}
-
-    def draw(self, context):
-        self.layout.prop(self, "name")
-
-    def run(self, context):
-        newcoll = bpy.data.collections.new(self.name)
-        coll = context.collection
-        coll.children.link(newcoll)
-        meshcoll = None
-        for ob in coll.objects:
-            if ob.select_get():
-                if ob.type == 'EMPTY':
-                    if meshcoll is None:
-                        meshcoll = bpy.data.collections.new(self.name + " Meshes")
-                        newcoll.children.link(meshcoll)
-                    subcoll = bpy.data.collections.new(ob.name)
-                    meshcoll.children.link(subcoll)
-                    ob.hide_select = True
-                    subcoll.objects.link(ob)
-                    coll.objects.unlink(ob)
-                else:
-                    ob.show_in_front = True
-                    newcoll.objects.link(ob)
-                    coll.objects.unlink(ob)
 
 #----------------------------------------------------------
 #   Initialize
@@ -432,8 +388,7 @@ classes = [
 
 if bpy.app.version >= (2,80,0):
     classes += [
-        DAZ_OT_AddHiderCollections,
-        DAZ_OT_RemoveHiderCollections,
+        DAZ_OT_AddVisibilityCollections,
         DAZ_OT_CreateCollections,
     ]
 

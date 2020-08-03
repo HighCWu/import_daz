@@ -413,8 +413,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.remove_visibility_drivers")
             if bpy.app.version >= (2,80,0):
                 box.separator()
-                box.operator("daz.add_hide_collections")
-                box.operator("daz.remove_hide_collections")
+                box.operator("daz.add_visibility_collections")
                 box.operator("daz.create_collections")
 
         layout.separator()
