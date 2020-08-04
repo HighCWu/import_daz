@@ -270,6 +270,12 @@ class SlotString:
 class UseInternalBool:
     useInternal = BoolProperty(default=True)
 
+class KeepDirsBool:
+    keepdirs : BoolProperty(
+        name = "Keep Directories",
+        description = "Keep the directory tree from Daz Studio, otherwise flatten the directory structure",
+        default = True)
+
 
 class CopyMaterials:
     useMatchNames = BoolProperty(

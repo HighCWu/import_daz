@@ -843,12 +843,15 @@ def isBlack(color):
 #   Save local textures
 #-------------------------------------------------------------
 
-class DAZ_OT_SaveLocalTextures(DazOperator):
+class DAZ_OT_SaveLocalTextures(DazPropsOperator, B.KeepDirsBool):
     bl_idname = "daz.save_local_textures"
     bl_label = "Save Local Textures"
     bl_description = "Copy textures to the textures subfolder in the blend file's directory"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "keepdirs")
+        
     def run(self, context):
         from shutil import copyfile
         if not bpy.data.filepath:
@@ -877,7 +880,7 @@ class DAZ_OT_SaveLocalTextures(DazOperator):
             src = bpy.path.reduce_dirs([src])[0]
             file = bpy.path.basename(src)
             srclower = src.lower().replace("\\", "/")
-            if "/textures/" in srclower:
+            if self.keepdirs and "/textures/" in srclower:
                 subpath = os.path.dirname(srclower.rsplit("/textures/",1)[1])
                 folder = os.path.join(texpath, subpath)
                 if not os.path.exists(folder):
