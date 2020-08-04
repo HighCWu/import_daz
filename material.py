@@ -843,47 +843,6 @@ def isBlack(color):
 #   Save local textures
 #-------------------------------------------------------------
 
-def saveLocalTextureCopies(context):
-    from shutil import copyfile
-    if not bpy.data.filepath:
-        raise DazError("Save the blend file first")
-    texpath = os.path.join(os.path.dirname(bpy.data.filepath), "textures")
-    print("Save textures to '%s'" % texpath)
-    if not os.path.exists(texpath):
-        os.makedirs(texpath)
-
-    images = []
-    for ob in getSceneObjects(context):
-        if ob.type == 'MESH':
-            for mat in ob.data.materials:
-                if mat and mat.use_nodes:
-                    saveNodesInTree(mat.node_tree, images)
-                elif mat:
-                    for mtex in mat.texture_slots:
-                        if mtex:
-                            tex = mtex.texture
-                            if hasattr(tex, "image") and tex.image:
-                                images.append(tex.image)
-            ob.DazLocalTextures = True
-
-    for img in images:
-        src = bpy.path.abspath(img.filepath)
-        src = bpy.path.reduce_dirs([src])[0]
-        trg = os.path.join(texpath, bpy.path.basename(src))
-        if src != trg and not os.path.exists(trg):
-            print("Copy %s\n => %s" % (src, trg))
-            copyfile(src, trg)
-        img.filepath = bpy.path.relpath(trg)
-
-
-def saveNodesInTree(tree, images):
-    for node in tree.nodes.values():
-        if node.type == 'TEX_IMAGE':
-            images.append(node.image)
-        elif node.type == 'GROUP':
-            saveNodesInTree(node.node_tree, images)
-
-
 class DAZ_OT_SaveLocalTextures(DazOperator):
     bl_idname = "daz.save_local_textures"
     bl_label = "Save Local Textures"
@@ -891,7 +850,54 @@ class DAZ_OT_SaveLocalTextures(DazOperator):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        saveLocalTextureCopies(context)
+        from shutil import copyfile
+        if not bpy.data.filepath:
+            raise DazError("Save the blend file first")
+        texpath = os.path.join(os.path.dirname(bpy.data.filepath), "textures")
+        print("Save textures to '%s'" % texpath)
+        if not os.path.exists(texpath):
+            os.makedirs(texpath)
+    
+        images = []
+        for ob in getSceneObjects(context):
+            if ob.type == 'MESH':
+                for mat in ob.data.materials:
+                    if mat and mat.use_nodes:
+                        self.saveNodesInTree(mat.node_tree, images)
+                    elif mat:
+                        for mtex in mat.texture_slots:
+                            if mtex:
+                                tex = mtex.texture
+                                if hasattr(tex, "image") and tex.image:
+                                    images.append(tex.image)
+                ob.DazLocalTextures = True
+    
+        for img in images:
+            src = bpy.path.abspath(img.filepath)
+            src = bpy.path.reduce_dirs([src])[0]
+            file = bpy.path.basename(src)
+            srclower = src.lower().replace("\\", "/")
+            if "/textures/" in srclower:
+                subpath = os.path.dirname(srclower.rsplit("/textures/",1)[1])
+                folder = os.path.join(texpath, subpath)
+                if not os.path.exists(folder):
+                    print("Make %s" % folder)
+                    os.makedirs(folder)
+                trg = os.path.join(folder, file)
+            else:
+                trg = os.path.join(texpath, file)
+            if src != trg and not os.path.exists(trg):
+                print("Copy %s\n => %s" % (src, trg))
+                copyfile(src, trg)
+            img.filepath = bpy.path.relpath(trg)
+
+
+    def saveNodesInTree(self, tree, images):
+        for node in tree.nodes.values():
+            if node.type == 'TEX_IMAGE':
+                images.append(node.image)
+            elif node.type == 'GROUP':
+                self.saveNodesInTree(node.node_tree, images)
 
 #-------------------------------------------------------------
 #   Merge identical materials
