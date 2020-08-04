@@ -296,6 +296,11 @@ class ResizeOptions:
         min = 0, max = 8,
         default = 2)
 
+    resizeAll : BoolProperty(
+        name = "Resize All", 
+        description = "Resize all textures of the selected meshes",
+        default = True)
+        
     overwrite : BoolProperty(
         name = "Overwrite Files",
         description = "Overwrite the original image files.",

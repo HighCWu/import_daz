@@ -1206,14 +1206,33 @@ class ChangeResolution(B.ResizeOptions):
         self.filenames = []
         self.images = {}
 
-    def draw(self, context):
-        self.layout.prop(self, "steps")
-
 
     def getFileNames(self, paths):
         for path in paths:
             fname = bpy.path.basename(self.getBasePath(path))
             self.filenames.append(fname)
+
+
+    def getAllTextures(self, context):
+        paths = {}
+        for ob in getSceneObjects(context):
+            if ob.type == 'MESH' and getSelected(ob):
+                for mat in ob.data.materials:
+                    if mat.node_tree:
+                        self.getTreeTextures(mat.node_tree, paths)
+                    else:
+                        for mtex in mat.texture_slots:
+                            if mtex and mtex.texture.type == 'IMAGE':
+                                paths[mtex.texture.image.filepath] = True
+        return paths
+
+
+    def getTreeTextures(self, tree, paths):
+        for node in tree.nodes.values():
+            if node.type == 'TEX_IMAGE':
+                paths[node.image.filepath] = True
+            elif node.type == 'GROUP':
+                self.resizeTree(node.node_tree)
 
 
     def replaceTextures(self, context):
@@ -1330,37 +1349,18 @@ class DAZ_OT_ChangeResolution(DazOperator, ChangeResolution):
     def poll(self, context):
         return (context.object and context.object.DazLocalTextures)
 
+    def draw(self, context):
+        self.layout.prop(self, "steps")
+
     def invoke(self, context, event):
         context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
     def run(self, context):
         self.overwrite = False
-        self.getAllTextures(context)
-        self.getFileNames(self.paths.keys())
+        paths = self.getAllTextures(context)
+        self.getFileNames(paths.keys())
         self.replaceTextures(context)
-
-
-    def getAllTextures(self, context):
-        self.paths = {}
-        for ob in getSceneObjects(context):
-            if ob.type == 'MESH' and getSelected(ob):
-                for mat in ob.data.materials:
-                    if mat.node_tree:
-                        self.getTreeTextures(mat.node_tree)
-                    else:
-                        for mtex in mat.texture_slots:
-                            if mtex and mtex.texture.type == 'IMAGE':
-                                self.paths[mtex.texture.image.filepath] = True
-        return self.paths.keys()
-
-
-    def getTreeTextures(self, tree):
-        for node in tree.nodes.values():
-            if node.type == 'TEX_IMAGE':
-                self.paths[node.image.filepath] = True
-            elif node.type == 'GROUP':
-                self.resizeTree(node.node_tree)
 
 
 class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolution):
@@ -1375,6 +1375,10 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolutio
     def poll(self, context):
         return (context.object and context.object.DazLocalTextures)
 
+    def draw(self, context):
+        self.layout.prop(self, "steps")
+        self.layout.prop(self, "resizeAll")
+
     def invoke(self, context, event):
         texpath = os.path.join(os.path.dirname(bpy.data.filepath), "textures/")
         self.properties.filepath = texpath
@@ -1383,7 +1387,11 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolutio
     def run(self, context):
         from .fileutils import getMultiFiles
         from .globvars import theImageExtensions
-        paths = getMultiFiles(self, theImageExtensions)
+                
+        if self.resizeAll:                
+            paths = self.getAllTextures(context)
+        else:
+            paths = getMultiFiles(self, theImageExtensions)
         self.getFileNames(paths)
 
         program = os.path.join(os.path.dirname(__file__), "standalone/resize.py")
@@ -1391,7 +1399,10 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolutio
             overwrite = "-o"
         else:
             overwrite = ""
+        folder = os.path.dirname(bpy.data.filepath)
         for path in paths:
+            if path[0:2] == "//":
+                path = os.path.join(folder, path[2:])
             _,newpath = self.getNewPath(self.getBasePath(path))
             if not os.path.exists(newpath):
                 cmd = ('python "%s" "%s" %d %s' % (program, path, self.steps, overwrite))
