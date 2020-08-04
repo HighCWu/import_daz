@@ -556,7 +556,8 @@ class CyclesTree:
 
     def buildDualLobe(self):
         from .cgroup import DualLobeGroup
-        node = self.addGroup(DualLobeGroup, "DAZ Dual Lobe", 7)
+        node = self.addGroup(DualLobeGroup, "DAZ Dual Lobe", 6)
+        self.ycoords[6] -= 100
 
         value,tex = self.getColorTex(["Dual Lobe Specular Weight"], "NONE", 0.5, False)
         node.inputs["Weight"].default_value = value
@@ -835,9 +836,9 @@ class CyclesTree:
         alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
         if alpha < 1 or tex:
             self.useCutout = True
-            node = self.addNode(3, "ShaderNodeBsdfTransparent")
+            node = self.addNode(6, "ShaderNodeBsdfTransparent")
             self.material.alphaBlend(alpha, tex)
-            self.mixWithActive(1-alpha, tex, node, useAlpha=False, flip=True)
+            self.mixWithActive(1-alpha, tex, node, col=7, useAlpha=False, flip=True)
             LS.usedFeatures["Transparent"] = True
 
 #-------------------------------------------------------------

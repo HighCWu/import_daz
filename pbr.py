@@ -59,17 +59,20 @@ class PbrTree(CyclesTree):
         self.active = self.pbr
         self.buildBumpNodes(scn)
         self.buildPBRNode(scn)
+        self.postPBR = False
         if self.normal:
             self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Normal"])
             self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Clearcoat Normal"])
         if (self.material.thinWalled or
             self.material.translucent):
             self.buildTranslucency(scn)
+            self.postPBR = True
         self.buildOverlay()
         if self.material.dualLobeWeight > 0:
             self.buildDualLobe()
             self.pbr.inputs["Specular"].default_value = 0
             self.removeLink(self.pbr, "Specular")
+            self.postPBR = True
         if self.material.refractive:
             LS.usedFeatures["Transparent"] = True
             self.buildRefraction()
@@ -79,7 +82,7 @@ class PbrTree(CyclesTree):
 
 
     def buildCutout(self):
-        if "Alpha" in self.pbr.inputs.keys():
+        if "Alpha" in self.pbr.inputs.keys() and not self.postPBR:
             alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1)
             if alpha < 1 or tex:
                 self.material.alphaBlend(alpha, tex)

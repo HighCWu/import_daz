@@ -1232,7 +1232,7 @@ class ChangeResolution(B.ResizeOptions):
             if node.type == 'TEX_IMAGE':
                 paths[node.image.filepath] = True
             elif node.type == 'GROUP':
-                self.resizeTree(node.node_tree)
+                self.getTreeTextures(node.node_tree, paths)
 
 
     def replaceTextures(self, context):
