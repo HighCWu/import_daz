@@ -1446,21 +1446,13 @@ def checkRenderSettings(context, force):
     scn = context.scene
     if scn.render.engine in ["BLENDER_RENDER", "BLENDER_GAME"]:
         return
-    elif scn.render.engine == "CYCLES":
-        engine = scn.cycles
-        renderSettings = renderSettingsCycles
-    elif scn.render.engine == "BLENDER_EEVEE":
-        engine = scn.eevee
-        renderSettings = renderSettingsEevee
-    else:
-        return
 
     handle = GS.handleRenderSettings
     if force:
         handle = "UPDATE"
-    header = "Render settings"
     msg = ""
-    msg += checkSettings(engine, renderSettings, handle, header)
+    msg += checkSettings(scn.cycles, renderSettingsCycles, handle, "Cycles Settings")
+    msg += checkSettings(scn.eevee, renderSettingsEevee, handle, "Eevee Settings")
 
     if bpy.app.version < (2,80,0):
         bpydatalamps = bpy.data.lamps
@@ -1567,7 +1559,7 @@ def initialize():
                  ("WARN", "Warn", "Warn about insufficient light settings"),
                  ("UPDATE", "Update", "Update insufficient light settings")],
         name = "Light Settings",
-        default = "WARN"
+        default = "UPDATE"
     )
 
 
