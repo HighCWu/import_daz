@@ -43,7 +43,7 @@ class CyclesMaterial(Material):
     def __init__(self, fileref):
         Material.__init__(self, fileref)
         self.tree = None
-        self.eevee = False
+        self.useEevee = False
 
 
     def __repr__(self):
@@ -73,9 +73,9 @@ class CyclesMaterial(Material):
                     else:
                         self.tree = CyclesTree(self)
             elif LS.renderMethod == 'BLENDER_EEVEE':
+                self.useEevee = True
                 self.tree = PbrTree(self)
                 self.translucent = False
-                self.eevee = True
                 LS.methodOpaque = 'PRINCIPLED'
                 LS.methodRefractive = 'PRINCIPLED'
                 LS.methodVolumetric = "SSS"
@@ -156,6 +156,7 @@ class CyclesTree:
         self.type = 'CYCLES'
         self.material = cmat
         self.active = None
+        self.eevee = None
         self.ycoords = 10*[500]
         self.texnodes = {}
         self.nodes = None
@@ -174,6 +175,7 @@ class CyclesTree:
         self.displacement = None
         self.volume = None
         self.useCutout = False
+        self.useTranslucency = False
 
 
     def __repr__(self):
@@ -282,14 +284,9 @@ class CyclesTree:
         scn = context.scene
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
-        if LS.methodVolumetric == "SSS":
-            self.buildSSS(scn)
-        elif (self.material.thinWalled or
-            self.volume or
-            self.material.translucent):
-            self.buildTranslucency(scn)
-        else:
-            self.buildSSS(scn)
+        self.checkTranslucency()        
+        self.buildSSS(scn)
+        self.buildTranslucency(scn)
         self.buildOverlay()
         if self.material.dualLobeWeight == 1:
             self.buildDualLobe()
@@ -369,12 +366,17 @@ class CyclesTree:
         return None
 
 
-    def prune(self, output = "Material Output"):
-        marked = dict([(node.name, False) for node in self.nodes])
-        if output not in marked.keys():
+    def prune(self):
+        marked = {}
+        output = False
+        for node in self.nodes:
+            marked[node.name] = False
+            if "Output" in node.name:
+                marked[node.name] = True
+                output = True
+        if not output:
             print("No output node")
             return
-        marked[output] = True
         nmarked = 0
         n = 1
         while n > nmarked:
@@ -411,7 +413,7 @@ class CyclesTree:
             else:
                 uvname = ""
             if tex:
-                if self.material.eevee:
+                if self.material.useEevee:
                     from .cgroup import NormalGroup
                     self.normal = self.addGroup(NormalGroup, "DAZ Normal", 3, args=[uvname])
                 else:
@@ -669,24 +671,33 @@ class CyclesTree:
 #   Translucency
 #-------------------------------------------------------------
 
-    def buildTranslucency(self, scn):
+    def checkTranslucency(self):
+        if (self.material.thinWalled or
+            self.volume or
+            self.material.translucent): 
+            self.useTranslucency = True
         if (self.material.refractive or
             not self.material.translucent or
             LS.methodVolumetric == "SSS"):
+            self.useTranslucency = False            
+
+
+    def buildTranslucency(self, scn):
+        if not self.useTranslucency:
             return
         mat = self.material.rna
         color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
-        luc = self.addNode(5, "ShaderNodeBsdfTranslucent")
-        luc.inputs["Color"].default_value[0:3] = color
+        node = self.addNode(5, "ShaderNodeBsdfTranslucent")
+        node.inputs["Color"].default_value[0:3] = color
         if tex:
-            self.links.new(tex.outputs[0], luc.inputs[0])
-        self.linkNormal(luc)
+            self.links.new(tex.outputs[0], node.inputs[0])
+        self.linkNormal(node)
         fac,factex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         effect = self.getValue(["Base Color Effect"], 0)
         if effect == 1: # Scatter and transmit
             fac = 0.5 + fac/2
             self.setMultiplier(factex, fac)
-        self.mixWithActive(fac, factex, luc)
+        self.mixWithActive(fac, factex, node, mixEevee=False)
         LS.usedFeatures["Transparent"] = True
 
 
@@ -699,9 +710,6 @@ class CyclesTree:
 #-------------------------------------------------------------
 
     def buildSSS(self, scn):
-        if (self.material.thinWalled or
-            LS.methodVolumetric != "SSS"):
-            return
         wt = self.getValue("getChannelTranslucencyWeight", 0)
         dist = self.getValue("getChannelScatterDist", 0.0) * LS.scale
         if wt == 0 or dist == 0:
@@ -728,7 +736,14 @@ class CyclesTree:
 
         rad,radtex = self.sumColors(sss, ssstex, trans, transtex)
         radius = rad * 2.0 * LS.scale
-        self.linkSSS(color, coltex, wt, wttex, radius, radtex)
+        
+        if self.useTranslucency or LS.methodVolumetric != "SSS":
+            active = self.eevee = self.active 
+            CyclesTree.linkSSS(self, color, coltex, wt, wttex, radius, ssstex)            
+            self.active = active
+        else:
+            self.linkSSS(color, coltex, wt, wttex, radius, radtex)
+        
         LS.usedFeatures["SSS"] = True
         mat = self.material.rna
         if hasattr(mat, "use_sss_translucency"):
@@ -742,7 +757,7 @@ class CyclesTree:
         self.linkColor(ssstex, node, radius, "Radius")
         self.linkNormal(node)
         self.mixWithActive(wt, wttex, node)
-
+            
 #-------------------------------------------------------------
 #   Transparency
 #-------------------------------------------------------------
@@ -947,6 +962,7 @@ class CyclesTree:
 
     def buildOutput(self):
         output = self.addNode(8, "ShaderNodeOutputMaterial")
+        output.target = 'ALL'
         if self.active:
             self.links.new(self.active.outputs[0], output.inputs["Surface"])
         if self.volume and not self.useCutout:
@@ -958,6 +974,18 @@ class CyclesTree:
             node.outputs[0].default_value = 1.0
             for lie in self.liegroups:
                 self.links.new(node.outputs[0], lie.inputs["Alpha"])
+
+        if self.volume or self.eevee:
+            output.target = 'CYCLES'        
+            outputEevee = self.addNode(8, "ShaderNodeOutputMaterial")
+            outputEevee.target = 'EEVEE'
+            if self.eevee:
+                self.links.new(self.eevee.outputs[0], outputEevee.inputs["Surface"])
+            elif self.active:
+                self.links.new(self.active.outputs[0], outputEevee.inputs["Surface"])
+            if self.displacement:
+                self.links.new(self.displacement.outputs[0], outputEevee.inputs["Displacement"])
+
 
 
     def buildDisplacementNodes(self, scn):
@@ -1114,30 +1142,38 @@ class CyclesTree:
             self.active = shader
 
 
-    def mixWithActive(self, fac, tex, shader, col=6, useAlpha=True, flip=False):
+    def mixWithActive(self, fac, tex, shader, col=6, useAlpha=True, flip=False, mixEevee=True):
         if fac == 0 and tex is None:
             return
         elif fac == 1 and tex is None:
             self.active = shader
+            if self.eevee:
+                self.eevee = shader
             return
         if self.active:
-            mix = self.addNode(col, "ShaderNodeMixShader")
-            mix.inputs[0].default_value = fac
-            if tex:
-                if useAlpha and "Alpha" in tex.outputs.keys():
-                    slot = "Alpha"
-                else:
-                    slot = 0
-                self.links.new(tex.outputs[slot], mix.inputs[0])
-            if flip:
-                self.links.new(self.active.outputs[0], mix.inputs[2])
-                self.links.new(shader.outputs[0], mix.inputs[1])
-            else:
-                self.links.new(self.active.outputs[0], mix.inputs[1])
-                self.links.new(shader.outputs[0], mix.inputs[2])
-            self.active = mix
+            self.active = self.makeActiveMix(self.active, fac, tex, shader, col, useAlpha, flip)
         else:
             self.active = shader
+        if self.eevee and mixEevee:
+            self.eevee = self.makeActiveMix(self.eevee, fac, tex, shader, col, useAlpha, flip)
+            
+            
+    def makeActiveMix(self, active, fac, tex, shader, col, useAlpha, flip):            
+        mix = self.addNode(col, "ShaderNodeMixShader")
+        mix.inputs[0].default_value = fac
+        if tex:
+            if useAlpha and "Alpha" in tex.outputs.keys():
+                slot = "Alpha"
+            else:
+                slot = 0
+            self.links.new(tex.outputs[slot], mix.inputs[0])
+        if flip:
+            self.links.new(active.outputs[0], mix.inputs[2])
+            self.links.new(shader.outputs[0], mix.inputs[1])
+        else:
+            self.links.new(active.outputs[0], mix.inputs[1])
+            self.links.new(shader.outputs[0], mix.inputs[2])
+        return mix
 
 
     def linkColor(self, tex, node, color, slot=0):

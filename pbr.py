@@ -39,6 +39,7 @@ class PbrTree(CyclesTree):
         CyclesTree.__init__(self, pbrmat)
         self.pbr = None
         self.type = 'PBR'
+        self.eevee = None
 
 
     def __repr__(self):
@@ -57,14 +58,14 @@ class PbrTree(CyclesTree):
             return
         scn = context.scene
         self.active = self.pbr
+        self.checkTranslucency()
         self.buildBumpNodes(scn)
         self.buildPBRNode(scn)
         self.postPBR = False
         if self.normal:
             self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Normal"])
             self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Clearcoat Normal"])
-        if (self.material.thinWalled or
-            self.material.translucent):
+        if self.useTranslucency:
             self.buildTranslucency(scn)
             self.postPBR = True
         self.buildOverlay()
@@ -197,7 +198,7 @@ class PbrTree(CyclesTree):
         self.linkColor(coltex, self.pbr, color, "Subsurface Color")
         self.linkScalar(wttex, self.pbr, wt, "Subsurface")
         self.linkColor(ssstex, self.pbr, radius, "Subsurface Radius")
-
+                    
 
     def setPbrSlot(self, slot, value):
         self.pbr.inputs[slot].default_value = value

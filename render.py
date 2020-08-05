@@ -200,7 +200,7 @@ class WorldTree(CyclesTree):
             self.links.new(mix.outputs[0], output.inputs["Surface"])
         else:
             self.links.new(bg.outputs[0], output.inputs["Surface"])
-        self.prune(output = "World Output")
+        self.prune()
 
 
     def addMapping(self, rot):
