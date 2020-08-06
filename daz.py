@@ -998,6 +998,30 @@ class DAZ_OT_LoadFactorySettings(DazOperator):
         return {'PASS_THROUGH'}
 
 
+class DAZ_OT_LoadRootPaths(DazOperator, B.SingleFile, B.JsonFile):
+    bl_idname = "daz.load_root_paths"
+    bl_label = "Load Root Paths"
+    bl_description = "Load DAZ root paths from file"
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        struct = GS.openFile(self.filepath)
+        if struct:
+            print("Load paths from", self.filepath)
+            GS.readDazPaths(struct)
+            GS.toScene(context.scene)
+        else:
+            print("No paths found in", self.filepath)
+        return {'PASS_THROUGH'}
+
+    def invoke(self, context, event):
+        if not self.properties.filepath:
+            print("ROOT", GS.rootPath)
+            self.properties.filepath = GS.rootPath
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
 class DAZ_OT_LoadSettingsFile(DazOperator, B.SingleFile, B.JsonFile):
     bl_idname = "daz.load_settings_file"
     bl_label = "Load Settings File"
@@ -1081,6 +1105,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
             box.prop(scn, "DazSpecularRoughness")
 
         row = self.layout.row()
+        row.operator("daz.load_root_paths")
         row.operator("daz.load_factory_settings")
         row.operator("daz.save_settings_file")
         row.operator("daz.load_settings_file")
@@ -1118,6 +1143,7 @@ classes = [
     DAZ_OT_SetSilentMode,
 
     DAZ_OT_LoadFactorySettings,
+    DAZ_OT_LoadRootPaths,
     DAZ_OT_SaveSettingsFile,
     DAZ_OT_LoadSettingsFile,
     DAZ_OT_GlobalSettings,

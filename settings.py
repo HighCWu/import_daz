@@ -53,6 +53,7 @@ class GlobalSettings:
         else:
             path = "~/import-daz-settings-28x.json"
         self.settingsPath = self.fixPath(path)
+        self.rootPath = self.fixPath("~/import-daz-paths.json")
 
         self.verbosity = 2
         self.zup = True
@@ -206,14 +207,16 @@ class GlobalSettings:
 
     def readDazPaths(self, struct):
         self.dazpaths = []
-        n = 0
         for key in ["content", "builtin_mdl", "import_dirs", "mdl_dirs", "builtin_content", "cloud_content"]:
             if key in struct.keys():
                 for path in struct[key]:
-                    self.dazpaths.append(self.fixPath(path))
+                    path = self.fixPath(path)
+                    if os.path.exists(path):
+                        print("ADD", path)
+                        self.dazpaths.append(path)
+                    else:
+                        print("Path does not exist", path)
         self.numpaths = len(self.dazpaths)
-        print("NP", self.numpaths)
-        print("DP", self.dazpaths)
 
 
     def save(self, filepath):
@@ -237,6 +240,7 @@ class GlobalSettings:
 
     def loadDefaults(self):
         self.load(self.settingsPath)
+        return
         filepath = "~/import-daz-paths.json"
         struct = self.openFile(filepath)
         if struct:
