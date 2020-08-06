@@ -32,10 +32,10 @@ function setupDazPaths()
     doDirs(fp, "mdl_dirs", cmgr.getNumMDLDirectories(), cmgr.getMDLDirectoryPath);
 
     path = cmgr.getBuiltInContentDirectoryPath();
-    fp.writeLine("    \"builtin_content: \"" + path + "\",");        
+    fp.writeLine("    \"builtin_content\" : [\"" + path + "\"],");        
     
     path = cmgr.getCloudContentDirectoryPath();
-    fp.writeLine("    \"cloud_content: \"" + path + "\"");        
+    fp.writeLine("    \"cloud_content\" : [\"" + path + "\"]");        
     
     fp.writeLine("}");
 
@@ -52,7 +52,7 @@ function doDirs(fp, key, ndirs, fcn)
     for (var n=0; n<ndirs; n++)
     {
     	if (n == ndirs-1) c = "";
-        fp.writeLine("        " + fcn(n) + "\"" + c);        
+        fp.writeLine("        \"" + fcn(n) + "\"" + c);        
     }
     fp.writeLine("    ],");
 }

@@ -158,7 +158,7 @@ class GlobalSettings:
         setattr(scn, "DazErrorPath", path)
 
 
-    def load(self, filepath):
+    def openFile(self, filepath):
         filepath = os.path.expanduser(filepath)
         try:
             fp = open(filepath, "r", encoding="utf-8-sig")
@@ -167,16 +167,25 @@ class GlobalSettings:
         if fp:
             import json
             try:
-                struct = json.load(fp)
+                return json.load(fp)
             except json.decoder.JSONDecodeError as err:
                 print("File %s is corrupt" % filepath)
                 print("Error: %s" % err)
-                return
+                return None
             finally:
                 fp.close()
         else:
-            return
-        print("Load settings from", filepath)
+            return None
+
+
+    def load(self, filepath):
+        struct = self.openFile(filepath)
+        if struct:
+            print("Load settings from", filepath)
+            self.readDazSettings(struct)
+    
+
+    def readDazSettings(self, struct):
         if "daz-settings" in struct.keys():
             settings = struct["daz-settings"]
             for prop,value in settings.items():
@@ -193,6 +202,18 @@ class GlobalSettings:
                 self.dazpaths.append(path)
         else:
             raise DazError("Not a settings file   :\n'%s'" % filepath)
+
+
+    def readDazPaths(self, struct):
+        self.dazpaths = []
+        n = 0
+        for key in ["content", "builtin_mdl", "import_dirs", "mdl_dirs", "builtin_content", "cloud_content"]:
+            if key in struct.keys():
+                for path in struct[key]:
+                    self.dazpaths.append(self.fixPath(path))
+        self.numpaths = len(self.dazpaths)
+        print("NP", self.numpaths)
+        print("DP", self.dazpaths)
 
 
     def save(self, filepath):
@@ -216,6 +237,11 @@ class GlobalSettings:
 
     def loadDefaults(self):
         self.load(self.settingsPath)
+        filepath = "~/import-daz-paths.json"
+        struct = self.openFile(filepath)
+        if struct:
+            print("Load paths from", filepath)
+            self.readDazPaths(struct)
 
 
     def saveDefaults(self):
