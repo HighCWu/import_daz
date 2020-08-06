@@ -22,7 +22,7 @@ function exportToBlender()
     fp.open( fp.WriteOnly );
     
     fp.writeLine("{");
-    fp.writeLine("    \"application\": \"export_to_blender\",");
+    fp.writeLine("    \"application\": \"" + appName + "\",");
     fp.writeLine("    \"version\": " + version + ",");
     
     fp.writeLine("    \"figures\": [");

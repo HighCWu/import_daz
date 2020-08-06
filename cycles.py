@@ -739,7 +739,7 @@ class CyclesTree:
         
         if self.useTranslucency or LS.methodVolumetric != "SSS":
             active = self.eevee = self.active 
-            CyclesTree.linkSSS(self, color, coltex, wt, wttex, radius, ssstex)            
+            CyclesTree.linkSSS(self, color, coltex, wt, wttex, radius, radtex)            
             self.active = active
         else:
             self.linkSSS(color, coltex, wt, wttex, radius, radtex)
