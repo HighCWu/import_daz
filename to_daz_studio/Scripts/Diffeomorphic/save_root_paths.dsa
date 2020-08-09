@@ -1,6 +1,6 @@
 // DAZ Studio version 4.12 filetype DAZ Script
 
-var appName = "setup_daz_importer_paths";
+var appName = "save_root_paths";
 var version = 0.1;
 
 function setupDazPaths()
