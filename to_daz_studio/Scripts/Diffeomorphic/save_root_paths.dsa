@@ -8,7 +8,7 @@ function setupDazPaths()
     var filepath = FileDialog.doFileDialog( 
         false, 
         "Save As", 
-        ":/import-daz-paths.json", 
+        "import-daz-paths.json", 
         "JSON Files (*.json)" 
         );
         

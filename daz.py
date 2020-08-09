@@ -970,7 +970,19 @@ class DAZ_PT_Visibility(DAZ_PT_Hide, bpy.types.Panel):
 #   Settings popup
 #-------------------------------------------------------------
 
-class DAZ_OT_SaveSettingsFile(DazOperator, B.SingleFile, B.JsonExportFile):
+class DAZ_OT_AddRootPath(bpy.types.Operator):
+    bl_idname = "daz.add_root_path"
+    bl_label = "Add Root Path"
+    bl_description = "Add a root directory"
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        pg = context.scene.DazPaths.add()
+        pg.name = ""
+        return {'PASS_THROUGH'}
+
+
+class DAZ_OT_SaveSettingsFile(bpy.types.Operator, B.SingleFile, B.JsonExportFile):
     bl_idname = "daz.save_settings_file"
     bl_label = "Save Settings File"
     bl_description = "Save current settings to file"
@@ -1007,11 +1019,11 @@ class DAZ_OT_LoadRootPaths(DazOperator, B.SingleFile, B.JsonFile):
     def execute(self, context):
         struct = GS.openFile(self.filepath)
         if struct:
-            print("Load paths from", self.filepath)
+            print("Load root paths from", self.filepath)
             GS.readDazPaths(struct)
             GS.toScene(context.scene)
         else:
-            print("No paths found in", self.filepath)
+            print("No root paths found in", self.filepath)
         return {'PASS_THROUGH'}
 
     def invoke(self, context, event):
@@ -1052,9 +1064,9 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box = col.box()
         box.label(text = "DAZ Root Paths")
         box.prop(scn, "DazCaseSensitivePaths")
-        box.prop(scn, "DazNumPaths")
-        for n in range(scn.DazNumPaths):
-            box.prop(scn, "DazPath%d" % (n+1), text="")
+        box.operator("daz.add_root_path")
+        for pg in scn.DazPaths:
+            box.prop(pg, "name", text="")
         box.label(text = "Path To Output Errors:")
         box.prop(scn, "DazErrorPath", text="")
 
@@ -1142,6 +1154,7 @@ classes = [
     DAZ_OT_InspectPropDependencies,
     DAZ_OT_SetSilentMode,
 
+    DAZ_OT_AddRootPath,
     DAZ_OT_LoadFactorySettings,
     DAZ_OT_LoadRootPaths,
     DAZ_OT_SaveSettingsFile,
@@ -1167,16 +1180,10 @@ classes = [
 ]
 
 def initialize():
-    bpy.types.Scene.DazNumPaths = IntProperty(
-        name = "Number Of DAZ Paths",
-        description = "The number of DAZ library paths",
-        min=1, max = 9)
-
-    for n in range(1, 10):
-        setattr(bpy.types.Scene, "DazPath%d" % n,
-            StringProperty(
-                name = "DAZ Path %d" % n,
-                description = "Search path for DAZ Studio assets"))
+    bpy.types.Scene.DazPaths = CollectionProperty(
+        type = bpy.types.PropertyGroup,
+        name = "DAZ Root Paths",
+        description = "Search paths for DAZ Studio assets")
 
     bpy.types.Scene.DazErrorPath = StringProperty(
         name = "Error Path",

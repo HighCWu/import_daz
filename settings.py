@@ -41,7 +41,6 @@ class GlobalSettings:
     def __init__(self):
         from sys import platform
 
-        self.numpaths = 3
         self.dazpaths = [
             self.fixPath("~/Documents/DAZ 3D/Studio/My Library"),
             "C:/Users/Public/Documents/My DAZ 3D Library",
@@ -91,7 +90,6 @@ class GlobalSettings:
 
 
     SceneTable = {
-        "DazNumPaths" : "numpaths",
         "DazVerbosity" : "verbosity",
         "DazZup" : "zup",
         "DazErrorPath" : "errorPath",
@@ -137,9 +135,12 @@ class GlobalSettings:
             else:
                 print("MIS", prop, key)
         self.dazpaths = []
-        for n in range(self.numpaths):
-            path = self.fixPath(getattr(scn, "DazPath%d" % (n+1)))
-            self.dazpaths.append(path)
+        for pg in scn.DazPaths:
+            path = self.fixPath(pg.name)
+            if os.path.exists(path):
+                self.dazpaths.append(path)
+            else:
+                print("Skip non-existent path:", path)
         self.errorPath = self.fixPath(getattr(scn, "DazErrorPath"))
 
 
@@ -150,11 +151,10 @@ class GlobalSettings:
                 setattr(scn, prop, value)
             else:
                 print("MIS", prop, key)
-        if self.numpaths > len(self.dazpaths):
-            self.numpaths = len(self.dazpaths)
-        for n in range(self.numpaths):
-            path = self.fixPath(self.dazpaths[n])
-            setattr(scn, "DazPath%d" % (n+1), path)
+        scn.DazPaths.clear()
+        for path in self.dazpaths:
+            pg = scn.DazPaths.add()
+            pg.name = self.fixPath(path)
         path = self.fixPath(self.errorPath)
         setattr(scn, "DazErrorPath", path)
 
@@ -176,6 +176,7 @@ class GlobalSettings:
             finally:
                 fp.close()
         else:
+            print("Could not open %s" % filepath)
             return None
 
 
@@ -194,13 +195,14 @@ class GlobalSettings:
                     key = self.SceneTable[prop]
                     setattr(self, key, value)
             self.dazpaths = []
-            for n in range(self.numpaths):
-                prop = "DazPath%d" % (n+1)
-                if prop in settings.keys():
-                    path = self.fixPath(settings[prop])
+            pathlist = [(key, path) for key,path in settings.items() if key[0:7] == "DazPath"]
+            pathlist.sort()
+            for _prop,path in pathlist:
+                path = self.fixPath(path)
+                if os.path.exists(path):
+                    self.dazpaths.append(path)
                 else:
-                    path = ""
-                self.dazpaths.append(path)
+                    print("No such path:", path)
         else:
             raise DazError("Not a settings file   :\n'%s'" % filepath)
 
@@ -212,11 +214,9 @@ class GlobalSettings:
                 for path in struct[key]:
                     path = self.fixPath(path)
                     if os.path.exists(path):
-                        print("ADD", path)
                         self.dazpaths.append(path)
                     else:
                         print("Path does not exist", path)
-        self.numpaths = len(self.dazpaths)
 
 
     def save(self, filepath):
@@ -229,9 +229,8 @@ class GlobalSettings:
                 isinstance(value, bool) or
                 isinstance(value, str)):
                 struct[prop] = value
-        for n in range(self.numpaths):
-            path = self.fixPath(self.dazpaths[n])
-            struct["DazPath%d" % (n+1)] = path
+        for n,path in enumerate(self.dazpaths):
+            struct["DazPath%d" % (n+1)] = self.fixPath(path)
         filepath = os.path.expanduser(filepath)
         filepath = os.path.splitext(filepath)[0] + ".json"
         saveJson({"daz-settings" : struct}, filepath)
@@ -250,10 +249,6 @@ class GlobalSettings:
 
     def saveDefaults(self):
         self.save(self.settingsPath)
-
-
-    def getDazPaths(self):
-        return self.dazpaths[0:self.numpaths]
 
 #-------------------------------------------------------------
 #   Local settings
