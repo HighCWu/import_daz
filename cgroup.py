@@ -132,6 +132,181 @@ class FresnelGroup(CyclesGroup):
         self.links.new(fresnel.outputs["Fac"], self.outputs.inputs["Fac"])
 
 # ---------------------------------------------------------------------
+#   Mix Group. Mixes Cycles and Eevee
+# ---------------------------------------------------------------------
+
+class MixGroup(CyclesGroup):
+    def __init__(self, node, name, parent, ncols):
+        CyclesGroup.__init__(self, node, name, parent, ncols)
+        self.group.inputs.new("NodeSocketFloat", "Fac")
+        self.group.inputs.new("NodeSocketShader", "Cycles")
+        self.group.inputs.new("NodeSocketShader", "Eevee")
+        self.group.outputs.new("NodeSocketShader", "Cycles")
+        self.group.outputs.new("NodeSocketShader", "Eevee")
+        
+        
+    def addNodes(self, args=None):
+        self.mix1 = self.addNode(2, "ShaderNodeMixShader")
+        self.mix2 = self.addNode(2, "ShaderNodeMixShader")
+        self.links.new(self.inputs.outputs["Fac"], self.mix1.inputs[0])
+        self.links.new(self.inputs.outputs["Fac"], self.mix2.inputs[0])
+        self.links.new(self.inputs.outputs["Cycles"], self.mix1.inputs[1])
+        self.links.new(self.inputs.outputs["Eevee"], self.mix2.inputs[1])
+        self.links.new(self.mix1.outputs[0], self.outputs.inputs["Cycles"])
+        self.links.new(self.mix2.outputs[0], self.outputs.inputs["Eevee"])
+
+# ---------------------------------------------------------------------
+#   Diffuse Group
+# ---------------------------------------------------------------------
+
+class DiffuseGroup(MixGroup):
+
+    def __init__(self, node, name, parent):
+        MixGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "Roughness")
+        self.group.inputs.new("NodeSocketVector", "Normal")
+
+
+    def addNodes(self, args=None):
+        MixGroup.addNodes(self, args)
+        diffuse = self.addNode(1, "ShaderNodeBsdfDiffuse")
+        self.links.new(self.inputs.outputs["Color"], diffuse.inputs["Color"])
+        self.links.new(self.inputs.outputs["Roughness"], diffuse.inputs["Roughness"])
+        self.links.new(self.inputs.outputs["Normal"], diffuse.inputs["Normal"])
+        self.links.new(diffuse.outputs[0], self.mix1.inputs[2])
+        self.links.new(diffuse.outputs[0], self.mix2.inputs[2])
+
+# ---------------------------------------------------------------------
+#   Glossy Group
+# ---------------------------------------------------------------------
+
+class GlossyGroup(MixGroup):
+
+    def __init__(self, node, name, parent):
+        MixGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "Roughness")
+        self.group.inputs.new("NodeSocketVector", "Normal")
+
+
+    def addNodes(self, args=None):
+        MixGroup.addNodes(self, args)
+        glossy = self.addNode(1, "ShaderNodeBsdfGlossy")
+        self.links.new(self.inputs.outputs["Color"], glossy.inputs["Color"])
+        self.links.new(self.inputs.outputs["Roughness"], glossy.inputs["Roughness"])
+        self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
+        self.links.new(glossy.outputs[0], self.mix1.inputs[2])
+        self.links.new(glossy.outputs[0], self.mix2.inputs[2])
+       
+# ---------------------------------------------------------------------
+#   Refraction Group
+# ---------------------------------------------------------------------
+
+class RefractionGroup(MixGroup):
+
+    def __init__(self, node, name, parent):
+        MixGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "IOR")
+        self.group.inputs.new("NodeSocketVector", "Normal")
+
+
+    def addNodes(self, args=None):
+        MixGroup.addNodes(self, args)
+        glossy = self.addNode(1, "ShaderNodeBsdfRefraction")
+        self.links.new(self.inputs.outputs["Color"], glossy.inputs["Color"])
+        self.links.new(self.inputs.outputs["IOR"], glossy.inputs["IOR"])
+        self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
+        self.links.new(glossy.outputs[0], self.mix1.inputs[2])
+        self.links.new(glossy.outputs[0], self.mix2.inputs[2])
+
+# ---------------------------------------------------------------------
+#   Transparent Group
+# ---------------------------------------------------------------------
+
+class TransparentGroup(MixGroup):
+
+    def __init__(self, node, name, parent):
+        MixGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Color")
+
+
+    def addNodes(self, args=None):
+        MixGroup.addNodes(self, args)
+        trans = self.addNode(1, "ShaderNodeBsdfTransparent")
+        self.links.new(self.inputs.outputs["Color"], trans.inputs["Color"])
+        # Flip
+        self.links.new(self.inputs.outputs["Cycles"], self.mix1.inputs[2])
+        self.links.new(self.inputs.outputs["Eevee"], self.mix2.inputs[2])
+        self.links.new(trans.outputs[0], self.mix1.inputs[1])
+        self.links.new(trans.outputs[0], self.mix2.inputs[1])
+
+# ---------------------------------------------------------------------
+#   Emission Group
+# ---------------------------------------------------------------------
+
+class EmissionGroup(MixGroup):
+
+    def __init__(self, node, name, parent):
+        MixGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "Strength")
+
+
+    def addNodes(self, args=None):
+        MixGroup.addNodes(self, args)
+        emit = self.addNode(1, "ShaderNodeBsdfGlossy")
+        self.links.new(self.inputs.outputs["Color"], emit.inputs["Color"])
+        self.links.new(self.inputs.outputs["Strength"], emit.inputs["Strength"])
+        self.links.new(emit.outputs[0], self.mix1.inputs[2])
+        self.links.new(emit.outputs[0], self.mix2.inputs[2])
+
+# ---------------------------------------------------------------------
+#   Translucent Group
+# ---------------------------------------------------------------------
+
+class TranslucentGroup(MixGroup):
+
+    def __init__(self, node, name, parent):
+        MixGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketVector", "Normal")
+
+
+    def addNodes(self, args=None):
+        MixGroup.addNodes(self, args)
+        glossy = self.addNode(1, "ShaderNodeBsdfTranslucent")
+        self.links.new(self.inputs.outputs["Color"], glossy.inputs["Color"])
+        self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
+        self.links.new(glossy.outputs[0], self.mix1.inputs[2])
+        self.links.new(glossy.outputs[0], self.mix2.inputs[2])
+
+# ---------------------------------------------------------------------
+#   SSS Group
+# ---------------------------------------------------------------------
+
+class SSSGroup(MixGroup):
+
+    def __init__(self, node, name, parent):
+        MixGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "Scale")
+        self.group.inputs.new("NodeSocketVector", "Radius")
+        self.group.inputs.new("NodeSocketVector", "Normal")
+
+
+    def addNodes(self, args=None):
+        MixGroup.addNodes(self, args)
+        sss = self.addNode(1, "ShaderNodeSubsurfaceScattering")
+        self.links.new(self.inputs.outputs["Color"], sss.inputs["Color"])
+        self.links.new(self.inputs.outputs["Scale"], sss.inputs["Scale"])
+        self.links.new(self.inputs.outputs["Radius"], sss.inputs["Radius"])
+        self.links.new(self.inputs.outputs["Normal"], sss.inputs["Normal"])
+        self.links.new(sss.outputs[0], self.mix1.inputs[2])
+        self.links.new(sss.outputs[0], self.mix2.inputs[2])
+       
+# ---------------------------------------------------------------------
 #   Dual Lobe Group
 # ---------------------------------------------------------------------
 
