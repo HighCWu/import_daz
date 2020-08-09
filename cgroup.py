@@ -62,10 +62,12 @@ class CyclesGroup(MaterialGroup, CyclesTree):
 class ShellGroup(MaterialGroup):
 
     def __init__(self, node, name, parent):
-        MaterialGroup.__init__(self, node, name, parent, 7)
-        self.group.inputs.new("NodeSocketShader", "Shader")
+        MaterialGroup.__init__(self, node, name, parent, 8)
+        self.group.inputs.new("NodeSocketShader", "Cycles")
+        self.group.inputs.new("NodeSocketShader", "Eevee")
         self.group.inputs.new("NodeSocketVector", "UV")
-        self.group.outputs.new("NodeSocketShader", "Shader")
+        self.group.outputs.new("NodeSocketShader", "Cycles")
+        self.group.outputs.new("NodeSocketShader", "Eevee")
 
 
     def addNodes(self, context, shell):
@@ -74,13 +76,18 @@ class ShellGroup(MaterialGroup):
         self.texco = self.inputs.outputs["UV"]
         self.buildLayer(context)
         alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
+        self.addOutput(alpha, tex, self.getCyclesSocket(), "Cycles")
+        self.addOutput(alpha, tex, self.getEeveeSocket(), "Eevee")
+
+
+    def addOutput(self, alpha, tex, socket, slot):
         mix = self.addNode(7, "ShaderNodeMixShader")
         mix.inputs[0].default_value = alpha
         if tex:
             self.links.new(tex.outputs[0], mix.inputs[0])
-        self.links.new(self.inputs.outputs["Shader"], mix.inputs[1])
-        self.links.new(self.active.outputs[0], mix.inputs[2])
-        self.links.new(mix.outputs[0], self.outputs.inputs["Shader"])
+        self.links.new(self.inputs.outputs[slot], mix.inputs[1])
+        self.links.new(socket, mix.inputs[2])
+        self.links.new(mix.outputs[0], self.outputs.inputs[slot])
 
 
 class ShellCyclesGroup(ShellGroup, CyclesTree):
@@ -256,11 +263,13 @@ class TranslucentGroup(MixGroup):
 
     def addNodes(self, args=None):
         MixGroup.addNodes(self, args)
-        glossy = self.addNode(1, "ShaderNodeBsdfTranslucent")
-        self.links.new(self.inputs.outputs["Color"], glossy.inputs["Color"])
-        self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
-        self.links.new(glossy.outputs[0], self.mix1.inputs[2])
-        self.links.new(glossy.outputs[0], self.mix2.inputs[2])
+        node = self.addNode(1, "ShaderNodeBsdfTranslucent")
+        self.links.new(self.inputs.outputs["Color"], node.inputs["Color"])
+        self.links.new(self.inputs.outputs["Normal"], node.inputs["Normal"])
+        self.links.new(node.outputs[0], self.mix1.inputs[2])
+        self.links.new(node.outputs[0], self.mix2.inputs[2])
+        self.links.new(self.inputs.outputs["Eevee"], self.outputs.inputs["Eevee"])
+        self.nodes.remove(self.mix2)
 
 # ---------------------------------------------------------------------
 #   SSS Group
@@ -350,6 +359,37 @@ class DualLobeGroup(CyclesGroup):
         self.links.new(node1.outputs[0], mix.inputs[2])
         self.links.new(node2.outputs[0], mix.inputs[1])
         self.links.new(mix.outputs[0], self.outputs.inputs[slot])
+
+# ---------------------------------------------------------------------
+#   Volume Group
+# ---------------------------------------------------------------------
+
+class VolumeGroup(CyclesGroup):
+
+    def __init__(self, node, name, parent):
+        CyclesGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Absorbtion Color")
+        self.group.inputs.new("NodeSocketFloat", "Absorbtion Density")
+        self.group.inputs.new("NodeSocketColor", "Scatter Color")
+        self.group.inputs.new("NodeSocketFloat", "Scatter Density")
+        self.group.inputs.new("NodeSocketFloat", "Scatter Anisotropy")
+        self.group.outputs.new("NodeSocketShader", "Volume")
+
+
+    def addNodes(self, args=None):
+        absorb = self.addNode(1, "ShaderNodeVolumeAbsorption")
+        self.links.new(self.inputs.outputs["Absorbtion Color"], absorb.inputs["Color"])
+        self.links.new(self.inputs.outputs["Absorbtion Density"], absorb.inputs["Density"])
+
+        scatter = self.addNode(1, "ShaderNodeVolumeScatter")
+        self.links.new(self.inputs.outputs["Scatter Color"], scatter.inputs["Color"])
+        self.links.new(self.inputs.outputs["Scatter Density"], scatter.inputs["Density"])
+        self.links.new(self.inputs.outputs["Scatter Anisotropy"], scatter.inputs["Anisotropy"])
+
+        volume = self.addNode(2, "ShaderNodeAddShader")
+        self.links.new(absorb.outputs[0], volume.inputs[0])
+        self.links.new(scatter.outputs[0], volume.inputs[1]) 
+        self.links.new(volume.outputs[0], self.outputs.inputs["Volume"])
 
 # ---------------------------------------------------------------------
 #   Normal Group

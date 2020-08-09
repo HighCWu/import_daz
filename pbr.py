@@ -57,7 +57,7 @@ class PbrTree(CyclesTree):
             CyclesTree.buildLayer(self, context)
             return
         scn = context.scene
-        self.active = self.pbr
+        self.cycles = self.eevee = self.pbr
         self.checkTranslucency()
         self.buildBumpNodes(scn)
         self.buildPBRNode(scn)
@@ -79,7 +79,6 @@ class PbrTree(CyclesTree):
             self.buildRefraction()
         else:
             self.buildEmission(scn)
-        return self.active
 
 
     def buildCutout(self):
