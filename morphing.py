@@ -1231,6 +1231,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
                  "Mhh" : "Visibility"
                 }
 
+
     def run(self, context):
         for ob in context.scene.objects:
             for key in ob.keys():
@@ -1243,11 +1244,22 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
             if ob.type == 'MESH' and ob.data.shape_keys:
                 for key in ob.data.shape_keys.key_blocks.keys():
                     self.updateKey(ob, key)
+            elif ob.type == 'ARMATURE':
+                for pb in ob.pose.bones:
+                    for pgs in [pb.DazLocProps, pb.DazRotProps, pb.DazScaleProps]:
+                        for pg in pgs:
+                            pg.name = pg.prop
             ob.DazMorphPrefixes = False
+        prettifyAll(context)
+
 
     def updateKey(self, ob, key):
-        if key[0:2] == "Dz" or key[0:3] == "Mhh":
-            pg = getattr(ob, "Daz" + self.morphsets[key[0:3]])
+        prefix = key[0:3]
+        if prefix[0:2] == "Dz" or prefix == "Mhh":
+            if prefix not in self.morphsets.keys():
+                return
+            prop = "Daz" + self.morphsets[prefix]
+            pg = getattr(ob, prop)
             if key not in pg.keys():
                 item = pg.add()
                 item.name = key
