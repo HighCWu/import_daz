@@ -489,7 +489,7 @@ class CyclesTree:
             color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE)
             #node = self.addNode(5, "ShaderNodeBsdfDiffuse")
             from .cgroup import DiffuseGroup
-            node = self.addGroup(DiffuseGroup, "DAZ Diffuse", 4)
+            node = self.addGroup(DiffuseGroup, "DAZ Overlay", 4)
             self.linkColor(tex, node, color, "Color")
             roughness,roughtex = self.getColorTex(["Diffuse Overlay Roughness"], "NONE", 0, False)
             self.setRoughness(node, "Roughness", roughness, roughtex)
@@ -560,8 +560,8 @@ class CyclesTree:
 
     def buildDualLobe(self):
         from .cgroup import DualLobeGroup
-        node = self.addGroup(DualLobeGroup, "DAZ Dual Lobe", 6)
-        self.ycoords[6] -= 100
+        node = self.addGroup(DualLobeGroup, "DAZ Dual Lobe", 7)
+        self.ycoords[7] -= 100
 
         value,tex = self.getColorTex(["Dual Lobe Specular Weight"], "NONE", 0.5, False)
         node.inputs["Weight"].default_value = value
@@ -582,12 +582,10 @@ class CyclesTree:
         value,tex = self.getColorTex(["Specular Lobe 2 Roughness"], "NONE", 0.0, False)
         self.setRoughness(node, "Roughness 2", value, tex)
 
-        fac = self.getValue(["Dual Lobe Specular Ratio"], 1.0)
-        node.inputs["Fac"].default_value = fac
+        ratio = self.getValue(["Dual Lobe Specular Ratio"], 1.0)
 
         self.linkNormal(node)
-        self.links.new(self.active.outputs[0], node.inputs["Shader"])
-        self.active = node
+        self.mixWithActive(ratio, None, node)
         LS.usedFeatures["Glossy"] = True
 
 
@@ -667,7 +665,7 @@ class CyclesTree:
 
         #top = self.addNode(6, "ShaderNodeBsdfGlossy")
         from .cgroup import GlossyGroup
-        top = self.addGroup(GlossyGroup, "DAZ Glossy", 7)
+        top = self.addGroup(GlossyGroup, "DAZ Top Coat", 7)
         self.linkColor(tex, top, color, "Color")
         self.linkScalar(roughtex, top, roughness, "Roughness")
         self.linkNormal(top)
@@ -745,7 +743,8 @@ class CyclesTree:
         
         if self.useTranslucency or LS.methodVolumetric != "SSS":
             active = self.active 
-            CyclesTree.linkSSS(self, color, coltex, wt, wttex, radius, radtex)            
+            node = CyclesTree.linkSSS(self, color, coltex, wt, wttex, radius, radtex)            
+            self.removeLink(node, "Cycles")
             self.active = active
         else:
             self.linkSSS(color, coltex, wt, wttex, radius, radtex)
@@ -766,6 +765,7 @@ class CyclesTree:
         self.linkColor(ssstex, node, radius, "Radius")
         self.linkNormal(node)
         self.mixWithActive(wt, wttex, node)
+        return node
             
 #-------------------------------------------------------------
 #   Transparency
@@ -909,7 +909,8 @@ class CyclesTree:
                 self.links.new(emit.outputs[0], mix.inputs[1])
                 self.links.new(trans.outputs[0], mix.inputs[2])
                 emit = mix
-            self.addToActive(emit, 8)
+            self.active = self.addToActive(self.active, emit, 8)
+            self.eevee = self.addToActive(self.eevee, emit, 8)
 
 
     def invertColor(self, color, tex, col):
@@ -1151,15 +1152,14 @@ class CyclesTree:
         return mix
 
 
-    def addToActive(self, shader, col=6):
-        if self.active:
-            if shader:
-                add = self.addNode(col, "ShaderNodeAddShader")
-                self.links.new(self.active.outputs[0], add.inputs[0])
-                self.links.new(shader.outputs[0], add.inputs[1])
-                self.active = add
+    def addToActive(self, active, shader, col=6):
+        if active:
+            node = self.addNode(col, "ShaderNodeAddShader")
+            self.links.new(active.outputs[0], node.inputs[0])
+            self.links.new(shader.outputs[0], node.inputs[1])
+            return node
         else:
-            self.active = shader
+            return self.active
 
 
     def mixWithActive(self, fac, tex, shader, col=6, useAlpha=True, flip=False, mixEevee=True):
@@ -1194,7 +1194,7 @@ class CyclesTree:
             
         from .cgroup import MixGroup
         if shader.type == 'GROUP':
-            print("MIX", slot, active, fac)
+            print("MIX", slot, active, fac, texslot)
             if slot in active.outputs.keys():
                 self.links.new(active.outputs[slot], shader.inputs[slot])
             else:

@@ -50,9 +50,9 @@ TweakableChannels = OrderedDict([
     ("Diffuse Color", ("BSDF_DIFFUSE", "Color", None, None, 4, None)),
     ("Diffuse Roughness", ("BSDF_DIFFUSE", "Roughness", None, None, 1, None)),
 
-    ("Specular", None),
-    ("Glossy Color", ("BSDF_GLOSSY", "Color", None, None, 4, None)),
-    ("Glossy Roughness", ("BSDF_GLOSSY", "Roughness", None, None, 1, None)),
+    ("Glossy", None),
+    ("Glossy Color", ("DAZ Glossy", "Color", None, None, 4, None)),
+    ("Glossy Roughness", ("DAZ Glossy", "Roughness", None, None, 1, None)),
 
     ("Dual Lobe", None),
     ("Dual Lobe Weight", ("DAZ Dual Lobe", "Weight", None, None, 1, None)),
@@ -62,13 +62,13 @@ TweakableChannels = OrderedDict([
     ("Dual Lobe Fac", ("DAZ Dual Lobe", "Fac", None, None, 1, None)),
 
     ("Translucency", None),
-    ("Translucency Color", ("BSDF_TRANSLUCENT", "Color", "use_map_translucency", "translucency_factor", 4, None)),
-    ("Translucency Strength", ("MIX_SHADER", "Fac", "use_map_translucency", "translucency_factor", 1, "BSDF_TRANSLUCENT")),
+    ("Translucency Color", ("DAZ Translucent", "Color", None, None, 4, None)),
+    ("Translucency Strength", ("DAZ Translucent", "Fac", None, None, 1, "BSDF_TRANSLUCENT")),
 
     ("Subsurface", None),
-    ("Subsurface Color", ("SUBSURFACE_SCATTERING", "Color", None, None, 4, None)),
-    ("Subsurface Scale", ("SUBSURFACE_SCATTERING", "Scale", None, None, 1, None)),
-    ("Subsurface Radius", ("SUBSURFACE_SCATTERING", "Radius", None, None, 3, None)),
+    ("Subsurface Color", ("DAZ SSS", "Color", None, None, 4, None)),
+    ("Subsurface Scale", ("DAZ SSS", "Scale", None, None, 1, None)),
+    ("Subsurface Radius", ("DAZ SSS", "Radius", None, None, 3, None)),
 
     ("Principled", None),
     ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4, None)),
@@ -89,6 +89,22 @@ TweakableChannels = OrderedDict([
     ("Principled Transmission", ("BSDF_PRINCIPLED", "Transmission", None, None, 1, None)),
     ("Principled Transmission Roughness", ("BSDF_PRINCIPLED", "Transmission Roughness", None, None, 1, None)),
     ("Principled Emission", ("BSDF_PRINCIPLED", "Emission", None, None, 4, None)),
+
+    ("Top Coat", None),
+    ("Top Coat Color", ("DAZ Top Coat", "Color", None, None, 4, None)),
+    ("Top Coat Roughness", ("DAZ Top Coat", "Roughness", None, None, 1, None)),
+
+    ("Overlay", None),
+    ("Overlay Color", ("DAZ Overlay", "Color", None, None, 4, None)),
+    ("Overlay Roughness", ("DAZ Overlay", "Roughness", None, None, 1, None)),
+
+    ("Refraction", None),
+    ("Refraction Color", ("DAZ Refraction", "Color", None, None, 4, None)),
+    ("Refraction Roughness", ("DAZ Refraction", "Roughness", None, None, 1, None)),
+    ("Refraction IOR", ("DAZ Refraction", "IOR", None, None, 1, None)),
+
+    ("Transparent", None),
+    ("Transparent Color", ("DAZ Transparent", "Color", None, None, 4, None)),
 
     ("Emission", None),
     ("Emission Color", ("EMISSION", "Color", None, None, 4, None)),
