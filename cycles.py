@@ -193,7 +193,7 @@ class CyclesTree:
         if col is None:
             col = self.column
         node = self.nodes.new(type = stype)
-        node.location = (col*250-500, self.ycoords[col])
+        node.location = (col*300-600, self.ycoords[col])
         self.ycoords[col] -= 250
         if label:
             node.label = label
@@ -331,7 +331,7 @@ class CyclesTree:
 
 
     def addTexco(self, slot):
-        node = self.addNode("ShaderNodeTexCoord", col=1)
+        node = self.addNode("ShaderNodeTexCoord", 1)
         self.texco = node.outputs[slot]
 
         mat = self.material
@@ -355,11 +355,11 @@ class CyclesTree:
 
     def addUvNode(self, key, uvname):
         if True:
-            node = self.addNode("ShaderNodeUVMap", col=1)
+            node = self.addNode("ShaderNodeUVMap", 1)
             node.uv_map = uvname
             slot = "UV"
         else:
-            node = self.addNode("ShaderNodeAttribute", col=1)
+            node = self.addNode("ShaderNodeAttribute", 1)
             node.attribute_name = uvname
             slot = "Vector"
         self.texcos[key] = node.outputs[slot]
@@ -368,7 +368,7 @@ class CyclesTree:
     def addMappingNode(self, data, map):
         dx,dy,sx,sy,rz = data
         if (sx != 1 or sy != 1 or dx != 0 or dy != 0 or rz != 0):
-            mapping = self.addNode("ShaderNodeMapping", col=1)
+            mapping = self.addNode("ShaderNodeMapping", 1)
             mapping.vector_type = 'TEXTURE'
             if hasattr(mapping, "translation"):
                 mapping.translation = (dx,dy,0)
@@ -509,12 +509,12 @@ class CyclesTree:
                 else:
                     useAlpha = False
                 wttex = self.raiseToPower(wttex, power, useAlpha=useAlpha)
-            color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE, col=5)
+            color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE)
             #node = self.addNode(5, "ShaderNodeBsdfDiffuse")
             from .cgroup import DiffuseGroup
             node = self.addGroup(DiffuseGroup, "DAZ Overlay")
             self.linkColor(tex, node, color, "Color")
-            roughness,roughtex = self.getColorTex(["Diffuse Overlay Roughness"], "NONE", 0, False, col=5)
+            roughness,roughtex = self.getColorTex(["Diffuse Overlay Roughness"], "NONE", 0, False)
             self.setRoughness(node, "Roughness", roughness, roughtex)
             self.linkNormal(node)
             self.mixWithActive(weight**power, wttex, node)
@@ -532,14 +532,14 @@ class CyclesTree:
         return node
 
 
-    def getColorTex(self, attr, colorSpace, default, useFactor=True, useTex=True, maxval=0, value=None, col=2):
+    def getColorTex(self, attr, colorSpace, default, useFactor=True, useTex=True, maxval=0, value=None):
         channel = self.material.getChannel(attr)
         if channel is None:
             return default,None
         if isinstance(channel, tuple):
             channel = channel[0]
         if useTex:
-            tex = self.addTexImageNode(channel, colorSpace, col=col)
+            tex = self.addTexImageNode(channel, colorSpace)
         else:
             tex = None
         if value is not None:
@@ -575,16 +575,16 @@ class CyclesTree:
             if wttex:
                 self.links.new(wttex.outputs[0], node.inputs["Weight"])
 
-        value,tex = self.getColorTex(["Dual Lobe Specular Reflectivity"], "NONE", 0.5, False, col=5)
+        value,tex = self.getColorTex(["Dual Lobe Specular Reflectivity"], "NONE", 0.5, False)
         node.inputs["IOR"].default_value = 1.1 + 0.7*value
         if tex:
-            iortex = self.multiplyAddScalarTex(0.7*value, 1.1, tex, col=6)
+            iortex = self.multiplyAddScalarTex(0.7*value, 1.1, tex)
             self.links.new(iortex.outputs[0], node.inputs["IOR"])
 
-        value,tex = self.getColorTex(["Specular Lobe 1 Roughness"], "NONE", 0.0, False, col=5)
+        value,tex = self.getColorTex(["Specular Lobe 1 Roughness"], "NONE", 0.0, False)
         self.setRoughness(node, "Roughness 1", value, tex)
 
-        value,tex = self.getColorTex(["Specular Lobe 2 Roughness"], "NONE", 0.0, False, col=5)
+        value,tex = self.getColorTex(["Specular Lobe 2 Roughness"], "NONE", 0.0, False)
         self.setRoughness(node, "Roughness 2", value, tex)
 
         ratio = self.getValue(["Dual Lobe Specular Ratio"], 1.0)
@@ -616,7 +616,7 @@ class CyclesTree:
 
         from .cgroup import FresnelGroup
         fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel")
-        ior,iortex = self.getFresnelIOR(col=3)
+        ior,iortex = self.getFresnelIOR()
         self.linkScalar(iortex, fresnel, ior, "IOR")
         self.linkNormal(fresnel)
         self.fresnel = fresnel
@@ -645,24 +645,24 @@ class CyclesTree:
         self.linkScalar(roughtex, fresnel, fnroughness, "Roughness")
 
         LS.usedFeatures["Glossy"] = True
-        self.mixWithActive(1.0, self.fresnel, glossy, col=6, useAlpha=False)
+        self.mixWithActive(1.0, self.fresnel, glossy, useAlpha=False)
         
 
-    def getFresnelIOR(self, col=2):
+    def getFresnelIOR(self):
         #   fresnel ior = 1.1 + iray glossy reflectivity * 0.7
         #   fresnel ior = 1.1 + iray glossy specular / 0.078
         ior = 1.45
         iortex = None
         if self.material.shader == 'IRAY':
             if self.material.basemix == 0:    # Metallic/Roughness
-                value,tex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0, False, col=col)
+                value,tex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0, False)
                 factor = 0.7 * value
             elif self.material.basemix == 1:  # Specular/Glossiness
-                color,tex = self.getColorTex("getChannelGlossySpecular", "COLOR", WHITE, False, col=col)
+                color,tex = self.getColorTex("getChannelGlossySpecular", "COLOR", WHITE, False)
                 factor = 0.7 * averageColor(color) / 0.078
             ior = 1.1 + factor
             if tex:
-                iortex = self.multiplyAddScalarTex(factor, 1.1, tex, col=col+1)
+                iortex = self.multiplyAddScalarTex(factor, 1.1, tex)
         return ior, iortex
 
 #-------------------------------------------------------------
@@ -708,12 +708,11 @@ class CyclesTree:
     def buildTranslucency(self, scn):
         if not self.useTranslucency:
             return
-        mat = self.material.rna
-        color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE, col=4)
         self.column += 1
+        mat = self.material.rna
+        color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
         #node = self.addNode(5, "ShaderNodeBsdfTranslucent")
         from .cgroup import TranslucentGroup
-        self.column += 1
         node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=150)
         self.linkColor(tex, node, color, "Color")
         node.inputs["Scale"].default_value = 1
@@ -842,12 +841,12 @@ class CyclesTree:
         return value,tex
 
 
-    def setRoughness(self, node, channel, roughness, roughtex, square=True, col=3):
+    def setRoughness(self, node, channel, roughness, roughtex, square=True):
         if square and bpy.app.version < (2,80,0):
             roughness = roughness * roughness
         node.inputs[channel].default_value = roughness
         if roughtex:
-            tex = self.multiplyScalarTex(roughness, roughtex, col=col)
+            tex = self.multiplyScalarTex(roughness, roughtex)
             if tex:
                 self.links.new(tex.outputs[0], node.inputs[channel])
 
@@ -899,7 +898,7 @@ class CyclesTree:
             node = self.addGroup(TransparentGroup, "Daz Transparent")
             node.inputs["Color"].default_value[0:3] = WHITE
             self.material.alphaBlend(alpha, tex)
-            self.mixWithActive(1-alpha, tex, node, col=7, useAlpha=False, flip=True)
+            self.mixWithActive(1-alpha, tex, node, useAlpha=False, flip=True)
             LS.usedFeatures["Transparent"] = True
 
 #-------------------------------------------------------------
@@ -957,11 +956,11 @@ class CyclesTree:
             return
 
         from .cgroup import VolumeGroup
-        transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK, col=6)
+        transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
         sssmode = self.getValue(["SSS Mode"], 0)
         # [ "Mono", "Chromatic" ]
         if sssmode == 1:
-            ssscolor,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK, col=5)
+            ssscolor,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK)
             # https://bitbucket.org/Diffeomorphic/import-daz/issues/27/better-volumes-minor-but-important-fixes
             switch = (transcolor[1] == 0 or ssscolor[1] == 0)
         else:
@@ -974,7 +973,6 @@ class CyclesTree:
                 color,tex = self.invertColor(transcolor, transtex, 6)
             else:
                 color,tex = transcolor,transtex
-            self.column += 1
             #absorb = self.addNode(6, "ShaderNodeVolumeAbsorption")
             self.volume = self.addGroup(VolumeGroup, "DAZ Volume")
             self.volume.inputs["Absorbtion Density"].default_value = 100/dist
@@ -989,7 +987,6 @@ class CyclesTree:
                 color,tex = self.invertColor(ssscolor, ssstex, 6)
             #scatter = self.addNode(6, "ShaderNodeVolumeScatter")
             if self.volume is None:
-                self.column += 1
                 self.volume = self.addGroup(VolumeGroup, "DAZ Volume")            
             self.linkColor(tex, self.volume, color, "Scatter Color")
             self.volume.inputs["Scatter Density"].default_value = 50/dist
@@ -997,7 +994,6 @@ class CyclesTree:
         elif sss > 0 and dist > 0.0:
             #scatter = self.addNode(6, "ShaderNodeVolumeScatter")
             if self.volume is None:
-                self.column += 1
                 self.volume = self.addGroup(VolumeGroup, "DAZ Volume")                        
             sss,tex = self.getColorTex(["SSS Amount"], "NONE", 0.0)
             color = (sss,sss,sss)
@@ -1043,7 +1039,7 @@ class CyclesTree:
                 self.material.isActive("Displacement") and
                 GS.useDisplacement):
             return
-        tex = self.addTexImageNode(channel, "NONE", col=5)
+        tex = self.addTexImageNode(channel, "NONE")
         if tex:
             strength = self.material.getChannelValue(channel, 1)
             dmin = self.getValue("getChannelDispMin", -0.05)
@@ -1138,7 +1134,8 @@ class CyclesTree:
             self.links.new(texco.outputs["UV"], node.inputs[slot])
 
 
-    def addTexImageNode(self, channel, colorSpace, col=2):
+    def addTexImageNode(self, channel, colorSpace):
+        col = self.column-2
         assets,maps = self.material.getTextures(channel)
         if len(assets) != len(maps):
             print(assets)
@@ -1166,12 +1163,12 @@ class CyclesTree:
         return node
 
 
-    def mixTexs(self, op, tex1, tex2, slot1=0, slot2=0, col=3):
+    def mixTexs(self, op, tex1, tex2, slot1=0, slot2=0):
         if tex1 is None:
             return tex2
         elif tex2 is None:
             return tex1
-        mix = self.addNode("ShaderNodeMixRGB", col)
+        mix = self.addNode("ShaderNodeMixRGB", self.column-1)
         mix.blend_type = op
         mix.use_alpha = False
         mix.inputs[0].default_value = 1.0
@@ -1180,17 +1177,7 @@ class CyclesTree:
         return mix
 
 
-    def addToActive(self, active, shader, col=6):
-        if active:
-            node = self.addNode("ShaderNodeAddShader")
-            self.links.new(active.outputs[0], node.inputs[0])
-            self.links.new(shader.outputs[0], node.inputs[1])
-            return node
-        else:
-            return self.cycles
-
-
-    def mixWithActive(self, fac, tex, shader, col=6, useAlpha=True, flip=False):
+    def mixWithActive(self, fac, tex, shader, useAlpha=True, flip=False):
         if fac == 0 and tex is None:
             return
         elif fac == 1 and tex is None:
@@ -1198,16 +1185,16 @@ class CyclesTree:
             self.eevee = shader
             return
         if self.eevee:
-            self.eevee = self.makeActiveMix("Eevee", self.eevee, self.getEeveeSocket(), fac, tex, shader, col, useAlpha, flip)
+            self.eevee = self.makeActiveMix("Eevee", self.eevee, self.getEeveeSocket(), fac, tex, shader, useAlpha, flip)
         else:
             self.eevee = shader
         if self.cycles:
-            self.cycles = self.makeActiveMix("Cycles", self.cycles, self.getCyclesSocket(), fac, tex, shader, col, useAlpha, flip)
+            self.cycles = self.makeActiveMix("Cycles", self.cycles, self.getCyclesSocket(), fac, tex, shader, useAlpha, flip)
         else:
             self.cycles = shader
             
             
-    def makeActiveMix(self, slot, active, socket, fac, tex, shader, col, useAlpha, flip):            
+    def makeActiveMix(self, slot, active, socket, fac, tex, shader, useAlpha, flip):            
         if tex:
             if useAlpha and "Alpha" in tex.outputs.keys():
                 texsocket = tex.output["Alpha"]
@@ -1216,6 +1203,7 @@ class CyclesTree:
         else:
             texsocket = None
             
+        col = self.column-1
         from .cgroup import MixGroup
         if shader.type == 'GROUP':
             self.links.new(socket, shader.inputs[slot])
@@ -1240,7 +1228,7 @@ class CyclesTree:
     def linkColor(self, tex, node, color, slot=0):
         node.inputs[slot].default_value[0:3] = color
         if tex:
-            tex = self.multiplyVectorTex(color, tex, self.column-1)
+            tex = self.multiplyVectorTex(color, tex)
             if tex:
                 self.links.new(tex.outputs[0], node.inputs[slot])
         return tex
@@ -1282,23 +1270,23 @@ class CyclesTree:
             return None
 
 
-    def multiplyTex(self, value, tex, col=None):
+    def multiplyTex(self, value, tex):
         if isinstance(value, float) or isinstance(value, int):
             if tex and value != 1:
-                tex = self.multiplyScalarTex(value, tex, col)
+                tex = self.multiplyScalarTex(value, tex)
         elif tex:
-            tex = self.multiplyVectorTex(value, tex, col)
+            tex = self.multiplyVectorTex(value, tex)
         return value,tex
 
 
-    def multiplyVectorTex(self, color, tex, col=None):
+    def multiplyVectorTex(self, color, tex):
         if isWhite(color):
             return tex
         elif isBlack(color):
             return None
         elif (tex and tex.type not in ['TEX_IMAGE', 'GROUP']):
             return tex
-        mix = self.addNode("ShaderNodeMixRGB", col)
+        mix = self.addNode("ShaderNodeMixRGB", self.column-1)
         mix.blend_type = 'MULTIPLY'
         mix.inputs[0].default_value = 1.0
         mix.inputs[1].default_value[0:3] = color
@@ -1306,32 +1294,22 @@ class CyclesTree:
         return mix
 
 
-    def multiplyScalarTex(self, value, tex, col=3, slot=0):
+    def multiplyScalarTex(self, value, tex, slot=0):
         if value == 1:
             return tex
         elif value == 0:
             return None
         elif (tex and tex.type not in ['TEX_IMAGE', 'GROUP']):
             return tex
-        mult = self.addNode("ShaderNodeMath", col)
+        mult = self.addNode("ShaderNodeMath", self.column-1)
         mult.operation = 'MULTIPLY'
         mult.inputs[0].default_value = value
         self.links.new(tex.outputs[slot], mult.inputs[1])
         return mult
 
 
-    def addScalarTex(self, value, tex, col=4):
-        if value == 0:
-            return tex
-        add = self.addNode("ShaderNodeMath", col)
-        add.operation = 'ADD'
-        add.inputs[0].default_value = value
-        if tex:
-            self.links.new(tex.outputs[0], add.inputs[1])
-        return add
-
-
-    def multiplyAddScalarTex(self, factor, term, tex, col=3, slot=0):
+    def multiplyAddScalarTex(self, factor, term, tex, slot=0):
+        col = self.column-1
         mult = self.addNode("ShaderNodeMath", col)
         try:
             mult.operation = 'MULTIPLY_ADD'
