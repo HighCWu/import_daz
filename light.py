@@ -284,13 +284,13 @@ class LightTree(CyclesTree):
         color = self.getValue(["Color"], WHITE)
         #flux = self.getValue(["Flux"], 15000)
 
-        emit = self.addNode(1, "ShaderNodeEmission")
+        emit = self.addNode("ShaderNodeEmission", 1)
         emit.inputs["Color"].default_value[0:3] = color
         emit.inputs["Strength"].default_value = self.material.instance.fluxFactor
         if bpy.app.version < (2,80,0):
-            output = self.addNode(2, "ShaderNodeOutputLamp")
+            output = self.addNode("ShaderNodeOutputLamp", 2)
         else:
-            output = self.addNode(2, "ShaderNodeOutputLight")
+            output = self.addNode("ShaderNodeOutputLight", 2)
         self.links.new(emit.outputs[0], output.inputs["Surface"])
 
 

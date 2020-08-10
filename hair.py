@@ -759,10 +759,10 @@ class NodeTree:
         self.links = tree.links
         self.ycoords = 10*[500]
 
-    def addNode(self, n, stype):
+    def addNode(self, stype, col):
         node = self.nodes.new(type = stype)
-        node.location = (n*250-500, self.ycoords[n])
-        self.ycoords[n] -= 250
+        node.location = (col*250-500, self.ycoords[col])
+        self.ycoords[col] -= 250
         return node
 
     def addTexImageNode(self, mhMat, texco, channel, cfg):
@@ -770,7 +770,7 @@ class NodeTree:
             filepath = mhMat[channel]
         except KeyError:
             return None
-        tex = self.addNode(2, 'ShaderNodeTexImage')
+        tex = self.addNode('ShaderNodeTexImage', 2)
         tex.image = loadImage(filepath, cfg)
         self.links.new(texco.outputs['UV'], tex.inputs['Vector'])
         return tex
@@ -782,49 +782,49 @@ def buildHairMaterialCycles(mat, rgb):
     tree = NodeTree(mat.node_tree)
     links = mat.node_tree.links
 
-    info = tree.addNode(1, 'ShaderNodeHairInfo')
+    info = tree.addNode('ShaderNodeHairInfo', 1)
 
-    val2rgb = tree.addNode(1, 'ShaderNodeValToRGB')
+    val2rgb = tree.addNode('ShaderNodeValToRGB', 1)
     links.new(info.outputs['Intercept'], val2rgb.inputs['Fac'])
     val2rgb.color = rgb
     defaultRamp(val2rgb.color_ramp, rgb)
 
-    refl = tree.addNode(2, 'ShaderNodeBsdfHair')
+    refl = tree.addNode('ShaderNodeBsdfHair', 2)
     refl.component = 'Reflection'
     refl.inputs['Offset'].default_value = 0
     refl.inputs[2].default_value = 0.1
     refl.inputs[3].default_value = 1.0
     links.new(val2rgb.outputs['Color'], refl.inputs['Color'])
 
-    trans = tree.addNode(2, 'ShaderNodeBsdfHair')
+    trans = tree.addNode('ShaderNodeBsdfHair', 2)
     trans.component = 'Transmission'
     trans.inputs['Offset'].default_value = 0
     trans.inputs[2].default_value = 0.1
     trans.inputs[3].default_value = 1.0
     links.new(val2rgb.outputs['Color'], trans.inputs['Color'])
 
-    mix1 = tree.addNode(3, 'ShaderNodeMixShader')
+    mix1 = tree.addNode('ShaderNodeMixShader', 3)
     mix1.inputs[0].default_value = 0.3
     links.new(refl.outputs['BSDF'], mix1.inputs[1])
     links.new(trans.outputs['BSDF'], mix1.inputs[2])
 
-    diffuse = tree.addNode(2, 'ShaderNodeBsdfDiffuse')
+    diffuse = tree.addNode('ShaderNodeBsdfDiffuse', 2)
     diffuse.inputs["Roughness"].default_value = 0
     links.new(val2rgb.outputs['Color'], diffuse.inputs['Color'])
 
-    mix2 = tree.addNode(3, 'ShaderNodeMixShader')
+    mix2 = tree.addNode('ShaderNodeMixShader', 3)
     mix2.inputs[0].default_value = 0.4
     links.new(mix1.outputs['Shader'], mix2.inputs[1])
     links.new(diffuse.outputs['BSDF'], mix2.inputs[2])
 
-    aniso = tree.addNode(3, 'ShaderNodeBsdfAnisotropic')
+    aniso = tree.addNode('ShaderNodeBsdfAnisotropic', 3)
 
-    mix3 = tree.addNode(4, 'ShaderNodeMixShader')
+    mix3 = tree.addNode('ShaderNodeMixShader', 4)
     mix3.inputs[0].default_value = 0.05
     links.new(mix2.outputs['Shader'], mix3.inputs[1])
     links.new(aniso.outputs['BSDF'], mix3.inputs[2])
 
-    output = tree.addNode(4, 'ShaderNodeOutputMaterial')
+    output = tree.addNode('ShaderNodeOutputMaterial', 4)
     links.new(mix3.outputs['Shader'], output.inputs['Surface'])
 
 # ---------------------------------------------------------------------

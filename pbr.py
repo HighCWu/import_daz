@@ -47,9 +47,10 @@ class PbrTree(CyclesTree):
 
 
     def buildLayer(self, context):
+        self.column = 4
         try:
-            self.pbr = self.addNode(4, "ShaderNodeBsdfPrincipled")
-            self.ycoords[4] -= 500
+            self.pbr = self.addNode("ShaderNodeBsdfPrincipled")
+            self.ycoords[self.column] -= 500
         except RuntimeError:
             self.pbr = None
             self.type = 'CYCLES'
@@ -146,14 +147,12 @@ class PbrTree(CyclesTree):
                 tex = self.mixTexs('MULTIPLY', strtex, reftex)
                 factor = 1.25 * refl * strength
                 value = factor * averageColor(color)
-                self.glossyColor, self.glossyTex = color, tex
             elif self.material.basemix == 1:  # Specular/Glossiness
                 # principled specular = iray glossy specular * iray glossy layered weight * 16
                 color,reftex = self.getColorTex("getChannelGlossySpecular", "COLOR", WHITE, True, useTex)
                 tex = self.mixTexs('MULTIPLY', strtex, reftex)
                 factor = 16 * strength
                 value = factor * averageColor(color)
-                self.glossyColor, self.glossyTex = color, tex
         else:
             color,coltex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, True, useTex)
             tex = self.mixTexs('MULTIPLY', strtex, coltex)

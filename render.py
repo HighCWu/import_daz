@@ -188,13 +188,13 @@ class WorldTree(CyclesTree):
             eeveefix = True
             tex = None
 
-        bg = self.addNode(4, "ShaderNodeBackground")
+        bg = self.addNode("ShaderNodeBackground", 4)
         bg.inputs["Strength"].default_value = strength
         self.linkColor(tex, bg, color)
-        output = self.addNode(6, "ShaderNodeOutputWorld")
+        output = self.addNode("ShaderNodeOutputWorld", 6)
         if eeveefix:
-            lightpath = self.addNode(4, "ShaderNodeLightPath")
-            mix = self.addNode(5, "ShaderNodeMixShader")
+            lightpath = self.addNode("ShaderNodeLightPath", 4)
+            mix = self.addNode("ShaderNodeMixShader", 5)
             self.links.new(lightpath.outputs[0], mix.inputs[0])
             self.links.new(bg.outputs[0], mix.inputs[2])
             self.links.new(mix.outputs[0], output.inputs["Surface"])
@@ -204,7 +204,7 @@ class WorldTree(CyclesTree):
 
 
     def addMapping(self, rot):
-        mapping = self.addNode(2, "ShaderNodeMapping")
+        mapping = self.addNode("ShaderNodeMapping", 2)
         mapping.vector_type = 'TEXTURE'
         if hasattr(mapping, "rotation"):
             mapping.rotation = rot
@@ -224,7 +224,7 @@ class WorldTree(CyclesTree):
 
 
     def addTexEnvNode(self, img, colorSpace):
-        tex = self.addNode(2, "ShaderNodeTexEnvironment")
+        tex = self.addNode("ShaderNodeTexEnvironment", 2)
         self.setColorSpace(tex, colorSpace)
         if img:
             tex.image = img

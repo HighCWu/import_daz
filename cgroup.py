@@ -42,8 +42,8 @@ class MaterialGroup:
         node.node_tree = self.group
         self.nodes = self.group.nodes
         self.links = self.group.links
-        self.inputs = self.addNode(0, "NodeGroupInput")
-        self.outputs = self.addNode(ncols, "NodeGroupOutput")
+        self.inputs = self.addNode("NodeGroupInput", 0)
+        self.outputs = self.addNode("NodeGroupOutput", ncols)
         self.parent = parent
 
 
@@ -81,7 +81,7 @@ class ShellGroup(MaterialGroup):
 
 
     def addOutput(self, alpha, tex, socket, slot):
-        mix = self.addNode(7, "ShaderNodeMixShader")
+        mix = self.addNode("ShaderNodeMixShader", 7)
         mix.inputs[0].default_value = alpha
         if tex:
             self.links.new(tex.outputs[0], mix.inputs[0])
@@ -117,23 +117,23 @@ class FresnelGroup(CyclesGroup):
 
 
     def addNodes(self, args=None):
-        geo = self.addNode(1, "ShaderNodeNewGeometry")
+        geo = self.addNode("ShaderNodeNewGeometry", 1)
 
-        bump = self.addNode(1, "ShaderNodeBump")
+        bump = self.addNode("ShaderNodeBump", 1)
         self.links.new(self.inputs.outputs["Normal"], bump.inputs["Normal"])
         bump.inputs["Strength"].default_value = 0
 
-        mix1 = self.addNode(2, "ShaderNodeMixRGB")
+        mix1 = self.addNode("ShaderNodeMixRGB", 2)
         self.links.new(geo.outputs["Backfacing"], mix1.inputs["Fac"])
         self.links.new(self.inputs.outputs["IOR"], mix1.inputs[1])
         mix1.inputs[2].default_value[0:3] = WHITE
 
-        mix2 = self.addNode(2, "ShaderNodeMixRGB")
+        mix2 = self.addNode("ShaderNodeMixRGB", 2)
         self.links.new(self.inputs.outputs["Roughness"], mix2.inputs["Fac"])
         self.links.new(bump.outputs[0], mix2.inputs[1])
         self.links.new(geo.outputs["Incoming"], mix2.inputs[2])
 
-        fresnel = self.addNode(3, "ShaderNodeFresnel")
+        fresnel = self.addNode("ShaderNodeFresnel", 3)
         self.links.new(mix1.outputs[0], fresnel.inputs["IOR"])
         self.links.new(mix2.outputs[0], fresnel.inputs["Normal"])
         self.links.new(fresnel.outputs["Fac"], self.outputs.inputs["Fac"])
@@ -153,8 +153,8 @@ class MixGroup(CyclesGroup):
         
         
     def addNodes(self, args=None):
-        self.mix1 = self.addNode(2, "ShaderNodeMixShader")
-        self.mix2 = self.addNode(2, "ShaderNodeMixShader")
+        self.mix1 = self.addNode("ShaderNodeMixShader", 2)
+        self.mix2 = self.addNode("ShaderNodeMixShader", 2)
         self.links.new(self.inputs.outputs["Fac"], self.mix1.inputs[0])
         self.links.new(self.inputs.outputs["Fac"], self.mix2.inputs[0])
         self.links.new(self.inputs.outputs["Cycles"], self.mix1.inputs[1])
@@ -177,7 +177,7 @@ class DiffuseGroup(MixGroup):
 
     def addNodes(self, args=None):
         MixGroup.addNodes(self, args)
-        diffuse = self.addNode(1, "ShaderNodeBsdfDiffuse")
+        diffuse = self.addNode("ShaderNodeBsdfDiffuse", 1)
         self.links.new(self.inputs.outputs["Color"], diffuse.inputs["Color"])
         self.links.new(self.inputs.outputs["Roughness"], diffuse.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], diffuse.inputs["Normal"])
@@ -199,7 +199,7 @@ class GlossyGroup(MixGroup):
 
     def addNodes(self, args=None):
         MixGroup.addNodes(self, args)
-        glossy = self.addNode(1, "ShaderNodeBsdfGlossy")
+        glossy = self.addNode("ShaderNodeBsdfGlossy", 1)
         self.links.new(self.inputs.outputs["Color"], glossy.inputs["Color"])
         self.links.new(self.inputs.outputs["Roughness"], glossy.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
@@ -221,7 +221,7 @@ class RefractionGroup(MixGroup):
 
     def addNodes(self, args=None):
         MixGroup.addNodes(self, args)
-        glossy = self.addNode(1, "ShaderNodeBsdfRefraction")
+        glossy = self.addNode("ShaderNodeBsdfRefraction", 1)
         self.links.new(self.inputs.outputs["Color"], glossy.inputs["Color"])
         self.links.new(self.inputs.outputs["IOR"], glossy.inputs["IOR"])
         self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
@@ -241,7 +241,7 @@ class TransparentGroup(MixGroup):
 
     def addNodes(self, args=None):
         MixGroup.addNodes(self, args)
-        trans = self.addNode(1, "ShaderNodeBsdfTransparent")
+        trans = self.addNode("ShaderNodeBsdfTransparent", 1)
         self.links.new(self.inputs.outputs["Color"], trans.inputs["Color"])
         # Flip
         self.links.new(self.inputs.outputs["Cycles"], self.mix1.inputs[2])
@@ -258,18 +258,25 @@ class TranslucentGroup(MixGroup):
     def __init__(self, node, name, parent):
         MixGroup.__init__(self, node, name, parent, 3)
         self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "Scale")
+        self.group.inputs.new("NodeSocketVector", "Radius")
         self.group.inputs.new("NodeSocketVector", "Normal")
 
 
     def addNodes(self, args=None):
         MixGroup.addNodes(self, args)
-        node = self.addNode(1, "ShaderNodeBsdfTranslucent")
-        self.links.new(self.inputs.outputs["Color"], node.inputs["Color"])
-        self.links.new(self.inputs.outputs["Normal"], node.inputs["Normal"])
-        self.links.new(node.outputs[0], self.mix1.inputs[2])
-        self.links.new(node.outputs[0], self.mix2.inputs[2])
-        self.links.new(self.inputs.outputs["Eevee"], self.outputs.inputs["Eevee"])
-        self.nodes.remove(self.mix2)
+        trans = self.addNode("ShaderNodeBsdfTranslucent", 1)
+        self.links.new(self.inputs.outputs["Color"], trans.inputs["Color"])
+        self.links.new(self.inputs.outputs["Normal"], trans.inputs["Normal"])
+
+        sss = self.addNode("ShaderNodeSubsurfaceScattering", 1)
+        self.links.new(self.inputs.outputs["Color"], sss.inputs["Color"])
+        self.links.new(self.inputs.outputs["Scale"], sss.inputs["Scale"])
+        self.links.new(self.inputs.outputs["Radius"], sss.inputs["Radius"])
+        self.links.new(self.inputs.outputs["Normal"], sss.inputs["Normal"])
+
+        self.links.new(trans.outputs[0], self.mix1.inputs[2])
+        self.links.new(sss.outputs[0], self.mix2.inputs[2])
 
 # ---------------------------------------------------------------------
 #   SSS Group
@@ -287,7 +294,7 @@ class SSSGroup(MixGroup):
 
     def addNodes(self, args=None):
         MixGroup.addNodes(self, args)
-        sss = self.addNode(1, "ShaderNodeSubsurfaceScattering")
+        sss = self.addNode("ShaderNodeSubsurfaceScattering", 1)
         self.links.new(self.inputs.outputs["Color"], sss.inputs["Color"])
         self.links.new(self.inputs.outputs["Scale"], sss.inputs["Scale"])
         self.links.new(self.inputs.outputs["Radius"], sss.inputs["Radius"])
@@ -329,7 +336,7 @@ class DualLobeGroup(CyclesGroup):
         
 
     def addFresnel(self, useNormal):
-        fresnel = self.addNode(1, "ShaderNodeFresnel")
+        fresnel = self.addNode("ShaderNodeFresnel", 1)
         self.links.new(self.inputs.outputs["IOR"], fresnel.inputs["IOR"])
         if useNormal:
             self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
@@ -337,7 +344,7 @@ class DualLobeGroup(CyclesGroup):
         
 
     def addGlossy(self, roughness, useNormal):
-        glossy = self.addNode(1, "ShaderNodeBsdfGlossy")
+        glossy = self.addNode("ShaderNodeBsdfGlossy", 1)
         self.links.new(self.inputs.outputs["Weight"], glossy.inputs["Color"])
         self.links.new(self.inputs.outputs[roughness], glossy.inputs["Roughness"])
         if useNormal:
@@ -346,7 +353,7 @@ class DualLobeGroup(CyclesGroup):
 
 
     def mixGlossy(self, fresnel, glossy, slot):
-        mix = self.addNode(2, "ShaderNodeMixShader")
+        mix = self.addNode("ShaderNodeMixShader", 2)
         self.links.new(fresnel.outputs[0], mix.inputs[0])
         self.links.new(self.inputs.outputs[slot], mix.inputs[1])
         self.links.new(glossy.outputs[0], mix.inputs[2])
@@ -354,7 +361,7 @@ class DualLobeGroup(CyclesGroup):
 
 
     def mixOutput(self, node1, node2, slot):       
-        mix = self.addNode(3, "ShaderNodeMixShader")
+        mix = self.addNode("ShaderNodeMixShader", 3)
         self.links.new(self.inputs.outputs["Fac"], mix.inputs[0])
         self.links.new(node1.outputs[0], mix.inputs[2])
         self.links.new(node2.outputs[0], mix.inputs[1])
@@ -377,16 +384,16 @@ class VolumeGroup(CyclesGroup):
 
 
     def addNodes(self, args=None):
-        absorb = self.addNode(1, "ShaderNodeVolumeAbsorption")
+        absorb = self.addNode("ShaderNodeVolumeAbsorption", 1)
         self.links.new(self.inputs.outputs["Absorbtion Color"], absorb.inputs["Color"])
         self.links.new(self.inputs.outputs["Absorbtion Density"], absorb.inputs["Density"])
 
-        scatter = self.addNode(1, "ShaderNodeVolumeScatter")
+        scatter = self.addNode("ShaderNodeVolumeScatter", 1)
         self.links.new(self.inputs.outputs["Scatter Color"], scatter.inputs["Color"])
         self.links.new(self.inputs.outputs["Scatter Density"], scatter.inputs["Density"])
         self.links.new(self.inputs.outputs["Scatter Anisotropy"], scatter.inputs["Anisotropy"])
 
-        volume = self.addNode(2, "ShaderNodeAddShader")
+        volume = self.addNode("ShaderNodeAddShader", 2)
         self.links.new(absorb.outputs[0], volume.inputs[0])
         self.links.new(scatter.outputs[0], volume.inputs[1]) 
         self.links.new(volume.outputs[0], self.outputs.inputs["Volume"])
@@ -418,49 +425,49 @@ class NormalGroup(CyclesGroup):
         frame = self.nodes.new("NodeFrame")
         frame.label = "Generate TBN from Bump Node"
 
-        uvmap = self.addNode(1, "ShaderNodeUVMap", parent=frame)
+        uvmap = self.addNode("ShaderNodeUVMap", 1, parent=frame)
         if args[0]:
             uvmap.uv_map = args[0]
 
-        uvgrads = self.addNode(2, "ShaderNodeSeparateXYZ", label="UV Gradients", parent=frame)
+        uvgrads = self.addNode("ShaderNodeSeparateXYZ", 2, label="UV Gradients", parent=frame)
         self.links.new(uvmap.outputs["UV"], uvgrads.inputs[0])
 
-        tangent = self.addNode(3, "ShaderNodeBump", label="Tangent", parent=frame)
+        tangent = self.addNode("ShaderNodeBump", 3, label="Tangent", parent=frame)
         tangent.invert = True
         tangent.inputs["Distance"].default_value = 1
         self.links.new(uvgrads.outputs[0], tangent.inputs["Height"])
 
-        bitangent = self.addNode(3, "ShaderNodeBump", label="Bi-Tangent", parent=frame)
+        bitangent = self.addNode("ShaderNodeBump", 3, label="Bi-Tangent", parent=frame)
         bitangent.invert = True
         bitangent.inputs["Distance"].default_value = 1000
         self.links.new(uvgrads.outputs[1], bitangent.inputs["Height"])
 
-        geo = self.addNode(3, "ShaderNodeNewGeometry", label="Normal", parent=frame)
+        geo = self.addNode("ShaderNodeNewGeometry", 3, label="Normal", parent=frame)
 
         # Transpose Matrix
         frame = self.nodes.new("NodeFrame")
         frame.label = "Transpose Matrix"
 
-        sep1 = self.addNode(4, "ShaderNodeSeparateXYZ", parent=frame)
+        sep1 = self.addNode("ShaderNodeSeparateXYZ", 4, parent=frame)
         self.links.new(tangent.outputs["Normal"], sep1.inputs[0])
 
-        sep2 = self.addNode(4, "ShaderNodeSeparateXYZ", parent=frame)
+        sep2 = self.addNode("ShaderNodeSeparateXYZ", 4, parent=frame)
         self.links.new(bitangent.outputs["Normal"], sep2.inputs[0])
 
-        sep3 = self.addNode(4, "ShaderNodeSeparateXYZ", parent=frame)
+        sep3 = self.addNode("ShaderNodeSeparateXYZ", 4, parent=frame)
         self.links.new(geo.outputs["Normal"], sep3.inputs[0])
 
-        comb1 = self.addNode(5, "ShaderNodeCombineXYZ", parent=frame)
+        comb1 = self.addNode("ShaderNodeCombineXYZ", 5, parent=frame)
         self.links.new(sep1.outputs[0], comb1.inputs[0])
         self.links.new(sep2.outputs[0], comb1.inputs[1])
         self.links.new(sep3.outputs[0], comb1.inputs[2])
 
-        comb2 = self.addNode(5, "ShaderNodeCombineXYZ", parent=frame)
+        comb2 = self.addNode("ShaderNodeCombineXYZ", 5, parent=frame)
         self.links.new(sep1.outputs[1], comb2.inputs[0])
         self.links.new(sep2.outputs[1], comb2.inputs[1])
         self.links.new(sep3.outputs[1], comb2.inputs[2])
 
-        comb3 = self.addNode(5, "ShaderNodeCombineXYZ", parent=frame)
+        comb3 = self.addNode("ShaderNodeCombineXYZ", 5, parent=frame)
         self.links.new(sep1.outputs[2], comb3.inputs[0])
         self.links.new(sep2.outputs[2], comb3.inputs[1])
         self.links.new(sep3.outputs[2], comb3.inputs[2])
@@ -469,17 +476,17 @@ class NormalGroup(CyclesGroup):
         frame = self.nodes.new("NodeFrame")
         frame.label = "Normal Map Processing"
 
-        rgb = self.addNode(3, "ShaderNodeMixRGB", parent=frame)
+        rgb = self.addNode("ShaderNodeMixRGB", 3, parent=frame)
         self.links.new(self.inputs.outputs["Strength"], rgb.inputs[0])
         rgb.inputs[1].default_value = (0.5, 0.5, 1.0, 1.0)
         self.links.new(self.inputs.outputs["Color"], rgb.inputs[2])
 
-        sub = self.addNode(4, "ShaderNodeVectorMath", parent=frame)
+        sub = self.addNode("ShaderNodeVectorMath", 4, parent=frame)
         sub.operation = 'SUBTRACT'
         self.links.new(rgb.outputs["Color"], sub.inputs[0])
         sub.inputs[1].default_value = (0.5, 0.5, 0.5)
 
-        add = self.addNode(5, "ShaderNodeVectorMath", parent=frame)
+        add = self.addNode("ShaderNodeVectorMath", 5, parent=frame)
         add.operation = 'ADD'
         self.links.new(sub.outputs[0], add.inputs[0])
         self.links.new(sub.outputs[0], add.inputs[1])
@@ -488,22 +495,22 @@ class NormalGroup(CyclesGroup):
         frame = self.nodes.new("NodeFrame")
         frame.label = "Matrix * Normal Map"
 
-        dot1 = self.addNode(6, "ShaderNodeVectorMath", parent=frame)
+        dot1 = self.addNode("ShaderNodeVectorMath", 6, parent=frame)
         dot1.operation = 'DOT_PRODUCT'
         self.links.new(comb1.outputs[0], dot1.inputs[0])
         self.links.new(add.outputs[0], dot1.inputs[1])
 
-        dot2 = self.addNode(6, "ShaderNodeVectorMath", parent=frame)
+        dot2 = self.addNode("ShaderNodeVectorMath", 6, parent=frame)
         dot2.operation = 'DOT_PRODUCT'
         self.links.new(comb2.outputs[0], dot2.inputs[0])
         self.links.new(add.outputs[0], dot2.inputs[1])
 
-        dot3 = self.addNode(6, "ShaderNodeVectorMath", parent=frame)
+        dot3 = self.addNode("ShaderNodeVectorMath", 6, parent=frame)
         dot3.operation = 'DOT_PRODUCT'
         self.links.new(comb3.outputs[0], dot3.inputs[0])
         self.links.new(add.outputs[0], dot3.inputs[1])
 
-        comb = self.addNode(7, "ShaderNodeCombineXYZ", parent=frame)
+        comb = self.addNode("ShaderNodeCombineXYZ", 7, parent=frame)
         self.links.new(dot1.outputs["Value"], comb.inputs[0])
         self.links.new(dot2.outputs["Value"], comb.inputs[1])
         self.links.new(dot3.outputs["Value"], comb.inputs[2])
@@ -526,306 +533,22 @@ class DisplacementGroup(CyclesGroup):
 
 
     def addNodes(self, args=None):
-        mult1 = self.addNode(1, "ShaderNodeMath")
+        mult1 = self.addNode("ShaderNodeMath", 1)
         mult1.operation = 'MULTIPLY'
         self.links.new(self.inputs.outputs["Texture"], mult1.inputs[0])
         self.links.new(self.inputs.outputs["Difference"], mult1.inputs[1])
 
-        add = self.addNode(2, "ShaderNodeMath")
+        add = self.addNode("ShaderNodeMath", 2)
         add.operation = 'ADD'
         self.links.new(mult1.outputs[0], add.inputs[0])
         self.links.new(self.inputs.outputs["Min"], add.inputs[1])
 
-        mult2 = self.addNode(3, "ShaderNodeMath")
+        mult2 = self.addNode("ShaderNodeMath", 3)
         mult2.operation = 'MULTIPLY'
         self.links.new(self.inputs.outputs["Strength"], mult2.inputs[0])
         self.links.new(add.outputs[0], mult2.inputs[1])
 
         self.links.new(mult2.outputs[0], self.outputs.inputs["Height"])
-
-# ---------------------------------------------------------------------
-#   Glass Group
-# ---------------------------------------------------------------------
-
-class GlassGroup(CyclesGroup):
-
-    def __init__(self, node, name, parent):
-        CyclesGroup.__init__(self, node, name, parent, 6)
-        self.group.inputs.new("NodeSocketFloat", "ThinWall")
-        self.group.inputs.new("NodeSocketColor", "RefractionColor")
-        self.group.inputs.new("NodeSocketColor", "TransmissionColor")
-        self.group.inputs.new("NodeSocketFloat", "RefractionRoughness")
-        self.group.inputs.new("NodeSocketFloat", "IOR_trans")
-        self.group.inputs.new("NodeSocketFloat", "GlossyLayeredWeight")
-        self.group.inputs.new("NodeSocketColor", "GlossyColor")
-        self.group.inputs.new("NodeSocketFloat", "GlossyRoughness")
-        self.group.inputs.new("NodeSocketFloat", "IOR")
-        self.group.inputs.new("NodeSocketVector", "Normal")
-
-        self.group.outputs.new("NodeSocketShader", "Shader")
-        self.group.outputs.new("NodeSocketShader", "Volume")
-
-
-    def addNodes(self, args=None):
-        transColor = self.addNode(2, "ShaderNodeMixRGB", "Trans Color")
-        transColor.name = "TransColor"
-        transColor.blend_type = 'MULTIPLY'
-        transColor.inputs["Fac"].default_value = 1.0
-        self.links.new(self.inputs.outputs["RefractionColor"], transColor.inputs[1])
-        self.links.new(self.inputs.outputs["TransmissionColor"], transColor.inputs[2])
-
-        power1 = self.addNode(1, "ShaderNodeMath")
-        power1.operation = 'POWER'
-        self.links.new(self.inputs.outputs["RefractionRoughness"], power1.inputs[0])
-        power1.inputs[1].default_value = 2
-
-        mono = self.addNode(1, "ShaderNodeMath", "Mono")
-        mono.operation = 'MULTIPLY'
-        self.links.new(self.inputs.outputs["GlossyLayeredWeight"], mono.inputs[0])
-        mono.inputs[1].default_value = 1.0
-
-        glossyColor = self.addNode(2, "ShaderNodeMixRGB", "Glossy Color")
-        glossyColor.name = "GlossyColor"
-        glossyColor.blend_type = 'MULTIPLY'
-        glossyColor.inputs["Fac"].default_value = 1.0
-        self.links.new(mono.outputs[0], glossyColor.inputs[1])
-        self.links.new(self.inputs.outputs["GlossyColor"], glossyColor.inputs[2])
-
-        power2 = self.addNode(1, "ShaderNodeMath")
-        power2.operation = 'POWER'
-        self.links.new(self.inputs.outputs["GlossyRoughness"], power2.inputs[0])
-        power2.inputs[1].default_value = 2
-
-        geo = self.addNode(3, "ShaderNodeNewGeometry")
-
-        refraction = self.addNode(3, "ShaderNodeBsdfRefraction")
-        refraction.distribution = 'GGX'
-        self.links.new(transColor.outputs["Color"], refraction.inputs["Color"])
-        self.links.new(power1.outputs[0], refraction.inputs["Roughness"])
-        self.links.new(self.inputs.outputs["IOR_trans"], refraction.inputs["IOR"])
-        self.links.new(self.inputs.outputs["Normal"], refraction.inputs["Normal"])
-
-        fresnel = self.addNode(3, "ShaderNodeFresnel")
-        self.links.new(self.inputs.outputs["IOR"], fresnel.inputs["IOR"])
-        self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
-
-        glossy = self.addNode(3, "ShaderNodeBsdfGlossy")
-        glossy.distribution = 'GGX'
-        self.links.new(glossyColor.outputs["Color"], glossy.inputs["Color"])
-        self.links.new(power2.outputs[0], glossy.inputs["Roughness"])
-        self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
-
-        back = self.addNode(4, "ShaderNodeMath", "Backfacing")
-        back.operation = 'MULTIPLY'
-        self.links.new(geo.outputs["Backfacing"], back.inputs[0])
-        self.links.new(self.inputs.outputs["ThinWall"], back.inputs[1])
-
-        mix1 = self.addNode(4, "ShaderNodeMixShader")
-        self.links.new(fresnel.outputs[0], mix1.inputs[0])
-        self.links.new(refraction.outputs[0], mix1.inputs[1])
-        self.links.new(glossy.outputs[0], mix1.inputs[2])
-
-        mix2 = self.addNode(5, "ShaderNodeMixShader")
-        self.links.new(back.outputs[0], mix2.inputs[0])
-        self.links.new(mix1.outputs[0], mix2.inputs[1])
-        self.links.new(refraction.outputs[0], mix2.inputs[2])
-
-        self.links.new(mix2.outputs["Shader"], self.outputs.inputs["Shader"])
-
-# ---------------------------------------------------------------------
-#   Complex Glass Group
-# ---------------------------------------------------------------------
-
-class ComplexGlassGroup(CyclesGroup):
-
-    def __init__(self, node, name, parent):
-        CyclesGroup.__init__(self, node, name, parent, 7)
-        self.group.inputs.new("NodeSocketShader", "BaseShader")
-
-        self.group.inputs.new("NodeSocketFloat", "RefractionWeight")
-        self.group.inputs.new("NodeSocketFloat", "ThinWall")
-        self.group.inputs.new("NodeSocketFloat", "IOR_trans")
-        self.group.inputs.new("NodeSocketColor", "RefractionColor")
-        self.group.inputs.new("NodeSocketFloat", "RefractionAdjust")
-        self.group.inputs.new("NodeSocketFloat", "RefractionRoughness")
-
-        self.group.inputs.new("NodeSocketFloat", "GlossyInput")
-        self.group.inputs.new("NodeSocketFloat", "GlossyLayeredWeight")
-        self.group.inputs.new("NodeSocketColor", "GlossyColor")
-        self.group.inputs.new("NodeSocketFloat", "GlossyRoughness")
-
-        self.group.inputs.new("NodeSocketFloat", "FresnelRoughness")
-        self.group.inputs.new("NodeSocketFloat", "IOR")
-        self.group.inputs.new("NodeSocketVector", "Normal")
-        self.group.inputs.new("NodeSocketFloat", "RoughnessAdjust")
-
-        self.group.inputs.new("NodeSocketColor", "TransmissionColor")
-        self.group.inputs.new("NodeSocketFloat", "Density")
-
-        self.group.outputs.new("NodeSocketShader", "Shader")
-        self.group.outputs.new("NodeSocketShader", "Volume")
-
-
-    def addNodes(self, args=None):
-        thick = self.addNode(1, "ShaderNodeMath", "Thick")
-        thick.operation = 'SUBTRACT'
-        thick.inputs[0].default_value = 1.0
-        self.links.new(self.inputs.outputs["ThinWall"], thick.inputs[1])
-
-        iorTrans = self.addNode(1, "ShaderNodeMath", "Ior Trans")
-        iorTrans.operation = 'MULTIPLY'
-        self.links.new(self.inputs.outputs["ThinWall"], iorTrans.inputs[0])
-        self.links.new(self.inputs.outputs["IOR_trans"], iorTrans.inputs[1])
-
-        refrAdj = self.addNode(1, "ShaderNodeMath", "Refr Adjust")
-        refrAdj.operation = 'MULTIPLY'
-        refrAdj.inputs[0].default_value = 1.0
-        self.links.new(self.inputs.outputs["RefractionAdjust"], refrAdj.inputs[1])
-
-        glossyWeight = self.addNode(1, "ShaderNodeMath", "Glossy Weight")
-        glossyWeight.operation = 'MULTIPLY'
-        glossyWeight.inputs[0].default_value = 1.0
-        self.links.new(self.inputs.outputs["GlossyLayeredWeight"], glossyWeight.inputs[1])
-
-        gopSub = self.addNode(1, "ShaderNodeMath", "GopSub")
-        gopSub.operation = 'SUBTRACT'
-        gopSub.inputs[0].default_value = 1.0
-        self.links.new(self.inputs.outputs["GlossyInput"], gopSub.inputs[1])
-
-        refrRough = self.addNode(1, "ShaderNodeMath", "Refr Rough")
-        refrRough.operation = 'POWER'
-        self.links.new(self.inputs.outputs["RefractionRoughness"], refrRough.inputs[0])
-        self.links.new(self.inputs.outputs["RefractionAdjust"], refrRough.inputs[1])
-
-        glossyRough = self.addNode(1, "ShaderNodeMath", "Glossy Rough")
-        glossyRough.operation = 'POWER'
-        self.links.new(self.inputs.outputs["GlossyRoughness"], glossyRough.inputs[0])
-        self.links.new(self.inputs.outputs["RefractionAdjust"], glossyRough.inputs[1])
-
-
-        thickIor = self.addNode(2, "ShaderNodeMath", "Thick Ior")
-        thickIor.operation = 'MULTIPLY'
-        self.links.new(thick.outputs[0], thickIor.inputs[0])
-        self.links.new(self.inputs.outputs["RefractionAdjust"], thickIor.inputs[1])
-
-        transColor = self.addNode(2, "ShaderNodeMixRGB", "Trans Color")
-        transColor.blend_type = 'MULTIPLY'
-        self.links.new(self.inputs.outputs["GlossyInput"], transColor.inputs[0])
-        self.links.new(self.inputs.outputs["RefractionColor"], transColor.inputs[1])
-        self.links.new(self.inputs.outputs["TransmissionColor"], transColor.inputs[2])
-
-        glossyColor = self.addNode(2, "ShaderNodeMixRGB", "Glossy Color")
-        glossyColor.blend_type = 'MULTIPLY'
-        glossyColor.inputs["Fac"].default_value = 1.0
-        self.links.new(self.inputs.outputs["GlossyColor"], glossyColor.inputs[1])
-        self.links.new(glossyWeight.outputs[0], glossyColor.inputs[2])
-
-        gopRefr = self.addNode(2, "ShaderNodeMath", "GopRefr")
-        gopRefr.operation = 'MULTIPLY'
-        self.links.new(gopSub.outputs[0], gopRefr.inputs[0])
-        self.links.new(refrRough.outputs[0], gopRefr.inputs[1])
-
-        fresnelRough = self.addNode(2, "ShaderNodeMath", "Fresnel Rough")
-        fresnelRough.operation = 'MULTIPLY'
-        self.links.new(self.inputs.outputs["FresnelRoughness"], fresnelRough.inputs[0])
-        self.links.new(glossyRough.outputs[0], fresnelRough.inputs[1])
-
-        gopRough = self.addNode(2, "ShaderNodeMath", "GopRough")
-        gopRough.operation = 'MULTIPLY'
-        self.links.new(self.inputs.outputs["GlossyInput"], gopRough.inputs[0])
-        self.links.new(glossyRough.outputs[0], gopRough.inputs[1])
-
-
-        ior = self.addNode(3, "ShaderNodeMath", "IOR")
-        ior.operation = 'ADD'
-        self.links.new(thickIor.outputs[0], ior.inputs[0])
-        self.links.new(iorTrans.outputs[0], ior.inputs[1])
-
-        transColorMulti = self.addNode(3, "ShaderNodeMixRGB", "Trans Color Multi")
-        transColorMulti.blend_type = 'MULTIPLY'
-        transColorMulti.inputs["Fac"].default_value = 1.0
-        self.links.new(transColor.outputs[0], transColorMulti.inputs[1])
-        self.links.new(refrAdj.outputs[0], transColorMulti.inputs[2])
-
-        fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 3)
-        self.links.new(self.inputs.outputs["IOR"], fresnel.inputs["IOR"])
-        self.links.new(fresnelRough.outputs[0], fresnel.inputs["Roughness"])
-        self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
-
-        glossy = self.addNode(3, "ShaderNodeBsdfGlossy")
-        #glossy.distribution = 'GGX'
-        self.links.new(glossyColor.outputs["Color"], glossy.inputs["Color"])
-        self.links.new(glossyRough.outputs[0], glossy.inputs["Roughness"])
-        self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
-
-        gopOverRough = self.addNode(3, "ShaderNodeMath", "GopOverRough")
-        gopOverRough.operation = 'ADD'
-        self.links.new(gopRefr.outputs[0], gopOverRough.inputs[0])
-        self.links.new(gopRough.outputs[0], gopOverRough.inputs[1])
-
-
-        refraction = self.addNode(4, "ShaderNodeBsdfRefraction")
-        refraction.distribution = 'GGX'
-        self.links.new(transColorMulti.outputs["Color"], refraction.inputs["Color"])
-        self.links.new(gopOverRough.outputs[0], refraction.inputs["Roughness"])
-        self.links.new(ior.outputs[0], refraction.inputs["IOR"])
-        self.links.new(self.inputs.outputs["Normal"], refraction.inputs["Normal"])
-
-        volColor = self.addNode(4, "ShaderNodeMixRGB", "Volume Color")
-        volColor.blend_type = 'MULTIPLY'
-        volColor.inputs["Fac"].default_value = 1.0
-        self.links.new(glossyWeight.outputs[0], volColor.inputs[1])
-        self.links.new(transColorMulti.outputs[0], volColor.inputs[2])
-
-        density = self.addNode(4, "ShaderNodeMath", "Density")
-        density.operation = 'MULTIPLY'
-        self.links.new(self.inputs.outputs["BaseShader"], density.inputs[0])
-        self.links.new(self.inputs.outputs["Density"], density.inputs[1])
-
-        mix1 = self.addNode(4, "ShaderNodeMixRGB", "Mix1")
-        self.links.new(gopRough.outputs[0], mix1.inputs[0])
-        self.links.new(transColorMulti.outputs[0], mix1.inputs[1])
-        mix1.inputs[2].default_value[0:3] = (0,0,0)
-
-        geo = self.addNode(4, "ShaderNodeNewGeometry")
-
-        mix2 = self.addNode(5, "ShaderNodeMixShader", "Mix2")
-        self.links.new(fresnel.outputs[0], mix2.inputs[0])
-        self.links.new(refraction.outputs[0], mix2.inputs[1])
-        self.links.new(glossy.outputs[0], mix2.inputs[2])
-
-        volume = self.addNode(5, "ShaderNodeVolumeAbsorption")
-        self.links.new(volColor.outputs[0], volume.inputs[0])
-        self.links.new(density.outputs[0], volume.inputs[1])
-
-        back = self.addNode(5, "ShaderNodeMath", "Backfacing")
-        back.operation = 'MULTIPLY'
-        self.links.new(geo.outputs["Backfacing"], back.inputs[0])
-        self.links.new(self.inputs.outputs["ThinWall"], back.inputs[1])
-
-        transparent = self.addNode(5, "ShaderNodeBsdfTransparent")
-        self.links.new(mix1.outputs[0], transparent.inputs[0])
-
-        light = self.addNode(5, "ShaderNodeLightPath")
-
-        mix3 = self.addNode(6, "ShaderNodeMixShader", "mix3")
-        self.links.new(back.outputs[0], mix3.inputs[0])
-        self.links.new(mix2.outputs[0], mix3.inputs[1])
-        self.links.new(refraction.outputs[0], mix3.inputs[2])
-
-        mix4 = self.addNode(6, "ShaderNodeMixShader", "mix4")
-        self.links.new(light.outputs["Is Shadow Ray"], mix4.inputs[0])
-        self.links.new(mix3.outputs[0], mix4.inputs[1])
-        self.links.new(transparent.outputs[0], mix4.inputs[2])
-
-        mix5 = self.addNode(6, "ShaderNodeMixShader", "mix5")
-        self.links.new(self.inputs.outputs["RefractionWeight"], mix5.inputs[0])
-        self.links.new(self.inputs.outputs["BaseShader"], mix5.inputs[1])
-        self.links.new(mix4.outputs[0], mix5.inputs[2])
-
-
-        self.links.new(mix5.outputs["Shader"], self.outputs.inputs["Shader"])
-        self.links.new(volume.outputs["Volume"], self.outputs.inputs["Volume"])
 
 # ---------------------------------------------------------------------
 #   LIE Group
@@ -862,13 +585,13 @@ class LieGroup(CyclesGroup):
             for idx in range(1, nassets):
                 map = maps[idx]
                 if map.invert:
-                    inv = self.addNode(4, "ShaderNodeInvert")
+                    inv = self.addNode("ShaderNodeInvert", 4)
                     node = texnodes[idx][0]
                     self.links.new(node.outputs[0], inv.inputs["Color"])
                     texnodes[idx].append(inv)
 
             texnode = texnodes[0][-1]
-            alphamix = self.addNode(6, "ShaderNodeMixRGB")
+            alphamix = self.addNode("ShaderNodeMixRGB", 6)
             alphamix.blend_type = 'MIX'
             alphamix.inputs[0].default_value = 1.0
             self.links.new(self.inputs.outputs["Alpha"], alphamix.inputs[0])
@@ -880,7 +603,7 @@ class LieGroup(CyclesGroup):
                 if map.ismask:
                     if idx == nassets-1:
                         continue
-                    mix = self.addNode(5, "ShaderNodeMixRGB")    # ShaderNodeMixRGB
+                    mix = self.addNode("ShaderNodeMixRGB", 5)    # ShaderNodeMixRGB
                     mix.blend_type = 'MULTIPLY'
                     mix.use_alpha = False
                     mask = texnodes[idx][-1]
@@ -891,7 +614,7 @@ class LieGroup(CyclesGroup):
                     texnode = mix
                     masked = True
                 elif not masked:
-                    mix = self.addNode(5, "ShaderNodeMixRGB")
+                    mix = self.addNode("ShaderNodeMixRGB", 5)
                     alpha = setMixOperation(mix, map)
                     mix.inputs[0].default_value = alpha
                     node = texnodes[idx][-1]
