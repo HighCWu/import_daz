@@ -615,7 +615,6 @@ class CyclesTree:
             return
 
         from .cgroup import FresnelGroup
-        self.column += 1
         fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel")
         ior,iortex = self.getFresnelIOR(col=3)
         self.linkScalar(iortex, fresnel, ior, "IOR")
@@ -910,18 +909,23 @@ class CyclesTree:
     def buildEmission(self, scn):
         if not GS.useEmission:
             return
-        color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)
-        if (color != BLACK):
-            emit = self.addNode("ShaderNodeEmission")
-            emit.inputs["Color"].default_value[0:3] = color
-            if tex:
-                self.linkColor(tex, emit, color)
-            else:
+        color = self.getColor("getChannelEmissionColor", BLACK)
+        if not isBlack(color):
+            from .cgroup import EmissionGroup
+            self.column += 1
+            #emit = self.addNode("ShaderNodeEmission")
+            emit = self.addGroup(EmissionGroup, "DAZ Emission")
+            self.links.new(self.getCyclesSocket(), emit.inputs["Cycles"])
+            self.links.new(self.getEeveeSocket(), emit.inputs["Eevee"])
+            self.cycles = self.eevee = emit
+            color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)
+            self.linkColor(tex, emit, color, "Color")
+            if tex is None:
                 channel = self.material.getChannel(["Luminance"])
                 if channel:
                     tex = self.addTexImageNode(channel, "COLOR")
-                    self.linkColor(tex, emit, color)
-
+                    self.linkColor(tex, emit, color, "Color")
+    
             lum = self.getValue(["Luminance"], 1500)
             # "cd/m^2", "kcd/m^2", "cd/ft^2", "cd/cm^2", "lm", "W"
             units = self.getValue(["Luminance Units"], 3)
@@ -935,15 +939,11 @@ class CyclesTree:
 
             twosided = self.getValue(["Two Sided Light"], False)
             if not twosided:
-                geo = self.addNode("ShaderNodeNewGeometry", col=self.column-2)
-                trans = self.addNode("ShaderNodeBsdfTransparent", col=self.column-2)
-                mix = self.addNode("ShaderNodeMixShader", col=self.column-1)
-                self.links.new(geo.outputs["Backfacing"], mix.inputs[0])
-                self.links.new(emit.outputs[0], mix.inputs[1])
-                self.links.new(trans.outputs[0], mix.inputs[2])
-                emit = mix
-            self.cycles = self.addToActive(self.cycles, emit, 8)
-            self.eevee = self.addToActive(self.eevee, emit, 8)
+                from .cgroup import OneSidedGroup
+                node = self.addGroup(OneSidedGroup, "DAZ One-Sided")
+                self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])
+                self.links.new(self.getEeveeSocket(), node.inputs["Eevee"])
+                self.cycles = self.eevee = node
 
 
     def invertColor(self, color, tex, col):

@@ -163,6 +163,70 @@ class MixGroup(CyclesGroup):
         self.links.new(self.mix2.outputs[0], self.outputs.inputs["Eevee"])
 
 # ---------------------------------------------------------------------
+#   Add Group. Adds to Cycles and Eevee
+# ---------------------------------------------------------------------
+
+class AddGroup(CyclesGroup):
+    def __init__(self, node, name, parent, ncols):
+        CyclesGroup.__init__(self, node, name, parent, ncols)
+        self.group.inputs.new("NodeSocketShader", "Cycles")
+        self.group.inputs.new("NodeSocketShader", "Eevee")
+        self.group.outputs.new("NodeSocketShader", "Cycles")
+        self.group.outputs.new("NodeSocketShader", "Eevee")
+        
+        
+    def addNodes(self, args=None):
+        self.add1 = self.addNode("ShaderNodeAddShader", 2)
+        self.add2 = self.addNode("ShaderNodeAddShader", 2)
+        self.links.new(self.inputs.outputs["Cycles"], self.add1.inputs[0])
+        self.links.new(self.inputs.outputs["Eevee"], self.add2.inputs[0])
+        self.links.new(self.add1.outputs[0], self.outputs.inputs["Cycles"])
+        self.links.new(self.add2.outputs[0], self.outputs.inputs["Eevee"])
+
+# ---------------------------------------------------------------------
+#   Emission Group
+# ---------------------------------------------------------------------
+
+class EmissionGroup(AddGroup):
+
+    def __init__(self, node, name, parent):
+        AddGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "Strength")
+
+
+    def addNodes(self, args=None):
+        AddGroup.addNodes(self, args)
+        node = self.addNode("ShaderNodeEmission", 1)
+        self.links.new(self.inputs.outputs["Color"], node.inputs["Color"])
+        self.links.new(self.inputs.outputs["Strength"], node.inputs["Strength"])
+        self.links.new(node.outputs[0], self.add1.inputs[1])
+        self.links.new(node.outputs[0], self.add2.inputs[1])
+
+
+class OneSidedGroup(CyclesGroup):
+    def __init__(self, node, name, parent):
+        CyclesGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketShader", "Cycles")
+        self.group.inputs.new("NodeSocketShader", "Eevee")
+        self.group.outputs.new("NodeSocketShader", "Cycles")
+        self.group.outputs.new("NodeSocketShader", "Eevee")
+
+    def addNodes(self, args=None):
+        geo = self.addNode("ShaderNodeNewGeometry", 1)
+        trans = self.addNode("ShaderNodeBsdfTransparent", 1)
+        mix1 = self.addNode("ShaderNodeMixShader", 2)
+        mix2 = self.addNode("ShaderNodeMixShader", 2)
+        self.links.new(geo.outputs["Backfacing"], mix1.inputs[0])
+        self.links.new(geo.outputs["Backfacing"], mix2.inputs[0])
+        self.links.new(self.inputs.outputs["Cycles"], mix1.inputs[1])
+        self.links.new(self.inputs.outputs["Eevee"], mix2.inputs[1])
+        self.links.new(trans.outputs[0], mix1.inputs[2])
+        self.links.new(trans.outputs[0], mix2.inputs[2])
+        self.links.new(mix1.outputs[0], self.outputs.inputs["Cycles"])
+        self.links.new(mix1.outputs[0], self.outputs.inputs["Eevee"])
+
+# ---------------------------------------------------------------------
 #   Diffuse Group
 # ---------------------------------------------------------------------
 
