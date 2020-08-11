@@ -1028,7 +1028,6 @@ class DAZ_OT_LoadRootPaths(DazOperator, B.SingleFile, B.JsonFile):
 
     def invoke(self, context, event):
         if not self.properties.filepath:
-            print("ROOT", GS.rootPath)
             self.properties.filepath = GS.rootPath
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}

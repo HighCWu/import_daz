@@ -209,7 +209,7 @@ class GlobalSettings:
 
     def readDazPaths(self, struct):
         self.dazpaths = []
-        for key in ["content", "builtin_mdl", "import_dirs", "mdl_dirs", "builtin_content", "cloud_content"]:
+        for key in ["content", "builtin_mdl", "import_dirs", "mdl_dirs"]:
             if key in struct.keys():
                 for path in struct[key]:
                     path = self.fixPath(path)
@@ -217,6 +217,23 @@ class GlobalSettings:
                         self.dazpaths.append(path)
                     else:
                         print("Path does not exist", path)
+        for key in ["builtin_content", "cloud_content"]:
+            if key in struct.keys():
+                folder = struct[key]
+                if isinstance(folder, list):
+                    folder = folder[0]
+                folder = self.fixPath(folder)
+                if os.path.exists(folder):
+                    cloud = os.path.join(folder, "data", "cloud")
+                    if os.path.exists(cloud):
+                        for file in os.listdir(cloud):
+                            if file != "meta":
+                                path = os.path.join(cloud, file)
+                                if os.path.isdir(path):                            
+                                    self.dazpaths.append(path)
+                else:
+                    print("Folder does not exist", folder)
+                
 
 
     def save(self, filepath):
