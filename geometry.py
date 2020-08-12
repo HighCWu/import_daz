@@ -271,10 +271,10 @@ class Geometry(Asset, Channels):
         self.SubDRenderLevel = 0
         self.shell = {}
         self.shells = {}
-        self.isSourced = False
 
 
     def copySource(self, asset):
+        Asset.copySource(self, asset)
         asset.verts = self.verts
         asset.faces = self.faces
         asset.materials = self.materials
@@ -367,12 +367,6 @@ class Geometry(Asset, Channels):
 
         if self.uv_set is None:
             self.uv_set = self.default_uv_set
-
-        if "source" in struct.keys():
-            asset = self.copySourceFile(struct["source"])
-            if asset and not asset.isSourced:
-                self.copySource(asset)
-                asset.isSourced = True
 
         return self
 

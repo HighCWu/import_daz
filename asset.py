@@ -247,10 +247,15 @@ class Asset(Accessor):
         self.children = []
         self.source = None
         self.drivable = True
+        self.isSourced = False
 
 
     def __repr__(self):
         return ("<Asset %s t: %s r: %s>" % (self.id, self.type, self.rna))
+
+
+    def copySource(self, asset):
+        pass
 
 
     def selfref(self):
@@ -347,6 +352,12 @@ class Asset(Accessor):
             self.parent = self.getAsset(struct["parent"])
             if self.parent:
                 self.parent.children.append(self)
+
+        if "source" in struct.keys():
+            asset = self.copySourceFile(struct["source"])
+            if asset and not asset.isSourced:
+                self.copySource(asset)
+                asset.isSourced = True
 
         return self
 
