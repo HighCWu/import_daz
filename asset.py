@@ -254,10 +254,6 @@ class Asset(Accessor):
         return ("<Asset %s t: %s r: %s>" % (self.id, self.type, self.rna))
 
 
-    def copySource(self, asset):
-        pass
-
-
     def selfref(self):
         return ("#" + self.id.rsplit("#", 2)[-1])
 
@@ -285,6 +281,16 @@ class Asset(Accessor):
             if len(words) > 1:
                 string = words[-1]
         return getName(string)
+
+
+    def copySource(self, asset):
+        for key in dir(asset):
+            if hasattr(self, key) and key[0] != "_":
+                attr = getattr(self, key)
+                try:
+                    setattr(asset, key, attr)
+                except RuntimeError:
+                    pass
 
 
     def copySourceFile(self, source):
