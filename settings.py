@@ -228,8 +228,8 @@ class GlobalSettings:
                     if os.path.exists(cloud):
                         for file in os.listdir(cloud):
                             if file != "meta":
-                                path = os.path.join(cloud, file)
-                                if os.path.isdir(path):                            
+                                path = self.fixPath(os.path.join(cloud, file))
+                                if os.path.isdir(path):    
                                     self.dazpaths.append(path)
                 else:
                     print("Folder does not exist", folder)

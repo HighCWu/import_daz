@@ -279,18 +279,20 @@ class RefractionGroup(MixGroup):
     def __init__(self, node, name, parent):
         MixGroup.__init__(self, node, name, parent, 3)
         self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "Roughness")
         self.group.inputs.new("NodeSocketFloat", "IOR")
         self.group.inputs.new("NodeSocketVector", "Normal")
 
 
     def addNodes(self, args=None):
         MixGroup.addNodes(self, args)
-        glossy = self.addNode("ShaderNodeBsdfRefraction", 1)
-        self.links.new(self.inputs.outputs["Color"], glossy.inputs["Color"])
-        self.links.new(self.inputs.outputs["IOR"], glossy.inputs["IOR"])
-        self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
-        self.links.new(glossy.outputs[0], self.mix1.inputs[2])
-        self.links.new(glossy.outputs[0], self.mix2.inputs[2])
+        refr = self.addNode("ShaderNodeBsdfRefraction", 1)
+        self.links.new(self.inputs.outputs["Color"], refr.inputs["Color"])
+        self.links.new(self.inputs.outputs["Roughness"], refr.inputs["Roughness"])
+        self.links.new(self.inputs.outputs["IOR"], refr.inputs["IOR"])
+        self.links.new(self.inputs.outputs["Normal"], refr.inputs["Normal"])
+        self.links.new(refr.outputs[0], self.mix1.inputs[2])
+        self.links.new(refr.outputs[0], self.mix2.inputs[2])
 
 # ---------------------------------------------------------------------
 #   Transparent Group

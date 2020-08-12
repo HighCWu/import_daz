@@ -1181,6 +1181,8 @@ class CyclesTree:
         if fac == 0 and tex is None:
             return
         elif fac == 1 and tex is None:
+            if shader.type == 'GROUP':
+                shader.inputs["Fac"].default_value = fac
             self.cycles = shader
             self.eevee = shader
             return
