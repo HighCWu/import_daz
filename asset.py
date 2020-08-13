@@ -485,7 +485,7 @@ def setDazPaths(scn):
     from .error import DazError
     global theDazPaths
     filepaths = []
-    for path in GS.dazpaths:
+    for path in GS.getDazPaths():
         if path:
             if not os.path.exists(path):
                 msg = ("The DAZ library path\n" +
@@ -506,7 +506,6 @@ def setDazPaths(scn):
                                 subpath = path + "/" + fname
                                 filepaths.append(subpath)
     theDazPaths = filepaths
-    print("DAZ Root Paths", theDazPaths)
 
 
 def fixBrokenPath(path):

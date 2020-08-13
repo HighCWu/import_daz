@@ -241,6 +241,15 @@ class DAZ_OT_InspectPropDependencies(DazOperator, IsArmature):
 #   Panels
 #----------------------------------------------------------
 
+def showBox(scn, attr, layout):
+    if not getattr(scn, attr):
+        layout.prop(scn, attr, icon="RIGHTARROW", emboss=False)
+        return False
+    else:
+        layout.prop(scn, attr, icon="DOWNARROW_HLT", emboss=False)
+        return True
+
+
 class DAZ_PT_Setup(bpy.types.Panel):
     bl_label = "Setup (version 1.5.0)"
     bl_space_type = "VIEW_3D"
@@ -258,10 +267,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if not scn.DazShowCorrections:
-            box.prop(scn, "DazShowCorrections", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowCorrections", icon="DOWNARROW_HLT", emboss=False)
+        if showBox(scn, "DazShowCorrections", box):
             box.operator("daz.merge_rigs")
             box.operator("daz.eliminate_empties")
             box.operator("daz.merge_toes")
@@ -271,10 +277,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if not scn.DazShowMaterials:
-            box.prop(scn, "DazShowMaterials", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowMaterials", icon="DOWNARROW_HLT", emboss=False)
+        if showBox(scn, "DazShowMaterials", box):
             box.operator("daz.update_settings")
             box.operator("daz.save_local_textures")
             box.operator("daz.resize_textures")
@@ -300,10 +303,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if not scn.DazShowMorphs:
-            box.prop(scn, "DazShowMorphs", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowMorphs", icon="DOWNARROW_HLT", emboss=False)
+        if showBox(scn, "DazShowMorphs", box):
             if ob and ob.DazDriversDisabled:
                 box.label(text = "Face drivers disabled")
                 box.operator("daz.enable_drivers")
@@ -328,10 +328,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if not scn.DazShowFinish:
-            box.prop(scn, "DazShowFinish", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowFinish", icon="DOWNARROW_HLT", emboss=False)
+        if showBox(scn, "DazShowFinish", box):
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.set_udims")
             box.operator("daz.merge_geografts")
@@ -385,10 +382,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout = self.layout
 
         box = layout.box()
-        if not scn.DazShowLowpoly:
-            box.prop(scn, "DazShowLowpoly", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowLowpoly", icon="DOWNARROW_HLT", emboss=False)
+        if showBox(scn, "DazShowLowpoly", box):
             box.operator("daz.print_statistics")
             box.separator()
             box.operator("daz.apply_morphs")
@@ -405,10 +399,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if not scn.DazShowVisibility:
-            box.prop(scn, "DazShowVisibility", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowVisibility", icon="DOWNARROW_HLT", emboss=False)
+        if showBox(scn, "DazShowVisibility", box):
             box.operator("daz.create_masks")
             box.operator("daz.add_visibility_drivers")
             box.operator("daz.remove_visibility_drivers")
@@ -418,10 +409,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if not scn.DazShowMesh:
-            box.prop(scn, "DazShowMesh", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowMesh", icon="DOWNARROW_HLT", emboss=False)
+        if showBox(scn, "DazShowMesh", box):
             box.operator("daz.limit_vertex_groups")
             box.operator("daz.apply_subsurf")
             box.operator("daz.fit_mesh_to_other")
@@ -432,10 +420,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if not scn.DazShowRigging:
-            box.prop(scn, "DazShowRigging", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowRigging", icon="DOWNARROW_HLT", emboss=False)
+        if showBox(scn, "DazShowRigging", box):
             box.operator("daz.convert_rig")
             box.separator()
             box.operator("daz.apply_rest_pose")
@@ -454,10 +439,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if not scn.DazShowAdvancedMorph:
-            box.prop(scn, "DazShowAdvancedMorph", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowAdvancedMorph", icon="DOWNARROW_HLT", emboss=False)
+        if showBox(scn, "DazShowAdvancedMorph", box):
             box.operator("daz.remove_standard_morphs")
             box.operator("daz.remove_custom_morphs")
             box.operator("daz.remove_jcms")
@@ -485,10 +467,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if not scn.DazShowHair:
-            box.prop(scn, "DazShowHair", icon="RIGHTARROW", emboss=False)
-        else:
-            box.prop(scn, "DazShowHair", icon="DOWNARROW_HLT", emboss=False)
+        if showBox(scn, "DazShowHair", box):
             from .hair import getHairAndHuman
             box.operator("daz.select_random_strands")
             box.separator()
@@ -970,14 +949,14 @@ class DAZ_PT_Visibility(DAZ_PT_Hide, bpy.types.Panel):
 #   Settings popup
 #-------------------------------------------------------------
 
-class DAZ_OT_AddRootPath(bpy.types.Operator):
-    bl_idname = "daz.add_root_path"
-    bl_label = "Add Root Path"
-    bl_description = "Add a root directory"
+class DAZ_OT_AddContentDir(bpy.types.Operator):
+    bl_idname = "daz.add_content_dir"
+    bl_label = "Add Content Directory"
+    bl_description = "Add a content directory"
     bl_options = {'UNDO'}
 
     def execute(self, context):
-        pg = context.scene.DazPaths.add()
+        pg = context.scene.DazContentDirs.add()
         pg.name = ""
         return {'PASS_THROUGH'}
 
@@ -1061,11 +1040,16 @@ class DAZ_OT_GlobalSettings(DazOperator):
         split = splitLayout(self.layout, 0.4)
         col = split.column()
         box = col.box()
-        box.label(text = "DAZ Root Paths")
-        box.prop(scn, "DazCaseSensitivePaths")
-        box.operator("daz.add_root_path")
-        for pg in scn.DazPaths:
-            box.prop(pg, "name", text="")
+        box.operator("daz.add_content_dir")
+        if showBox(scn, "DazShowContentDirs", box):
+            for pg in scn.DazContentDirs:
+                box.prop(pg, "name", text="")
+        if showBox(scn, "DazShowMDLDirs", box):
+            for pg in scn.DazMDLDirs:
+                box.prop(pg, "name", text="")
+        if showBox(scn, "DazShowCloudDirs", box):
+            for pg in scn.DazCloudDirs:
+                box.prop(pg, "name", text="")
         box.label(text = "Path To Output Errors:")
         box.prop(scn, "DazErrorPath", text="")
 
@@ -1073,6 +1057,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box = col.box()
         box.label(text = "General")
         box.prop(scn, "DazVerbosity")
+        box.prop(scn, "DazCaseSensitivePaths")
         box.prop(scn, "DazZup")
         from .error import getSilentMode
         if getSilentMode():
@@ -1153,7 +1138,7 @@ classes = [
     DAZ_OT_InspectPropDependencies,
     DAZ_OT_SetSilentMode,
 
-    DAZ_OT_AddRootPath,
+    DAZ_OT_AddContentDir,
     DAZ_OT_LoadFactorySettings,
     DAZ_OT_LoadRootPaths,
     DAZ_OT_SaveSettingsFile,
@@ -1178,11 +1163,23 @@ classes = [
     ErrorOperator
 ]
 
+
 def initialize():
-    bpy.types.Scene.DazPaths = CollectionProperty(
+
+    bpy.types.Scene.DazContentDirs = CollectionProperty(
         type = bpy.types.PropertyGroup,
-        name = "DAZ Root Paths",
-        description = "Search paths for DAZ Studio assets")
+        name = "DAZ Content Directories",
+        description = "Search paths for DAZ Studio content")
+
+    bpy.types.Scene.DazMDLDirs = CollectionProperty(
+        type = bpy.types.PropertyGroup,
+        name = "DAZ MDL Directories",
+        description = "Search paths for DAZ Studio MDL")
+
+    bpy.types.Scene.DazCloudDirs = CollectionProperty(
+        type = bpy.types.PropertyGroup,
+        name = "DAZ Cloud Directories",
+        description = "Search paths for DAZ Studio cloud content")
 
     bpy.types.Scene.DazErrorPath = StringProperty(
         name = "Error Path",
@@ -1303,6 +1300,10 @@ def initialize():
     bpy.types.Scene.DazShowGeneral = BoolProperty(name = "General", default = False)
     bpy.types.Scene.DazShowPaths = BoolProperty(name = "Paths To DAZ Library", default = False)
     bpy.types.Scene.DazShowSettings = BoolProperty(name = "Load/Save Settings", default = False)
+    bpy.types.Scene.DazShowContentDirs = BoolProperty(name = "Content Directories", default = True)
+    bpy.types.Scene.DazShowMDLDirs = BoolProperty(name = "MDL Directories", default = False)
+    bpy.types.Scene.DazShowCloudDirs = BoolProperty(name = "Cloud Directories", default = False)
+
 
     bpy.types.Scene.DazFilter = StringProperty(
         name = "Filter",

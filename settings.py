@@ -41,11 +41,14 @@ class GlobalSettings:
     def __init__(self):
         from sys import platform
 
-        self.dazpaths = [
+        self.contentDirs = [
             self.fixPath("~/Documents/DAZ 3D/Studio/My Library"),
             "C:/Users/Public/Documents/My DAZ 3D Library",
+        ]
+        self.mdlDirs = [
             "C:/Program Files/DAZ 3D/DAZStudio4/shaders/iray",
         ]
+        self.cloudDirs = []
         self.errorPath = self.fixPath("~/Documents/daz_importer_errors.txt")
         if bpy.app.version < (2,80,0):
             path = "~/import-daz-settings-27x.json"
@@ -127,6 +130,10 @@ class GlobalSettings:
         return os.path.expanduser(path).replace("\\", "/")
 
 
+    def getDazPaths(self):
+        return self.contentDirs + self.mdlDirs + self.cloudDirs
+        
+    
     def fromScene(self, scn):
         for prop,key in self.SceneTable.items():
             if hasattr(scn, prop) and hasattr(self, key):
@@ -134,14 +141,28 @@ class GlobalSettings:
                 setattr(self, key, value)
             else:
                 print("MIS", prop, key)
-        self.dazpaths = []
-        for pg in scn.DazPaths:
+        self.contentDirs = self.pathsFromScene(scn.DazContentDirs)
+        self.mdlDirs = self.pathsFromScene(scn.DazMDLDirs)
+        self.cloudDirs = self.pathsFromScene(scn.DazCloudDirs)
+        self.errorPath = self.fixPath(getattr(scn, "DazErrorPath"))
+
+
+    def pathsFromScene(self, pgs):        
+        paths = []
+        for pg in pgs:
             path = self.fixPath(pg.name)
             if os.path.exists(path):
-                self.dazpaths.append(path)
+                paths.append(path)
             else:
                 print("Skip non-existent path:", path)
-        self.errorPath = self.fixPath(getattr(scn, "DazErrorPath"))
+        return paths
+        
+        
+    def pathsToScene(self, paths, pgs):        
+        pgs.clear()
+        for path in paths:
+            pg = pgs.add()
+            pg.name = self.fixPath(path)
 
 
     def toScene(self, scn):
@@ -151,10 +172,9 @@ class GlobalSettings:
                 setattr(scn, prop, value)
             else:
                 print("MIS", prop, key)
-        scn.DazPaths.clear()
-        for path in self.dazpaths:
-            pg = scn.DazPaths.add()
-            pg.name = self.fixPath(path)
+        self.pathsToScene(self.contentDirs, scn.DazContentDirs)
+        self.pathsToScene(self.mdlDirs, scn.DazMDLDirs)
+        self.pathsToScene(self.cloudDirs, scn.DazCloudDirs)
         path = self.fixPath(self.errorPath)
         setattr(scn, "DazErrorPath", path)
 
@@ -194,46 +214,74 @@ class GlobalSettings:
                 if prop in self.SceneTable.keys():
                     key = self.SceneTable[prop]
                     setattr(self, key, value)
-            self.dazpaths = []
-            pathlist = [(key, path) for key,path in settings.items() if key[0:7] == "DazPath"]
-            pathlist.sort()
-            for _prop,path in pathlist:
-                path = self.fixPath(path)
-                if os.path.exists(path):
-                    self.dazpaths.append(path)
-                else:
-                    print("No such path:", path)
+            self.contentDirs = self.readSettingsDirs("DazPath", settings)
+            self.contentDirs += self.readSettingsDirs("DazContent", settings)
+            self.mdlDirs = self.readSettingsDirs("DazMDL", settings)
+            self.cloudDirs = self.readSettingsDirs("DazCloud", settings)
         else:
             raise DazError("Not a settings file   :\n'%s'" % filepath)
 
 
+    def readSettingsDirs(self, prefix, settings):         
+        paths = []
+        n = len(prefix)
+        pathlist = [(key, path) for key,path in settings.items() if key[0:n] == prefix]
+        pathlist.sort()
+        for _prop,path in pathlist:
+            path = self.fixPath(path)
+            if os.path.exists(path):
+                paths.append(path)
+            else:
+                print("No such path:", path)
+        return paths
+
+
     def readDazPaths(self, struct):
-        self.dazpaths = []
-        for key in ["content", "builtin_mdl", "import_dirs", "mdl_dirs"]:
-            if key in struct.keys():
-                for path in struct[key]:
-                    path = self.fixPath(path)
-                    if os.path.exists(path):
-                        self.dazpaths.append(path)
-                    else:
-                        print("Path does not exist", path)
-        for key in ["builtin_content", "cloud_content"]:
-            if key in struct.keys():
-                folder = struct[key]
-                if isinstance(folder, list):
-                    folder = folder[0]
-                folder = self.fixPath(folder)
-                if os.path.exists(folder):
-                    cloud = os.path.join(folder, "data", "cloud")
-                    if os.path.exists(cloud):
-                        for file in os.listdir(cloud):
-                            if file != "meta":
-                                path = self.fixPath(os.path.join(cloud, file))
-                                if os.path.isdir(path):    
-                                    self.dazpaths.append(path)
+        self.contentDirs = self.readAutoDirs("content", struct) 
+        self.mdlDirs = self.readAutoDirs("builtin_mdl", struct) 
+        self.mdlDirs += self.readAutoDirs("mdl_dirs", struct) 
+        self.contentDirs += self.readAutoDirs("builtin_content", struct) 
+        self.cloudDirs = self.readCloudDirs("cloud_content", struct) 
+
+
+    def readAutoDirs(self, key, struct):
+        paths = []
+        if key in struct.keys():
+            folders = struct[key]
+            if not isinstance(folders, list):
+                folders = [folders]
+            for path in folders:
+                path = self.fixPath(path)
+                if os.path.exists(path):
+                    paths.append(path)
                 else:
-                    print("Folder does not exist", folder)
-                
+                    print("Path does not exist", path)
+        return paths
+
+
+    def readCloudDirs(self, key, struct):
+        paths = []
+        if key in struct.keys():
+            folder = struct[key]
+            if isinstance(folder, list):
+                folder = folder[0]
+            folder = self.fixPath(folder)
+            if os.path.exists(folder):
+                cloud = os.path.join(folder, "data", "cloud")
+                if os.path.exists(cloud):
+                    for file in os.listdir(cloud):
+                        if file != "meta":
+                            path = self.fixPath(os.path.join(cloud, file))
+                            if os.path.isdir(path):    
+                                paths.append(path)
+                            else:
+                                print("Folder does not exist", folder)
+        return paths
+        
+
+    def saveDirs(self, paths, prefix, struct):        
+        for n,path in enumerate(paths):
+            struct["%s%03d" % (prefix, n+1)] = self.fixPath(path)
 
 
     def save(self, filepath):
@@ -246,8 +294,9 @@ class GlobalSettings:
                 isinstance(value, bool) or
                 isinstance(value, str)):
                 struct[prop] = value
-        for n,path in enumerate(self.dazpaths):
-            struct["DazPath%d" % (n+1)] = self.fixPath(path)
+        self.saveDirs(self.contentDirs, "DazContent", struct)
+        self.saveDirs(self.mdlDirs, "DazMDL", struct)
+        self.saveDirs(self.cloudDirs, "DazCloud", struct)        
         filepath = os.path.expanduser(filepath)
         filepath = os.path.splitext(filepath)[0] + ".json"
         saveJson({"daz-settings" : struct}, filepath)
@@ -256,12 +305,6 @@ class GlobalSettings:
 
     def loadDefaults(self):
         self.load(self.settingsPath)
-        return
-        filepath = "~/import-daz-paths.json"
-        struct = self.openFile(filepath)
-        if struct:
-            print("Load paths from", filepath)
-            self.readDazPaths(struct)
 
 
     def saveDefaults(self):

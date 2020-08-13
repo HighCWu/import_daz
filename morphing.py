@@ -385,7 +385,7 @@ def setupMorphPaths(scn, force):
             if "exclude2" in struct.keys():
                 excludes += getShortformList(struct["exclude2"])
 
-            for dazpath in GS.dazpaths:
+            for dazpath in GS.getDazPaths():
                 folderpath = os.path.join(dazpath, folder)
                 if not os.path.exists(folderpath):
                     folderpath = fixBrokenPath(folderpath)
