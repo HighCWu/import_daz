@@ -1239,7 +1239,7 @@ class CyclesTree:
     def linkScalar(self, tex, node, value, slot):
         node.inputs[slot].default_value = value
         if tex:
-            tex = self.multiplyScalarTex(value, tex, self.column-1)
+            tex = self.multiplyScalarTex(value, tex)
             if tex:
                 self.links.new(tex.outputs[0], node.inputs[slot])
         return tex
@@ -1281,14 +1281,16 @@ class CyclesTree:
         return value,tex
 
 
-    def multiplyVectorTex(self, color, tex):
+    def multiplyVectorTex(self, color, tex, col=None):
         if isWhite(color):
             return tex
         elif isBlack(color):
             return None
         elif (tex and tex.type not in ['TEX_IMAGE', 'GROUP']):
             return tex
-        mix = self.addNode("ShaderNodeMixRGB", self.column-1)
+        if col is None:
+            col = self.column-1
+        mix = self.addNode("ShaderNodeMixRGB", col)
         mix.blend_type = 'MULTIPLY'
         mix.inputs[0].default_value = 1.0
         mix.inputs[1].default_value[0:3] = color
@@ -1296,14 +1298,16 @@ class CyclesTree:
         return mix
 
 
-    def multiplyScalarTex(self, value, tex, slot=0):
+    def multiplyScalarTex(self, value, tex, col=None, slot=0):
         if value == 1:
             return tex
         elif value == 0:
             return None
         elif (tex and tex.type not in ['TEX_IMAGE', 'GROUP']):
             return tex
-        mult = self.addNode("ShaderNodeMath", self.column-1)
+        if col is None:
+            col = self.column-1
+        mult = self.addNode("ShaderNodeMath", col)
         mult.operation = 'MULTIPLY'
         mult.inputs[0].default_value = value
         self.links.new(tex.outputs[slot], mult.inputs[1])
