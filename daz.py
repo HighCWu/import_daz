@@ -57,23 +57,26 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         scn = context.scene
         layout.prop(self, "unitScale")
         layout.separator()
-
         box = layout.box()
         box.label(text = "Mesh Fitting")
         box.prop(self, "fitMeshes", expand=True)
 
         layout.separator()
-        layout.prop(self, "skinColor")
-        layout.prop(self, "clothesColor")
-        layout.prop(self, "brightenEyes")
+        box = layout.box()
+        box.label(text = "Viewport Color")
+        row = box.row()
+        row.prop(self, "skinColor")
+        row.prop(self, "clothesColor")
+
         if scn.render.engine  in ['BLENDER_RENDER', 'BLENDER_GAME']:
             return
+
         layout.separator()
-        layout.prop(self, "useAutoMaterials")
-        layout.prop(self, "methodOpaque")
-        layout.prop(self, "methodRefractive")
-        layout.prop(self, "methodVolumetric")
-        layout.prop(self, "useEnvironment")
+        box = layout.box()
+        box.label(text = "Material Method")
+        box.prop(self, "materialMethod", expand=True)
+        box.prop(self, "useAutoMaterials")
+        box.prop(self, "useEnvironment")
 
 #-------------------------------------------------------------
 #   Silent mode
@@ -1111,6 +1114,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Materials")
         box.prop(scn, "DazChooseColors")
         box.prop(scn, "DazMergeShells")
+        box.prop(scn, "DazBrightenEyes")
         box.prop(scn, "DazLimitBump")
         if scn.DazLimitBump:
             box.prop(scn, "DazMaxBump")
@@ -1380,6 +1384,12 @@ def initialize():
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shells",
         description = "Merge shell materials with object materials")
+
+    bpy.types.Scene.DazBrightenEyes = FloatProperty(
+        name = "Brighten Eyes",
+        description = "Brighten eye textures with this factor\nto avoid dark eyes problem for Genesis 8",
+        default = 1.0,
+        min = 0.1, max = 10)
 
     bpy.types.Scene.DazMaxBump = FloatProperty(
         name = "Max Bump Strength",

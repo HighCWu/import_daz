@@ -221,12 +221,12 @@ class Material(Asset, Channels):
 
     def getChannelDiffuse(self):
         channel = self.getChannel(["diffuse", "Diffuse Color"])
-        if (LS.brightenEyes != 1.0 and
+        if (GS.brightenEyes != 1.0 and
             self.name[0:6].lower() in ["irises", "sclera"]):
             if bpy.app.version < (2,80,0):
-                factor = LS.brightenEyes
+                factor = GS.brightenEyes
             else:
-                factor = math.sqrt(LS.brightenEyes)
+                factor = math.sqrt(GS.brightenEyes)
             if "value" in channel.keys():
                 channel["value"] = factor*Vector(channel["value"])
             if "current_value" in channel.keys():

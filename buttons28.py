@@ -193,7 +193,7 @@ class DazOptions:
         min = 0.001, max = 10.0)
 
     skinColor : FloatVectorProperty(
-        name = "Skin Color",
+        name = "Skin",
         subtype = "COLOR",
         size = 4,
         min = 0.0,
@@ -202,19 +202,13 @@ class DazOptions:
     )
 
     clothesColor : FloatVectorProperty(
-        name = "Clothes Color",
+        name = "Clothes",
         subtype = "COLOR",
         size = 4,
         min = 0.0,
         max = 1.0,
         default = (0.09, 0.01, 0.015, 1.0)
     )
-
-    brightenEyes : FloatProperty(
-        name = "Brighten Eyes",
-        description = "Brighten eye textures with this factor\nto avoid dark eyes problem for Genesis 8",
-        default = 1.0,
-        min = 0.1, max = 10)
 
     fitMeshes : EnumProperty(
     items = [('SHARED', "Unmorphed Shared", "Don't fit meshes. All objects share the same mesh."),
@@ -227,33 +221,16 @@ class DazOptions:
 
     useAutoMaterials : BoolProperty(
         name = "Auto Material Method",
-        description = "Use best shaders for material, independent of the settings below",
+        description = "Use best shaders for some material, independent of the settings above",
         default = True)
 
-    methodOpaque : EnumProperty(
+    materialMethod : EnumProperty(
         items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
                  ('PRINCIPLED', "Principled", "Node setup with principled node"),
                  ],
-        name = "Opaque Method",
-        description = "Default method used for opaque materials.\nIgnored by some materials.",
+        name = "Material Method",
+        description = "Default method used for materials.\nIgnored by some materials if Auto Material Method is on.",
         default = 'BSDF')
-
-    methodRefractive : EnumProperty(
-        items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
-                 ('PRINCIPLED', "Principled", "Node setup with principled node"),
-                 ],
-        name = "Refractive Method",
-        description = "Default method used for refractive materials.\nIgnored by some materials.",
-        default = 'PRINCIPLED')
-
-    methodVolumetric : EnumProperty(
-        items = [('VOLUMETRIC', "Volumetric", "Volumetric (Iray)"),
-                 ('TRANSLUCENCY', "Translucency Only", "Translucency only"),
-                 ('SSS', "SSS", "Subsurface scattering"),
-                 ],
-        name = "Volumetric Method",
-        description = "Method for handle volumetric (Iray skin)",
-        default = 'VOLUMETRIC')
 
     useEnvironment : BoolProperty(
         name = "Environment",

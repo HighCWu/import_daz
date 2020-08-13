@@ -62,9 +62,9 @@ class CyclesMaterial(Material):
         self.tree.build(context)
 
 
-    def getTree(self, method):                
+    def getTree(self):                
         from .pbr import PbrTree
-        if method == 'PRINCIPLED':
+        if LS.materialMethod == 'PRINCIPLED':
             return PbrTree(self)
         else:
             return CyclesTree(self)
@@ -74,24 +74,15 @@ class CyclesMaterial(Material):
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
             if not LS.autoMaterials:
-                if self.refractive:
-                    return self.getTree(LS.methodRefractive)
-                else:
-                    return self.getTree(LS.methodOpaque)
-
-            if LS.renderMethod == 'BLENDER_EEVEE':
-                self.useEevee = True
-                self.translucent = False
-                LS.methodVolumetric = "SSS"
-            
-            if self.refractive:
-                return self.getTree(LS.methodRefractive)                
+                return self.getTree()
+            elif self.refractive:
+                return self.getTree() 
             elif (self.thinWalled and self.translucent):
                 return CyclesTree(self)
             elif self.metallic:
                 return PbrTree(self)
             else:
-                return self.getTree(LS.methodOpaque)
+                return self.getTree()
         else:
             return CyclesTree(self)
 
@@ -302,7 +293,7 @@ class CyclesTree:
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
         self.checkTranslucency()        
-        if LS.methodVolumetric == "SSS":
+        if LS.materialMethod == "PRINCIPLED":
             self.buildSSS(scn)
         self.buildTranslucency(scn)
         self.buildOverlay()
@@ -702,7 +693,7 @@ class CyclesTree:
             self.useTranslucency = True
         if (self.material.refractive or
             not self.material.translucent or
-            LS.methodVolumetric == "SSS"):
+            LS.materialMethod == "PRINCIPLED"):
             self.useTranslucency = False            
 
 
@@ -714,8 +705,11 @@ class CyclesTree:
         color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
         #node = self.addNode(5, "ShaderNodeBsdfTranslucent")
         from .cgroup import TranslucentGroup
-        node = self.addGroup(TranslucentGroup, "DAZ Translucent")
+        node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=100)
         self.linkColor(tex, node, color, "Color")
+        node.inputs["Scale"].default_value = 1
+        radius,radtex = self.getSSSRadius()
+        self.linkColor(radtex, node, radius, "Radius")
         self.linkNormal(node)
         fac,factex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         effect = self.getValue(["Base Color Effect"], 0)
@@ -938,7 +932,7 @@ class CyclesTree:
 
     def buildVolume(self):
         if (self.material.thinWalled or
-            LS.methodVolumetric != "VOLUMETRIC"):
+            LS.materialMethod != "BSDF"):
             return
 
         from .cgroup import VolumeGroup

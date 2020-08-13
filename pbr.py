@@ -92,6 +92,10 @@ class PbrTree(CyclesTree):
             CyclesTree.buildCutout(self)
 
 
+    def buildVolume(self):
+        pass
+        
+        
     def buildEmission(self, scn):
         if not GS.useEmission:
             return

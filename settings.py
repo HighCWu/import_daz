@@ -64,6 +64,7 @@ class GlobalSettings:
         self.useDazOrientation = False
         self.caseSensitivePaths = (platform != 'win32')
         self.mergeShells = True
+        self.brightenEyes = 1.0
 
         self.limitBump = False
         self.maxBump = 10
@@ -100,6 +101,7 @@ class GlobalSettings:
 
         "DazChooseColors" : "chooseColors",
         "DazMergeShells" : "mergeShells",
+        "DazBrightenEyes" : "brightenEyes",
         "DazLimitBump" : "limitBump",
         "DazMaxBump" : "maxBump",
         "DazHandleRenderSettings" : "handleRenderSettings",
@@ -337,10 +339,7 @@ class LocalSettings:
         self.clothesColor = None
         self.fitFile = False
         self.autoMaterials = True
-        self.methodOpaque = 'BSDF'
-        self.methodVolumetric = 'VOLUMETRIC'
-        self.methodRefractive = 'BSDF'
-        self.brightenEyes = 1.0
+        self.materialMethod = 'BSDF'
         self.useEnvironment = False
         self.renderMethod = 'CYCLES'
 
@@ -405,13 +404,10 @@ class LocalSettings:
 
         self.skinColor = btn.skinColor
         self.clothesColor = btn.clothesColor
-        self.brightenEyes = btn.brightenEyes
         self.renderMethod = scn.render.engine
 
         self.autoMaterials = btn.useAutoMaterials
-        self.methodOpaque = btn.methodOpaque
-        self.methodVolumetric = btn.methodVolumetric
-        self.methodRefractive = btn.methodRefractive
+        self.materialMethod = btn.materialMethod
         self.useEnvironment = btn.useEnvironment
 
         self.useStrict = True
