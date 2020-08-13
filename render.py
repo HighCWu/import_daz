@@ -77,7 +77,7 @@ class RenderOptions(Asset, Channels):
 
 
     def build(self, context):
-        if LS.useEnvironment:
+        if GS.useEnvironment:
             self.world = WorldMaterial(self, self.fileref)
             self.world.build(context)
 

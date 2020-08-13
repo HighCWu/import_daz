@@ -225,17 +225,12 @@ class DazOptions:
         default = True)
 
     materialMethod : EnumProperty(
-        items = [('BSDF', "BSDF", "Node setup with BSDF nodes"),
+        items = [('BSDF', "BSDF", "Node setup with BSDF nodes.\nFaithful to IRAY with Cycles"),
                  ('PRINCIPLED', "Principled", "Node setup with principled node"),
                  ],
         name = "Material Method",
         description = "Default method used for materials.\nIgnored by some materials if Auto Material Method is on.",
         default = 'BSDF')
-
-    useEnvironment : BoolProperty(
-        name = "Environment",
-        description = "Load environment",
-        default = True)
 
 #-------------------------------------------------------------
 #   material.py

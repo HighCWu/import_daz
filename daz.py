@@ -76,7 +76,6 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         box.label(text = "Material Method")
         box.prop(self, "materialMethod", expand=True)
         box.prop(self, "useAutoMaterials")
-        box.prop(self, "useEnvironment")
 
 #-------------------------------------------------------------
 #   Silent mode
@@ -1115,6 +1114,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazChooseColors")
         box.prop(scn, "DazMergeShells")
         box.prop(scn, "DazBrightenEyes")
+        box.prop(scn, "DazUseEnvironment")        
         box.prop(scn, "DazLimitBump")
         if scn.DazLimitBump:
             box.prop(scn, "DazMaxBump")
@@ -1350,6 +1350,11 @@ def initialize():
                  ],
         name = "Color Choice",
         description = "Method to use object colors")
+
+    bpy.types.Scene.DazUseEnvironment = BoolProperty(
+        name = "Environment",
+        description = "Load environment",
+        default = True)
 
     bpy.types.Scene.DazUseLockRot = BoolProperty(
         name = "Rotation Locks",

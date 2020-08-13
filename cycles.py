@@ -76,7 +76,10 @@ class CyclesMaterial(Material):
             if not LS.autoMaterials:
                 return self.getTree()
             elif self.refractive:
-                return self.getTree() 
+                if self.thinWalled:
+                    return PbrTree(self)
+                else:
+                    return self.getTree() 
             elif (self.thinWalled and self.translucent):
                 return CyclesTree(self)
             elif self.metallic:

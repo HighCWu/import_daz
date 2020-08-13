@@ -73,6 +73,7 @@ class GlobalSettings:
         self.useDisplacement = True
         self.useEmission = True
         self.useReflection = True
+        self.useEnvironment = True
         self.diffuseShader = 'OREN_NAYAR'
         self.specularShader = 'BLINN'
         self.diffuseRoughness = 0.3
@@ -102,6 +103,7 @@ class GlobalSettings:
         "DazChooseColors" : "chooseColors",
         "DazMergeShells" : "mergeShells",
         "DazBrightenEyes" : "brightenEyes",
+        "DazUseEnvironment" : "useEnvironment",
         "DazLimitBump" : "limitBump",
         "DazMaxBump" : "maxBump",
         "DazHandleRenderSettings" : "handleRenderSettings",
@@ -340,7 +342,6 @@ class LocalSettings:
         self.fitFile = False
         self.autoMaterials = True
         self.materialMethod = 'BSDF'
-        self.useEnvironment = False
         self.renderMethod = 'CYCLES'
 
         self.useNodes = False
@@ -408,7 +409,6 @@ class LocalSettings:
 
         self.autoMaterials = btn.useAutoMaterials
         self.materialMethod = btn.materialMethod
-        self.useEnvironment = btn.useEnvironment
 
         self.useStrict = True
         self.singleUser = True

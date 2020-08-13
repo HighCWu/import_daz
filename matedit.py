@@ -68,8 +68,9 @@ TweakableChannels = OrderedDict([
 
     ("Translucency", None),
     ("Translucency Color", ("DAZ Translucent", "Color", None, None, 4, None)),
-    ("Translucency Strength", ("DAZ Translucent", "Fac", None, None, 1, "BSDF_TRANSLUCENT")),
     ("Translucency Strength", ("DAZ Translucent", "Fac", None, None, 1, None)),
+    ("Translucent Scale", ("DAZ Translucent", "Scale", None, None, 1, None)),
+    ("Translucent Radius", ("DAZ Translucent", "Radius", None, None, 3, None)),
 
     ("Subsurface", None),
     ("Subsurface Color", ("DAZ SSS", "Color", None, None, 4, None)),
@@ -159,7 +160,7 @@ class ChannelSetter:
                     elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY_ADD':
                         self.setSocket(fromnode.inputs[1], 1, item)
                     elif fromnode.type == "TEX_IMAGE":
-                        self.multiplyTex(fromsocket, socket, mat.node_tree, item)
+                        self.multiplyTex(node, fromsocket, socket, mat.node_tree, item)
 
 
     def setSocket(self, socket, ncomps, item):
@@ -281,7 +282,7 @@ class ChannelSetter:
         elif ob.DazTweakMaterials == "Skin-Lips-Nails":
             return (mattype in ["Skin", "Red"])
         else:
-            return (ob.DazTweakMaterials != "Refractive")
+            return (ob.DazTweakMaterials not in ["Refractive", "None"])
 
 
     def isRefractive(self, mat):
@@ -293,6 +294,8 @@ class ChannelSetter:
                     if (self.inputDiffers(node, "Alpha", 1) or
                         self.inputDiffers(node, "Transmission", 0)):
                         return True
+                elif node.type == "GROUP":
+                    return (node.node_tree.name in ["DAZ Transparent", "DAZ Refraction"])
             return False
 
 
@@ -454,9 +457,12 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
             item.new = False
 
 
-    def multiplyTex(self, fromsocket, tosocket, tree, item):
+    def multiplyTex(self, node, fromsocket, tosocket, tree, item):
+        from .cycles import XSIZE, YSIZE
+        x,y = node.location
         if item.ncomps == 4 and not isWhite(item.color):
             mix = tree.nodes.new(type = "ShaderNodeMixRGB")
+            mix.location = (x-XSIZE,y-YSIZE)
             mix.blend_type = 'MULTIPLY'
             mix.inputs[0].default_value = 1.0
             mix.inputs[1].default_value = item.color
@@ -465,6 +471,7 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
             return mix
         elif item.ncomps == 1 and item.number != 1.0:
             mult = tree.nodes.new(type = "ShaderNodeMath")
+            mult.location = (x-XSIZE,y-YSIZE)
             mult.operation = 'MULTIPLY'
             mult.inputs[0].default_value = item.number
             tree.links.new(fromsocket, mult.inputs[1])
@@ -509,21 +516,25 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
     def skipMaterial(self, mat, ob):
         return False
 
-    def multiplyTex(self, fromsocket, tosocket, tree, item):
+    def multiplyTex(self, node, fromsocket, tosocket, tree, item):
         pass
 
 
 def getTweakMaterials(scn, context):
     ob = context.object
+    default = [("Opaque", "Opaque", "Opaque"),
+               ("Refractive", "Refractive", "Refractive"),
+               ("All", "All", "All"),
+               ("None", "None", "None")
+              ]
     if ob.data.DazMaterialSets:
-        return [(key,key,key) for key in ob.data.DazMaterialSets.keys()]
+        return default + [(key,key,key) for key in ob.data.DazMaterialSets.keys()]
     else:
-        return [("Opaque", "Opaque", "Opaque"),
-                ("Refractive", "Refractive", "Refractive"),
-                ("All", "All", "All"),
+        return default + [
                 ("Skin", "Skin", "Skin"),
                 ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
                 ]
+
 
 def getActiveMaterial(scn, context):
     ob = context.object
