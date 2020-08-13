@@ -59,17 +59,14 @@ class PbrTree(CyclesTree):
             return
         scn = context.scene
         self.cycles = self.eevee = self.pbr
-        self.checkTranslucency()
         self.buildBumpNodes(scn)
         self.buildPBRNode(scn)
-        self.postPBR = False
         if self.normal:
             self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Normal"])
             self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Clearcoat Normal"])
-        if self.useTranslucency:
-            self.buildTranslucency(scn)
+        self.postPBR = False
+        if self.buildOverlay():
             self.postPBR = True
-        self.buildOverlay()
         if self.material.dualLobeWeight > 0:
             self.buildDualLobe()
             self.pbr.inputs["Specular"].default_value = 0

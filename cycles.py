@@ -58,44 +58,42 @@ class CyclesMaterial(Material):
         if self.ignore:
             return
         Material.build(self, context)
+        self.tree = self.setupTree()
+        self.tree.build(context)
 
+
+    def getTree(self, method):                
+        from .pbr import PbrTree
+        if method == 'PRINCIPLED':
+            return PbrTree(self)
+        else:
+            return CyclesTree(self)
+
+
+    def setupTree(self):
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
             if not LS.autoMaterials:
                 if self.refractive:
-                    if LS.methodRefractive == 'PRINCIPLED':
-                        self.tree = PbrTree(self)
-                    else:
-                        self.tree = CyclesTree(self)
+                    return self.getTree(LS.methodRefractive)
                 else:
-                    if LS.methodOpaque == 'PRINCIPLED':
-                        self.tree = PbrTree(self)
-                    else:
-                        self.tree = CyclesTree(self)
-            elif LS.renderMethod == 'BLENDER_EEVEE':
+                    return self.getTree(LS.methodOpaque)
+
+            if LS.renderMethod == 'BLENDER_EEVEE':
                 self.useEevee = True
-                self.tree = PbrTree(self)
                 self.translucent = False
-                LS.methodOpaque = 'PRINCIPLED'
-                LS.methodRefractive = 'PRINCIPLED'
                 LS.methodVolumetric = "SSS"
-            elif self.refractive:
-                if LS.methodRefractive == 'PRINCIPLED':
-                    self.tree = PbrTree(self)
-                else:
-                    self.tree = CyclesTree(self)
-            elif (self.dualLobeWeight or
-                  (self.thinWalled and self.translucent)):
-                self.tree = CyclesTree(self)
+            
+            if self.refractive:
+                return self.getTree(LS.methodRefractive)                
+            elif (self.thinWalled and self.translucent):
+                return CyclesTree(self)
             elif self.metallic:
-                self.tree = PbrTree(self)
-            elif LS.methodOpaque == 'PRINCIPLED':
-                self.tree = PbrTree(self)
+                return PbrTree(self)
             else:
-                self.tree = CyclesTree(self)
+                return self.getTree(LS.methodOpaque)
         else:
-            self.tree = CyclesTree(self)
-        self.tree.build(context)
+            return CyclesTree(self)
 
 
     def postbuild(self, context):
@@ -304,7 +302,8 @@ class CyclesTree:
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
         self.checkTranslucency()        
-        self.buildSSS(scn)
+        if LS.methodVolumetric == "SSS":
+            self.buildSSS(scn)
         self.buildTranslucency(scn)
         self.buildOverlay()
         if self.material.dualLobeWeight == 1:
@@ -517,6 +516,9 @@ class CyclesTree:
             self.setRoughness(node, "Roughness", roughness, roughtex)
             self.linkNormal(node)
             self.mixWithActive(weight**power, wttex, node)
+            return True
+        else:
+            return False
 
 
     def raiseToPower(self, tex, power, useAlpha=True):
@@ -736,9 +738,6 @@ class CyclesTree:
 #-------------------------------------------------------------
 
     def buildSSS(self, scn):
-        if self.useTranslucency or LS.methodVolumetric != "SSS":
-            return
-
         wt = self.getValue("getChannelTranslucencyWeight", 0)
         dist = self.getValue("getChannelScatterDist", 0.0) * LS.scale
         if wt == 0 or dist == 0:
@@ -748,16 +747,7 @@ class CyclesTree:
             return
         wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         radius,radtex = self.getSSSRadius()
-        
-        if False and (self.useTranslucency or LS.methodVolumetric) != "SSS":
-            cycles = self.cycles
-            eevee = self.eevee 
-            node = CyclesTree.linkSSS(self, color, coltex, wt, wttex, radius, radtex)            
-            self.removeLink(node, "Cycles")
-            self.cycles = cycles
-        else:
-            self.linkSSS(color, coltex, wt, wttex, radius, radtex)
-        
+        self.linkSSS(color, coltex, wt, wttex, radius, radtex)        
         LS.usedFeatures["SSS"] = True
         mat = self.material.rna
         if hasattr(mat, "use_sss_translucency"):

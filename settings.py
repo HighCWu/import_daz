@@ -342,7 +342,7 @@ class LocalSettings:
         self.methodRefractive = 'BSDF'
         self.brightenEyes = 1.0
         self.useEnvironment = False
-        self.renderMethod = 'PBR'
+        self.renderMethod = 'CYCLES'
 
         self.useNodes = False
         self.useGeometries = False
