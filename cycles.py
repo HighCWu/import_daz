@@ -151,6 +151,15 @@ class CyclesMaterial(Material):
 #   Cycles node tree
 #-------------------------------------------------------------
 
+NCOLUMNS = 20
+if bpy.app.version < (2,80,0):
+    XSIZE = 250
+    YSIZE = 250
+else:
+    XSIZE = 300
+    YSIZE = 250
+
+
 class CyclesTree:
     def __init__(self, cmat):
         self.type = 'CYCLES'
@@ -158,7 +167,7 @@ class CyclesTree:
         self.cycles = None
         self.eevee = None
         self.column = 4
-        self.ycoords = 20*[500]
+        self.ycoords = NCOLUMNS*[2*YSIZE]
         self.texnodes = {}
         self.nodes = None
         self.links = None
@@ -193,8 +202,8 @@ class CyclesTree:
         if col is None:
             col = self.column
         node = self.nodes.new(type = stype)
-        node.location = (col*300-600, self.ycoords[col])
-        self.ycoords[col] -= 250
+        node.location = ((col-2)*XSIZE, self.ycoords[col])
+        self.ycoords[col] -= YSIZE
         if label:
             node.label = label
         if parent:
@@ -208,16 +217,6 @@ class CyclesTree:
                 link.to_socket.name == slot):
                 self.links.remove(link)
                 return
-
-
-    def recoverYCoords(self):
-        hits = 10*[0]
-        for node in self.nodes:
-            x,y = node.location
-            n = int((x+500)/250)
-            hits[n] += 1
-        for n in range(10):
-            self.ycoords[n] -= hits[n]*250
 
 
     def getTexco(self, uv):
@@ -248,7 +247,7 @@ class CyclesTree:
             col = self.column
         node = self.addNode("ShaderNodeGroup", col)
         if size:
-            self.ycoords[col] -= 100
+            self.ycoords[col] -= size
         if name in bpy.data.node_groups.keys():
             node.node_tree = bpy.data.node_groups[name]
         else:
@@ -1008,7 +1007,8 @@ class CyclesTree:
     def buildOutput(self):
         self.column += 1
         output = self.addNode("ShaderNodeOutputMaterial")
-        output.target = 'ALL'
+        if bpy.app.version >= (2,80,0):
+            output.target = 'ALL'
         if self.cycles:
             self.links.new(self.getCyclesSocket(), output.inputs["Surface"])
         if self.volume and not self.useCutout:
@@ -1021,7 +1021,7 @@ class CyclesTree:
             for lie in self.liegroups:
                 self.links.new(node.outputs[0], lie.inputs["Alpha"])
 
-        if self.volume or self.eevee:
+        if bpy.app.version >= (2,80,0) and (self.volume or self.eevee):
             output.target = 'CYCLES'        
             outputEevee = self.addNode("ShaderNodeOutputMaterial")
             outputEevee.target = 'EEVEE'

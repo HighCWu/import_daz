@@ -1452,7 +1452,8 @@ def checkRenderSettings(context, force):
         handle = "UPDATE"
     msg = ""
     msg += checkSettings(scn.cycles, renderSettingsCycles, handle, "Cycles Settings")
-    msg += checkSettings(scn.eevee, renderSettingsEevee, handle, "Eevee Settings")
+    if bpy.app.version >= (2,80,0):
+        msg += checkSettings(scn.eevee, renderSettingsEevee, handle, "Eevee Settings")
 
     if bpy.app.version < (2,80,0):
         bpydatalamps = bpy.data.lamps
