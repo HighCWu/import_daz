@@ -961,6 +961,30 @@ class DAZ_OT_AddContentDir(bpy.types.Operator):
         return {'PASS_THROUGH'}
 
 
+class DAZ_OT_AddMDLDir(bpy.types.Operator):
+    bl_idname = "daz.add_mdl_dir"
+    bl_label = "Add MDL Directory"
+    bl_description = "Add an MDL directory"
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        pg = context.scene.DazMDLDirs.add()
+        pg.name = ""
+        return {'PASS_THROUGH'}
+
+
+class DAZ_OT_AddCloudDir(bpy.types.Operator):
+    bl_idname = "daz.add_cloud_dir"
+    bl_label = "Add Cloud Directory"
+    bl_description = "Add a cloud directory"
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        pg = context.scene.DazCloudDirs.add()
+        pg.name = ""
+        return {'PASS_THROUGH'}
+
+
 class DAZ_OT_SaveSettingsFile(bpy.types.Operator, B.SingleFile, B.JsonExportFile):
     bl_idname = "daz.save_settings_file"
     bl_label = "Save Settings File"
@@ -1040,16 +1064,19 @@ class DAZ_OT_GlobalSettings(DazOperator):
         split = splitLayout(self.layout, 0.4)
         col = split.column()
         box = col.box()
-        box.operator("daz.add_content_dir")
+        box.label(text = "DAZ Studio Root Directories")
         if showBox(scn, "DazShowContentDirs", box):
             for pg in scn.DazContentDirs:
                 box.prop(pg, "name", text="")
+            box.operator("daz.add_content_dir")
         if showBox(scn, "DazShowMDLDirs", box):
             for pg in scn.DazMDLDirs:
                 box.prop(pg, "name", text="")
+            box.operator("daz.add_mdl_dir")
         if showBox(scn, "DazShowCloudDirs", box):
             for pg in scn.DazCloudDirs:
                 box.prop(pg, "name", text="")
+            box.operator("daz.add_cloud_dir")
         box.label(text = "Path To Output Errors:")
         box.prop(scn, "DazErrorPath", text="")
 
@@ -1139,6 +1166,8 @@ classes = [
     DAZ_OT_SetSilentMode,
 
     DAZ_OT_AddContentDir,
+    DAZ_OT_AddMDLDir,
+    DAZ_OT_AddCloudDir,
     DAZ_OT_LoadFactorySettings,
     DAZ_OT_LoadRootPaths,
     DAZ_OT_SaveSettingsFile,

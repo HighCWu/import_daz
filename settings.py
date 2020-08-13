@@ -145,6 +145,7 @@ class GlobalSettings:
         self.mdlDirs = self.pathsFromScene(scn.DazMDLDirs)
         self.cloudDirs = self.pathsFromScene(scn.DazCloudDirs)
         self.errorPath = self.fixPath(getattr(scn, "DazErrorPath"))
+        self.eliminateDuplicates()
 
 
     def pathsFromScene(self, pgs):        
@@ -218,6 +219,7 @@ class GlobalSettings:
             self.contentDirs += self.readSettingsDirs("DazContent", settings)
             self.mdlDirs = self.readSettingsDirs("DazMDL", settings)
             self.cloudDirs = self.readSettingsDirs("DazCloud", settings)
+            self.eliminateDuplicates()
         else:
             raise DazError("Not a settings file   :\n'%s'" % filepath)
 
@@ -236,12 +238,26 @@ class GlobalSettings:
         return paths
 
 
+    def eliminateDuplicates(self):
+        content = dict([(path,True) for path in self.contentDirs])
+        mdl = dict([(path,True) for path in self.mdlDirs])
+        cloud = dict([(path,True) for path in self.cloudDirs])
+        for path in self.mdlDirs + self.cloudDirs:
+            if path in content.keys():
+                print("Remove duplicate path: %s" % path)
+                del content[path]                       
+        self.contentDirs = list(content.keys())
+        self.mdlDirs = list(mdl.keys())
+        self.cloudDirs = list(cloud.keys())
+
+
     def readDazPaths(self, struct):
         self.contentDirs = self.readAutoDirs("content", struct) 
         self.mdlDirs = self.readAutoDirs("builtin_mdl", struct) 
         self.mdlDirs += self.readAutoDirs("mdl_dirs", struct) 
         self.contentDirs += self.readAutoDirs("builtin_content", struct) 
         self.cloudDirs = self.readCloudDirs("cloud_content", struct) 
+        self.eliminateDuplicates()
 
 
     def readAutoDirs(self, key, struct):
