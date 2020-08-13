@@ -41,7 +41,7 @@ from collections import OrderedDict
 # ---------------------------------------------------------------------
 
 TweakableChannels = OrderedDict([
-    ("Bump", None),
+    ("Bump And Normal", None),
     ("Bump Strength", ("BUMP", "Strength", "use_map_normal", "normal_factor", 1, None)),
     ("Bump Distance", ("BUMP", "Distance", None, None, 1, None)),
     ("Normal Strength", ("NORMAL_MAP", "Strength", "use_map_normal", "normal_factor", 1, None)),
@@ -53,22 +53,29 @@ TweakableChannels = OrderedDict([
     ("Glossy", None),
     ("Glossy Color", ("DAZ Glossy", "Color", None, None, 4, None)),
     ("Glossy Roughness", ("DAZ Glossy", "Roughness", None, None, 1, None)),
+    ("Glossy Strength", ("DAZ Glossy", "Fac", None, None, 1, None)),
+
+    ("Fresnel", None),
+    ("Fresnel IOR", ("DAZ Fresnel", "IOR", None, None, 1, None)),
+    ("Fresnel Roughness", ("DAZ Fresnel", "Roughness", None, None, 1, None)),
 
     ("Dual Lobe", None),
     ("Dual Lobe Weight", ("DAZ Dual Lobe", "Weight", None, None, 1, None)),
     ("Dual Lobe IOR", ("DAZ Dual Lobe", "IOR", None, None, 1, None)),
     ("Dual Lobe Roughness 1", ("DAZ Dual Lobe", "Roughness 1", None, None, 1, None)),
     ("Dual Lobe Roughness 2", ("DAZ Dual Lobe", "Roughness 2", None, None, 1, None)),
-    ("Dual Lobe Fac", ("DAZ Dual Lobe", "Fac", None, None, 1, None)),
+    ("Dual Lobe Strength", ("DAZ Dual Lobe", "Fac", None, None, 1, None)),
 
     ("Translucency", None),
     ("Translucency Color", ("DAZ Translucent", "Color", None, None, 4, None)),
     ("Translucency Strength", ("DAZ Translucent", "Fac", None, None, 1, "BSDF_TRANSLUCENT")),
+    ("Translucency Strength", ("DAZ Translucent", "Fac", None, None, 1, None)),
 
     ("Subsurface", None),
     ("Subsurface Color", ("DAZ SSS", "Color", None, None, 4, None)),
     ("Subsurface Scale", ("DAZ SSS", "Scale", None, None, 1, None)),
     ("Subsurface Radius", ("DAZ SSS", "Radius", None, None, 3, None)),
+    ("Subsurface Strength", ("DAZ SSS", "Fac", None, None, 1, None)),
 
     ("Principled", None),
     ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4, None)),
@@ -93,29 +100,34 @@ TweakableChannels = OrderedDict([
     ("Top Coat", None),
     ("Top Coat Color", ("DAZ Top Coat", "Color", None, None, 4, None)),
     ("Top Coat Roughness", ("DAZ Top Coat", "Roughness", None, None, 1, None)),
+    ("Top Coat Strength", ("DAZ Top Coat", "Fac", None, None, 1, None)),
 
     ("Overlay", None),
     ("Overlay Color", ("DAZ Overlay", "Color", None, None, 4, None)),
     ("Overlay Roughness", ("DAZ Overlay", "Roughness", None, None, 1, None)),
+    ("Overlay Strength", ("DAZ Overlay", "Fac", None, None, 1, None)),
 
     ("Refraction", None),
     ("Refraction Color", ("DAZ Refraction", "Color", None, None, 4, None)),
     ("Refraction Roughness", ("DAZ Refraction", "Roughness", None, None, 1, None)),
     ("Refraction IOR", ("DAZ Refraction", "IOR", None, None, 1, None)),
+    ("Refraction Strength", ("DAZ Refraction", "Fac", None, None, 1, None)),
 
     ("Transparent", None),
     ("Transparent Color", ("DAZ Transparent", "Color", None, None, 4, None)),
+    ("Transparent Strength", ("DAZ Transparent", "Fac", None, None, 1, None)),
 
     ("Emission", None),
-    ("Emission Color", ("EMISSION", "Color", None, None, 4, None)),
-    ("Emission Strength", ("EMISSION", "Strength", None, None, 1, None)),
+    ("Emission Color", ("DAZ Emission", "Color", None, None, 4, None)),
+    ("Emission Strength", ("DAZ Emission", "Strength", None, None, 1, None)),
+    ("Emission Strength", ("DAZ Emission", "Fac", None, None, 1, None)),
 
     ("Volume", None),
-    ("Volume Absorption Color", ("VOLUME_ABSORPTION", "Color", None, None, 4, None)),
-    ("Volume Absorption Density", ("VOLUME_ABSORPTION", "Density", None, None, 1, None)),
-
-    ("Volume Scatter Color", ("VOLUME_SCATTER", "Color", None, None, 4, None)),
-    ("Volume Scatter Density", ("VOLUME_SCATTER", "Density", None, None, 1, None)),
+    ("Volume Absorption Color", ("DAZ Volume", "Absorbtion Color", None, None, 4, None)),
+    ("Volume Absorption Density", ("DAZ Volume", "Absorbtion Density", None, None, 1, None)),
+    ("Volume Scatter Color", ("DAZ Volume", "Scatter Color", None, None, 4, None)),
+    ("Volume Scatter Density", ("DAZ Volume", "Scatter Density", None, None, 1, None)),
+    ("Volume Scatter Anisotropy", ("DAZ Volume", "Scatter Anisotropy", None, None, 1, None)),
 
 ])
 

@@ -714,11 +714,8 @@ class CyclesTree:
         color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
         #node = self.addNode(5, "ShaderNodeBsdfTranslucent")
         from .cgroup import TranslucentGroup
-        node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=150)
+        node = self.addGroup(TranslucentGroup, "DAZ Translucent")
         self.linkColor(tex, node, color, "Color")
-        node.inputs["Scale"].default_value = 1
-        radius,radtex = self.getSSSRadius()
-        self.linkColor(radtex, node, radius, "Radius")
         self.linkNormal(node)
         fac,factex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         effect = self.getValue(["Base Color Effect"], 0)
@@ -884,7 +881,7 @@ class CyclesTree:
             from .cgroup import TransparentGroup
             self.useCutout = True
             # node = self.addNode(6, "ShaderNodeBsdfTransparent")
-            node = self.addGroup(TransparentGroup, "Daz Transparent")
+            node = self.addGroup(TransparentGroup, "DAZ Transparent")
             node.inputs["Color"].default_value[0:3] = WHITE
             self.material.alphaBlend(alpha, tex)
             self.mixWithActive(1-alpha, tex, node, useAlpha=False, flip=True)
@@ -1173,10 +1170,15 @@ class CyclesTree:
         elif fac == 1 and tex is None:
             if shader.type == 'GROUP':
                 shader.inputs["Fac"].default_value = fac
-            self.cycles = shader
-            self.eevee = shader
+                self.cycles = shader
+                if "Eevee" in shader.outputs.keys():
+                    self.eevee = shader
+            else:
+                self.cycles = self.eevee = shader            
             return
-        if self.eevee:
+        if "Eevee" not in shader.outputs.keys():
+            pass
+        elif self.eevee:
             self.eevee = self.makeActiveMix("Eevee", self.eevee, self.getEeveeSocket(), fac, tex, shader, useAlpha, flip)
         else:
             self.eevee = shader

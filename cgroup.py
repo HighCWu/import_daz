@@ -319,30 +319,26 @@ class TransparentGroup(MixGroup):
 #   Translucent Group
 # ---------------------------------------------------------------------
 
-class TranslucentGroup(MixGroup):
+class TranslucentGroup(CyclesGroup):
 
     def __init__(self, node, name, parent):
-        MixGroup.__init__(self, node, name, parent, 3)
+        CyclesGroup.__init__(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketFloat", "Fac")
+        self.group.inputs.new("NodeSocketShader", "Cycles")
+        self.group.outputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketColor", "Color")
-        self.group.inputs.new("NodeSocketFloat", "Scale")
-        self.group.inputs.new("NodeSocketVector", "Radius")
         self.group.inputs.new("NodeSocketVector", "Normal")
 
 
     def addNodes(self, args=None):
-        MixGroup.addNodes(self, args)
         trans = self.addNode("ShaderNodeBsdfTranslucent", 1)
+        mix = self.addNode("ShaderNodeMixShader", 2)
         self.links.new(self.inputs.outputs["Color"], trans.inputs["Color"])
         self.links.new(self.inputs.outputs["Normal"], trans.inputs["Normal"])
-
-        sss = self.addNode("ShaderNodeSubsurfaceScattering", 1)
-        self.links.new(self.inputs.outputs["Color"], sss.inputs["Color"])
-        self.links.new(self.inputs.outputs["Scale"], sss.inputs["Scale"])
-        self.links.new(self.inputs.outputs["Radius"], sss.inputs["Radius"])
-        self.links.new(self.inputs.outputs["Normal"], sss.inputs["Normal"])
-
-        self.links.new(trans.outputs[0], self.mix1.inputs[2])
-        self.links.new(sss.outputs[0], self.mix2.inputs[2])
+        self.links.new(self.inputs.outputs["Fac"], mix.inputs[0])
+        self.links.new(self.inputs.outputs["Cycles"], mix.inputs[1])
+        self.links.new(trans.outputs[0], mix.inputs[2])
+        self.links.new(mix.outputs[0], self.outputs.inputs["Cycles"])
 
 # ---------------------------------------------------------------------
 #   SSS Group
