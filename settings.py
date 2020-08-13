@@ -255,12 +255,18 @@ class GlobalSettings:
         self.cloudDirs = list(cloud.keys())
 
 
-    def readDazPaths(self, struct):
-        self.contentDirs = self.readAutoDirs("content", struct) 
-        self.mdlDirs = self.readAutoDirs("builtin_mdl", struct) 
-        self.mdlDirs += self.readAutoDirs("mdl_dirs", struct) 
-        self.contentDirs += self.readAutoDirs("builtin_content", struct) 
-        self.cloudDirs = self.readCloudDirs("cloud_content", struct) 
+    def readDazPaths(self, struct, btn):
+        self.contentDirs = []
+        if btn.useContent:
+            self.contentDirs = self.readAutoDirs("content", struct) 
+            self.contentDirs += self.readAutoDirs("builtin_content", struct) 
+        self.mdlDirs = []
+        if btn.useMDL:
+            self.mdlDirs = self.readAutoDirs("builtin_mdl", struct) 
+            self.mdlDirs += self.readAutoDirs("mdl_dirs", struct) 
+        self.cloudDirs = []
+        if btn.useCloud:
+            self.cloudDirs = self.readCloudDirs("cloud_content", struct) 
         self.eliminateDuplicates()
 
 

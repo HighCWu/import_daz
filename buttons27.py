@@ -232,6 +232,20 @@ class DazOptions:
         description = "Default method used for materials.\nIgnored by some materials if Auto Material Method is on.",
         default = 'BSDF')
 
+
+class LoadRootPaths:
+    useContent = BoolProperty(
+        name = "Load Content Directories",
+        default = True)
+        
+    useMDL = BoolProperty(
+        name = "Load MDL Directories",
+        default = True)
+        
+    useCloud = BoolProperty(
+        name = "Load Cloud Directories",
+        default = True)
+        
 #-------------------------------------------------------------
 #   material.py
 #-------------------------------------------------------------

@@ -1015,25 +1015,30 @@ class DAZ_OT_LoadFactorySettings(DazOperator):
         return {'PASS_THROUGH'}
 
 
-class DAZ_OT_LoadRootPaths(DazOperator, B.SingleFile, B.JsonFile):
+class DAZ_OT_LoadRootPaths(DazOperator, B.SingleFile, B.JsonFile, B.LoadRootPaths):
     bl_idname = "daz.load_root_paths"
     bl_label = "Load Root Paths"
     bl_description = "Load DAZ root paths from file"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "useContent")
+        self.layout.prop(self, "useMDL")
+        self.layout.prop(self, "useCloud")
+        
     def execute(self, context):
         struct = GS.openFile(self.filepath)
         if struct:
             print("Load root paths from", self.filepath)
-            GS.readDazPaths(struct)
+            GS.readDazPaths(struct, self)
             GS.toScene(context.scene)
         else:
             print("No root paths found in", self.filepath)
         return {'PASS_THROUGH'}
 
     def invoke(self, context, event):
-        if not self.properties.filepath:
-            self.properties.filepath = GS.rootPath
+        #if not self.properties.filepath:
+        #    self.properties.filepath = GS.rootPath
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
