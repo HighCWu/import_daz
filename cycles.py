@@ -73,7 +73,6 @@ class CyclesMaterial(Material):
     def setupTree(self):
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
-            print("ST", self.name, self.thinWalled, self.translucent, LS.autoMaterials)
             if not LS.autoMaterials:
                 return self.getTree()
             elif self.refractive:

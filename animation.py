@@ -336,7 +336,6 @@ class HideOperator(DazOperator):
         if ok:
             self.layerColls.append(layer)
             layer.exclude = True
-            print("HIDE", layer)
         return ok
 
 

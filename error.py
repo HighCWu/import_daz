@@ -256,15 +256,17 @@ class DazOperator(bpy.types.Operator):
         return{'FINISHED'}
 
     def prequel(self, context):
+        self.mode = None
         if context.object:
+            self.mode = context.object.mode
             bpy.ops.object.mode_set(mode='OBJECT')
         clearErrorMessage()
 
     def sequel(self, context):
         wm = bpy.context.window_manager
         wm.progress_end()
-        if context.object:
-            bpy.ops.object.mode_set(mode='OBJECT')
+        if self.mode and context.object:
+            bpy.ops.object.mode_set(mode=self.mode)
 
 
 class DazPropsOperator(DazOperator):
