@@ -1249,6 +1249,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
                     for pgs in [pb.DazLocProps, pb.DazRotProps, pb.DazScaleProps]:
                         for pg in pgs:
                             pg.name = pg.prop
+            updateDrivers(ob)
             ob.DazMorphPrefixes = False
         prettifyAll(context)
 

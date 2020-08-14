@@ -602,11 +602,11 @@ def matchesPaths(var, paths, rig):
 def updateAll(context):
     updateScene(context, updateDepsGraph=True)
     for ob in getSceneObjects(context):
-        updateDrivers(ob)
         if ob.type == 'ARMATURE':
             updateRig(ob, context)
-            drivers = storeBoneDrivers(ob, list(ob.pose.bones.keys()))
-            restoreBoneDrivers(ob, drivers, "")
+            #drivers = storeBoneDrivers(ob, list(ob.pose.bones.keys()))
+            #restoreBoneDrivers(ob, drivers, "")
+        updateDrivers(ob)
 
 
 class DAZ_OT_UpdateAll(DazOperator):
