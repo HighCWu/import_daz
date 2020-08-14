@@ -493,10 +493,14 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
             raise DazError("No rigs to merge")
         oldvis = list(rig.data.layers)
         rig.data.layers = 32*[True]
+        success = False
         try:
             self.mergeRigs(rig, subrigs, context)
+            success = True
         finally:
             rig.data.layers = oldvis
+            if success:
+                rig.data.layers[self.clothesLayer-1] = True
             setActiveObject(context, rig)
 
 

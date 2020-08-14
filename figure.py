@@ -367,43 +367,6 @@ class DAZ_OT_RotateBones(DazPropsOperator, B.XYZ, IsArmature):
 #   Add extra face bones
 #-------------------------------------------------------------
 
-def getFaceBoneNames(rig):
-    from .driver import isBoneDriven
-    inface = [
-        "lEye", "rEye",
-        "lowerJaw", "upperTeeth", "lowerTeeth", "lowerFaceRig",
-        "tongue01", "tongue02", "tongue03", "tongue04",
-        "tongue05", "tongue06", "tongueBase", "tongueTip",
-    ]
-    keys = rig.pose.bones.keys()
-    facebones = [bname for bname in inface
-        if bname in keys and bname+"Drv" not in keys]
-    if "upperFaceRig" in keys:
-        facebones += [pb.name for pb in rig.pose.bones
-            if pb.name+"Drv" not in keys and
-                pb.name[-3:] != "Drv" and
-                pb.parent and
-                pb.parent.name == "upperFaceRig" and
-                not isBoneDriven(rig, pb)]
-    if "lowerFaceRig" in keys:
-        facebones += [pb.name for pb in rig.pose.bones
-            if pb.name+"Drv" not in keys and
-                pb.name[-3:] != "Drv" and
-                pb.parent and
-                pb.parent.name == "lowerFaceRig"]
-    return facebones
-
-
-def getDrivenBoneNames(rig):
-    from .driver import isBoneDriven
-    exclude = ["lMetatarsals", "rMetatarsals"]
-    return [pb.name for pb in rig.pose.bones
-            if isBoneDriven(rig, pb) and
-            pb.name[-3:] != "Drv" and
-            pb.name+"Drv" not in rig.pose.bones.keys() and
-            pb.name not in exclude]
-
-
 def copyBoneInfo(srcbone, trgbone):
     trgbone.DazOrientation = Vector(srcbone.DazOrientation)
     trgbone.DazHead = Vector(srcbone.DazHead)
@@ -418,18 +381,25 @@ class ExtraBones(B.BoneLayers):
         self.layout.prop(self, "drivenLayer")
 
 
-    def addExtraBones(self, rig, getBoneNames, type, attr):
-        from .driver import getBoneDrivers, removeDriverBoneSuffix, storeBoneDrivers, restoreBoneDrivers
-        if rig is None:
-            return
-        if rig.type == 'MESH':
-            if rig.parent and rig.parent.type == 'ARMATURE':
-                rig = rig.parent
-            else:
-                return
+    def run(self, context):
+        rig = context.object
+        oldvis = list(rig.data.layers)
+        rig.data.layers = 32*[True]
+        success = False
+        try:
+            self.addExtraBones(rig)
+            success = True
+        finally:
+            rig.data.layers = oldvis
+            if success:
+                rig.data.layers[self.poseLayer-1] = True
+                rig.data.layers[self.drivenLayer-1] = False
+            
 
-        if getattr(rig.data, attr):
-            msg = "Rig %s already has extra %s bones" % (rig.name, type)
+    def addExtraBones(self, rig):
+        from .driver import getBoneDrivers, removeDriverBoneSuffix, storeBoneDrivers, restoreBoneDrivers
+        if getattr(rig.data, self.attr):
+            msg = "Rig %s already has extra %s bones" % (rig.name, self.type)
             print(msg)
             #raise DazError(msg)
 
@@ -440,7 +410,7 @@ class ExtraBones(B.BoneLayers):
         poseLayers = (self.poseLayer-1)*[False] + [True] + (32-self.poseLayer)*[False]
         drivenLayers = (self.drivenLayer-1)*[False] + [True] + (32-self.drivenLayer)*[False]
 
-        bones = getBoneNames(rig)
+        bones = self.getBoneNames(rig)
         drivers = storeBoneDrivers(rig, bones)
         bpy.ops.object.mode_set(mode='EDIT')
         for bname in bones:
@@ -483,19 +453,16 @@ class ExtraBones(B.BoneLayers):
                 pb.DazRotLocks = par.DazRotLocks
                 pb.DazLocLocks = par.DazLocLocks
                 copyBoneInfo(par.bone, pb.bone)
-                pb.bone.layers[self.poseLayer-1] = True
-                par.bone.layers[self.drivenLayer-1] = True
 
         restoreBoneDrivers(rig, drivers, "Drv")
 
         for pb in rig.pose.bones:
             fcus = getBoneDrivers(rig, pb)
             if fcus:
-                pb.bone.layers = drivenLayers
                 for fcu in fcus:
                     removeDriverBoneSuffix(fcu, "Drv")
 
-        setattr(rig.data, attr, True)
+        setattr(rig.data, self.attr, True)
         updateDrivers(rig)
 
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -513,8 +480,34 @@ class DAZ_OT_SetAddExtraFaceBones(DazPropsOperator, ExtraBones, IsArmature):
     bl_description = "Add an extra layer of face bones, which can be both driven and posed"
     bl_options = {'UNDO'}
 
-    def run(self, context):
-        self.addExtraBones(context.object, getFaceBoneNames, "face", "DazExtraFaceBones")
+    type =  "face"
+    attr = "DazExtraFaceBones"
+
+    def getBoneNames(self, rig):
+        from .driver import isBoneDriven
+        inface = [
+            "lEye", "rEye",
+            "lowerJaw", "upperTeeth", "lowerTeeth", "lowerFaceRig",
+            "tongue01", "tongue02", "tongue03", "tongue04",
+            "tongue05", "tongue06", "tongueBase", "tongueTip",
+        ]
+        keys = rig.pose.bones.keys()
+        facebones = [bname for bname in inface
+            if bname in keys and bname+"Drv" not in keys]
+        if "upperFaceRig" in keys:
+            facebones += [pb.name for pb in rig.pose.bones
+                if pb.name+"Drv" not in keys and
+                    pb.name[-3:] != "Drv" and
+                    pb.parent and
+                    pb.parent.name == "upperFaceRig" and
+                    not isBoneDriven(rig, pb)]
+        if "lowerFaceRig" in keys:
+            facebones += [pb.name for pb in rig.pose.bones
+                if pb.name+"Drv" not in keys and
+                    pb.name[-3:] != "Drv" and
+                    pb.parent and
+                    pb.parent.name == "lowerFaceRig"]
+        return facebones
 
 
 class DAZ_OT_MakeAllBonesPosable(DazPropsOperator, ExtraBones, IsArmature):
@@ -523,9 +516,18 @@ class DAZ_OT_MakeAllBonesPosable(DazPropsOperator, ExtraBones, IsArmature):
     bl_description = "Add an extra layer of driven bones, to make them posable"
     bl_options = {'UNDO'}
 
-    def run(self, context):
-        self.addExtraBones(context.object, getDrivenBoneNames, "driven", "DazExtraDrivenBones")
+    type =  "driven"
+    attr = "DazExtraDrivenBones"
 
+    def getBoneNames(self, rig):
+        from .driver import isBoneDriven
+        exclude = ["lMetatarsals", "rMetatarsals"]
+        return [pb.name for pb in rig.pose.bones
+                if isBoneDriven(rig, pb) and
+                pb.name[-3:] != "Drv" and
+                pb.name+"Drv" not in rig.pose.bones.keys() and
+                pb.name not in exclude]
+    
 #-------------------------------------------------------------
 #   Toggle locks and constraints
 #-------------------------------------------------------------
