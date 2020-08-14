@@ -73,6 +73,7 @@ class CyclesMaterial(Material):
     def setupTree(self):
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
+            print("ST", self.name, self.thinWalled, self.translucent, LS.autoMaterials)
             if not LS.autoMaterials:
                 return self.getTree()
             elif self.refractive:
@@ -296,8 +297,6 @@ class CyclesTree:
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
         self.checkTranslucency()        
-        if LS.materialMethod == "PRINCIPLED":
-            self.buildSSS(scn)
         self.buildTranslucency(scn)
         self.buildOverlay()
         if self.material.dualLobeWeight == 1:
@@ -695,8 +694,7 @@ class CyclesTree:
             self.material.translucent): 
             self.useTranslucency = True
         if (self.material.refractive or
-            not self.material.translucent or
-            LS.materialMethod == "PRINCIPLED"):
+            not self.material.translucent):
             self.useTranslucency = False            
 
 
