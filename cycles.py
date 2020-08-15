@@ -62,30 +62,15 @@ class CyclesMaterial(Material):
         self.tree.build(context)
 
 
-    def getTree(self):                
-        from .pbr import PbrTree
-        if LS.materialMethod == 'PRINCIPLED':
-            return PbrTree(self)
-        else:
-            return CyclesTree(self)
-
-
     def setupTree(self):
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
-            if not LS.autoMaterials:
-                return self.getTree()
-            elif self.refractive:
-                if self.thinWalled:
-                    return PbrTree(self)
-                else:
-                    return self.getTree() 
-            elif (self.thinWalled and self.translucent):
-                return CyclesTree(self)
-            elif self.metallic:
+            if self.metallic:
+                return PbrTree(self)
+            elif LS.materialMethod == 'PRINCIPLED':
                 return PbrTree(self)
             else:
-                return self.getTree()
+                return CyclesTree(self)
         else:
             return CyclesTree(self)
 
@@ -752,6 +737,9 @@ class CyclesTree:
 
 
     def getSSSRadius(self):
+        if self.material.thinWalled:
+            return (1,1,1),None
+            
         sssmode = self.getValue(["SSS Mode"], 0)
         # [ "Mono", "Chromatic" ]
         if sssmode == 1:    # Chromatic

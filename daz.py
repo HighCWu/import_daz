@@ -44,10 +44,19 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
 
     def run(self, context):
         from .main import getMainAsset
+        self.lastMethod = self.materialMethod
         getMainAsset(self.filepath, context, self)
 
 
     def invoke(self, context, event):
+        if not self.lastMethod:
+            engine = context.scene.render.engine
+            if engine  in ['BLENDER_RENDER', 'BLENDER_GAME']:
+                self.materialMethod = 'INTERNAL'
+            elif engine == 'CYCLES':
+                self.materialMethod = 'BSDF'
+            else:
+                self.materialMethod = 'PRINCIPLED'            
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
@@ -68,14 +77,10 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         row.prop(self, "skinColor")
         row.prop(self, "clothesColor")
 
-        if scn.render.engine  in ['BLENDER_RENDER', 'BLENDER_GAME']:
-            return
-
         layout.separator()
         box = layout.box()
         box.label(text = "Material Method")
         box.prop(self, "materialMethod", expand=True)
-        box.prop(self, "useAutoMaterials")
 
 #-------------------------------------------------------------
 #   Silent mode

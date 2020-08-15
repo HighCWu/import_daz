@@ -348,7 +348,6 @@ class LocalSettings:
         self.fitFile = False
         self.autoMaterials = True
         self.materialMethod = 'BSDF'
-        self.renderMethod = 'CYCLES'
 
         self.useNodes = False
         self.useGeometries = False
@@ -411,9 +410,6 @@ class LocalSettings:
 
         self.skinColor = btn.skinColor
         self.clothesColor = btn.clothesColor
-        self.renderMethod = scn.render.engine
-
-        self.autoMaterials = btn.useAutoMaterials
         self.materialMethod = btn.materialMethod
 
         self.useStrict = True

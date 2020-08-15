@@ -115,7 +115,8 @@ def getMainAsset(filepath, context, btn):
         inst.finalize(context)
 
     for extra in main.extras:
-        extra.build(context)
+        if extra:
+            extra.build(context)
 
     if (LS.useMaterials and
         GS.chooseColors != 'WHITE'):

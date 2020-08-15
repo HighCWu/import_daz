@@ -219,18 +219,17 @@ class DazOptions:
         description = "Mesh fitting method",
         default = 'DBZFILE')
 
-    useAutoMaterials = BoolProperty(
-        name = "Auto Material Method",
-        description = "Use best shaders for some material, independent of the settings above",
-        default = True)
 
     materialMethod = EnumProperty(
-        items = [('BSDF', "BSDF", "Node setup with BSDF nodes.\nFaithful to IRAY with Cycles"),
-                 ('PRINCIPLED', "Principled", "Node setup with principled node"),
+        items = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
+                 ('PRINCIPLED', "Principled", "Principled (Cycles)"),
+                 ('INTERNAL', "Internal", "Blender Internal and Game")
                  ],
         name = "Material Method",
-        description = "Default method used for materials.\nIgnored by some materials if Auto Material Method is on.",
+        description = "Type of material node tree",
         default = 'BSDF')
+
+    lastMethod = StringProperty(default = "")        
 
 
 class LoadRootPaths:

@@ -516,7 +516,7 @@ def getRenderMaterial(struct, base):
     elif isinstance(base, InternalMaterial):
         return InternalMaterial
 
-    if LS.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
+    if LS.materialMethod == 'INTERNAL':
         return InternalMaterial
     else:
         return CyclesMaterial

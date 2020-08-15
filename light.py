@@ -203,7 +203,7 @@ class Light(Node):
 class LightInstance(Instance):
     def __init__(self, fileref, node, struct):
         Instance.__init__(self, fileref, node, struct)
-        if LS.renderMethod in ['BLENDER_RENDER', 'BLENDER_GAME']:
+        if LS.materialMethod == 'INTERNAL':
             self.material = InternalLightMaterial(fileref, self)
         else:
             self.material = CyclesLightMaterial(fileref, self)
