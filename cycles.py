@@ -305,7 +305,8 @@ class CyclesTree:
         else:
             self.buildGlossy()
             self.buildDualLobe()
-        self.buildRefraction()
+        if self.material.refractive:
+            self.buildRefraction()
         self.buildTopCoat()
         self.buildEmission(scn)
         return self.cycles
@@ -834,32 +835,28 @@ class CyclesTree:
     def buildRefraction(self):
         ref = self.getValue("getChannelRefractionStrength", 0.0)
         if ref > 0:
-            #node = self.addNode(5, "ShaderNodeBsdfRefraction")
             self.column += 1
             from .cgroup import RefractionGroup
-            node = self.addGroup(RefractionGroup, "DAZ Refraction")
+            node = self.addGroup(RefractionGroup, "DAZ Refraction", size=150)
+            node.width = 240
+
+            color,tex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE)
+            roughness, roughtex = self.getColorTex("getChannelGlossyRoughness", "NONE", 0, False, maxval=1)
+            roughness = roughness**2
+            self.linkColor(tex, node, color, "Glossy Color")
+            self.linkScalar(roughtex, node, roughness, "Glossy Roughness")            
+
             color,tex,roughness,roughtex = self.getRefractionColor()
-            self.linkColor(tex, node, color, "Color")
-
-            if self.material.thinWalled:
-                roughness = 0
-                roughtex = None
-            self.setRoughness(node, "Roughness", roughness, roughtex)
-
+            roughness = roughness**2
+            self.linkColor(tex, node, color, "Refraction Color")
             ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
+            self.linkScalar(iortex, node, ior, "Fresnel IOR")            
             if self.material.thinWalled:
-                node.inputs["IOR"].default_value = 1.0
+                node.inputs["Refraction IOR"].default_value = 1.0
+                node.inputs["Refraction Roughness"].default_value = 0.0
             else:
-                node.inputs["IOR"].default_value = ior
-                if iortex:
-                    self.links.new(iortex.outputs[0], node.inputs["IOR"])
-
-            if self.fresnel:
-                self.fresnel.inputs["IOR"].default_value = ior
-                if iortex:
-                    self.links.new(iortex.outputs[0], self.fresnel.inputs["IOR"])
-                else:
-                    self.removeLink(self.fresnel, "IOR")
+                self.linkScalar(roughtex, node, roughness, "Refraction Roughness")            
+                self.linkScalar(iortex, node, ior, "Refraction IOR")
 
             self.linkNormal(node)
             ref,reftex = self.getColorTex("getChannelRefractionStrength", "NONE", 0.0)
@@ -982,6 +979,7 @@ class CyclesTree:
             self.volume.inputs["Scatter Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
 
         if self.volume:
+            self.volume.width = 240
             LS.usedFeatures["Volume"] = True
 
 

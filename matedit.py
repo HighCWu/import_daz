@@ -43,92 +43,95 @@ from collections import OrderedDict
 TweakableChannels = OrderedDict([
     ("Bump And Normal", None),
     ("Bump Strength", ("BUMP", "Strength", "use_map_normal", "normal_factor", 1, None)),
-    ("Bump Distance", ("BUMP", "Distance", None, None, 1, None)),
+    ("Bump Distance", ("BUMP", "Distance", 1)),
     ("Normal Strength", ("NORMAL_MAP", "Strength", "use_map_normal", "normal_factor", 1, None)),
 
     ("Diffuse", None),
-    ("Diffuse Color", ("BSDF_DIFFUSE", "Color", None, None, 4, None)),
-    ("Diffuse Roughness", ("BSDF_DIFFUSE", "Roughness", None, None, 1, None)),
+    ("Diffuse Color", ("BSDF_DIFFUSE", "Color", 4)),
+    ("Diffuse Roughness", ("BSDF_DIFFUSE", "Roughness", 1)),
 
     ("Glossy", None),
-    ("Glossy Color", ("DAZ Glossy", "Color", None, None, 4, None)),
-    ("Glossy Roughness", ("DAZ Glossy", "Roughness", None, None, 1, None)),
-    ("Glossy Strength", ("DAZ Glossy", "Fac", None, None, 1, None)),
+    ("Glossy Color", ("DAZ Glossy", "Color", 4)),
+    ("Glossy Roughness", ("DAZ Glossy", "Roughness", 1)),
+    ("Glossy Strength", ("DAZ Glossy", "Fac", 1)),
 
     ("Fresnel", None),
-    ("Fresnel IOR", ("DAZ Fresnel", "IOR", None, None, 1, None)),
-    ("Fresnel Roughness", ("DAZ Fresnel", "Roughness", None, None, 1, None)),
+    ("Fresnel IOR", ("DAZ Fresnel", "IOR", 1)),
+    ("Fresnel Roughness", ("DAZ Fresnel", "Roughness", 1)),
 
     ("Dual Lobe", None),
-    ("Dual Lobe Weight", ("DAZ Dual Lobe", "Weight", None, None, 1, None)),
-    ("Dual Lobe IOR", ("DAZ Dual Lobe", "IOR", None, None, 1, None)),
-    ("Dual Lobe Roughness 1", ("DAZ Dual Lobe", "Roughness 1", None, None, 1, None)),
-    ("Dual Lobe Roughness 2", ("DAZ Dual Lobe", "Roughness 2", None, None, 1, None)),
-    ("Dual Lobe Strength", ("DAZ Dual Lobe", "Fac", None, None, 1, None)),
+    ("Dual Lobe Weight", ("DAZ Dual Lobe", "Weight", 1)),
+    ("Dual Lobe IOR", ("DAZ Dual Lobe", "IOR", 1)),
+    ("Dual Lobe Roughness 1", ("DAZ Dual Lobe", "Roughness 1", 1)),
+    ("Dual Lobe Roughness 2", ("DAZ Dual Lobe", "Roughness 2", 1)),
+    ("Dual Lobe Strength", ("DAZ Dual Lobe", "Fac", 1)),
 
     ("Translucency", None),
-    ("Translucency Color", ("DAZ Translucent", "Color", None, None, 4, None)),
-    ("Translucency Strength", ("DAZ Translucent", "Fac", None, None, 1, None)),
-    ("Translucent Scale", ("DAZ Translucent", "Scale", None, None, 1, None)),
-    ("Translucent Radius", ("DAZ Translucent", "Radius", None, None, 3, None)),
+    ("Translucency Color", ("DAZ Translucent", "Color", 4)),
+    ("Translucency Strength", ("DAZ Translucent", "Fac", 1)),
+    ("Translucent Scale", ("DAZ Translucent", "Scale", 1)),
+    ("Translucent Radius", ("DAZ Translucent", "Radius", 3)),
 
     ("Subsurface", None),
-    ("Subsurface Color", ("DAZ SSS", "Color", None, None, 4, None)),
-    ("Subsurface Scale", ("DAZ SSS", "Scale", None, None, 1, None)),
-    ("Subsurface Radius", ("DAZ SSS", "Radius", None, None, 3, None)),
-    ("Subsurface Strength", ("DAZ SSS", "Fac", None, None, 1, None)),
+    ("Subsurface Color", ("DAZ SSS", "Color", 4)),
+    ("Subsurface Scale", ("DAZ SSS", "Scale", 1)),
+    ("Subsurface Radius", ("DAZ SSS", "Radius", 3)),
+    ("Subsurface Strength", ("DAZ SSS", "Fac", 1)),
 
     ("Principled", None),
-    ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", None, None, 4, None)),
-    ("Principled Subsurface", ("BSDF_PRINCIPLED", "Subsurface", None, None, 1, None)),
-    ("Principled Subsurface Radius", ("BSDF_PRINCIPLED", "Subsurface Radius", None, None, 3, None)),
-    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", None, None, 4, None)),
-    ("Principled Metallic", ("BSDF_PRINCIPLED", "Metallic", None, None, 1, None)),
-    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", None, None, 1, None)),
-    ("Principled Specular Tint", ("BSDF_PRINCIPLED", "Specular Tint", None, None, 1, None)),
-    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", None, None, 1, None)),
-    ("Principled Anisotropic", ("BSDF_PRINCIPLED", "Anisotropic", None, None, 1, None)),
-    ("Principled Anisotropic Rotation", ("BSDF_PRINCIPLED", "Anisotropic Rotation", None, None, 1, None)),
-    ("Principled Sheen", ("BSDF_PRINCIPLED", "Sheen", None, None, 1, None)),
-    ("Principled Sheen Tint", ("BSDF_PRINCIPLED", "Sheen Tint", None, None, 1, None)),
-    ("Principled Clearcoat", ("BSDF_PRINCIPLED", "Clearcoat", None, None, 1, None)),
-    ("Principled Clearcoat Roughness", ("BSDF_PRINCIPLED", "Clearcoat Roughness", None, None, 1, None)),
-    ("Principled IOR", ("BSDF_PRINCIPLED", "IOR", None, None, 1, None)),
-    ("Principled Transmission", ("BSDF_PRINCIPLED", "Transmission", None, None, 1, None)),
-    ("Principled Transmission Roughness", ("BSDF_PRINCIPLED", "Transmission Roughness", None, None, 1, None)),
-    ("Principled Emission", ("BSDF_PRINCIPLED", "Emission", None, None, 4, None)),
+    ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", 4)),
+    ("Principled Subsurface", ("BSDF_PRINCIPLED", "Subsurface", 1)),
+    ("Principled Subsurface Radius", ("BSDF_PRINCIPLED", "Subsurface Radius", 3)),
+    ("Principled Subsurface Color", ("BSDF_PRINCIPLED", "Subsurface Color", 4)),
+    ("Principled Metallic", ("BSDF_PRINCIPLED", "Metallic", 1)),
+    ("Principled Specular", ("BSDF_PRINCIPLED", "Specular", 1)),
+    ("Principled Specular Tint", ("BSDF_PRINCIPLED", "Specular Tint", 1)),
+    ("Principled Roughness", ("BSDF_PRINCIPLED", "Roughness", 1)),
+    ("Principled Anisotropic", ("BSDF_PRINCIPLED", "Anisotropic", 1)),
+    ("Principled Anisotropic Rotation", ("BSDF_PRINCIPLED", "Anisotropic Rotation", 1)),
+    ("Principled Sheen", ("BSDF_PRINCIPLED", "Sheen", 1)),
+    ("Principled Sheen Tint", ("BSDF_PRINCIPLED", "Sheen Tint", 1)),
+    ("Principled Clearcoat", ("BSDF_PRINCIPLED", "Clearcoat", 1)),
+    ("Principled Clearcoat Roughness", ("BSDF_PRINCIPLED", "Clearcoat Roughness", 1)),
+    ("Principled IOR", ("BSDF_PRINCIPLED", "IOR", 1)),
+    ("Principled Transmission", ("BSDF_PRINCIPLED", "Transmission", 1)),
+    ("Principled Transmission Roughness", ("BSDF_PRINCIPLED", "Transmission Roughness", 1)),
+    ("Principled Emission", ("BSDF_PRINCIPLED", "Emission", 4)),
 
     ("Top Coat", None),
-    ("Top Coat Color", ("DAZ Top Coat", "Color", None, None, 4, None)),
-    ("Top Coat Roughness", ("DAZ Top Coat", "Roughness", None, None, 1, None)),
-    ("Top Coat Strength", ("DAZ Top Coat", "Fac", None, None, 1, None)),
+    ("Top Coat Color", ("DAZ Top Coat", "Color", 4)),
+    ("Top Coat Roughness", ("DAZ Top Coat", "Roughness", 1)),
+    ("Top Coat Strength", ("DAZ Top Coat", "Fac", 1)),
 
     ("Overlay", None),
-    ("Overlay Color", ("DAZ Overlay", "Color", None, None, 4, None)),
-    ("Overlay Roughness", ("DAZ Overlay", "Roughness", None, None, 1, None)),
-    ("Overlay Strength", ("DAZ Overlay", "Fac", None, None, 1, None)),
+    ("Overlay Color", ("DAZ Overlay", "Color", 4)),
+    ("Overlay Roughness", ("DAZ Overlay", "Roughness", 1)),
+    ("Overlay Strength", ("DAZ Overlay", "Fac", 1)),
 
     ("Refraction", None),
-    ("Refraction Color", ("DAZ Refraction", "Color", None, None, 4, None)),
-    ("Refraction Roughness", ("DAZ Refraction", "Roughness", None, None, 1, None)),
-    ("Refraction IOR", ("DAZ Refraction", "IOR", None, None, 1, None)),
-    ("Refraction Strength", ("DAZ Refraction", "Fac", None, None, 1, None)),
+    ("Refraction Color", ("DAZ Refraction", "Refraction Color", 4)),
+    ("Refraction Roughness", ("DAZ Refraction", "Refraction Roughness", 1)),
+    ("Refraction IOR", ("DAZ Refraction", "Refraction IOR", 1)),
+    ("Ref Fresnel IOR", ("DAZ Refraction", "Fresnel IOR", 1)),
+    ("Ref Glossy Color", ("DAZ Refraction", "Glossy Color", 4)),
+    ("Ref Glossy Roughness", ("DAZ Refraction", "Glossy Roughness", 1)),
+    ("Refraction Strength", ("DAZ Refraction", "Fac", 1)),
 
     ("Transparent", None),
-    ("Transparent Color", ("DAZ Transparent", "Color", None, None, 4, None)),
-    ("Transparent Strength", ("DAZ Transparent", "Fac", None, None, 1, None)),
+    ("Transparent Color", ("DAZ Transparent", "Color", 4)),
+    ("Transparent Strength", ("DAZ Transparent", "Fac", 1)),
 
     ("Emission", None),
-    ("Emission Color", ("DAZ Emission", "Color", None, None, 4, None)),
-    ("Emission Strength", ("DAZ Emission", "Strength", None, None, 1, None)),
-    ("Emission Strength", ("DAZ Emission", "Fac", None, None, 1, None)),
+    ("Emission Color", ("DAZ Emission", "Color", 4)),
+    ("Emission Strength", ("DAZ Emission", "Strength", 1)),
+    ("Emission Strength", ("DAZ Emission", "Fac", 1)),
 
     ("Volume", None),
-    ("Volume Absorption Color", ("DAZ Volume", "Absorbtion Color", None, None, 4, None)),
-    ("Volume Absorption Density", ("DAZ Volume", "Absorbtion Density", None, None, 1, None)),
-    ("Volume Scatter Color", ("DAZ Volume", "Scatter Color", None, None, 4, None)),
-    ("Volume Scatter Density", ("DAZ Volume", "Scatter Density", None, None, 1, None)),
-    ("Volume Scatter Anisotropy", ("DAZ Volume", "Scatter Anisotropy", None, None, 1, None)),
+    ("Volume Absorption Color", ("DAZ Volume", "Absorbtion Color", 4)),
+    ("Volume Absorption Density", ("DAZ Volume", "Absorbtion Density", 1)),
+    ("Volume Scatter Color", ("DAZ Volume", "Scatter Color", 4)),
+    ("Volume Scatter Density", ("DAZ Volume", "Scatter Density", 1)),
+    ("Volume Scatter Anisotropy", ("DAZ Volume", "Scatter Anisotropy", 1)),
 
 ])
 
@@ -143,9 +146,19 @@ def printItem(string, item):
 #   Channel setter
 # ---------------------------------------------------------------------
 
+def getTweakableChannel(cname):
+    data = TweakableChannels[cname]
+    if len(data) == 6:
+        return data
+    else:
+        nodeType, slot, ncomps = data
+        return (nodeType, slot, None, None, ncomps, None)
+
+
 class ChannelSetter:
     def setChannelCycles(self, mat, item):
-        nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[item.name]
+        nodeType, slot, useAttr, factorAttr, ncomps, fromType = getTweakableChannel(item.name)
+            
         for node in mat.node_tree.nodes.values():
             if self.matchingNode(node, nodeType, mat, fromType):
                 socket = node.inputs[slot]
@@ -173,7 +186,7 @@ class ChannelSetter:
 
 
     def setChannelInternal(self, mat, item):
-        nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[item.name]
+        nodeType, slot, useAttr, factorAttr, ncomps, fromType = getTweakableChannel(item.name)
         if not useAttr:
             return
         for mtex in mat.texture_slots:
@@ -203,7 +216,7 @@ class ChannelSetter:
 
 
     def getChannel(self, ob, key):
-        nodeType, slot, useAttr, factorAttr, ncomps, fromType = TweakableChannels[key]
+        nodeType, slot, useAttr, factorAttr, ncomps, fromType = getTweakableChannel(key)
         mat = ob.data.materials[ob.DazActiveMaterial]
         if mat.use_nodes:
             return self.getChannelCycles(mat, nodeType, slot, ncomps, fromType)
