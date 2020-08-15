@@ -719,6 +719,7 @@ class CyclesTree:
             self.setMultiplier(factex, fac)
         self.mixWithActive(fac, factex, node)
         LS.usedFeatures["Transparent"] = True
+        self.endSSS()
 
 
     def setMultiplier(self, node, fac):
@@ -740,6 +741,10 @@ class CyclesTree:
         wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         radius,radtex = self.getSSSRadius()
         self.linkSSS(color, coltex, wt, wttex, radius, radtex)        
+        self.endSSS()
+        
+        
+    def endSSS(self):        
         LS.usedFeatures["SSS"] = True
         mat = self.material.rna
         if hasattr(mat, "use_sss_translucency"):
