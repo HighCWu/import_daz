@@ -119,6 +119,7 @@ class PbrTree(CyclesTree):
         useTex = not (self.material.shader == 'IRAY' and self.material.basemix == 0 and metallicity > 0.5)
 
         # Subsurface scattering
+        self.checkTranslucency()        
         self.buildSSS(scn)
 
         # Anisotropic
@@ -193,10 +194,20 @@ class PbrTree(CyclesTree):
             self.linkScalar(tex, self.pbr, sheen, "Sheen")
 
 
-    def linkSSS(self, color, coltex, wt, wttex, radius, ssstex):
+
+    def buildSSS(self, scn):
+        if not self.useTranslucency:
+            return
+        color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", BLACK)
+        if isBlack(color):
+            return
+        wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
+        radius,radtex = self.getSSSRadius()
+        print("SRR", self.material.name, color, wt, radius)
         self.linkColor(coltex, self.pbr, color, "Subsurface Color")
         self.linkScalar(wttex, self.pbr, wt, "Subsurface")
-        self.linkColor(ssstex, self.pbr, radius, "Subsurface Radius")
+        self.linkColor(radtex, self.pbr, radius, "Subsurface Radius")
+        self.endSSS()
                     
 
     def setPbrSlot(self, slot, value):

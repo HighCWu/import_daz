@@ -714,20 +714,6 @@ class CyclesTree:
 #-------------------------------------------------------------
 #   Subsurface
 #-------------------------------------------------------------
-
-    def buildSSS(self, scn):
-        wt = self.getValue("getChannelTranslucencyWeight", 0)
-        dist = self.getValue("getChannelScatterDist", 0.0) * LS.scale
-        if wt == 0 or dist == 0:
-            return
-        color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", BLACK)
-        if isBlack(color):
-            return
-        wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
-        radius,radtex = self.getSSSRadius()
-        self.linkSSS(color, coltex, wt, wttex, radius, radtex)        
-        self.endSSS()
-        
         
     def endSSS(self):        
         LS.usedFeatures["SSS"] = True
@@ -759,19 +745,6 @@ class CyclesTree:
         radius = rad * 2.0 * LS.scale
         return radius,radtex
 
-
-    def linkSSS(self, color, coltex, wt, wttex, radius, radtex):
-        #node = self.addNode(5, "ShaderNodeSubsurfaceScattering")
-        from .cgroup import SSSGroup
-        self.column += 1
-        node = self.addGroup(SSSGroup, "DAZ SSS", size=100)
-        self.linkColor(coltex, node, color, "Color")
-        node.inputs["Scale"].default_value = 1
-        self.linkColor(radtex, node, radius, "Radius")
-        self.linkNormal(node)
-        self.mixWithActive(wt, wttex, node)
-        return node
-            
 #-------------------------------------------------------------
 #   Transparency
 #-------------------------------------------------------------
