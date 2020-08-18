@@ -486,7 +486,6 @@ class CyclesTree:
                     useAlpha = False
                 wttex = self.raiseToPower(wttex, power, useAlpha=useAlpha)
             color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE)
-            #node = self.addNode(5, "ShaderNodeBsdfDiffuse")
             from .cgroup import DiffuseGroup
             node = self.addGroup(DiffuseGroup, "DAZ Overlay")
             self.linkColor(tex, node, color, "Color")
@@ -613,7 +612,6 @@ class CyclesTree:
             roughness = roughness**2
             value = value**2
 
-        #glossy = self.addNode(5, "ShaderNodeBsdfGlossy")
         from .cgroup import GlossyGroup
         self.column += 1
         glossy = self.addGroup(GlossyGroup, "DAZ Glossy", size=100)
@@ -660,7 +658,6 @@ class CyclesTree:
             roughness = 1-glossiness
             roughtex = self.invertTex(glosstex, 5)
 
-        #top = self.addNode(6, "ShaderNodeBsdfGlossy")
         from .cgroup import GlossyGroup
         self.column += 1
         top = self.addGroup(GlossyGroup, "DAZ Top Coat")
@@ -689,7 +686,6 @@ class CyclesTree:
         self.column += 1
         mat = self.material.rna
         color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
-        #node = self.addNode(5, "ShaderNodeBsdfTranslucent")
         from .cgroup import TranslucentGroup
         node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=100)
         self.linkColor(tex, node, color, "Color")
@@ -837,7 +833,6 @@ class CyclesTree:
             self.column += 1
             from .cgroup import TransparentGroup
             self.useCutout = True
-            # node = self.addNode(6, "ShaderNodeBsdfTransparent")
             node = self.addGroup(TransparentGroup, "DAZ Transparent")
             node.inputs["Color"].default_value[0:3] = WHITE
             self.material.alphaBlend(alpha, tex)
@@ -1123,58 +1118,32 @@ class CyclesTree:
 
 
     def mixWithActive(self, fac, tex, shader, useAlpha=True, flip=False):
+        if shader.type != 'GROUP':
+            raise RuntimeError("BUG: mixWithActive")
         if fac == 0 and tex is None:
             return
         elif fac == 1 and tex is None:
-            if shader.type == 'GROUP':
-                shader.inputs["Fac"].default_value = fac
-                self.cycles = shader
-                if "Eevee" in shader.outputs.keys():
-                    self.eevee = shader
-            else:
-                self.cycles = self.eevee = shader            
-            return
-        if "Eevee" not in shader.outputs.keys():
-            pass
-        elif self.eevee:
-            self.eevee = self.makeActiveMix("Eevee", self.eevee, self.getEeveeSocket(), fac, tex, shader, useAlpha, flip)
-        else:
-            self.eevee = shader
-        if self.cycles:
-            self.cycles = self.makeActiveMix("Cycles", self.cycles, self.getCyclesSocket(), fac, tex, shader, useAlpha, flip)
-        else:
+            shader.inputs["Fac"].default_value = fac
             self.cycles = shader
+            self.eevee = shader
+            return
+        if self.eevee:
+            self.makeActiveMix("Eevee", self.eevee, self.getEeveeSocket(), fac, tex, shader, useAlpha, flip)
+        self.eevee = shader
+        if self.cycles:
+            self.makeActiveMix("Cycles", self.cycles, self.getCyclesSocket(), fac, tex, shader, useAlpha, flip)
+        self.cycles = shader
             
             
     def makeActiveMix(self, slot, active, socket, fac, tex, shader, useAlpha, flip):            
+        self.links.new(socket, shader.inputs[slot])
+        shader.inputs["Fac"].default_value = fac
         if tex:
             if useAlpha and "Alpha" in tex.outputs.keys():
-                texsocket = tex.output["Alpha"]
+                texsocket = tex.outputs["Alpha"]
             else:
                 texsocket = tex.outputs[0]
-        else:
-            texsocket = None
-            
-        col = self.column-1
-        from .cgroup import MixGroup
-        if shader.type == 'GROUP':
-            self.links.new(socket, shader.inputs[slot])
-            shader.inputs["Fac"].default_value = fac
-            if texsocket:
-                self.links.new(texsocket, shader.inputs["Fac"])
-            return shader
-        else:
-            mix = self.addNode("ShaderNodeMixShader", col)
-            mix.inputs["Fac"].default_value = fac
-            if texsocket:
-                self.links.new(texsocket, mix.inputs["Fac"])
-            if flip:
-                self.links.new(active.outputs[0], mix.inputs[2])
-                self.links.new(shader.outputs[0], mix.inputs[1])
-            else:
-                self.links.new(active.outputs[0], mix.inputs[1])
-                self.links.new(shader.outputs[0], mix.inputs[2])
-            return mix
+            self.links.new(texsocket, shader.inputs["Fac"])
 
 
     def linkColor(self, tex, node, color, slot=0):
