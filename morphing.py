@@ -1790,63 +1790,6 @@ class DAZ_OT_PinProp(DazOperator, B.KeyString, B.MorphsetString, IsMeshArmature)
 #   Load Moho
 # ---------------------------------------------------------------------
 
-Moho2Daz = {
-    "rest" : "Rest",
-    "etc" : "K",
-    "AI" : "AA",
-    "O" : "OW",
-    "U" : "UW",
-    "WQ" : "W",
-    "L" : "L",
-    "E" : "EH",
-    "MBP" : "M",
-    "FV" : "F"
-}
-
-def getVisemesPrefix(rig):
-    return Visemes[rig.DazVisemes][2]
-
-
-def loadMoho(context, filepath, offs):
-    from .fileutils import safeOpen
-    scn = context.scene
-    ob = context.object
-    if ob.type == 'ARMATURE':
-        rig = ob
-    elif ob.type == 'MESH':
-        rig = ob.parent
-    else:
-        rig = None
-    if rig is None:
-        return
-    setActiveObject(context, rig)
-    bpy.ops.object.mode_set(mode='POSE')
-    auto = scn.tool_settings.use_keyframe_insert_auto
-    scn.tool_settings.use_keyframe_insert_auto = True
-    fp = safeOpen(filepath, "r")
-    for line in fp:
-        words= line.split()
-        if len(words) < 2:
-            pass
-        else:
-            moho = words[1]
-            frame = int(words[0]) + offs
-            if words[1] == "rest":
-                clearMorphs(rig, "Visemes", "DzV", scn, frame, True)
-            else:
-                daz = Moho2Daz[moho]
-                key = "DzV" + daz
-                if key not in rig.keys():
-                    raise DazError("Missing viseme: %s => %s" % (moho, daz))
-                pinProp(rig, scn, key, "Visemes", "DzV", frame)
-    fp.close()
-    #setInterpolation(rig)
-    updateScene(context)
-    updateRig(rig, context)
-    scn.tool_settings.use_keyframe_insert_auto = auto
-    print("Moho file %s loaded" % filepath)
-
-
 class DAZ_OT_LoadMoho(DazOperator, B.DatFile, B.SingleFile):
     bl_idname = "daz.load_moho"
     bl_label = "Load Moho"
@@ -1854,59 +1797,67 @@ class DAZ_OT_LoadMoho(DazOperator, B.DatFile, B.SingleFile):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        loadMoho(context, self.filepath, 1.0)
+        from .fileutils import safeOpen
+        scn = context.scene
+        ob = context.object
+        if ob.type == 'ARMATURE':
+            rig = ob
+        elif ob.type == 'MESH':
+            rig = ob.parent
+        else:
+            rig = None
+        if rig is None:
+            return
+        setActiveObject(context, rig)
+        bpy.ops.object.mode_set(mode='POSE')
+        auto = scn.tool_settings.use_keyframe_insert_auto
+        scn.tool_settings.use_keyframe_insert_auto = True
+        fp = safeOpen(self.filepath, "r")
+        for line in fp:
+            words= line.split()
+            if len(words) < 2:
+                pass
+            else:
+                moho = words[1]
+                frame = int(words[0]) + 1
+                if moho == "rest":
+                    clearMorphs(rig, "Visemes", scn, frame, True)
+                else:
+                    key = self.getMohoKey(moho, rig)
+                    if key not in rig.keys():
+                        raise DazError("Missing viseme: %s => %s" % (moho, key))
+                    pinProp(rig, scn, key, "Visemes", frame)
+        fp.close()
+        #setInterpolation(rig)
+        updateScene(context)
+        updateRig(rig, context)
+        scn.tool_settings.use_keyframe_insert_auto = auto
+        print("Moho file %s loaded" % self.filepath)
+
+
+    def getMohoKey(self, moho, rig):    
+        Moho2Daz = {
+            "rest" : "Rest",
+            "etc" : "K",
+            "AI" : "AA",
+            "O" : "OW",
+            "U" : "UW",
+            "WQ" : "W",
+            "L" : "L",
+            "E" : "EH",
+            "MBP" : "M",
+            "FV" : "F"
+        }
+        daz = Moho2Daz[moho]
+        for pg in rig.DazVisemes:
+            if pg.text == daz:
+                return pg.name
+        return None
+
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
-
-# ---------------------------------------------------------------------
-#   Delete lipsync
-# ---------------------------------------------------------------------
-
-def getArmature(ob):
-    if ob.type == 'MESH':
-        ob = ob.parent
-    if ob and ob.type == 'ARMATURE':
-        return ob
-    return None
-
-
-def deleteLipsync(rig):
-    if rig.animation_data is None:
-        return
-    act = rig.animation_data.action
-    if act is None:
-        return
-    if rig.MhxFaceShapeDrivers:
-        for fcu in act.fcurves:
-            if (fcu.data_path[0:5] == '["Mhf' and
-                fcu.data_path[5:9] in ["mout", "lips", "tong"]):
-                    act.fcurves.remove(fcu)
-        for key in getMouthShapes():
-            rig["Mhf"+key] = 0.0
-    elif rig.MhxFacePanel:
-        for key in getMouthShapes():
-            pb,_fac,idx = getBoneFactor(rig, key)
-            path = 'pose.bones["%s"].location' % pb.name
-            for fcu in act.fcurves:
-                if fcu.data_path == path:
-                    act.fcurves.remove(fcu)
-                    pb.location[idx] = 0.0
-
-
-class DAZ_OT_DeleteLipsync(DazOperator):
-    bl_idname = "daz.delete_lipsync"
-    bl_label = "Delete Lipsync"
-    bl_description = "Delete F-curves associated with lipsync"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        rig = getArmature(context.object)
-        if rig:
-            deleteLipsync(rig)
-        updateScene(context)
-        updateRig(rig, context)
 
 #-------------------------------------------------------------
 #   Convert pose to shapekey
