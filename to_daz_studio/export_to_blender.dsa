@@ -5,6 +5,10 @@ var version = 0.7;
 
 function exportToBlender()
 {
+    msg = "The Blender exporter has moved.\n"
+    msg += "Use the script in the Scripts folder instead."
+    MessageBox.information( msg, appName, "&OK" );
+
     // Write the line
     var filepath = FileDialog.doFileDialog( 
         false, 

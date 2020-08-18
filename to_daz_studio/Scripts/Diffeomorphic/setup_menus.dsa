@@ -1,0 +1,14 @@
+// DAZ Studio version 4.9.4.117 filetype DAZ Script
+
+var appName = "setup_menus";
+var version = 0.1;
+
+function setupMenus()
+{
+
+}
+
+//==============================================================================
+// Run it
+//==============================================================================
+setupMenus()
