@@ -1978,7 +1978,6 @@ classes = [
     DAZ_OT_ToggleAllCats,
     DAZ_OT_PinProp,
     DAZ_OT_LoadMoho,
-    DAZ_OT_DeleteLipsync,
     DAZ_OT_ConvertStandardMorphsToShapes,
     DAZ_OT_ConvertCustomMorphsToShapes,
 ]

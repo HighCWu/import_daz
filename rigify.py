@@ -757,13 +757,14 @@ def createMeta(context):
                 disconnect.append(pb.name)
             elif pb["rigify_type"] == "limbs.super_finger":
                 connect += getChildren(pb)
-            elif pb["rigify_type"] == "spines.basic_spine":
-                pass
-            elif pb["rigify_type"] == "basic.super_copy":
-                pass
-            elif pb["rigify_type"] == "limbs.super_limb":
-                pass
-            elif pb["rigify_type"] == "limbs.super_palm":
+                pb.rigify_parameters.primary_rotation_axis = 'X'
+            elif pb["rigify_type"] in [
+                "spines.super_spine", 
+                "spines.basic_spine",
+                "basic.super_copy",
+                "limbs.super_limb",
+                "limbs.super_palm",
+                "limbs.simple_tentacle"]:
                 pass
             else:
                 print("RIGIFYTYPE %s: %s" % (pb.name, pb["rigify_type"]))
