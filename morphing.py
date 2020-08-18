@@ -1946,7 +1946,10 @@ class MorphsToShapes:
 
     def applyArmature(self, ob, rig, mod, mname):
         mod.name = mname
-        bpy.ops.object.modifier_apply(apply_as='SHAPE', modifier=mname)
+        if bpy.app.version < (2,90,0):
+            bpy.ops.object.modifier_apply(apply_as='SHAPE', modifier=mname)
+        else:
+            bpy.ops.object.modifier_apply_as_shapekey(modifier=mname)
         skey = ob.data.shape_keys.key_blocks[mname]
         skey.value = 0.0
         offsets = [(skey.data[vn].co - v.co).length for vn,v in enumerate(ob.data.vertices)]

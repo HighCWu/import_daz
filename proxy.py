@@ -895,7 +895,7 @@ class DAZ_OT_MakeQuickProxy(MakeProxy, DazPropsOperator, B.IterationsInt):
         mod = ob.modifiers.new("Proxy", 'DECIMATE')
         mod.decimate_type = 'UNSUBDIV'
         mod.iterations = self.iterations
-        bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mod.name)
+        bpy.ops.object.modifier_apply(modifier=mod.name)
         printStatistics(ob)
         return ob
 
@@ -1142,7 +1142,7 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
         activateObject(context, ob)
         bpy.ops.object.duplicate()
         nob = context.object
-        bpy.ops.object.modifier_apply(apply_as='DATA', modifier=modname)
+        bpy.ops.object.modifier_apply(modifier=modname)
         nskeys = len(coords)
 
         # For each shapekey, duplicate shapekey and apply subsurf modifier.
@@ -1160,7 +1160,7 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
                 verts = tob.data.vertices
                 for vn,co in enumerate(coord):
                     verts[vn].co = co
-                bpy.ops.object.modifier_apply(apply_as='DATA', modifier=modname)
+                bpy.ops.object.modifier_apply(modifier=modname)
                 skey = nob.shape_key_add(name=sname)
                 for vn,v in enumerate(tob.data.vertices):
                     skey.data[vn].co = v.co.copy()

@@ -264,6 +264,7 @@ class DazOperator(bpy.types.Operator):
 
     def sequel(self, context):
         wm = bpy.context.window_manager
+        wm.progress_update(100)
         wm.progress_end()
         if self.mode and context.object:
             bpy.ops.object.mode_set(mode=self.mode)

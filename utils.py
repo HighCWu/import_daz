@@ -376,6 +376,7 @@ def startProgress(string):
 
 def endProgress():
     wm = bpy.context.window_manager
+    wm.progress_update(100)
     wm.progress_end()
 
 def showProgress(n, total):

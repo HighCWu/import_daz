@@ -203,7 +203,6 @@ class PbrTree(CyclesTree):
             return
         wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         radius,radtex = self.getSSSRadius()
-        print("SRR", self.material.name, color, wt, radius)
         self.linkColor(coltex, self.pbr, color, "Subsurface Color")
         self.linkScalar(wttex, self.pbr, wt, "Subsurface")
         self.linkColor(radtex, self.pbr, radius, "Subsurface Radius")

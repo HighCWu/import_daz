@@ -712,11 +712,14 @@ def setRestPose(ob, rig, context):
             if mod.type == 'ARMATURE':
                 mname = mod.name
                 if ob.data.shape_keys:
-                    bpy.ops.object.modifier_apply(apply_as='SHAPE', modifier=mname)
+                    if bpy.app.version < (2,90,0):
+                        bpy.ops.object.modifier_apply(apply_as='SHAPE', modifier=mname)
+                    else:
+                        bpy.ops.object.modifier_apply_as_shapekey(modifier=mname)
                     skey = ob.data.shape_keys.key_blocks[mname]
                     skey.value = 1.0
                 else:
-                    bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mname)
+                    bpy.ops.object.modifier_apply(modifier=mname)
         mod = ob.modifiers.new(rig.name, "ARMATURE")
         mod.object = rig
         mod.use_deform_preserve_volume = True

@@ -155,7 +155,7 @@ class MorphTransferer(Selector, B.TransferOptions):
                 vgrp.add([vn], w, 'REPLACE')
 
             mod = clo.modifiers.new(vgname, 'DATA_TRANSFER')
-            for i in range(4):
+            for i in range(len(clo.modifiers)-1):
                 bpy.ops.object.modifier_move_up(modifier=mod.name)
             mod.object = hum
             mod.use_vert_data = True
@@ -166,7 +166,7 @@ class MorphTransferer(Selector, B.TransferOptions):
             mod.layers_vgroup_select_src = vgname
             mod.mix_mode = 'REPLACE'
             bpy.ops.object.datalayout_transfer(modifier=mod.name)
-            bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mod.name)
+            bpy.ops.object.modifier_apply(modifier=mod.name)
             hum.vertex_groups.remove(vgrp)
 
         coords = []
