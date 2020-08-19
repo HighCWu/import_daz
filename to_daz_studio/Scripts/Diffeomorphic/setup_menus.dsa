@@ -1,4 +1,4 @@
-// DAZ Studio version 4.9.4.117 filetype DAZ Script
+// DAZ Studio Script
 
 var appName = "setup_menus";
 var version = 0.1;

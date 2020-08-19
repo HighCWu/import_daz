@@ -1,4 +1,4 @@
-// DAZ Studio version 4.12 filetype DAZ Script
+// DAZ Studio Script
 
 var appName = "save_root_paths";
 var version = 0.1;
