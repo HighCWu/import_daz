@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2019, Thomas Larsson
+# Copyright (c) 2016-2020, Thomas Larsson
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,7 @@
 bl_info = {
     "name": "DAZ Importer Stripped Runtime System",
     "author": "Thomas Larsson",
-    "version": (1,0,0),
+    "version": (1,1,0),
     "blender": (2,80,0),
     "location": "",
     "description": "Stripped RTS that defines function used by drivers.",
@@ -66,45 +66,92 @@ bl_info = {
     "category": "Runtime"}
 
 import bpy
-from bpy.props import *
 from bpy.app.handlers import persistent
+from bpy.props import *
 
 
-class DazPropGroup(bpy.types.PropertyGroup):
-    index : IntProperty()
+class DazMorphGroup(bpy.types.PropertyGroup):
     prop : StringProperty()
     factor : FloatProperty()
+    factor2 : FloatProperty()
+    index : IntProperty()
     default : FloatProperty()
+    simple : BoolProperty(default=True)
 
     def __repr__(self):
-        return "<PropGroup %d %s %f %f>" % (self.index, self.prop, self.factor, self.default)
+        return "<MorphGroup %d %s %f %f>" % (self.index, self.prop, self.factor, self.default)
+
+    def eval(self, rig):
+        if self.simple:
+            return self.factor*(rig[self.name]-self.default)
+        else:
+            value = rig[self.name]-self.default
+            return (self.factor*(value > 0) + self.factor2*(value < 0))*value
+
+    def display(self):
+        return ("MG %d %-25s %6s %10.6f %10.6f %10.2f" % (self.index, self.name, self.simple, self.factor, self.factor2, self.default))
+
+    def init(self, prop, idx, default, factor, factor2):
+        self.name = prop
+        self.index = idx
+        self.factor = factor
+        self.default = default
+        if factor2 is None:
+            self.factor2 = 0
+            self.simple = True
+        else:
+            self.factor2 = factor2
+            self.simple = False
+
+    def __lt__(self,other):
+        if self.name == other.name:
+            return (self.index < other.index)
+        else:
+            return (self.name < other.name)
 
 
+# Old style evalMorphs, for backward compatibility
 def evalMorphs(pb, idx, key):
     rig = pb.constraints[0].target
     props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
     return sum([pg.factor*(rig[pg.prop]-pg.default) for pg in props if pg.index == idx])
 
 
+# New style evalMorphs
+def evalMorphs2(pb, idx, key):
+    rig = pb.constraints[0].target
+    pgs = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
+    return sum([pg.eval(rig) for pg in pgs if pg.index == idx])
+
+
 @persistent
 def updateHandler(scn):
-    global evalMorphs
+    global evalMorphs, evalMorphs2
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
+    bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
 
 
 def register():
-    bpy.utils.register_class(DazPropGroup)
-    bpy.types.PoseBone.DazLocProps = CollectionProperty(type = DazPropGroup)
-    bpy.types.PoseBone.DazRotProps = CollectionProperty(type = DazPropGroup)
-    bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = DazPropGroup)
+    bpy.utils.register_class(DazMorphGroup)
+    bpy.types.PoseBone.DazLocProps = CollectionProperty(type = DazMorphGroup)
+    bpy.types.PoseBone.DazRotProps = CollectionProperty(type = DazMorphGroup)
+    bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = DazMorphGroup)
 
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
+    bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
     bpy.app.handlers.load_post.append(updateHandler)
+
+    # Update drivers
+    for ob in bpy.context.view_layer.objects:
+        if ob.animation_data:
+            for fcu in ob.animation_data.drivers:
+                fcu.driver.expression = str(fcu.driver.expression)
 
 
 def unregister():
-    bpy.utils.unregister_class(DazPropGroup)
+    bpy.utils.unregister_class(DazMorphGroup)
 
 
 if __name__ == "__main__":
     register()
+    
