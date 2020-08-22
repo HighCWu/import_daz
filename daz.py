@@ -400,8 +400,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.quadify")
             box.separator()
             box.operator("daz.add_push")
-            box.operator("daz.add_subsurf")
-            box.separator()
             box.operator("daz.make_deflection")
 
         layout.separator()
