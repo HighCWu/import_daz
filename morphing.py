@@ -1245,14 +1245,35 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
                 for key in ob.data.shape_keys.key_blocks.keys():
                     self.updateKey(ob, key)
             elif ob.type == 'ARMATURE':
+                bad = False
                 for pb in ob.pose.bones:
                     for pgs in [pb.DazLocProps, pb.DazRotProps, pb.DazScaleProps]:
                         for pg in pgs:
-                            pg.name = pg.prop
+                            if pg.prop:
+                                pg.name = pg.prop
+                            elif pg.name:
+                                pg.prop = pg.name
+                            else:
+                                bad = True
+                if bad:
+                    self.removeAllMorphs(ob)
             updateDrivers(ob)
             ob.DazMorphPrefixes = False
         prettifyAll(context)
 
+
+    def removeAllMorphs(self, rig): 
+        for pb in rig.pose.bones:
+            for pgs in [pb.DazLocProps, pb.DazRotProps, pb.DazScaleProps]:
+                pgs.clear()
+        deletes = []
+        for key in rig.keys():
+            if key[0:3] in self.morphsets.keys():
+                deletes.append(key)
+        for key in deletes:        
+            rig[key] = 0
+            del rig[key]
+                
 
     def updateKey(self, ob, key):
         prefix = key[0:3]

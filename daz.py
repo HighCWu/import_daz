@@ -471,6 +471,9 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.create_graft_groups")
             box.separator()
             box.operator("daz.import_dbz")
+            box.separator()
+            box.operator("daz.update_morphs")
+            
 
         layout.separator()
         box = layout.box()
