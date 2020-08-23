@@ -90,24 +90,38 @@ def isCharacter(node):
     return False
 
 
-class DAZ_OT_GetFingerPrint(DazOperator):
+class DAZ_OT_GetFingerPrint(bpy.types.Operator):
     bl_idname = "daz.get_finger_print"
     bl_label = "Get Fingerprint"
     bl_description = "Get fingerprint of active character"
-    bl_options = {'UNDO'}
 
-    def run(self, context):
+    def draw(self, context):
+        for line in self.lines:
+            self.layout.label(text=line)
+    
+    def execute(self, context):
+        return{'FINISHED'}    
+
+    def invoke(self, context, event):
         ob = context.object
-        print("------ Fingerprint for %s" % ob.name)
+        self.lines = ["Fingerprint for %s" % ob.name]
         rig,mesh,char = getFingeredCharacter(ob)
         if mesh:
             finger = getFingerPrint(mesh)
+            mesh = mesh.name
         else:
             finger = None
-        print("Rig: ", rig)
-        print("Mesh: ", mesh)
-        print("Char: ", char)
-        print("Finger: ", finger)
+        if rig:
+            rig = rig.name
+        self.lines += [
+            ("  Rig: %s" % rig),
+            ("  Mesh: %s" % mesh),
+            ("  Character: %s" % char),
+            ("  Fingerprint: %s" % finger)]
+        for line in self.lines:
+            print(line)
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
 
 
 def getRigMeshes(context):
