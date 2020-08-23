@@ -1177,21 +1177,37 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
 #-------------------------------------------------------------
 
 def printStatistics(ob):
-    print("Verts: %d, Edges: %d, Faces: %d" %
-        (len(ob.data.vertices), len(ob.data.edges), len(ob.data.polygons)))
+    print(getStatistics(ob))
+
+    
+def getStatistics(ob):    
+    return ("Verts: %d, Edges: %d, Faces: %d" %
+            (len(ob.data.vertices), len(ob.data.edges), len(ob.data.polygons)))
 
 
-class DAZ_OT_PrintStatistics(DazOperator, IsMesh):
+class DAZ_OT_PrintStatistics(bpy.types.Operator, IsMesh):
     bl_idname = "daz.print_statistics"
     bl_label = "Print Statistics"
-    bl_options = {'UNDO'}
+    bl_description = "Display statistics for selected meshes"
 
-    def run(self, context):
-        print("--------- Statistics ------------")
+    def draw(self, context):
+        for line in self.lines:
+            self.layout.label(text=line)
+    
+    def execute(self, context):
+        return{'FINISHED'}    
+
+    def invoke(self, context, event):
+        self.lines = []
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':
-                print("Object: %s" % ob.name)
-                printStatistics(ob)
+                self.lines.append("Object: %s" % ob.name)
+                self.lines.append("  " + getStatistics(ob))
+        print("\n--------- Statistics ------------\n")
+        for line in self.lines:
+            print(line)
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=450)
 
 #-------------------------------------------------------------
 #   Add mannequin
