@@ -272,41 +272,38 @@ if bpy.app.version >= (2,80,0):
 #   Show/Hide all
 #------------------------------------------------------------------------
 
-def setAllVisibility(context, prefix, value):
-    from .morphing import autoKeyProp
-    from .driver import updateAll
-    rig = context.object
-    scn = context.scene
-    if rig is None:
-        return
-    for key in rig.keys():
-        if key[0:3] == prefix:
-            if key:
-                rig[key] = value
-                autoKeyProp(rig, key, scn, scn.frame_current, True)
-    updateAll(context)
+class SetAllVisibility:
+    def run(self, context):
+        from .morphing import autoKeyProp
+        from .driver import updateAll
+        rig = context.object
+        scn = context.scene
+        if rig is None:
+            return
+        for key in rig.keys():
+            if key[0:3] == "Mhh":
+                if key:
+                    rig[key] = self.on
+                    autoKeyProp(rig, key, scn, scn.frame_current, True)
+        updateAll(context)
 
 
-class DAZ_OT_ShowAll(DazOperator, B.PrefixString):
-    bl_idname = "daz.show_all"
+class DAZ_OT_ShowAllVis(DazOperator, SetAllVisibility, B.PrefixString):
+    bl_idname = "daz.show_all_vis"
     bl_label = "Show All"
     bl_description = "Show all meshes/makeup of this rig"
     bl_options = {'UNDO'}
 
-    def run(self, context):
-        scn = context.scene
-        setAllVisibility(context, self.prefix, True)
+    on = True
 
 
-class DAZ_OT_HideAll(DazOperator, B.PrefixString):
-    bl_idname = "daz.hide_all"
+class DAZ_OT_HideAllVis(DazOperator, SetAllVisibility, B.PrefixString):
+    bl_idname = "daz.hide_all_vis"
     bl_label = "Hide All"
     bl_description = "Hide all meshes/makeup of this rig"
     bl_options = {'UNDO'}
 
-    def run(self, context):
-        scn = context.scene
-        setAllVisibility(context, self.prefix, False)
+    on = False
 
 #------------------------------------------------------------------------
 #   Mask modifiers
@@ -367,8 +364,8 @@ class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection, B.SingleGrou
 classes = [
     DAZ_OT_AddVisibility,
     DAZ_OT_RemoveVisibility,
-    DAZ_OT_ShowAll,
-    DAZ_OT_HideAll,
+    DAZ_OT_ShowAllVis,
+    DAZ_OT_HideAllVis,
     DAZ_OT_CreateMasks,
 ]
 

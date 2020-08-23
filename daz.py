@@ -923,23 +923,7 @@ class DAZ_PT_MhxProperties(bpy.types.Panel):
 #   Visibility panels
 #------------------------------------------------------------------------
 
-class DAZ_PT_Hide:
-    def draw(self, context):
-        ob = context.object
-        scn = context.scene
-        layout = self.layout
-        split = splitLayout(layout, 0.3333)
-        split.operator("daz.prettify")
-        split.operator("daz.show_all").prefix=self.prefix
-        split.operator("daz.hide_all").prefix=self.prefix
-        props = list(ob.keys())
-        props.sort()
-        for prop in props:
-            if prop[0:3] == self.prefix:
-                layout.prop(ob, prop, text=prop[3:])
-
-
-class DAZ_PT_Visibility(DAZ_PT_Hide, bpy.types.Panel):
+class DAZ_PT_Visibility(bpy.types.Panel):
     bl_label = "Visibility"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -952,6 +936,23 @@ class DAZ_PT_Visibility(DAZ_PT_Hide, bpy.types.Panel):
     def poll(cls, context):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and ob.DazVisibilityDrivers)
+
+    def draw(self, context):
+        ob = context.object
+        scn = context.scene
+        layout = self.layout
+        split = splitLayout(layout, 0.3333)
+        split.operator("daz.prettify")
+        split.operator("daz.show_all_vis")
+        split.operator("daz.hide_all_vis")
+        props = list(ob.keys())
+        props.sort()
+        for prop in props:
+            if prop[0:3] == "Mhh":
+                if hasattr(ob, prop):
+                    layout.prop(ob, prop, text=prop[3:])
+                else:
+                    layout.prop(ob, '["%s"]' % prop, text=prop[3:])
 
 #-------------------------------------------------------------
 #   Settings popup
