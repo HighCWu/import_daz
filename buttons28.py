@@ -358,6 +358,18 @@ class XYZ:
     Z : FloatProperty(name = "Z")
 
 #-------------------------------------------------------------
+#   fix.py
+#-------------------------------------------------------------
+
+class ThresholdFloat:
+    threshold : FloatProperty(
+        name = "Threshold",
+        description = "Minimum vertex weight to keep",
+        min = 0.0, max = 1.0,
+        precision = 4,
+        default = 1e-3)
+
+#-------------------------------------------------------------
 #   merge.py
 #-------------------------------------------------------------
 
