@@ -332,46 +332,6 @@ def fitToFile(filepath, nodes):
             print('    "%s"' % oname)
 
 #----------------------------------------------------------
-#   Fit Mesh to other mesh
-#----------------------------------------------------------
-
-class DAZ_OT_FitToObject(DazOperator, IsMesh):
-    bl_idname = "daz.fit_mesh_to_other"
-    bl_label = "Fit Mesh To Other"
-    bl_description = "Fit current mesh to selected mesh"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        from .node import clearParent
-        trg = context.object
-        src = None
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob != trg and ob.type == 'MESH':
-                src = ob
-                break
-        if src is None:
-            raise DazError("Two meshes must be selected")
-        ns = len(src.data.vertices)
-        nt = len(trg.data.vertices)
-        if ns == nt:
-            pass
-        elif ns == 4*nt:
-            print("Subsurfaced mesh:\n %d == 4*%d" % (ns, nt))
-        else:
-            raise DazError("Vertex number mismatch:\n %d != %d" % (ns, nt))
-
-        activateObject(context, src)
-        clearParent(src)
-        for mod in src.modifiers:
-            if mod.type == 'ARMATURE':
-                bpy.ops.object.modifier_remove(modifier=mod.name)
-        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        activateObject(context, trg)
-
-        for v in trg.data.vertices:
-            v.co = src.data.vertices[v.index].co
-
-#----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
@@ -419,7 +379,6 @@ class DAZ_OT_ImportDBZ(DazOperator, B.DbzFile, MultiFile, IsMesh):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_FitToObject,
     DAZ_OT_ImportDBZ,
 ]
 
