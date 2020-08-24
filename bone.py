@@ -650,11 +650,6 @@ class Bone(Node):
             return None
 
     RX = Matrix.Rotation(pi/2, 4, 'X')
-    RY = Matrix.Rotation(pi/2, 4, 'Y')
-    RZ = Matrix.Rotation(pi/2, 4, 'Z')
-    FX = Matrix.Rotation(pi, 4, 'X')
-    FY = Matrix.Rotation(pi, 4, 'Y')
-    FZ = Matrix.Rotation(pi, 4, 'Z')
     
     def buildEdit(self, figure, rig, parent, inst, cscale, center, isFace):
         if self.name in rig.data.edit_bones.keys():
@@ -680,7 +675,7 @@ class Bone(Node):
                 if GS.zup:
                     omat = Mult2(self.RX, omat)
                 if GS.dazOrientation == 'FLIPPED':
-                    omat = self.flipBone(omat, head, tail, xyz)
+                    omat = self.flipBone(eb, omat, head, tail, xyz)
                 omat.col[3][0:3] = head
                 eb.matrix = omat
             if GS.useConnect and parent:
@@ -694,34 +689,42 @@ class Bone(Node):
                 child.node.buildEdit(figure, rig, eb, child, cscale, center, isFace)
 
     
-    def flipBone(self, omat, head, tail, xyz):
+    def flipBone(self, eb, omat, head, tail, xyz):
         if xyz == 'YZX':
             # Blender orientation: Y = twist, X = bend
-            return self.flipY(omat, head, tail, self.FX)
+            euler = Euler((0,0,0))
+            y = 1
+            flip = Matrix.Rotation(pi, 4, 'X')
         elif xyz == 'YXZ':
-            omat = Mult2(omat, Matrix.Rotation(pi/2, 4, 'Y'))
-            return self.flipY(omat, head, tail, self.FZ)
+            euler = Euler((0, pi/2, 0))
+            y = 1
+            flip = Matrix.Rotation(pi, 4, 'Z')
         elif xyz == 'ZYX':
-            omat = Mult2(omat, Matrix.Rotation(pi/2, 4, 'X'))
-            return self.flipY(omat, head, tail, self.FX)
+            euler = Euler((pi/2, 0, 0))
+            y = 2
+            flip = Matrix.Rotation(pi, 4, 'X')
         elif xyz == 'XZY':
-            omat = Mult2(omat, Matrix.Rotation(-pi/2, 4, 'Z'))
-            return self.flipY(omat, head, tail, self.FZ)
+            euler = Euler((0, 0, -pi/2))
+            y = 0
+            flip = Matrix.Rotation(pi, 4, 'X')
         elif xyz == 'ZXY':
-            omat = Mult2(omat, Mult2(self.RZ, self.RX))
-            return self.flipY(omat, head, tail, self.FZ)
+            euler = Euler((pi/2, 0, -pi/2))
+            y = 2
+            flip = Matrix.Rotation(pi, 4, 'Z')
         elif xyz == 'XYZ':
-            omat = Mult2(omat, Mult2(self.RX, self.RZ))
-            return self.flipY(omat, head, tail, self.FZ)
-            
-            
-    def flipY(self, omat, head, tail, flip):            
+            euler = Euler((pi/2, pi/2, 0))
+            y = 0
+            flip = Matrix.Rotation(pi, 4, 'Z')
+
         vec = tail-head
-        yaxis = Vector(omat.col[1][0:3])
+        yaxis = Vector(omat.col[y][0:3])
+        rmat = euler.to_matrix().to_4x4()
         if vec.dot(yaxis) < 0:
-            return Mult2(omat, flip)
+            #print("NN", eb.name, xyz)
+            return Mult3(omat, rmat, flip)
         else:
-            return omat
+            #print("PP", eb.name, xyz)
+            return Mult2(omat, rmat)
     
 
     def buildBoneProps(self, rig, inst, cscale, center):
