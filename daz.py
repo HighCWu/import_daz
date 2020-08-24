@@ -501,21 +501,19 @@ class DAZ_PT_Utils(bpy.types.Panel):
         layout.operator("daz.decode_file")
         layout.separator()
         box = layout.box()
-        box.label(text = "Information About Active Object")
         if ob:
+            box.label(text = "Information About Active Object: %s" % ob.type)
             box.prop(ob, "name")
             box.prop(ob, "DazId")
             box.prop(ob, "DazUrl")
             box.prop(ob, "DazRig")
             box.prop(ob, "DazMesh")
             box.prop(ob, "DazScale")
-            box.operator("daz.print_statistics")
         else:
             box.label(text = "No active object")
         layout.separator()
-        layout.operator("daz.list_bones")
+        layout.operator("daz.print_statistics")
         layout.operator("daz.get_finger_print")
-        layout.separator()
         layout.operator("daz.inspect_prop_groups")
         layout.operator("daz.inspect_prop_dependencies")
 
@@ -1098,7 +1096,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "General")
         box.prop(scn, "DazVerbosity")
         box.prop(scn, "DazCaseSensitivePaths")
-        box.prop(scn, "DazZup")
         from .error import getSilentMode
         if getSilentMode():
             box.operator("daz.set_silent_mode", text="Silent Mode ON")
@@ -1113,12 +1110,13 @@ class DAZ_OT_GlobalSettings(DazOperator):
         col = split.column()
         box = col.box()
         box.label(text = "Rigging")
+        box.prop(scn, "DazZup")
+        box.prop(scn, "DazOrientation")
+        box.separator()
         box.prop(scn, "DazAddFaceDrivers")
         box.prop(scn, "DazBuildHighdef")
         box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLockLoc")
-        box.prop(scn, "DazBones")
-        box.prop(scn, "DazOrientation")
 
         box = split.box()
         box.label(text = "Materials")
@@ -1252,16 +1250,6 @@ def initialize():
         name = "DAZ Property Defaults",
         description = "Use the default values from DAZ files as default slider values.")
 
-    bpy.types.Scene.DazBones = BoolProperty(
-        name = "Daz Bones",
-        description = "Match bones exactly with Daz Studio",
-        default = False)
-
-    bpy.types.Scene.DazOrientation = BoolProperty(
-        name = "Daz Orientation",
-        description = "Orient bones as in Daz Studio",
-        default = False)
-
 
     # Object properties
 
@@ -1380,10 +1368,14 @@ def initialize():
         description = "Convert from DAZ's Y up convention to Blender's Z up convention",
         default = True)
 
-    bpy.types.Scene.DazOrientation = BoolProperty(
-        name = "DAZ Orientation",
-        description = "Treat bones as nodes with same orientation as in Daz Studio",
-        default = False)
+    bpy.types.Scene.DazOrientation = EnumProperty(
+        items = [("BLENDER", "Blender", "Bone orientation optimized for Blender"),
+                 ("ORIGINAL", "DAZ Original", "DAZ Studio original bone orientation"),
+                 ("FLIPPED", "DAZ Flipped", "DAZ Studio bone orientation with flipped axes"),
+                 ],
+        name = "Bone Orientation",
+        description = "Bone orientation",
+        default = 'BLENDER')
 
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(
         name = "Case-Sensitive Paths",

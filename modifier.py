@@ -328,7 +328,7 @@ class SkinBinding(Modifier):
 
     def build(self, context, inst):
         ob,rig,geonode = self.getGeoRig(context, inst, self.skin["geometry"])
-        if ob is None or rig is None:
+        if ob is None or rig is None or ob.type != 'MESH':
             return
         self.makeArmatureModifier(context, ob, rig)
         self.addVertexGroups(ob, geonode, rig)

@@ -60,8 +60,7 @@ class GlobalSettings:
         self.verbosity = 2
         self.zup = True
         self.chooseColors = 'GUESS'
-        self.useDazBones = False
-        self.useDazOrientation = False
+        self.dazOrientation = 'BLENDER'
         self.caseSensitivePaths = (platform != 'win32')
         self.mergeShells = True
         self.brightenEyes = 1.0
@@ -121,8 +120,7 @@ class GlobalSettings:
         "DazUsePropLimits" : "useDazPropLimits",
         "DazUsePropDefault" : "useDazPropDefault",
 
-        "DazBones" : "useDazBones",
-        "DazOrientation" : "useDazOrientation",
+        "DazOrientation" : "dazOrientation",
         "DazUseLockRot" : "useLockRot",
         "DazUseLockLoc" : "useLockLoc",
 
@@ -174,7 +172,10 @@ class GlobalSettings:
         for prop,key in self.SceneTable.items():
             if hasattr(scn, prop) and hasattr(self, key):
                 value = getattr(self, key)
-                setattr(scn, prop, value)
+                try:
+                    setattr(scn, prop, value)
+                except TypeError:
+                    print("Type Error", prop, key, value)
             else:
                 print("MIS", prop, key)
         self.pathsToScene(self.contentDirs, scn.DazContentDirs)

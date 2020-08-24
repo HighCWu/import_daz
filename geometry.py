@@ -183,6 +183,8 @@ class GeoNode(Node):
         if par is None or self.data is None:
             return
         me = self.rna.data
+        if me is None:
+            return
         me.DazVertexCount = self.data.vertex_count
         if self.data.hidden_polys:
             hgroup = me.DazMaskGroup

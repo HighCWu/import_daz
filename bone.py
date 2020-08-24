@@ -432,35 +432,7 @@ class BoneInstance(Instance):
             orient = Euler(self.attributes["orientation"]*D)
             xyz = self.rotDaz
 
-        length = (tail-head).length
-        if length < 0.1*LS.scale:
-            length = 0.1*LS.scale
-            tail = head + Vector((0,0,length))
-
-        if not GS.useDazBones:
-            return head,tail,0
-
-        # Twist, Second, Bend = Y Z X"
-        j = (ord(xyz[0]) - ord("X"))
-        k = (ord(xyz[1]) - ord("X"))
-        i = (ord(xyz[2]) - ord("X"))
-        omat = orient.to_matrix()
-        rmat = Matrix().to_3x3()
-        x = rmat.col[0] = omat.col[i]
-        y = rmat.col[1] = omat.col[j]
-        z = rmat.col[2] = omat.col[k]
-        if rmat.determinant() < 0:
-            rmat.col[0] = x
-            rmat.col[2] = -z
-        if tail[j]-head[j] >= 0:
-            tail = head + length*y
-            neg = "P"
-        else:
-            tail = head - length*y
-            neg = "N"
-        roll = getRollFromQuat(rmat.to_quaternion())
-        #print("ROT", self.rotDaz, i, j, k, neg)
-        return head,tail,roll
+        return head,tail,orient,xyz
 
 
     def buildPose(self, figure, inFace, targets, missing):
@@ -677,27 +649,40 @@ class Bone(Node):
         else:
             return None
 
-
+    RX = Matrix.Rotation(pi/2, 4, 'X')
+    RY = Matrix.Rotation(pi/2, 4, 'Y')
+    RZ = Matrix.Rotation(pi/2, 4, 'Z')
+    FX = Matrix.Rotation(pi, 4, 'X')
+    FY = Matrix.Rotation(pi, 4, 'Y')
+    FZ = Matrix.Rotation(pi, 4, 'Z')
+    
     def buildEdit(self, figure, rig, parent, inst, cscale, center, isFace):
         if self.name in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[self.name]
         else:
-            head,tail,roll = inst.getHeadTail(cscale, center)
+            head,tail,orient,xyz = inst.getHeadTail(cscale, center)
             eb = rig.data.edit_bones.new(self.name)
             figure.bones[self.name] = eb.name
             eb.parent = parent
             eb.head = d2b(head)
             eb.tail = d2b(tail)
-            if False and GS.useDazOrientation:
-                eb.roll = roll
-            else:
+            if GS.dazOrientation == 'BLENDER':
                 if self.useRoll:
                     eb.roll = self.roll
                 else:
                     self.findRoll(inst, eb, figure, isFace)
                 self.roll = eb.roll
                 self.useRoll = True
-                #print("ROL %s %s %s %4f %4f" % (self.name, self.attributes["orientation"], self.rotDaz, eb.roll/D, roll/D))
+            else:
+                head = d2b(head)
+                tail = d2b(tail)
+                omat = orient.to_matrix().to_4x4()
+                if GS.zup:
+                    omat = Mult2(self.RX, omat)
+                if GS.dazOrientation == 'FLIPPED':
+                    omat = self.flipBone(omat, head, tail, xyz)
+                omat.col[3][0:3] = head
+                eb.matrix = omat
             if GS.useConnect and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*LS.scale:
@@ -708,6 +693,36 @@ class Bone(Node):
             if isinstance(child, BoneInstance):
                 child.node.buildEdit(figure, rig, eb, child, cscale, center, isFace)
 
+    
+    def flipBone(self, omat, head, tail, xyz):
+        if xyz == 'YZX':
+            # Blender orientation: Y = twist, X = bend
+            return self.flipY(omat, head, tail, self.FX)
+        elif xyz == 'YXZ':
+            omat = Mult2(omat, Matrix.Rotation(pi/2, 4, 'Y'))
+            return self.flipY(omat, head, tail, self.FZ)
+        elif xyz == 'ZYX':
+            omat = Mult2(omat, Matrix.Rotation(pi/2, 4, 'X'))
+            return self.flipY(omat, head, tail, self.FX)
+        elif xyz == 'XZY':
+            omat = Mult2(omat, Matrix.Rotation(-pi/2, 4, 'Z'))
+            return self.flipY(omat, head, tail, self.FZ)
+        elif xyz == 'ZXY':
+            omat = Mult2(omat, Mult2(self.RZ, self.RX))
+            return self.flipY(omat, head, tail, self.FZ)
+        elif xyz == 'XYZ':
+            omat = Mult2(omat, Mult2(self.RX, self.RZ))
+            return self.flipY(omat, head, tail, self.FZ)
+            
+            
+    def flipY(self, omat, head, tail, flip):            
+        vec = tail-head
+        yaxis = Vector(omat.col[1][0:3])
+        if vec.dot(yaxis) < 0:
+            return Mult2(omat, flip)
+        else:
+            return omat
+    
 
     def buildBoneProps(self, rig, inst, cscale, center):
         if self.name not in rig.data.bones.keys():
@@ -716,8 +731,8 @@ class Bone(Node):
         bone.use_inherit_scale = self.inherits_scale
         bone.DazOrientation = inst.attributes["orientation"]
 
-        head,tail,roll = inst.getHeadTail(cscale, center)
-        head0,tail0,roll0 = inst.getHeadTail(cscale, center, False)
+        head,tail,orient,xyz = inst.getHeadTail(cscale, center)
+        head0,tail0,orient0,xyz0 = inst.getHeadTail(cscale, center, False)
         bone.DazHead = head
         bone.DazTail = tail
         bone.DazAngle = 0
