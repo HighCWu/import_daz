@@ -415,7 +415,8 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
         print("Copy pose to %s:" % rig.name)
         for ob in subrigs:
             print("  ", ob.name)
-            setActiveObject(context, rig)
+            if not setActiveObject(context, rig):
+                continue
 
             # L_b = R^-1_b R_p M^-1_p M_b
             for cb in ob.pose.bones:
@@ -654,7 +655,8 @@ class DAZ_OT_CopyBones(DazOperator, IsArmature):
         ebones = []
         for ob in subrigs:
             print("  ", ob.name)
-            setActiveObject(context, ob)
+            if not setActiveObject(context, ob):
+                continue
             bpy.ops.object.mode_set(mode='EDIT')
             for eb in ob.data.edit_bones:
                 ebones.append(EditBoneStorage(eb))
@@ -689,7 +691,8 @@ def applyRestPoses(context):
         for ob in subrig.children:
             if ob.type == 'MESH':
                 setRestPose(ob, subrig, context)
-        setActiveObject(context, subrig)
+        if not setActiveObject(context, subrig):
+            continue
         bpy.ops.object.mode_set(mode='POSE')
         bpy.ops.pose.armature_apply()
     setActiveObject(context, rig)
@@ -698,7 +701,8 @@ def applyRestPoses(context):
 
 def setRestPose(ob, rig, context):
     from .node import setParent
-    setActiveObject(context, ob)
+    if not setActiveObject(context, ob):
+        return
     setParent(context, ob, rig)
     if ob.parent_type == 'BONE' or ob.type != 'MESH':
         return

@@ -59,7 +59,11 @@ if bpy.app.version < (2,80,0):
         return context.scene.objects.active
 
     def setActiveObject(context, ob):
-        context.scene.objects.active = ob
+        try:
+            context.scene.objects.active = ob
+            return True
+        except RuntimeError:
+            return False
 
     def putOnHiddenLayer(ob, coll=None, hidden=None):
         ob.layers = 19*[False] + [True]
@@ -147,7 +151,11 @@ else:
         return context.view_layer.objects.active
 
     def setActiveObject(context, ob):
-        context.view_layer.objects.active = ob
+        try:
+            context.view_layer.objects.active = ob
+            return True
+        except RuntimeError:
+            return False
 
     def putOnHiddenLayer(ob, coll=None, hidden=None):
         if coll:
