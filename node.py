@@ -639,7 +639,15 @@ class Node(Asset, Formula, Channels):
 
     def arrangeObject(self, ob, inst, context, cscale, center):
         from .asset import normalizePath
-        ob.rotation_mode = BlenderRotMode[self.rotDaz]
+        blenderRotMode = {
+            'XYZ' : 'XZY',
+            'XZY' : 'XYZ',
+            'YXZ' : 'ZXY',
+            'YZX' : 'ZYX',
+            'ZXY' : 'YXZ',
+            'ZYX' : 'YZX',
+        }
+        ob.rotation_mode = blenderRotMode[self.rotDaz]
         ob.DazRotMode = self.rotDaz
         ob.DazMorphPrefixes = False
         LS.collection.objects.link(ob)
@@ -669,16 +677,6 @@ class Node(Asset, Formula, Channels):
         for node in inst.geometries:
             if node.rna:
                 guessColor(node.rna, scn, flag, LS.skinColor, LS.clothesColor, False)
-
-BlenderRotMode = {
-    'XYZ' : 'XZY',
-    'XZY' : 'XYZ',
-    'YXZ' : 'ZXY',
-    'YZX' : 'ZYX',
-    'ZXY' : 'YXZ',
-    'ZYX' : 'YZX',
-    'QUATERNION' : 'XZY'
-}
 
 #-------------------------------------------------------------
 #   Transform matrix

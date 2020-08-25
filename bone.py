@@ -435,6 +435,17 @@ class BoneInstance(Instance):
         return head,tail,orient,xyz
 
 
+    def getRotationMode(self, pb, useEulers):
+        if GS.dazOrientation == 'UNFLIPPED':
+            return self.rotDaz
+        elif GS.dazOrientation == 'FLIPPED' or useEulers:
+            return 'YZX'
+        elif pb.name in RotationMode.keys():
+            return RotationMode[pb.name]
+        else:
+            return 'QUATERNION'
+
+        
     def buildPose(self, figure, inFace, targets, missing):
         from .node import setBoneTransform
         from .driver import isBoneDriven
@@ -446,15 +457,11 @@ class BoneInstance(Instance):
         pb = rig.pose.bones[node.name]
         self.rna = pb
         if isBoneDriven(rig, pb):
-            pb.rotation_mode = node.rotDaz
+            pb.rotation_mode = self.getRotationMode(pb, True)
             pb.bone.layers = [False,True] + 30*[False]
         else:
-            try:
-                pb.rotation_mode = RotationMode[pb.name]
-            except KeyError:
-                pb.rotation_mode = 'QUATERNION'
-        pb.DazRotMode = node.rotDaz
-        #pb.rotation_mode = node.rotDaz
+            pb.rotation_mode = self.getRotationMode(pb, False)
+        pb.DazRotMode = self.rotDaz
 
         tname = getTargetName(node.name, targets)
         if tname:
@@ -661,7 +668,7 @@ class Bone(Node):
             eb.parent = parent
             eb.head = d2b(head)
             eb.tail = d2b(tail)
-            if GS.dazOrientation == 'BLENDER':
+            if GS.dazOrientation == 'LEGACY':
                 if self.useRoll:
                     eb.roll = self.roll
                 else:
@@ -693,38 +700,37 @@ class Bone(Node):
         if xyz == 'YZX':
             # Blender orientation: Y = twist, X = bend
             euler = Euler((0,0,0))
-            y = 1
             flip = Matrix.Rotation(pi, 4, 'X')
         elif xyz == 'YXZ':
             euler = Euler((0, pi/2, 0))
-            y = 1
             flip = Matrix.Rotation(pi, 4, 'Z')
         elif xyz == 'ZYX':
             euler = Euler((pi/2, 0, 0))
-            y = 2
             flip = Matrix.Rotation(pi, 4, 'X')
         elif xyz == 'XZY':
-            euler = Euler((0, 0, -pi/2))
-            y = 0
-            flip = Matrix.Rotation(pi, 4, 'X')
+            if "thumb" in eb.name.lower():
+                # Ugly patch because I didn't get it right
+                euler = Euler((0, pi, pi/2))
+            else:
+                euler = Euler((0, 0, pi/2))
+            flip = Matrix.Rotation(pi, 4, 'Z')
         elif xyz == 'ZXY':
             euler = Euler((pi/2, 0, -pi/2))
-            y = 2
             flip = Matrix.Rotation(pi, 4, 'Z')
         elif xyz == 'XYZ':
             euler = Euler((pi/2, pi/2, 0))
-            y = 0
             flip = Matrix.Rotation(pi, 4, 'Z')
 
-        vec = tail-head
-        yaxis = Vector(omat.col[y][0:3])
         rmat = euler.to_matrix().to_4x4()
+        omat = Mult2(omat, rmat)
+        vec = tail-head
+        yaxis = Vector(omat.col[1][0:3])
         if vec.dot(yaxis) < 0:
             #print("NN", eb.name, xyz)
-            return Mult3(omat, rmat, flip)
+            return Mult2(omat, flip)
         else:
             #print("PP", eb.name, xyz)
-            return Mult2(omat, rmat)
+            return omat
     
 
     def buildBoneProps(self, rig, inst, cscale, center):
@@ -760,7 +766,7 @@ class Bone(Node):
         if (self.formulas and
             self.name in rig.pose.bones.keys()):
             pb = rig.pose.bones[self.name]
-            pb.rotation_mode = self.rotDaz
+            pb.rotation_mode = inst.getRotationMode(pb, True)
             errors = []
             buildBoneFormula(self, rig, pb, errors)
         if hide or not inst.getValue(["Visible"], True):

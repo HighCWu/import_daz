@@ -60,7 +60,7 @@ class GlobalSettings:
         self.verbosity = 2
         self.zup = True
         self.chooseColors = 'GUESS'
-        self.dazOrientation = 'BLENDER'
+        self.dazOrientation = 'LEGACY'
         self.caseSensitivePaths = (platform != 'win32')
         self.mergeShells = True
         self.brightenEyes = 1.0

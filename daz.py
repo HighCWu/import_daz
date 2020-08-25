@@ -1369,11 +1369,11 @@ def initialize():
         default = True)
 
     bpy.types.Scene.DazOrientation = EnumProperty(
-        items = [("BLENDER", "Blender", "Bone orientation optimized for Blender"),
-                 ("ORIGINAL", "DAZ Original", "DAZ Studio original bone orientation"),
-                 ("FLIPPED", "DAZ Flipped", "DAZ Studio bone orientation with flipped axes"),
+        items = [("BLENDER", "Legacy", "Bone orientation optimized for Blender"),
+                 ("UNFLIPPED", "DAZ Unflipped", "DAZ Studio original bone orientation"),
+                 ("FLIPPED", "DAZ Studio", "DAZ Studio bone orientation with flipped axes"),
                  ],
-        name = "Bone Orientation",
+        name = "Orientation",
         description = "Bone orientation",
         default = 'BLENDER')
 
