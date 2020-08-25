@@ -37,9 +37,38 @@ from .error import *
 from .node import Node, Instance
 
 #-------------------------------------------------------------
-#   RotateRoll
+#   Roll correction in DAZ Studio mode
 #-------------------------------------------------------------
 
+RollCorrection = {
+    "lCollar" : 180,
+    "lShldr" : -90,
+    "lShldrBend" : -90,
+    "lShldrTwist" : -90,
+    "lHand" : -90,
+    "lThumb1" : 180,
+    "lThumb2" : 180,
+    "lThumb3" : 180,
+    
+    "rCollar" : 180,
+    "rShldr" : 90,
+    "rShldrBend" : 90,
+    "rShldrTwist" : 90,
+    "rHand" : 90,
+    "rThumb1" : 180,
+    "rThumb2" : 180,
+    "rThumb3" : 180,
+    
+    "lowerJaw" : -90,
+    "lEye" : 90,
+    "rEye" : 90,
+    "lEar" : -90,
+    "rEar" : 90,
+}    
+#-------------------------------------------------------------
+#   Roll tables in Legacy mode
+#-------------------------------------------------------------
+    
 RotateRoll = {
     "lPectoral" : -90,
     "rPectoral" : 90,
@@ -683,8 +712,17 @@ class Bone(Node):
                     omat = Mult2(self.RX, omat)
                 if GS.dazOrientation == 'FLIPPED':
                     omat = self.flipBone(eb, omat, head, tail, xyz)
+                    #self.printRollDiff(omat, inst, eb, figure, isFace)
                 omat.col[3][0:3] = head
                 eb.matrix = omat
+                if GS.dazOrientation == 'FLIPPED':
+                    if eb.name in RollCorrection.keys():
+                        roll = eb.roll + RollCorrection[eb.name]*D
+                        if roll > pi:
+                            roll -= 2*pi
+                        elif roll < -pi:
+                            roll += 2*pi
+                        eb.roll = roll
             if GS.useConnect and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*LS.scale:
@@ -695,6 +733,21 @@ class Bone(Node):
             if isinstance(child, BoneInstance):
                 child.node.buildEdit(figure, rig, eb, child, cscale, center, isFace)
 
+
+    def printRollDiff(self, omat, inst, eb, figure, isFace):
+        bmat = eb.matrix.copy()
+        self.findRoll(inst, eb, figure, isFace)
+        roll = eb.roll
+        eb.matrix = omat
+        diff = 90*int(round((roll - eb.roll)/pi*2))
+        if diff < 0:
+            diff += 360
+        elif diff >= 360:
+            diff -= 360 
+        if diff != 0 and not isFace:
+            print('    "%s" : %d,' % (eb.name, diff))
+        eb.matrix = bmat
+        
     
     def flipBone(self, eb, omat, head, tail, xyz):
         if xyz == 'YZX':
@@ -708,11 +761,7 @@ class Bone(Node):
             euler = Euler((pi/2, 0, 0))
             flip = Matrix.Rotation(pi, 4, 'X')
         elif xyz == 'XZY':
-            if "thumb" in eb.name.lower():
-                # Ugly patch because I didn't get it right
-                euler = Euler((0, pi, pi/2))
-            else:
-                euler = Euler((0, 0, pi/2))
+            euler = Euler((0, 0, pi/2))
             flip = Matrix.Rotation(pi, 4, 'Z')
         elif xyz == 'ZXY':
             euler = Euler((pi/2, 0, -pi/2))
