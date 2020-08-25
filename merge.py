@@ -485,6 +485,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
 
     def draw(self, context):
         self.layout.prop(self, "clothesLayer")
+        self.layout.prop(self, "useApplyRestPose")
+        self.layout.prop(self, "useCopyBones")
 
 
     def run(self, context):
@@ -496,6 +498,10 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         rig.data.layers = 32*[True]
         success = False
         try:
+            if self.useApplyRestPose:
+                applyRestPoses(context, rig, subrigs)
+            if self.useCopyBones:
+                copyBones(context, rig, subrigs)
             self.mergeRigs(rig, subrigs, context)
             success = True
         finally:
@@ -650,23 +656,26 @@ class DAZ_OT_CopyBones(DazOperator, IsArmature):
             raise DazError("No target armature")
         if not subrigs:
             raise DazError("No source armature")
-
-        print("Copy bones to %s:" % rig.name)
-        ebones = []
-        for ob in subrigs:
-            print("  ", ob.name)
-            if not setActiveObject(context, ob):
-                continue
-            bpy.ops.object.mode_set(mode='EDIT')
-            for eb in ob.data.edit_bones:
-                ebones.append(EditBoneStorage(eb))
-            bpy.ops.object.mode_set(mode='POSE')
-
-        setActiveObject(context, rig)
+        copyBones(context, rig, subrigs)
+        
+        
+def copyBones(context, rig, subrigs):        
+    print("Copy bones to %s:" % rig.name)
+    ebones = []
+    for ob in subrigs:
+        print("  ", ob.name)
+        if not setActiveObject(context, ob):
+            continue
         bpy.ops.object.mode_set(mode='EDIT')
-        for storage in ebones:
-            storage.copyBoneLocation(rig)
-        bpy.ops.object.mode_set(mode='POSE')
+        for eb in ob.data.edit_bones:
+            ebones.append(EditBoneStorage(eb))
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+    setActiveObject(context, rig)
+    bpy.ops.object.mode_set(mode='EDIT')
+    for storage in ebones:
+        storage.copyBoneLocation(rig)
+    bpy.ops.object.mode_set(mode='OBJECT')
 
 #-------------------------------------------------------------
 #   Apply rest pose
@@ -679,13 +688,12 @@ class DAZ_OT_ApplyRestPoses(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        applyRestPoses(context)
+        rig,subrigs = getSelectedRigs(context)
+        LS.forAnimation(None, rig, context.scene)
+        applyRestPoses(context, rig, subrigs)
 
 
-def applyRestPoses(context):
-    scn = context.scene
-    rig,subrigs = getSelectedRigs(context)
-    LS.forAnimation(None, rig, scn)
+def applyRestPoses(context, rig, subrigs):
     rigs = [rig] + subrigs
     for subrig in rigs:
         for ob in subrig.children:
