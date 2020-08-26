@@ -68,6 +68,9 @@ class FigureInstance(Instance):
                 mesh.name += " Mesh"
             rig.DazMesh = mesh.DazMesh = char
             activateObject(context, rig)
+            for child in rig.children:
+                if child.type == 'ARMATURE':
+                    setSelected(child, True)
         elif mesh:
             mesh.DazMesh = char
         self.rna.name = self.name
