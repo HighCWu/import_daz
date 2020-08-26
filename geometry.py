@@ -610,8 +610,8 @@ class Uvset(Asset):
         for fverts in polyverts.values():
             uvnums += fverts
         uvmin = min(uvnums)
-        uvmax = max(uvnums)        
-        if (uvmin != 0 or uvmax != len(self.uvs) - 1):
+        uvmax = max(uvnums) + 1       
+        if (uvmin != 0 or uvmax != len(self.uvs)):
                 msg = ("Vertex number mismatch.\n" +
                        "Expected mesh with %d UV vertices        \n" % len(self.uvs) +
                        "but %s has %d UV vertices." % (me.name, uvmax))
