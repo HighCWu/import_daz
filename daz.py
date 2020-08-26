@@ -518,49 +518,6 @@ class DAZ_PT_Utils(bpy.types.Panel):
         layout.operator("daz.inspect_prop_dependencies")
 
 
-class DAZ_PT_Addons(bpy.types.Panel):
-    bl_label = "Add-Ons"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = Region
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        from .addon import theAddons
-        row = self.layout.row()
-        row.operator("daz.refresh_addons")
-        row.operator("daz.save_addons")
-        for mname in theAddons.keys():
-            module,enabled,show,bl_info = theAddons[mname]
-            box = self.layout.box()
-            row = box.row()
-            if show:
-                icon = "TRIA_DOWN"
-            else:
-                icon = "TRIA_RIGHT"
-            row.operator("daz.show_addon", icon=icon, text="", emboss=False).name=mname
-            if enabled:
-                icon = "CHECKBOX_HLT"
-            else:
-                icon = "CHECKBOX_DEHLT"
-            row.operator("daz.enable_addon", icon=icon, text="", emboss=False).name=mname
-            row.label(text=bl_info["name"])
-
-            if show and bl_info:
-                for key in ["description", "location", "file", "author", "version"]:
-                    if key in bl_info.keys():
-                        split = splitLayout(box, 0.2)
-                        split.label(text=key.capitalize()+":")
-                        split.label(text=str(bl_info[key]))
-                split = splitLayout(box, 0.2)
-                split.label(text="Internet:")
-                for label,key,icon in [
-                    ("Documentation", "wiki_url", "HELP"),
-                    ("Report a Bug", "tracker_url", "URL")]:
-                    if key in bl_info.keys():
-                        split.operator("wm.url_open", text=label, icon=icon).url=bl_info[key]
-
-
 class DAZ_PT_Posing(bpy.types.Panel):
     bl_label = "Posing"
     bl_space_type = "VIEW_3D"
@@ -1190,7 +1147,6 @@ classes = [
     DAZ_PT_Setup,
     DAZ_PT_Advanced,
     DAZ_PT_Utils,
-    DAZ_PT_Addons,
     DAZ_PT_Posing,
     DAZ_PT_Units,
     DAZ_PT_Expressions,

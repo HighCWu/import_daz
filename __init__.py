@@ -66,8 +66,7 @@ def importModules():
                     "cycles", "cgroup", "pbr", "render", "camera", "light",
                     "guess", "animation", "files", "main", "finger",
                     "morphing", "tables", "proxy", "rigify", "merge", "hide",
-                    "mhx", "layers", "fkik", "hair",
-                    "transfer", "addon", "addons"]
+                    "mhx", "layers", "fkik", "hair", "transfer"]
         if bpy.app.version >= (2,82,0):
             modnames.append("udim")
         anchor = os.path.basename(__file__[0:-12])
@@ -90,8 +89,6 @@ from .morphing import getMorphs
 #----------------------------------------------------------
 #   Register
 #----------------------------------------------------------
-
-addon.loadEnabledAddons()
 
 def menu_func_import(self, context):
     self.layout.operator(daz.ImportDAZ.bl_idname, text="DAZ Native (.duf, .dsf)")
@@ -121,7 +118,6 @@ def register():
     proxy.initialize()
     rigify.initialize()
     transfer.initialize()
-    addon.initialize()
     if bpy.app.version >= (2,82,0):
         udim.initialize()
 
@@ -157,7 +153,6 @@ def unregister():
     proxy.uninitialize()
     rigify.uninitialize()
     transfer.uninitialize()
-    addon.uninitialize()
     if bpy.app.version >= (2,82,0):
         udim.uninitialize()
 
