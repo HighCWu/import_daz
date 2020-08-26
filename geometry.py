@@ -605,6 +605,22 @@ class Uvset(Asset):
         return (len(me.polygons) >= fnums[-1])
 
 
+    def checkPolyverts(self, me, polyverts, error):
+        uvnums = []
+        for fverts in polyverts.values():
+            uvnums += fverts
+        uvmin = min(uvnums)
+        uvmax = max(uvnums)        
+        if (uvmin != 0 or uvmax != len(self.uvs) - 1):
+                msg = ("Vertex number mismatch.\n" +
+                       "Expected mesh with %d UV vertices        \n" % len(self.uvs) +
+                       "but %s has %d UV vertices." % (me.name, uvmax))
+                if error:                
+                    raise DazError(msg)
+                else:
+                    print(msg)
+    
+    
     def getPolyVerts(self, me):
         polyverts = dict([(f.index, list(f.vertices)) for f in me.polygons])
         if self.polyverts:
@@ -621,6 +637,7 @@ class Uvset(Asset):
             return
 
         polyverts = self.getPolyVerts(me)
+        self.checkPolyverts(me, polyverts, False)
         uvloop = makeNewUvloop(me, self.getLabel(), setActive)
 
         m = 0
@@ -830,6 +847,7 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
 
         for uvset in asset.uvs:
             polyverts = uvset.getPolyVerts(me)
+            uvset.checkPolyverts(me, polyverts, True)
             uvloop = makeNewUvloop(me, uvset.getLabel(), True)
             vnmax = len(uvset.uvs)
             m = 0
