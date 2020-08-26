@@ -380,6 +380,16 @@ class MergeRigs:
         description = "Bone layer used for extra bones when merging clothes",
         min = 1, max = 32,
         default = 3)
+        
+    useApplyRestPose = BoolProperty(
+        name = "Apply Rest Pose",
+        description = "Apply current pose as rest pose for all armatures",
+        default = True)
+        
+    useClothesBones = BoolProperty(
+        name = "Use Clothes Bones",
+        description = "Copy bone locations in edit mode from clothes to body",
+        default = True)
 
 
 def getUVTextures(scn, context):

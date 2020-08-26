@@ -486,7 +486,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
     def draw(self, context):
         self.layout.prop(self, "clothesLayer")
         self.layout.prop(self, "useApplyRestPose")
-        self.layout.prop(self, "useCopyBones")
+        self.layout.prop(self, "useClothesBones")
 
 
     def run(self, context):
@@ -500,7 +500,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         try:
             if self.useApplyRestPose:
                 applyRestPoses(context, rig, subrigs)
-            if self.useCopyBones:
+            if self.useClothesBones:
                 copyBones(context, rig, subrigs)
             self.mergeRigs(rig, subrigs, context)
             success = True

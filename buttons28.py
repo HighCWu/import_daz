@@ -385,8 +385,8 @@ class MergeRigs:
         description = "Apply current pose as rest pose for all armatures",
         default = True)
         
-    useCopyBones : BoolProperty(
-        name = "Copy Bones",
+    useClothesBones : BoolProperty(
+        name = "Use Clothes Bones",
         description = "Copy bone locations in edit mode from clothes to body",
         default = True)
 
