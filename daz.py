@@ -1325,13 +1325,13 @@ def initialize():
         default = True)
 
     bpy.types.Scene.DazOrientation = EnumProperty(
-        items = [("BLENDER", "Legacy", "Bone orientation optimized for Blender"),
-                 ("UNFLIPPED", "DAZ Unflipped", "DAZ Studio original bone orientation"),
+        items = [("LEGACY", "Blender Legacy", "Bone orientation optimized for Blender"),
+                 ("UNFLIPPED", "DAZ Unflipped", "DAZ Studio original bone orientation (for debugging only)"),
                  ("FLIPPED", "DAZ Studio", "DAZ Studio bone orientation with flipped axes"),
                  ],
         name = "Orientation",
         description = "Bone orientation",
-        default = 'BLENDER')
+        default = 'FLIPPED')
 
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(
         name = "Case-Sensitive Paths",
