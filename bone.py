@@ -65,6 +65,14 @@ RollCorrection = {
     "lEar" : -90,
     "rEar" : 90,
 }    
+
+SocketBones = [
+    "lShldr", "lShldrBend", "lShldrTwist",
+    "rShldr", "rShldrBend", "rShldrTwist",
+    "lThigh", "lThighBend", "lThighTwist",
+    "rThigh", "rThighBend", "rThighTwist",
+]
+
 #-------------------------------------------------------------
 #   Roll tables in Legacy mode
 #-------------------------------------------------------------
@@ -129,120 +137,6 @@ ZPerpendicular = {
     "rFoot" : 0,
     "rMetatarsals" : 0,
     "rToe" : 0,
-}
-
-RotationMode = {
-    "lShin" :       'YZX',
-    "lFoot" :       'YZX',
-    "lMetatarsals" :'YZX',
-    "lToe" :        'YZX',
-
-    "lBigToe" :     'YZX',
-    "lBigToe_2" :   'YZX',
-    "lSmallToe1" :  'YZX',
-    "lSmallToe1_2" :'YZX',
-    "lSmallToe2" :  'YZX',
-    "lSmallToe2_2" :'YZX',
-    "lSmallToe3" :  'YZX',
-    "lSmallToe3_2" :'YZX',
-    "lSmallToe4" :  'YZX',
-    "lSmallToe4_2" :'YZX',
-
-    "rShin" :       'YZX',
-    "rFoot" :       'YZX',
-    "rMetatarsals" :'YZX',
-    "rToe" :        'YZX',
-
-    "rBigToe" :     'YZX',
-    "rBigToe_2" :   'YZX',
-    "rSmallToe1" :  'YZX',
-    "rSmallToe1_2" :'YZX',
-    "rSmallToe2" :  'YZX',
-    "rSmallToe2_2" :'YZX',
-    "rSmallToe3" :  'YZX',
-    "rSmallToe3_2" :'YZX',
-    "rSmallToe4" :  'YZX',
-    "rSmallToe4_2" :'YZX',
-
-    "abdomen" :     'YZX',
-    "abdomenUpper" : 'YZX',
-    "abdomenLower" : 'YZX',
-    "abdomen2" :    'YZX',
-    "chest" :       'YZX',
-    "chestLower" :  'YZX',
-    "chestUpper" :  'YZX',
-    "neck" :        'YZX',
-    "neckLower" :   'YZX',
-    "neckUpper" :   'YZX',
-    "head" :        'YZX',
-
-    "lEye" :        'YZX',
-    "rEye" :        'YZX',
-    "lowerFaceRig" :'YZX',
-    "lowerJaw" :    'YZX',
-    "upperJaw" :    'YZX',
-
-    "lEye" :        'YZX',
-    "rEye" :        'YZX',
-    "upperJaw" :    'YZX',
-    "lowerJaw" :    'YZX',
-    "tongueBase" :  'YZX',
-    "tongue01" :    'YZX',
-    "tongue02" :    'YZX',
-    "tongue03" :    'YZX',
-    "tongue04" :    'YZX',
-    "tongue05" :    'YZX',
-    "tongueTip" :   'YZX',
-
-    "lForeArm" :    'YZX',
-    "lForearmBend" : 'YZX',
-    "lForearmTwist" : 'YZX',
-    "lHand" :       'YZX',
-    "lCarpal1" :    'YZX',
-    "lCarpal2" :    'YZX',
-    "lCarpal3" :    'YZX',
-    "lCarpal4" :    'YZX',
-
-    "rForeArm" :    'YZX',
-    "rForearmBend" : 'YZX',
-    "rForearmTwist" : 'YZX',
-    "rHand" :       'YZX',
-    "rCarpal1" :    'YZX',
-    "rCarpal2" :    'YZX',
-    "rCarpal3" :    'YZX',
-    "rCarpal4" :    'YZX',
-
-    "lThumb1" :     'YZX',
-    "lThumb2" :     'YZX',
-    "lThumb3" :     'YZX',
-    "lIndex1" :     'YZX',
-    "lIndex2" :     'YZX',
-    "lIndex3" :     'YZX',
-    "lMid1" :       'YZX',
-    "lMid2" :       'YZX',
-    "lMid3" :       'YZX',
-    "lRing1" :      'YZX',
-    "lRing2" :      'YZX',
-    "lRing3" :      'YZX',
-    "lPinky1" :     'YZX',
-    "lPinky2" :     'YZX',
-    "lPinky3" :     'YZX',
-
-    "rThumb1" :     'YZX',
-    "rThumb2" :     'YZX',
-    "rThumb3" :     'YZX',
-    "rIndex1" :     'YZX',
-    "rIndex2" :     'YZX',
-    "rIndex3" :     'YZX',
-    "rMid1" :       'YZX',
-    "rMid2" :       'YZX',
-    "rMid3" :       'YZX',
-    "rRing1" :      'YZX',
-    "rRing2" :      'YZX',
-    "rRing3" :      'YZX',
-    "rPinky1" :     'YZX',
-    "rPinky2" :     'YZX',
-    "rPinky3" :     'YZX',
 }
 
 BoneAlternatives = {
@@ -467,12 +361,17 @@ class BoneInstance(Instance):
     def getRotationMode(self, pb, useEulers):
         if GS.dazOrientation == 'UNFLIPPED':
             return self.rotDaz
-        elif GS.dazOrientation == 'FLIPPED' or useEulers:
+        elif useEulers:
             return 'YZX'
-        elif pb.name in RotationMode.keys():
-            return RotationMode[pb.name]
-        else:
+        elif GS.dazOrientation == 'FLIPPED':
+            if GS.useQuaternions and pb.name in SocketBones:
+                return 'QUATERNION'
+            else:
+                return 'YZX'
+        elif pb.name in SocketBones:
             return 'QUATERNION'
+        else:
+            return 'YZX'
 
         
     def buildPose(self, figure, inFace, targets, missing):

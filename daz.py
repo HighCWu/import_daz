@@ -1069,6 +1069,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Rigging")
         box.prop(scn, "DazZup")
         box.prop(scn, "DazOrientation")
+        box.prop(scn, "DazUseQuaternions")
         box.separator()
         box.prop(scn, "DazAddFaceDrivers")
         box.prop(scn, "DazBuildHighdef")
@@ -1332,6 +1333,11 @@ def initialize():
         name = "Orientation",
         description = "Bone orientation",
         default = 'FLIPPED')
+
+    bpy.types.Scene.DazUseQuaternions = BoolProperty(
+        name = "Quaternions",
+        description = "Use quaternions for ball-and-socket joints (shoulders and hips)",
+        default = True)
 
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(
         name = "Case-Sensitive Paths",
