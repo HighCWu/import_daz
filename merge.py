@@ -77,9 +77,10 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
 
         # Keep extra UVs
         self.keepUv = []
-        for uvtex in getUvTextures(cob.data):
-            if not uvtex.active_render:
-                self.keepUv.append(uvtex.name)
+        for ob in [cob] + anatomies:
+            for uvtex in getUvTextures(ob.data):
+                if not uvtex.active_render:
+                    self.keepUv.append(uvtex.name)
 
         # Select graft group for each anatomy
         for aob in anatomies:
