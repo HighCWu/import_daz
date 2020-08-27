@@ -276,6 +276,9 @@ class DAZ_PT_Setup(bpy.types.Panel):
         box = layout.box()
         if showBox(scn, "DazShowCorrections", box):
             box.operator("daz.merge_rigs")
+            box.operator("daz.apply_rest_pose")
+            box.operator("daz.copy_bones")
+            box.separator()
             box.operator("daz.eliminate_empties")
             box.operator("daz.merge_toes")
             box.operator("daz.add_extra_face_bones")
@@ -427,8 +430,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         if showBox(scn, "DazShowRigging", box):
             box.operator("daz.convert_rig")
             box.separator()
-            box.operator("daz.apply_rest_pose")
-            box.operator("daz.copy_bones")
             box.operator("daz.copy_poses")
             #box.operator("daz.reparent_toes")
             box.separator()

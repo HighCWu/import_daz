@@ -68,9 +68,7 @@ class FigureInstance(Instance):
                 mesh.name += " Mesh"
             rig.DazMesh = mesh.DazMesh = char
             activateObject(context, rig)
-            for child in rig.children:
-                if child.type == 'ARMATURE':
-                    setSelected(child, True)
+            self.selectChildren(rig)
         elif mesh:
             mesh.DazMesh = char
         self.rna.name = self.name
@@ -79,6 +77,13 @@ class FigureInstance(Instance):
         if self.hiddenBones:
             for geonode in self.geometries:
                 geonode.hideVertexGroups(self.hiddenBones.keys())
+
+
+    def selectChildren(self, rig):            
+        for child in rig.children:
+            if child.type == 'ARMATURE':
+                setSelected(child, True)
+                self.selectChildren(child)
 
 
     def pose(self, context):
