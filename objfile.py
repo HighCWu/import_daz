@@ -185,9 +185,9 @@ def loadDbzFile(filepath):
             vec = tail - head
             if "ws_transform" in bone.keys():
                 ws = bone["ws_transform"]
-                rmat = Matrix([ws[0:3], ws[3:6], ws[6:9]])
+                wsmat = Matrix([ws[0:3], ws[3:6], ws[6:9]])
                 head = Vector(ws[9:12])
-                tail = head + Mult2(vec, rmat)
+                tail = head + Mult2(vec, wsmat)
             else:
                 head = Vector(bone["ws_pos"])
                 x,y,z,w = bone["ws_rot"]
@@ -196,17 +196,18 @@ def loadDbzFile(filepath):
                 ws = bone["ws_scale"]
                 smat = Matrix([ws[0:3], ws[3:6], ws[6:9]])
                 tail = head + Mult3(vec, smat, rmat)
-                rmat = Mult2(smat, rmat)
+                wsmat = Mult2(smat, rmat)
             if "orientation" in bone.keys():
                 orient = bone["orientation"]
                 xyz = bone["rotation_order"]
                 origin = bone["origin"]
             else:
                 orient = xyz = origin = None
-            restdata[bone["name"]] = (head, tail, orient, xyz, origin)
-            rmat = rmat.to_4x4()
+            bname = bone["name"]
+            rmat = wsmat.to_4x4()
             rmat.col[3][0:3] = LS.scale*head
-            transforms[bone["name"]] = (rmat, head, rmat.to_euler(), (1,1,1))
+            restdata[bname] = (head, tail, orient, xyz, origin, wsmat)
+            transforms[bname] = (rmat, head, rmat.to_euler(), (1,1,1))
 
     return dbz
 

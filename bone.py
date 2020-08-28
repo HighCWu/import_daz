@@ -340,7 +340,7 @@ class BoneInstance(Instance):
 
     def getHeadTail(self, cscale, center, mayfit=True):
         if mayfit and self.restdata:
-            cp,ep,orient,xyz,origin = self.restdata
+            cp,ep,orient,xyz,origin,wsmat = self.restdata
             head = cscale*(cp - center)
             tail = cscale*(ep - center)
             if orient:
@@ -354,8 +354,9 @@ class BoneInstance(Instance):
             tail = cscale*(self.attributes["end_point"] - center)
             orient = Euler(self.attributes["orientation"]*D)
             xyz = self.rotDaz
+            wsmat = None
 
-        return head,tail,orient,xyz
+        return head,tail,orient,xyz,wsmat
 
 
     def getRotationMode(self, pb, useEulers):
@@ -590,7 +591,7 @@ class Bone(Node):
         if self.name in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[self.name]
         else:
-            head,tail,orient,xyz = inst.getHeadTail(cscale, center)
+            head,tail,orient,xyz,wsmat = inst.getHeadTail(cscale, center)
             eb = rig.data.edit_bones.new(self.name)
             figure.bones[self.name] = eb.name
             eb.parent = parent
@@ -610,11 +611,23 @@ class Bone(Node):
                 if GS.zup:
                     omat = Mult2(self.RX, omat)
                 if GS.dazOrientation == 'FLIPPED':
-                    omat = self.flipBone(eb, omat, head, tail, xyz)
+                    omat,flip = self.flipAxes(omat, xyz)
                     #self.printRollDiff(omat, inst, eb, figure, isFace)
-                omat.col[3][0:3] = head
-                eb.matrix = omat
-                if GS.dazOrientation == 'FLIPPED':
+
+                #  engetudouiti's fix for posed bones
+                if wsmat:
+                    rmat = wsmat.to_4x4()
+                    if GS.zup:
+                        rmat = Mult3(self.RX, rmat, self.RX.inverted())
+                    omat = Mult2(rmat.inverted(), omat)
+
+                if GS.dazOrientation == 'UNFLIPPED':
+                    omat.col[3][0:3] = head
+                    eb.matrix = omat
+                else:                
+                    omat = self.flipBone(omat, head, tail, flip)
+                    omat.col[3][0:3] = head
+                    eb.matrix = omat
                     if eb.name in RollCorrection.keys():
                         roll = eb.roll + RollCorrection[eb.name]*D
                         if roll > pi:
@@ -622,6 +635,7 @@ class Bone(Node):
                         elif roll < -pi:
                             roll += 2*pi
                         eb.roll = roll
+
             if GS.useConnect and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*LS.scale:
@@ -648,7 +662,7 @@ class Bone(Node):
         eb.matrix = bmat
         
     
-    def flipBone(self, eb, omat, head, tail, xyz):
+    def flipAxes(self, omat, xyz):
         if xyz == 'YZX':
             # Blender orientation: Y = twist, X = bend
             euler = Euler((0,0,0))
@@ -671,6 +685,10 @@ class Bone(Node):
 
         rmat = euler.to_matrix().to_4x4()
         omat = Mult2(omat, rmat)
+        return omat, flip
+
+        
+    def flipBone(self, omat, head, tail, flip):        
         vec = tail-head
         yaxis = Vector(omat.col[1][0:3])
         if vec.dot(yaxis) < 0:
@@ -679,7 +697,7 @@ class Bone(Node):
         else:
             #print("PP", eb.name, xyz)
             return omat
-    
+
 
     def buildBoneProps(self, rig, inst, cscale, center):
         if self.name not in rig.data.bones.keys():
@@ -688,8 +706,8 @@ class Bone(Node):
         bone.use_inherit_scale = self.inherits_scale
         bone.DazOrientation = inst.attributes["orientation"]
 
-        head,tail,orient,xyz = inst.getHeadTail(cscale, center)
-        head0,tail0,orient0,xyz0 = inst.getHeadTail(cscale, center, False)
+        head,tail,orient,xyz,wsmat = inst.getHeadTail(cscale, center)
+        head0,tail0,orient0,xyz0,wsmat = inst.getHeadTail(cscale, center, False)
         bone.DazHead = head
         bone.DazTail = tail
         bone.DazAngle = 0
