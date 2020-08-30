@@ -547,7 +547,8 @@ class DAZ_PT_Posing(bpy.types.Panel):
         split = splitLayout(layout, 0.6)
         layout.operator("daz.toggle_loc_locks", text = "Location Locks Are " + ("ON" if ob.DazUseLocLocks else "OFF"))
         layout.operator("daz.toggle_rot_locks", text = "Rotation Locks Are " + ("ON" if ob.DazUseRotLocks else "OFF"))
-        layout.operator("daz.toggle_limits", text = "Limits Are " + ("ON" if ob.DazUseLimits else "OFF"))
+        layout.operator("daz.toggle_loc_limits", text = "Location Limits Are " + ("ON" if ob.DazUseLocLimits else "OFF"))
+        layout.operator("daz.toggle_rot_limits", text = "Rotation Limits Are " + ("ON" if ob.DazUseRotLimits else "OFF"))
 
         layout.separator()
         layout.operator("daz.rotate_bones")
@@ -1075,6 +1076,8 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazBuildHighdef")
         box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLockLoc")
+        box.prop(scn, "DazUseLimitRot")
+        box.prop(scn, "DazUseLimitLoc")
 
         box = split.box()
         box.label(text = "Materials")
@@ -1255,7 +1258,8 @@ def initialize():
 
     bpy.types.Object.DazUseRotLocks = BoolProperty(default = True)
     bpy.types.Object.DazUseLocLocks = BoolProperty(default = True)
-    bpy.types.Object.DazUseLimits = BoolProperty(default = False)
+    bpy.types.Object.DazUseRotLimits = BoolProperty(default = False)
+    bpy.types.Object.DazUseLocLimits = BoolProperty(default = False)
 
     bpy.types.PoseBone.DazRotLocks = BoolVectorProperty(
         name = "Rotation Locks",
@@ -1319,6 +1323,14 @@ def initialize():
     bpy.types.Scene.DazUseLockLoc = BoolProperty(
         name = "Location Locks",
         description = "Use location locks")
+
+    bpy.types.Scene.DazUseLimitRot = BoolProperty(
+        name = "Rotation Limits",
+        description = "Use rotation limits")
+
+    bpy.types.Scene.DazUseLimitLoc = BoolProperty(
+        name = "Location Limits",
+        description = "Use location limits")
 
     bpy.types.Scene.DazZup = BoolProperty(
         name = "Z Up",

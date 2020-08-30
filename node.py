@@ -107,7 +107,7 @@ class Instance(Accessor, Channels):
         self.namedOffsets = {}
         self.geometries = node.geometries
         node.geometries = []
-        self.rotDaz = node.rotDaz
+        self.rotation_order = node.rotation_order
         self.hasBoneParent = False
         if "parent" in struct.keys() and node.parent is not None:
             self.parent = node.parent.getInstance(node.caller, struct["parent"])
@@ -368,7 +368,7 @@ class Instance(Accessor, Channels):
         trans = d2b00(wspos)
         rot = d2b00u(wsrot)*D
         scale = d2b00s(wsscale) * self.attributes["general_scale"]
-        rotmat = Euler(rot, self.rotDaz).to_matrix().to_4x4()
+        rotmat = Euler(rot, self.rotation_order).to_matrix().to_4x4()
         scalemat = Matrix()
         for i in range(3):
             scalemat[i][i] = scale[i]
@@ -483,7 +483,7 @@ class Node(Asset, Formula, Channels):
         self.materials = {}
         self.strand_hair = None
         self.inherits_scale = False
-        self.rotDaz = 'XYZ'
+        self.rotation_order = 'XYZ'
         self.attributes = self.defaultAttributes()
         self.origAttrs = self.defaultAttributes()
         self.figure = None
@@ -550,7 +550,7 @@ class Node(Asset, Formula, Channels):
             elif key == "inherits_scale":
                 self.inherits_scale = data
             elif key == "rotation_order":
-                self.rotDaz = data
+                self.rotation_order = data
             elif key in self.attributes.keys():
                 self.setAttribute(key, data)
 
@@ -647,8 +647,8 @@ class Node(Asset, Formula, Channels):
             'ZXY' : 'YXZ',
             'ZYX' : 'YZX',
         }
-        ob.rotation_mode = blenderRotMode[self.rotDaz]
-        ob.DazRotMode = self.rotDaz
+        ob.rotation_mode = blenderRotMode[self.rotation_order]
+        ob.DazRotMode = self.rotation_order
         ob.DazMorphPrefixes = False
         LS.collection.objects.link(ob)
         if bpy.app.version < (2,80,0):

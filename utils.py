@@ -469,9 +469,6 @@ def vector(comp, value):
     elif comp == "z":
         return LS.scale*Vector((0,0,value))
 
-CompIndex = { "x" : 0, "y" : 1, "z" : 2 }
-IndexComp = { 0 : "x", 1 : "y", 2 : "z" }
-
 D2R = "%.6f*" % (math.pi/180)
 D = math.pi/180
 

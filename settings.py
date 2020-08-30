@@ -86,8 +86,8 @@ class GlobalSettings:
 
         self.useLockRot = True
         self.useLockLoc = True
-        self.useLimitRot = False
-        self.useLimitLoc = False
+        self.useLimitRot = True
+        self.useLimitLoc = True
         self.useConnect = True
 
         self.buildHighdef = True
@@ -125,6 +125,8 @@ class GlobalSettings:
         "DazUseQuaternions" : "useQuaternions",
         "DazUseLockRot" : "useLockRot",
         "DazUseLockLoc" : "useLockLoc",
+        "DazUseLimitRot" : "useLimitRot",
+        "DazUseLimitLoc" : "useLimitLoc",
 
         "DazBuildHighdef" : "buildHighdef",
         "DazAddFaceDrivers" : "addFaceDrivers",

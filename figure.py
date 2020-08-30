@@ -260,18 +260,18 @@ class Figure(Node):
         bpy.ops.object.mode_set(mode='EDIT')
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildEdit(self, rig, None, child, cscale, center, False)
+                child.buildEdit(self, rig, None, cscale, center, False)
         rig.DazCharacterScale = cscale
         rig.DazRig = self.rigtype
 
         bpy.ops.object.mode_set(mode='OBJECT')
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildBoneProps(rig, child, cscale, center)
+                child.buildBoneProps(rig, cscale, center)
 
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildFormulas(rig, child, False)
+                child.buildFormulas(rig, False)
 
 
 def getModifierPath(moddir, folder, tfile):
@@ -546,6 +546,23 @@ def getRnaName(string):
     else:
         return string
 
+#----------------------------------------------------------
+#   Toggle locks
+#----------------------------------------------------------
+
+class ToggleLocks:
+    def run(self, context):
+        rig = context.object
+        if getattr(rig, self.attr):
+            for pb in rig.pose.bones:
+                setattr(pb, self.attr, getattr(pb, self.lock))
+                setattr(pb, self.lock, (False,False,False))
+            setattr(rig, self.attr, False)
+        else:
+            for pb in rig.pose.bones:
+                getattr(pb, self.attr, getattr(pb, self.lock))
+            setattr(rig, self.attr, True)
+
 
 class DAZ_OT_ToggleRotLocks(DazOperator, IsArmature):
     bl_idname = "daz.toggle_rot_locks"
@@ -553,17 +570,8 @@ class DAZ_OT_ToggleRotLocks(DazOperator, IsArmature):
     bl_description = "Toggle rotation locks"
     bl_options = {'UNDO'}
 
-    def run(self, context):
-        rig = context.object
-        if rig.DazUseRotLocks:
-            for pb in rig.pose.bones:
-                pb.DazRotLocks = pb.lock_rotation
-                pb.lock_rotation = (False,False,False)
-            rig.DazUseRotLocks = False
-        else:
-            for pb in rig.pose.bones:
-                pb.lock_rotation = pb.DazRotLocks
-            rig.DazUseRotLocks = True
+    attr = "DazUseRotLocks"
+    lock = "lock_rotation"
 
 
 class DAZ_OT_ToggleLocLocks(DazOperator, IsArmature):
@@ -572,33 +580,42 @@ class DAZ_OT_ToggleLocLocks(DazOperator, IsArmature):
     bl_description = "Toggle location locks"
     bl_options = {'UNDO'}
 
-    def run(self, context):
-        rig = context.object
-        if rig.DazUseLocLocks:
-            for pb in rig.pose.bones:
-                pb.DazLocLocks = pb.lock_location
-                pb.lock_location = (False,False,False)
-            rig.DazUseLocLocks = False
-        else:
-            for pb in rig.pose.bones:
-                pb.lock_location = pb.DazLocLocks
-            rig.DazUseLocLocks = True
+    attr = "DazUseLocLocks"
+    lock = "lock_location"
 
+#----------------------------------------------------------
+#   Toggle Limits
+#----------------------------------------------------------
 
-class DAZ_OT_ToggleLimits(DazOperator, IsArmature):
-    bl_idname = "daz.toggle_limits"
-    bl_label = "Toggle Limits"
-    bl_description = "Toggle rotation limits"
-    bl_options = {'UNDO'}
-
+class ToggleLimits:
     def run(self, context):
         rig = context.object
         for pb in rig.pose.bones:
             for cns in pb.constraints:
                 if cns.type[0:5] == "LIMIT":
-                    cns.mute = rig.DazUseLimits
-        rig.DazUseLimits = not rig.DazUseLimits
+                    cns.mute = getattr(rig, self.attr)
+        setattr(rig, attr, not getattr(rig, attr))
 
+
+class DAZ_OT_ToggleRotLimits(DazOperator, ToggleLimits, IsArmature):
+    bl_idname = "daz.toggle_rot_limits"
+    bl_label = "Toggle Limits"
+    bl_description = "Toggle rotation limits"
+    bl_options = {'UNDO'}
+
+    type = "LIMIT_ROTATION"
+    attr = "DazUseRotLimits"
+    
+    
+class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits, IsArmature):
+    bl_idname = "daz.toggle_loc_limits"
+    bl_label = "Toggle Location Limits"
+    bl_description = "Toggle location limits"
+    bl_options = {'UNDO'}
+
+    type = "LIMIT_LOCATION"
+    attr = "DazUseLocLimits"
+    
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -610,7 +627,8 @@ classes = [
     DAZ_OT_MakeAllBonesPosable,
     DAZ_OT_ToggleRotLocks,
     DAZ_OT_ToggleLocLocks,
-    DAZ_OT_ToggleLimits,
+    DAZ_OT_ToggleRotLimits,
+    DAZ_OT_ToggleLocLimits,
 ]
 
 def initialize():

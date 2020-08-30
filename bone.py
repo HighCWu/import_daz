@@ -315,6 +315,17 @@ class BoneInstance(Instance):
             self.figure = self.parent
         elif isinstance(self.parent, BoneInstance):
             self.figure = self.parent.figure
+        self.translation = node.translation
+        self.rotation = node.rotation
+        self.scale = node.scale
+        node.translation = []
+        node.rotation = []
+        node.scale = []
+        self.name = self.node.name
+        self.roll = 0.0        
+        self.useRoll = False
+        self.axes = [0,1,2]
+        self.flipped = False
 
 
     def __repr__(self):
@@ -348,250 +359,24 @@ class BoneInstance(Instance):
                 orient = Quaternion((-w,x,y,z)).to_euler()
             else:
                 orient = Euler(self.attributes["orientation"]*D)
-                xyz = self.rotDaz
+                xyz = self.rotation_order
         else:
             head = cscale*(self.attributes["center_point"] - center)
             tail = cscale*(self.attributes["end_point"] - center)
             orient = Euler(self.attributes["orientation"]*D)
-            xyz = self.rotDaz
+            xyz = self.rotation_order
             wsmat = None
 
         return head,tail,orient,xyz,wsmat
 
 
-    def getRotationMode(self, pb, useEulers):
-        if GS.dazOrientation == 'UNFLIPPED':
-            return self.rotDaz
-        elif useEulers:
-            return 'YZX'
-        elif GS.dazOrientation == 'FLIPPED':
-            if GS.useQuaternions and pb.name in SocketBones:
-                return 'QUATERNION'
-            else:
-                return 'YZX'
-        elif pb.name in SocketBones:
-            return 'QUATERNION'
-        else:
-            return 'YZX'
-
-        
-    def buildPose(self, figure, inFace, targets, missing):
-        from .node import setBoneTransform
-        from .driver import isBoneDriven
-
-        node = self.node
-        rig = figure.rna
-        if node.name not in rig.pose.bones.keys():
-            return
-        pb = rig.pose.bones[node.name]
-        self.rna = pb
-        if isBoneDriven(rig, pb):
-            pb.rotation_mode = self.getRotationMode(pb, True)
-            pb.bone.layers = [False,True] + 30*[False]
-        else:
-            pb.rotation_mode = self.getRotationMode(pb, False)
-        pb.DazRotMode = self.rotDaz
-
-        tname = getTargetName(node.name, targets)
-        if tname:
-            tinst = targets[tname]
-            tfm = Transform(
-                trans = tinst.attributes["translation"],
-                rot = tinst.attributes["rotation"])
-            tchildren = tinst.children
-        else:
-            tinst = None
-            tfm = Transform(
-                trans = self.attributes["translation"],
-                rot = self.attributes["rotation"])
-            tchildren = {}
-
-        setBoneTransform(tfm, pb)
-
-        if GS.useLockRot:
-            self.setRotationLock(pb)
-        if GS.useLockLoc:
-            self.setLocationLock(pb)
-
-        for child in self.children.values():
-            if isinstance(child, BoneInstance):
-                child.buildPose(figure, inFace, tchildren, missing)
-
-
-    def formulate(self, key, value):
-        from .node import setBoneTransform
-        if self.figure is None:
-            return
-        channel,comp = key.split("/")
-        self.attributes[channel][getIndex(comp)] = value
-        pb = self.rna
-        node = self.node
-        tfm = Transform(
-            trans=self.attributes["translation"],
-            rot=self.attributes["rotation"])
-        setBoneTransform(tfm, pb)
-
-
-    def setRotationLock(self, pb):
-        pb.lock_rotation = (False,False,False)
-        if self.node.name[-5:] == "Twist":
-            pb.lock_rotation = (True,False,True)
-        #elif self.name[-4:] == "Bend":
-        #    pb.lock_rotation = (False,True,False)
-        pb.DazRotLocks = pb.lock_rotation
-
-
-    def setLocationLock(self, pb):
-        pb.lock_location = (False,False,False)
-        if (pb.parent and
-            pb.parent.name not in ["upperFaceRig", "lowerFaceRig"]):
-            pb.lock_location = (True,True,True)
-        pb.DazLocLocks = pb.lock_location
-
-    '''
-    def setRotationLock1(self, pb):
-        locks = [False, False, False]
-        limits = [None, None, None]
-        useLimits = False
-        for idx,comp in enumerate(self.rotation):
-            xyz = IndexComp[idx]
-            if "locked" in comp.keys() and comp["locked"]:
-                locks[idx] = True
-            elif "clamped"in comp.keys() and comp["clamped"]:
-                if comp["min"] == 0 and comp["max"] == 0:
-                    locks[idx] = True
-                else:
-                    limits[idx] = (comp["min"], comp["max"])
-                    useLimits = True
-        for idx,lock in enumerate(locks):
-            pb.lock_rotation[idx] = lock
-        if GS.useLimitRot and useLimits:
-            cns = pb.constraints.new('LIMIT_ROTATION')
-            cns.owner_space = 'LOCAL'
-            for idx,limit in enumerate(limits):
-                if limit is not None:
-                    mind, maxd = limit
-                    setattr(cns, "use_limit_%s" % xyz, True)
-                    setattr(cns, "min_%s" % xyz, mind*D)
-                    setattr(cns, "max_%s" % xyz, maxd*D)
-
-
-    def setLocationLock1(self, pb):
-        locks = [False, False, False]
-        limits = [None, None, None]
-        useLimits = False
-        for idx,comp in enumerate(self.rotation):
-            xyz = IndexComp[idx]
-            if "locked" in comp.keys() and comp["locked"]:
-                locks[idx] = True
-            elif "clamped"in comp.keys() and comp["clamped"]:
-                if comp["min"] == 0 and comp["max"] == 0:
-                    locks[idx] = True
-                else:
-                    limits[idx] = (comp["min"], comp["max"])
-                    useLimits = True
-        for idx,lock in enumerate(locks):
-            pb.lock_rotation[idx] = lock
-        if GS.useLimitLoc and useLimits:
-            cns = pb.constraints.new('LIMIT_LOCATION')
-            cns.owner_space = 'LOCAL'
-            for idx,limit in enumerate(limits):
-                if limit is not None:
-                    mind, maxd = limit
-                    setattr(cns, "use_min_%s" % xyz, True)
-                    setattr(cns, "use_max_%s" % xyz, True)
-                    setattr(cns, "min_%s" % xyz, mind*D)
-                    setattr(cns, "max_%s" % xyz, maxd*D)
-    '''
-
-#-------------------------------------------------------------
-#   Bone
-#-------------------------------------------------------------
-
-class Bone(Node):
-
-    def __init__(self, fileref):
-        Node.__init__(self, fileref)
-        self.roll = 0.0
-        self.useRoll = False
-        self.translation = []
-        self.rotation = []
-
-
-    def __repr__(self):
-        return ("<Bone %s %s>" % (self.id, self.rna))
-
-
-    def getSelfId(self):
-        return self.node.name
-
-
-    def makeInstance(self, fileref, struct):
-        return BoneInstance(fileref, self, struct)
-
-
-    def getInstance(self, caller, ref, strict=True):
-        iref = instRef(ref)
-        try:
-            return self.instances[iref]
-        except KeyError:
-            pass
-        try:
-            return self.instances[BoneAlternatives[iref]]
-        except KeyError:
-            pass
-        if (GS.verbosity <= 2 and
-            len(self.instances.values()) > 0):
-            return list(self.instances.values())[0]
-        msg = ("Did not find instance %s in %s" % (iref, list(self.instances.keys())))
-        reportError(msg, trigger=(2,4))
-        return None
-
-
-    def parse(self, struct):
-        from .figure import Figure
-        Node.parse(self, struct)
-        for channel,data in struct.items():
-            if channel == "rotation":
-                self.rotation = data
-            elif channel == "translation":
-                self.translation = data
-        if isinstance(self.parent, Figure):
-            self.figure = self.parent
-        elif isinstance(self.parent, Bone):
-            self.figure = self.parent.figure
-
-
-    def build(self, context, inst=None):
-        pass
-
-
-    def preprocess(self, context, inst):
-        pass
-
-
-    def postprocess(self, context, inst):
-        pass
-
-
-    def pose(self, context, inst):
-        pass
-
-
-    def getRna(self, context):
-        rig = self.rna
-        if rig and self.name in rig.pose.bones.keys():
-            return rig.pose.bones[self.name]
-        else:
-            return None
-
     RX = Matrix.Rotation(pi/2, 4, 'X')
     
-    def buildEdit(self, figure, rig, parent, inst, cscale, center, isFace):
+    def buildEdit(self, figure, rig, parent, cscale, center, isFace):
         if self.name in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[self.name]
         else:
-            head,tail,orient,xyz,wsmat = inst.getHeadTail(cscale, center)
+            head,tail,orient,xyz,wsmat = self.getHeadTail(cscale, center)
             eb = rig.data.edit_bones.new(self.name)
             figure.bones[self.name] = eb.name
             eb.parent = parent
@@ -601,7 +386,7 @@ class Bone(Node):
                 if self.useRoll:
                     eb.roll = self.roll
                 else:
-                    self.findRoll(inst, eb, figure, isFace)
+                    self.findRoll(eb, figure, isFace)
                 self.roll = eb.roll
                 self.useRoll = True
             else:
@@ -612,7 +397,7 @@ class Bone(Node):
                     omat = Mult2(self.RX, omat)
                 if GS.dazOrientation == 'FLIPPED':
                     omat,flip = self.flipAxes(omat, xyz)
-                    #self.printRollDiff(omat, inst, eb, figure, isFace)
+                    #self.printRollDiff(omat, eb, figure, isFace)
 
                 #  engetudouiti's fix for posed bones
                 if wsmat:
@@ -626,6 +411,7 @@ class Bone(Node):
                     eb.matrix = omat
                 else:                
                     omat = self.flipBone(omat, head, tail, flip)
+                    print("AXES", self.name, self.axes, self.flipped)
                     omat.col[3][0:3] = head
                     eb.matrix = omat
                     if eb.name in RollCorrection.keys():
@@ -642,14 +428,14 @@ class Bone(Node):
                     eb.use_connect = True
         if self.name in ["upperFaceRig", "lowerFaceRig"]:
             isFace = True
-        for child in inst.children.values():
+        for child in self.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildEdit(figure, rig, eb, child, cscale, center, isFace)
+                child.buildEdit(figure, rig, eb, cscale, center, isFace)
 
 
-    def printRollDiff(self, omat, inst, eb, figure, isFace):
+    def printRollDiff(self, omat, eb, figure, isFace):
         bmat = eb.matrix.copy()
-        self.findRoll(inst, eb, figure, isFace)
+        self.findRoll(self, eb, figure, isFace)
         roll = eb.roll
         eb.matrix = omat
         diff = 90*int(round((roll - eb.roll)/pi*2))
@@ -667,21 +453,27 @@ class Bone(Node):
             # Blender orientation: Y = twist, X = bend
             euler = Euler((0,0,0))
             flip = Matrix.Rotation(pi, 4, 'X')
+            self.axes = [0,1,2]
         elif xyz == 'YXZ':
             euler = Euler((0, pi/2, 0))
             flip = Matrix.Rotation(pi, 4, 'Z')
+            self.axes = [2,1,0]
         elif xyz == 'ZYX':
             euler = Euler((pi/2, 0, 0))
             flip = Matrix.Rotation(pi, 4, 'X')
+            self.axes = [0,2,1]
         elif xyz == 'XZY':
             euler = Euler((0, 0, pi/2))
             flip = Matrix.Rotation(pi, 4, 'Z')
+            self.axes = [1,0,2]
         elif xyz == 'ZXY':
             euler = Euler((pi/2, 0, -pi/2))
             flip = Matrix.Rotation(pi, 4, 'Z')
+            self.axes = [1,2,0]
         elif xyz == 'XYZ':
             euler = Euler((pi/2, pi/2, 0))
             flip = Matrix.Rotation(pi, 4, 'Z')
+            self.axes = [2,0,1]
 
         rmat = euler.to_matrix().to_4x4()
         omat = Mult2(omat, rmat)
@@ -693,21 +485,22 @@ class Bone(Node):
         yaxis = Vector(omat.col[1][0:3])
         if vec.dot(yaxis) < 0:
             #print("NN", eb.name, xyz)
+            self.flipped = True
             return Mult2(omat, flip)
         else:
             #print("PP", eb.name, xyz)
             return omat
 
 
-    def buildBoneProps(self, rig, inst, cscale, center):
+    def buildBoneProps(self, rig, cscale, center):
         if self.name not in rig.data.bones.keys():
             return
         bone = rig.data.bones[self.name]
-        bone.use_inherit_scale = self.inherits_scale
-        bone.DazOrientation = inst.attributes["orientation"]
+        bone.use_inherit_scale = self.node.inherits_scale
+        bone.DazOrientation = self.attributes["orientation"]
 
-        head,tail,orient,xyz,wsmat = inst.getHeadTail(cscale, center)
-        head0,tail0,orient0,xyz0,wsmat = inst.getHeadTail(cscale, center, False)
+        head,tail,orient,xyz,wsmat = self.getHeadTail(cscale, center)
+        head0,tail0,orient0,xyz0,wsmat = self.getHeadTail(cscale, center, False)
         bone.DazHead = head
         bone.DazTail = tail
         bone.DazAngle = 0
@@ -722,31 +515,31 @@ class Bone(Node):
                 bone.DazAngle = math.acos(sprod)
                 bone.DazNormal = vec.cross(vec0)
 
-        for child in inst.children.values():
+        for child in self.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildBoneProps(rig, child, cscale, center)
+                child.buildBoneProps(rig, cscale, center)
 
 
-    def buildFormulas(self, rig, inst, hide):
+    def buildFormulas(self, rig, hide):
         from .formula import buildBoneFormula
-        if (self.formulas and
+        if (self.node.formulas and
             self.name in rig.pose.bones.keys()):
             pb = rig.pose.bones[self.name]
-            pb.rotation_mode = inst.getRotationMode(pb, True)
+            pb.rotation_mode = self.getRotationMode(pb, True)
             errors = []
-            buildBoneFormula(self, rig, pb, errors)
-        if hide or not inst.getValue(["Visible"], True):
-            inst.figure.hiddenBones[self.name] = True
+            buildBoneFormula(self.node, rig, pb, errors)
+        if hide or not self.getValue(["Visible"], True):
+            self.figure.hiddenBones[self.name] = True
             bone = rig.data.bones[self.name]
             hide = bone.hide = True
-        for child in inst.children.values():
+        for child in self.children.values():
             if isinstance(child, BoneInstance):
-                child.node.buildFormulas(rig, child, hide)
+                child.buildFormulas(rig, hide)
 
 
-    def findRoll(self, inst, eb, figure, isFace):
+    def findRoll(self, eb, figure, isFace):
         from .merge import GenesisToes
-        if (self.getRollFromPlane(inst, eb, figure)):
+        if (self.getRollFromPlane(eb, figure)):
             return
 
         if self.name in RotateRoll.keys():
@@ -790,51 +583,291 @@ class Bone(Node):
             eb.tail = eb.head + eb.length*y
 
 
-    def getRollFromPlane(self, inst, eb, figure):
+    def getRollFromPlane(self, eb, figure):
         try:
             xplane,zplane = Planes[eb.name]
         except KeyError:
             return False
         if (zplane and
-            zplane in inst.figure.planes.keys() and
+            zplane in self.figure.planes.keys() and
             (figure.rigtype in ["genesis3", "genesis8"] or
              not xplane)):
-            zaxis = inst.figure.planes[zplane]
+            zaxis = self.figure.planes[zplane]
             setRoll(eb, zaxis)
             eb.roll += pi/2
             if eb.roll > pi:
                 eb.roll -= 2*pi
             return True
         elif (xplane and
-              xplane in inst.figure.planes.keys()):
-            xaxis = inst.figure.planes[xplane]
+              xplane in self.figure.planes.keys()):
+            xaxis = self.figure.planes[xplane]
             setRoll(eb, xaxis)
             return True
         else:
             return False
 
+    
+    def setRoll(self, eb, xaxis):
+        yaxis = eb.tail - eb.head
+        yaxis.normalize()
+        xaxis -= yaxis.dot(xaxis)*yaxis
+        xaxis.normalize()
+        zaxis = xaxis.cross(yaxis)
+        zaxis.normalize()
+        eb.roll = self.getRoll(xaxis, yaxis, zaxis)
+    
+    
+    def getRoll(self, xaxis, yaxis, zaxis):
+        mat = Matrix().to_3x3()
+        mat.col[0] = xaxis
+        mat.col[1] = yaxis
+        mat.col[2] = zaxis
+        return self.getRollFromQuat(mat.to_quaternion())
+    
+    
+    def getRollFromQuat(self, quat):
+        if abs(quat.w) < 1e-4:
+            roll = pi
+        else:
+            roll = 2*math.atan(quat.y/quat.w)
+        return roll
 
-def setRoll(eb, xaxis):
-    yaxis = eb.tail - eb.head
-    yaxis.normalize()
-    xaxis -= yaxis.dot(xaxis)*yaxis
-    xaxis.normalize()
-    zaxis = xaxis.cross(yaxis)
-    zaxis.normalize()
-    eb.roll = getRoll(xaxis, yaxis, zaxis)
+
+    def getRotationMode(self, pb, useEulers):
+        if GS.dazOrientation == 'UNFLIPPED':
+            return self.rotation_order
+        elif useEulers:
+            return 'YZX'
+        elif GS.dazOrientation == 'FLIPPED':
+            if GS.useQuaternions and pb.name in SocketBones:
+                return 'QUATERNION'
+            else:
+                return 'YZX'
+        elif pb.name in SocketBones:
+            return 'QUATERNION'
+        else:
+            return 'YZX'
+
+        
+    def buildPose(self, figure, inFace, targets, missing):
+        from .node import setBoneTransform
+        from .driver import isBoneDriven
+
+        node = self.node
+        rig = figure.rna
+        if node.name not in rig.pose.bones.keys():
+            return
+        pb = rig.pose.bones[node.name]
+        self.rna = pb
+        if isBoneDriven(rig, pb):
+            pb.rotation_mode = self.getRotationMode(pb, True)
+            pb.bone.layers = [False,True] + 30*[False]
+        else:
+            pb.rotation_mode = self.getRotationMode(pb, False)
+        pb.DazRotMode = self.rotation_order
+
+        tname = getTargetName(node.name, targets)
+        if tname:
+            tinst = targets[tname]
+            tfm = Transform(
+                trans = tinst.attributes["translation"],
+                rot = tinst.attributes["rotation"])
+            tchildren = tinst.children
+        else:
+            tinst = None
+            tfm = Transform(
+                trans = self.attributes["translation"],
+                rot = self.attributes["rotation"])
+            tchildren = {}
+
+        setBoneTransform(tfm, pb)
+
+        if GS.useLockRot:
+            if GS.dazOrientation == 'LEGACY':
+                self.setRotationLockLegacy(pb)
+            else:
+                self.setRotationLockDaz(pb)
+        if GS.useLockLoc:
+            if GS.dazOrientation == 'LEGACY':
+                self.setLocationLockLegacy(pb)
+            else:
+                self.setLocationLockDaz(pb)
+
+        for child in self.children.values():
+            if isinstance(child, BoneInstance):
+                child.buildPose(figure, inFace, tchildren, missing)
 
 
-def getRoll(xaxis, yaxis, zaxis):
-    mat = Matrix().to_3x3()
-    mat.col[0] = xaxis
-    mat.col[1] = yaxis
-    mat.col[2] = zaxis
-    return getRollFromQuat(mat.to_quaternion())
+    def formulate(self, key, value):
+        from .node import setBoneTransform
+        if self.figure is None:
+            return
+        channel,comp = key.split("/")
+        self.attributes[channel][getIndex(comp)] = value
+        pb = self.rna
+        node = self.node
+        tfm = Transform(
+            trans=self.attributes["translation"],
+            rot=self.attributes["rotation"])
+        setBoneTransform(tfm, pb)
 
 
-def getRollFromQuat(quat):
-    if abs(quat.w) < 1e-4:
-        roll = pi
-    else:
-        roll = 2*math.atan(quat.y/quat.w)
-    return roll
+    def setRotationLockLegacy(self, pb):
+        pb.lock_rotation = (False,False,False)
+        if self.node.name[-5:] == "Twist":
+            pb.lock_rotation = (True,False,True)
+        #elif self.name[-4:] == "Bend":
+        #    pb.lock_rotation = (False,True,False)
+        pb.DazRotLocks = pb.lock_rotation
+
+
+    def setLocationLockLegacy(self, pb):
+        pb.lock_location = (False,False,False)
+        if (pb.parent and
+            pb.parent.name not in ["upperFaceRig", "lowerFaceRig"]):
+            pb.lock_location = (True,True,True)
+        pb.DazLocLocks = pb.lock_location
+
+
+    def getLocksLimits(self, pb, structs):
+        locks = [False, False, False]
+        limits = [None, None, None]
+        useLimits = False
+        for n,comp in enumerate(structs):
+            idx = self.axes[n]
+            if "locked" in comp.keys() and comp["locked"]:
+                print("LOCK", pb.name, self.axes, self.flipped, comp["id"], n, idx)
+                locks[idx] = True
+            elif "clamped"in comp.keys() and comp["clamped"]:
+                if comp["min"] == 0 and comp["max"] == 0:
+                    locks[idx] = True
+                else:
+                    limits[idx] = (comp["min"], comp["max"])
+                    print("LIM", pb.name, self.axes, self.flipped, comp["id"], n, idx, limits[idx])
+                    useLimits = True
+        return locks,limits,useLimits 
+
+
+    IndexComp = { 0 : "x", 1 : "y", 2 : "z" }
+
+    def setRotationLockDaz(self, pb):
+        locks,limits,useLimits = self.getLocksLimits(pb, self.rotation)
+        for idx,lock in enumerate(locks):
+            pb.lock_rotation[idx] = lock
+        if GS.useLimitRot and useLimits:
+            xyz = self.IndexComp[idx]
+            cns = pb.constraints.new('LIMIT_ROTATION')
+            cns.owner_space = 'LOCAL'
+            for idx,limit in enumerate(limits):
+                if limit is not None:
+                    mind, maxd = limit
+                    if self.flipped:
+                        tmp = mind
+                        mind = -maxd
+                        maxd = -tmp
+                    setattr(cns, "use_limit_%s" % xyz, True)
+                    setattr(cns, "min_%s" % xyz, mind*D)
+                    setattr(cns, "max_%s" % xyz, maxd*D)
+
+
+    def setLocationLockDaz(self, pb):
+        locks,limits,useLimits = self.getLocksLimits(pb, self.translation)
+        for idx,lock in enumerate(locks):
+            pb.lock_rotation[idx] = lock
+        if GS.useLimitLoc and useLimits:
+            xyz = self.IndexComp[idx]
+            cns = pb.constraints.new('LIMIT_LOCATION')
+            cns.owner_space = 'LOCAL'
+            for idx,limit in enumerate(limits):
+                if limit is not None:
+                    mind, maxd = limit
+                    if self.flipped:
+                        tmp = mind
+                        mind = -maxd
+                        maxd = -tmp
+                    setattr(cns, "use_min_%s" % xyz, True)
+                    setattr(cns, "use_max_%s" % xyz, True)
+                    setattr(cns, "min_%s" % xyz, mind*LS.scale)
+                    setattr(cns, "max_%s" % xyz, maxd*LS.scale)
+
+#-------------------------------------------------------------
+#   Bone
+#-------------------------------------------------------------
+
+class Bone(Node):
+
+    def __init__(self, fileref):
+        Node.__init__(self, fileref)
+        self.translation = []
+        self.rotation = []
+        self.scale = []
+        
+
+    def __repr__(self):
+        return ("<Bone %s %s>" % (self.id, self.rna))
+
+
+    def getSelfId(self):
+        return self.node.name
+
+
+    def makeInstance(self, fileref, struct):
+        return BoneInstance(fileref, self, struct)
+
+
+    def getInstance(self, caller, ref, strict=True):
+        iref = instRef(ref)
+        try:
+            return self.instances[iref]
+        except KeyError:
+            pass
+        try:
+            return self.instances[BoneAlternatives[iref]]
+        except KeyError:
+            pass
+        if (GS.verbosity <= 2 and
+            len(self.instances.values()) > 0):
+            return list(self.instances.values())[0]
+        msg = ("Did not find instance %s in %s" % (iref, list(self.instances.keys())))
+        reportError(msg, trigger=(2,4))
+        return None
+
+
+    def parse(self, struct):
+        from .figure import Figure
+        Node.parse(self, struct)
+        for channel,data in struct.items():
+            if channel == "rotation":
+                self.rotation = data
+            elif channel == "translation":
+                self.translation = data
+            elif channel == "scale":
+                self.scale = data
+        if isinstance(self.parent, Figure):
+            self.figure = self.parent
+        elif isinstance(self.parent, Bone):
+            self.figure = self.parent.figure
+
+
+    def build(self, context, inst=None):
+        pass
+
+
+    def preprocess(self, context, inst):
+        pass
+
+
+    def postprocess(self, context, inst):
+        pass
+
+
+    def pose(self, context, inst):
+        pass
+
+
+    def getRna(self, context):
+        rig = self.rna
+        if rig and self.name in rig.pose.bones.keys():
+            return rig.pose.bones[self.name]
+        else:
+            return None
