@@ -316,6 +316,9 @@ class BendTwists:
             srcbone = rig.data.bones[bendname]
             trgbone = rig.data.bones[bname]
             copyBoneInfo(srcbone, trgbone)
+            srcpb = rig.pose.bones[bendname]
+            trgpb = rig.pose.bones[bname]
+            trgpb.rotation_mode = srcpb.rotation_mode
     
         bpy.ops.object.mode_set(mode='EDIT')
         for bname,tname in self.BendTwists:

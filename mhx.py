@@ -212,6 +212,7 @@ def setLayer(bname, rig, layer):
 def getBoneCopy(bname, model, rpbs):
     pb = rpbs[bname]
     pb.DazRotMode = model.DazRotMode
+    pb.rotation_mode = model.rotation_mode
     return pb
 
 
