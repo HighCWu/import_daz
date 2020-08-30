@@ -1099,9 +1099,9 @@ def fixGenesis2Problems(rig):
         heel.tail = (toe.head[0], 1.5*foot.head[1]-0.5*toe.head[1], toe.head[2])
         heel.layers = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
 
-from .fix import BendTwists
+from .fix import BendTwists, Fixer
 
-class DAZ_OT_ConvertMhx(DazOperator, BendTwists, IsArmature):
+class DAZ_OT_ConvertMhx(DazOperator, BendTwists, Fixer, IsArmature):
     bl_idname = "daz.convert_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
@@ -1124,7 +1124,7 @@ class DAZ_OT_ConvertMhx(DazOperator, BendTwists, IsArmature):
         ("upper_arm.R", "forearm.R", Vector((0,1,0))),
     ]
     
-    Correct = [
+    Correctives = [
         ("upper_arm-1.L", "upper_armBend.L"),
         ("forearm-1.L", "forearmBend.L"),
         ("thigh-1.L", "thighBend.L"),
@@ -1134,7 +1134,6 @@ class DAZ_OT_ConvertMhx(DazOperator, BendTwists, IsArmature):
     ]
     
     def run(self, context):
-        from .fix import fixKnees, fixPelvis, fixHands, fixCustomShape, fixCorrectives, checkCorrectives
         from .merge import reparentToes
         from .rigify import fixCarpals
         rig = context.object
@@ -1156,10 +1155,10 @@ class DAZ_OT_ConvertMhx(DazOperator, BendTwists, IsArmature):
             reparentToes(rig, context)
             rename2Mhx(rig, skeleton)
             self.joinBendTwists(rig, {}, False)
-            fixKnees(rig, self.Knees)
-            fixHands(rig)
+            self.fixKnees(rig)
+            self.fixHands(rig)
             self.createBendTwists(rig)
-            fixCorrectives(rig, self.Correct)
+            self.fixCorrectives(rig)
         elif rig.DazRig in ["genesis1", "genesis2"]:
             fixPelvis(rig)
             fixCarpals(rig)
@@ -1167,10 +1166,10 @@ class DAZ_OT_ConvertMhx(DazOperator, BendTwists, IsArmature):
             reparentToes(rig, context)
             rename2Mhx(rig, skeleton)
             fixGenesis2Problems(rig)
-            fixKnees(rig, self.Knees)
-            fixHands(rig)
+            self.fixKnees(rig)
+            self.fixHands(rig)
             self.createBendTwists(rig)
-            fixCorrectives(rig, self.Correct)
+            self.fixCorrectives(rig)
         else:
             raise DazError("Cannot convert %s to Mhx" % rig.name)
     
@@ -1183,7 +1182,7 @@ class DAZ_OT_ConvertMhx(DazOperator, BendTwists, IsArmature):
         addMaster(rig)
         addGizmos(rig, context)
         if rig.DazRig in ["genesis3", "genesis8"]:
-            fixCustomShape(rig, ["head"], 4)
+            self.fixCustomShape(rig, ["head"], 4)
         collectDeformBones(rig)
         bpy.ops.object.mode_set(mode='POSE')
         addBoneGroups(rig)
@@ -1201,7 +1200,7 @@ class DAZ_OT_ConvertMhx(DazOperator, BendTwists, IsArmature):
                 pb.bone.show_wire = True
     
         restoreBoneChildren(bchildren, context, rig, skeleton)
-        checkCorrectives(rig)
+        self.checkCorrectives(rig)
         doHardUpdate(context, rig)
 
 

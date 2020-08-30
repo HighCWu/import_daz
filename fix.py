@@ -32,9 +32,6 @@ from mathutils import *
 from .error import *
 from .utils import *
 
-#-------------------------------------------------------------
-#   Rigging
-#-------------------------------------------------------------
 
 Genesis3Renames = {
     "abdomenLower" : "abdomen",
@@ -43,100 +40,135 @@ Genesis3Renames = {
     "neckLower"    : "neck",
     }
 
+#-------------------------------------------------------------
+#   Fixer class
+#-------------------------------------------------------------
 
-def fixPelvis(rig):
-    bpy.ops.object.mode_set(mode='EDIT')
-    hip = rig.data.edit_bones["hip"]
-    if hip.tail[2] > hip.head[2]:
-        for child in hip.children:
-            child.use_connect = False
-        head = Vector(hip.head)
-        tail = Vector(hip.tail)
-        hip.head = Vector((1,2,3))
-        hip.tail = head
-        hip.head = tail
-    if "pelvis" not in rig.data.bones.keys():
-        pelvis = rig.data.edit_bones.new("pelvis")
-        pelvis.head = hip.head
-        pelvis.tail = hip.tail
-        pelvis.roll = hip.roll
-        pelvis.parent = hip
-        lThigh = rig.data.edit_bones["lThigh"]
-        rThigh = rig.data.edit_bones["rThigh"]
-        lThigh.parent = pelvis
-        rThigh.parent = pelvis
-    bpy.ops.object.mode_set(mode='OBJECT')
+class Fixer:
+    
+    def fixPelvis(self, rig):
+        bpy.ops.object.mode_set(mode='EDIT')
+        hip = rig.data.edit_bones["hip"]
+        if hip.tail[2] > hip.head[2]:
+            for child in hip.children:
+                child.use_connect = False
+            head = Vector(hip.head)
+            tail = Vector(hip.tail)
+            hip.head = Vector((1,2,3))
+            hip.tail = head
+            hip.head = tail
+        if "pelvis" not in rig.data.bones.keys():
+            pelvis = rig.data.edit_bones.new("pelvis")
+            pelvis.head = hip.head
+            pelvis.tail = hip.tail
+            pelvis.roll = hip.roll
+            pelvis.parent = hip
+            lThigh = rig.data.edit_bones["lThigh"]
+            rThigh = rig.data.edit_bones["rThigh"]
+            lThigh.parent = pelvis
+            rThigh.parent = pelvis
+        bpy.ops.object.mode_set(mode='OBJECT')
+    
+    
+    def fixCustomShape(self, rig, bnames, factor, offset=0):
+        for bname in bnames:
+            if bname in rig.pose.bones.keys():
+                pb = rig.pose.bones[bname]
+                if pb.custom_shape:
+                    pb.custom_shape_scale = factor
+                    if offset:
+                        for v in pb.custom_shape.data.vertices:
+                            v.co += offset
+                return
+    
+    
+    def fixHands(self, rig):
+        bpy.ops.object.mode_set(mode='EDIT')
+        for suffix in [".L", ".R"]:
+            forearm = rig.data.edit_bones["forearm"+suffix]
+            hand = rig.data.edit_bones["hand"+suffix]
+            hand.head = forearm.tail
+            flen = (forearm.tail - forearm.head).length
+            vec = hand.tail - hand.head
+            hand.tail = hand.head + 0.35*flen/vec.length*vec
 
 
-def fixCustomShape(rig, bnames, factor, offset=0):
-    for bname in bnames:
-        if bname in rig.pose.bones.keys():
-            pb = rig.pose.bones[bname]
-            if pb.custom_shape:
-                pb.custom_shape_scale = factor
-                if offset:
-                    for v in pb.custom_shape.data.vertices:
-                        v.co += offset
+    def fixCarpals(self, rig):
+        if "lCarpal3" in rig.data.bones.keys():
             return
+        bpy.ops.object.mode_set(mode='EDIT')
+        for prefix in ["l", "r"]:
+            for bname in ["Carpal1", "Carpal2"]:
+                if prefix+bname in rig.data.edit_bones.keys():
+                    eb = rig.data.edit_bones[prefix+bname]
+                    rig.data.edit_bones.remove(eb)
+            hand = rig.data.edit_bones[prefix+"Hand"]
+            hand.tail = 2*hand.tail - hand.head
+            for bname,cname in Carpals.items():
+                if prefix+cname in rig.data.edit_bones.keys():
+                    eb = rig.data.edit_bones.new(prefix+bname)
+                    child = rig.data.edit_bones[prefix+cname]
+                    eb.head = hand.head
+                    eb.tail = child.head
+                    eb.roll = child.roll
+                    eb.parent = hand
+                    child.parent = eb
+                    child.use_connect = True
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for ob in rig.children:
+            if ob.type == 'MESH':
+                for prefix in ["l", "r"]:
+                    for vgrp in ob.vertex_groups:
+                        if vgrp.name == prefix+"Carpal2":
+                            vgrp.name = prefix+"Carpal4"
+
+    
+    def fixKnees(self, rig):
+        from .bone import setRoll
+        eps = 0.5
+        bpy.ops.object.mode_set(mode='EDIT')
+        for thigh,shin,zaxis in self.Knees:
+            eb1 = rig.data.edit_bones[thigh]
+            eb2 = rig.data.edit_bones[shin]
+            hip = eb1.head
+            knee = eb2.head
+            ankle = eb2.tail
+            dankle = ankle-hip
+            vec = ankle-hip
+            vec.normalize()
+            dknee = knee-hip
+            dmid = vec.dot(dknee)*vec
+            offs = dknee-dmid
+            if offs.length/dknee.length < eps:
+                knee = hip + dmid + zaxis*offs.length
+                xaxis = zaxis.cross(vec)
+            else:
+                xaxis = vec.cross(dknee)
+                xaxis.normalize()
+    
+            eb1.tail = eb2.head = knee
+            setRoll(eb1, xaxis)
+            eb2.roll = eb1.roll
+    
+    
+    def fixCorrectives(self, rig):
+        from .driver import getShapekeyDriver, replaceDriverBone
+        for ob in rig.children:
+            if ob.type == 'MESH' and ob.data.shape_keys:
+                skeys = ob.data.shape_keys
+                for skey in skeys.key_blocks[1:]:
+                    if getShapekeyDriver(skeys, skey.name):
+                        replaceDriverBone(self.Correctives, skeys, 'key_blocks["%s"].value' % (skey.name))
 
 
-def fixHands(rig):
-    bpy.ops.object.mode_set(mode='EDIT')
-    for suffix in [".L", ".R"]:
-        forearm = rig.data.edit_bones["forearm"+suffix]
-        hand = rig.data.edit_bones["hand"+suffix]
-        hand.head = forearm.tail
-        flen = (forearm.tail - forearm.head).length
-        vec = hand.tail - hand.head
-        hand.tail = hand.head + 0.35*flen/vec.length*vec
-
-
-def fixKnees(rig, knees):
-    from .bone import setRoll
-    eps = 0.5
-    bpy.ops.object.mode_set(mode='EDIT')
-    for thigh,shin,zaxis in knees:
-        eb1 = rig.data.edit_bones[thigh]
-        eb2 = rig.data.edit_bones[shin]
-        hip = eb1.head
-        knee = eb2.head
-        ankle = eb2.tail
-        dankle = ankle-hip
-        vec = ankle-hip
-        vec.normalize()
-        dknee = knee-hip
-        dmid = vec.dot(dknee)*vec
-        offs = dknee-dmid
-        if offs.length/dknee.length < eps:
-            knee = hip + dmid + zaxis*offs.length
-            xaxis = zaxis.cross(vec)
-        else:
-            xaxis = vec.cross(dknee)
-            xaxis.normalize()
-
-        eb1.tail = eb2.head = knee
-        setRoll(eb1, xaxis)
-        eb2.roll = eb1.roll
-
-
-def fixCorrectives(rig, assoc):
-    from .driver import getShapekeyDriver, replaceDriverBone
-    for ob in rig.children:
-        if ob.type == 'MESH' and ob.data.shape_keys:
-            skeys = ob.data.shape_keys
-            for skey in skeys.key_blocks[1:]:
-                if getShapekeyDriver(skeys, skey.name):
-                    replaceDriverBone(assoc, skeys, 'key_blocks["%s"].value' % (skey.name))
-
-
-def checkCorrectives(rig):
-    from .driver import getShapekeyDriver, checkDriverBone
-    for ob in rig.children:
-        if ob.type == 'MESH' and ob.data.shape_keys:
-            skeys = ob.data.shape_keys
-            for skey in skeys.key_blocks[1:]:
-                if getShapekeyDriver(skeys, skey.name):
-                    checkDriverBone(rig, skeys, 'key_blocks["%s"].value' % (skey.name))
+    def checkCorrectives(self, rig):
+        from .driver import getShapekeyDriver, checkDriverBone
+        for ob in rig.children:
+            if ob.type == 'MESH' and ob.data.shape_keys:
+                skeys = ob.data.shape_keys
+                for skey in skeys.key_blocks[1:]:
+                    if getShapekeyDriver(skeys, skey.name):
+                        checkDriverBone(rig, skeys, 'key_blocks["%s"].value' % (skey.name))
 
 #-------------------------------------------------------------
 #   BendTwist class

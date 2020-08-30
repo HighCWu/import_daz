@@ -437,36 +437,6 @@ def setupExtras(rig, rigifySkel, spineBones):
     return extras
 
 
-def fixCarpals(rig):
-    if "lCarpal3" in rig.data.bones.keys():
-        return
-    bpy.ops.object.mode_set(mode='EDIT')
-    for prefix in ["l", "r"]:
-        for bname in ["Carpal1", "Carpal2"]:
-            if prefix+bname in rig.data.edit_bones.keys():
-                eb = rig.data.edit_bones[prefix+bname]
-                rig.data.edit_bones.remove(eb)
-        hand = rig.data.edit_bones[prefix+"Hand"]
-        hand.tail = 2*hand.tail - hand.head
-        for bname,cname in Carpals.items():
-            if prefix+cname in rig.data.edit_bones.keys():
-                eb = rig.data.edit_bones.new(prefix+bname)
-                child = rig.data.edit_bones[prefix+cname]
-                eb.head = hand.head
-                eb.tail = child.head
-                eb.roll = child.roll
-                eb.parent = hand
-                child.parent = eb
-                child.use_connect = True
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for ob in rig.children:
-        if ob.type == 'MESH':
-            for prefix in ["l", "r"]:
-                for vgrp in ob.vertex_groups:
-                    if vgrp.name == prefix+"Carpal2":
-                        vgrp.name = prefix+"Carpal4"
-
-
 def splitBone(rig, bname, upname):
     if upname in rig.data.bones.keys():
         return
@@ -566,7 +536,6 @@ def createMeta(context):
     from .mhx import connectToParent, unhideAllObjects
     from .figure import getRigType
     from .merge import mergeBonesAndVgroups
-    from .fix import fixPelvis, fixHands
 
     print("Create metarig")
     rig = context.object
@@ -608,8 +577,8 @@ def createMeta(context):
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
     if meta.DazRigifyType in ["genesis1", "genesis2"]:
-        fixPelvis(rig)
-        fixCarpals(rig)
+        self.fixPelvis(rig)
+        self.fixCarpals(rig)
         splitBone(rig, "chest", "chestUpper")
         splitBone(rig, "abdomen", "abdomen2")
         delbones = [
@@ -669,7 +638,7 @@ def createMeta(context):
         eb = meta.data.edit_bones[head]
         eb.tail = eb.head + 1.0*(eb.tail - eb.head)
 
-    fixHands(meta)
+    self.fixHands(meta)
 
     for suffix in [".L", ".R"]:
         shoulder = meta.data.edit_bones["shoulder"+suffix]
@@ -792,7 +761,6 @@ def rigifyMeta(context, deleteMeta):
     from .driver import getBoneDrivers, copyDriver, changeBoneTarget, changeDriverTarget
     from .node import setParent, clearParent
     from .daz import copyPropGroups
-    from .fix import fixCorrectives, checkCorrectives, fixCustomShape
     from .mhx import unhideAllObjects
     from .figure import copyBoneInfo
 
@@ -913,9 +881,9 @@ def rigifyMeta(context, deleteMeta):
 
     # Rescale custom shapes
     if meta.DazRigifyType in ["genesis3", "genesis8"]:
-        fixCustomShape(gen, ["head", "spine_fk.007"], 4)
+        self.fixCustomShape(gen, ["head", "spine_fk.007"], 4)
     if bpy.app.version >= (2,82,0):
-        fixCustomShape(gen, ["chest"], 1, Vector((0,-100*rig.DazScale,0)))
+        self.fixCustomShape(gen, ["chest"], 1, Vector((0,-100*rig.DazScale,0)))
 
     # Add DAZ properties
     for key in rig.keys():
@@ -1030,8 +998,8 @@ def rigifyMeta(context, deleteMeta):
 
     # Fix correctives
     assoc = [("ORG-"+rigi,daz) for (rigi,daz) in assoc]
-    fixCorrectives(gen, assoc)
-    checkCorrectives(gen)
+    self.fixCorrectives(gen, assoc)
+    self.checkCorrectives(gen)
 
     #Clean up
     setattr(gen.data, DrawType, 'STICK')
