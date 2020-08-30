@@ -67,10 +67,10 @@ RollCorrection = {
 }    
 
 SocketBones = [
-    "lShldr", "lShldrBend", "lShldrTwist",
-    "rShldr", "rShldrBend", "rShldrTwist",
-    "lThigh", "lThighBend", "lThighTwist",
-    "rThigh", "rThighBend", "rThighTwist",
+    "lShldr", "lShldrBend",
+    "rShldr", "rShldrBend",
+    "lThigh", "lThighBend",
+    "rThigh", "rThighBend",
 ]
 
 #-------------------------------------------------------------
@@ -325,7 +325,14 @@ class BoneInstance(Instance):
         self.roll = 0.0        
         self.useRoll = False
         self.axes = [0,1,2]
-        self.flipped = False
+        self.flipped = [False,False,False]
+        self.flopped = [False,False,False]
+
+
+    def testPrint(self, hdr):
+        self.test = self.name.endswith("Gruka")
+        if self.test:
+            print(hdr, self.name, self.rotation_order, self.axes, self.flipped)
 
 
     def __repr__(self):
@@ -411,17 +418,11 @@ class BoneInstance(Instance):
                     eb.matrix = omat
                 else:                
                     omat = self.flipBone(omat, head, tail, flip)
-                    print("AXES", self.name, self.axes, self.flipped)
+                    self.testPrint("FBONE")
                     omat.col[3][0:3] = head
                     eb.matrix = omat
                     if eb.name in RollCorrection.keys():
-                        roll = eb.roll + RollCorrection[eb.name]*D
-                        if roll > pi:
-                            roll -= 2*pi
-                        elif roll < -pi:
-                            roll += 2*pi
-                        eb.roll = roll
-
+                        self.correctRoll(eb)
             if GS.useConnect and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*LS.scale:
@@ -449,32 +450,48 @@ class BoneInstance(Instance):
         
     
     def flipAxes(self, omat, xyz):
-        if xyz == 'YZX':
+        if xyz == 'YZX':    #
             # Blender orientation: Y = twist, X = bend
             euler = Euler((0,0,0))
             flip = Matrix.Rotation(pi, 4, 'X')
             self.axes = [0,1,2]
+            self.flipped = [False,False,False]
+            self.flopped = [False,False,True]
         elif xyz == 'YXZ':
+            # Apparently not used
+            print("YXZ", self.name)
             euler = Euler((0, pi/2, 0))
             flip = Matrix.Rotation(pi, 4, 'Z')
             self.axes = [2,1,0]
-        elif xyz == 'ZYX':
+            self.flipped = [False,False,False]
+            self.flopped = [False,False,False]
+        elif xyz == 'ZYX':  #
             euler = Euler((pi/2, 0, 0))
             flip = Matrix.Rotation(pi, 4, 'X')
             self.axes = [0,2,1]
-        elif xyz == 'XZY':
+            self.flipped = [False,False,False]
+            self.flopped = [False,False,False]
+        elif xyz == 'XZY':  #
             euler = Euler((0, 0, pi/2))
             flip = Matrix.Rotation(pi, 4, 'Z')
             self.axes = [1,0,2]
+            self.flipped = [False,False,False]
+            self.flopped = [False,True,False]
         elif xyz == 'ZXY':
+            # Eyes and eyelids
             euler = Euler((pi/2, 0, -pi/2))
             flip = Matrix.Rotation(pi, 4, 'Z')
-            self.axes = [1,2,0]
-        elif xyz == 'XYZ':
+            self.axes = [2,0,1]
+            self.flipped = [False,False,False]
+            self.flopped = [False,False,False]
+        elif xyz == 'XYZ':  #
             euler = Euler((pi/2, pi/2, 0))
             flip = Matrix.Rotation(pi, 4, 'Z')
-            self.axes = [2,0,1]
+            self.axes = [1,2,0]
+            self.flipped = [True,True,True]
+            self.flopped = [False,True,False]
 
+        self.testPrint("AXES")
         rmat = euler.to_matrix().to_4x4()
         omat = Mult2(omat, rmat)
         return omat, flip
@@ -484,12 +501,44 @@ class BoneInstance(Instance):
         vec = tail-head
         yaxis = Vector(omat.col[1][0:3])
         if vec.dot(yaxis) < 0:
-            #print("NN", eb.name, xyz)
-            self.flipped = True
+            self.flipped = self.flopped
             return Mult2(omat, flip)
         else:
-            #print("PP", eb.name, xyz)
             return omat
+
+
+    def correctRoll(self, eb):     
+        offset = RollCorrection[eb.name]
+        roll = eb.roll + offset*D
+        if roll > pi:
+            roll -= 2*pi
+        elif roll < -pi:
+            roll += 2*pi
+        eb.roll = roll
+
+        a = self.axes
+        f = self.flipped
+        i = a.index(0)
+        j = a.index(1)
+        k = a.index(2)
+        if offset == 90:
+            tmp = a[i]
+            a[i] = a[k]
+            a[k] = tmp
+            tmp = f[i]
+            f[i] = not f[k]
+            f[k] = tmp
+        elif offset == -90:
+            tmp = a[i]
+            a[i] = a[k]
+            a[k] = tmp
+            tmp = f[i]
+            f[i] = not f[k]
+            f[k] = tmp
+        elif offset == 180:
+            f[i] = not f[i]
+            f[k] = not f[k]
+        self.testPrint("CORR")        
 
 
     def buildBoneProps(self, rig, cscale, center):
@@ -682,16 +731,14 @@ class BoneInstance(Instance):
 
         setBoneTransform(tfm, pb)
 
-        if GS.useLockRot:
-            if GS.dazOrientation == 'LEGACY':
-                self.setRotationLockLegacy(pb)
-            else:
-                self.setRotationLockDaz(pb)
-        if GS.useLockLoc:
-            if GS.dazOrientation == 'LEGACY':
-                self.setLocationLockLegacy(pb)
-            else:
-                self.setLocationLockDaz(pb)
+        if GS.dazOrientation == 'LEGACY':
+            self.setRotationLockLegacy(pb)
+        else:
+            self.setRotationLockDaz(pb)
+        if GS.dazOrientation == 'LEGACY':
+            self.setLocationLockLegacy(pb)
+        else:
+            self.setLocationLockDaz(pb)
 
         for child in self.children.values():
             if isinstance(child, BoneInstance):
@@ -713,37 +760,34 @@ class BoneInstance(Instance):
 
 
     def setRotationLockLegacy(self, pb):
-        pb.lock_rotation = (False,False,False)
-        if self.node.name[-5:] == "Twist":
-            pb.lock_rotation = (True,False,True)
-        #elif self.name[-4:] == "Bend":
-        #    pb.lock_rotation = (False,True,False)
-        pb.DazRotLocks = pb.lock_rotation
+        if GS.useLockRot:
+            pb.lock_rotation = (False,False,False)
+            if self.node.name[-5:] == "Twist":
+                pb.lock_rotation = (True,False,True)
+            pb.DazRotLocks = pb.lock_rotation
 
 
     def setLocationLockLegacy(self, pb):
-        pb.lock_location = (False,False,False)
-        if (pb.parent and
-            pb.parent.name not in ["upperFaceRig", "lowerFaceRig"]):
-            pb.lock_location = (True,True,True)
-        pb.DazLocLocks = pb.lock_location
+        if GS.useLockLoc:
+            pb.lock_location = (False,False,False)
+            if (pb.parent and
+                pb.parent.name not in ["upperFaceRig", "lowerFaceRig"]):
+                pb.lock_location = (True,True,True)
+            pb.DazLocLocks = pb.lock_location
 
 
     def getLocksLimits(self, pb, structs):
         locks = [False, False, False]
         limits = [None, None, None]
         useLimits = False
-        for n,comp in enumerate(structs):
-            idx = self.axes[n]
+        for idx,comp in enumerate(structs):
             if "locked" in comp.keys() and comp["locked"]:
-                print("LOCK", pb.name, self.axes, self.flipped, comp["id"], n, idx)
                 locks[idx] = True
             elif "clamped"in comp.keys() and comp["clamped"]:
                 if comp["min"] == 0 and comp["max"] == 0:
                     locks[idx] = True
                 else:
                     limits[idx] = (comp["min"], comp["max"])
-                    print("LIM", pb.name, self.axes, self.flipped, comp["id"], n, idx, limits[idx])
                     useLimits = True
         return locks,limits,useLimits 
 
@@ -752,19 +796,27 @@ class BoneInstance(Instance):
 
     def setRotationLockDaz(self, pb):
         locks,limits,useLimits = self.getLocksLimits(pb, self.rotation)
-        for idx,lock in enumerate(locks):
-            pb.lock_rotation[idx] = lock
+        pb.DazRotLocks = locks
+        if pb.rotation_mode == 'QUATERNION':
+            return
+        if GS.useLockRot:
+            for n,lock in enumerate(locks):
+                idx = self.axes[n]
+                pb.lock_rotation[idx] = lock
         if GS.useLimitRot and useLimits:
-            xyz = self.IndexComp[idx]
             cns = pb.constraints.new('LIMIT_ROTATION')
             cns.owner_space = 'LOCAL'
-            for idx,limit in enumerate(limits):
+            for n,limit in enumerate(limits):
+                idx = self.axes[n]
                 if limit is not None:
                     mind, maxd = limit
-                    if self.flipped:
+                    if self.flipped[n]:
                         tmp = mind
                         mind = -maxd
                         maxd = -tmp
+                    xyz = self.IndexComp[idx]
+                    if self.test:
+                        print("LLL", pb.name, n, limit, self.flipped[n], mind, maxd)
                     setattr(cns, "use_limit_%s" % xyz, True)
                     setattr(cns, "min_%s" % xyz, mind*D)
                     setattr(cns, "max_%s" % xyz, maxd*D)
@@ -772,19 +824,21 @@ class BoneInstance(Instance):
 
     def setLocationLockDaz(self, pb):
         locks,limits,useLimits = self.getLocksLimits(pb, self.translation)
-        for idx,lock in enumerate(locks):
-            pb.lock_rotation[idx] = lock
+        pb.DazLocLocks = locks
+        if GS.useLockLoc:
+            for idx,lock in enumerate(locks):
+                pb.lock_location[idx] = lock
         if GS.useLimitLoc and useLimits:
-            xyz = self.IndexComp[idx]
             cns = pb.constraints.new('LIMIT_LOCATION')
             cns.owner_space = 'LOCAL'
             for idx,limit in enumerate(limits):
                 if limit is not None:
                     mind, maxd = limit
-                    if self.flipped:
+                    if self.flipped[n]:
                         tmp = mind
                         mind = -maxd
                         maxd = -tmp
+                    xyz = self.IndexComp[idx]
                     setattr(cns, "use_min_%s" % xyz, True)
                     setattr(cns, "use_max_%s" % xyz, True)
                     setattr(cns, "min_%s" % xyz, mind*LS.scale)

@@ -502,7 +502,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if ob:
-            box.label(text = "Information About Active Object: %s" % ob.type)
+            box.label(text = "Active Object: %s" % ob.type)
             box.prop(ob, "name")
             box.prop(ob, "DazId")
             box.prop(ob, "DazUrl")
@@ -510,13 +510,33 @@ class DAZ_PT_Utils(bpy.types.Panel):
             box.prop(ob, "DazMesh")
             box.prop(ob, "DazScale")
         else:
-            box.label(text = "No active object")
+            box.label(text = "No active object")         
         layout.separator()
+        pb = context.active_pose_bone
+        box = layout.box()
+        if pb:
+            box.label(text = "Active Bone: %s" % pb.bone.name)
+            self.propRow(box, pb.bone, "DazHead")
+            self.propRow(box, pb.bone, "DazTail")
+            self.propRow(box, pb.bone, "DazOrientation")
+            self.propRow(box, pb, "DazRotMode")
+            self.propRow(box, pb, "DazLocLocks")
+            self.propRow(box, pb, "DazRotLocks")
+        else:
+            box.label(text = "No active bone")          
+        
         layout.operator("daz.print_statistics")
         layout.operator("daz.get_finger_print")
         layout.operator("daz.inspect_prop_groups")
         layout.operator("daz.inspect_prop_dependencies")
 
+    def propRow(self, layout, rna, prop):
+        row = layout.row()
+        row.label(text=prop[3:])
+        attr = getattr(rna, prop) 
+        for n in range(3):
+            row.label(text=str(attr[n]))
+        
 
 class DAZ_PT_Posing(bpy.types.Panel):
     bl_label = "Posing"
