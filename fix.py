@@ -171,6 +171,88 @@ class Fixer:
                         checkDriverBone(rig, skeys, 'key_blocks["%s"].value' % (skey.name))
 
 #-------------------------------------------------------------
+#   Constraints class
+#-------------------------------------------------------------
+
+class LimitRotation:
+    def __init__(self, cns):
+        self.type = "LIMIT_ROTATION"
+        self.name = cns.name
+        self.use = [cns.use_limit_x, cns.use_limit_y, cns.use_limit_z]
+        self.min = [cns.min_x, cns.min_y, cns.min_z]
+        self.max = [cns.max_x, cns.max_y, cns.max_z]
+        self.owner_space = cns.owner_space
+        
+    def restore(self, pb):
+        cns = pb.constraints.new("LIMIT_ROTATION")
+        cns.name = self.name
+        cns.use_limit_x, cns.use_limit_y, cns.use_limit_z = self.use
+        cns.min_x, cns.min_y, cns.min_z = self.min
+        cns.max_x, cns.max_y, cns.max_z = self.max
+        cns.owner_space = self.owner_space
+            
+    
+class LimitLocation:
+    def __init__(self, cns):
+        self.type = "LIMIT_LOCATION"
+        self.name = cns.name
+        self.use_min = [cns.use_min_x, cns.use_min_y, cns.use_min_z]
+        self.use_max = [cns.use_max_x, cns.use_max_y, cns.use_max_z]
+        self.min = [cns.min_x, cns.min_y, cns.min_z]
+        self.max = [cns.max_x, cns.max_y, cns.max_z]
+        self.owner_space = cns.owner_space
+        
+    def restore(self, pb):
+        cns = pb.constraints.new("LIMIT_LOCATION")
+        cns.name = self.name
+        cns.use_min_x, cns.use_min_y, cns.use_min_z = self.use_min
+        cns.use_max_x, cns.use_max_y, cns.use_max_z = self.use_max
+        cns.min_x, cns.min_y, cns.min_z = self.min
+        cns.max_x, cns.max_y, cns.max_z = self.max
+        cns.owner_space = self.owner_space
+            
+    
+class LimitConstraints:        
+    def storeLimitConstraints(self, key, pb):
+        clist = []
+        for cns in pb.constraints:
+            if cns.type == "LIMIT_ROTATION":            
+                clist.append(LimitRotation(cns))
+            elif cns.type == "LIMIT_LOCATION":            
+                clist.append(LimitLocation(cns))
+        if clist:
+            self.constraints[key] = clist
+            
+            
+    def storeAllLimitConstraints(self, rig):
+        for pb in rig.pose.bones:
+            self.storeLimitConstraints(pb.name, pb)
+            self.removeLimitConstraints(pb)
+            
+
+    def restoreAllLimitConstraints(self, rig):
+        for key,clist in self.constraints.items():
+            if key[-2] == ".":
+                bname = key[:-2] + ".fk" + key[-2:]
+                if bname not in rig.pose.bones.keys():
+                    bname = key
+            else:
+                bname = key
+            #print("RESTO", key, bname)
+            pb = rig.pose.bones[bname]
+            if pb.rotation_mode == 'QUATERNION':
+                continue
+            for cns in clist:
+                cns.restore(pb)
+
+
+    def removeLimitConstraints(self, pb):            
+        for cns in list(pb.constraints):
+            if cns.type in ["LIMIT_ROTATION", "LIMIT_LOCATION"]:
+                #print("REM", pb.name, cns.name)
+                pb.constraints.remove(cns)
+
+#-------------------------------------------------------------
 #   BendTwist class
 #-------------------------------------------------------------
 
@@ -199,6 +281,10 @@ class BendTwists:
                 continue
             pb = rig.pose.bones[bendname]
             rotmodes[bname] = pb.DazRotMode
+            self.storeLimitConstraints(bname, pb)
+            self.removeLimitConstraints(pb)
+            pb = rig.pose.bones[twistname]
+            self.removeLimitConstraints(pb)
     
         bpy.ops.object.mode_set(mode='EDIT')
         for bname,tname in self.BendTwists:

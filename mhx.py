@@ -79,8 +79,6 @@ def fkLayers():
 #   (mhx, genesis, layer)
 #-------------------------------------------------------------
 
-Sacred = ["root", "hips", "spine"]
-
 MhxSkeleton = [
     ("root", "hip", L_MAIN),
     ("hips", "pelvis", L_SPINE),
@@ -200,322 +198,6 @@ MhxSkeleton = [
     ("small_toe_3.02.R", "rSmallToe3_2", L_RTOE),
     ("small_toe_4.02.R", "rSmallToe4_2", L_RTOE),
 ]
-
-MhxBreastBones = [
-    ("breast.L", "lPectoral", L_LEXTRA),
-    ("breast.R", "rPectoral", L_REXTRA),
-]
-
-MhxDrivenParents = {
-    "lowerFaceRig" :    "lowerJaw",
-    "lowerTeethDrv" :   "lowerJaw",
-    "tongue01Drv" :     "lowerTeeth",
-    }
-
-
-def rename2Mhx(rig, skeleton):
-    from .driver import isBoneDriven
-    fixed = []
-    faceLayer = L_FACE*[False] + [True] + (31-L_FACE)*[False]
-    clothesLayer = L_CLOTHES*[False] + [True] + (31-L_CLOTHES)*[False]
-    helpLayer = L_HELP*[False] + [True] + (31-L_HELP)*[False]
-    deformLayer = 31*[False] + [True]
-
-    bpy.ops.object.mode_set(mode='EDIT')
-    for bname,pname in MhxDrivenParents.items():
-        if (bname in rig.data.edit_bones.keys() and
-            pname in rig.data.edit_bones.keys()):
-            eb = rig.data.edit_bones[bname]
-            parb = rig.data.edit_bones[pname]
-            eb.parent = parb
-            eb.layers = helpLayer
-            fixed.append(bname)
-
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for bone in rig.data.bones:
-        if bone.name in Sacred:
-            bone.name = bone.name + ".1"
-
-    for mname,dname,layer in skeleton:
-        if dname in rig.data.bones.keys():
-            bone = rig.data.bones[dname]
-            bone.name = mname
-            bone.layers = layer*[False] + [True] + (31-layer)*[False]
-            fixed.append(mname)
-
-    for pb in rig.pose.bones:
-        bname = pb.name
-        lname = bname.lower()
-        if bname in fixed:
-            pass
-        elif bname[-3:] == "Drv" or isBoneDriven(rig, pb):
-            pb.bone.layers = helpLayer
-        elif (pb.parent and
-              pb.parent.name[-3:] == "Drv"):
-            pb.bone.layers = faceLayer
-            pb.lock_location = (False,False,False)
-        elif ("tongue" in lname):
-            pb.bone.layers = faceLayer
-        elif not (pb.bone.layers[L_LEXTRA] or pb.bone.layers[L_REXTRA]):
-            mname = bname[0].lower() + bname[1:]
-            if len(bname) > 1 and bname[1].isupper():
-                if bname[0] == "l":
-                    mname = bname[1].lower() + bname[2:] + ".L"
-                elif bname[0] == "r":
-                    mname = bname[1].lower() + bname[2:] + ".R"
-            if pb.bone.layers[L_FACE]:
-                pb.bone.layers = faceLayer
-            else:
-                pb.bone.layers = clothesLayer
-            pb.lock_location = (False,False,False)
-
-#-------------------------------------------------------------
-#   FK/IK
-#-------------------------------------------------------------
-
-MhxFkIk = {
-    ("thigh.L", "shin.L", "foot.L"),
-    ("upper_arm.L", "forearm.L", "toe.L"),
-    ("thigh.R", "shin.R", "foot.R"),
-    ("upper_arm.R", "forearm.R", "toe.R"),
-}
-
-def setupFkIk(rig, fkik):
-    bpy.ops.object.mode_set(mode='EDIT')
-    root = rig.data.edit_bones["root"]
-    head = rig.data.edit_bones["head"]
-    for suffix,dlayer in [(".L",0), (".R",16)]:
-        upper_arm = setLayer("upper_arm"+suffix, rig, L_HELP)
-        forearm = setLayer("forearm"+suffix, rig, L_HELP)
-        hand0 = setLayer("hand"+suffix, rig, L_DEF)
-        hand0.name = "hand0"+suffix
-        vec = forearm.tail - forearm.head
-        vec.normalize()
-        tail = hand0.head + vec*hand0.length
-        roll = normalizeRoll(forearm.roll + 90*D)
-        if abs(roll - hand0.roll) > 180*D:
-            roll = normalizeRoll(roll + 180*D)
-        hand = makeBone("hand"+suffix, rig, hand0.head, tail, roll, L_HELP, forearm)
-        hand0.use_connect = False
-        hand0.parent = hand
-
-        size = 10*rig.DazScale
-        armSocket = makeBone("arm_socket"+suffix, rig, upper_arm.head, upper_arm.head+Vector((0,0,size)), 0, L_TWEAK, upper_arm.parent)
-        armParent = deriveBone("arm_parent"+suffix, armSocket, rig, L_HELP, root)
-        upper_arm.parent = armParent
-        rig.data.edit_bones["upper_arm-1"+suffix].parent = armParent
-
-        upper_armFk = deriveBone("upper_arm.fk"+suffix, upper_arm, rig, L_LARMFK+dlayer, armParent)
-        forearmFk = deriveBone("forearm.fk"+suffix, forearm, rig, L_LARMFK+dlayer, upper_armFk)
-        handFk = deriveBone("hand.fk"+suffix, hand, rig, L_LARMFK+dlayer, forearmFk)
-        upper_armIk = deriveBone("upper_arm.ik"+suffix, upper_arm, rig, L_HELP2, armParent)
-        forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
-        handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
-        hand0Ik = deriveBone("hand0.ik"+suffix, hand, rig, L_HELP2, forearmIk)
-
-        size = 5*rig.DazScale
-        vec = upper_arm.matrix.to_3x3().col[2]
-        vec.normalize()
-        locElbowPt = forearm.head - 15*rig.DazScale*vec
-        elbowPt = makeBone("elbow.pt.ik"+suffix, rig, locElbowPt, locElbowPt+Vector((0,0,size)), 0, L_LARMIK+dlayer, upper_arm.parent)
-        elbowLink = makeBone("elbow.link"+suffix, rig, forearm.head, locElbowPt, 0, L_LARMIK+dlayer, upper_armIk)
-        elbowLink.hide_select = True
-
-        thigh = setLayer("thigh"+suffix, rig, L_HELP)
-        shin = setLayer("shin"+suffix, rig, L_HELP)
-        foot = setLayer("foot"+suffix, rig, L_HELP)
-        toe = setLayer("toe"+suffix, rig, L_HELP)
-        foot.tail = toe.head
-
-        size = 10*rig.DazScale
-        legSocket = makeBone("leg_socket"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_TWEAK, thigh.parent)
-        legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, root)
-        thigh.parent = legParent
-        rig.data.edit_bones["thigh-1"+suffix].parent = legParent
-
-        thighFk = deriveBone("thigh.fk"+suffix, thigh, rig, L_LLEGFK+dlayer, thigh.parent)
-        shinFk = deriveBone("shin.fk"+suffix, shin, rig, L_LLEGFK+dlayer, thighFk)
-        footFk = makeBone("foot.fk"+suffix, rig, foot.head, foot.tail, foot.roll, L_LLEGFK+dlayer, shinFk)
-        footFk.layers[L_LEXTRA+dlayer] = True
-        toeFk = deriveBone("toe.fk"+suffix, toe, rig, L_LLEGFK+dlayer, footFk)
-        toeFk.layers[L_LEXTRA+dlayer] = True
-        thighIk = deriveBone("thigh.ik"+suffix, thigh, rig, L_HELP2, thigh.parent)
-        shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
-
-        if "heel"+suffix in rig.data.edit_bones.keys():
-            heel = rig.data.edit_bones["heel"+suffix]
-            locFootIk = (foot.head[0], heel.tail[1], toe.tail[2])
-        else:
-            locFootIk = (foot.head[0], foot.head[1], toe.tail[2])
-        footIk = makeBone("foot.ik"+suffix, rig, locFootIk, toe.tail, 0, L_LLEGIK+dlayer, None)
-        toeRev = makeBone("toe.rev"+suffix, rig, toe.tail, toe.head, 0, L_LLEGIK+dlayer, footIk)
-        footRev = makeBone("foot.rev"+suffix, rig, toe.head, foot.head, 0, L_LLEGIK+dlayer, toeRev)
-        locAnkle = foot.head + Vector((0,3*size,0))
-        ankle = makeBone("ankle"+suffix, rig, foot.head, locAnkle, 0, L_LEXTRA+dlayer, None)
-        ankleIk = makeBone("ankle.ik"+suffix, rig, foot.head, locAnkle, 0, L_HELP2, footRev)
-
-        vec = thigh.matrix.to_3x3().col[2]
-        vec.normalize()
-        locKneePt = shin.head - 15*rig.DazScale*vec
-        kneePt = makeBone("knee.pt.ik"+suffix, rig, locKneePt, locKneePt+Vector((0,0,size)), 0, L_LLEGIK+dlayer, ankleIk)
-        kneePt.layers[L_LEXTRA+dlayer] = True
-        kneeLink = makeBone("knee.link"+suffix, rig, shin.head, locKneePt, 0, L_LLEGIK+dlayer, thighIk)
-        kneeLink.layers[L_LEXTRA+dlayer] = True
-        kneeLink.hide_select = True
-
-        for bname,parent in [
-                ("foot",footRev),
-                ("toe", toeRev)]:
-            eb = rig.data.edit_bones[bname+suffix]
-            locPt = eb.tail + size*eb.matrix.to_3x3().col[2]
-            pt = makeBone("%s.pt.ik%s"%(bname,suffix), rig, locPt, locPt+Vector((0,0,size)), 0, L_HELP2, parent)
-
-        prefix = suffix[1].lower()
-        eye = rig.data.edit_bones[prefix + "Eye"]
-        vec = eye.tail-eye.head
-        vec.normalize()
-        loc = eye.head + vec*rig.DazScale*30
-        gaze = makeBone("gaze"+suffix, rig, loc, loc+Vector((0,5*rig.DazScale,0)), 0, L_HEAD, None)
-
-    lgaze = rig.data.edit_bones["gaze.L"]
-    rgaze = rig.data.edit_bones["gaze.R"]
-    loc = (lgaze.head + rgaze.head)/2
-    gaze0 = makeBone("gaze0", rig, loc, loc+Vector((0,15*rig.DazScale,0)), 0, L_HELP, head)
-    gaze1 = deriveBone("gaze1", gaze0, rig, L_HELP, None)
-    gaze = deriveBone("gaze", gaze0, rig, L_HEAD, gaze1)
-    lgaze.parent = gaze
-    rgaze.parent = gaze
-
-    from .figure import copyBoneInfo
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for suffix in [".L", ".R"]:
-        for bname in ["upper_arm", "forearm", "hand",
-                      "thigh", "shin", "foot", "toe"]:
-            bone = rig.data.bones[bname+suffix]
-            fkbone = rig.data.bones[bname+".fk"+suffix]
-            copyBoneInfo(bone, fkbone)
-
-    bpy.ops.object.mode_set(mode='POSE')
-    rpbs = rig.pose.bones
-    for bname in ["root", "hips"]:
-        pb = rpbs[bname]
-        pb.rotation_mode = 'YZX'
-
-    for suffix in [".L", ".R"]:
-        for bname in ["shin", "shin.fk", "shin.ik",
-                      "forearm", "forearm.fk", "forearm.ik",
-                      "hand", "hand.fk", "hand.ik",
-                      "foot", "foot.fk", "toe", "toe.fk",
-                      "foot.rev", "toe.rev",
-                      "breast",
-                      ]:
-            if bname+suffix in rpbs.keys():
-                pb = rpbs[bname+suffix]
-                pb.rotation_mode = 'YZX'
-
-        armSocket = rpbs["arm_socket"+suffix]
-        armParent = rpbs["arm_parent"+suffix]
-        upper_arm = rpbs["upper_arm"+suffix]
-        forearm = rpbs["forearm"+suffix]
-        hand = rpbs["hand"+suffix]
-        upper_armFk = getBoneCopy("upper_arm.fk"+suffix, upper_arm, rpbs)
-        forearmFk = getBoneCopy("forearm.fk"+suffix, forearm, rpbs)
-        handFk = getBoneCopy("hand.fk"+suffix, hand, rpbs)
-        upper_armIk = rpbs["upper_arm.ik"+suffix]
-        forearmIk = rpbs["forearm.ik"+suffix]
-        handIk = rpbs["hand.ik"+suffix]
-        hand0Ik = rpbs["hand0.ik"+suffix]
-        elbowPt = rpbs["elbow.pt.ik"+suffix]
-        elbowLink = rpbs["elbow.link"+suffix]
-
-        prop = "MhaArmHinge_" + suffix[1]
-        setattr(rig, prop, 0.0)
-        copyTransform(armParent, None, armSocket, rig, prop, "1-x")
-        copyLocation(armParent, armSocket, rig, prop, "x")
-
-        prop = "MhaArmIk_"+suffix[1]
-        setattr(rig, prop, 0.0)
-        copyTransform(upper_arm, upper_armFk, upper_armIk, rig, prop)
-        copyTransform(forearm, forearmFk, forearmIk, rig, prop)
-        copyTransform(hand, handFk, hand0Ik, rig, prop)
-        copyTransform(hand0Ik, handIk, None, rig, prop)
-        hintRotation(forearmIk)
-        ikConstraint(forearmIk, handIk, elbowPt, -90, 2, rig)
-        stretchTo(elbowLink, elbowPt, rig)
-
-        yTrue = (False,True,False)
-        copyRotation(forearm, handFk, yTrue, rig)
-        copyRotation(forearm, hand0Ik, yTrue, rig, prop)
-        forearmFk.lock_rotation = yTrue
-
-        legSocket = rpbs["leg_socket"+suffix]
-        legParent = rpbs["leg_parent"+suffix]
-        thigh = rpbs["thigh"+suffix]
-        shin = rpbs["shin"+suffix]
-        foot = rpbs["foot"+suffix]
-        toe = rpbs["toe"+suffix]
-        ankle = rpbs["ankle"+suffix]
-        ankleIk = rpbs["ankle.ik"+suffix]
-        thighFk = getBoneCopy("thigh.fk"+suffix, thigh, rpbs)
-        shinFk = getBoneCopy("shin.fk"+suffix, shin, rpbs)
-        footFk = getBoneCopy("foot.fk"+suffix, foot, rpbs)
-        toeFk = getBoneCopy("toe.fk"+suffix, toe, rpbs)
-        thighIk = rpbs["thigh.ik"+suffix]
-        shinIk = rpbs["shin.ik"+suffix]
-        kneePt = rpbs["knee.pt.ik"+suffix]
-        kneeLink = rpbs["knee.link"+suffix]
-        footIk = rpbs["foot.ik"+suffix]
-        toeRev = rpbs["toe.rev"+suffix]
-        footRev = rpbs["foot.rev"+suffix]
-        footPt = rpbs["foot.pt.ik"+suffix]
-        toePt = rpbs["toe.pt.ik"+suffix]
-
-        prop = "MhaLegHinge_" + suffix[1]
-        setattr(rig, prop, 0.0)
-        copyTransform(legParent, None, legSocket, rig, prop, "1-x")
-        copyLocation(legParent, legSocket, rig, prop, "x")
-
-        prop1 = "MhaLegIk_"+suffix[1]
-        setattr(rig, prop1, 0.0)
-        prop2 = "MhaLegIkToAnkle_"+suffix[1]
-        setattr(rig, prop2, False)
-
-        footRev.lock_rotation = (False,True,True)
-
-        copyTransform(thigh, thighFk, thighIk, rig, prop1)
-        copyTransform(shin, shinFk, shinIk, rig, prop1)
-        copyTransform(foot, footFk, None, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
-        copyTransform(toe, toeFk, None, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
-        hintRotation(shinIk)
-        ikConstraint(shinIk, ankleIk, kneePt, -90, 2, rig)
-        stretchTo(kneeLink, kneePt, rig)
-        cns = copyLocation(footFk, ankleIk, rig, (prop1,prop2), "x1*x2")
-        cns.influence = 0
-        ikConstraint(foot, footRev, footPt, 90, 1, rig, (prop1,prop2), "x1*(1-x2)")
-        cns = copyLocation(toe, footRev, rig, (prop1,prop2), "x1*(1-x2)")
-        cns.influence = 0
-        ikConstraint(toe, toeRev, toePt, 90, 1, rig, (prop1,prop2), "x1*(1-x2)")
-        cns = copyLocation(ankleIk, ankle, rig, prop2)
-        cns.influence = 0
-
-        prop = "MhaGaze_" + suffix[1]
-        setattr(rig, prop, False)
-        prefix = suffix[1].lower()
-        eye = rpbs[prefix+"Eye"]
-        gaze = rpbs["gaze"+suffix]
-        trackTo(eye, gaze, rig, prop)
-
-        lockLocations([upper_armFk, forearmFk, handFk,
-                       upper_armIk, forearmIk, elbowLink,
-                       thighFk, shinFk, footFk, toeFk,
-                       thighIk, shinIk, kneeLink, footRev, toeRev,
-                       ])
-
-    prop = "DazGazeFollowsHead"
-    setattr(rig, prop, 0.0)
-    gaze0 = rpbs["gaze0"]
-    gaze1 = rpbs["gaze1"]
-    copyTransform(gaze1, None, gaze0, rig, prop)
 
 #-------------------------------------------------------------
 #
@@ -735,259 +417,6 @@ def getPropString(prop, x):
     else:
         return prop, x
 
-#-------------------------------------------------------------
-#   Gizmos
-#-------------------------------------------------------------
-
-MhxGizmos = {
-    "master" :          "GZM_Master",
-    "back" :            "GZM_Knuckle",
-
-    #Spine
-    "root" :            "GZM_CrownHips",
-    "hips" :            "GZM_CircleHips",
-    "spine" :           "GZM_CircleSpine",
-    "spine-1" :         "GZM_CircleSpine",
-    "chest" :           "GZM_CircleChest",
-    "chest-1" :         "GZM_CircleChest",
-    "neck" :            "GZM_Neck",
-    "neck-1" :          "GZM_Neck",
-    "head" :            "GZM_Head",
-    #"breast.L" :        "GZM_Breast_L",
-    #"breast.R" :        "GZM_Breast_R",
-
-    # Head
-
-    "lowerJaw" :        "GZM_Jaw",
-    "rEye" :            "GZM_Circle025",
-    "lEye" :            "GZM_Circle025",
-    "gaze" :            "GZM_Gaze",
-    "gaze.L" :          "GZM_Circle025",
-    "gaze.R" :          "GZM_Circle025",
-
-    "uplid.L" :         "GZM_UpLid",
-    "uplid.R" :         "GZM_UpLid",
-    "lolid.L" :         "GZM_LoLid",
-    "lolid.R" :         "GZM_LoLid",
-
-    "tongue_base" :     "GZM_Tongue",
-    "tongue_mid" :      "GZM_Tongue",
-    "tongue_tip" :      "GZM_Tongue",
-
-    # Leg
-
-    "thigh.fk.L" :      "GZM_Circle025",
-    "thigh.fk.R" :      "GZM_Circle025",
-    "shin.fk.L" :       "GZM_Circle025",
-    "shin.fk.R" :       "GZM_Circle025",
-    "foot.fk.L" :       "GZM_Foot_L",
-    "foot.fk.R" :       "GZM_Foot_R",
-    "toe.fk.L" :        "GZM_Toe_L",
-    "toe.fk.R" :        "GZM_Toe_R",
-    "leg_socket.L" :    "GZM_Ball025",
-    "leg_socket.R" :    "GZM_Ball025",
-    "foot.rev.L" :      "GZM_RevFoot",
-    "foot.rev.R" :      "GZM_RevFoot",
-    "foot.ik.L" :       "GZM_FootIK",
-    "foot.ik.R" :       "GZM_FootIK",
-    "toe.rev.L" :       "GZM_RevToe",
-    "toe.rev.R" :       "GZM_RevToe",
-    "ankle.L" :         "GZM_Ball025",
-    "ankle.R" :         "GZM_Ball025",
-    "knee.pt.ik.L" :    "GZM_Cube025",
-    "knee.pt.ik.R" :    "GZM_Cube025",
-
-    "toe.marker.L" :     "GZM_Ball025",
-    "ball.marker.L" :    "GZM_Ball025",
-    "heel.marker.L" :    "GZM_Ball025",
-    "toe.marker.R" :     "GZM_Ball025",
-    "ball.marker.R" :    "GZM_Ball025",
-    "heel.marker.R" :    "GZM_Ball025",
-
-
-    # Arm
-
-    "clavicle.L" :      "GZM_Shoulder",
-    "clavicle.R" :      "GZM_Shoulder",
-    "upper_arm.fk.L" :  "GZM_Circle025",
-    "upper_arm.fk.R" :  "GZM_Circle025",
-    "forearm.fk.L" :    "GZM_Circle025",
-    "forearm.fk.R" :    "GZM_Circle025",
-    "hand.fk.L" :       "GZM_Hand",
-    "hand.fk.R" :       "GZM_Hand",
-    "arm_socket.L" :    "GZM_Ball025",
-    "arm_socket.R" :    "GZM_Ball025",
-    "hand.ik.L" :       "GZM_HandIK",
-    "hand.ik.R" :       "GZM_HandIK",
-    "elbow.pt.ik.L" :   "GZM_Cube025",
-    "elbow.pt.ik.R" :   "GZM_Cube025",
-
-    # Finger
-
-    "thumb.L" :         "GZM_Knuckle",
-    "index.L" :         "GZM_Knuckle",
-    "middle.L" :        "GZM_Knuckle",
-    "ring.L" :          "GZM_Knuckle",
-    "pinky.L" :         "GZM_Knuckle",
-
-    "thumb.R" :         "GZM_Knuckle",
-    "index.R" :         "GZM_Knuckle",
-    "middle.R" :        "GZM_Knuckle",
-    "ring.R" :          "GZM_Knuckle",
-    "pinky.R" :         "GZM_Knuckle",
-}
-
-def makeGizmos(gnames, parent, hidden):
-    from .load_json import loadJson
-    folder = os.path.dirname(__file__)
-    filepath = os.path.join(folder, "data", "gizmos.json")
-    struct = loadJson(filepath)
-    gizmos = {}
-    if gnames is None:
-        gnames = struct.keys()
-    for gname in gnames:
-        gizmo = struct[gname]
-        me = bpy.data.meshes.new(gname)
-        me.from_pydata(gizmo["verts"], gizmo["edges"], [])
-        ob = bpy.data.objects.new(gname, me)
-        hidden.objects.link(ob)
-        ob.parent = parent
-        putOnHiddenLayer(ob)
-        if gizmo["subsurf"]:
-            ob.modifiers.new('SUBSURF', 'SUBSURF')
-        gizmos[gname] = ob
-    return gizmos
-
-
-def addGizmos(rig, context):
-    hidden = createHiddenCollection(context)
-    bpy.ops.object.mode_set(mode='OBJECT')
-    empty = bpy.data.objects.new("Gizmos", None)
-    hidden.objects.link(empty)
-    empty.parent = rig
-    putOnHiddenLayer(empty)
-    gizmos = makeGizmos(None, empty, hidden)
-    for bname,gname in MhxGizmos.items():
-        if (bname in rig.pose.bones.keys() and
-            gname in gizmos.keys()):
-            gizmo = gizmos[gname]
-            pb = rig.pose.bones[bname]
-            pb.custom_shape = gizmo
-            pb.bone.show_wire = True
-
-#-------------------------------------------------------------
-#   Spine
-#-------------------------------------------------------------
-
-def addBack(rig):
-    bpy.ops.object.mode_set(mode='EDIT')
-    spine = rig.data.edit_bones["spine"]
-    chest = rig.data.edit_bones["chest"]
-    makeBone("back", rig, spine.head, chest.tail, 0, L_MAIN, spine.parent)
-
-    bpy.ops.object.mode_set(mode='POSE')
-    back = rig.pose.bones["back"]
-    for bname in ["spine", "spine-1", "chest", "chest-1"]:
-        if bname in rig.pose.bones.keys():
-            pb = rig.pose.bones[bname]
-            cns = copyRotation(pb, back, (True,True,True), rig)
-            cns.use_offset = True
-
-#-------------------------------------------------------------
-#   Fingers
-#-------------------------------------------------------------
-
-FingerNames = ["thumb", "index", "middle", "ring", "pinky"]
-PalmNames = ["thumb", "index", "index", "middle", "middle"]
-
-def linkName(m, n, suffix):
-    if m == 0:
-        fname = "thumb"
-    else:
-        fname = "f_" + FingerNames[m]
-    return ("%s.0%d%s" % (fname, n+1, suffix))
-
-
-def longName(m, suffix):
-    return ("%s%s" % (FingerNames[m], suffix))
-
-
-def palmName(m, suffix, palmnames):
-    return ("palm_%s%s" % (palmnames[m], suffix))
-
-
-def addLongFingers(rig, palmnames):
-
-    for suffix,dlayer in [(".L",0), (".R",16)]:
-        prop = "MhaFingerControl_" + suffix[1]
-        setattr(rig, prop, 1.0)
-
-        bpy.ops.object.mode_set(mode='EDIT')
-        for m in range(5):
-            if m == 0:
-                fing1 = rig.data.edit_bones[linkName(0, 1, suffix)]
-                palm = rig.data.edit_bones[linkName(0, 0, suffix)]
-            else:
-                fing1 = rig.data.edit_bones[linkName(m, 0, suffix)]
-                palm = rig.data.edit_bones[palmName(m, suffix, palmnames)]
-            fing3 = rig.data.edit_bones[linkName(m, 2, suffix)]
-            makeBone(longName(m, suffix), rig, fing1.head, fing3.tail, fing1.roll, L_LHAND+dlayer, palm)
-
-        bpy.ops.object.mode_set(mode='POSE')
-        thumb1 = rig.data.bones[linkName(0, 0, suffix)]
-        thumb1.layers[L_LHAND+dlayer] = True
-        for m in range(5):
-            if m == 0:
-                n0 = 1
-            else:
-                n0 = 0
-            long = rig.pose.bones[longName(m, suffix)]
-            long.lock_location = (True,True,True)
-            long.lock_rotation = (False,True,False)
-            fing = rig.pose.bones[linkName(m, n0, suffix)]
-            fing.lock_rotation = (False,True,False)
-            long.rotation_mode = fing.rotation_mode
-            cns = copyRotation(fing, long, (True,False,True), rig, prop)
-            cns.use_offset = True
-            for n in range(n0+1,3):
-                fing = rig.pose.bones[linkName(m, n, suffix)]
-                fing.lock_rotation = (False,True,True)
-                cns = copyRotation(fing, long, (True,False,False), rig, prop)
-                cns.use_offset = True
-
-#-------------------------------------------------------------
-#   Markers
-#-------------------------------------------------------------
-
-def addMarkers(rig):
-    for suffix in [".L", ".R"]:
-        bpy.ops.object.mode_set(mode='EDIT')
-        foot = rig.data.edit_bones["foot"+suffix]
-        toe = rig.data.edit_bones["toe"+suffix]
-        offs = Vector((0, 0, 0.5*toe.length))
-        if "heel"+suffix in rig.data.edit_bones.keys():
-            heelTail = rig.data.edit_bones["heel"+suffix].tail
-        else:
-            heelTail = Vector((foot.head[0], foot.head[1], toe.head[2]))
-
-        ballLoc = Vector((toe.head[0], toe.head[1], heelTail[2]))
-        mBall = makeBone("ball.marker"+suffix, rig, ballLoc, ballLoc+offs, 0, L_TWEAK, foot)
-        toeLoc = Vector((toe.tail[0], toe.tail[1], heelTail[2]))
-        mToe = makeBone("toe.marker"+suffix, rig, toeLoc, toeLoc+offs, 0, L_TWEAK, toe)
-        mHeel = makeBone("heel.marker"+suffix, rig, heelTail, heelTail+offs, 0, L_TWEAK, foot)
-
-
-#-------------------------------------------------------------
-#   Master bone
-#-------------------------------------------------------------
-
-def addMaster(rig):
-    bpy.ops.object.mode_set(mode='EDIT')
-    root = rig.data.edit_bones["root"]
-    master = makeBone("master", rig, (0,0,0), (0,root.head[2]/5,0), 0, L_MAIN, None)
-    for eb in rig.data.edit_bones:
-        if eb.parent is None and eb != master:
-            eb.parent = master
 
 #-------------------------------------------------------------
 #   Move all deform bones to layer 31
@@ -1053,60 +482,17 @@ def applyBoneChildren(context, rig):
             clearParent(ob)
     return bchildren
 
-
-def restoreBoneChildren(bchildren, context, rig, skeleton):
-    from .node import setParent
-    layers = list(rig.data.layers)
-    rig.data.layers = 32*[True]
-    for (ob, bname) in bchildren:
-        bone = getMhxBone(rig, bname, skeleton)
-        if bone:
-            setParent(context, ob, rig, bone.name)
-        else:
-            print("Could not restore bone parent for %s", ob.name)
-    rig.data.layers = layers
-
-
-def getMhxBone(rig, bname, skeleton):
-    if bname in rig.data.bones.keys():
-        return rig.data.bones[bname]
-    for mname,dname,_ in skeleton:
-        if dname == bname:
-            if mname[-2] == ".":
-                if mname[-6:-2] == "Bend":
-                    mname = mname[:-6] + "-1" + mname[-2:]
-                elif mname[-7:-2] == "Twist":
-                    mname = mname[:-7] + "-2" + mname[-2:]
-            if mname in rig.data.bones.keys():
-                return rig.data.bones[mname]
-            else:
-                print("Missing MHX bone:", bname, mname)
-    return None
-
 #-------------------------------------------------------------
-#   Convert to MHX
+#   Convert to MHX button
 #-------------------------------------------------------------
 
-def fixGenesis2Problems(rig):
-    bpy.ops.object.mode_set(mode = 'EDIT')
-    rebs = rig.data.edit_bones
-    for suffix in [".L", ".R"]:
-        foot = rebs["foot"+suffix]
-        toe = rebs["toe"+suffix]
-        heel = rebs.new("heel"+suffix)
-        heel.parent = foot.parent
-        heel.head = foot.head
-        heel.tail = (toe.head[0], 1.5*foot.head[1]-0.5*toe.head[1], toe.head[2])
-        heel.layers = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
+from .fix import LimitConstraints, BendTwists, Fixer
 
-from .fix import BendTwists, Fixer
-
-class DAZ_OT_ConvertMhx(DazOperator, BendTwists, Fixer, IsArmature):
+class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArmature):
     bl_idname = "daz.convert_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
     bl_options = {'UNDO'}
-
     
     BendTwists = [
         ("thigh.L", "shin.L"),
@@ -1133,9 +519,22 @@ class DAZ_OT_ConvertMhx(DazOperator, BendTwists, Fixer, IsArmature):
         ("thigh-1.R", "thighBend.R"),
     ]
     
+    Sacred = ["root", "hips", "spine"]
+
+    BreastBones = [
+        ("breast.L", "lPectoral", L_LEXTRA),
+        ("breast.R", "rPectoral", L_REXTRA),
+    ]
+
+    DrivenParents = {
+        "lowerFaceRig" :    "lowerJaw",
+        "lowerTeethDrv" :   "lowerJaw",
+        "tongue01Drv" :     "lowerTeeth",
+    }
+
+    
     def run(self, context):
         from .merge import reparentToes
-        from .rigify import fixCarpals
         rig = context.object
         scn = context.scene
         gen2 = None
@@ -1144,43 +543,47 @@ class DAZ_OT_ConvertMhx(DazOperator, BendTwists, Fixer, IsArmature):
                 gen2 = ob
                 break
     
-        skeleton = MhxSkeleton
+        self.skeleton = MhxSkeleton
         if rig.data.DazExtraDrivenBones:
-            skeleton += MhxBreastBones
+            self.skeleton += self.BreastBones
     
+        self.constraints = {}
         rig.data.layers = 32*[True]
         bchildren = applyBoneChildren(context, rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
             connectToParent(rig)
             reparentToes(rig, context)
-            rename2Mhx(rig, skeleton)
+            self.rename2Mhx(rig)
             self.joinBendTwists(rig, {}, False)
             self.fixKnees(rig)
             self.fixHands(rig)
+            self.storeAllLimitConstraints(rig)
             self.createBendTwists(rig)
             self.fixCorrectives(rig)
         elif rig.DazRig in ["genesis1", "genesis2"]:
-            fixPelvis(rig)
-            fixCarpals(rig)
+            self.fixPelvis(rig)
+            self.fixCarpals(rig)
             connectToParent(rig)
             reparentToes(rig, context)
-            rename2Mhx(rig, skeleton)
-            fixGenesis2Problems(rig)
+            self.rename2Mhx(rig)
+            self.fixGenesis2Problems(rig)
             self.fixKnees(rig)
             self.fixHands(rig)
+            self.storeAllLimitConstraints(rig)
             self.createBendTwists(rig)
             self.fixCorrectives(rig)
         else:
             raise DazError("Cannot convert %s to Mhx" % rig.name)
     
         self.constrainBendTwists(rig)
-        addLongFingers(rig, FingerNames)
-        addBack(rig)
-        setupFkIk(rig, MhxFkIk)
+        self.addLongFingers(rig)
+        self.addBack(rig)
+        self.setupFkIk(rig)
         addLayers(rig)
-        addMarkers(rig)
-        addMaster(rig)
-        addGizmos(rig, context)
+        self.addMarkers(rig)
+        self.addMaster(rig)
+        self.addGizmos(rig, context)
+        self.restoreAllLimitConstraints(rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
             self.fixCustomShape(rig, ["head"], 4)
         collectDeformBones(rig)
@@ -1199,10 +602,617 @@ class DAZ_OT_ConvertMhx(DazOperator, BendTwists, Fixer, IsArmature):
             if pb.custom_shape:
                 pb.bone.show_wire = True
     
-        restoreBoneChildren(bchildren, context, rig, skeleton)
+        self.restoreBoneChildren(bchildren, context, rig)
         self.checkCorrectives(rig)
         doHardUpdate(context, rig)
 
+
+    def fixGenesis2Problems(self, rig):
+        bpy.ops.object.mode_set(mode = 'EDIT')
+        rebs = rig.data.edit_bones
+        for suffix in [".L", ".R"]:
+            foot = rebs["foot"+suffix]
+            toe = rebs["toe"+suffix]
+            heel = rebs.new("heel"+suffix)
+            heel.parent = foot.parent
+            heel.head = foot.head
+            heel.tail = (toe.head[0], 1.5*foot.head[1]-0.5*toe.head[1], toe.head[2])
+            heel.layers = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
+
+    #-------------------------------------------------------------
+    #   Rename bones
+    #-------------------------------------------------------------
+
+    def rename2Mhx(self, rig):
+        from .driver import isBoneDriven
+        fixed = []
+        faceLayer = L_FACE*[False] + [True] + (31-L_FACE)*[False]
+        clothesLayer = L_CLOTHES*[False] + [True] + (31-L_CLOTHES)*[False]
+        helpLayer = L_HELP*[False] + [True] + (31-L_HELP)*[False]
+        deformLayer = 31*[False] + [True]
+    
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname,pname in self.DrivenParents.items():
+            if (bname in rig.data.edit_bones.keys() and
+                pname in rig.data.edit_bones.keys()):
+                eb = rig.data.edit_bones[bname]
+                parb = rig.data.edit_bones[pname]
+                eb.parent = parb
+                eb.layers = helpLayer
+                fixed.append(bname)
+    
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for bone in rig.data.bones:
+            if bone.name in self.Sacred:
+                bone.name = bone.name + ".1"
+    
+        for mname,dname,layer in self.skeleton:
+            if dname in rig.data.bones.keys():
+                bone = rig.data.bones[dname]
+                bone.name = mname
+                bone.layers = layer*[False] + [True] + (31-layer)*[False]
+                fixed.append(mname)
+    
+        for pb in rig.pose.bones:
+            bname = pb.name
+            lname = bname.lower()
+            if bname in fixed:
+                pass
+            elif bname[-3:] == "Drv" or isBoneDriven(rig, pb):
+                pb.bone.layers = helpLayer
+            elif (pb.parent and
+                  pb.parent.name[-3:] == "Drv"):
+                pb.bone.layers = faceLayer
+                pb.lock_location = (False,False,False)
+            elif ("tongue" in lname):
+                pb.bone.layers = faceLayer
+            elif not (pb.bone.layers[L_LEXTRA] or pb.bone.layers[L_REXTRA]):
+                mname = bname[0].lower() + bname[1:]
+                if len(bname) > 1 and bname[1].isupper():
+                    if bname[0] == "l":
+                        mname = bname[1].lower() + bname[2:] + ".L"
+                    elif bname[0] == "r":
+                        mname = bname[1].lower() + bname[2:] + ".R"
+                if pb.bone.layers[L_FACE]:
+                    pb.bone.layers = faceLayer
+                else:
+                    pb.bone.layers = clothesLayer
+                pb.lock_location = (False,False,False)
+
+
+    def restoreBoneChildren(self, bchildren, context, rig):
+        from .node import setParent
+        layers = list(rig.data.layers)
+        rig.data.layers = 32*[True]
+        for (ob, bname) in bchildren:
+            bone = self.getMhxBone(rig, bname)
+            if bone:
+                setParent(context, ob, rig, bone.name)
+            else:
+                print("Could not restore bone parent for %s", ob.name)
+        rig.data.layers = layers
+    
+    
+    def getMhxBone(self, rig, bname):
+        if bname in rig.data.bones.keys():
+            return rig.data.bones[bname]
+        for mname,dname,_ in self.skeleton:
+            if dname == bname:
+                if mname[-2] == ".":
+                    if mname[-6:-2] == "Bend":
+                        mname = mname[:-6] + "-1" + mname[-2:]
+                    elif mname[-7:-2] == "Twist":
+                        mname = mname[:-7] + "-2" + mname[-2:]
+                if mname in rig.data.bones.keys():
+                    return rig.data.bones[mname]
+                else:
+                    print("Missing MHX bone:", bname, mname)
+        return None
+
+    #-------------------------------------------------------------
+    #   Gizmos
+    #-------------------------------------------------------------
+    
+    Gizmos = {
+        "master" :          "GZM_Master",
+        "back" :            "GZM_Knuckle",
+    
+        #Spine
+        "root" :            "GZM_CrownHips",
+        "hips" :            "GZM_CircleHips",
+        "spine" :           "GZM_CircleSpine",
+        "spine-1" :         "GZM_CircleSpine",
+        "chest" :           "GZM_CircleChest",
+        "chest-1" :         "GZM_CircleChest",
+        "neck" :            "GZM_Neck",
+        "neck-1" :          "GZM_Neck",
+        "head" :            "GZM_Head",
+        #"breast.L" :        "GZM_Breast_L",
+        #"breast.R" :        "GZM_Breast_R",
+    
+        # Head
+    
+        "lowerJaw" :        "GZM_Jaw",
+        "rEye" :            "GZM_Circle025",
+        "lEye" :            "GZM_Circle025",
+        "gaze" :            "GZM_Gaze",
+        "gaze.L" :          "GZM_Circle025",
+        "gaze.R" :          "GZM_Circle025",
+    
+        "uplid.L" :         "GZM_UpLid",
+        "uplid.R" :         "GZM_UpLid",
+        "lolid.L" :         "GZM_LoLid",
+        "lolid.R" :         "GZM_LoLid",
+    
+        "tongue_base" :     "GZM_Tongue",
+        "tongue_mid" :      "GZM_Tongue",
+        "tongue_tip" :      "GZM_Tongue",
+    
+        # Leg
+    
+        "thigh.fk.L" :      "GZM_Circle025",
+        "thigh.fk.R" :      "GZM_Circle025",
+        "shin.fk.L" :       "GZM_Circle025",
+        "shin.fk.R" :       "GZM_Circle025",
+        "foot.fk.L" :       "GZM_Foot_L",
+        "foot.fk.R" :       "GZM_Foot_R",
+        "toe.fk.L" :        "GZM_Toe_L",
+        "toe.fk.R" :        "GZM_Toe_R",
+        "leg_socket.L" :    "GZM_Ball025",
+        "leg_socket.R" :    "GZM_Ball025",
+        "foot.rev.L" :      "GZM_RevFoot",
+        "foot.rev.R" :      "GZM_RevFoot",
+        "foot.ik.L" :       "GZM_FootIK",
+        "foot.ik.R" :       "GZM_FootIK",
+        "toe.rev.L" :       "GZM_RevToe",
+        "toe.rev.R" :       "GZM_RevToe",
+        "ankle.L" :         "GZM_Ball025",
+        "ankle.R" :         "GZM_Ball025",
+        "knee.pt.ik.L" :    "GZM_Cube025",
+        "knee.pt.ik.R" :    "GZM_Cube025",
+    
+        "toe.marker.L" :     "GZM_Ball025",
+        "ball.marker.L" :    "GZM_Ball025",
+        "heel.marker.L" :    "GZM_Ball025",
+        "toe.marker.R" :     "GZM_Ball025",
+        "ball.marker.R" :    "GZM_Ball025",
+        "heel.marker.R" :    "GZM_Ball025",
+    
+    
+        # Arm
+    
+        "clavicle.L" :      "GZM_Shoulder",
+        "clavicle.R" :      "GZM_Shoulder",
+        "upper_arm.fk.L" :  "GZM_Circle025",
+        "upper_arm.fk.R" :  "GZM_Circle025",
+        "forearm.fk.L" :    "GZM_Circle025",
+        "forearm.fk.R" :    "GZM_Circle025",
+        "hand.fk.L" :       "GZM_Hand",
+        "hand.fk.R" :       "GZM_Hand",
+        "arm_socket.L" :    "GZM_Ball025",
+        "arm_socket.R" :    "GZM_Ball025",
+        "hand.ik.L" :       "GZM_HandIK",
+        "hand.ik.R" :       "GZM_HandIK",
+        "elbow.pt.ik.L" :   "GZM_Cube025",
+        "elbow.pt.ik.R" :   "GZM_Cube025",
+    
+        # Finger
+    
+        "thumb.L" :         "GZM_Knuckle",
+        "index.L" :         "GZM_Knuckle",
+        "middle.L" :        "GZM_Knuckle",
+        "ring.L" :          "GZM_Knuckle",
+        "pinky.L" :         "GZM_Knuckle",
+    
+        "thumb.R" :         "GZM_Knuckle",
+        "index.R" :         "GZM_Knuckle",
+        "middle.R" :        "GZM_Knuckle",
+        "ring.R" :          "GZM_Knuckle",
+        "pinky.R" :         "GZM_Knuckle",
+    }
+    
+    def makeGizmos(gnames, parent, hidden):
+        from .load_json import loadJson
+        folder = os.path.dirname(__file__)
+        filepath = os.path.join(folder, "data", "gizmos.json")
+        struct = loadJson(filepath)
+        gizmos = {}
+        if gnames is None:
+            gnames = struct.keys()
+        for gname in gnames:
+            gizmo = struct[gname]
+            me = bpy.data.meshes.new(gname)
+            me.from_pydata(gizmo["verts"], gizmo["edges"], [])
+            ob = bpy.data.objects.new(gname, me)
+            hidden.objects.link(ob)
+            ob.parent = parent
+            putOnHiddenLayer(ob)
+            if gizmo["subsurf"]:
+                ob.modifiers.new('SUBSURF', 'SUBSURF')
+            gizmos[gname] = ob
+        return gizmos
+    
+    
+    def addGizmos(self, rig, context):
+        hidden = createHiddenCollection(context)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        empty = bpy.data.objects.new("Gizmos", None)
+        hidden.objects.link(empty)
+        empty.parent = rig
+        putOnHiddenLayer(empty)
+        gizmos = makeGizmos(None, empty, hidden)
+        for bname,gname in self.Gizmos.items():
+            if (bname in rig.pose.bones.keys() and
+                gname in gizmos.keys()):
+                gizmo = gizmos[gname]
+                pb = rig.pose.bones[bname]
+                pb.custom_shape = gizmo
+                pb.bone.show_wire = True
+    
+    #-------------------------------------------------------------
+    #   Spine
+    #-------------------------------------------------------------
+    
+    def addBack(self, rig):
+        bpy.ops.object.mode_set(mode='EDIT')
+        spine = rig.data.edit_bones["spine"]
+        chest = rig.data.edit_bones["chest"]
+        makeBone("back", rig, spine.head, chest.tail, 0, L_MAIN, spine.parent)
+    
+        bpy.ops.object.mode_set(mode='POSE')
+        back = rig.pose.bones["back"]
+        for bname in ["spine", "spine-1", "chest", "chest-1"]:
+            if bname in rig.pose.bones.keys():
+                pb = rig.pose.bones[bname]
+                cns = copyRotation(pb, back, (True,True,True), rig)
+                cns.use_offset = True
+    
+    #-------------------------------------------------------------
+    #   Fingers
+    #-------------------------------------------------------------
+    
+    FingerNames = ["thumb", "index", "middle", "ring", "pinky"]
+    PalmNames = ["thumb", "index", "index", "middle", "middle"]
+    
+    def linkName(self, m, n, suffix):
+        if m == 0:
+            fname = "thumb"
+        else:
+            fname = "f_" + self.FingerNames[m]
+        return ("%s.0%d%s" % (fname, n+1, suffix))
+    
+    
+    def longName(self, m, suffix):
+        return ("%s%s" % (self.FingerNames[m], suffix))
+    
+    
+    def palmName(self, m, suffix):
+        return ("palm_%s%s" % (self.PalmNames[m], suffix))
+    
+    
+    def addLongFingers(self, rig):
+    
+        for suffix,dlayer in [(".L",0), (".R",16)]:
+            prop = "MhaFingerControl_" + suffix[1]
+            setattr(rig, prop, 1.0)
+    
+            bpy.ops.object.mode_set(mode='EDIT')
+            for m in range(5):
+                if m == 0:
+                    fing1 = rig.data.edit_bones[self.linkName(0, 1, suffix)]
+                    palm = rig.data.edit_bones[self.linkName(0, 0, suffix)]
+                else:
+                    fing1 = rig.data.edit_bones[self.linkName(m, 0, suffix)]
+                    palm = rig.data.edit_bones[self.palmName(m, suffix)]
+                fing3 = rig.data.edit_bones[self.linkName(m, 2, suffix)]
+                makeBone(self.longName(m, suffix), rig, fing1.head, fing3.tail, fing1.roll, L_LHAND+dlayer, palm)
+    
+            bpy.ops.object.mode_set(mode='POSE')
+            thumb1 = rig.data.bones[self.linkName(0, 0, suffix)]
+            thumb1.layers[L_LHAND+dlayer] = True
+            for m in range(5):
+                if m == 0:
+                    n0 = 1
+                else:
+                    n0 = 0
+                long = rig.pose.bones[self.longName(m, suffix)]
+                long.lock_location = (True,True,True)
+                long.lock_rotation = (False,True,False)
+                fing = rig.pose.bones[self.linkName(m, n0, suffix)]
+                fing.lock_rotation = (False,True,False)
+                long.rotation_mode = fing.rotation_mode
+                cns = copyRotation(fing, long, (True,False,True), rig, prop)
+                cns.use_offset = True
+                for n in range(n0+1,3):
+                    fing = rig.pose.bones[self.linkName(m, n, suffix)]
+                    fing.lock_rotation = (False,True,True)
+                    cns = copyRotation(fing, long, (True,False,False), rig, prop)
+                    cns.use_offset = True
+    
+    #-------------------------------------------------------------
+    #   FK/IK
+    #-------------------------------------------------------------
+    
+    FkIk = {
+        ("thigh.L", "shin.L", "foot.L"),
+        ("upper_arm.L", "forearm.L", "toe.L"),
+        ("thigh.R", "shin.R", "foot.R"),
+        ("upper_arm.R", "forearm.R", "toe.R"),
+    }
+    
+    def setupFkIk(self, rig):
+        bpy.ops.object.mode_set(mode='EDIT')
+        root = rig.data.edit_bones["root"]
+        head = rig.data.edit_bones["head"]
+        for suffix,dlayer in [(".L",0), (".R",16)]:
+            upper_arm = setLayer("upper_arm"+suffix, rig, L_HELP)
+            forearm = setLayer("forearm"+suffix, rig, L_HELP)
+            hand0 = setLayer("hand"+suffix, rig, L_DEF)
+            hand0.name = "hand0"+suffix
+            vec = forearm.tail - forearm.head
+            vec.normalize()
+            tail = hand0.head + vec*hand0.length
+            roll = normalizeRoll(forearm.roll + 90*D)
+            if abs(roll - hand0.roll) > 180*D:
+                roll = normalizeRoll(roll + 180*D)
+            hand = makeBone("hand"+suffix, rig, hand0.head, tail, roll, L_HELP, forearm)
+            hand0.use_connect = False
+            hand0.parent = hand
+    
+            size = 10*rig.DazScale
+            armSocket = makeBone("arm_socket"+suffix, rig, upper_arm.head, upper_arm.head+Vector((0,0,size)), 0, L_TWEAK, upper_arm.parent)
+            armParent = deriveBone("arm_parent"+suffix, armSocket, rig, L_HELP, root)
+            upper_arm.parent = armParent
+            rig.data.edit_bones["upper_arm-1"+suffix].parent = armParent
+    
+            upper_armFk = deriveBone("upper_arm.fk"+suffix, upper_arm, rig, L_LARMFK+dlayer, armParent)
+            forearmFk = deriveBone("forearm.fk"+suffix, forearm, rig, L_LARMFK+dlayer, upper_armFk)
+            handFk = deriveBone("hand.fk"+suffix, hand, rig, L_LARMFK+dlayer, forearmFk)
+            upper_armIk = deriveBone("upper_arm.ik"+suffix, upper_arm, rig, L_HELP2, armParent)
+            forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
+            handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
+            hand0Ik = deriveBone("hand0.ik"+suffix, hand, rig, L_HELP2, forearmIk)
+    
+            size = 5*rig.DazScale
+            vec = upper_arm.matrix.to_3x3().col[2]
+            vec.normalize()
+            locElbowPt = forearm.head - 15*rig.DazScale*vec
+            elbowPt = makeBone("elbow.pt.ik"+suffix, rig, locElbowPt, locElbowPt+Vector((0,0,size)), 0, L_LARMIK+dlayer, upper_arm.parent)
+            elbowLink = makeBone("elbow.link"+suffix, rig, forearm.head, locElbowPt, 0, L_LARMIK+dlayer, upper_armIk)
+            elbowLink.hide_select = True
+    
+            thigh = setLayer("thigh"+suffix, rig, L_HELP)
+            shin = setLayer("shin"+suffix, rig, L_HELP)
+            foot = setLayer("foot"+suffix, rig, L_HELP)
+            toe = setLayer("toe"+suffix, rig, L_HELP)
+            foot.tail = toe.head
+    
+            size = 10*rig.DazScale
+            legSocket = makeBone("leg_socket"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_TWEAK, thigh.parent)
+            legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, root)
+            thigh.parent = legParent
+            rig.data.edit_bones["thigh-1"+suffix].parent = legParent
+    
+            thighFk = deriveBone("thigh.fk"+suffix, thigh, rig, L_LLEGFK+dlayer, thigh.parent)
+            shinFk = deriveBone("shin.fk"+suffix, shin, rig, L_LLEGFK+dlayer, thighFk)
+            footFk = makeBone("foot.fk"+suffix, rig, foot.head, foot.tail, foot.roll, L_LLEGFK+dlayer, shinFk)
+            footFk.layers[L_LEXTRA+dlayer] = True
+            toeFk = deriveBone("toe.fk"+suffix, toe, rig, L_LLEGFK+dlayer, footFk)
+            toeFk.layers[L_LEXTRA+dlayer] = True
+            thighIk = deriveBone("thigh.ik"+suffix, thigh, rig, L_HELP2, thigh.parent)
+            shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
+    
+            if "heel"+suffix in rig.data.edit_bones.keys():
+                heel = rig.data.edit_bones["heel"+suffix]
+                locFootIk = (foot.head[0], heel.tail[1], toe.tail[2])
+            else:
+                locFootIk = (foot.head[0], foot.head[1], toe.tail[2])
+            footIk = makeBone("foot.ik"+suffix, rig, locFootIk, toe.tail, 0, L_LLEGIK+dlayer, None)
+            toeRev = makeBone("toe.rev"+suffix, rig, toe.tail, toe.head, 0, L_LLEGIK+dlayer, footIk)
+            footRev = makeBone("foot.rev"+suffix, rig, toe.head, foot.head, 0, L_LLEGIK+dlayer, toeRev)
+            locAnkle = foot.head + Vector((0,3*size,0))
+            ankle = makeBone("ankle"+suffix, rig, foot.head, locAnkle, 0, L_LEXTRA+dlayer, None)
+            ankleIk = makeBone("ankle.ik"+suffix, rig, foot.head, locAnkle, 0, L_HELP2, footRev)
+    
+            vec = thigh.matrix.to_3x3().col[2]
+            vec.normalize()
+            locKneePt = shin.head - 15*rig.DazScale*vec
+            kneePt = makeBone("knee.pt.ik"+suffix, rig, locKneePt, locKneePt+Vector((0,0,size)), 0, L_LLEGIK+dlayer, ankleIk)
+            kneePt.layers[L_LEXTRA+dlayer] = True
+            kneeLink = makeBone("knee.link"+suffix, rig, shin.head, locKneePt, 0, L_LLEGIK+dlayer, thighIk)
+            kneeLink.layers[L_LEXTRA+dlayer] = True
+            kneeLink.hide_select = True
+    
+            for bname,parent in [
+                    ("foot",footRev),
+                    ("toe", toeRev)]:
+                eb = rig.data.edit_bones[bname+suffix]
+                locPt = eb.tail + size*eb.matrix.to_3x3().col[2]
+                pt = makeBone("%s.pt.ik%s"%(bname,suffix), rig, locPt, locPt+Vector((0,0,size)), 0, L_HELP2, parent)
+    
+            prefix = suffix[1].lower()
+            eye = rig.data.edit_bones[prefix + "Eye"]
+            vec = eye.tail-eye.head
+            vec.normalize()
+            loc = eye.head + vec*rig.DazScale*30
+            gaze = makeBone("gaze"+suffix, rig, loc, loc+Vector((0,5*rig.DazScale,0)), 0, L_HEAD, None)
+    
+        lgaze = rig.data.edit_bones["gaze.L"]
+        rgaze = rig.data.edit_bones["gaze.R"]
+        loc = (lgaze.head + rgaze.head)/2
+        gaze0 = makeBone("gaze0", rig, loc, loc+Vector((0,15*rig.DazScale,0)), 0, L_HELP, head)
+        gaze1 = deriveBone("gaze1", gaze0, rig, L_HELP, None)
+        gaze = deriveBone("gaze", gaze0, rig, L_HEAD, gaze1)
+        lgaze.parent = gaze
+        rgaze.parent = gaze
+    
+        from .figure import copyBoneInfo
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for suffix in [".L", ".R"]:
+            for bname in ["upper_arm", "forearm", "hand",
+                          "thigh", "shin", "foot", "toe"]:
+                bone = rig.data.bones[bname+suffix]
+                fkbone = rig.data.bones[bname+".fk"+suffix]
+                copyBoneInfo(bone, fkbone)
+    
+        bpy.ops.object.mode_set(mode='POSE')
+        rpbs = rig.pose.bones
+        for bname in ["root", "hips"]:
+            pb = rpbs[bname]
+            pb.rotation_mode = 'YZX'
+    
+        for suffix in [".L", ".R"]:
+            for bname in ["shin", "shin.fk", "shin.ik",
+                          "forearm", "forearm.fk", "forearm.ik",
+                          "hand", "hand.fk", "hand.ik",
+                          "foot", "foot.fk", "toe", "toe.fk",
+                          "foot.rev", "toe.rev",
+                          "breast",
+                          ]:
+                if bname+suffix in rpbs.keys():
+                    pb = rpbs[bname+suffix]
+                    pb.rotation_mode = 'YZX'
+    
+            armSocket = rpbs["arm_socket"+suffix]
+            armParent = rpbs["arm_parent"+suffix]
+            upper_arm = rpbs["upper_arm"+suffix]
+            forearm = rpbs["forearm"+suffix]
+            hand = rpbs["hand"+suffix]
+            upper_armFk = getBoneCopy("upper_arm.fk"+suffix, upper_arm, rpbs)
+            forearmFk = getBoneCopy("forearm.fk"+suffix, forearm, rpbs)
+            handFk = getBoneCopy("hand.fk"+suffix, hand, rpbs)
+            upper_armIk = rpbs["upper_arm.ik"+suffix]
+            forearmIk = rpbs["forearm.ik"+suffix]
+            handIk = rpbs["hand.ik"+suffix]
+            hand0Ik = rpbs["hand0.ik"+suffix]
+            elbowPt = rpbs["elbow.pt.ik"+suffix]
+            elbowLink = rpbs["elbow.link"+suffix]
+    
+            prop = "MhaArmHinge_" + suffix[1]
+            setattr(rig, prop, 0.0)
+            copyTransform(armParent, None, armSocket, rig, prop, "1-x")
+            copyLocation(armParent, armSocket, rig, prop, "x")
+    
+            prop = "MhaArmIk_"+suffix[1]
+            setattr(rig, prop, 0.0)
+            copyTransform(upper_arm, upper_armFk, upper_armIk, rig, prop)
+            copyTransform(forearm, forearmFk, forearmIk, rig, prop)
+            copyTransform(hand, handFk, hand0Ik, rig, prop)
+            copyTransform(hand0Ik, handIk, None, rig, prop)
+            hintRotation(forearmIk)
+            ikConstraint(forearmIk, handIk, elbowPt, -90, 2, rig)
+            stretchTo(elbowLink, elbowPt, rig)
+    
+            yTrue = (False,True,False)
+            copyRotation(forearm, handFk, yTrue, rig)
+            copyRotation(forearm, hand0Ik, yTrue, rig, prop)
+            forearmFk.lock_rotation = yTrue
+    
+            legSocket = rpbs["leg_socket"+suffix]
+            legParent = rpbs["leg_parent"+suffix]
+            thigh = rpbs["thigh"+suffix]
+            shin = rpbs["shin"+suffix]
+            foot = rpbs["foot"+suffix]
+            toe = rpbs["toe"+suffix]
+            ankle = rpbs["ankle"+suffix]
+            ankleIk = rpbs["ankle.ik"+suffix]
+            thighFk = getBoneCopy("thigh.fk"+suffix, thigh, rpbs)
+            shinFk = getBoneCopy("shin.fk"+suffix, shin, rpbs)
+            footFk = getBoneCopy("foot.fk"+suffix, foot, rpbs)
+            toeFk = getBoneCopy("toe.fk"+suffix, toe, rpbs)
+            thighIk = rpbs["thigh.ik"+suffix]
+            shinIk = rpbs["shin.ik"+suffix]
+            kneePt = rpbs["knee.pt.ik"+suffix]
+            kneeLink = rpbs["knee.link"+suffix]
+            footIk = rpbs["foot.ik"+suffix]
+            toeRev = rpbs["toe.rev"+suffix]
+            footRev = rpbs["foot.rev"+suffix]
+            footPt = rpbs["foot.pt.ik"+suffix]
+            toePt = rpbs["toe.pt.ik"+suffix]
+    
+            prop = "MhaLegHinge_" + suffix[1]
+            setattr(rig, prop, 0.0)
+            copyTransform(legParent, None, legSocket, rig, prop, "1-x")
+            copyLocation(legParent, legSocket, rig, prop, "x")
+    
+            prop1 = "MhaLegIk_"+suffix[1]
+            setattr(rig, prop1, 0.0)
+            prop2 = "MhaLegIkToAnkle_"+suffix[1]
+            setattr(rig, prop2, False)
+    
+            footRev.lock_rotation = (False,True,True)
+    
+            copyTransform(thigh, thighFk, thighIk, rig, prop1)
+            copyTransform(shin, shinFk, shinIk, rig, prop1)
+            copyTransform(foot, footFk, None, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
+            copyTransform(toe, toeFk, None, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
+            hintRotation(shinIk)
+            ikConstraint(shinIk, ankleIk, kneePt, -90, 2, rig)
+            stretchTo(kneeLink, kneePt, rig)
+            cns = copyLocation(footFk, ankleIk, rig, (prop1,prop2), "x1*x2")
+            cns.influence = 0
+            ikConstraint(foot, footRev, footPt, 90, 1, rig, (prop1,prop2), "x1*(1-x2)")
+            cns = copyLocation(toe, footRev, rig, (prop1,prop2), "x1*(1-x2)")
+            cns.influence = 0
+            ikConstraint(toe, toeRev, toePt, 90, 1, rig, (prop1,prop2), "x1*(1-x2)")
+            cns = copyLocation(ankleIk, ankle, rig, prop2)
+            cns.influence = 0
+    
+            prop = "MhaGaze_" + suffix[1]
+            setattr(rig, prop, False)
+            prefix = suffix[1].lower()
+            eye = rpbs[prefix+"Eye"]
+            gaze = rpbs["gaze"+suffix]
+            trackTo(eye, gaze, rig, prop)
+    
+            lockLocations([upper_armFk, forearmFk, handFk,
+                           upper_armIk, forearmIk, elbowLink,
+                           thighFk, shinFk, footFk, toeFk,
+                           thighIk, shinIk, kneeLink, footRev, toeRev,
+                           ])
+    
+        prop = "DazGazeFollowsHead"
+        setattr(rig, prop, 0.0)
+        gaze0 = rpbs["gaze0"]
+        gaze1 = rpbs["gaze1"]
+        copyTransform(gaze1, None, gaze0, rig, prop)
+    
+    #-------------------------------------------------------------
+    #   Markers
+    #-------------------------------------------------------------
+    
+    def addMarkers(self, rig):
+        for suffix in [".L", ".R"]:
+            bpy.ops.object.mode_set(mode='EDIT')
+            foot = rig.data.edit_bones["foot"+suffix]
+            toe = rig.data.edit_bones["toe"+suffix]
+            offs = Vector((0, 0, 0.5*toe.length))
+            if "heel"+suffix in rig.data.edit_bones.keys():
+                heelTail = rig.data.edit_bones["heel"+suffix].tail
+            else:
+                heelTail = Vector((foot.head[0], foot.head[1], toe.head[2]))
+    
+            ballLoc = Vector((toe.head[0], toe.head[1], heelTail[2]))
+            mBall = makeBone("ball.marker"+suffix, rig, ballLoc, ballLoc+offs, 0, L_TWEAK, foot)
+            toeLoc = Vector((toe.tail[0], toe.tail[1], heelTail[2]))
+            mToe = makeBone("toe.marker"+suffix, rig, toeLoc, toeLoc+offs, 0, L_TWEAK, toe)
+            mHeel = makeBone("heel.marker"+suffix, rig, heelTail, heelTail+offs, 0, L_TWEAK, foot)
+        
+    #-------------------------------------------------------------
+    #   Master bone
+    #-------------------------------------------------------------
+    
+    def addMaster(self, rig):
+        bpy.ops.object.mode_set(mode='EDIT')
+        root = rig.data.edit_bones["root"]
+        master = makeBone("master", rig, (0,0,0), (0,root.head[2]/5,0), 0, L_MAIN, None)
+        for eb in rig.data.edit_bones:
+            if eb.parent is None and eb != master:
+                eb.parent = master
+
+#-------------------------------------------------------------
+#   Hard update
+#-------------------------------------------------------------
 
 def doHardUpdate(context, rig):
     meshes = [ob for ob in rig.children if ob.type == 'MESH']
@@ -1215,7 +1225,6 @@ def doHardUpdate(context, rig):
     updateScene(context)
     activateObject(context, rig)
     updateDrivers(rig)
-
 
 #-------------------------------------------------------------
 #   Init MHX props. Same as mhx2 importer
