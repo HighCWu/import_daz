@@ -244,32 +244,6 @@ def lockLocations(bones):
         pb.lock_location = (True,True,True)
 
 #-------------------------------------------------------------
-#   Bone groups
-#-------------------------------------------------------------
-
-def addBoneGroups(rig):
-    boneGroups = [
-        ('Spine', 'THEME01', L_SPINE),
-        ('ArmFK.L', 'THEME02', L_LARMFK),
-        ('ArmFK.R', 'THEME03', L_RARMFK),
-        ('ArmIK.L', 'THEME04', L_LARMIK),
-        ('ArmIK.R', 'THEME05', L_RARMIK),
-        ('LegFK.L', 'THEME06', L_LLEGFK),
-        ('LegFK.R', 'THEME07', L_RLEGFK),
-        ('LegIK.L', 'THEME14', L_LLEGIK),
-        ('LegIK.R', 'THEME09', L_RLEGIK),
-        ]
-
-    for bgname,theme,layer in boneGroups:
-        bpy.ops.pose.group_add()
-        bgrp = rig.pose.bone_groups.active
-        bgrp.name = bgname
-        bgrp.color_set = theme
-        for pb in rig.pose.bones.values():
-            if pb.bone.layers[layer]:
-                pb.bone_group = bgrp
-
-#-------------------------------------------------------------
 #   Constraints
 #-------------------------------------------------------------
 
@@ -417,50 +391,6 @@ def getPropString(prop, x):
     else:
         return prop, x
 
-
-#-------------------------------------------------------------
-#   Move all deform bones to layer 31
-#-------------------------------------------------------------
-
-def collectDeformBones(rig):
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for bone in rig.data.bones:
-        if bone.use_deform:
-            bone.layers[L_DEF] = True
-
-
-def addLayers(rig):
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for suffix,dlayer in [(".L",0), (".R",16)]:
-        clavicle = rig.data.bones["clavicle"+suffix]
-        clavicle.layers[L_SPINE] = True
-        clavicle.layers[L_LARMIK+dlayer] = True
-
-
-def connectToParent(rig):
-    bpy.ops.object.mode_set(mode='EDIT')
-    for bname in [
-        "abdomenUpper", "chestLower", "chestUpper", "neckLower", "neckUpper",
-        "lShldrTwist", "lForeArm", "lForearmBend", "lForearmTwist", "lHand",
-        "rShldrTwist", "rForeArm", "rForearmBend", "rForearmTwist", "rHand",
-        "lThumb2", "lThumb3",
-        "lIndex1", "lIndex2", "lIndex3",
-        "lMid1", "lMid2", "lMid3",
-        "lRing1", "lRing2", "lRing3",
-        "lPinky1", "lPinky2", "lPinky3",
-        "rThumb2", "rThumb3",
-        "rIndex1", "rIndex2", "rIndex3",
-        "rMid1", "rMid2", "rMid3",
-        "rRing1", "rRing2", "rRing3",
-        "rPinky1", "rPinky2", "rPinky3",
-        "lThighTwist", "lShin", "lFoot",
-        "rThighTwist", "rShin", "rFoot",
-        ]:
-        if bname in rig.data.edit_bones.keys():
-            eb = rig.data.edit_bones[bname]
-            eb.parent.tail = eb.head
-            eb.use_connect = True
-
 #-------------------------------------------------------------
 #   Bone children
 #-------------------------------------------------------------
@@ -551,7 +481,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         rig.data.layers = 32*[True]
         bchildren = applyBoneChildren(context, rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
-            connectToParent(rig)
+            self.connectToParent(rig)
             reparentToes(rig, context)
             self.rename2Mhx(rig)
             self.joinBendTwists(rig, {}, False)
@@ -563,7 +493,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         elif rig.DazRig in ["genesis1", "genesis2"]:
             self.fixPelvis(rig)
             self.fixCarpals(rig)
-            connectToParent(rig)
+            self.connectToParent(rig)
             reparentToes(rig, context)
             self.rename2Mhx(rig)
             self.fixGenesis2Problems(rig)
@@ -579,16 +509,16 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         self.addLongFingers(rig)
         self.addBack(rig)
         self.setupFkIk(rig)
-        addLayers(rig)
+        self.addLayers(rig)
         self.addMarkers(rig)
         self.addMaster(rig)
         self.addGizmos(rig, context)
         self.restoreAllLimitConstraints(rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
             self.fixCustomShape(rig, ["head"], 4)
-        collectDeformBones(rig)
+        self.collectDeformBones(rig)
         bpy.ops.object.mode_set(mode='POSE')
-        addBoneGroups(rig)
+        self.addBoneGroups(rig)
         rig["MhxRig"] = "MHX"
         setattr(rig.data, DrawType, 'STICK')
         T = True
@@ -850,6 +780,32 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
                 pb.bone.show_wire = True
     
     #-------------------------------------------------------------
+    #   Bone groups
+    #-------------------------------------------------------------
+    
+    def addBoneGroups(self, rig):
+        boneGroups = [
+            ('Spine', 'THEME01', L_SPINE),
+            ('ArmFK.L', 'THEME02', L_LARMFK),
+            ('ArmFK.R', 'THEME03', L_RARMFK),
+            ('ArmIK.L', 'THEME04', L_LARMIK),
+            ('ArmIK.R', 'THEME05', L_RARMIK),
+            ('LegFK.L', 'THEME06', L_LLEGFK),
+            ('LegFK.R', 'THEME07', L_RLEGFK),
+            ('LegIK.L', 'THEME14', L_LLEGIK),
+            ('LegIK.R', 'THEME09', L_RLEGIK),
+            ]
+    
+        for bgname,theme,layer in boneGroups:
+            bpy.ops.pose.group_add()
+            bgrp = rig.pose.bone_groups.active
+            bgrp.name = bgname
+            bgrp.color_set = theme
+            for pb in rig.pose.bones.values():
+                if pb.bone.layers[layer]:
+                    pb.bone_group = bgrp    
+    
+    #-------------------------------------------------------------
     #   Spine
     #-------------------------------------------------------------
     
@@ -890,8 +846,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         return ("palm_%s%s" % (self.PalmNames[m], suffix))
     
     
-    def addLongFingers(self, rig):
-    
+    def addLongFingers(self, rig):    
         for suffix,dlayer in [(".L",0), (".R",16)]:
             prop = "MhaFingerControl_" + suffix[1]
             setattr(rig, prop, 1.0)
@@ -1209,6 +1164,49 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         for eb in rig.data.edit_bones:
             if eb.parent is None and eb != master:
                 eb.parent = master
+
+    #-------------------------------------------------------------
+    #   Move all deform bones to layer 31
+    #-------------------------------------------------------------
+    
+    def collectDeformBones(self, rig):
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for bone in rig.data.bones:
+            if bone.use_deform:
+                bone.layers[L_DEF] = True
+    
+    
+    def addLayers(self, rig):
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for suffix,dlayer in [(".L",0), (".R",16)]:
+            clavicle = rig.data.bones["clavicle"+suffix]
+            clavicle.layers[L_SPINE] = True
+            clavicle.layers[L_LARMIK+dlayer] = True
+    
+    
+    def connectToParent(self, rig):
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname in [
+            "abdomenUpper", "chestLower", "chestUpper", "neckLower", "neckUpper",
+            "lShldrTwist", "lForeArm", "lForearmBend", "lForearmTwist", "lHand",
+            "rShldrTwist", "rForeArm", "rForearmBend", "rForearmTwist", "rHand",
+            "lThumb2", "lThumb3",
+            "lIndex1", "lIndex2", "lIndex3",
+            "lMid1", "lMid2", "lMid3",
+            "lRing1", "lRing2", "lRing3",
+            "lPinky1", "lPinky2", "lPinky3",
+            "rThumb2", "rThumb3",
+            "rIndex1", "rIndex2", "rIndex3",
+            "rMid1", "rMid2", "rMid3",
+            "rRing1", "rRing2", "rRing3",
+            "rPinky1", "rPinky2", "rPinky3",
+            "lThighTwist", "lShin", "lFoot",
+            "rThighTwist", "rShin", "rFoot",
+            ]:
+            if bname in rig.data.edit_bones.keys():
+                eb = rig.data.edit_bones[bname]
+                eb.parent.tail = eb.head
+                eb.use_connect = True
 
 #-------------------------------------------------------------
 #   Hard update
