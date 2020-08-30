@@ -656,32 +656,6 @@ class BoneInstance(Instance):
             return False
 
     
-    def setRoll(self, eb, xaxis):
-        yaxis = eb.tail - eb.head
-        yaxis.normalize()
-        xaxis -= yaxis.dot(xaxis)*yaxis
-        xaxis.normalize()
-        zaxis = xaxis.cross(yaxis)
-        zaxis.normalize()
-        eb.roll = self.getRoll(xaxis, yaxis, zaxis)
-    
-    
-    def getRoll(self, xaxis, yaxis, zaxis):
-        mat = Matrix().to_3x3()
-        mat.col[0] = xaxis
-        mat.col[1] = yaxis
-        mat.col[2] = zaxis
-        return self.getRollFromQuat(mat.to_quaternion())
-    
-    
-    def getRollFromQuat(self, quat):
-        if abs(quat.w) < 1e-4:
-            roll = pi
-        else:
-            roll = 2*math.atan(quat.y/quat.w)
-        return roll
-
-
     def getRotationMode(self, pb, useEulers):
         if GS.dazOrientation == 'UNFLIPPED':
             return self.rotation_order
@@ -845,6 +819,35 @@ class BoneInstance(Instance):
                     setattr(cns, "use_max_%s" % xyz, True)
                     setattr(cns, "min_%s" % xyz, mind*LS.scale)
                     setattr(cns, "max_%s" % xyz, maxd*LS.scale)
+
+#-------------------------------------------------------------
+#   Bone
+#-------------------------------------------------------------
+
+def setRoll(eb, xaxis):
+    yaxis = eb.tail - eb.head
+    yaxis.normalize()
+    xaxis -= yaxis.dot(xaxis)*yaxis
+    xaxis.normalize()
+    zaxis = xaxis.cross(yaxis)
+    zaxis.normalize()
+    eb.roll = getRoll(xaxis, yaxis, zaxis)
+    
+    
+def getRoll(xaxis, yaxis, zaxis):
+    mat = Matrix().to_3x3()
+    mat.col[0] = xaxis
+    mat.col[1] = yaxis
+    mat.col[2] = zaxis
+    return getRollFromQuat(mat.to_quaternion())
+    
+    
+def getRollFromQuat(quat):
+    if abs(quat.w) < 1e-4:
+        roll = pi
+    else:
+        roll = 2*math.atan(quat.y/quat.w)
+    return roll
 
 #-------------------------------------------------------------
 #   Bone
