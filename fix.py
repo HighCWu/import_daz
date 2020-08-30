@@ -32,14 +32,6 @@ from mathutils import *
 from .error import *
 from .utils import *
 
-
-Genesis3Renames = {
-    "abdomenLower" : "abdomen",
-    "abdomenUpper" : "abdomen2",
-    "chestLower"   : "chest",
-    "neckLower"    : "neck",
-    }
-
 #-------------------------------------------------------------
 #   Fixer class
 #-------------------------------------------------------------

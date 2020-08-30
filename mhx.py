@@ -481,7 +481,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         rig.data.layers = 32*[True]
         bchildren = applyBoneChildren(context, rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
-            self.connectToParent(rig)
+            connectToParent(rig)
             reparentToes(rig, context)
             self.rename2Mhx(rig)
             self.joinBendTwists(rig, {}, False)
@@ -493,7 +493,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         elif rig.DazRig in ["genesis1", "genesis2"]:
             self.fixPelvis(rig)
             self.fixCarpals(rig)
-            self.connectToParent(rig)
+            connectToParent(rig)
             reparentToes(rig, context)
             self.rename2Mhx(rig)
             self.fixGenesis2Problems(rig)
@@ -1184,29 +1184,33 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
             clavicle.layers[L_LARMIK+dlayer] = True
     
     
-    def connectToParent(self, rig):
-        bpy.ops.object.mode_set(mode='EDIT')
-        for bname in [
-            "abdomenUpper", "chestLower", "chestUpper", "neckLower", "neckUpper",
-            "lShldrTwist", "lForeArm", "lForearmBend", "lForearmTwist", "lHand",
-            "rShldrTwist", "rForeArm", "rForearmBend", "rForearmTwist", "rHand",
-            "lThumb2", "lThumb3",
-            "lIndex1", "lIndex2", "lIndex3",
-            "lMid1", "lMid2", "lMid3",
-            "lRing1", "lRing2", "lRing3",
-            "lPinky1", "lPinky2", "lPinky3",
-            "rThumb2", "rThumb3",
-            "rIndex1", "rIndex2", "rIndex3",
-            "rMid1", "rMid2", "rMid3",
-            "rRing1", "rRing2", "rRing3",
-            "rPinky1", "rPinky2", "rPinky3",
-            "lThighTwist", "lShin", "lFoot",
-            "rThighTwist", "rShin", "rFoot",
-            ]:
-            if bname in rig.data.edit_bones.keys():
-                eb = rig.data.edit_bones[bname]
-                eb.parent.tail = eb.head
-                eb.use_connect = True
+#-------------------------------------------------------------
+#   connectToParent used by Rigify
+#-------------------------------------------------------------
+    
+def connectToParent(rig):
+    bpy.ops.object.mode_set(mode='EDIT')
+    for bname in [
+        "abdomenUpper", "chestLower", "chestUpper", "neckLower", "neckUpper",
+        "lShldrTwist", "lForeArm", "lForearmBend", "lForearmTwist", "lHand",
+        "rShldrTwist", "rForeArm", "rForearmBend", "rForearmTwist", "rHand",
+        "lThumb2", "lThumb3",
+        "lIndex1", "lIndex2", "lIndex3",
+        "lMid1", "lMid2", "lMid3",
+        "lRing1", "lRing2", "lRing3",
+        "lPinky1", "lPinky2", "lPinky3",
+        "rThumb2", "rThumb3",
+        "rIndex1", "rIndex2", "rIndex3",
+        "rMid1", "rMid2", "rMid3",
+        "rRing1", "rRing2", "rRing3",
+        "rPinky1", "rPinky2", "rPinky3",
+        "lThighTwist", "lShin", "lFoot",
+        "rThighTwist", "rShin", "rFoot",
+        ]:
+        if bname in rig.data.edit_bones.keys():
+            eb = rig.data.edit_bones[bname]
+            eb.parent.tail = eb.head
+            eb.use_connect = True
 
 #-------------------------------------------------------------
 #   Hard update
