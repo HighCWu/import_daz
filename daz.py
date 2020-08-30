@@ -1093,13 +1093,14 @@ class DAZ_OT_GlobalSettings(DazOperator):
         col = split.column()
         box = col.box()
         box.label(text = "Rigging")
-        box.prop(scn, "DazOrientation")
+        box.prop(scn, "DazOrientation")        
         box.prop(scn, "DazUseQuaternions")
         box.separator()
         box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLockLoc")
         box.prop(scn, "DazUseLimitRot")
         box.prop(scn, "DazUseLimitLoc")
+        box.prop(scn, "DazUseLegacyLocks")
 
         box = split.box()
         box.label(text = "Materials")
@@ -1371,6 +1372,11 @@ def initialize():
     bpy.types.Scene.DazUseQuaternions = BoolProperty(
         name = "Quaternions",
         description = "Use quaternions for ball-and-socket joints (shoulders and hips)",
+        default = False)
+
+    bpy.types.Scene.DazUseLegacyLocks = BoolProperty(
+        name = "Legacy Locks",
+        description = "Use the simplified locks used by Blender Legacy mode",
         default = False)
 
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(

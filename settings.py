@@ -62,6 +62,7 @@ class GlobalSettings:
         self.chooseColors = 'GUESS'
         self.dazOrientation = 'FLIPPED'
         self.useQuaternions = False
+        self.useLegacyLocks = False
         self.caseSensitivePaths = (platform != 'win32')
         self.mergeShells = True
         self.brightenEyes = 1.0
@@ -122,6 +123,7 @@ class GlobalSettings:
         "DazUsePropDefault" : "useDazPropDefault",
 
         "DazOrientation" : "dazOrientation",
+        "DazUseLegacyLocks" : "useLegacyLocks",
         "DazUseQuaternions" : "useQuaternions",
         "DazUseLockRot" : "useLockRot",
         "DazUseLockLoc" : "useLockLoc",

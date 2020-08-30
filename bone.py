@@ -731,11 +731,11 @@ class BoneInstance(Instance):
 
         setBoneTransform(tfm, pb)
 
-        if GS.dazOrientation == 'LEGACY':
+        if GS.dazOrientation == 'LEGACY' or GS.useLegacyLocks:
             self.setRotationLockLegacy(pb)
         else:
             self.setRotationLockDaz(pb)
-        if GS.dazOrientation == 'LEGACY':
+        if GS.dazOrientation == 'LEGACY' or GS.useLegacyLocks:
             self.setLocationLockLegacy(pb)
         else:
             self.setLocationLockDaz(pb)
