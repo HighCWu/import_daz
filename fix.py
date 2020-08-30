@@ -44,17 +44,6 @@ Genesis3Renames = {
     }
 
 
-def getBendTwistNames(bname):
-    words = bname.split(".", 1)
-    if len(words) == 2:
-        bendname = words[0] + "Bend." + words[1]
-        twistname = words[0] + "Twist." + words[1]
-    else:
-        bendname = bname + "Bend"
-        twistname = bname + "Twist"
-    return bendname, twistname
-
-
 def fixPelvis(rig):
     bpy.ops.object.mode_set(mode='EDIT')
     hip = rig.data.edit_bones["hip"]
@@ -149,214 +138,230 @@ def checkCorrectives(rig):
                 if getShapekeyDriver(skeys, skey.name):
                     checkDriverBone(rig, skeys, 'key_blocks["%s"].value' % (skey.name))
 
+#-------------------------------------------------------------
+#   BendTwist class
+#-------------------------------------------------------------
 
-def joinBendTwists(rig, bendTwists, renames, keep=True):
-    hiddenLayer = 31*[False] + [True]
+class BendTwists:
 
-    rotmodes = {}
-    bpy.ops.object.mode_set(mode='POSE')
-    for bname,tname in bendTwists:
-        bendname,twistname = getBendTwistNames(bname)
-        if not (bendname in rig.pose.bones.keys() and
-                twistname in rig.pose.bones.keys()):
-            continue
-        pb = rig.pose.bones[bendname]
-        rotmodes[bname] = pb.DazRotMode
-
-    bpy.ops.object.mode_set(mode='EDIT')
-    for bname,tname in bendTwists:
-        bendname,twistname = getBendTwistNames(bname)
-        if not (bendname in rig.data.edit_bones.keys() and
-                twistname in rig.data.edit_bones.keys()):
-            continue
-        eb = rig.data.edit_bones.new(bname)
-        bend = rig.data.edit_bones[bendname]
-        twist = rig.data.edit_bones[twistname]
-        target = rig.data.edit_bones[tname]
-        eb.head = bend.head
-        bend.tail = twist.head
-        eb.tail = twist.tail = target.head
-        eb.roll = bend.roll
-        eb.parent = bend.parent
-        eb.use_deform = False
-        children = [eb for eb in bend.children if eb != twist] + list(twist.children)
-        for child in children:
-            child.parent = eb
-
-    for bname3,bname2 in renames.items():
-        eb = rig.data.edit_bones[bname3]
-        eb.name = bname2
-
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for bname,rotmode in rotmodes.items():
-        if bname in rig.pose.bones.keys():
-            pb = rig.pose.bones[bname]
-            pb.DazRotMode = rotmode
-
-    from .figure import copyBoneInfo
-    for bname,tname in bendTwists:
-        bendname,twistname = getBendTwistNames(bname)
-        if not bendname in rig.data.bones.keys():
-            continue
-        srcbone = rig.data.bones[bendname]
-        trgbone = rig.data.bones[bname]
-        copyBoneInfo(srcbone, trgbone)
-
-    bpy.ops.object.mode_set(mode='EDIT')
-    for bname,tname in bendTwists:
-        bendname,twistname = getBendTwistNames(bname)
-        if bendname in rig.data.edit_bones.keys():
-            eb = rig.data.edit_bones[bendname]
-            if keep:
-                eb.layers = hiddenLayer
-            else:
-                rig.data.edit_bones.remove(eb)
-        if twistname in rig.data.edit_bones.keys():
-            eb = rig.data.edit_bones[twistname]
-            if keep:
-                eb.layers = hiddenLayer
-            else:
-                rig.data.edit_bones.remove(eb)
-
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for ob in rig.children:
-        for bname,tname in bendTwists:
-            bend,twist = getBendTwistNames(bname)
-            joinVertexGroups(ob, bname, bend, twist)
+    def getBendTwistNames(self, bname):
+        words = bname.split(".", 1)
+        if len(words) == 2:
+            bendname = words[0] + "Bend." + words[1]
+            twistname = words[0] + "Twist." + words[1]
+        else:
+            bendname = bname + "Bend"
+            twistname = bname + "Twist"
+        return bendname, twistname
 
 
-def joinVertexGroups(ob, bname, bend, twist):
-    vgbend = vgtwist = None
-    if bend in ob.vertex_groups.keys():
-        vgbend = ob.vertex_groups[bend]
-    if twist in ob.vertex_groups.keys():
-        vgtwist = ob.vertex_groups[twist]
-    if vgbend is None and vgtwist is None:
-        return
-    elif vgbend is None:
-        vgtwist.name = bname
-        return
-    elif vgtwist is None:
-        vgbend.name = bname
-        return
-
-    vgrp = ob.vertex_groups.new(name=bname)
-    indices = [vgbend.index, vgtwist.index]
-    for v in ob.data.vertices:
-        w = 0.0
-        for g in v.groups:
-            if g.group in indices:
-                w += g.weight
-        if w > 1e-4:
-            vgrp.add([v.index], w, 'REPLACE')
-    ob.vertex_groups.remove(vgbend)
-    ob.vertex_groups.remove(vgtwist)
-
-
-def getSubBoneNames(bname):
-    base,suffix = bname.split(".")
-    bname1 = base + "-1." + suffix
-    bname2 = base + "-2." + suffix
-    return bname1,bname2
-
-
-def createBendTwists(rig, bendTwists):
-    hiddenLayer = 31*[False] + [True]
-    bpy.ops.object.mode_set(mode='EDIT')
-
-    for bname,_ in bendTwists:
-        eb = rig.data.edit_bones[bname]
-        vec = eb.tail - eb.head
-        bname1,bname2 = getSubBoneNames(bname)
-        eb1 = rig.data.edit_bones.new(bname1)
-        eb2 = rig.data.edit_bones.new(bname2)
-        eb1.head = eb.head
-        eb1.tail = eb2.head = eb.head+vec/2
-        eb2.tail = eb.tail
-        eb1.roll = eb2.roll = eb.roll
-        eb1.parent = eb.parent
-        eb2.parent = eb1
-        eb1.use_connect = eb.use_connect
-        eb2.use_connect = True
-        eb.use_deform = False
-        eb1.use_deform = eb2.use_deform = True
-        eb1.layers = eb2.layers = hiddenLayer
-
+    def joinBendTwists(self, rig, renames, keep=True):
+        hiddenLayer = 31*[False] + [True]
+    
+        rotmodes = {}
+        bpy.ops.object.mode_set(mode='POSE')
+        for bname,tname in self.BendTwists:
+            bendname,twistname = self.getBendTwistNames(bname)
+            if not (bendname in rig.pose.bones.keys() and
+                    twistname in rig.pose.bones.keys()):
+                continue
+            pb = rig.pose.bones[bendname]
+            rotmodes[bname] = pb.DazRotMode
+    
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname,tname in self.BendTwists:
+            bendname,twistname = self.getBendTwistNames(bname)
+            if not (bendname in rig.data.edit_bones.keys() and
+                    twistname in rig.data.edit_bones.keys()):
+                continue
+            eb = rig.data.edit_bones.new(bname)
+            bend = rig.data.edit_bones[bendname]
+            twist = rig.data.edit_bones[twistname]
+            target = rig.data.edit_bones[tname]
+            eb.head = bend.head
+            bend.tail = twist.head
+            eb.tail = twist.tail = target.head
+            eb.roll = bend.roll
+            eb.parent = bend.parent
+            eb.use_deform = False
+            children = [eb for eb in bend.children if eb != twist] + list(twist.children)
+            for child in children:
+                child.parent = eb
+    
+        for bname3,bname2 in renames.items():
+            eb = rig.data.edit_bones[bname3]
+            eb.name = bname2
+    
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for bname,rotmode in rotmodes.items():
+            if bname in rig.pose.bones.keys():
+                pb = rig.pose.bones[bname]
+                pb.DazRotMode = rotmode
+    
+        from .figure import copyBoneInfo
+        for bname,tname in self.BendTwists:
+            bendname,twistname = self.getBendTwistNames(bname)
+            if not bendname in rig.data.bones.keys():
+                continue
+            srcbone = rig.data.bones[bendname]
+            trgbone = rig.data.bones[bname]
+            copyBoneInfo(srcbone, trgbone)
+    
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname,tname in self.BendTwists:
+            bendname,twistname = self.getBendTwistNames(bname)
+            if bendname in rig.data.edit_bones.keys():
+                eb = rig.data.edit_bones[bendname]
+                if keep:
+                    eb.layers = hiddenLayer
+                else:
+                    rig.data.edit_bones.remove(eb)
+            if twistname in rig.data.edit_bones.keys():
+                eb = rig.data.edit_bones[twistname]
+                if keep:
+                    eb.layers = hiddenLayer
+                else:
+                    rig.data.edit_bones.remove(eb)
+    
+        bpy.ops.object.mode_set(mode='OBJECT')
         for ob in rig.children:
-            if (ob.type == 'MESH' and
-                getVertexGroup(ob, bname)):
-                splitVertexGroup2(ob, bname, eb.head, eb.tail)
+            for bname,tname in self.BendTwists:
+                bend,twist = self.getBendTwistNames(bname)
+                self.joinVertexGroups(ob, bname, bend, twist)
 
 
-def getVertexGroup(ob, vgname):
-    for vgrp in ob.vertex_groups:
-        if vgrp.name == vgname:
-            return vgrp
-    return None
+    def joinVertexGroups(self, ob, bname, bend, twist):
+        vgbend = vgtwist = None
+        if bend in ob.vertex_groups.keys():
+            vgbend = ob.vertex_groups[bend]
+        if twist in ob.vertex_groups.keys():
+            vgtwist = ob.vertex_groups[twist]
+        if vgbend is None and vgtwist is None:
+            return
+        elif vgbend is None:
+            vgtwist.name = bname
+            return
+        elif vgtwist is None:
+            vgbend.name = bname
+            return
+    
+        vgrp = ob.vertex_groups.new(name=bname)
+        indices = [vgbend.index, vgtwist.index]
+        for v in ob.data.vertices:
+            w = 0.0
+            for g in v.groups:
+                if g.group in indices:
+                    w += g.weight
+            if w > 1e-4:
+                vgrp.add([v.index], w, 'REPLACE')
+        ob.vertex_groups.remove(vgbend)
+        ob.vertex_groups.remove(vgtwist)
 
 
-def splitVertexGroup2(ob, bname, head, tail):
-    vgrp = getVertexGroup(ob, bname)
-    bname1,bname2 = getSubBoneNames(bname)
-    vgrp1 = ob.vertex_groups.new(name=bname1)
-    vgrp2 = ob.vertex_groups.new(name=bname2)
-    vec = tail-head
-    vec /= vec.dot(vec)
-    for v in ob.data.vertices:
-        for g in v.groups:
-            if g.group == vgrp.index:
-                x = vec.dot(v.co - head)
-                if x < 0:
-                    vgrp1.add([v.index], g.weight, 'REPLACE')
-                elif x < 1:
-                    vgrp1.add([v.index], g.weight*(1-x), 'REPLACE')
-                    vgrp2.add([v.index], g.weight*(x), 'REPLACE')
-                elif x > 1:
-                    vgrp2.add([v.index], g.weight, 'REPLACE')
-    ob.vertex_groups.remove(vgrp)
+    def getSubBoneNames(self, bname):
+        base,suffix = bname.split(".")
+        bname1 = base + "-1." + suffix
+        bname2 = base + "-2." + suffix
+        return bname1,bname2
 
 
-def splitVertexGroup(ob, vgname, bendname, twistname, head, tail):
-    vgrp = getVertexGroup(ob, vgname)
-    bend = ob.vertex_groups.new(name=bendname)
-    twist = ob.vertex_groups.new(name=twistname)
-    vec = tail-head
-    vec /= vec.dot(vec)
-    for v in ob.data.vertices:
-        for g in v.groups:
-            if g.group == vgrp.index:
-                x = vec.dot(v.co - head)
-                if x < 0:
-                    x = 0
-                elif x > 1:
-                    x = 1
-                bend.add([v.index], g.weight*(1-x), 'REPLACE')
-                twist.add([v.index], g.weight*x, 'REPLACE')
-    ob.vertex_groups.remove(vgrp)
+    def createBendTwists(self, rig):
+        hiddenLayer = 31*[False] + [True]
+        bpy.ops.object.mode_set(mode='EDIT')
+    
+        for bname,_ in self.BendTwists:
+            eb = rig.data.edit_bones[bname]
+            vec = eb.tail - eb.head
+            bname1,bname2 = self.getSubBoneNames(bname)
+            eb1 = rig.data.edit_bones.new(bname1)
+            eb2 = rig.data.edit_bones.new(bname2)
+            eb1.head = eb.head
+            eb1.tail = eb2.head = eb.head+vec/2
+            eb2.tail = eb.tail
+            eb1.roll = eb2.roll = eb.roll
+            eb1.parent = eb.parent
+            eb2.parent = eb1
+            eb1.use_connect = eb.use_connect
+            eb2.use_connect = True
+            eb.use_deform = False
+            eb1.use_deform = eb2.use_deform = True
+            eb1.layers = eb2.layers = hiddenLayer
+    
+            for ob in rig.children:
+                if (ob.type == 'MESH' and
+                    self.getVertexGroup(ob, bname)):
+                    self.splitVertexGroup2(ob, bname, eb.head, eb.tail)
+    
+
+    def getVertexGroup(self, ob, vgname):
+        for vgrp in ob.vertex_groups:
+            if vgrp.name == vgname:
+                return vgrp
+        return None
 
 
-def constrainBendTwists(rig, bendTwists):
-    from .utils import hasPoseBones
-    bpy.ops.object.mode_set(mode='POSE')
-
-    for bname,tname in bendTwists:
-        bname1,bname2 = getSubBoneNames(bname)
-        if not hasPoseBones(rig, [bname, bname1, bname2]):
-            continue
-        pb = rig.pose.bones[bname]
-        pb1 = rig.pose.bones[bname1]
-        pb2 = rig.pose.bones[bname2]
-
-        cns1 = pb1.constraints.new('IK')
-        cns1.target = rig
-        cns1.subtarget = tname
-        cns1.chain_count = 1
-
-        cns2 = pb2.constraints.new('COPY_ROTATION')
-        cns2.target = rig
-        cns2.subtarget = bname
-        cns2.target_space = 'WORLD'
-        cns2.owner_space = 'WORLD'
+    def splitVertexGroup2(self, ob, bname, head, tail):
+        vgrp = self.getVertexGroup(ob, bname)
+        bname1,bname2 = self.getSubBoneNames(bname)
+        vgrp1 = ob.vertex_groups.new(name=bname1)
+        vgrp2 = ob.vertex_groups.new(name=bname2)
+        vec = tail-head
+        vec /= vec.dot(vec)
+        for v in ob.data.vertices:
+            for g in v.groups:
+                if g.group == vgrp.index:
+                    x = vec.dot(v.co - head)
+                    if x < 0:
+                        vgrp1.add([v.index], g.weight, 'REPLACE')
+                    elif x < 1:
+                        vgrp1.add([v.index], g.weight*(1-x), 'REPLACE')
+                        vgrp2.add([v.index], g.weight*(x), 'REPLACE')
+                    elif x > 1:
+                        vgrp2.add([v.index], g.weight, 'REPLACE')
+        ob.vertex_groups.remove(vgrp)
+    
+    
+    def splitVertexGroup(self, ob, vgname, bendname, twistname, head, tail):
+        vgrp = self.getVertexGroup(ob, vgname)
+        bend = ob.vertex_groups.new(name=bendname)
+        twist = ob.vertex_groups.new(name=twistname)
+        vec = tail-head
+        vec /= vec.dot(vec)
+        for v in ob.data.vertices:
+            for g in v.groups:
+                if g.group == vgrp.index:
+                    x = vec.dot(v.co - head)
+                    if x < 0:
+                        x = 0
+                    elif x > 1:
+                        x = 1
+                    bend.add([v.index], g.weight*(1-x), 'REPLACE')
+                    twist.add([v.index], g.weight*x, 'REPLACE')
+        ob.vertex_groups.remove(vgrp)
+    
+    
+    def constrainBendTwists(self, rig):
+        from .utils import hasPoseBones
+        bpy.ops.object.mode_set(mode='POSE')
+    
+        for bname,tname in self.BendTwists:
+            bname1,bname2 = self.getSubBoneNames(bname)
+            if not hasPoseBones(rig, [bname, bname1, bname2]):
+                continue
+            pb = rig.pose.bones[bname]
+            pb1 = rig.pose.bones[bname1]
+            pb2 = rig.pose.bones[bname2]
+    
+            cns1 = pb1.constraints.new('IK')
+            cns1.target = rig
+            cns1.subtarget = tname
+            cns1.chain_count = 1
+    
+            cns2 = pb2.constraints.new('COPY_ROTATION')
+            cns2.target = rig
+            cns2.subtarget = bname
+            cns2.target_space = 'WORLD'
+            cns2.owner_space = 'WORLD'
 
 #-------------------------------------------------------------
 #   Prune vertex groups

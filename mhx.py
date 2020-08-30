@@ -1099,103 +1099,110 @@ def fixGenesis2Problems(rig):
         heel.tail = (toe.head[0], 1.5*foot.head[1]-0.5*toe.head[1], toe.head[2])
         heel.layers = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
 
+from .fix import BendTwists
 
-MhxBendTwists = [
-    ("thigh.L", "shin.L"),
-    ("forearm.L", "hand.L"),
-    ("upper_arm.L", "forearm.L"),
-    ("thigh.R", "shin.R"),
-    ("forearm.R", "hand.R"),
-    ("upper_arm.R", "forearm.R"),
+class DAZ_OT_ConvertMhx(DazOperator, BendTwists, IsArmature):
+    bl_idname = "daz.convert_mhx"
+    bl_label = "Convert To MHX"
+    bl_description = "Convert rig to MHX"
+    bl_options = {'UNDO'}
+
+    
+    BendTwists = [
+        ("thigh.L", "shin.L"),
+        ("forearm.L", "hand.L"),
+        ("upper_arm.L", "forearm.L"),
+        ("thigh.R", "shin.R"),
+        ("forearm.R", "hand.R"),
+        ("upper_arm.R", "forearm.R"),
+        ]
+    
+    Knees = [
+        ("thigh.L", "shin.L", Vector((0,-1,0))),
+        ("thigh.R", "shin.R", Vector((0,-1,0))),
+        ("upper_arm.L", "forearm.L", Vector((0,1,0))),
+        ("upper_arm.R", "forearm.R", Vector((0,1,0))),
     ]
-
-MhxKnees = [
-    ("thigh.L", "shin.L", Vector((0,-1,0))),
-    ("thigh.R", "shin.R", Vector((0,-1,0))),
-    ("upper_arm.L", "forearm.L", Vector((0,1,0))),
-    ("upper_arm.R", "forearm.R", Vector((0,1,0))),
-]
-
-MhxCorrect = [
-    ("upper_arm-1.L", "upper_armBend.L"),
-    ("forearm-1.L", "forearmBend.L"),
-    ("thigh-1.L", "thighBend.L"),
-    ("upper_arm-1.R", "upper_armBend.R"),
-    ("forearm-1.R", "forearmBend.R"),
-    ("thigh-1.R", "thighBend.R"),
-]
-
-def convert2Mhx(context):
-    from .fix import joinBendTwists, constrainBendTwists, createBendTwists
-    from .fix import fixKnees, fixPelvis, fixHands, fixCustomShape, fixCorrectives, checkCorrectives
-    from .merge import reparentToes
-    from .rigify import fixCarpals
-    rig = context.object
-    scn = context.scene
-    gen2 = None
-    for ob in getSceneObjects(context):
-        if getSelected(ob) and ob.type == 'ARMATURE' and ob != rig:
-            gen2 = ob
-            break
-
-    skeleton = MhxSkeleton
-    if rig.data.DazExtraDrivenBones:
-        skeleton += MhxBreastBones
-
-    rig.data.layers = 32*[True]
-    bchildren = applyBoneChildren(context, rig)
-    if rig.DazRig in ["genesis3", "genesis8"]:
-        connectToParent(rig)
-        reparentToes(rig, context)
-        rename2Mhx(rig, skeleton)
-        joinBendTwists(rig, MhxBendTwists, {}, False)
-        fixKnees(rig, MhxKnees)
-        fixHands(rig)
-        createBendTwists(rig, MhxBendTwists)
-        fixCorrectives(rig, MhxCorrect)
-    elif rig.DazRig in ["genesis1", "genesis2"]:
-        fixPelvis(rig)
-        fixCarpals(rig)
-        connectToParent(rig)
-        reparentToes(rig, context)
-        rename2Mhx(rig, skeleton)
-        fixGenesis2Problems(rig)
-        fixKnees(rig, MhxKnees)
-        fixHands(rig)
-        createBendTwists(rig, MhxBendTwists)
-        fixCorrectives(rig, MhxCorrect)
-    else:
-        raise DazError("Cannot convert %s to Mhx" % rig.name)
-
-    constrainBendTwists(rig, MhxBendTwists)
-    addLongFingers(rig, FingerNames)
-    addBack(rig)
-    setupFkIk(rig, MhxFkIk)
-    addLayers(rig)
-    addMarkers(rig)
-    addMaster(rig)
-    addGizmos(rig, context)
-    if rig.DazRig in ["genesis3", "genesis8"]:
-        fixCustomShape(rig, ["head"], 4)
-    collectDeformBones(rig)
-    bpy.ops.object.mode_set(mode='POSE')
-    addBoneGroups(rig)
-    rig["MhxRig"] = "MHX"
-    setattr(rig.data, DrawType, 'STICK')
-    T = True
-    F = False
-    rig.data.layers = [T,T,F,T, F,T,T,F, F,F,F,F, F,F,F,F,
-                       F,F,F,T, F,T,T,F, F,F,F,F, F,F,F,F]
-    rig.DazRig = "mhx"
-
-    for pb in rig.pose.bones:
-        pb.bone.select = False
-        if pb.custom_shape:
-            pb.bone.show_wire = True
-
-    restoreBoneChildren(bchildren, context, rig, skeleton)
-    checkCorrectives(rig)
-    doHardUpdate(context, rig)
+    
+    Correct = [
+        ("upper_arm-1.L", "upper_armBend.L"),
+        ("forearm-1.L", "forearmBend.L"),
+        ("thigh-1.L", "thighBend.L"),
+        ("upper_arm-1.R", "upper_armBend.R"),
+        ("forearm-1.R", "forearmBend.R"),
+        ("thigh-1.R", "thighBend.R"),
+    ]
+    
+    def run(self, context):
+        from .fix import fixKnees, fixPelvis, fixHands, fixCustomShape, fixCorrectives, checkCorrectives
+        from .merge import reparentToes
+        from .rigify import fixCarpals
+        rig = context.object
+        scn = context.scene
+        gen2 = None
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob.type == 'ARMATURE' and ob != rig:
+                gen2 = ob
+                break
+    
+        skeleton = MhxSkeleton
+        if rig.data.DazExtraDrivenBones:
+            skeleton += MhxBreastBones
+    
+        rig.data.layers = 32*[True]
+        bchildren = applyBoneChildren(context, rig)
+        if rig.DazRig in ["genesis3", "genesis8"]:
+            connectToParent(rig)
+            reparentToes(rig, context)
+            rename2Mhx(rig, skeleton)
+            self.joinBendTwists(rig, {}, False)
+            fixKnees(rig, self.Knees)
+            fixHands(rig)
+            self.createBendTwists(rig)
+            fixCorrectives(rig, self.Correct)
+        elif rig.DazRig in ["genesis1", "genesis2"]:
+            fixPelvis(rig)
+            fixCarpals(rig)
+            connectToParent(rig)
+            reparentToes(rig, context)
+            rename2Mhx(rig, skeleton)
+            fixGenesis2Problems(rig)
+            fixKnees(rig, self.Knees)
+            fixHands(rig)
+            self.createBendTwists(rig)
+            fixCorrectives(rig, self.Correct)
+        else:
+            raise DazError("Cannot convert %s to Mhx" % rig.name)
+    
+        self.constrainBendTwists(rig)
+        addLongFingers(rig, FingerNames)
+        addBack(rig)
+        setupFkIk(rig, MhxFkIk)
+        addLayers(rig)
+        addMarkers(rig)
+        addMaster(rig)
+        addGizmos(rig, context)
+        if rig.DazRig in ["genesis3", "genesis8"]:
+            fixCustomShape(rig, ["head"], 4)
+        collectDeformBones(rig)
+        bpy.ops.object.mode_set(mode='POSE')
+        addBoneGroups(rig)
+        rig["MhxRig"] = "MHX"
+        setattr(rig.data, DrawType, 'STICK')
+        T = True
+        F = False
+        rig.data.layers = [T,T,F,T, F,T,T,F, F,F,F,F, F,F,F,F,
+                           F,F,F,T, F,T,T,F, F,F,F,F, F,F,F,F]
+        rig.DazRig = "mhx"
+    
+        for pb in rig.pose.bones:
+            pb.bone.select = False
+            if pb.custom_shape:
+                pb.bone.show_wire = True
+    
+        restoreBoneChildren(bchildren, context, rig, skeleton)
+        checkCorrectives(rig)
+        doHardUpdate(context, rig)
 
 
 def doHardUpdate(context, rig):
@@ -1210,15 +1217,6 @@ def doHardUpdate(context, rig):
     activateObject(context, rig)
     updateDrivers(rig)
 
-
-class DAZ_OT_ConvertMhx(DazOperator, IsArmature):
-    bl_idname = "daz.convert_mhx"
-    bl_label = "Convert To MHX"
-    bl_description = "Convert rig to MHX"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        convert2Mhx(context)
 
 #-------------------------------------------------------------
 #   Init MHX props. Same as mhx2 importer
