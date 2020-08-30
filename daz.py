@@ -565,10 +565,10 @@ class DAZ_PT_Posing(bpy.types.Panel):
 
         layout.separator()
         split = splitLayout(layout, 0.6)
-        layout.operator("daz.toggle_loc_locks", text = "Location Locks Are " + ("ON" if ob.DazUseLocLocks else "OFF"))
-        layout.operator("daz.toggle_rot_locks", text = "Rotation Locks Are " + ("ON" if ob.DazUseRotLocks else "OFF"))
-        layout.operator("daz.toggle_loc_limits", text = "Location Limits Are " + ("ON" if ob.DazUseLocLimits else "OFF"))
-        layout.operator("daz.toggle_rot_limits", text = "Rotation Limits Are " + ("ON" if ob.DazUseRotLimits else "OFF"))
+        layout.operator("daz.toggle_loc_locks", text = "Location Locks Are " + ("ON" if ob.DazLocLocks else "OFF"))
+        layout.operator("daz.toggle_rot_locks", text = "Rotation Locks Are " + ("ON" if ob.DazRotLocks else "OFF"))
+        layout.operator("daz.toggle_loc_limits", text = "Location Limits Are " + ("ON" if ob.DazLocLimits else "OFF"))
+        layout.operator("daz.toggle_rot_limits", text = "Rotation Limits Are " + ("ON" if ob.DazRotLimits else "OFF"))
 
         layout.separator()
         layout.operator("daz.rotate_bones")
@@ -1276,10 +1276,10 @@ def initialize():
     bpy.types.Bone.DazAngle = FloatProperty(default=0)
     bpy.types.Bone.DazNormal = FloatVectorProperty(size=3, default=(0,0,0))
 
-    bpy.types.Object.DazUseRotLocks = BoolProperty(default = True)
-    bpy.types.Object.DazUseLocLocks = BoolProperty(default = True)
-    bpy.types.Object.DazUseRotLimits = BoolProperty(default = False)
-    bpy.types.Object.DazUseLocLimits = BoolProperty(default = False)
+    bpy.types.Object.DazRotLocks = BoolProperty(default = True)
+    bpy.types.Object.DazLocLocks = BoolProperty(default = True)
+    bpy.types.Object.DazRotLimits = BoolProperty(default = False)
+    bpy.types.Object.DazLocLimits = BoolProperty(default = False)
 
     bpy.types.PoseBone.DazRotLocks = BoolVectorProperty(
         name = "Rotation Locks",

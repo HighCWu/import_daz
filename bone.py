@@ -826,12 +826,14 @@ class BoneInstance(Instance):
         locks,limits,useLimits = self.getLocksLimits(pb, self.translation)
         pb.DazLocLocks = locks
         if GS.useLockLoc:
-            for idx,lock in enumerate(locks):
+            for n,lock in enumerate(locks):
+                idx = self.axes[n]
                 pb.lock_location[idx] = lock
         if GS.useLimitLoc and useLimits:
             cns = pb.constraints.new('LIMIT_LOCATION')
             cns.owner_space = 'LOCAL'
-            for idx,limit in enumerate(limits):
+            for n,limit in enumerate(limits):
+                idx = self.axes[n]
                 if limit is not None:
                     mind, maxd = limit
                     if self.flipped[n]:
