@@ -157,12 +157,13 @@ def addSelfRef(rig, pb):
         cns = pb.constraints[0]
         if cns.name == "Do Not Touch":
             return
-        else:
-            raise DazError("Inconsistent self reference constraint\n for bone '%s'" % pb.name)
     cns = pb.constraints.new('COPY_LOCATION')
     cns.name = "Do Not Touch"
     cns.target = rig
     cns.mute = True
+    n = len(pb.constraints)
+    if n > 1:
+        pb.constraints.move(n-1, 0)
 
 
 def copyPropGroups(rig1, rig2, pb2):
