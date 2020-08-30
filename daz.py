@@ -526,6 +526,12 @@ class DAZ_PT_Utils(bpy.types.Panel):
         else:
             box.label(text = "No active bone")          
         
+        layout.separator()
+        from .error import getSilentMode
+        if getSilentMode():
+            layout.operator("daz.set_silent_mode", text="Silent Mode ON")
+        else:
+            layout.operator("daz.set_silent_mode", text="Silent Mode OFF")
         layout.operator("daz.print_statistics")
         layout.operator("daz.get_finger_print")
         layout.operator("daz.inspect_prop_groups")
@@ -560,9 +566,6 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.import_action")
         layout.separator()
         layout.operator("daz.prune_action")
-        layout.separator()
-        layout.operator("daz.save_current_frame")
-        layout.operator("daz.restore_current_frame")
 
         layout.separator()
         split = splitLayout(layout, 0.6)
@@ -571,6 +574,9 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.toggle_loc_limits", text = "Location Limits Are " + ("ON" if ob.DazLocLimits else "OFF"))
         layout.operator("daz.toggle_rot_limits", text = "Rotation Limits Are " + ("ON" if ob.DazRotLimits else "OFF"))
 
+        layout.separator()
+        layout.operator("daz.save_current_frame")
+        layout.operator("daz.restore_current_frame")
         layout.separator()
         layout.operator("daz.rotate_bones")
 
@@ -1074,27 +1080,22 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box = col.box()
         box.label(text = "General")
         box.prop(scn, "DazVerbosity")
+        box.prop(scn, "DazZup")
         box.prop(scn, "DazCaseSensitivePaths")
-        from .error import getSilentMode
-        if getSilentMode():
-            box.operator("daz.set_silent_mode", text="Silent Mode ON")
-        else:
-            box.operator("daz.set_silent_mode", text="Silent Mode OFF")
+        box.prop(scn, "DazAddFaceDrivers")
+        box.prop(scn, "DazBuildHighdef")
         box.separator()
-        box.prop(scn, "DazPropMin")
-        box.prop(scn, "DazPropMax")
         box.prop(scn, "DazUsePropLimits")
         box.prop(scn, "DazUsePropDefault")
+        box.prop(scn, "DazPropMin")
+        box.prop(scn, "DazPropMax")
 
         col = split.column()
         box = col.box()
         box.label(text = "Rigging")
-        box.prop(scn, "DazZup")
         box.prop(scn, "DazOrientation")
         box.prop(scn, "DazUseQuaternions")
         box.separator()
-        box.prop(scn, "DazAddFaceDrivers")
-        box.prop(scn, "DazBuildHighdef")
         box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLockLoc")
         box.prop(scn, "DazUseLimitRot")
@@ -1370,7 +1371,7 @@ def initialize():
     bpy.types.Scene.DazUseQuaternions = BoolProperty(
         name = "Quaternions",
         description = "Use quaternions for ball-and-socket joints (shoulders and hips)",
-        default = True)
+        default = False)
 
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(
         name = "Case-Sensitive Paths",
