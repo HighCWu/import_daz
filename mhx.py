@@ -355,6 +355,8 @@ def trackTo(pb, target, rig, prop=None, expr="x"):
     cns.name = target.name
     cns.target = rig
     cns.subtarget = target.name
+    cns.track_axis = 'TRACK_Y'
+    cns.up_axis = 'UP_X'
     if prop is not None:
         cns.influence = 0.0
         addDriver(cns, "influence", rig, prop, expr)
@@ -992,7 +994,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
             vec = eye.tail-eye.head
             vec.normalize()
             loc = eye.head + vec*rig.DazScale*30
-            gaze = makeBone("gaze"+suffix, rig, loc, loc+Vector((0,5*rig.DazScale,0)), 0, L_HEAD, None)
+            gaze = makeBone("gaze"+suffix, rig, loc, loc+Vector((0,5*rig.DazScale,0)), -90*D, L_HEAD, None)
     
         lgaze = rig.data.edit_bones["gaze.L"]
         rgaze = rig.data.edit_bones["gaze.R"]
