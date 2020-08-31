@@ -560,7 +560,7 @@ class BoneInstance(Instance):
             return
         bone = rig.data.bones[self.name]
         bone.use_inherit_scale = self.node.inherits_scale
-        bone.DazOrientation = self.attributes["orientation"]
+        bone.DazOrient = self.attributes["orientation"]
 
         head,tail,orient,xyz,wsmat = self.getHeadTail(cscale, center)
         head0,tail0,orient0,xyz0,wsmat = self.getHeadTail(cscale, center, False)

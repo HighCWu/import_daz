@@ -377,7 +377,7 @@ class DAZ_OT_RotateBones(DazPropsOperator, B.XYZ, IsArmature):
 #-------------------------------------------------------------
 
 def copyBoneInfo(srcbone, trgbone):
-    trgbone.DazOrientation = Vector(srcbone.DazOrientation)
+    trgbone.DazOrient = Vector(srcbone.DazOrient)
     trgbone.DazHead = Vector(srcbone.DazHead)
     trgbone.DazTail = Vector(srcbone.DazTail)
     trgbone.DazAngle = srcbone.DazAngle

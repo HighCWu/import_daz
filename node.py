@@ -659,7 +659,7 @@ class Node(Asset, Formula, Channels):
         ob.DazUrl = normalizePath(self.url)
         ob.DazScale = LS.scale
         ob.DazCharacterScale = cscale
-        ob.DazOrientation = inst.attributes["orientation"]
+        ob.DazOrient = inst.attributes["orientation"]
         self.subtractCenter(ob, inst, center)
 
 
@@ -719,7 +719,7 @@ def clearParent(ob):
 
 
 def getTransformMatrices(pb):
-    dmat = Euler(Vector(pb.bone.DazOrientation)*D, 'XYZ').to_matrix().to_4x4()
+    dmat = Euler(Vector(pb.bone.DazOrient)*D, 'XYZ').to_matrix().to_4x4()
     dmat.col[3][0:3] = d2b00(pb.bone.DazHead)
 
     parbone = pb.bone.parent

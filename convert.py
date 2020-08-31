@@ -89,7 +89,7 @@ class DAZ_OT_SaveCurrentPose(DazOperator, B.JsonExportFile, B.SkelPoseBool, IsAr
                     string += (
                         '\n\t\t"%s": [' % pb.name +
                         '\n\t\t\t[%.4f, %.4f, %.4f],' % tuple(euler) +
-                        '\n\t\t\t[%.4f, %.4f, %.4f],' % tuple(pb.bone.DazOrientation) +
+                        '\n\t\t\t[%.4f, %.4f, %.4f],' % tuple(pb.bone.DazOrient) +
                         '\n\t\t\t"%s",' % pb.DazRotMode +
                         '\n\t\t\t%.4f' % rolls[pb.name] +
                         '\n\t\t],')
@@ -133,7 +133,7 @@ def getOrientation(character, bname, rig):
     global RestPoses
     if rig and bname in rig.pose.bones.keys():
         pb = rig.pose.bones[bname]
-        return pb.bone.DazOrientation, pb.DazRotMode
+        return pb.bone.DazOrient, pb.DazRotMode
 
     loadRestPoseEntry(character, RestPoses, theRestPoseFolder)
     bones = RestPoses[character]["pose"]
@@ -195,7 +195,7 @@ def getBoneName(bname, bones):
 def loadBonePose(pb, pose):
     pbname = getBoneName(pb.name, pose)
     if pbname and pb.name[:-4] != "Copy":
-        vec, pb.bone.DazOrientation, pb.DazRotMode = pose[pbname]
+        vec, pb.bone.DazOrient, pb.DazRotMode = pose[pbname]
         euler = Euler(vec)
         mat = euler.to_matrix()
         rmat = pb.bone.matrix_local.to_3x3()
