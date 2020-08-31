@@ -45,7 +45,6 @@ RollCorrection = {
     "lShldr" : -90,
     "lShldrBend" : -90,
     "lShldrTwist" : -90,
-    "lHand" : -90,
     "lThumb1" : 180,
     "lThumb2" : 180,
     "lThumb3" : 180,
@@ -54,14 +53,10 @@ RollCorrection = {
     "rShldr" : 90,
     "rShldrBend" : 90,
     "rShldrTwist" : 90,
-    "rHand" : 90,
     "rThumb1" : 180,
     "rThumb2" : 180,
     "rThumb3" : 180,
     
-    "lowerJaw" : -90,
-    "lEye" : 90,
-    "rEye" : 90,
     "lEar" : -90,
     "rEar" : 90,
 }    
@@ -327,10 +322,10 @@ class BoneInstance(Instance):
         self.axes = [0,1,2]
         self.flipped = [False,False,False]
         self.flopped = [False,False,False]
+        self.test = (self.name in ["lEye"])
 
 
     def testPrint(self, hdr):
-        self.test = self.name.endswith("Gruka")
         if self.test:
             print(hdr, self.name, self.rotation_order, self.axes, self.flipped)
 
@@ -507,7 +502,7 @@ class BoneInstance(Instance):
             return omat
 
 
-    def correctRoll(self, eb):     
+    def correctRoll(self, eb):  
         offset = RollCorrection[eb.name]
         roll = eb.roll + offset*D
         if roll > pi:
@@ -815,6 +810,8 @@ class BoneInstance(Instance):
                         mind = -maxd
                         maxd = -tmp
                     xyz = self.IndexComp[idx]
+                    if self.test:
+                        print("UUU", pb.name, n, xyz, mind, maxd)
                     setattr(cns, "use_min_%s" % xyz, True)
                     setattr(cns, "use_max_%s" % xyz, True)
                     setattr(cns, "min_%s" % xyz, mind*LS.scale)
