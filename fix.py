@@ -86,6 +86,13 @@ class Fixer:
 
 
     def fixCarpals(self, rig):
+        Carpals = {
+            "Carpal1" : "Index1",
+            "Carpal2" : "Mid1",
+            "Carpal3" : "Ring1",
+            "Carpal4" : "Pinky1",
+        }
+    
         if "lCarpal3" in rig.data.bones.keys():
             return
         bpy.ops.object.mode_set(mode='EDIT')

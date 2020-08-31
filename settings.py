@@ -60,7 +60,7 @@ class GlobalSettings:
         self.verbosity = 2
         self.zup = True
         self.chooseColors = 'GUESS'
-        self.dazOrientation = 'FLIPPED'
+        self.dazOrientation = 'DAZ STUDIO'
         self.useQuaternions = False
         self.useLegacyLocks = False
         self.caseSensitivePaths = (platform != 'win32')

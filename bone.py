@@ -378,6 +378,8 @@ class BoneInstance(Instance):
 
 
     RX = Matrix.Rotation(pi/2, 4, 'X')
+    FX = Matrix.Rotation(pi, 4, 'X')
+    FZ = Matrix.Rotation(pi, 4, 'Z')
     
     def buildEdit(self, figure, rig, parent, cscale, center, isFace):
         if self.name in rig.data.edit_bones.keys():
@@ -389,20 +391,21 @@ class BoneInstance(Instance):
             eb.parent = parent
             eb.head = d2b(head)
             eb.tail = d2b(tail)
-            if GS.dazOrientation == 'LEGACY':
+            if GS.dazOrientation == 'BLENDER LEGACY':
                 if self.useRoll:
                     eb.roll = self.roll
                 else:
                     self.findRoll(eb, figure, isFace)
                 self.roll = eb.roll
                 self.useRoll = True
-            else:
+            elif GS.dazOrientation in ['DAZ STUDIO', 'DAZ UNFLIPPED']:
                 head = d2b(head)
                 tail = d2b(tail)
                 omat = orient.to_matrix().to_4x4()
                 if GS.zup:
                     omat = Mult2(self.RX, omat)
-                if GS.dazOrientation == 'FLIPPED':
+                flip = self.FX
+                if GS.dazOrientation == 'DAZ STUDIO':
                     omat,flip = self.flipAxes(omat, xyz)
                     #self.printRollDiff(omat, eb, figure, isFace)
 
@@ -413,7 +416,7 @@ class BoneInstance(Instance):
                         rmat = Mult3(self.RX, rmat, self.RX.inverted())
                     omat = Mult2(rmat.inverted(), omat)
 
-                if GS.dazOrientation == 'UNFLIPPED':
+                if GS.dazOrientation == 'DAZ UNFLIPPED':
                     omat.col[3][0:3] = head
                     eb.matrix = omat
                 else:                
@@ -423,10 +426,15 @@ class BoneInstance(Instance):
                     eb.matrix = omat
                     if eb.name in RollCorrection.keys():
                         self.correctRoll(eb)
+            else:
+                msg = ("Illegal orientation type: %s       \nReload factory settings." % GS.dazOrientation)
+                raise DazError(msg)            
+            
             if GS.useConnect and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*LS.scale:
                     eb.use_connect = True
+
         if self.name in ["upperFaceRig", "lowerFaceRig"]:
             isFace = True
         for child in self.children.values():
@@ -453,7 +461,7 @@ class BoneInstance(Instance):
         if xyz == 'YZX':    #
             # Blender orientation: Y = twist, X = bend
             euler = Euler((0,0,0))
-            flip = Matrix.Rotation(pi, 4, 'X')
+            flip = self.FX
             self.axes = [0,1,2]
             self.flipped = [False,False,False]
             self.flopped = [False,False,True]
@@ -461,32 +469,32 @@ class BoneInstance(Instance):
             # Apparently not used
             print("YXZ", self.name)
             euler = Euler((0, pi/2, 0))
-            flip = Matrix.Rotation(pi, 4, 'Z')
+            flip = self.FZ
             self.axes = [2,1,0]
             self.flipped = [False,False,False]
             self.flopped = [False,False,False]
         elif xyz == 'ZYX':  #
             euler = Euler((pi/2, 0, 0))
-            flip = Matrix.Rotation(pi, 4, 'X')
+            flip = self.FX
             self.axes = [0,2,1]
             self.flipped = [False,False,False]
             self.flopped = [False,False,False]
         elif xyz == 'XZY':  #
             euler = Euler((0, 0, pi/2))
-            flip = Matrix.Rotation(pi, 4, 'Z')
+            flip = self.FZ
             self.axes = [1,0,2]
             self.flipped = [False,False,False]
             self.flopped = [False,True,False]
         elif xyz == 'ZXY':
             # Eyes and eyelids
             euler = Euler((pi/2, 0, -pi/2))
-            flip = Matrix.Rotation(pi, 4, 'Z')
+            flip = self.FZ
             self.axes = [2,0,1]
             self.flipped = [False,False,False]
             self.flopped = [False,False,False]
         elif xyz == 'XYZ':  #
             euler = Euler((pi/2, pi/2, 0))
-            flip = Matrix.Rotation(pi, 4, 'Z')
+            flip = self.FZ
             self.axes = [1,2,0]
             self.flipped = [True,True,True]
             self.flopped = [False,True,False]
@@ -657,11 +665,11 @@ class BoneInstance(Instance):
 
     
     def getRotationMode(self, pb, useEulers):
-        if GS.dazOrientation == 'UNFLIPPED':
+        if GS.dazOrientation == 'DAZ UNFLIPPED':
             return self.rotation_order
         elif useEulers:
             return 'YZX'
-        elif GS.dazOrientation == 'FLIPPED':
+        elif GS.dazOrientation == 'DAZ STUDIO':
             if GS.useQuaternions and pb.name in SocketBones:
                 return 'QUATERNION'
             else:
@@ -705,11 +713,11 @@ class BoneInstance(Instance):
 
         setBoneTransform(tfm, pb)
 
-        if GS.dazOrientation == 'LEGACY' or GS.useLegacyLocks:
+        if GS.dazOrientation == 'BLENDER LEGACY' or GS.useLegacyLocks:
             self.setRotationLockLegacy(pb)
         else:
             self.setRotationLockDaz(pb)
-        if GS.dazOrientation == 'LEGACY' or GS.useLegacyLocks:
+        if GS.dazOrientation == 'BLENDER LEGACY' or GS.useLegacyLocks:
             self.setLocationLockLegacy(pb)
         else:
             self.setLocationLockDaz(pb)

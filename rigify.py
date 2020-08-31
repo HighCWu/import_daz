@@ -53,7 +53,7 @@ def setupTables(meta):
     global MetaBones, MetaParents, MetaDisconnect, RigifyParams
     global RigifySkeleton, GenesisCarpals, GenesisSpine
     global Genesis3Spine, Genesis3Mergers, Genesis3Parents
-    global Genesis3Toes, Genesis3Renames, Carpals
+    global Genesis3Toes, Genesis3Renames
     global DeformBones
 
     if meta.DazPre278:
@@ -322,14 +322,6 @@ def setupTables(meta):
     }
 
     return rigtype, hips, head
-
-
-Carpals = {
-    "Carpal1" : "Index1",
-    "Carpal2" : "Mid1",
-    "Carpal3" : "Ring1",
-    "Carpal4" : "Pinky1",
-}
 
 
 def deleteChildren(eb, meta):

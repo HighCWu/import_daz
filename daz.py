@@ -509,6 +509,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
             box.prop(ob, "DazUrl")
             box.prop(ob, "DazRig")
             box.prop(ob, "DazMesh")
+            box.prop(ob, "DazLoadOrientation")            
             box.prop(ob, "DazScale")
         else:
             box.label(text = "No active object")         
@@ -1268,6 +1269,7 @@ def initialize():
 
     bpy.types.Object.DazRotMode = StringProperty(default = 'XYZ')
     bpy.types.PoseBone.DazRotMode = StringProperty(default = 'XYZ')
+    bpy.types.Object.DazLoadOrientation = StringProperty(name = "Orientation", default = "")
     bpy.types.Object.DazOrientation = FloatVectorProperty(size=3, default=(0,0,0))
     bpy.types.Bone.DazOrientation = FloatVectorProperty(size=3, default=(0,0,0))
     bpy.types.Object.DazHead = FloatVectorProperty(size=3, default=(0,0,0))
@@ -1361,13 +1363,13 @@ def initialize():
         default = True)
 
     bpy.types.Scene.DazOrientation = EnumProperty(
-        items = [("LEGACY", "Blender Legacy", "Bone orientation optimized for Blender"),
-                 ("UNFLIPPED", "DAZ Unflipped", "DAZ Studio original bone orientation (for debugging only)"),
-                 ("FLIPPED", "DAZ Studio", "DAZ Studio bone orientation with flipped axes"),
+        items = [("BLENDER LEGACY", "Blender Legacy", "Bone orientation optimized for Blender"),
+                 ("DAZ UNFLIPPED", "DAZ Unflipped", "DAZ Studio original bone orientation (for debugging only)"),
+                 ("DAZ STUDIO", "DAZ Studio", "DAZ Studio bone orientation with flipped axes"),
                  ],
         name = "Orientation",
         description = "Bone orientation",
-        default = 'FLIPPED')
+        default = 'DAZ STUDIO')
 
     bpy.types.Scene.DazUseQuaternions = BoolProperty(
         name = "Quaternions",

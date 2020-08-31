@@ -248,6 +248,7 @@ class Figure(Node):
         rig = self.rna
         setattr(amt, DrawType, 'STICK')
         setattr(rig, ShowXRay, True)
+        rig.DazLoadOrientation = GS.dazOrientation
         for geo in inst.geometries:
             geo.parent = geo.figure = self
             geo.rna.parent = rig
