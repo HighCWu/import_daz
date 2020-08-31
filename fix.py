@@ -222,17 +222,24 @@ class LimitConstraints:
             self.removeLimitConstraints(pb)
             
 
+    def getFkBone(self, key, rig):
+        if key[-2] == ".":        
+            base, suffix = key[:-2], key[-1]
+            bname = base + ".fk." + suffix
+            if bname in rig.pose.bones.keys():
+                return rig.pose.bones[bname]
+            bname = base + "_fk." + suffix
+            if bname in rig.pose.bones.keys():
+                return rig.pose.bones[bname]
+        if key in rig.pose.bones.keys():
+            return rig.pose.bones[key]
+        return None                
+
+        
     def restoreAllLimitConstraints(self, rig):
         for key,clist in self.constraints.items():
-            if key[-2] == ".":
-                bname = key[:-2] + ".fk" + key[-2:]
-                if bname not in rig.pose.bones.keys():
-                    bname = key
-            else:
-                bname = key
-            #print("RESTO", key, bname)
-            pb = rig.pose.bones[bname]
-            if pb.rotation_mode == 'QUATERNION':
+            pb = self.getFkBone(key, rig)
+            if pb is None or pb.rotation_mode == 'QUATERNION':
                 continue
             for cns in clist:
                 cns.restore(pb)
@@ -241,7 +248,6 @@ class LimitConstraints:
     def removeLimitConstraints(self, pb):            
         for cns in list(pb.constraints):
             if cns.type in ["LIMIT_ROTATION", "LIMIT_LOCATION"]:
-                #print("REM", pb.name, cns.name)
                 pb.constraints.remove(cns)
 
 #-------------------------------------------------------------

@@ -515,6 +515,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         self.addMaster(rig)
         self.addGizmos(rig, context)
         self.restoreAllLimitConstraints(rig)
+        self.unlimitConstraints(rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
             self.fixCustomShape(rig, ["head"], 4)
         self.collectDeformBones(rig)
@@ -742,7 +743,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         "pinky.R" :         "GZM_Knuckle",
     }
     
-    def makeGizmos(gnames, parent, hidden):
+    def makeGizmos(self, gnames, parent, hidden):
         from .load_json import loadJson
         folder = os.path.dirname(__file__)
         filepath = os.path.join(folder, "data", "gizmos.json")
@@ -771,7 +772,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         hidden.objects.link(empty)
         empty.parent = rig
         putOnHiddenLayer(empty)
-        gizmos = makeGizmos(None, empty, hidden)
+        gizmos = self.makeGizmos(None, empty, hidden)
         for bname,gname in self.Gizmos.items():
             if (bname in rig.pose.bones.keys() and
                 gname in gizmos.keys()):
@@ -1133,6 +1134,17 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         gaze1 = rpbs["gaze1"]
         copyTransform(gaze1, None, gaze0, rig, prop)
     
+    #-------------------------------------------------------------
+    #   
+    #-------------------------------------------------------------
+    
+    def unlimitConstraints(self, rig):
+        for suffix in [".L", ".R"]:
+            pb = rig.pose.bones["hand.fk" + suffix]
+            for cns in pb.constraints:
+                if cns.type == 'LIMIT_ROTATION':
+                    cns.use_limit_y = False
+                
     #-------------------------------------------------------------
     #   Markers
     #-------------------------------------------------------------
