@@ -45,7 +45,6 @@ RollCorrection = {
     "lShldr" : -90,
     "lShldrBend" : -90,
     "lShldrTwist" : -90,
-    #"lHand" : -90,
     "lThumb1" : 180,
     "lThumb2" : 180,
     "lThumb3" : 180,
@@ -54,17 +53,18 @@ RollCorrection = {
     "rShldr" : 90,
     "rShldrBend" : 90,
     "rShldrTwist" : 90,
-    #"rHand" : 90,
     "rThumb1" : 180,
     "rThumb2" : 180,
     "rThumb3" : 180,
     
-    #"lowerJaw" : -90,
-    #"lEye" : 90,
-    #"rEye" : 90,
     "lEar" : -90,
     "rEar" : 90,
 }    
+
+RollCorrectionGenesis = {
+    "lEye" : 180,
+    "rEye" : 180,
+}
 
 SocketBones = [
     "lShldr", "lShldrBend",
@@ -81,8 +81,8 @@ RotateRoll = {
     "lPectoral" : -90,
     "rPectoral" : 90,
 
-    "upperJaw" : -90,
-    "lowerJaw" : -90,
+    "upperJaw" : 0,
+    "lowerJaw" : 0,
 
     "lFoot" : -90,
     "lMetatarsals" : -90,
@@ -424,8 +424,7 @@ class BoneInstance(Instance):
                     self.testPrint("FBONE")
                     omat.col[3][0:3] = head
                     eb.matrix = omat
-                    if eb.name in RollCorrection.keys():
-                        self.correctRoll(eb)
+                    self.correctRoll(eb, figure)
             else:
                 msg = ("Illegal orientation type: %s       \nReload factory settings." % GS.dazOrientation)
                 raise DazError(msg)            
@@ -515,8 +514,15 @@ class BoneInstance(Instance):
             return omat
 
 
-    def correctRoll(self, eb):  
-        offset = RollCorrection[eb.name]
+    def correctRoll(self, eb, figure):
+        if eb.name in RollCorrection.keys():
+            offset = RollCorrection[eb.name]
+        elif (figure.rigtype in ["genesis1", "genesis2"] and
+              eb.name in RollCorrectionGenesis.keys()):
+            offset = RollCorrectionGenesis[eb.name]
+        else:
+            return
+            
         roll = eb.roll + offset*D
         if roll > pi:
             roll -= 2*pi
@@ -603,7 +609,7 @@ class BoneInstance(Instance):
             rr = RotateRoll[self.name]
         elif isFace or self.name in ["lEye", "rEye"]:
             self.fixEye(eb)
-            rr = 0
+            rr = -90
         elif self.name in GenesisToes["lToe"]:
             rr = -90
         elif self.name in GenesisToes["rToe"]:
