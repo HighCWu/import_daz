@@ -391,21 +391,21 @@ class BoneInstance(Instance):
             eb.parent = parent
             eb.head = d2b(head)
             eb.tail = d2b(tail)
-            if GS.dazOrientation == 'BLENDER LEGACY':
+            if GS.orientMethod == 'BLENDER LEGACY':
                 if self.useRoll:
                     eb.roll = self.roll
                 else:
                     self.findRoll(eb, figure, isFace)
                 self.roll = eb.roll
                 self.useRoll = True
-            elif GS.dazOrientation in ['DAZ STUDIO', 'DAZ UNFLIPPED']:
+            elif GS.orientMethod in ['DAZ STUDIO', 'DAZ UNFLIPPED']:
                 head = d2b(head)
                 tail = d2b(tail)
                 omat = orient.to_matrix().to_4x4()
                 if GS.zup:
                     omat = Mult2(self.RX, omat)
                 flip = self.FX
-                if GS.dazOrientation == 'DAZ STUDIO':
+                if GS.orientMethod == 'DAZ STUDIO':
                     omat,flip = self.flipAxes(omat, xyz)
                     #self.printRollDiff(omat, eb, figure, isFace)
 
@@ -416,7 +416,7 @@ class BoneInstance(Instance):
                         rmat = Mult3(self.RX, rmat, self.RX.inverted())
                     omat = Mult2(rmat.inverted(), omat)
 
-                if GS.dazOrientation == 'DAZ UNFLIPPED':
+                if GS.orientMethod == 'DAZ UNFLIPPED':
                     omat.col[3][0:3] = head
                     eb.matrix = omat
                 else:                
@@ -426,7 +426,7 @@ class BoneInstance(Instance):
                     eb.matrix = omat
                     self.correctRoll(eb, figure)
             else:
-                msg = ("Illegal orientation type: %s       \nReload factory settings." % GS.dazOrientation)
+                msg = ("Illegal orientation type: %s       \nReload factory settings." % GS.orientMethod)
                 raise DazError(msg)            
             
             if GS.useConnect and parent:
@@ -671,11 +671,11 @@ class BoneInstance(Instance):
 
     
     def getRotationMode(self, pb, useEulers):
-        if GS.dazOrientation == 'DAZ UNFLIPPED':
+        if GS.orientMethod == 'DAZ UNFLIPPED':
             return self.rotation_order
         elif useEulers:
             return 'YZX'
-        elif GS.dazOrientation == 'DAZ STUDIO':
+        elif GS.orientMethod == 'DAZ STUDIO':
             if GS.useQuaternions and pb.name in SocketBones:
                 return 'QUATERNION'
             else:
@@ -719,11 +719,11 @@ class BoneInstance(Instance):
 
         setBoneTransform(tfm, pb)
 
-        if GS.dazOrientation == 'BLENDER LEGACY' or GS.useLegacyLocks:
+        if GS.orientMethod == 'BLENDER LEGACY' or GS.useLegacyLocks:
             self.setRotationLockLegacy(pb)
         else:
             self.setRotationLockDaz(pb)
-        if GS.dazOrientation == 'BLENDER LEGACY' or GS.useLegacyLocks:
+        if GS.orientMethod == 'BLENDER LEGACY' or GS.useLegacyLocks:
             self.setLocationLockLegacy(pb)
         else:
             self.setLocationLockDaz(pb)

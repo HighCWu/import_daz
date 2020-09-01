@@ -509,7 +509,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
             box.prop(ob, "DazUrl")
             box.prop(ob, "DazRig")
             box.prop(ob, "DazMesh")
-            box.prop(ob, "DazLoadOrientation")            
+            box.prop(ob, "DazOrientMethod")            
             box.prop(ob, "DazScale")
         else:
             box.label(text = "No active object")         
@@ -1094,7 +1094,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         col = split.column()
         box = col.box()
         box.label(text = "Rigging")
-        box.prop(scn, "DazOrientation")        
+        box.prop(scn, "DazOrientMethod")        
         box.prop(scn, "DazUseQuaternions")
         box.separator()
         box.prop(scn, "DazUseLockRot")
@@ -1269,7 +1269,7 @@ def initialize():
 
     bpy.types.Object.DazRotMode = StringProperty(default = 'XYZ')
     bpy.types.PoseBone.DazRotMode = StringProperty(default = 'XYZ')
-    bpy.types.Object.DazLoadOrientation = StringProperty(name = "Orientation", default = "")
+    bpy.types.Object.DazOrientMethod = StringProperty(name = "Orientation", default = "")
     bpy.types.Object.DazOrient = FloatVectorProperty(size=3, default=(0,0,0))
     bpy.types.Bone.DazOrient = FloatVectorProperty(size=3, default=(0,0,0))
     bpy.types.Object.DazHead = FloatVectorProperty(size=3, default=(0,0,0))
@@ -1362,13 +1362,13 @@ def initialize():
         description = "Convert from DAZ's Y up convention to Blender's Z up convention",
         default = True)
 
-    bpy.types.Scene.DazOrientation = EnumProperty(
+    bpy.types.Scene.DazOrientMethod = EnumProperty(
         items = [("BLENDER LEGACY", "Blender Legacy", "Bone orientation optimized for Blender"),
                  ("DAZ UNFLIPPED", "DAZ Unflipped", "DAZ Studio original bone orientation (for debugging only)"),
                  ("DAZ STUDIO", "DAZ Studio", "DAZ Studio bone orientation with flipped axes"),
                  ],
-        name = "Orientation",
-        description = "Bone orientation",
+        name = "Orientation Method",
+        description = "Bone orientation method",
         default = 'DAZ STUDIO')
 
     bpy.types.Scene.DazUseQuaternions = BoolProperty(

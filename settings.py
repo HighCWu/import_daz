@@ -60,7 +60,7 @@ class GlobalSettings:
         self.verbosity = 2
         self.zup = True
         self.chooseColors = 'GUESS'
-        self.dazOrientation = 'DAZ STUDIO'
+        self.orientMethod = 'DAZ STUDIO'
         self.useQuaternions = False
         self.useLegacyLocks = False
         self.caseSensitivePaths = (platform != 'win32')
@@ -122,7 +122,7 @@ class GlobalSettings:
         "DazUsePropLimits" : "useDazPropLimits",
         "DazUsePropDefault" : "useDazPropDefault",
 
-        "DazOrientation" : "dazOrientation",
+        "DazOrientMethod" : "orientMethod",
         "DazUseLegacyLocks" : "useLegacyLocks",
         "DazUseQuaternions" : "useQuaternions",
         "DazUseLockRot" : "useLockRot",
