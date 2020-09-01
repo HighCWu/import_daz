@@ -516,10 +516,21 @@ class LimitInt:
         min = 1, max = 10
     )
 
+#-------------------------------------------------------------
+#   rigify.py
+#-------------------------------------------------------------
+
 class Rigify:
     deleteMeta = BoolProperty(
         name = "Delete Metarig",
         description = "Delete intermediate rig after Rigify",
+        default = False
+    )
+
+class Meta:
+    useAutoAlign = BoolProperty(
+        name = "Auto Align Hand/Foot",
+        description = "Auto align hand and foot (Rigify parameter)",
         default = False
     )
 

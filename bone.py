@@ -45,6 +45,7 @@ RollCorrection = {
     "lShldr" : -90,
     "lShldrBend" : -90,
     "lShldrTwist" : -90,
+    "lHand" : -90,
     "lThumb1" : 180,
     "lThumb2" : 180,
     "lThumb3" : 180,
@@ -53,6 +54,7 @@ RollCorrection = {
     "rShldr" : 90,
     "rShldrBend" : 90,
     "rShldrTwist" : 90,
+    "rHand" : 90,
     "rThumb1" : 180,
     "rThumb2" : 180,
     "rThumb3" : 180,
@@ -72,6 +74,11 @@ SocketBones = [
     "lThigh", "lThighBend",
     "rThigh", "rThighBend",
 ]
+
+RotationModes = {
+    "lHand" : "YXZ",
+    "rHand" : "YXZ",
+}
 
 #-------------------------------------------------------------
 #   Roll tables in Legacy mode
@@ -674,17 +681,24 @@ class BoneInstance(Instance):
         if GS.orientMethod == 'DAZ UNFLIPPED':
             return self.rotation_order
         elif useEulers:
-            return 'YZX'
+            return self.getDefaultMode(pb)
         elif GS.orientMethod == 'DAZ STUDIO':
             if GS.useQuaternions and pb.name in SocketBones:
                 return 'QUATERNION'
             else:
-                return 'YZX'
+                return self.getDefaultMode(pb)
         elif pb.name in SocketBones:
             return 'QUATERNION'
         else:
-            return 'YZX'
+            return self.getDefaultMode(pb)
 
+
+    def getDefaultMode(self, pb):
+        if pb.name in RotationModes.keys():
+            return RotationModes[pb.name]
+        else:
+            return 'YZX'
+            
         
     def buildPose(self, figure, inFace, targets, missing):
         from .node import setBoneTransform

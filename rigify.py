@@ -721,11 +721,13 @@ class Rigify:
                 elif pb["rigify_type"] == "limbs.super_finger":
                     connect += self.getChildren(pb)
                     pb.rigify_parameters.primary_rotation_axis = 'X'
+                elif pb["rigify_type"] == "limbs.super_limb":
+                    pb.rigify_parameters.rotation_axis = 'x'
+                    pb.rigify_parameters.auto_align_extremity = self.useAutoAlign
                 elif pb["rigify_type"] in [
                     "spines.super_spine", 
                     "spines.basic_spine",
                     "basic.super_copy",
-                    "limbs.super_limb",
                     "limbs.super_palm",
                     "limbs.simple_tentacle"]:
                     pass
@@ -1080,7 +1082,7 @@ class Rigify:
 #  Buttons
 #-------------------------------------------------------------
 
-class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, B.Rigify):
+class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, B.Rigify, B.Meta):
     bl_idname = "daz.rigify_daz"
     bl_label = "Convert To Rigify"
     bl_description = "Convert active rig to rigify"
@@ -1092,6 +1094,7 @@ class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, B.Rigify):
         return (ob and ob.type == 'ARMATURE' and not ob.DazRigifyType)
 
     def draw(self, context):
+        self.layout.prop(self, "useAutoAlign")
         self.layout.prop(self, "deleteMeta")
 
     def run(self, context):
@@ -1106,7 +1109,7 @@ class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, B.Rigify):
         print("DAZ rig %s successfully rigified in %.3f seconds" % (rname, t2-t1))
 
 
-class DAZ_OT_CreateMeta(DazOperator, Rigify, Fixer, BendTwists):
+class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists, B.Meta):
     bl_idname = "daz.create_meta"
     bl_label = "Create Metarig"
     bl_description = "Create a metarig from the active rig"
@@ -1117,6 +1120,9 @@ class DAZ_OT_CreateMeta(DazOperator, Rigify, Fixer, BendTwists):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and not ob.DazRigifyType)
 
+    def draw(self, context):
+        self.layout.prop(self, "useAutoAlign")
+    
     def run(self, context):
         self.createMeta(context)
 
