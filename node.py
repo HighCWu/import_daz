@@ -761,26 +761,7 @@ def getBoneMatrix(tfm, pb, test=False):
 
 def setBoneTransform(tfm, pb):
     mat = getBoneMatrix(tfm, pb)
-
-    lock = pb.lock_rotation
-    if lock[0] or lock[1] or lock[2]:
-        _,quat,scale = mat.decompose()
-        for n in range(3):
-            if pb.lock_rotation[n]:
-                quat[n+1] = 0
-        quat.normalize()
-        rotmat = quat.to_matrix()
-        for n in range(3):
-            mat[n][0:3] = rotmat[n]
-
-    loc,quat,scale = mat.decompose()
-    if pb.rotation_mode == 'QUATERNION':
-        pb.rotation_quaternion = quat
-    else:
-        pb.rotation_euler = quat.to_euler(pb.rotation_mode)
-    for n in range(3):
-        if not pb.lock_location[n]:
-            pb.location[n] = loc[n]
+    pb.matrix_basis = mat
 
 
 def setBoneTwist(tfm, pb):

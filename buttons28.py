@@ -108,6 +108,11 @@ class AffectOptions:
         description = "Set pose even if outside limit constraints",
         default = True)
 
+    ignoreLocks : BoolProperty(
+        name = "Ignore Locks",
+        description = "Set pose even for locked bones",
+        default = False)
+
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "clearBones")
@@ -121,6 +126,7 @@ class AffectOptions:
         if self.affectMorphs:
             layout.prop(self, "reportMissingMorphs")
         layout.prop(self, "ignoreLimits")
+        layout.prop(self, "ignoreLocks")
 
 
 class ActionOptions:
