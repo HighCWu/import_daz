@@ -1022,7 +1022,6 @@ class DAZ_OT_PruneAction(DazOperator):
 
     def run(self, context):
         act = context.object.animation_data.action
-        print("ACT", act, len(act.fcurves))
         deletes = []
         for fcu in act.fcurves:
             kpts = fcu.keyframe_points
@@ -1034,15 +1033,15 @@ class DAZ_OT_PruneAction(DazOperator):
                 eps = 0
                 if channel == "scale":
                     default = 1
-                    eps = 0.0001
+                    eps = 0.001
                 elif (channel == "rotation_quaternion" and 
                     fcu.array_index == 0):
                     default = 1
-                    eps = 0.0001
+                    eps = 0.001
                 elif channel == "rotation_quaternion":
-                    eps = 0.0001
+                    eps = 0.001
                 elif channel == "rotation_euler":
-                    eps = 0.01
+                    eps = 0.001
                 if abs(kpts[0].co[1] - default) <= eps:
                     deletes.append(fcu)
         for fcu in deletes:

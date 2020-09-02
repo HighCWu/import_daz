@@ -172,61 +172,40 @@ class Fixer:
 #-------------------------------------------------------------
 #   Constraints class
 #-------------------------------------------------------------
+    
+class ConstraintStore:        
+    Attributes = [
+        "type", "name", "mute", "target", "subtarget",
+        "head_tail", "use_offset", "owner_space", "target_space",
+        "use_x", "use_y", "use_z",
+        "invert_x", "invert_y", "invert_z",
+        "use_limit_x", "use_limit_y", "use_limit_z",
+        "use_min_x", "use_min_y", "use_min_z",
+        "use_max_x", "use_max_y", "use_max_z",
+        "min_x", "min_y", "min_z",
+        "max_x", "max_y", "max_z",
+    ]
 
-class LimitRotation:
-    def __init__(self, cns):
-        self.type = "LIMIT_ROTATION"
-        self.name = cns.name
-        self.use = [cns.use_limit_x, cns.use_limit_y, cns.use_limit_z]
-        self.min = [cns.min_x, cns.min_y, cns.min_z]
-        self.max = [cns.max_x, cns.max_y, cns.max_z]
-        self.owner_space = cns.owner_space
+    def __init__(self):
+        self.constraints = {}
         
-    def restore(self, pb):
-        cns = pb.constraints.new("LIMIT_ROTATION")
-        cns.name = self.name
-        cns.use_limit_x, cns.use_limit_y, cns.use_limit_z = self.use
-        cns.min_x, cns.min_y, cns.min_z = self.min
-        cns.max_x, cns.max_y, cns.max_z = self.max
-        cns.owner_space = self.owner_space
-            
-    
-class LimitLocation:
-    def __init__(self, cns):
-        self.type = "LIMIT_LOCATION"
-        self.name = cns.name
-        self.use_min = [cns.use_min_x, cns.use_min_y, cns.use_min_z]
-        self.use_max = [cns.use_max_x, cns.use_max_y, cns.use_max_z]
-        self.min = [cns.min_x, cns.min_y, cns.min_z]
-        self.max = [cns.max_x, cns.max_y, cns.max_z]
-        self.owner_space = cns.owner_space
         
-    def restore(self, pb):
-        cns = pb.constraints.new("LIMIT_LOCATION")
-        cns.name = self.name
-        cns.use_min_x, cns.use_min_y, cns.use_min_z = self.use_min
-        cns.use_max_x, cns.use_max_y, cns.use_max_z = self.use_max
-        cns.min_x, cns.min_y, cns.min_z = self.min
-        cns.max_x, cns.max_y, cns.max_z = self.max
-        cns.owner_space = self.owner_space
-            
-    
-class LimitConstraints:        
-    def storeLimitConstraints(self, key, pb):
+    def storeConstraints(self, key, pb):
         clist = []
         for cns in pb.constraints:
-            if cns.type == "LIMIT_ROTATION":            
-                clist.append(LimitRotation(cns))
-            elif cns.type == "LIMIT_LOCATION":            
-                clist.append(LimitLocation(cns))
+            struct = {}
+            for attr in self.Attributes:
+                if hasattr(cns, attr):
+                    struct[attr] = getattr(cns, attr)
+            clist.append(struct)
         if clist:
             self.constraints[key] = clist
             
             
-    def storeAllLimitConstraints(self, rig):
+    def storeAllConstraints(self, rig):
         for pb in rig.pose.bones:
-            self.storeLimitConstraints(pb.name, pb)
-            self.removeLimitConstraints(pb)
+            self.storeConstraints(pb.name, pb)
+            self.removeConstraints(pb)
             
 
     def getFkBone(self, key, rig):
@@ -243,16 +222,23 @@ class LimitConstraints:
         return None                
 
         
-    def restoreAllLimitConstraints(self, rig):
+    def restoreAllConstraints(self, rig):
         for key,clist in self.constraints.items():
             pb = self.getFkBone(key, rig)
-            if pb is None or pb.rotation_mode == 'QUATERNION':
+            if pb is None:
                 continue
-            for cns in clist:
-                cns.restore(pb)
+            for struct in clist:
+                self.restoreConstraints(struct, pb)
 
 
-    def removeLimitConstraints(self, pb):            
+    def restoreConstraints(self, struct, pb):
+        cns = pb.constraints.new(struct["type"])
+        for attr,value in struct.items():
+            if attr != "type":
+                setattr(cns, attr, value)
+                
+
+    def removeConstraints(self, pb):            
         for cns in list(pb.constraints):
             if cns.type in ["LIMIT_ROTATION", "LIMIT_LOCATION"]:
                 pb.constraints.remove(cns)
@@ -286,10 +272,10 @@ class BendTwists:
                 continue
             pb = rig.pose.bones[bendname]
             rotmodes[bname] = pb.DazRotMode
-            self.storeLimitConstraints(bname, pb)
-            self.removeLimitConstraints(pb)
+            self.storeConstraints(bname, pb)
+            self.removeConstraints(pb)
             pb = rig.pose.bones[twistname]
-            self.removeLimitConstraints(pb)
+            self.removeConstraints(pb)
     
         bpy.ops.object.mode_set(mode='EDIT')
         for bname,tname in self.BendTwists:

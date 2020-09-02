@@ -146,6 +146,22 @@ def evalMorphs2(pb, idx, key):
     pgs = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
     return sum([pg.eval(rig) for pg in pgs if pg.index == idx])
 
+# Perhaps faster morph evaluation
+def evalMorphsLoc(pb, idx):
+    if not hasattr(pb.constraints[0], "target"):
+        print("LL", pb.name, idx)
+        return 0
+    rig = pb.constraints[0].target
+    return sum([pg.eval(rig) for pg in pb.DazLocProps if pg.index == idx])
+
+def evalMorphsRot(pb, idx):
+    rig = pb.constraints[0].target
+    return sum([pg.eval(rig) for pg in pb.DazRotProps if pg.index == idx])
+
+def evalMorphsSca(pb, idx):
+    rig = pb.constraints[0].target
+    return sum([pg.eval(rig) for pg in pb.DazScaleProps if pg.index == idx])
+
 
 def hasSelfRef(pb):
     return (pb.constraints and
@@ -154,17 +170,35 @@ def hasSelfRef(pb):
 
 def addSelfRef(rig, pb):
     if pb.constraints:
+        deletes = []
+        for cns in pb.constraints[1:]:
+            if cns.name.startswith("Do Not Touch"):
+                deletes.append(cns)
+        for cns in deletes:                
+            pb.constaints.remove(cns)
         cns = pb.constraints[0]
         if cns.name == "Do Not Touch":
             return
+
+    n = len(pb.constraints)
+    store = None
+    if n > 0 and not hasattr(pb.constraints, "move"):
+        from .fix import ConstraintStore
+        store = ConstraintStore()
+        store.storeConstraints(pb.name, pb)
+        store.removeConstraints(pb)
+        
     cns = pb.constraints.new('COPY_LOCATION')
     cns.name = "Do Not Touch"
     cns.target = rig
     cns.mute = True
-    n = len(pb.constraints)
-    if n > 1:
-        pb.constraints.move(n-1, 0)
-
+    if n > 0:
+        if store:
+            for struct in store.constraints[pb.name]:
+                store.restoreConstraints(struct, pb)
+        else:
+            pb.constraints.move(n-1, 0)
+            
 
 def copyPropGroups(rig1, rig2, pb2):
     if pb2.name not in rig1.pose.bones.keys():
@@ -1150,9 +1184,12 @@ from bpy.app.handlers import persistent
 
 @persistent
 def updateHandler(scn):
-    global evalMorphs, evalMorphs2
+    global evalMorphs, evalMorphs2, evalMorphsLoc, evalMorphsRot, evalMorphsSca
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
     bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
+    bpy.app.driver_namespace["evalMorphsLoc"] = evalMorphsLoc
+    bpy.app.driver_namespace["evalMorphsRot"] = evalMorphsRot
+    bpy.app.driver_namespace["evalMorphsSca"] = evalMorphsSca
 
 
 classes = [
@@ -1474,6 +1511,9 @@ def initialize():
 
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
     bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
+    bpy.app.driver_namespace["evalMorphsLoc"] = evalMorphsLoc
+    bpy.app.driver_namespace["evalMorphsRot"] = evalMorphsRot
+    bpy.app.driver_namespace["evalMorphsSca"] = evalMorphsSca
     bpy.app.handlers.load_post.append(updateHandler)
 
 

@@ -419,9 +419,9 @@ def applyBoneChildren(context, rig):
 #   Convert to MHX button
 #-------------------------------------------------------------
 
-from .fix import LimitConstraints, BendTwists, Fixer
+from .fix import ConstraintStore, BendTwists, Fixer
 
-class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArmature):
+class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmature):
     bl_idname = "daz.convert_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
@@ -490,7 +490,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
             self.joinBendTwists(rig, {}, False)
             self.fixKnees(rig)
             self.fixHands(rig)
-            self.storeAllLimitConstraints(rig)
+            self.storeAllConstraints(rig)
             self.createBendTwists(rig)
             self.fixCorrectives(rig)
         elif rig.DazRig in ["genesis1", "genesis2"]:
@@ -502,7 +502,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
             self.fixGenesis2Problems(rig)
             self.fixKnees(rig)
             self.fixHands(rig)
-            self.storeAllLimitConstraints(rig)
+            self.storeAllConstraints(rig)
             self.createBendTwists(rig)
             self.fixCorrectives(rig)
         else:
@@ -516,7 +516,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         self.addMarkers(rig)
         self.addMaster(rig)
         self.addGizmos(rig, context)
-        self.restoreAllLimitConstraints(rig)
+        self.restoreAllConstraints(rig)
         self.fixHandConstraints(rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
             self.fixCustomShape(rig, ["head"], 4)

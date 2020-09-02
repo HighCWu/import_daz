@@ -522,7 +522,8 @@ class PoseboneDriver:
         from .daz import addSelfRef
         fcu.driver.type = 'SCRIPTED'
         if abs(value) > 1e-4:
-            expr = 'evalMorphs2(self, %d, "%s")' % (fcu.array_index, key)
+            #expr = 'evalMorphs2(self, %d, "%s")' % (fcu.array_index, key)
+            expr = 'evalMorphs%s(self, %d)' % (key, fcu.array_index)
             drvexpr = fcu.driver.expression[len(init):]
             if drvexpr in ["0.000", "-0.000"]:
                 if init:
