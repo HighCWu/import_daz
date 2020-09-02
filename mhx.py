@@ -517,7 +517,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         self.addMaster(rig)
         self.addGizmos(rig, context)
         self.restoreAllLimitConstraints(rig)
-        self.unlimitConstraints(rig)
+        self.fixHandConstraints(rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
             self.fixCustomShape(rig, ["head"], 4)
         self.collectDeformBones(rig)
@@ -821,9 +821,10 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
     
         bpy.ops.object.mode_set(mode='POSE')
         back = rig.pose.bones["back"]
+        back.rotation_mode = 'YZX'
         for bname in ["spine", "spine-1", "chest", "chest-1"]:
             if bname in rig.pose.bones.keys():
-                pb = rig.pose.bones[bname]
+                pb = rig.pose.bones[bname]                
                 cns = copyRotation(pb, back, (True,True,True), rig)
                 cns.use_offset = True
     
@@ -994,7 +995,7 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
             vec = eye.tail-eye.head
             vec.normalize()
             loc = eye.head + vec*rig.DazScale*30
-            gaze = makeBone("gaze"+suffix, rig, loc, loc+Vector((0,5*rig.DazScale,0)), -90*D, L_HEAD, None)
+            gaze = makeBone("gaze"+suffix, rig, loc, loc+Vector((0,5*rig.DazScale,0)), 0, L_HEAD, None)
     
         lgaze = rig.data.edit_bones["gaze.L"]
         rgaze = rig.data.edit_bones["gaze.R"]
@@ -1020,17 +1021,21 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
             pb = rpbs[bname]
             pb.rotation_mode = 'YZX'
     
+        rotmodes = {
+            'YZX': ["shin", "shin.fk", "shin.ik",
+                    "forearm", "forearm.fk", "forearm.ik",                    
+                    "foot", "foot.fk", "toe", "toe.fk",
+                    "foot.rev", "toe.rev",
+                    "breast",
+                   ],
+            'YXZ' : ["hand", "hand.fk", "hand.ik"],
+        }
         for suffix in [".L", ".R"]:
-            for bname in ["shin", "shin.fk", "shin.ik",
-                          "forearm", "forearm.fk", "forearm.ik",
-                          "hand", "hand.fk", "hand.ik",
-                          "foot", "foot.fk", "toe", "toe.fk",
-                          "foot.rev", "toe.rev",
-                          "breast",
-                          ]:
-                if bname+suffix in rpbs.keys():
-                    pb = rpbs[bname+suffix]
-                    pb.rotation_mode = 'YZX'
+            for rmode,bnames in rotmodes.items():
+                for bname in bnames:
+                    if bname+suffix in rpbs.keys():
+                        pb = rpbs[bname+suffix]
+                        pb.rotation_mode = rmode
     
             armSocket = rpbs["arm_socket"+suffix]
             armParent = rpbs["arm_parent"+suffix]
@@ -1137,15 +1142,25 @@ class DAZ_OT_ConvertMhx(DazOperator, LimitConstraints, BendTwists, Fixer, IsArma
         copyTransform(gaze1, None, gaze0, rig, prop)
     
     #-------------------------------------------------------------
-    #   
+    #   Fix hand constraints - 
     #-------------------------------------------------------------
     
-    def unlimitConstraints(self, rig):
+    def fixHandConstraints(self, rig):
         for suffix in [".L", ".R"]:
             pb = rig.pose.bones["hand.fk" + suffix]
             for cns in pb.constraints:
                 if cns.type == 'LIMIT_ROTATION':
                     cns.use_limit_y = False
+                    minx = cns.min_x
+                    maxx = cns.max_x
+                    if suffix == ".L":
+                        cns.min_x = -cns.max_z
+                        cns.max_x = -cns.min_z
+                    else:
+                        cns.min_x = cns.min_z
+                        cns.max_x = cns.max_z
+                    cns.min_z = minx
+                    cns.max_z = maxx
                 
     #-------------------------------------------------------------
     #   Markers
