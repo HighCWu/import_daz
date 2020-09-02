@@ -1022,17 +1022,28 @@ class DAZ_OT_PruneAction(DazOperator):
 
     def run(self, context):
         act = context.object.animation_data.action
+        print("ACT", act, len(act.fcurves))
         deletes = []
         for fcu in act.fcurves:
             kpts = fcu.keyframe_points
+            channel = fcu.data_path.rsplit(".", 1)[-1]
             if len(kpts) == 0:
                 deletes.append(fcu)
             elif len(kpts) == 1:
-                if fcu.data_path == "scale":
+                default = 0
+                eps = 0
+                if channel == "scale":
                     default = 1
-                else:
-                    default = 0
-                if kpts[0].co[1] == default:
+                    eps = 0.0001
+                elif (channel == "rotation_quaternion" and 
+                    fcu.array_index == 0):
+                    default = 1
+                    eps = 0.0001
+                elif channel == "rotation_quaternion":
+                    eps = 0.0001
+                elif channel == "rotation_euler":
+                    eps = 0.01
+                if abs(kpts[0].co[1] - default) <= eps:
                     deletes.append(fcu)
         for fcu in deletes:
             act.fcurves.remove(fcu)
