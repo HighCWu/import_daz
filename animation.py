@@ -318,9 +318,11 @@ class FrameConverter:
 class HideOperator(DazOperator):
     def prequel(self, context):
         DazOperator.prequel(self, context)
+        rig = context.object
+        self.boneLayers = list(rig.data.layers)
+        rig.data.layers = 32*[True]
         if bpy.app.version >= (2,80,0):
             self.layerColls = []
-            rig = context.object
             self.hideLayerColls(rig, context.view_layer.layer_collection)
 
 
@@ -341,6 +343,8 @@ class HideOperator(DazOperator):
 
     def sequel(self, context):
         DazOperator.sequel(self, context)
+        rig = context.object
+        rig.data.layers = self.boneLayers
         if bpy.app.version >= (2,80,0):
             for layer in self.layerColls:
                 layer.exclude = False
@@ -394,9 +398,6 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
     def prepareRig(self, rig):
         if rig.DazRig == "rigify":
-            rig.data.layers = [True] + 31*[False]
-            for n in [2,5,6,9,12,15,28]:
-                rig.data.layers[n] = True
             for bname in ["hand.ik.L", "hand.ik.R",
                           "foot.ik.L", "foot.ik.R"]:
                 if bname in rig.pose.bones.keys():
@@ -406,9 +407,6 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                 pb = rig.pose.bones["head.001"]
                 pb["neck_follow"] = 0.0
         elif rig.DazRig == "rigify2":
-            rig.data.layers = [True] + 31*[False]
-            for n in [3,4,6,8,11,14,17,28]:
-                rig.data.layers[n] = True
             for bname in ["upper_arm_parent.L", "upper_arm_parent.R",
                           "thigh_parent.L", "thigh_parent.R"]:
                 if bname in rig.pose.bones.keys():
@@ -419,10 +417,6 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                 pb["neck_follow"] = 1.0
                 pb["head_follow"] = 1.0
         elif rig.DazRig == "mhx":
-            from .mhx import fkLayers
-            layers = fkLayers()
-            for n in range(32):
-                rig.data.layers[n] = (n in layers)
             for pname in ["MhaArmIk_L", "MhaArmIk_R", "MhaLegIk_L", "MhaLegIk_R"]:
                 rig[pname] = 0.0
 
@@ -637,7 +631,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             if pb.lock_rotation[n] and pb.rotation_mode != 'QUATERNION':
                 pb.rotation_euler[n] = 0
             if pb.lock_scale[n]:
-                pb.scale[n] = 0
+                pb.scale[n] = 1
 
 
     def imposeLimits(self, pb):
