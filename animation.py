@@ -394,6 +394,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
     def prepareRig(self, rig):
         if rig.DazRig == "rigify":
+            rig.data.layers = [True] + 31*[False]
             for n in [2,5,6,9,12,15,28]:
                 rig.data.layers[n] = True
             for bname in ["hand.ik.L", "hand.ik.R",
@@ -405,7 +406,8 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                 pb = rig.pose.bones["head.001"]
                 pb["neck_follow"] = 0.0
         elif rig.DazRig == "rigify2":
-            for n in [3,5,8,11,14,17]:
+            rig.data.layers = [True] + 31*[False]
+            for n in [3,4,6,8,11,14,17,28]:
                 rig.data.layers[n] = True
             for bname in ["upper_arm_parent.L", "upper_arm_parent.R",
                           "thigh_parent.L", "thigh_parent.R"]:
