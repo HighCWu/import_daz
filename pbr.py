@@ -194,16 +194,19 @@ class PbrTree(CyclesTree):
             self.linkScalar(tex, self.pbr, sheen, "Sheen")
 
 
-
     def buildSSS(self, scn):
         if not self.useTranslucency:
             return
+        # a 2.5 gamma for the translucency texture is used to avoid the "white skin" effect
+        gamma = self.addNode("ShaderNodeGamma", col=3)
+        gamma.inputs["Gamma"].default_value = 2.5
         color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", BLACK)
         if isBlack(color):
             return
         wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
-        radius,radtex = self.getSSSRadius()
-        self.linkColor(coltex, self.pbr, color, "Subsurface Color")
+        radius,radtex = self.getSSSRadius(color)
+        self.linkColor(coltex, gamma, color, "Color")
+        self.links.new(gamma.outputs[0], self.pbr.inputs["Subsurface Color"])
         self.linkScalar(wttex, self.pbr, wt, "Subsurface")
         self.linkColor(radtex, self.pbr, radius, "Subsurface Radius")
         self.endSSS()

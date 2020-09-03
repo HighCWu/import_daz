@@ -44,8 +44,8 @@ def getMinLightSettings():
             ("shadow_buffer_clip_start", 1.0*LS.scale),
             ("shadow_buffer_bias", 0.01),
             ("use_contact_shadow", True),
-            ("contact_shadow_bias", 0.02),
-            ("contact_shadow_distance", 2.0*LS.scale),
+            ("contact_shadow_bias", 0.01),
+            ("contact_shadow_distance", 1.0*LS.scale),
            ]
 
 

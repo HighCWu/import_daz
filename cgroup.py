@@ -356,8 +356,12 @@ class TranslucentGroup(MixGroup):
         self.links.new(self.inputs.outputs["Color"], trans.inputs["Color"])
         self.links.new(self.inputs.outputs["Normal"], trans.inputs["Normal"])
 
+        gamma = self.addNode("ShaderNodeGamma", 1)
+        self.links.new(self.inputs.outputs["Color"], gamma.inputs["Color"])
+        gamma.inputs["Gamma"].default_value = 2.5
+
         sss = self.addNode("ShaderNodeSubsurfaceScattering", 1)
-        self.links.new(self.inputs.outputs["Color"], sss.inputs["Color"])
+        self.links.new(gamma.outputs["Color"], sss.inputs["Color"])
         self.links.new(self.inputs.outputs["Scale"], sss.inputs["Scale"])
         self.links.new(self.inputs.outputs["Radius"], sss.inputs["Radius"])
         self.links.new(self.inputs.outputs["Normal"], sss.inputs["Normal"])

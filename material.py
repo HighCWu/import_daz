@@ -1436,6 +1436,8 @@ def checkRenderSettings(context, force):
                  ("shadow_cascade_size", "2048"),
                  ("use_shadow_high_bitdepth", True),
                  ("light_threshold", 0.001),
+                 ("sss_samples", 16),
+                 ("sss_jitter_threshold", (">", 0.5)),
                 ],
     }
 
@@ -1487,7 +1489,8 @@ def checkSettings(engine, settings, handle, header):
                 if not hasattr(engine, attr):
                     continue
                 val = getattr(engine, attr)
-                if not checkSetting(attr, val, minval, ok, header):
+                fix,minval = checkSetting(attr, val, minval, ok, header)
+                if fix:
                     ok = False
                     if handle == "UPDATE":
                         setattr(engine, attr, minval)
@@ -1501,7 +1504,11 @@ def checkSettings(engine, settings, handle, header):
 
 def checkSetting(attr, val, minval, first, header):
     msg = None
-    if isinstance(val, bool) and val != minval:
+    if isinstance(minval, tuple):
+        op,minval = minval
+        if (op == ">" and val < minval):
+            msg = ("  %s: %f > %f" % (attr, val, minval))
+    elif isinstance(val, bool) and val != minval:
         msg = ("  %s: %d != %d" % (attr, val, minval))
     elif isinstance(val, int) and val < minval:
         msg = ("  %s: %d < %d" % (attr, val, minval))
@@ -1510,13 +1517,14 @@ def checkSetting(attr, val, minval, first, header):
     elif isinstance(val, str):
         if int(val) < int(minval):
             msg = ("  %s: %s < %s" % (attr, val, minval))
+
     if msg:
         if first:
             print("%s:" % header)
         print(msg)
-        return False
+        return True,minval
     else:
-        return True
+        return False,minval
 
 
 class DAZ_OT_UpdateSettings(DazOperator):

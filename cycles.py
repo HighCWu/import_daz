@@ -690,7 +690,7 @@ class CyclesTree:
         node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=100)
         self.linkColor(tex, node, color, "Color")
         node.inputs["Scale"].default_value = 1
-        radius,radtex = self.getSSSRadius()
+        radius,radtex = self.getSSSRadius(color)
         self.linkColor(radtex, node, radius, "Radius")
         self.linkNormal(node)
         fac,factex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
@@ -718,9 +718,12 @@ class CyclesTree:
             mat.use_sss_translucency = True
 
 
-    def getSSSRadius(self):
+    def getSSSRadius(self, color):
+        # if there's no volume we use the sss to make translucency
+        # please note that here we only use the iray base translucency color with no textures
+        # as for blender 2.8x eevee doesn't support nodes in the radius channel so we deal with it
         if self.material.thinWalled:
-            return (1,1,1),None
+            return color,None
             
         sssmode = self.getValue(["SSS Mode"], 0)
         # [ "Mono", "Chromatic" ]
@@ -730,8 +733,8 @@ class CyclesTree:
                 sss = BLACK
         elif sssmode == 0:  # Mono
             s,ssstex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
-            if s == 1:
-                s = 0
+            if s > 1:
+                s = 1
             sss = Vector((s,s,s))
         trans,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
         if isWhite(trans):
@@ -1199,7 +1202,7 @@ class CyclesTree:
             tex = self.multiplyVectorTex(value, tex)
         return value,tex
 
-
+    
     def multiplyVectorTex(self, color, tex, col=None):
         if isWhite(color):
             return tex
