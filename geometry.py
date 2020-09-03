@@ -678,11 +678,11 @@ def makeNewUvloop(me, name, setActive):
     uvtex = getUvTextures(me).new()
     uvtex.name = name
     uvloop = me.uv_layers[-1]
+    if bpy.app.version < (2,80,0):
+        uvtex.active_render = setActive
+    else:
+        uvloop.active_render = setActive
     if setActive:
-        if bpy.app.version < (2,80,0):
-            uvtex.active_render = True
-        else:
-            uvloop.active_render = True
         me.uv_layers.active_index = len(me.uv_layers) - 1
     return uvloop
 
@@ -848,7 +848,7 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
         for uvset in asset.uvs:
             polyverts = uvset.getPolyVerts(me)
             uvset.checkPolyverts(me, polyverts, True)
-            uvloop = makeNewUvloop(me, uvset.getLabel(), True)
+            uvloop = makeNewUvloop(me, uvset.getLabel(), False)
             vnmax = len(uvset.uvs)
             m = 0
             for fn,f in enumerate(me.polygons):
