@@ -276,14 +276,14 @@ def copyLocation(bone, target, rig, prop=None, expr="x"):
     return cns
 
 
-def copyRotation(bone, target, use, rig, prop=None, expr="x"):
+def copyRotation(bone, target, use, rig, prop=None, expr="x", space='LOCAL'):
     cns = bone.constraints.new('COPY_ROTATION')
     cns.name = target.name
     cns.target = rig
     cns.subtarget = target.name
     cns.use_x,cns.use_y,cns.use_z = use
-    cns.owner_space = 'LOCAL'
-    cns.target_space = 'LOCAL'
+    cns.owner_space = space
+    cns.target_space = space
     if prop is not None:
         addDriver(cns, "influence", rig, prop, expr)
     return cns

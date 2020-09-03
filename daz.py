@@ -315,6 +315,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.merge_toes")
             box.operator("daz.add_extra_face_bones")
             box.operator("daz.make_all_bones_posable")
+            box.operator("daz.add_simple_ik")            
             box.operator("daz.update_all")
 
         layout.separator()
