@@ -795,6 +795,71 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
                     self.displayProp(morph.text, morph.name, rig, box, scn)
 
 #------------------------------------------------------------------------
+#    Simple IK Panel
+#------------------------------------------------------------------------
+
+class DAZ_PT_SimpleIK(bpy.types.Panel):
+    bl_label = "Simple IK"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "DAZ Importer"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        return (context.object and context.object.DazSimpleIK)
+
+    def draw(self, context):
+        layout = self.layout
+        rig = context.object
+
+        layout.label(text="IK Influence")
+        split = splitLayout(layout, 0.2)
+        split.label(text="")
+        split.label(text="Left")
+        split.label(text="Right")
+        split = splitLayout(layout, 0.2)
+        split.label(text="Arm")
+        split.prop(rig, "DazArmIK_L", text="")
+        split.prop(rig, "DazArmIK_R", text="")
+        split = splitLayout(layout, 0.2)
+        split.label(text="Leg")
+        split.prop(rig, "DazLegIK_L", text="")
+        split.prop(rig, "DazLegIK_R", text="")
+
+        layout.label(text="Snap FK bones")
+        row = layout.row()
+        op = row.operator("daz.snap_simple_fk", text="L Arm")
+        op.prefix = "l"
+        op.type = "Arm"
+        op = row.operator("daz.snap_simple_fk", text="R Arm")
+        op.prefix = "r"
+        op.type = "Arm"
+        row = layout.row()
+        op = row.operator("daz.snap_simple_fk", text="L Leg")
+        op.prefix = "l"
+        op.type = "Leg"
+        op = row.operator("daz.snap_simple_fk", text="R Leg")
+        op.prefix = "r"
+        op.type = "Leg"
+
+        layout.label(text="Snap IK bones")
+        row = layout.row()
+        op = row.operator("daz.snap_simple_ik", text="L Arm")
+        op.prefix = "l"
+        op.type = "Arm"
+        op = row.operator("daz.snap_simple_ik", text="R Arm")
+        op.prefix = "r"
+        op.type = "Arm"
+        row = layout.row()
+        op = row.operator("daz.snap_simple_ik", text="L Leg")
+        op.prefix = "l"
+        op.type = "Leg"
+        op = row.operator("daz.snap_simple_ik", text="R Leg")
+        op.prefix = "r"
+        op.type = "Leg"
+
+#------------------------------------------------------------------------
 #    Mhx Layers Panel
 #------------------------------------------------------------------------
 
@@ -1219,6 +1284,7 @@ classes = [
     DAZ_PT_Visemes,
     DAZ_PT_BodyMorphs,
     DAZ_PT_CustomMorphs,
+    DAZ_PT_SimpleIK,
     DAZ_PT_MhxLayers,
     DAZ_PT_MhxFKIK,
     DAZ_PT_MhxProperties,
