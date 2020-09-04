@@ -321,6 +321,8 @@ class HideOperator(DazOperator):
         rig = context.object
         self.boneLayers = list(rig.data.layers)
         rig.data.layers = 32*[True]
+        rig.DazArmIK_L = rig.DazArmIK_R = False
+        rig.DazLegIK_L = rig.DazLegIK_R = False
         if bpy.app.version >= (2,80,0):
             self.layerColls = []
             self.hideLayerColls(rig, context.view_layer.layer_collection)
