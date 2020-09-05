@@ -332,6 +332,7 @@ def deleteChildren(eb, meta):
 
 class DazBone:
     def __init__(self, eb):
+        from .fix import ConstraintStore
         self.name = eb.name
         self.head = eb.head.copy()
         self.tail = eb.tail.copy()
@@ -342,16 +343,26 @@ class DazBone:
             self.parent = None
         self.use_deform = eb.use_deform
         self.rotation_mode = None
+        self.store = ConstraintStore()
+
 
     def getPose(self, pb):
         self.rotation_mode = pb.rotation_mode
         self.lock_location = pb.lock_location
         self.lock_rotation = pb.lock_rotation
+        self.lock_scale = pb.lock_scale
+        self.store.storeConstraints(pb.name, pb)
+
 
     def setPose(self, pb):
         pb.rotation_mode = self.rotation_mode
         pb.lock_location = self.lock_location
         pb.lock_rotation = self.lock_rotation
+        pb.lock_scale = self.lock_scale
+        if pb.name in self.store.constraints.keys():
+            clist = self.store.constraints[pb.name]
+            for struct in clist:
+                self.store.restoreConstraints(struct, pb)
 
 
 def addDicts(structs):

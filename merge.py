@@ -782,7 +782,6 @@ class DAZ_OT_ReparentToes(DazOperator, IsArmature):
 
 
 def mergeBonesAndVgroups(rig, mergers, parents, context):
-    from .mhx import doHardUpdate
     from .driver import removeBoneDrivers
 
     activateObject(context, rig)
@@ -832,7 +831,6 @@ def mergeBonesAndVgroups(rig, mergers, parents, context):
                     if w > 1e-3:
                         vgrp.add([vn], w, 'REPLACE')
 
-    #doHardUpdate(context, rig)
     updateDrivers(rig)
     bpy.ops.object.mode_set(mode='OBJECT')
 
