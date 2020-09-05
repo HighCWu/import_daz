@@ -148,9 +148,6 @@ def evalMorphs2(pb, idx, key):
 
 # Perhaps faster morph evaluation
 def evalMorphsLoc(pb, idx):
-    if not hasattr(pb.constraints[0], "target"):
-        print("LL", pb.name, idx)
-        return 0
     rig = pb.constraints[0].target
     return sum([pg.eval(rig) for pg in pb.DazLocProps if pg.index == idx])
 
@@ -170,34 +167,20 @@ def hasSelfRef(pb):
 
 def addSelfRef(rig, pb):
     if pb.constraints:
-        deletes = []
-        for cns in pb.constraints[1:]:
-            if cns.name.startswith("Do Not Touch"):
-                deletes.append(cns)
-        for cns in deletes:                
-            pb.constaints.remove(cns)
         cns = pb.constraints[0]
         if cns.name == "Do Not Touch":
             return
+        elif not hasattr(pb.constraints, "move"):            
+            for cns in list(pb.constraints):
+                pb.constraints.remove(cns)
 
-    n = len(pb.constraints)
-    store = None
-    if n > 0 and not hasattr(pb.constraints, "move"):
-        from .fix import ConstraintStore
-        store = ConstraintStore()
-        store.storeConstraints(pb.name, pb)
-        store.removeConstraints(pb)
-        
     cns = pb.constraints.new('COPY_LOCATION')
     cns.name = "Do Not Touch"
     cns.target = rig
     cns.mute = True
-    if n > 0:
-        if store:
-            for struct in store.constraints[pb.name]:
-                store.restoreConstraints(struct, pb)
-        else:
-            pb.constraints.move(n-1, 0)
+    n = len(pb.constraints)
+    if n > 1:
+        pb.constraints.move(n-1, 0)
             
 
 def copyPropGroups(rig1, rig2, pb2):
