@@ -321,8 +321,16 @@ class HideOperator(DazOperator):
         rig = context.object
         self.boneLayers = list(rig.data.layers)
         rig.data.layers = 32*[True]
-        rig.DazArmIK_L = rig.DazArmIK_R = False
-        rig.DazLegIK_L = rig.DazLegIK_R = False
+        self.simpleIK = False
+        if rig.DazSimpleIK:
+            from .figure import SimpleIK
+            self.simpleIK = SimpleIK()
+            self.simpleIK.storeProps(rig)
+            self.simpleIK.setProps(rig, False)
+            self.lArmIK = self.simpleIK.getLimbBoneNames(rig, "l", "Arm")
+            self.rArmIK = self.simpleIK.getLimbBoneNames(rig, "r", "Arm")
+            self.lLegIK = self.simpleIK.getLimbBoneNames(rig, "l", "Leg")
+            self.rLegIK = self.simpleIK.getLimbBoneNames(rig, "r", "Leg")
         if bpy.app.version >= (2,80,0):
             self.layerColls = []
             self.hideLayerColls(rig, context.view_layer.layer_collection)
@@ -347,6 +355,8 @@ class HideOperator(DazOperator):
         DazOperator.sequel(self, context)
         rig = context.object
         rig.data.layers = self.boneLayers
+        if self.simpleIK:
+            self.simpleIK.restoreProps(rig)
         if bpy.app.version >= (2,80,0):
             for layer in self.layerColls:
                 layer.exclude = False
@@ -570,6 +580,21 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
                 for (bname, tfm, value) in twists:
                     self.transformBone(rig, bname, tfm, value, n, offset, True)
+
+                if self.simpleIK:
+                    from .figure import snapSimpleIK
+                    updateScene(bpy.context, updateDepsGraph=True)
+                    lArmMats = snapSimpleIK(rig, self.lArmIK, "DazArmIK_L")
+                    rArmMats = snapSimpleIK(rig, self.rArmIK, "DazArmIK_R")
+                    lLegMats = snapSimpleIK(rig, self.lLegIK, "DazLegIK_L")
+                    rLegMats = snapSimpleIK(rig, self.rLegIK, "DazLegIK_R")        
+                    updateScene(bpy.context, updateDepsGraph=True)
+                    for pb,mat in (lArmMats + rArmMats + lLegMats + rLegMats):
+                        pb.matrix = mat
+                    if self.insertKeys:
+                        updateScene(bpy.context, updateDepsGraph=True)
+                        self.simpleIK.insertIKKeys(rig, n+offset)
+                    self.simpleIK.setProps(rig, False)
 
                 if rig.DazRig == "mhx" and self.affectBones:
                     for suffix in ["L", "R"]:

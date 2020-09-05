@@ -624,6 +624,9 @@ class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits, IsArmature):
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 
 class SimpleIK:
+    prefix = None
+    type = None
+
     G38Arm = ["ShldrBend", "ShldrTwist", "ForearmBend", "ForearmTwist", "Hand"]
     G38Leg = ["ThighBend", "ThighTwist", "Shin", "Foot"]
     G38Spine = ["hip", "abdomenLower", "abdomenUpper", "chestLower", "chestUpper"]
@@ -636,6 +639,24 @@ class SimpleIK:
         "verts" : [[0, 0.59721, 0], [-0.11651, 0.585734, 0], [-0.228542, 0.55175, 0], [-0.331792, 0.496562, 0], [-0.422291, 0.422291, 0], [-0.496562, 0.331792, 0], [-0.55175, 0.228542, 0], [-0.585735, 0.11651, 0], [-0.59721, -1.23623e-07, 0], [-0.585735, -0.11651, 0], [-0.55175, -0.228542, 0], [-0.496562, -0.331792, 0], [-0.422291, -0.422291, 0], [-0.331792, -0.496562, 0], [-0.228542, -0.55175, 0], [-0.11651, -0.585735, 0], [2.5826e-07, -0.59721, 0], [0.11651, -0.585735, 0], [0.228543, -0.55175, 0], [0.331792, -0.496562, 0], [0.422292, -0.422291, 0], [0.496562, -0.331792, 0], [0.55175, -0.228542, 0], [0.585735, -0.11651, 0], [0.59721, 4.07954e-07, 0], [0.585735, 0.11651, 0], [0.55175, 0.228543, 0], [0.496562, 0.331793, 0], [0.422291, 0.422292, 0], [0.331791, 0.496562, 0], [0.228542, 0.55175, 0], [0.116509, 0.585735, 0]],
         "edges" : [[1, 0], [2, 1], [3, 2], [4, 3], [5, 4], [6, 5], [7, 6], [8, 7], [9, 8], [10, 9], [11, 10], [12, 11], [13, 12], [14, 13], [15, 14], [16, 15], [17, 16], [18, 17], [19, 18], [20, 19], [21, 20], [22, 21], [23, 22], [24, 23], [25, 24], [26, 25], [27, 26], [28, 27], [29, 28], [30, 29], [31, 30], [0, 31]]
     }    
+    
+    def storeProps(self, rig):
+        self.ikprops = (rig.DazArmIK_L, rig.DazArmIK_R, rig.DazLegIK_L, rig.DazLegIK_R)
+        
+
+    def setProps(self, rig, onoff):        
+        rig.DazArmIK_L = rig.DazArmIK_R = rig.DazLegIK_L = rig.DazLegIK_R = onoff
+        updateScene(bpy.context, updateDepsGraph=True)
+
+
+    def restoreProps(self, rig):
+        rig.DazArmIK_L, rig.DazArmIK_R, rig.DazLegIK_L, rig.DazLegIK_R = self.ikprops
+        updateScene(bpy.context, updateDepsGraph=True)
+
+
+    def getIKProp(self, prefix, type):   
+        return "Daz" + type + "IK_" + prefix.upper()
+
     
     def getGenesisType(self, rig):
         if (self.hasAllBones(rig, self.G38Arm+self.G38Leg, "l") and
@@ -658,17 +679,30 @@ class SimpleIK:
         return True
 
         
-    def getBoneNames(self, rig):        
+    def getLimbBoneNames(self, rig, prefix, type):        
         genesis = self.getGenesisType(rig)
         if not genesis:
             return None
-        table = getattr(self, genesis+self.type)
-        return [self.prefix+bname for bname in table]
+        table = getattr(self, genesis+type)
+        return [prefix+bname for bname in table]
         
-            
-    def addSimpleIK(self, rig):
+
+    def insertIKKeys(self, rig, frame):
+        for bname in ["lHandIK", "rHandIK", "lFootIK", "rFootIK"]:
+            pb = rig.pose.bones[bname]
+            pb.keyframe_insert("location", frame=frame, group=bname)
+            pb.keyframe_insert("rotation_euler", frame=frame, group=bname)
+        
+
+class DAZ_OT_AddSimpleIK(DazOperator, SimpleIK, IsArmature):
+    bl_idname = "daz.add_simple_ik"
+    bl_label = "Add Simple IK"
+    bl_description = "Add Simple IK constraints to the active rig"
+    bl_options = {'UNDO'}
+    
+    def run(self, context):
         from .mhx import makeBone, getBoneCopy, ikConstraint, copyRotation
-        
+        rig = context.object        
         if rig.DazSimpleIK:
             raise DazError("The rig %s already has simple IK" % rig.name)
 
@@ -708,6 +742,8 @@ class SimpleIK:
             copyRotation(foot, footIK, (True,True,True), rig, space='WORLD', prop=legProp)
             handIK.custom_shape = circle
             footIK.custom_shape = circle
+            #hand.custom_shape = circle
+            #foot.custom_shape = circle
             
             if genesis == "G38":
                 footIK.custom_shape_scale = 2.0
@@ -782,17 +818,19 @@ class SimpleIK:
         ob = bpy.data.objects.new(struct["name"], me)
         return ob
 
+#----------------------------------------------------------
+#   FK Snap
+#----------------------------------------------------------
 
-class DAZ_OT_AddSimpleIK(DazOperator, SimpleIK, IsArmature):
-    bl_idname = "daz.add_simple_ik"
-    bl_label = "Add Simple IK"
-    bl_description = "Add Simple IK constraints to the active rig"
-    bl_options = {'UNDO'}
-    
-    def run(self, context):
-        rig = context.object
-        self.addSimpleIK(rig)
-
+def snapSimpleFK(rig, bnames, prop):        
+    mats = []      
+    for bname in bnames:
+        pb = rig.pose.bones[bname]
+        mats.append((pb, pb.matrix.copy()))
+    setattr(rig, prop, False)    
+    for pb,mat in mats:
+        pb.matrix = mat   
+            
 
 class DAZ_OT_SnapSimpleFK(DazOperator, SimpleIK, B.PrefixString, B.TypeString):
     bl_idname = "daz.snap_simple_fk"
@@ -802,19 +840,15 @@ class DAZ_OT_SnapSimpleFK(DazOperator, SimpleIK, B.PrefixString, B.TypeString):
     
     def run(self, context):
         rig = context.object
-        bnames = self.getBoneNames(rig)
-        if not bnames:
-            return
-        mats = []      
-        for bname in bnames:
-            pb = rig.pose.bones[bname]
-            mats.append((pb, pb.matrix))
-        prop = "Daz" + self.type + "IK_" + self.prefix.upper()
-        setattr(rig, prop, False)        
-        for pb,mat in mats:
-            pb.matrix = mat
-   
-
+        bnames = self.getLimbBoneNames(rig, self.prefix, self.type)
+        if bnames:
+            prop = self.getIKProp(self.prefix, self.type)
+            snapSimpleFK(rig, bnames, prop)
+        
+#----------------------------------------------------------
+#   IK Snap
+#----------------------------------------------------------
+    
 class DAZ_OT_SnapSimpleIK(DazOperator, SimpleIK, B.PrefixString, B.TypeString):
     bl_idname = "daz.snap_simple_ik"
     bl_label = "Snap IK"
@@ -823,17 +857,25 @@ class DAZ_OT_SnapSimpleIK(DazOperator, SimpleIK, B.PrefixString, B.TypeString):
     
     def run(self, context):
         rig = context.object
-        bnames = self.getBoneNames(rig)
-        if not bnames:
-            return
-        hand = bnames[-1]            
-        pb = rig.pose.bones[hand]
-        mat = pb.matrix.copy()
-        prop = "Daz" + self.type + "IK_" + self.prefix.upper()
-        setattr(rig, prop, True)        
-        pb = rig.pose.bones[hand+"IK"]
-        pb.matrix = mat
-   
+        bnames = self.getLimbBoneNames(rig, self.prefix, self.type)
+        if bnames:
+            prop = self.getIKProp(self.prefix, self.type)
+            snapSimpleIK(rig, bnames, prop)
+
+
+def snapSimpleIK(rig, bnames, prop):   
+    mats = []
+    for bname in bnames[:-1]:
+        pb = rig.pose.bones[bname]
+        mats.append((pb, pb.matrix.copy()))
+    hand = bnames[-1]  
+    handfk = rig.pose.bones[hand]
+    mat = handfk.matrix.copy()
+    handik = rig.pose.bones[hand+"IK"]
+    setattr(rig, prop, True)            
+    handik.matrix = mat
+    return mats
+      
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
