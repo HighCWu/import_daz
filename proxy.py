@@ -1367,7 +1367,7 @@ def addMannequin(ob, context, rig, coll, mangrp, headType):
         nob.lock_location = nob.lock_rotation = nob.lock_scale = (True,True,True)
         nobs.append((nob, rig, bone, me))
 
-    updateScene(context, updateDepsGraph=True)
+    updateScene(context)
     for nob, rig, bone, me in nobs:
         setParent(context, nob, rig, bone.name, update=False)
         nob.DazMannequin = True

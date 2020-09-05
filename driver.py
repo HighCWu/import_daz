@@ -602,7 +602,7 @@ def matchesPaths(var, paths, rig):
 #----------------------------------------------------------
 
 def updateAll(context):
-    updateScene(context, updateDepsGraph=True)
+    updateScene(context)
     for ob in getSceneObjects(context):
         if ob.type == 'ARMATURE':
             updateRig(ob, context)

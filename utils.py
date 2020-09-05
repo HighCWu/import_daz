@@ -235,14 +235,14 @@ else:
 #
 #-------------------------------------------------------------
 
-def updateScene(context, updateDepsGraph=False):
-    scn = context.scene
-    if hasattr(scn, "update"):
+def updateScene(context):
+    if bpy.app.version < (2,80,0):
+        scn = context.scene
         scn.update()
-    if updateDepsGraph and bpy.app.version >= (2,80,0):
+        scn.frame_current = scn.frame_current
+    else:
         depth = context.evaluated_depsgraph_get()
         depth.update()
-    scn.frame_current = scn.frame_current
 
 
 def toggleEditMode():

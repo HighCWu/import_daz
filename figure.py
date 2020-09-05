@@ -646,12 +646,10 @@ class SimpleIK:
 
     def setProps(self, rig, onoff):        
         rig.DazArmIK_L = rig.DazArmIK_R = rig.DazLegIK_L = rig.DazLegIK_R = onoff
-        updateScene(bpy.context, updateDepsGraph=True)
 
 
     def restoreProps(self, rig):
         rig.DazArmIK_L, rig.DazArmIK_R, rig.DazLegIK_L, rig.DazLegIK_R = self.ikprops
-        updateScene(bpy.context, updateDepsGraph=True)
 
 
     def getIKProp(self, prefix, type):   

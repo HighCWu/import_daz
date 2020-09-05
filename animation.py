@@ -327,6 +327,7 @@ class HideOperator(DazOperator):
             self.simpleIK = SimpleIK()
             self.simpleIK.storeProps(rig)
             self.simpleIK.setProps(rig, False)
+            updateScene(context)
             self.lArmIK = self.simpleIK.getLimbBoneNames(rig, "l", "Arm")
             self.rArmIK = self.simpleIK.getLimbBoneNames(rig, "r", "Arm")
             self.lLegIK = self.simpleIK.getLimbBoneNames(rig, "l", "Leg")
@@ -377,7 +378,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         return MultiFile.invoke(self, context, event)
 
 
-    def getSingleAnimation(self, filepath, rig, scn, offset, missing):
+    def getSingleAnimation(self, filepath, context, offset, missing):
         from .driver import setFloatProp
         from .load_json import loadJson
         if filepath is None:
@@ -390,6 +391,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         if "scene" not in struct.keys():
             return offset
         animations = self.parseAnimation(struct["scene"])
+        rig = context.object
         if rig.type == 'ARMATURE':
             bpy.ops.object.mode_set(mode='POSE')
             self.prepareRig(rig)
@@ -400,7 +402,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             setFloatProp(rig, prop, 0.0)
         else:
             prop = None
-        result = self.animateBones(rig, scn, animations, offset, prop, filepath, missing)
+        result = self.animateBones(context, animations, offset, prop, filepath, missing)
         for pb,lock in locks:
             pb.lock_location = lock
         updateDrivers(rig)
@@ -508,9 +510,10 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                         rig.keyframe_insert('["%s"]' % key, frame=frame, group=key)
 
 
-    def animateBones(self, rig, scn, animations, offset, prop, filepath, missing):
+    def animateBones(self, context, animations, offset, prop, filepath, missing):
         from .driver import setFloatProp
 
+        rig = context.object
         if self.affectMorphs:
             props = {}
             taken = {}
@@ -583,18 +586,19 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
                 if self.simpleIK:
                     from .figure import snapSimpleIK
-                    updateScene(bpy.context, updateDepsGraph=True)
+                    updateScene(context)
                     lArmMats = snapSimpleIK(rig, self.lArmIK, "DazArmIK_L")
                     rArmMats = snapSimpleIK(rig, self.rArmIK, "DazArmIK_R")
                     lLegMats = snapSimpleIK(rig, self.lLegIK, "DazLegIK_L")
                     rLegMats = snapSimpleIK(rig, self.rLegIK, "DazLegIK_R")        
-                    updateScene(bpy.context, updateDepsGraph=True)
+                    updateScene(context)
                     for pb,mat in (lArmMats + rArmMats + lLegMats + rLegMats):
                         pb.matrix = mat
                     if self.insertKeys:
-                        updateScene(bpy.context, updateDepsGraph=True)
+                        updateScene(context)
                         self.simpleIK.insertIKKeys(rig, n+offset)
                     self.simpleIK.setProps(rig, False)
+                    updateScene(context)
 
                 if rig.DazRig == "mhx" and self.affectBones:
                     for suffix in ["L", "R"]:
@@ -795,7 +799,7 @@ def clearAction(self, ob):
             ob.pose_library = None
 
 
-def nameAction(self, ob, scn):
+def nameAction(self, ob):
     if self.useAction:
         if self.makeNewAction and ob.animation_data:
             act = ob.animation_data.action
@@ -840,13 +844,13 @@ class StandardAnimation:
 
         for filepath in dazfiles:
             print("*", os.path.basename(filepath), offset)
-            offset,prop = self.getSingleAnimation(filepath, rig, scn, offset, missing)
+            offset,prop = self.getSingleAnimation(filepath, context, offset, missing)
             if prop:
                 props.append(prop)
 
         finishMain("File", self.filepath, t1)
         scn.frame_current = startframe
-        nameAction(self, rig, scn)
+        nameAction(self, rig)
         if not self.affectSelectedOnly:
             selectAll(rig, selected)
 
