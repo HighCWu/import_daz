@@ -1435,6 +1435,7 @@ def checkRenderSettings(context, force):
         "Bounces" : [("shadow_cube_size", "1024"),
                  ("shadow_cascade_size", "2048"),
                  ("use_shadow_high_bitdepth", True),
+                 ("use_soft_shadows", True),
                  ("light_threshold", 0.001),
                  ("sss_samples", 16),
                  ("sss_jitter_threshold", (">", 0.5)),
