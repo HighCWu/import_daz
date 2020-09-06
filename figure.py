@@ -629,17 +629,16 @@ class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits, IsArmature):
 
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 
-G38Arm = ["ShldrBend", "ShldrTwist", "ForearmBend", "ForearmTwist", "Hand"]
-G38Leg = ["ThighBend", "ThighTwist", "Shin", "Foot"]
-G38Spine = ["hip", "abdomenLower", "abdomenUpper", "chestLower", "chestUpper"]
-G38Neck = ["neckLower", "neckUpper"]
-G12Arm = ["Shldr", "ForeArm", "Hand"]
-G12Leg = ["Thigh", "Shin", "Foot"]
-G12Spine = ["hip", "abdomen", "abdomen2", "spine", "chest"]
-G12Neck = ["neck"]
-
-
 class SimpleIK:
+    G38Arm = ["ShldrBend", "ShldrTwist", "ForearmBend", "ForearmTwist", "Hand"]
+    G38Leg = ["ThighBend", "ThighTwist", "Shin", "Foot"]
+    G38Spine = ["hip", "abdomenLower", "abdomenUpper", "chestLower", "chestUpper"]
+    G38Neck = ["neckLower", "neckUpper"]
+    G12Arm = ["Shldr", "ForeArm", "Hand"]
+    G12Leg = ["Thigh", "Shin", "Foot"]
+    G12Spine = ["hip", "abdomen", "abdomen2", "spine", "chest"]
+    G12Neck = ["neck"]
+
     def storeProps(self, rig):
         self.ikprops = (rig.DazArmIK_L, rig.DazArmIK_R, rig.DazLegIK_L, rig.DazLegIK_R)
         
@@ -692,7 +691,53 @@ class SimpleIK:
             pb.keyframe_insert("rotation_euler", frame=frame, group=bname)
         
 
-class DAZ_OT_AddSimpleIK(DazOperator, SimpleIK, IsArmature):
+    def makeBoneGroup(self, rig):    
+        bpy.ops.object.mode_set(mode='POSE')    
+        bgrp = rig.pose.bone_groups.active
+        if bgrp:
+            return bgrp
+        bpy.ops.pose.group_add()
+        bgrp = rig.pose.bone_groups.active
+        bgrp.name = "Simple IK"
+        bgrp.color_set = 'THEME01' 
+    
+        
+    def limitBone(self, pb, twist, stiffness=(0,0,0)):
+        pb.lock_ik_x = pb.lock_rotation[0]
+        pb.lock_ik_y = pb.lock_rotation[1]
+        pb.lock_ik_z = pb.lock_rotation[2]
+        
+        pb.ik_stiffness_x = stiffness[0]
+        pb.ik_stiffness_y = stiffness[1]
+        pb.ik_stiffness_z = stiffness[2]
+        
+        for cns in pb.constraints:
+            if cns.type == 'LIMIT_ROTATION':
+                pb.use_ik_limit_x = cns.use_limit_x
+                pb.use_ik_limit_y = cns.use_limit_y
+                pb.use_ik_limit_z = cns.use_limit_z
+                pb.ik_min_x = cns.min_x
+                pb.ik_max_x = cns.max_x
+                pb.ik_min_y = cns.min_y
+                pb.ik_max_y = cns.max_y
+                pb.ik_min_z = cns.min_z
+                pb.ik_max_z = cns.max_z
+                cns.influence = 0
+                break
+    
+        if twist:
+            pb.use_ik_limit_x = True
+            pb.use_ik_limit_z = True
+            pb.ik_min_x = 0
+            pb.ik_max_x = 0
+            pb.ik_min_z = 0
+            pb.ik_max_z = 0    
+
+#-------------------------------------------------------------
+#   Add Simple IK
+#-------------------------------------------------------------
+
+class DAZ_OT_AddSimpleIK(DazOperator, IsArmature):
     bl_idname = "daz.add_simple_ik"
     bl_label = "Add Simple IK"
     bl_description = "Add Simple IK constraints to the active rig"
@@ -724,7 +769,7 @@ def addSimpleIK(rig):
         foot = ebones[prefix+"Foot"]
         handIK = makeBone(prefix+"FootIK", rig, foot.head, foot.tail, foot.roll, 0, None)
         
-    bgrp = makeBoneGroup(rig)    
+    bgrp = simpleIK.makeBoneGroup(rig)    
     rpbs = rig.pose.bones 
     for prefix in ["l", "r"]:
         suffix = prefix.upper()
@@ -745,78 +790,35 @@ def addSimpleIK(rig):
         
         if genesis == "G38":
             shldrBend = rpbs[prefix+"ShldrBend"]
-            limitBone(shldrBend, False)
+            simpleIK.limitBone(shldrBend, False)
             shldrTwist = rpbs[prefix+"ShldrTwist"]
-            limitBone(shldrTwist, True)
+            simpleIK.limitBone(shldrTwist, True)
             forearmBend = rpbs[prefix+"ForearmBend"]
-            limitBone(forearmBend, False)
+            simpleIK.limitBone(forearmBend, False)
             forearmTwist = rpbs[prefix+"ForearmTwist"]
-            limitBone(forearmTwist, True)
+            simpleIK.limitBone(forearmTwist, True)
             ikConstraint(forearmTwist, handIK, None, 0, 4, rig, prop=armProp)
             
             thighBend = rpbs[prefix+"ThighBend"]
-            limitBone(thighBend, False, stiffness=(0,0,0.326))
+            simpleIK.limitBone(thighBend, False, stiffness=(0,0,0.326))
             thighTwist = rpbs[prefix+"ThighTwist"]
-            limitBone(thighTwist, True, stiffness=(0,0.160,0))
+            simpleIK.limitBone(thighTwist, True, stiffness=(0,0.160,0))
             shin = rpbs[prefix+"Shin"]
-            limitBone(shin, False, stiffness=(0.068,0,0.517))
+            simpleIK.limitBone(shin, False, stiffness=(0.068,0,0.517))
             ikConstraint(shin, footIK, None, 0, 3, rig, prop=legProp)
             
         elif genesis == "G12":
             shldr = rpbs[prefix+"Shldr"]
-            limitBone(shldr, False)
+            simpleIK.limitBone(shldr, False)
             forearm = rpbs[prefix+"ForeArm"]
-            limitBone(forearm, False)
+            simpleIK.limitBone(forearm, False)
             ikConstraint(forearm, handIK, None, 0, 2, rig, prop=armProp)
             
             thigh = rpbs[prefix+"Thigh"]
-            limitBone(thigh, False)
+            simpleIK.limitBone(thigh, False)
             shin = rpbs[prefix+"Shin"]
-            limitBone(shin, False)
+            simpleIK.limitBone(shin, False)
             ikConstraint(shin, footIK, None, 0, 2, rig, prop=legProp)
-
-    
-def makeBoneGroup(rig):    
-    bpy.ops.object.mode_set(mode='POSE')    
-    bgrp = rig.pose.bone_groups.active
-    if bgrp:
-        return bgrp
-    bpy.ops.pose.group_add()
-    bgrp = rig.pose.bone_groups.active
-    bgrp.name = "Simple IK"
-    bgrp.color_set = 'THEME01' 
-
-    
-def limitBone(pb, twist, stiffness=(0,0,0)):
-    pb.lock_ik_x = pb.lock_rotation[0]
-    pb.lock_ik_y = pb.lock_rotation[1]
-    pb.lock_ik_z = pb.lock_rotation[2]
-    
-    pb.ik_stiffness_x = stiffness[0]
-    pb.ik_stiffness_y = stiffness[1]
-    pb.ik_stiffness_z = stiffness[2]
-    
-    for cns in pb.constraints:
-        if cns.type == 'LIMIT_ROTATION':
-            pb.use_ik_limit_x = cns.use_limit_x
-            pb.use_ik_limit_y = cns.use_limit_y
-            pb.use_ik_limit_z = cns.use_limit_z
-            pb.ik_min_x = cns.min_x
-            pb.ik_max_x = cns.max_x
-            pb.ik_min_y = cns.min_y
-            pb.ik_max_y = cns.max_y
-            pb.ik_min_z = cns.min_z
-            pb.ik_max_z = cns.max_z
-            cns.influence = 0
-            break
-
-    if twist:
-        pb.use_ik_limit_x = True
-        pb.use_ik_limit_z = True
-        pb.ik_min_x = 0
-        pb.ik_max_x = 0
-        pb.ik_min_z = 0
-        pb.ik_max_z = 0    
 
 #----------------------------------------------------------
 #   Custom shapes
@@ -851,7 +853,7 @@ def makeCustomShape(csname, gname, offset=(0,0,0), scale=1):
     return ob
 
 
-class DAZ_OT_AddCustomShapes(DazOperator, SimpleIK, IsArmature):
+class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
     bl_idname = "daz.add_custom_shapes"
     bl_label = "Add Custom Shapes"
     bl_description = "Add custom shapes to the bones of the active rig"
@@ -890,7 +892,8 @@ def addCustomShapes(rig):
             bone = rig.data.bones[bname]
             bone.layers = [False] + [True] + 30*[False]
             
-    bgrp = makeBoneGroup(rig)            
+    simpleIK = SimpleIK()            
+    bgrp = simpleIK.makeBoneGroup(rig)            
     for pb in rig.pose.bones:
         if not pb.bone.layers[0]:
             pass
@@ -907,9 +910,9 @@ def addCustomShapes(rig):
             pb.bone_group = bgrp
         elif pb.name == "pelvis":
             makeSpine(pb, 1.5*spineWidth, 0.5)
-        elif pb.name in G38Spine + G12Spine:
+        elif pb.name in simpleIK.G38Spine + simpleIK.G12Spine:
             makeSpine(pb, spineWidth)
-        elif pb.name in G38Neck + G12Neck:
+        elif pb.name in simpleIK.G38Neck + simpleIK.G12Neck:
             makeSpine(pb, 0.5*spineWidth)
         elif pb.name == "head":
             makeSpine(pb, 0.7*spineWidth, 1)
