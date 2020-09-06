@@ -242,13 +242,28 @@ class DazOptions:
         default = 'BSDF')
 
     lastMethod = StringProperty(default = "")        
+    
+    useLockRot = BoolProperty(
+        name = "Rotation Locks",
+        description = "Use rotation locks",
+        default = True)
 
-    addCustomShapes = BoolProperty(
+    useLimitRot = BoolProperty(
+        name = "Rotation Limits",
+        description = "Use rotation limits",
+        default = True)
+
+    useCustomShapes = BoolProperty(
         name = "Custom Shapes", 
         description = "Add custom shapes to character bones",
         default = True)
 
-    addSimpleIK = BoolProperty(
+    useConnectIKChains = BoolProperty(
+        name = "Connect IK Chains", 
+        description = "Connect bones in IK chains to their parents",
+        default = True)
+
+    useSimpleIK = BoolProperty(
         name = "Inverse Kinematics", 
         description = "Add simple kinematics to character rigs",
         default = True)

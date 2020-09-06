@@ -85,9 +85,7 @@ class GlobalSettings:
         self.useDazPropLimits = True
         self.useDazPropDefault = True
 
-        self.useLockRot = True
         self.useLockLoc = True
-        self.useLimitRot = True
         self.useLimitLoc = True
         self.useConnect = True
 
@@ -125,9 +123,7 @@ class GlobalSettings:
         "DazOrientMethod" : "orientMethod",
         "DazUseLegacyLocks" : "useLegacyLocks",
         "DazUseQuaternions" : "useQuaternions",
-        "DazUseLockRot" : "useLockRot",
         "DazUseLockLoc" : "useLockLoc",
-        "DazUseLimitRot" : "useLimitRot",
         "DazUseLimitLoc" : "useLimitLoc",
 
         "DazBuildHighdef" : "buildHighdef",
@@ -355,8 +351,11 @@ class LocalSettings:
         self.fitFile = False
         self.autoMaterials = True
         self.materialMethod = 'BSDF'
-        self.addCustomShapes = True
-        self.addSimpleIK = True
+        self.useLockRot = True
+        self.useLimitRot = True
+        self.useCustomShapes = True
+        self.useConnectIKChains = True
+        self.useSimpleIK = True
 
         self.useNodes = False
         self.useGeometries = False
@@ -420,8 +419,14 @@ class LocalSettings:
         self.skinColor = btn.skinColor
         self.clothesColor = btn.clothesColor
         self.materialMethod = btn.materialMethod
-        self.addCustomShapes = btn.addCustomShapes
-        self.addSimpleIK = btn.addSimpleIK
+        self.useLockRot = btn.useLockRot
+        self.useLimitRot = btn.useLimitRot
+        self.useCustomShapes = btn.useCustomShapes
+        if self.useLockRot and self.useLimitRot:
+            self.useConnectIKChains = btn.useConnectIKChains
+            self.useSimpleIK = btn.useSimpleIK
+        else:
+            self.useConnectIKChains = self.useSimpleIK = False
 
         self.useStrict = True
         self.singleUser = True

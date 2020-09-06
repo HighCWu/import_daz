@@ -65,8 +65,7 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         layout = self.layout
         scn = context.scene
         layout.prop(self, "unitScale")
-        layout.prop(self, "addCustomShapes")
-        layout.prop(self, "addSimpleIK")
+
         layout.separator()
         box = layout.box()
         box.label(text = "Mesh Fitting")
@@ -83,6 +82,16 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         box = layout.box()
         box.label(text = "Material Method")
         box.prop(self, "materialMethod", expand=True)
+
+        layout.separator()
+        box = layout.box()
+        box.label(text = "Rigging")
+        box.prop(self, "useLockRot")
+        box.prop(self, "useLimitRot")
+        box.prop(self, "useCustomShapes")
+        if self.useLimitRot and self.useLockRot:
+            box.prop(self, "useConnectIKChains")
+            box.prop(self, "useSimpleIK")
 
 #-------------------------------------------------------------
 #   Silent mode
@@ -447,6 +456,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         if showBox(scn, "DazShowRigging", box):
             box.operator("daz.add_custom_shapes")            
             box.operator("daz.remove_custom_shapes")            
+            box.operator("daz.connect_ik_chains")            
             box.operator("daz.add_simple_ik")            
             box.separator()
             box.operator("daz.convert_rig")
@@ -1185,9 +1195,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazOrientMethod")        
         box.prop(scn, "DazUseQuaternions")
         box.separator()
-        box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLockLoc")
-        box.prop(scn, "DazUseLimitRot")
         box.prop(scn, "DazUseLimitLoc")
         box.prop(scn, "DazUseLegacyLocks")
 
@@ -1433,17 +1441,9 @@ def initialize():
         description = "Load environment",
         default = True)
 
-    bpy.types.Scene.DazUseLockRot = BoolProperty(
-        name = "Rotation Locks",
-        description = "Use rotation locks")
-
     bpy.types.Scene.DazUseLockLoc = BoolProperty(
         name = "Location Locks",
         description = "Use location locks")
-
-    bpy.types.Scene.DazUseLimitRot = BoolProperty(
-        name = "Rotation Limits",
-        description = "Use rotation limits")
 
     bpy.types.Scene.DazUseLimitLoc = BoolProperty(
         name = "Location Limits",

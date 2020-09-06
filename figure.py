@@ -103,9 +103,9 @@ class FigureInstance(Instance):
         if missing and GS.verbosity > 2:
             print("Missing bones when posing %s" % self.name)
             print("  %s" % [inst.node.name for inst in missing])
-        rig.DazRotLocks = GS.useLockRot
+        rig.DazRotLocks = LS.useLockRot
         rig.DazLocLocks = GS.useLockLoc
-        rig.DazRotLimits = GS.useLimitRot
+        rig.DazRotLimits = LS.useLimitRot
         rig.DazLocLimits = GS.useLimitLoc
         self.fixDependencyLoops(rig)
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -274,15 +274,18 @@ class Figure(Node):
             if isinstance(child, BoneInstance):
                 child.buildFormulas(rig, False)
 
-        if self.rigtype and (LS.addCustomShapes or LS.addSimpleIK):
+        if self.rigtype and (LS.useCustomShapes or LS.useSimpleIK or LS.useConnectIKChains):
             for geo in inst.geometries:
                 if geo.rna:
                     _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
                     if char:
-                        if LS.addCustomShapes:
-                            addCustomShapes(rig)
-                        if LS.addSimpleIK:
-                            addSimpleIK(rig)
+                        simpleIK = SimpleIK()
+                        if LS.useCustomShapes:
+                            addCustomShapes(rig, simpleIK)
+                        if LS.useConnectIKChains:
+                            connectIKChains(rig, simpleIK)
+                        if LS.useSimpleIK:
+                            addSimpleIK(rig, simpleIK)
 
 
 def getModifierPath(moddir, folder, tfile):
@@ -656,13 +659,13 @@ class SimpleIK:
 
     
     def getGenesisType(self, rig):
-        if (self.hasAllBones(rig, G38Arm+G38Leg, "l") and
-            self.hasAllBones(rig, G38Arm+G38Leg, "r") and
-            self.hasAllBones(rig, G38Spine, "")):
+        if (self.hasAllBones(rig, self.G38Arm+self.G38Leg, "l") and
+            self.hasAllBones(rig, self.G38Arm+self.G38Leg, "r") and
+            self.hasAllBones(rig, self.G38Spine, "")):
             return "G38"
-        if (self.hasAllBones(rig, G12Arm+G12Leg, "l") and
-            self.hasAllBones(rig, G12Arm+G12Leg, "r") and
-            self.hasAllBones(rig, G12Spine, "")):
+        if (self.hasAllBones(rig, self.G12Arm+self.G12Leg, "l") and
+            self.hasAllBones(rig, self.G12Arm+self.G12Leg, "r") and
+            self.hasAllBones(rig, self.G12Spine, "")):
             return "G12"
         return None            
     
@@ -744,15 +747,14 @@ class DAZ_OT_AddSimpleIK(DazOperator, IsArmature):
     bl_options = {'UNDO'}
     
     def run(self, context):
-        addSimpleIK(context.object)
+        addSimpleIK(context.object, SimpleIK())
         
         
-def addSimpleIK(rig):        
+def addSimpleIK(rig, simpleIK):        
     from .mhx import makeBone, getBoneCopy, ikConstraint, copyRotation
     if rig.DazSimpleIK:
         raise DazError("The rig %s already has simple IK" % rig.name)
     
-    simpleIK = SimpleIK()
     genesis = simpleIK.getGenesisType(rig)
     if not genesis:
         raise DazError("Cannot create simple IK for the rig %s" % rig.name)
@@ -824,6 +826,30 @@ def addSimpleIK(rig):
 #   Custom shapes
 #----------------------------------------------------------
 
+class DAZ_OT_ConnectIKChains(DazOperator, IsArmature):
+    bl_idname = "daz.connect_ik_chains"
+    bl_label = "Connect IK Chains"
+    bl_description = "Connect all bones in IK chains to their parents"
+    bl_options = {'UNDO'}
+    
+    def run(self, context):
+        connectIKChains(context.object, SimpleIK())
+
+
+def connectIKChains(rig, simpleIK):
+    bpy.ops.object.mode_set(mode="EDIT")
+    for prefix in ["l", "r"]:
+        for type in ["Arm", "Leg"]:
+            bnames = simpleIK.getLimbBoneNames(rig, prefix, type)
+            if bnames:
+                for bname in bnames[1:]:
+                    eb = rig.data.edit_bones[bname]
+                    eb.use_connect = True
+
+#----------------------------------------------------------
+#   Custom shapes
+#----------------------------------------------------------
+
 def makeCustomShape(csname, gname, offset=(0,0,0), scale=1):
     Gizmos = {
         "CircleX" : {    
@@ -860,10 +886,10 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
     bl_options = {'UNDO'}
     
     def run(self, context):
-        addCustomShapes(context.object)
+        addCustomShapes(context.object, SimpleIK())
         
         
-def addCustomShapes(rig):        
+def addCustomShapes(rig, simpleIK):        
     csCollar = makeCustomShape("CS_Collar", "CircleX", (0,1,0), (0,0.5,0.1))
     csHand = makeCustomShape("CS_Hand", "CircleX", (0,1,0), (0,0.6,0.5))
     csCarpal = makeCustomShape("CS_Carpal", "CircleZ", (0,1,0), (0.1,0.5,0))
@@ -892,7 +918,6 @@ def addCustomShapes(rig):
             bone = rig.data.bones[bname]
             bone.layers = [False] + [True] + 30*[False]
             
-    simpleIK = SimpleIK()            
     bgrp = simpleIK.makeBoneGroup(rig)            
     for pb in rig.pose.bones:
         if not pb.bone.layers[0]:
@@ -945,7 +970,7 @@ def makeSpine(pb, width, tail=0):
     pb.custom_shape_scale = s
 
 
-class DAZ_OT_RemoveCustomShapes(DazOperator, SimpleIK, IsArmature):
+class DAZ_OT_RemoveCustomShapes(DazOperator, IsArmature):
     bl_idname = "daz.remove_custom_shapes"
     bl_label = "Remove Custom Shapes"
     bl_description = "Remove custom shapes from the bones of the active rig"
@@ -1027,6 +1052,7 @@ classes = [
     DAZ_OT_ToggleLocLocks,
     DAZ_OT_ToggleRotLimits,
     DAZ_OT_ToggleLocLimits,
+    DAZ_OT_ConnectIKChains,
     DAZ_OT_AddCustomShapes,
     DAZ_OT_RemoveCustomShapes,
     DAZ_OT_AddSimpleIK,
