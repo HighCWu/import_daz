@@ -356,6 +356,7 @@ class LocalSettings:
         self.autoMaterials = True
         self.materialMethod = 'BSDF'
         self.addCustomShapes = True
+        self.addSimpleIK = True
 
         self.useNodes = False
         self.useGeometries = False
@@ -420,6 +421,7 @@ class LocalSettings:
         self.clothesColor = btn.clothesColor
         self.materialMethod = btn.materialMethod
         self.addCustomShapes = btn.addCustomShapes
+        self.addSimpleIK = btn.addSimpleIK
 
         self.useStrict = True
         self.singleUser = True

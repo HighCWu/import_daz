@@ -244,7 +244,12 @@ class DazOptions:
     
     addCustomShapes : BoolProperty(
         name = "Custom Shapes", 
-        description = "Add custom shapes to bones",
+        description = "Add custom shapes to character bones",
+        default = True)
+
+    addSimpleIK : BoolProperty(
+        name = "Inverse Kinematics", 
+        description = "Add simple kinematics to character rigs",
         default = True)
 
 

@@ -66,6 +66,7 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         scn = context.scene
         layout.prop(self, "unitScale")
         layout.prop(self, "addCustomShapes")
+        layout.prop(self, "addSimpleIK")
         layout.separator()
         box = layout.box()
         box.label(text = "Mesh Fitting")
@@ -299,7 +300,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.merge_toes")
             box.operator("daz.add_extra_face_bones")
             box.operator("daz.make_all_bones_posable")
-            box.operator("daz.add_simple_ik")            
             box.operator("daz.update_all")
 
         layout.separator()
@@ -447,6 +447,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         if showBox(scn, "DazShowRigging", box):
             box.operator("daz.add_custom_shapes")            
             box.operator("daz.remove_custom_shapes")            
+            box.operator("daz.add_simple_ik")            
             box.separator()
             box.operator("daz.convert_rig")
             box.separator()
