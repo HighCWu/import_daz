@@ -65,6 +65,7 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         layout = self.layout
         scn = context.scene
         layout.prop(self, "unitScale")
+        layout.prop(self, "addCustomShapes")
         layout.separator()
         box = layout.box()
         box.label(text = "Mesh Fitting")
@@ -444,6 +445,9 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowRigging", box):
+            box.operator("daz.add_custom_shapes")            
+            box.operator("daz.remove_custom_shapes")            
+            box.separator()
             box.operator("daz.convert_rig")
             box.separator()
             box.operator("daz.apply_rest_pose")

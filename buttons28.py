@@ -240,7 +240,12 @@ class DazOptions:
         description = "Type of material node tree",
         default = 'BSDF')
         
-    lastMethod : StringProperty(default = "")        
+    lastMethod : StringProperty(default = "")  
+    
+    addCustomShapes : BoolProperty(
+        name = "Custom Shapes", 
+        description = "Add custom shapes to bones",
+        default = True)
 
 
 class LoadRootPaths:

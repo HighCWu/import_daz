@@ -243,6 +243,11 @@ class DazOptions:
 
     lastMethod = StringProperty(default = "")        
 
+    addCustomShapes = BoolProperty(
+        name = "Custom Shapes", 
+        description = "Add custom shapes to bones",
+        default = True)
+
 
 class LoadRootPaths:
     useContent = BoolProperty(

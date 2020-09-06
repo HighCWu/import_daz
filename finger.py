@@ -49,13 +49,14 @@ def getFingerPrint(ob):
         return ("%d-%d-%d" % (len(ob.data.vertices), len(ob.data.edges), len(ob.data.polygons)))
 
 
-def getFingeredCharacter(ob):
+def getFingeredCharacter(ob, verbose=True):
     if ob.type == 'MESH':
         finger = getFingerPrint(ob)
         if finger in FingerPrints.keys():
             char = FingerPrints[finger]
         else:
-            print("Did not find fingerprint", finger)
+            if verbose:
+                print("Did not find fingerprint", finger)
             char = ""
         return ob.parent,ob,char
 

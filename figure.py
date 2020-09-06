@@ -274,6 +274,13 @@ class Figure(Node):
             if isinstance(child, BoneInstance):
                 child.buildFormulas(rig, False)
 
+        if self.rigtype and LS.addCustomShapes:
+            for geo in inst.geometries:
+                if geo.rna:
+                    _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
+                    if char:
+                        addCustomShapes(rig)
+
 
 def getModifierPath(moddir, folder, tfile):
     try:
@@ -314,10 +321,6 @@ def getRigType1(bones):
     elif "ball.marker.L" in bones:
         return "mhx"
     else:
-        return ""
-        print("No rigtype:")
-        bones.sort()
-        print(bones)
         return ""
 
 
@@ -623,22 +626,19 @@ class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits, IsArmature):
 
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 
+G38Arm = ["ShldrBend", "ShldrTwist", "ForearmBend", "ForearmTwist", "Hand"]
+G38Leg = ["ThighBend", "ThighTwist", "Shin", "Foot"]
+G38Spine = ["hip", "abdomenLower", "abdomenUpper", "chestLower", "chestUpper"]
+G38Neck = ["neckLower", "neckUpper"]
+G12Arm = ["Shldr", "ForeArm", "Hand"]
+G12Leg = ["Thigh", "Shin", "Foot"]
+G12Spine = ["hip", "abdomen", "abdomen2", "spine", "chest"]
+G12Neck = ["neck"]
+
+
 class SimpleIK:
     prefix = None
     type = None
-
-    G38Arm = ["ShldrBend", "ShldrTwist", "ForearmBend", "ForearmTwist", "Hand"]
-    G38Leg = ["ThighBend", "ThighTwist", "Shin", "Foot"]
-    G38Spine = ["hip", "abdomenLower", "abdomenUpper", "chestLower", "chestUpper"]
-    G12Arm = ["Shldr", "ForeArm", "Hand"]
-    G12Leg = ["Thigh", "Shin", "Foot"]
-    G12Spine = ["hip", "abdomen", "abdomen2", "chest"]
-    
-    Circle = {
-        "name" : "Circle",
-        "verts" : [[0, 0.59721, 0], [-0.11651, 0.585734, 0], [-0.228542, 0.55175, 0], [-0.331792, 0.496562, 0], [-0.422291, 0.422291, 0], [-0.496562, 0.331792, 0], [-0.55175, 0.228542, 0], [-0.585735, 0.11651, 0], [-0.59721, -1.23623e-07, 0], [-0.585735, -0.11651, 0], [-0.55175, -0.228542, 0], [-0.496562, -0.331792, 0], [-0.422291, -0.422291, 0], [-0.331792, -0.496562, 0], [-0.228542, -0.55175, 0], [-0.11651, -0.585735, 0], [2.5826e-07, -0.59721, 0], [0.11651, -0.585735, 0], [0.228543, -0.55175, 0], [0.331792, -0.496562, 0], [0.422292, -0.422291, 0], [0.496562, -0.331792, 0], [0.55175, -0.228542, 0], [0.585735, -0.11651, 0], [0.59721, 4.07954e-07, 0], [0.585735, 0.11651, 0], [0.55175, 0.228543, 0], [0.496562, 0.331793, 0], [0.422291, 0.422292, 0], [0.331791, 0.496562, 0], [0.228542, 0.55175, 0], [0.116509, 0.585735, 0]],
-        "edges" : [[1, 0], [2, 1], [3, 2], [4, 3], [5, 4], [6, 5], [7, 6], [8, 7], [9, 8], [10, 9], [11, 10], [12, 11], [13, 12], [14, 13], [15, 14], [16, 15], [17, 16], [18, 17], [19, 18], [20, 19], [21, 20], [22, 21], [23, 22], [24, 23], [25, 24], [26, 25], [27, 26], [28, 27], [29, 28], [30, 29], [31, 30], [0, 31]]
-    }    
     
     def storeProps(self, rig):
         self.ikprops = (rig.DazArmIK_L, rig.DazArmIK_R, rig.DazLegIK_L, rig.DazLegIK_R)
@@ -657,13 +657,13 @@ class SimpleIK:
 
     
     def getGenesisType(self, rig):
-        if (self.hasAllBones(rig, self.G38Arm+self.G38Leg, "l") and
-            self.hasAllBones(rig, self.G38Arm+self.G38Leg, "r") and
-            self.hasAllBones(rig, self.G38Spine, "")):
+        if (self.hasAllBones(rig, G38Arm+G38Leg, "l") and
+            self.hasAllBones(rig, G38Arm+G38Leg, "r") and
+            self.hasAllBones(rig, G38Spine, "")):
             return "G38"
-        if (self.hasAllBones(rig, self.G12Arm+self.G12Leg, "l") and
-            self.hasAllBones(rig, self.G12Arm+self.G12Leg, "r") and
-            self.hasAllBones(rig, self.G12Spine, "")):
+        if (self.hasAllBones(rig, G12Arm+G12Leg, "l") and
+            self.hasAllBones(rig, G12Arm+G12Leg, "r") and
+            self.hasAllBones(rig, G12Spine, "")):
             return "G12"
         return None            
     
@@ -712,8 +712,6 @@ class DAZ_OT_AddSimpleIK(DazOperator, SimpleIK, IsArmature):
         rig.DazArmIK_L = rig.DazArmIK_R = True
         rig.DazLegIK_L = rig.DazLegIK_R = True
         
-        circle = self.makeGizmo(self.Circle)    
-    
         bpy.ops.object.mode_set(mode='EDIT')
         ebones = rig.data.edit_bones
         for prefix in ["l", "r"]:
@@ -723,10 +721,14 @@ class DAZ_OT_AddSimpleIK(DazOperator, SimpleIK, IsArmature):
             handIK = makeBone(prefix+"FootIK", rig, foot.head, foot.tail, foot.roll, 0, None)
     
         bpy.ops.object.mode_set(mode='POSE')    
-        rpbs = rig.pose.bones
-        hip = rpbs["hip"]
-        hip.custom_shape = circle
-        
+        bpy.ops.pose.group_add()
+        bgrp = rig.pose.bone_groups.active
+        bgrp.name = "Simple IK"
+        bgrp.color_set = 'THEME01' 
+        print("BGRP", bgrp)
+
+        rpbs = rig.pose.bones 
+        csHandIK,csFootIK = makeCustomShapesIK()        
         for prefix in ["l", "r"]:
             suffix = prefix.upper()
             armProp = "DazArmIK_" + suffix
@@ -738,13 +740,12 @@ class DAZ_OT_AddSimpleIK(DazOperator, SimpleIK, IsArmature):
             footIK = getBoneCopy(prefix+"FootIK", foot, rpbs)
             copyRotation(hand, handIK, (True,True,True), rig, space='WORLD', prop=armProp)
             copyRotation(foot, footIK, (True,True,True), rig, space='WORLD', prop=legProp)
-            handIK.custom_shape = circle
-            footIK.custom_shape = circle
-            #hand.custom_shape = circle
-            #foot.custom_shape = circle
+            handIK.custom_shape = csHandIK
+            footIK.custom_shape = csFootIK
+            handIK.bone_group = bgrp
+            footIK.bone_group = bgrp
             
             if genesis == "G38":
-                footIK.custom_shape_scale = 2.0
                 shldrBend = rpbs[prefix+"ShldrBend"]
                 self.limitBone(shldrBend, False)
                 shldrTwist = rpbs[prefix+"ShldrTwist"]
@@ -764,7 +765,6 @@ class DAZ_OT_AddSimpleIK(DazOperator, SimpleIK, IsArmature):
                 ikConstraint(shin, footIK, None, 0, 3, rig, prop=legProp)
     
             elif genesis == "G12":
-                handIK.custom_shape_scale = 2.0
                 shldr = rpbs[prefix+"Shldr"]
                 self.limitBone(shldr, False)
                 forearm = rpbs[prefix+"ForeArm"]
@@ -809,13 +809,139 @@ class DAZ_OT_AddSimpleIK(DazOperator, SimpleIK, IsArmature):
             pb.ik_min_z = 0
             pb.ik_max_z = 0    
     
-        
-    def makeGizmo(self, struct):
-        me = bpy.data.meshes.new(struct["name"])
-        me.from_pydata(struct["verts"], struct["edges"], [])
-        ob = bpy.data.objects.new(struct["name"], me)
-        return ob
+#----------------------------------------------------------
+#   Custom shapes
+#----------------------------------------------------------
 
+def makeCustomShape(csname, gname, offset=(0,0,0), scale=1):
+    Gizmos = {
+        "CircleX" : {    
+            "verts" : [[0, 1, 0], [0, 0.9808, 0.1951], [0, 0.9239, 0.3827], [0, 0.8315, 0.5556], [0, 0.7071, 0.7071], [0, 0.5556, 0.8315], [0, 0.3827, 0.9239], [0, 0.1951, 0.9808], [0, 0, 1], [0, -0.1951, 0.9808], [0, -0.3827, 0.9239], [0, -0.5556, 0.8315], [0, -0.7071, 0.7071], [0, -0.8315, 0.5556], [0, -0.9239, 0.3827], [0, -0.9808, 0.1951], [0, -1, 0], [0, -0.9808, -0.1951], [0, -0.9239, -0.3827], [0, -0.8315, -0.5556], [0, -0.7071, -0.7071], [0, -0.5556, -0.8315], [0, -0.3827, -0.9239], [0, -0.1951, -0.9808], [0, 0, -1], [0, 0.1951, -0.9808], [0, 0.3827, -0.9239], [0, 0.5556, -0.8315], [0, 0.7071, -0.7071], [0, 0.8315, -0.5556], [0, 0.9239, -0.3827], [0, 0.9808, -0.1951]],
+            "edges" : [[1, 0], [2, 1], [3, 2], [4, 3], [5, 4], [6, 5], [7, 6], [8, 7], [9, 8], [10, 9], [11, 10], [12, 11], [13, 12], [14, 13], [15, 14], [16, 15], [17, 16], [18, 17], [19, 18], [20, 19], [21, 20], [22, 21], [23, 22], [24, 23], [25, 24], [26, 25], [27, 26], [28, 27], [29, 28], [30, 29], [31, 30], [0, 31]]
+        },
+        "CircleY" : {
+            "verts" : [[1, 0, 0], [0.9808, 0, 0.1951], [0.9239, 0, 0.3827], [0.8315, 0, 0.5556], [0.7071, 0, 0.7071], [0.5556, 0, 0.8315], [0.3827, 0, 0.9239], [0.1951, 0, 0.9808], [0, 0, 1], [-0.1951, 0, 0.9808], [-0.3827, 0, 0.9239], [-0.5556, 0, 0.8315], [-0.7071, 0, 0.7071], [-0.8315, 0, 0.5556], [-0.9239, 0, 0.3827], [-0.9808, 0, 0.1951], [-1, 0, 0], [-0.9808, 0, -0.1951], [-0.9239, 0, -0.3827], [-0.8315, 0, -0.5556], [-0.7071, 0, -0.7071], [-0.5556, 0, -0.8315], [-0.3827, 0, -0.9239], [-0.1951, 0, -0.9808], [0, 0, -1], [0.1951, 0, -0.9808], [0.3827, 0, -0.9239], [0.5556, 0, -0.8315], [0.7071, 0, -0.7071], [0.8315, 0, -0.5556], [0.9239, 0, -0.3827], [0.9808, 0, -0.1951]],
+            "edges" : [[1, 0], [2, 1], [3, 2], [4, 3], [5, 4], [6, 5], [7, 6], [8, 7], [9, 8], [10, 9], [11, 10], [12, 11], [13, 12], [14, 13], [15, 14], [16, 15], [17, 16], [18, 17], [19, 18], [20, 19], [21, 20], [22, 21], [23, 22], [24, 23], [25, 24], [26, 25], [27, 26], [28, 27], [29, 28], [30, 29], [31, 30], [0, 31]]
+        },
+        "CircleZ" : {
+            "verts" : [[0, 1, 0], [-0.1951, 0.9808, 0], [-0.3827, 0.9239, 0], [-0.5556, 0.8315, 0], [-0.7071, 0.7071, 0], [-0.8315, 0.5556, 0], [-0.9239, 0.3827, 0], [-0.9808, 0.1951, 0], [-1, 0, 0], [-0.9808, -0.1951, 0], [-0.9239, -0.3827, 0], [-0.8315, -0.5556, 0], [-0.7071, -0.7071, 0], [-0.5556, -0.8315, 0], [-0.3827, -0.9239, 0], [-0.1951, -0.9808, 0], [0, -1, 0], [0.1951, -0.9808, 0], [0.3827, -0.9239, 0], [0.5556, -0.8315, 0], [0.7071, -0.7071, 0], [0.8315, -0.5556, 0], [0.9239, -0.3827, 0], [0.9808, -0.1951, 0], [1, 0, 0], [0.9808, 0.1951, 0], [0.9239, 0.3827, 0], [0.8315, 0.5556, 0], [0.7071, 0.7071, 0], [0.5556, 0.8315, 0], [0.3827, 0.9239, 0], [0.1951, 0.9808, 0]],
+            "edges" : [[1, 0], [2, 1], [3, 2], [4, 3], [5, 4], [6, 5], [7, 6], [8, 7], [9, 8], [10, 9], [11, 10], [12, 11], [13, 12], [14, 13], [15, 14], [16, 15], [17, 16], [18, 17], [19, 18], [20, 19], [21, 20], [22, 21], [23, 22], [24, 23], [25, 24], [26, 25], [27, 26], [28, 27], [29, 28], [30, 29], [31, 30], [0, 31]]
+        },        
+    }
+    me = bpy.data.meshes.new(csname)
+    struct = Gizmos[gname]
+    verts = struct["verts"]
+    u,v,w = offset
+    if isinstance(scale, tuple):
+        a,b,c = scale
+    else:
+        a,b,c = scale,scale,scale
+    verts = [(a*(x+u), b*(y+v), c*(z+w)) for x,y,z in struct["verts"]]
+    me.from_pydata(verts, struct["edges"], [])
+    ob = bpy.data.objects.new(csname, me)
+    return ob
+
+
+def makeCustomShapesIK():        
+    csHandIK = makeCustomShape("CS_HandIK", "CircleX", (0,1,0), (0,1,0.5))
+    csFootIK = makeCustomShape("CS_FootIK", "CircleZ", (0,1,0), (1,1.5,0))
+    return csHandIK,csFootIK
+
+
+class DAZ_OT_AddCustomShapes(DazOperator, SimpleIK, IsArmature):
+    bl_idname = "daz.add_custom_shapes"
+    bl_label = "Add Custom Shapes"
+    bl_description = "Add custom shapes to the bones of the active rig"
+    bl_options = {'UNDO'}
+    
+    def run(self, context):
+        addCustomShapes(context.object)
+        
+        
+def addCustomShapes(rig):        
+    csCollar = makeCustomShape("CS_Collar", "CircleX", (0,1,0), (0,0.5,0.1))
+    csCarpal = makeCustomShape("CS_Carpal", "CircleZ", (0,1,0), (0.1,0.5,0))
+    csTongue = makeCustomShape("CS_Tongue", "CircleZ", (0,1,0), (1.5,0.5,0))
+    circleY2 = makeCustomShape("CS_CircleY2", "CircleY", scale=1/2)
+    circleY4 = makeCustomShape("CS_CircleY4", "CircleY", (0,2,0), scale=1/4)
+    circleY5 = makeCustomShape("CS_CircleY5", "CircleY", scale=1/5)
+    csHandIK,csFootIK = makeCustomShapesIK()
+    
+    spineWidth = 1
+    if "lCollar" in rig.data.bones.keys() and "rCollar" in rig.data.bones.keys():
+        lCollar = rig.data.bones["lCollar"]
+        rCollar = rig.data.bones["rCollar"]
+        spineWidth = 0.5*(lCollar.tail_local[0] - rCollar.tail_local[0])
+    
+    csFoot = None
+    csToe = None
+    if "lFoot" in rig.data.bones.keys() and "lToe" in rig.data.bones.keys():
+        lFoot = rig.data.bones["lFoot"]
+        lToe = rig.data.bones["lToe"]
+        footFactor = (lToe.head_local[1] - lFoot.head_local[1])/(lFoot.tail_local[1] - lFoot.head_local[1])
+        csFoot = makeCustomShape("CS_Foot", "CircleZ", (0,1,0), (0.3,0.5*footFactor,0))
+        csToe = makeCustomShape("CS_Toe", "CircleZ", (0,1,0), (0.3,0.5,0))
+
+    for bname in ["upperFaceRig", "lowerFaceRig", "lMetatarsals", "rMetatarsals", "upperTeeth", "lowerTeeth"]:
+        if bname in rig.data.bones.keys():
+            bone = rig.data.bones[bname]
+            bone.layers = [False] + [True] + 30*[False]
+            
+    for pb in rig.pose.bones:
+        if not pb.bone.layers[0]:
+            pass
+        elif pb.parent and pb.parent.name in ["lowerFaceRig", "upperFaceRig"]:
+            pb.custom_shape = circleY5
+        elif pb.name == "lowerJaw":
+            pb.custom_shape = csCollar
+        elif pb.name.startswith("tongue"):
+            pb.custom_shape = csTongue
+        elif pb.name[1:] in ["Shin", "Thigh", "Shldr", "ForeArm", "Thumb1", "Index1", "Mid1", "Ring1", "Pinky1"]:
+            pb.custom_shape = circleY4
+        elif pb.name == "hip":
+            makeSpine(pb, 2*spineWidth)
+        elif pb.name == "pelvis":
+            makeSpine(pb, 1.5*spineWidth, 0.5)
+        elif pb.name in G38Spine + G12Spine:
+            makeSpine(pb, spineWidth)
+        elif pb.name in G38Neck + G12Neck:
+            makeSpine(pb, 0.5*spineWidth)
+        elif pb.name == "head":
+            makeSpine(pb, 0.7*spineWidth, 1)
+        elif pb.name[1:7] == "Carpal":
+            pb.custom_shape = csCarpal
+        elif pb.name[1:7] == "Collar":
+            pb.custom_shape = csCollar
+        elif pb.name.endswith("HandIK"):
+            pb.custom_shape = csHandIK
+        elif pb.name.endswith("FootIK"):
+            pb.custom_shape = csFootIK
+        elif pb.name[1:4] == "Toe":
+            pb.custom_shape = csToe
+        elif pb.name[1:5] == "Foot":
+            pb.custom_shape = csFoot
+        else:
+            pb.custom_shape = circleY2            
+
+                
+def makeSpine(pb, width, tail=0):                
+    s = width/pb.bone.length
+    circle = makeCustomShape("CS_" + pb.name, "CircleY", (0,tail/s,0))
+    pb.custom_shape = circle
+    pb.custom_shape_scale = s
+
+
+class DAZ_OT_RemoveCustomShapes(DazOperator, SimpleIK, IsArmature):
+    bl_idname = "daz.remove_custom_shapes"
+    bl_label = "Remove Custom Shapes"
+    bl_description = "Remove custom shapes from the bones of the active rig"
+    bl_options = {'UNDO'}
+    
+    def run(self, context):
+        rig = context.object
+        for pb in rig.pose.bones:
+            pb.custom_shape = None
+        
 #----------------------------------------------------------
 #   FK Snap
 #----------------------------------------------------------
@@ -887,6 +1013,8 @@ classes = [
     DAZ_OT_ToggleLocLocks,
     DAZ_OT_ToggleRotLimits,
     DAZ_OT_ToggleLocLimits,
+    DAZ_OT_AddCustomShapes,
+    DAZ_OT_RemoveCustomShapes,
     DAZ_OT_AddSimpleIK,
     DAZ_OT_SnapSimpleFK,
     DAZ_OT_SnapSimpleIK,
