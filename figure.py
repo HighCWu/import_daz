@@ -782,6 +782,12 @@ def addSimpleIK(rig, IK):
         handIK = makeBone(prefix+"HandIK", rig, hand.head, hand.tail, hand.roll, 0, None)
         foot = ebones[prefix+"Foot"]
         handIK = makeBone(prefix+"FootIK", rig, foot.head, foot.tail, foot.roll, 0, None)
+        forearm = ebones[prefix+"ForearmBend"]
+        collar = ebones[prefix+"Collar"]
+        elbow = makePole(prefix+"Elbow", rig, forearm, collar)
+        shin = ebones[prefix+"Shin"]
+        hip = ebones["hip"]
+        knee = makePole(prefix+"Knee", rig, shin, hip)
         
     bgrp = IK.makeBoneGroup(rig)    
     rpbs = rig.pose.bones 
@@ -813,7 +819,9 @@ def addSimpleIK(rig, IK):
             IK.limitBone(forearmBend, False)
             forearmTwist = rpbs[prefix+"ForearmTwist"]
             IK.limitBone(forearmTwist, True)
-            ikConstraint(forearmTwist, handIK, None, 0, 4, rig, prop=armProp)
+            elbow = rpbs[prefix+"Elbow"]
+            elbow.lock_rotation = (True,True,True)
+            ikConstraint(forearmTwist, handIK, elbow, -90, 4, rig, prop=armProp)
             
             thighBend = rpbs[prefix+"ThighBend"]
             IK.limitBone(thighBend, False, stiffness=(0,0,0.326))
@@ -821,7 +829,9 @@ def addSimpleIK(rig, IK):
             IK.limitBone(thighTwist, True, stiffness=(0,0.160,0))
             shin = rpbs[prefix+"Shin"]
             IK.limitBone(shin, False, stiffness=(0.068,0,0.517))
-            ikConstraint(shin, footIK, None, 0, 3, rig, prop=legProp)
+            knee = rpbs[prefix+"Knee"]
+            knee.lock_rotation = (True,True,True)
+            ikConstraint(shin, footIK, knee, -90, 3, rig, prop=legProp)
             
         elif genesis == "G12":
             shldr = rpbs[prefix+"Shldr"]
@@ -835,6 +845,19 @@ def addSimpleIK(rig, IK):
             shin = rpbs[prefix+"Shin"]
             IK.limitBone(shin, False)
             ikConstraint(shin, footIK, None, 0, 2, rig, prop=legProp)
+
+
+def makePole(bname, rig, eb, parent):
+    from .mhx import makeBone
+    print("MPOL", bname, eb.name, parent.name)
+    mat = eb.matrix.to_3x3()
+    xaxis = mat.col[0]
+    zaxis = mat.col[2]
+    size = 10*rig.DazScale
+    print(zaxis, eb.head)
+    head = eb.head - size*zaxis
+    tail = head + size*Vector((0,0,1))
+    makeBone(bname, rig, head, tail, 0, 0, parent)
 
 
 def driveConstraint(pb, type, rig, prop, expr):
