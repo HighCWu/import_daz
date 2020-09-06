@@ -587,13 +587,10 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                 if self.simpleIK:
                     from .figure import snapSimpleIK
                     updateScene(context)
-                    lArmMats = snapSimpleIK(rig, self.lArmIK, "DazArmIK_L")
-                    rArmMats = snapSimpleIK(rig, self.rArmIK, "DazArmIK_R")
-                    lLegMats = snapSimpleIK(rig, self.lLegIK, "DazLegIK_L")
-                    rLegMats = snapSimpleIK(rig, self.rLegIK, "DazLegIK_R")        
-                    updateScene(context)
-                    for pb,mat in (lArmMats + rArmMats + lLegMats + rLegMats):
-                        pb.matrix = mat
+                    snapSimpleIK(rig, self.lArmIK, "DazArmIK_L")
+                    snapSimpleIK(rig, self.rArmIK, "DazArmIK_R")
+                    snapSimpleIK(rig, self.lLegIK, "DazLegIK_L")
+                    snapSimpleIK(rig, self.rLegIK, "DazLegIK_R")        
                     if self.insertKeys:
                         updateScene(context)
                         self.simpleIK.insertIKKeys(rig, n+offset)

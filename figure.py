@@ -819,8 +819,8 @@ def addSimpleIK(rig, IK):
             IK.limitBone(forearmBend, False)
             forearmTwist = rpbs[prefix+"ForearmTwist"]
             IK.limitBone(forearmTwist, True)
-            elbow = rpbs[prefix+"Elbow"]
-            elbow.lock_rotation = (True,True,True)
+            #elbow = rpbs[prefix+"Elbow"]
+            #elbow.lock_rotation = (True,True,True)
             ikConstraint(forearmTwist, handIK, elbow, -90, 4, rig, prop=armProp)
             
             thighBend = rpbs[prefix+"ThighBend"]
@@ -829,8 +829,8 @@ def addSimpleIK(rig, IK):
             IK.limitBone(thighTwist, True, stiffness=(0,0.160,0))
             shin = rpbs[prefix+"Shin"]
             IK.limitBone(shin, False, stiffness=(0.068,0,0.517))
-            knee = rpbs[prefix+"Knee"]
-            knee.lock_rotation = (True,True,True)
+            #knee = rpbs[prefix+"Knee"]
+            #knee.lock_rotation = (True,True,True)
             ikConstraint(shin, footIK, knee, -90, 3, rig, prop=legProp)
             
         elif genesis == "G12":
@@ -848,6 +848,7 @@ def addSimpleIK(rig, IK):
 
 
 def makePole(bname, rig, eb, parent):
+    return None
     from .mhx import makeBone
     print("MPOL", bname, eb.name, parent.name)
     mat = eb.matrix.to_3x3()
@@ -1076,17 +1077,12 @@ class DAZ_OT_SnapSimpleIK(DazOperator, SimpleIK, B.PrefixString, B.TypeString):
 
 
 def snapSimpleIK(rig, bnames, prop):   
-    mats = []
-    for bname in bnames[:-1]:
-        pb = rig.pose.bones[bname]
-        mats.append((pb, pb.matrix.copy()))
     hand = bnames[-1]  
     handfk = rig.pose.bones[hand]
     mat = handfk.matrix.copy()
     handik = rig.pose.bones[hand+"IK"]
     setattr(rig, prop, True)            
     handik.matrix = mat
-    return mats
       
 #----------------------------------------------------------
 #   Initialize
