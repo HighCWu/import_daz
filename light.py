@@ -46,7 +46,7 @@ def getMinLightSettings():
             ("use_contact_shadow", "=", True),
             ("contact_shadow_bias", "<", 0.01),
             ("contact_shadow_distance", "<", 1.0*LS.scale),
-            ("contact_shadow_thickness", "<", 1.0*LS.scale),
+            ("contact_shadow_thickness", "<", 10*LS.scale),
            ]
 
 
