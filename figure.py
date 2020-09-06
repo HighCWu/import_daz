@@ -895,6 +895,45 @@ def connectIKChains(rig, IK):
 #   Custom shapes
 #----------------------------------------------------------
 
+Layers = {
+    "Spine" : 16,
+    "Face" : 17,
+    "Left Arm" : 18,
+    "Right Arm" : 19,
+    "Left Leg" : 20,
+    "Right Leg" : 21,
+    "Left Hand" : 22,
+    "Right Hand" : 23,
+    "Left Foot" : 24,
+    "Right Foot" : 25,
+}
+
+def addToLayer(pb, lname):
+    if lname in Layers.keys():
+        n = Layers[lname]
+    elif pb.name[0] == "l" and "Left "+lname in Layers.keys():
+        n = Layers["Left "+lname]
+    elif pb.name[0] == "r" and "Right "+lname in Layers.keys():
+        n = Layers["Right "+lname]
+    else:
+        print("MISSING LAYER", lname, pb.name)
+    pb.bone.layers[n] = True
+
+    
+class DAZ_OT_SelectNamedLayers(DazOperator, IsArmature):
+    bl_idname = "daz.select_named_layers"
+    bl_label = "Select All Named Layers"
+    bl_description = "Select all named layers and unselect all unnamed layers"
+    bl_options = {'UNDO'}
+    
+    def run(self, context):
+        rig = context.object        
+        rig.data.layers = 16*[False] + 10*[True] + 6*[False]
+        
+#----------------------------------------------------------
+#   Custom shapes
+#----------------------------------------------------------
+ 
 def makeCustomShape(csname, gname, offset=(0,0,0), scale=1):
     Gizmos = {
         "CircleX" : {    
@@ -970,47 +1009,87 @@ def addCustomShapes(rig, IK):
             pass
         elif pb.parent and pb.parent.name in ["lowerFaceRig", "upperFaceRig"]:
             pb.custom_shape = csFace
+            addToLayer(pb, "Face")
         elif pb.name == "lowerJaw":
             pb.custom_shape = csCollar
+            addToLayer(pb, "Spine")
         elif pb.name.startswith("tongue"):
             pb.custom_shape = csTongue
+            addToLayer(pb, "Face")
         elif pb.name.endswith("Hand"):
             pb.custom_shape = csHand
+            addToLayer(pb, "Arm")
+            addToLayer(pb, "Hand")
         elif pb.name.endswith("HandIK"):
             pb.custom_shape = csHand
             pb.custom_shape_scale = 1.8
             pb.bone_group = bgrp
+            addToLayer(pb, "Arm")
+            addToLayer(pb, "Hand")
         elif pb.name[1:7] == "Carpal":
             pb.custom_shape = csCarpal
+            addToLayer(pb, "Hand")
         elif pb.name.endswith("Collar"):
             pb.custom_shape = csCollar
+            addToLayer(pb, "Spine")
         elif pb.name.endswith("Foot"):
             pb.custom_shape = csFoot
+            addToLayer(pb, "Leg")
+            addToLayer(pb, "Foot")
         elif pb.name.endswith("FootIK"):
             pb.custom_shape = csFoot
             pb.custom_shape_scale = 1.8
             pb.bone_group = bgrp
+            addToLayer(pb, "Leg")
+            addToLayer(pb, "Foot")
         elif pb.name[1:4] == "Toe":
             pb.custom_shape = csToe
-        elif pb.name[1:] in IK.G12Arm + IK.G12Leg:
+            addToLayer(pb, "Leg")
+            addToLayer(pb, "Foot")
+        elif pb.name[1:] in IK.G12Arm:
             pb.custom_shape = csLimb
-        elif pb.name[1:] in IK.G38Arm + IK.G38Leg:
+            addToLayer(pb, "Arm")
+        elif pb.name[1:] in IK.G12Leg:
+            pb.custom_shape = csLimb
+            addToLayer(pb, "Leg")
+        elif pb.name[1:] in IK.G38Arm:
             pb.custom_shape = csBend
+            addToLayer(pb, "Arm")
+        elif pb.name[1:] in IK.G38Leg:
+            pb.custom_shape = csBend
+            addToLayer(pb, "Leg")
         elif pb.name[1:] in ["Thumb1", "Index1", "Mid1", "Ring1", "Pinky1"]:
             pb.custom_shape = csLimb
+            addToLayer(pb, "Hand")
         elif pb.name == "hip":
             makeSpine(pb, 2*spineWidth)
             pb.bone_group = bgrp
+            addToLayer(pb, "Spine")
         elif pb.name == "pelvis":
             makeSpine(pb, 1.5*spineWidth, 0.5)
+            addToLayer(pb, "Spine")
         elif pb.name in IK.G38Spine + IK.G12Spine:
             makeSpine(pb, spineWidth)
+            addToLayer(pb, "Spine")
         elif pb.name in IK.G38Neck + IK.G12Neck:
             makeSpine(pb, 0.5*spineWidth)
+            addToLayer(pb, "Spine")
         elif pb.name == "head":
             makeSpine(pb, 0.7*spineWidth, 1)
+            addToLayer(pb, "Spine")
+            addToLayer(pb, "Face")
+        elif "Toe" in pb.name:
+            pb.custom_shape = circleY2            
+            addToLayer(pb, "Foot")
+        elif pb.name[1:4] in ["Thu", "Ind", "Mid", "Rin", "Pin"]:
+            pb.custom_shape = circleY2            
+            addToLayer(pb, "Hand")
+        elif pb.name[1:4] in ["Eye", "Ear"]:
+            pb.custom_shape = circleY2            
+            addToLayer(pb, "Face")
         else:
             pb.custom_shape = circleY2            
+            print("Unknown bone:", pb.name)
 
                 
 def makeSpine(pb, width, tail=0.5):                
@@ -1098,6 +1177,7 @@ classes = [
     DAZ_OT_ToggleRotLimits,
     DAZ_OT_ToggleLocLimits,
     DAZ_OT_ConnectIKChains,
+    DAZ_OT_SelectNamedLayers,
     DAZ_OT_AddCustomShapes,
     DAZ_OT_RemoveCustomShapes,
     DAZ_OT_AddSimpleIK,

@@ -857,6 +857,20 @@ class DAZ_PT_SimpleIK(bpy.types.Panel):
         op.prefix = "r"
         op.type = "Leg"
 
+        from .figure import Layers
+        layout.label(text="Layers")
+        layout.operator("daz.select_named_layers")
+        for lnames in [("Spine", "Face"), "Arm", "Leg", "Hand", "Foot"]:
+            row = layout.row()
+            if isinstance(lnames, str):
+                first,second = "Left "+lnames, "Right "+lnames
+            else:
+                first,second = lnames
+            m = Layers[first]
+            n = Layers[second]
+            row.prop(rig.data, "layers", index=m, toggle=True, text=first)
+            row.prop(rig.data, "layers", index=n, toggle=True, text=second)
+            
 #------------------------------------------------------------------------
 #    Mhx Layers Panel
 #------------------------------------------------------------------------
