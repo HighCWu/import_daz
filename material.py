@@ -1420,25 +1420,25 @@ def checkRenderSettings(context, force):
     from .light import getMinLightSettings
 
     renderSettingsCycles = {
-        "Bounces" : [("max_bounces", 8)],
-        "Diffuse" : [("diffuse_bounces", 1)],
-        "Glossy" : [("glossy_bounces", 4)],
-        "Transparent" : [("transparent_max_bounces", 16),
-                         ("transmission_bounces", 8),
-                         ("caustics_refractive", True)],
-        "Volume" : [("volume_bounces", 4)],
+        "Bounces" : [("max_bounces", ">", 8)],
+        "Diffuse" : [("diffuse_bounces", ">", 1)],
+        "Glossy" : [("glossy_bounces", ">", 4)],
+        "Transparent" : [("transparent_max_bounces", ">", 16),
+                         ("transmission_bounces", ">", 8),
+                         ("caustics_refractive", "=", True)],
+        "Volume" : [("volume_bounces", ">", 4)],
     }
 
     renderSettingsEevee = {
-        "Transparent" : [("use_ssr", True),
-                         ("use_ssr_refraction", True)],
-        "Bounces" : [("shadow_cube_size", "1024"),
-                 ("shadow_cascade_size", "2048"),
-                 ("use_shadow_high_bitdepth", True),
-                 ("use_soft_shadows", True),
-                 ("light_threshold", 0.001),
-                 ("sss_samples", 16),
-                 ("sss_jitter_threshold", (">", 0.5)),
+        "Transparent" : [("use_ssr", "=", True),
+                         ("use_ssr_refraction", "=", True)],
+        "Bounces" : [("shadow_cube_size", ">", "1024"),
+                 ("shadow_cascade_size", ">", "2048"),
+                 ("use_shadow_high_bitdepth", "=", True),
+                 ("use_soft_shadows", "=", True),
+                 ("light_threshold", "<", 0.001),
+                 ("sss_samples", ">", 16),
+                 ("sss_jitter_threshold", ">", 0.5),
                 ],
     }
 
@@ -1486,11 +1486,11 @@ def checkSettings(engine, settings, handle, header):
     ok = True
     for key,used in LS.usedFeatures.items():
         if used and key in settings.keys():
-            for attr,minval in settings[key]:
+            for attr,op,minval in settings[key]:
                 if not hasattr(engine, attr):
                     continue
                 val = getattr(engine, attr)
-                fix,minval = checkSetting(attr, val, minval, ok, header)
+                fix,minval = checkSetting(attr, op, val, minval, ok, header)
                 if fix:
                     ok = False
                     if handle == "UPDATE":
@@ -1503,23 +1503,27 @@ def checkSettings(engine, settings, handle, header):
     return msg
 
 
-def checkSetting(attr, val, minval, first, header):
-    msg = None
-    if isinstance(minval, tuple):
-        op,minval = minval
-        if (op == ">" and val < minval):
-            msg = ("  %s: %f > %f" % (attr, val, minval))
-    elif isinstance(val, bool) and val != minval:
-        msg = ("  %s: %d != %d" % (attr, val, minval))
-    elif isinstance(val, int) and val < minval:
-        msg = ("  %s: %d < %d" % (attr, val, minval))
-    elif isinstance(val, float) and val > minval:
-        msg = ("  %s: %f > %f" % (attr, val, minval))
-    elif isinstance(val, str):
-        if int(val) < int(minval):
-            msg = ("  %s: %s < %s" % (attr, val, minval))
-
-    if msg:
+def checkSetting(attr, op, val, minval, first, header):
+    negop = None
+    eps = 1e-4
+    if op == "=":
+        if val != minval:
+            negop = "!="
+    elif op == ">":
+        if isinstance(val, str):
+            if int(val) < int(minval):
+                negop = "<"
+        elif val < minval-eps:
+            negop = "<"
+    elif op == "<":
+        if isinstance(val, str):
+            if int(val) > int(minval):
+                negop = ">"
+        elif val > minval+eps:
+            negop = ">"
+    
+    if negop:
+        msg = ("  %s: %s %s %s" % (attr, val, negop, minval))
         if first:
             print("%s:" % header)
         print(msg)

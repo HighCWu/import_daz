@@ -40,13 +40,13 @@ from .error import reportError
 #-------------------------------------------------------------
 
 def getMinLightSettings():
-    return [("use_shadow", True),
-            ("shadow_buffer_clip_start", 1.0*LS.scale),
-            ("shadow_buffer_bias", 0.01),
-            ("use_contact_shadow", True),
-            ("contact_shadow_bias", 0.01),
-            ("contact_shadow_distance", 1.0*LS.scale),
-            ("contact_shadow_thickness", 1.0*LS.scale),
+    return [("use_shadow", "=", True),
+            ("shadow_buffer_clip_start", "<", 1.0*LS.scale),
+            ("shadow_buffer_bias", "<", 0.01),
+            ("use_contact_shadow", "=", True),
+            ("contact_shadow_bias", "<", 0.01),
+            ("contact_shadow_distance", "<", 1.0*LS.scale),
+            ("contact_shadow_thickness", "<", 1.0*LS.scale),
            ]
 
 
@@ -145,7 +145,7 @@ class Light(Node):
 
 
     def setCyclesProps(self, lamp):
-        for attr,value in getMinLightSettings():
+        for attr,op,value in getMinLightSettings():
             if hasattr(lamp, attr):
                 setattr(lamp, attr, value)
 
