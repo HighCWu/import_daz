@@ -643,6 +643,7 @@ class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits, IsArmature):
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 
 class SimpleIK:
+
     G38Arm = ["ShldrBend", "ShldrTwist", "ForearmBend", "ForearmTwist", "Hand"]
     G38Leg = ["ThighBend", "ThighTwist", "Shin", "Foot"]
     G38Spine = ["hip", "abdomenLower", "abdomenUpper", "chestLower", "chestUpper"]
@@ -651,6 +652,7 @@ class SimpleIK:
     G12Leg = ["Thigh", "Shin", "Foot"]
     G12Spine = ["hip", "abdomen", "abdomen2", "spine", "chest"]
     G12Neck = ["neck"]
+
 
     def storeProps(self, rig):
         self.ikprops = (rig.DazArmIK_L, rig.DazArmIK_R, rig.DazLegIK_L, rig.DazLegIK_R)
@@ -760,12 +762,12 @@ class DAZ_OT_AddSimpleIK(DazOperator, IsArmature):
         addSimpleIK(context.object, SimpleIK())
         
         
-def addSimpleIK(rig, simpleIK):        
+def addSimpleIK(rig, IK):        
     from .mhx import makeBone, getBoneCopy, ikConstraint, copyRotation
     if rig.DazSimpleIK:
         raise DazError("The rig %s already has simple IK" % rig.name)
     
-    genesis = simpleIK.getGenesisType(rig)
+    genesis = IK.getGenesisType(rig)
     if not genesis:
         raise DazError("Cannot create simple IK for the rig %s" % rig.name)
     
@@ -781,7 +783,7 @@ def addSimpleIK(rig, simpleIK):
         foot = ebones[prefix+"Foot"]
         handIK = makeBone(prefix+"FootIK", rig, foot.head, foot.tail, foot.roll, 0, None)
         
-    bgrp = simpleIK.makeBoneGroup(rig)    
+    bgrp = IK.makeBoneGroup(rig)    
     rpbs = rig.pose.bones 
     for prefix in ["l", "r"]:
         suffix = prefix.upper()
@@ -804,34 +806,34 @@ def addSimpleIK(rig, simpleIK):
         
         if genesis == "G38":
             shldrBend = rpbs[prefix+"ShldrBend"]
-            simpleIK.limitBone(shldrBend, False)
+            IK.limitBone(shldrBend, False)
             shldrTwist = rpbs[prefix+"ShldrTwist"]
-            simpleIK.limitBone(shldrTwist, True)
+            IK.limitBone(shldrTwist, True)
             forearmBend = rpbs[prefix+"ForearmBend"]
-            simpleIK.limitBone(forearmBend, False)
+            IK.limitBone(forearmBend, False)
             forearmTwist = rpbs[prefix+"ForearmTwist"]
-            simpleIK.limitBone(forearmTwist, True)
+            IK.limitBone(forearmTwist, True)
             ikConstraint(forearmTwist, handIK, None, 0, 4, rig, prop=armProp)
             
             thighBend = rpbs[prefix+"ThighBend"]
-            simpleIK.limitBone(thighBend, False, stiffness=(0,0,0.326))
+            IK.limitBone(thighBend, False, stiffness=(0,0,0.326))
             thighTwist = rpbs[prefix+"ThighTwist"]
-            simpleIK.limitBone(thighTwist, True, stiffness=(0,0.160,0))
+            IK.limitBone(thighTwist, True, stiffness=(0,0.160,0))
             shin = rpbs[prefix+"Shin"]
-            simpleIK.limitBone(shin, False, stiffness=(0.068,0,0.517))
+            IK.limitBone(shin, False, stiffness=(0.068,0,0.517))
             ikConstraint(shin, footIK, None, 0, 3, rig, prop=legProp)
             
         elif genesis == "G12":
             shldr = rpbs[prefix+"Shldr"]
-            simpleIK.limitBone(shldr, False)
+            IK.limitBone(shldr, False)
             forearm = rpbs[prefix+"ForeArm"]
-            simpleIK.limitBone(forearm, False)
+            IK.limitBone(forearm, False)
             ikConstraint(forearm, handIK, None, 0, 2, rig, prop=armProp)
             
             thigh = rpbs[prefix+"Thigh"]
-            simpleIK.limitBone(thigh, False)
+            IK.limitBone(thigh, False)
             shin = rpbs[prefix+"Shin"]
-            simpleIK.limitBone(shin, False)
+            IK.limitBone(shin, False)
             ikConstraint(shin, footIK, None, 0, 2, rig, prop=legProp)
 
 
@@ -855,11 +857,11 @@ class DAZ_OT_ConnectIKChains(DazOperator, IsArmature):
         connectIKChains(context.object, SimpleIK())
 
 
-def connectIKChains(rig, simpleIK):
+def connectIKChains(rig, IK):
     bpy.ops.object.mode_set(mode="EDIT")
     for prefix in ["l", "r"]:
         for type in ["Arm", "Leg"]:
-            bnames = simpleIK.getLimbBoneNames(rig, prefix, type)
+            bnames = IK.getLimbBoneNames(rig, prefix, type)
             if bnames:
                 for bname in bnames[1:]:
                     eb = rig.data.edit_bones[bname]
@@ -908,14 +910,15 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
         addCustomShapes(context.object, SimpleIK())
         
         
-def addCustomShapes(rig, simpleIK):        
+def addCustomShapes(rig, IK):        
     csCollar = makeCustomShape("CS_Collar", "CircleX", (0,1,0), (0,0.5,0.1))
     csHand = makeCustomShape("CS_Hand", "CircleX", (0,1,0), (0,0.6,0.5))
     csCarpal = makeCustomShape("CS_Carpal", "CircleZ", (0,1,0), (0.1,0.5,0))
     csTongue = makeCustomShape("CS_Tongue", "CircleZ", (0,1,0), (1.5,0.5,0))
     circleY2 = makeCustomShape("CS_CircleY2", "CircleY", scale=1/2)
-    circleY4 = makeCustomShape("CS_CircleY4", "CircleY", (0,2,0), scale=1/4)
-    circleY5 = makeCustomShape("CS_CircleY5", "CircleY", scale=1/5)
+    csLimb = makeCustomShape("CS_Limb", "CircleY", (0,2,0), scale=1/4)
+    csBend = makeCustomShape("CS_Bend", "CircleY", (0,1,0), scale=1/2)
+    csFace = makeCustomShape("CS_Face", "CircleY", scale=1/5)
     
     spineWidth = 1
     if "lCollar" in rig.data.bones.keys() and "rCollar" in rig.data.bones.keys():
@@ -937,29 +940,16 @@ def addCustomShapes(rig, simpleIK):
             bone = rig.data.bones[bname]
             bone.layers = [False] + [True] + 30*[False]
             
-    bgrp = simpleIK.makeBoneGroup(rig)            
+    bgrp = IK.makeBoneGroup(rig)            
     for pb in rig.pose.bones:
         if not pb.bone.layers[0]:
             pass
         elif pb.parent and pb.parent.name in ["lowerFaceRig", "upperFaceRig"]:
-            pb.custom_shape = circleY5
+            pb.custom_shape = csFace
         elif pb.name == "lowerJaw":
             pb.custom_shape = csCollar
         elif pb.name.startswith("tongue"):
             pb.custom_shape = csTongue
-        elif pb.name[1:] in ["Shin", "Thigh", "Shldr", "ForeArm", "Thumb1", "Index1", "Mid1", "Ring1", "Pinky1"]:
-            pb.custom_shape = circleY4
-        elif pb.name == "hip":
-            makeSpine(pb, 2*spineWidth)
-            pb.bone_group = bgrp
-        elif pb.name == "pelvis":
-            makeSpine(pb, 1.5*spineWidth, 0.5)
-        elif pb.name in simpleIK.G38Spine + simpleIK.G12Spine:
-            makeSpine(pb, spineWidth)
-        elif pb.name in simpleIK.G38Neck + simpleIK.G12Neck:
-            makeSpine(pb, 0.5*spineWidth)
-        elif pb.name == "head":
-            makeSpine(pb, 0.7*spineWidth, 1)
         elif pb.name.endswith("Hand"):
             pb.custom_shape = csHand
         elif pb.name.endswith("HandIK"):
@@ -978,11 +968,28 @@ def addCustomShapes(rig, simpleIK):
             pb.bone_group = bgrp
         elif pb.name[1:4] == "Toe":
             pb.custom_shape = csToe
+        elif pb.name[1:] in IK.G12Arm + IK.G12Leg:
+            pb.custom_shape = csLimb
+        elif pb.name[1:] in IK.G38Arm + IK.G38Leg:
+            pb.custom_shape = csBend
+        elif pb.name[1:] in ["Thumb1", "Index1", "Mid1", "Ring1", "Pinky1"]:
+            pb.custom_shape = csLimb
+        elif pb.name == "hip":
+            makeSpine(pb, 2*spineWidth)
+            pb.bone_group = bgrp
+        elif pb.name == "pelvis":
+            makeSpine(pb, 1.5*spineWidth, 0.5)
+        elif pb.name in IK.G38Spine + IK.G12Spine:
+            makeSpine(pb, spineWidth)
+        elif pb.name in IK.G38Neck + IK.G12Neck:
+            makeSpine(pb, 0.5*spineWidth)
+        elif pb.name == "head":
+            makeSpine(pb, 0.7*spineWidth, 1)
         else:
             pb.custom_shape = circleY2            
 
                 
-def makeSpine(pb, width, tail=0):                
+def makeSpine(pb, width, tail=0.5):                
     s = width/pb.bone.length
     circle = makeCustomShape("CS_" + pb.name, "CircleY", (0,tail/s,0))
     pb.custom_shape = circle
