@@ -418,6 +418,7 @@ class ExtraBones(B.BoneLayers):
 
     def addExtraBones(self, rig):
         from .driver import getBoneDrivers, removeDriverBoneSuffix, storeBoneDrivers, restoreBoneDrivers
+        from .fix import ConstraintStore
         if getattr(rig.data, self.attr):
             msg = "Rig %s already has extra %s bones" % (rig.name, self.type)
             print(msg)
@@ -460,6 +461,7 @@ class ExtraBones(B.BoneLayers):
                     if cb.name != bname:
                         cb.parent = rig.data.edit_bones[bname]
 
+        store = ConstraintStore()
         bpy.ops.object.mode_set(mode='POSE')
         for bname in bones:
             if (bname in rig.pose.bones.keys() and
@@ -470,9 +472,15 @@ class ExtraBones(B.BoneLayers):
                 pb.lock_location = par.lock_location
                 pb.lock_rotation = par.lock_rotation
                 pb.lock_scale = par.lock_scale
+                pb.custom_shape = par.custom_shape
+                par.custom_shape = None
                 pb.DazRotLocks = par.DazRotLocks
                 pb.DazLocLocks = par.DazLocLocks
                 copyBoneInfo(par.bone, pb.bone)
+                store.storeConstraints(par.name, par)
+                store.removeConstraints(par)
+                store.restoreConstraints(par.name, pb)
+                
 
         restoreBoneDrivers(rig, drivers, "Drv")
 

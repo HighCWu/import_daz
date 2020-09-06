@@ -359,10 +359,7 @@ class DazBone:
         pb.lock_location = self.lock_location
         pb.lock_rotation = self.lock_rotation
         pb.lock_scale = self.lock_scale
-        if pb.name in self.store.constraints.keys():
-            clist = self.store.constraints[pb.name]
-            for struct in clist:
-                self.store.restoreConstraints(struct, pb)
+        self.store.restoreConstraints(pb.name, pb)
 
 
 def addDicts(structs):

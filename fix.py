@@ -190,9 +190,15 @@ class ConstraintStore:
         self.constraints = {}
         
         
+    def untouchable(self, cns):
+        return (cns.name == "Do Not Touch")
+        
+        
     def storeConstraints(self, key, pb):
         clist = []
         for cns in pb.constraints:
+            if self.untouchable(cns):
+                continue
             struct = {}
             for attr in self.Attributes:
                 if hasattr(cns, attr):
@@ -228,10 +234,18 @@ class ConstraintStore:
             if pb is None:
                 continue
             for struct in clist:
-                self.restoreConstraints(struct, pb)
+                self.restoreConstraint(struct, pb)
 
 
-    def restoreConstraints(self, struct, pb):
+    def restoreConstraints(self, key, pb):
+        if key not in self.constraints.keys():
+            return
+        clist = self.constraints[key]
+        for struct in clist:
+            self.restoreConstraint(struct, pb)
+            
+                
+    def restoreConstraint(self, struct, pb):
         cns = pb.constraints.new(struct["type"])
         for attr,value in struct.items():
             if attr != "type":
@@ -240,7 +254,7 @@ class ConstraintStore:
 
     def removeConstraints(self, pb):            
         for cns in list(pb.constraints):
-            if cns.type in ["LIMIT_ROTATION", "LIMIT_LOCATION"]:
+            if not self.untouchable(cns):
                 pb.constraints.remove(cns)
 
 #-------------------------------------------------------------
