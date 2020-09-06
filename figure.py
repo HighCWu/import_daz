@@ -88,6 +88,8 @@ class FigureInstance(Instance):
 
     def pose(self, context):
         from .bone import BoneInstance
+        from .finger import getFingeredCharacter
+        
         Instance.pose(self, context)
         if bpy.app.version >= (2.80,0):
             print("SKIP pose")
@@ -108,6 +110,20 @@ class FigureInstance(Instance):
         rig.DazRotLimits = LS.useLimitRot
         rig.DazLocLimits = GS.useLimitLoc
         self.fixDependencyLoops(rig)
+
+        if self.node.rigtype and (LS.useCustomShapes or LS.useSimpleIK or LS.useConnectIKChains):
+            for geo in self.geometries:
+                if geo.rna:
+                    _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
+                    if char:
+                        simpleIK = SimpleIK()
+                        if LS.useCustomShapes:
+                            addCustomShapes(rig, simpleIK)
+                        if LS.useConnectIKChains:
+                            connectIKChains(rig, simpleIK)
+                        if LS.useSimpleIK:
+                            addSimpleIK(rig, simpleIK)
+
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
@@ -229,7 +245,6 @@ class Figure(Node):
 
     def build(self, context, inst):
         from .bone import BoneInstance
-        from .finger import getFingeredCharacter
         scn = context.scene
 
         for child in inst.children.values():
@@ -273,19 +288,6 @@ class Figure(Node):
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
                 child.buildFormulas(rig, False)
-
-        if self.rigtype and (LS.useCustomShapes or LS.useSimpleIK or LS.useConnectIKChains):
-            for geo in inst.geometries:
-                if geo.rna:
-                    _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
-                    if char:
-                        simpleIK = SimpleIK()
-                        if LS.useCustomShapes:
-                            addCustomShapes(rig, simpleIK)
-                        if LS.useConnectIKChains:
-                            connectIKChains(rig, simpleIK)
-                        if LS.useSimpleIK:
-                            addSimpleIK(rig, simpleIK)
 
 
 def getModifierPath(moddir, folder, tfile):
@@ -779,6 +781,8 @@ def addSimpleIK(rig, simpleIK):
         legProp = "DazLegIK_" + suffix
         hand = rpbs[prefix+"Hand"]
         foot = rpbs[prefix+"Foot"]
+        driveConstraint(hand, 'LIMIT_ROTATION', rig, armProp, "1-x")
+        driveConstraint(foot, 'LIMIT_ROTATION', rig, legProp, "1-x")
         handIK = getBoneCopy(prefix+"HandIK", hand, rpbs)
         footIK = getBoneCopy(prefix+"FootIK", foot, rpbs)
         copyRotation(hand, handIK, (True,True,True), rig, space='WORLD', prop=armProp)
@@ -821,6 +825,13 @@ def addSimpleIK(rig, simpleIK):
             shin = rpbs[prefix+"Shin"]
             simpleIK.limitBone(shin, False)
             ikConstraint(shin, footIK, None, 0, 2, rig, prop=legProp)
+
+
+def driveConstraint(pb, type, rig, prop, expr):
+    from .mhx import addDriver
+    for cns in pb.constraints:
+        if cns.type == type:
+            addDriver(cns, "influence", rig, prop, expr)
 
 #----------------------------------------------------------
 #   Custom shapes
