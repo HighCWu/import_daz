@@ -108,7 +108,8 @@ class GeoNode(Node):
             print("Build HD mesh for %s: %d verts, %d faces" % (inst.name, nverts, len(faces)))
             me.from_pydata([cscale*vco-center for vco in verts], [], faces)
             print("HD mesh %s built" % me.name)
-            addUvs(me, "UVSet", uvs, uvfaces)
+            uvlayers = getUvTextures(ob.data)
+            addUvs(me, uvlayers[0].name, uvs, uvfaces)
             for f in me.polygons:
                 f.material_index = mnums[f.index]
                 f.use_smooth = True

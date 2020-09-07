@@ -227,7 +227,9 @@ function writeUVs(geom, hd)
 {    
     var uvs = geom.getUVs();
     var nuv = uvs.getNumValues();
+    var label = uvs.getLabel();
     
+    fp.writeLine("        \"" + hd + "uvset\": \"" + label + "\",");    
     fp.writeLine("        \"num " + hd + "uvs\": " + nuv + ",");
     fp.writeLine("        \"" + hd + "uvs\": [" );    
     var c = ","
