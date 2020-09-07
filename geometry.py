@@ -97,6 +97,21 @@ class GeoNode(Node):
 
     def subdivideObject(self, ob, inst, context, cscale, center):
         if self.highdef:
+            me = self.buildHDMesh(ob, cscale, center)            
+            hdob = self.hdobject = bpy.data.objects.new(ob.name + "_HD", me)
+            self.addHDMaterials(ob.data.materials, "")
+            self.arrangeObject(hdob, inst, context, cscale, center)
+            self.addMultires(ob, hdob)
+
+        if (self.type == "subdivision_surface" and
+            self.data and
+            (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
+            mod = ob.modifiers.new(name='SUBSURF', type='SUBSURF')
+            mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
+            mod.levels = self.data.SubDIALevel
+
+
+    def buildHDMesh(self, ob, cscale, center):            
             verts = self.highdef.verts
             uvs = self.highdef.uvs
             hdfaces = self.highdef.faces
@@ -105,7 +120,7 @@ class GeoNode(Node):
             mnums = [f[4] for f in hdfaces]
             nverts = len(verts)
             me = bpy.data.meshes.new(ob.data.name + "_HD")
-            print("Build HD mesh for %s: %d verts, %d faces" % (inst.name, nverts, len(faces)))
+            print("Build HD mesh for %s: %d verts, %d faces" % (ob.name, nverts, len(faces)))
             me.from_pydata([cscale*vco-center for vco in verts], [], faces)
             print("HD mesh %s built" % me.name)
             uvlayers = getUvTextures(ob.data)
@@ -113,16 +128,18 @@ class GeoNode(Node):
             for f in me.polygons:
                 f.material_index = mnums[f.index]
                 f.use_smooth = True
-            self.hdobject = bpy.data.objects.new(ob.name + "_HD", me)
-            self.addHDMaterials(ob.data.materials, "")
-            self.arrangeObject(self.hdobject, inst, context, cscale, center)
+            return me
+            
 
-        if (self.type == "subdivision_surface" and
-            self.data and
-            (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
-            mod = ob.modifiers.new(name='SUBSURF', type='SUBSURF')
-            mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
-            mod.levels = self.data.SubDIALevel
+    def addMultires(self, ob, hdob):
+        if bpy.app.version < (2,90,0):
+            print("Cannot rebuild subdiv in Blender %s" % bpy.app.version)
+            return
+        bpy.ops.object.modifier_add(type='MULTIRES')
+        bpy.ops.object.multires_rebuild_subdiv(modifier="Multires")
+        mod = hdob.modifiers[-1]
+        #mod.levels = 0
+        hdob.DazMultires = True
 
 
     def addHDMaterials(self, mats, prefix):
@@ -143,10 +160,22 @@ class GeoNode(Node):
         return [(f if f[-1] >= 0 else f[:-1]) for f in faces]
 
 
-    def getHDMatch(self):
-        hdfaces = self.highdef[3]
-        return [f[6] for f in hdfaces]
+    def getHDMatch(self, ob):
+        return [(vn,vn) for vn in range(len(ob.data.vertices))]
 
+
+    def finishHD(self, context):
+        if self.hdobject:
+            ob = self.rna
+            hdob = self.hdobject
+            hdob.parent = ob.parent
+            if LS.hdcollection is None:
+                from .main import makeRootCollection
+                LS.hdcollection = makeRootCollection(LS.collection.name + "_HD", context)
+            LS.collection.objects.unlink(hdob)
+            LS.hdcollection.objects.link(hdob)
+            LS.hdcollection.objects.link(hdob.parent)
+    
 
     def postbuild(self, context, inst):
         if self.rna:
@@ -919,13 +948,15 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    from bpy.props import CollectionProperty, IntProperty
+    from bpy.props import CollectionProperty, IntProperty, BoolProperty
     bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = B.DazRigidityGroup)
     bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = B.DazPairGroup)
     bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)
     bpy.types.Mesh.DazVertexCount = IntProperty(default=0)
     bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = B.DazStringStringGroup)
     bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = B.DazTextGroup)
+    bpy.types.Object.DazMultires = BoolProperty(default=False)
+    bpy.types.Mesh.DazHDMap = CollectionProperty(type = B.DazIntGroup)
 
 
 def uninitialize():

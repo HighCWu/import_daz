@@ -332,11 +332,11 @@ class SkinBinding(Modifier):
             return
         self.makeArmatureModifier(context, ob, rig)
         self.addVertexGroups(ob, geonode, rig)
-        if False and geonode.hdobject:
-            hdob = geonode.hdobject
+        hdob = geonode.hdobject
+        if hdob and hdob.DazMultires:
             hdob.parent = ob.parent
             self.makeArmatureModifier(context, hdob, rig)
-            vmatch = geonode.getHDMatch()
+            vmatch = geonode.getHDMatch(ob)
             self.copyVertexGroups(ob, hdob, vmatch)
 
 
@@ -357,8 +357,8 @@ class SkinBinding(Modifier):
         for vgrp in ob.vertex_groups:
             hdvgrp = hdob.vertex_groups.new(name=vgrp.name)
             hdvgrps[vgrp.index] = hdvgrp
-        for hdvn,vn in enumerate(vmatch):
-            v = ob.data.vertices[vn]
+        for v in ob.data.vertices:
+            hdvn = v.index
             for g in v.groups:
                 hdvgrps[g.group].add([hdvn], g.weight, 'REPLACE')
 

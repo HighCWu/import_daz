@@ -368,6 +368,7 @@ class LocalSettings:
         self.useAnimations = False
         self.useUV = False
         self.collection = None
+        self.hdcollection = None
         self.refGroups = None
         self.fps = 30
         self.integerFrames = True

@@ -70,7 +70,8 @@ def getMainAsset(filepath, context, btn):
     showProgress(30, 100)
 
     print("Preprocessing...")
-    LS.collection = makeRootCollection(filepath, context)
+    grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()    
+    LS.collection = makeRootCollection(grpname, context)
     for asset,inst in main.nodes:
         inst.preprocess(context)
 
@@ -139,8 +140,7 @@ def getMainAsset(filepath, context, btn):
         raise DazError(msg, warning=True)
 
 
-def makeRootCollection(filepath, context):
-    grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()
+def makeRootCollection(grpname, context):
     if bpy.app.version < (2,80,0):
         root = bpy.data.groups.new(name=grpname)
     else:

@@ -325,9 +325,10 @@ class Instance(Accessor, Channels):
         pass
 
 
-    def finalize(self, context, node=None):
-        if node:
-            ob = node.rna
+    def finalize(self, context, geonode=None):
+        if geonode:
+            ob = geonode.rna
+            geonode.finishHD(context)
         else:
             ob = self.rna
         if not isinstance(ob, bpy.types.Object):
