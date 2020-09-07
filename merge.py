@@ -518,23 +518,32 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         adds = []
+        hdadds = []
         removes = []
+        mcoll = hdcoll = None
         if bpy.app.version < (2,80,0):
             for grp in bpy.data.groups:
                 if rig.name in grp.objects:
                     adds.append(grp)
         else:
-            mcoll = bpy.data.collections.new(name= rig.name + " Meshes")
             for coll in bpy.data.collections:
                 if rig in coll.objects.values():
-                    coll.children.link(mcoll)
+                    if coll.name.endswith("HD"):
+                        if hdcoll is None:
+                            hdcoll = bpy.data.collections.new(name= rig.name + " Meshes_HD")                        
+                            hdadds = [hdcoll]
+                        coll.children.link(hdcoll)
+                    else:
+                        if mcoll is None:
+                            mcoll = bpy.data.collections.new(name= rig.name + " Meshes")
+                            adds = [mcoll]
+                        coll.children.link(mcoll)
                     removes.append(coll)
-            adds = [mcoll]
 
         for ob in rig.children:
             if ob.type == 'MESH':
                 self.changeArmatureModifier(ob, rig, context)
-                self.addToGroups(ob, adds, removes)
+                self.addToGroups(ob, adds, hdadds, removes)
             elif ob.type == 'EMPTY':
                 reParent(context, ob, rig)
 
@@ -556,7 +565,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                     if ob.type == 'MESH':
                         self.changeArmatureModifier(ob, rig, context)
                         self.changeVertexGroupNames(ob, storage)
-                        self.addToGroups(ob, adds, removes)
+                        self.addToGroups(ob, adds, hdadds, removes)
                         ob.name = stripName(ob.name)
                         ob.data.name = stripName(ob.data.name)
                         ob.parent = rig
@@ -577,8 +586,12 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                 vgrp.name = storage[bname].realname
 
 
-    def addToGroups(self, ob, adds, removes):
-        for grp in adds:
+    def addToGroups(self, ob, adds, hdadds, removes):
+        if ob.name.endswith("HD"):
+            adders = hdadds
+        else:
+            adders = adds
+        for grp in adders:
             if ob.name not in grp.objects:
                 grp.objects.link(ob)
         for grp in removes:
