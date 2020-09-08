@@ -135,11 +135,18 @@ class GeoNode(Node):
         if bpy.app.version < (2,90,0):
             print("Cannot rebuild subdiv in Blender %s" % bpy.app.version)
             return
-        bpy.ops.object.modifier_add(type='MULTIRES')
-        bpy.ops.object.multires_rebuild_subdiv(modifier="Multires")
-        mod = hdob.modifiers[-1]
-        #mod.levels = 0
-        hdob.DazMultires = True
+        mod = hdob.modifiers.new("Multires", 'MULTIRES')
+        try:
+            bpy.ops.object.multires_rebuild_subdiv(modifier="Multires")
+            ok = True
+        except RuntimeError:
+            reportError('Cannot rebuild subdivisions for "%s"' % hdob.name, trigger=(2,4))
+            ok = False
+        if ok:
+            hdob.DazMultires = True
+        else:
+            hdob.modifiers.remove(mod)
+            LS.hdfailures.append(hdob)
 
 
     def addHDMaterials(self, mats, prefix):

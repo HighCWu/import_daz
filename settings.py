@@ -373,6 +373,7 @@ class LocalSettings:
         self.fps = 30
         self.integerFrames = True
         self.missingAssets = {}
+        self.hdfailures = []
         self.singleUser = False
 
         self.usedFeatures = {
