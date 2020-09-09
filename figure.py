@@ -772,8 +772,7 @@ def addSimpleIK(rig, IK):
         raise DazError("Cannot create simple IK for the rig %s" % rig.name)
     
     rig.DazSimpleIK = True
-    rig.DazArmIK_L = rig.DazArmIK_R = True
-    rig.DazLegIK_L = rig.DazLegIK_R = True
+    rig.DazArmIK_L = rig.DazArmIK_R = rig.DazLegIK_L = rig.DazLegIK_R = 0.0
     
     bpy.ops.object.mode_set(mode='EDIT')
     ebones = rig.data.edit_bones
@@ -1186,14 +1185,12 @@ classes = [
 ]
 
 def initialize():
-    bpy.types.Object.DazSimpleIK = BoolProperty(default=False)
+    bpy.types.Object.DazSimpleIK = BoolProperty(default=False)    
+    bpy.types.Object.DazArmIK_L = FloatProperty(name="Left Arm IK", default=0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Object.DazArmIK_R = FloatProperty(name="Right Arm IK", default=0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Object.DazLegIK_L = FloatProperty(name="Left Leg IK", default=0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Object.DazLegIK_R = FloatProperty(name="Right Leg IK", default=0.0, precision=3, min=0.0, max=1.0)
     
-    bpy.types.Object.DazArmIK_L = FloatProperty(name="Left Arm IK", default=1.0, precision=3, min=0.0, max=1.0)
-    bpy.types.Object.DazArmIK_R = FloatProperty(name="Right Arm IK", default=1.0, precision=3, min=0.0, max=1.0)
-    bpy.types.Object.DazLegIK_L = FloatProperty(name="Left Leg IK", default=1.0, precision=3, min=0.0, max=1.0)
-    bpy.types.Object.DazLegIK_R = FloatProperty(name="Right Leg IK", default=1.0, precision=3, min=0.0, max=1.0)
-    
-
     for cls in classes:
         bpy.utils.register_class(cls)
 

@@ -260,8 +260,8 @@ class DazOptions:
 
     useConnectIKChains = BoolProperty(
         name = "Connect IK Chains", 
-        description = "Connect bones in IK chains to their parents",
-        default = True)
+        description = "Connect bones in IK chains to their parents.\nMakes IK more stable but may ruin JCMs",
+        default = False)
 
     useSimpleIK = BoolProperty(
         name = "Inverse Kinematics", 
