@@ -963,7 +963,6 @@ def initialize():
     bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = B.DazStringStringGroup)
     bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = B.DazTextGroup)
     bpy.types.Object.DazMultires = BoolProperty(default=False)
-    bpy.types.Mesh.DazHDMap = CollectionProperty(type = B.DazIntGroup)
 
 
 def uninitialize():

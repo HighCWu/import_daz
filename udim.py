@@ -232,6 +232,146 @@ class DAZ_OT_SetUDims(DazOperator):
             mat.DazVDim = vdim
 
 #----------------------------------------------------------
+#   Normal maps
+#----------------------------------------------------------
+
+class NormalMap:
+    imageSize : EnumProperty(
+        items = [("512", "512 x 512", "512 x 512 pixels"),
+                 ("1024", "1024 x 1024", "1024 x 1024 pixels"),
+                 ("2048", "2048 x 2048", "2048 x 2048 pixels"),
+                 ("4096", "4096 x 4096", "4096 x 4096 pixels"),
+                ],
+        name = "Image Size",
+        description = "Size of the normal map texture image",
+        default = "512"
+    )
+        
+
+class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
+    bl_idname = "daz.bake_normal_maps"
+    bl_label = "Bake Normal Maps"
+    bl_description = "Bake normal maps for the selected HD meshes"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.DazLocalTextures and ob.DazMultires)
+
+
+    def draw(self, context):
+        self.layout.prop(self, "imageSize")
+
+
+    def prequel(self, context):
+        scn = context.scene
+        self.engine = scn.render.engine
+        scn.render.engine = 'CYCLES'
+        self.bake_type = scn.render.bake_type        
+        self.use_bake_multires = scn.render.use_bake_multires
+        scn.render.bake_type = 'NORMALS'
+        scn.render.use_bake_multires = True
+        scn.render.bake_margin = 2
+        self.object = context.view_layer.objects.active
+        self.mode = context.mode
+
+
+    def sequel(self, context):        
+        return
+        scn = context.scene
+        scn.render.use_bake_multires = self.use_bake_multires
+        scn.render.bake_type = self.bake_type
+        scn.render.engine = self.engine
+        context.view_layer.objects.active = self.object
+        bpy.ops.object.mode_set(mode=self.mode)
+        
+
+    def run(self, context):        
+        for ob in context.view_layer.objects:
+            if ob.type == 'MESH' and ob.DazMultires and ob.select_get():
+                materials = list(ob.data.materials)
+                try:
+                    for mat in materials:
+                        ob.data.materials.pop()
+                    self.bakeObject(context, ob)
+                finally:
+                    #ob.data.materials.pop()
+                    for mat in materials:
+                        pass
+                        #ob.data.materials.append(mat)
+
+
+    def bakeObject(self, context, ob):
+        print("BAKE", ob)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        context.view_layer.objects.active = ob
+        self.makeMaterial(ob)
+        self.selectFaces(ob)
+        bpy.ops.object.bake_image()
+        self.saveImage(ob)
+        
+        
+    def makeMaterial(self, ob):
+        name = ob.name + "_NM_" + self.imageSize        
+        size = int(self.imageSize)
+        img = self.image = bpy.data.images.new(name, size, size)
+        mat = self.material = bpy.data.materials.new(name)
+        ob.data.materials.append(mat)
+        ob.active_material = mat
+        mat.use_nodes = True
+        tree = mat.node_tree
+        tree.nodes.clear()
+        texco = tree.nodes.new(type = "ShaderNodeTexCoord")
+        texco.location = (0, 0)
+        node = tree.nodes.new(type = "ShaderNodeTexImage")
+        node.location = (200,0)
+        node.image = self.image
+        node.select = True
+        tree.nodes.active = node
+        tree.links.new(texco.outputs["UV"], node.inputs["Vector"])
+
+
+    def selectFaces(self, ob):
+        for f in ob.data.polygons:
+            f.select = True    
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+
+
+    def saveImage(self, ob):
+        obname = bpy.path.clean_name(ob.name.lower())
+        folder = os.path.dirname(bpy.data.filepath)
+        dirpath = os.path.join(folder, "textures", "normals", obname)
+        print("PATH", dirpath)
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)    
+        filename = ("%s_NM_%s.png" % (obname, self.imageSize))
+        filepath = os.path.join(dirpath, filename)        
+        print("SAVE", filepath)
+        self.image.filepath = filepath
+        self.image.save()        
+
+
+class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
+    bl_idname = "daz.load_normal_maps"
+    bl_label = "Load Normal Maps"
+    bl_description = "Load normal maps for the selected meshes"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.DazLocalTextures and not ob.DazMultires)
+
+    def draw(self, context):
+        self.layout.prop(self, "imageSize")
+
+    def run(self, context):
+        pass
+
+
+#----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
@@ -239,6 +379,8 @@ classes = [
     DazUdimGroup,
     DAZ_OT_UdimizeMaterials,
     DAZ_OT_SetUDims,
+    DAZ_OT_BakeNormalMaps,
+    DAZ_OT_LoadNormalMaps,
 ]
 
 def initialize():
