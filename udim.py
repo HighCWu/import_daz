@@ -274,49 +274,98 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
         scn.render.use_bake_multires = True
         scn.render.bake_margin = 2
         self.object = context.view_layer.objects.active
-        self.mode = context.mode
 
 
     def sequel(self, context):        
-        return
         scn = context.scene
         scn.render.use_bake_multires = self.use_bake_multires
         scn.render.bake_type = self.bake_type
         scn.render.engine = self.engine
         context.view_layer.objects.active = self.object
-        bpy.ops.object.mode_set(mode=self.mode)
         
 
     def run(self, context):        
         for ob in context.view_layer.objects:
             if ob.type == 'MESH' and ob.DazMultires and ob.select_get():
-                materials = list(ob.data.materials)
                 try:
-                    for mat in materials:
-                        ob.data.materials.pop()
+                    self.storeMaterials(ob)
                     self.bakeObject(context, ob)
                 finally:
-                    #ob.data.materials.pop()
-                    for mat in materials:
-                        pass
-                        #ob.data.materials.append(mat)
+                    self.restoreMaterials(ob)
 
+
+    def storeMaterials(self, ob):
+        self.mnums = [f.material_index for f in ob.data.polygons]
+        self.materials = list(ob.data.materials)
+        for mat in self.materials:
+            ob.data.materials.pop()
+
+
+    def restoreMaterials(self, ob):
+        for mat in list(ob.data.materials):
+            ob.data.materials.pop()
+        for mat in self.materials:
+            ob.data.materials.append(mat)
+        for fn,mn in enumerate(self.mnums):
+            f = ob.data.polygons[fn]
+            f.material_index = mn
+        
 
     def bakeObject(self, context, ob):
-        print("BAKE", ob)
         bpy.ops.object.mode_set(mode='OBJECT')
         context.view_layer.objects.active = ob
-        self.makeMaterial(ob)
-        self.selectFaces(ob)
-        bpy.ops.object.bake_image()
-        self.saveImage(ob)
-        
-        
-    def makeMaterial(self, ob):
-        name = ob.name + "_NM_" + self.imageSize        
+        tiles,uvloop = self.getTiles(ob)
+        for tile,fnums in tiles.items():
+            img = self.makeImage(ob, tile)
+            mat = self.makeMaterial(ob, img)
+            self.translateTile(ob, fnums, tile, -1)
+            self.selectFaces(ob, fnums, tile)
+            bpy.ops.object.bake_image()
+            img.save()        
+            print("Saved %s" % img.filepath)
+            self.translateTile(ob, fnums, tile, 1)
+            ob.data.materials.pop()
+
+
+    def getTiles(self, ob):
+        tiles = {}
+        uvloop = ob.data.uv_layers[0]
+        m = 0
+        for f in ob.data.polygons:
+            n = len(f.vertices)
+            rx = sum([uvloop.data[k].uv[0] for k in f.loop_indices])/n
+            ry = sum([uvloop.data[k].uv[1] for k in f.loop_indices])/n
+            i = max(0, int(round(rx-0.5)))
+            j = max(0, int(round(ry-0.5)))            
+            tile = 1001 + 10*j + i
+            if tile not in tiles.keys():
+                tiles[tile] = []
+            tiles[tile].append(f.index)
+            m += n
+        return tiles, uvloop  
+    
+
+    def makeImage(self, ob, tile):
+        if ob.name.lower()[-3:] == "_hd":
+            obname = ob.name[:-3]
+        else:
+            obname = ob.name
+        basename = bpy.path.clean_name(obname.lower())
         size = int(self.imageSize)
-        img = self.image = bpy.data.images.new(name, size, size)
-        mat = self.material = bpy.data.materials.new(name)
+        imgname = ("%s_NM_%d_%d" % (basename, tile, size))
+        img = bpy.data.images.new(imgname, size, size)
+        folder = os.path.dirname(bpy.data.filepath)
+        dirpath = os.path.join(folder, "textures", "normals", basename)
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)    
+        filename = ("%s.png" % imgname)
+        filepath = os.path.join(dirpath, filename)        
+        img.filepath = filepath
+        return img
+    
+        
+    def makeMaterial(self, ob, img):
+        mat = bpy.data.materials.new(img.name)
         ob.data.materials.append(mat)
         ob.active_material = mat
         mat.use_nodes = True
@@ -326,31 +375,37 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
         texco.location = (0, 0)
         node = tree.nodes.new(type = "ShaderNodeTexImage")
         node.location = (200,0)
-        node.image = self.image
+        node.image = img
         node.select = True
         tree.nodes.active = node
         tree.links.new(texco.outputs["UV"], node.inputs["Vector"])
+        return mat
 
 
-    def selectFaces(self, ob):
-        for f in ob.data.polygons:
-            f.select = True    
+    def selectFaces(self, ob, fnums, tile):
         bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_all(action='SELECT')
-
-
-    def saveImage(self, ob):
-        obname = bpy.path.clean_name(ob.name.lower())
-        folder = os.path.dirname(bpy.data.filepath)
-        dirpath = os.path.join(folder, "textures", "normals", obname)
-        print("PATH", dirpath)
-        if not os.path.exists(dirpath):
-            os.makedirs(dirpath)    
-        filename = ("%s_NM_%s.png" % (obname, self.imageSize))
-        filepath = os.path.join(dirpath, filename)        
-        print("SAVE", filepath)
-        self.image.filepath = filepath
-        self.image.save()        
+        bpy.ops.uv.select_all(action='DESELECT')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for fn in fnums:
+            f = ob.data.polygons[fn]
+            f.select = True    
+        #bpy.ops.object.mode_set(mode='EDIT')
+        #bpy.ops.uv.select_all(action='SELECT')
+        
+        
+    def translateTile(self, ob, fnums, tile, sign):        
+        bpy.ops.object.mode_set(mode='OBJECT')
+        j = (tile-1001)//10
+        i = (tile-1001-10*j)%10
+        dx = sign*i
+        dy = sign*j
+        uvloop = ob.data.uv_layers[0]
+        for fn in fnums:
+            f = ob.data.polygons[fn]
+            for n in f.loop_indices:
+                uvloop.data[n].uv[0] += dx
+                uvloop.data[n].uv[1] += dy
 
 
 class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
