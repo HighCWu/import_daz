@@ -1202,6 +1202,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazCaseSensitivePaths")
         box.prop(scn, "DazAddFaceDrivers")
         box.prop(scn, "DazBuildHighdef")
+        box.prop(scn, "DazStrandsAsHair")
         box.separator()
         box.prop(scn, "DazUsePropLimits")
         box.prop(scn, "DazUsePropDefault")
@@ -1503,6 +1504,10 @@ def initialize():
     bpy.types.Scene.DazBuildHighdef = BoolProperty(
         name = "Build HD Meshes",
         description = "Build HD meshes if included in .dbz file")
+
+    bpy.types.Scene.DazStrandsAsHair = BoolProperty(
+        name = "Strands As Hair",
+        description = "Convert polylines to particle hair")
 
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shells",

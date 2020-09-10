@@ -139,31 +139,36 @@ class ExtraAsset(Modifier):
 
 
     def build(self, context, inst):
-        rig, ob = getRigMesh(inst)
-        for etype,extra in self.extras.items():
-            pass
+        pinst = inst.parent
+        geonode = self.getGeoNode(inst)
+        pgeonode = self.getGeoNode(pinst)  
+        if "studio/modifier/dynamic_generate_hair" in self.extras.keys():
+            geonode.skull = pgeonode
+        for etype in [
+            "studio/modifier/dynamic_hair_follow",
+            "studio/modifier/dynamic_generate_hair",
+            "studio/modifier/dynamic_simulation",
+            "studio/modifier/line_tessellation",
+            "studio/simulation_settings/dynamic_simulation",
+            ]:
+            if etype in self.extras.keys():
+                if "studio_modifier_channels" in self.extras.keys():
+                    modchannels = self.extras["studio_modifier_channels"] 
+                    for channel in modchannels["channels"]:
+                        geonode.setChannel(channel["channel"])
 
 
-def getRigMesh(inst):
-    from .figure import FigureInstance
-    from .geometry import GeoNode
-    if isinstance(inst, FigureInstance):
-        rig = inst.rna
-        if rig is not None:
-            for ob in rig.children:
-                if ob.type == 'MESH':
-                    return rig, ob
-        return rig,None
-    elif isinstance(inst, GeoNode):
-        ob = inst.rna
-        if ob:
-            rig = ob.parent
-            if rig and rig.type == 'ARMATURE':
-                return rig,ob
-        return None,ob
-    else:
-        return None,None
-
+        
+    def getGeoNode(self, inst):    
+        from .figure import FigureInstance
+        from .geometry import GeoNode
+        if isinstance(inst, FigureInstance):
+            return inst.geometries[0]
+        elif isinstance(inst, GeoNode):
+            return inst
+        else:
+            return None 
+    
 #-------------------------------------------------------------
 #   ChannelAsset
 #-------------------------------------------------------------

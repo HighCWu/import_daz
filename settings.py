@@ -90,6 +90,7 @@ class GlobalSettings:
         self.useConnect = True
 
         self.buildHighdef = True
+        self.strandsAsHair = False
         self.addFaceDrivers = True
 
 
@@ -127,6 +128,7 @@ class GlobalSettings:
         "DazUseLimitLoc" : "useLimitLoc",
 
         "DazBuildHighdef" : "buildHighdef",
+        "DazStrandsAsHair" : "strandsAsHair",
         "DazAddFaceDrivers" : "addFaceDrivers",
     }
 

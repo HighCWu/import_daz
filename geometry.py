@@ -55,6 +55,7 @@ class GeoNode(Node):
         self.verts = None
         self.highdef = None
         self.hdobject = None
+        self.skull = None
         self.index = figure.count
         if geo:
             geo.caller = self
@@ -188,6 +189,12 @@ class GeoNode(Node):
         if self.rna:
             pruneUvMaps(self.rna)
         if self.highdef:
+            self.buildHighDef(context, inst)
+        if self.skull:
+            self.data.buildHair(self, context)
+            
+            
+    def buildHighDef(context, inst):            
             from .material import getMatKey
             me = self.hdobject.data
             matgroups = [(mname,mn) for mn,mname in enumerate(self.highdef.matgroups)]
@@ -289,6 +296,8 @@ class Geometry(Asset, Channels):
 
         self.verts = []
         self.faces = []
+        self.polylines = []
+        self.strands = []
         self.materials = {}
         self.material_indices = []
         self.polygon_material_groups = []
@@ -344,11 +353,15 @@ class Geometry(Asset, Channels):
         Channels.parse(self, struct)
 
         vdata = struct["vertices"]["values"]
-        fdata = struct["polylist"]["values"]
         if GS.zup:
             self.verts = [d2b90(v) for v in vdata]
         else:
             self.verts = [d2b00(v) for v in vdata]
+
+        if "polyline_list" in struct.keys():
+            self.polylines = struct["polyline_list"]["values"]
+        
+        fdata = struct["polylist"]["values"]
         self.faces = [ f[2:] for f in fdata]
         self.material_indices = [f[1] for f in fdata]
         self.polygon_material_groups = struct["polygon_material_groups"]["values"]
@@ -529,10 +542,19 @@ class Geometry(Asset, Channels):
                 me.materials.append(mat.rna)
             return
 
+        edges = []
+        faces = self.faces
+        if self.polylines:
+            faces = []
+            for pline in self.polylines:
+                edges += [(pline[i-1],pline[i]) for i in range(3,len(pline))]                
+                lverts = [verts[vn] for vn in pline]
+                self.strands.append(lverts)
+
         if LS.fitFile:
-            me.from_pydata([cscale*vco for vco in verts], [], self.faces)
+            me.from_pydata([cscale*vco for vco in verts], edges, faces)
         else:
-            me.from_pydata([cscale*vco-center for vco in verts], [], self.faces)
+            me.from_pydata([cscale*vco-center for vco in verts], edges, faces)
 
         for fn,mn in enumerate(self.material_indices):
             f = me.polygons[fn]
@@ -610,6 +632,26 @@ class Geometry(Asset, Channels):
                     vert = rgroup.mask_vertices.add()
                     vert.a = vn
 
+
+    def buildHair(self, geonode, context):
+        from .hair import addHair
+        ob = geonode.skull.rna
+        print("BHAIR", self, geonode, ob)
+        for key in geonode.channels.keys():
+            print(" K", key, geonode.getValue([key], -100))
+
+        hsystems = {}
+        for strand in self.strands:
+            n = len(strand)
+            if n not in hsystems.keys():
+                hsystems[n] = []
+            hsystems[n].append(strand)
+        
+        activateObject(context, ob)
+        addHair(ob, hsystems, context, 'TOP')
+
+
+
 #-------------------------------------------------------------
 #   UV Asset
 #-------------------------------------------------------------
@@ -646,8 +688,11 @@ class Uvset(Asset):
         uvnums = []
         for fverts in polyverts.values():
             uvnums += fverts
-        uvmin = min(uvnums)
-        uvmax = max(uvnums) + 1       
+        if uvnums:
+            uvmin = min(uvnums)
+            uvmax = max(uvnums) + 1       
+        else:
+            uvmin = uvmax = -1
         if (uvmin != 0 or uvmax != len(self.uvs)):
                 msg = ("Vertex number mismatch.\n" +
                        "Expected mesh with %d UV vertices        \n" % len(self.uvs) +
@@ -671,6 +716,10 @@ class Uvset(Asset):
 
     def build(self, context, me, geo, setActive):
         if self.name is None or me in self.built:
+            return
+            
+        if geo.polylines:
+            print("UVHAIR", geo.name, self.name, len(me.vertices))
             return
 
         polyverts = self.getPolyVerts(me)
