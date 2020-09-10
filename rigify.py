@@ -891,10 +891,10 @@ class Rigify:
     
         # Add DAZ properties
         for key in rig.keys():
-            gen[key] = rig[key]
+            self.copyProp(key, rig, gen)
         for key in rig.data.keys():
-            gen.data[key] = rig.data[key]
-    
+            self.copyProp(key, rig.data, gen.data)
+
         for bname,dname in rigifySkel.items():
             if dname in rig.data.bones.keys():
                 bone = rig.data.bones[dname]
@@ -1020,6 +1020,13 @@ class Rigify:
         bpy.ops.object.mode_set(mode='POSE')
         print("Rigify created")
         return gen
+    
+
+    def copyProp(self, prop, src, trg):
+        trg[prop] = src[prop]
+        if (hasattr(trg, "property_overridable_library_set") and
+            prop[0:3] not in ["Daz", "_RN"]):
+            trg.property_overridable_library_set('["%s"]' % prop, True)
     
     
     def getChildren(self, pb):
