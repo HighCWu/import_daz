@@ -184,13 +184,22 @@ class GeoNode(Node):
             LS.hdcollection.objects.link(hdob)
             LS.hdcollection.objects.link(hdob.parent)
     
+    
+    def finishHair(self, context):
+        if self.skull and GS.strandsAsHair:
+            ob = self.rna
+            rig = self.parent.rna
+            print("DELETE", ob, rig)
+            deleteObject(context, ob)
+            deleteObject(context, rig)
+    
 
     def postbuild(self, context, inst):
         if self.rna:
             pruneUvMaps(self.rna)
         if self.highdef:
             self.buildHighDef(context, inst)
-        if self.skull:
+        if self.skull and GS.strandsAsHair:
             self.data.buildHair(self, context)
             
             
@@ -548,8 +557,9 @@ class Geometry(Asset, Channels):
             faces = []
             for pline in self.polylines:
                 edges += [(pline[i-1],pline[i]) for i in range(3,len(pline))]                
-                lverts = [verts[vn] for vn in pline]
-                self.strands.append(lverts)
+                mn = pline[1]
+                lverts = [verts[vn] for vn in pline[2:]]
+                self.strands.append((mn,lverts))
 
         if LS.fitFile:
             me.from_pydata([cscale*vco for vco in verts], edges, faces)
@@ -636,21 +646,36 @@ class Geometry(Asset, Channels):
     def buildHair(self, geonode, context):
         from .hair import addHair
         ob = geonode.skull.rna
-        print("BHAIR", self, geonode, ob)
-        for key in geonode.channels.keys():
-            print(" K", key, geonode.getValue([key], -100))
+        hair = geonode.rna
+        #print("BHAIR", self, geonode, ob)
+        #for key in geonode.channels.keys():
+        #    print(" K", key, geonode.getValue([key], -100))
 
         hsystems = {}
-        for strand in self.strands:
+        for mnum,strand in self.strands:
             n = len(strand)
             if n not in hsystems.keys():
                 hsystems[n] = []
             hsystems[n].append(strand)
         
         activateObject(context, ob)
-        addHair(ob, hsystems, context, 'TOP')
-
-
+        if hair.data.materials:
+            hairmat = hair.data.materials[0]
+            mnum = len(ob.data.materials)
+            ob.data.materials.append(hairmat)
+        else:
+            hairmat = ob.data.materials[0]
+            mnum = 0
+        psystems = addHair(ob, hsystems, context, 'TOP')
+        for psys in psystems.values():
+            pset = psys.settings
+            pset.child_nbr = geonode.getValue(["PreSim Hairs Density"], 1)
+            pset.rendered_child_count = geonode.getValue(["PreRender Hairs Density"], 10)
+            if hasattr(pset, "material_slot"):
+                pset.material_slot = hairmat.name
+            else:
+                pset.material = mnum
+            geonode.getValue(["PreSim Clumping 1 Curves Density"], 1)
 
 #-------------------------------------------------------------
 #   UV Asset
@@ -719,7 +744,6 @@ class Uvset(Asset):
             return
             
         if geo.polylines:
-            print("UVHAIR", geo.name, self.name, len(me.vertices))
             return
 
         polyverts = self.getPolyVerts(me)

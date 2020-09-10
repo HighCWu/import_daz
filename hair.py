@@ -429,13 +429,15 @@ def createSkullGroup(hum, skullType):
 
 def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
     vgrp = createSkullGroup(hum, skullType)
-    for strands in hsystems.values():
+    psystems = {}
+    for key,strands in hsystems.items():
         hlen = int(len(strands[0]))
         if hlen < 3:
             continue
         bpy.ops.object.particle_system_add()
-        psys = hum.particle_systems.active
+        psys = hum.particle_systems.active        
         psys.name = "Hair-%02d" % hlen
+        psystems[key] = psys
         if vgrp:
             psys.vertex_group_density = vgrp.name
 
@@ -496,6 +498,7 @@ def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
                 pass
         psys = updateHair(context, hum, psys)
         setEditProperties(context, hum)
+        return psystems
 
 
 def updateHair(context, hum, psys):

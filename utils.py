@@ -113,6 +113,8 @@ if bpy.app.version < (2,80,0):
         return layout.split(factor)
 
     def deleteObject(context, ob):
+        if ob is None:
+            return
         if context.object:
             bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')

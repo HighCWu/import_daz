@@ -327,8 +327,10 @@ class Instance(Accessor, Channels):
 
     def finalize(self, context, geonode=None):
         if geonode:
-            ob = geonode.rna
             geonode.finishHD(context)
+            if geonode.finishHair(context):
+                return
+            ob = geonode.rna
         else:
             ob = self.rna
         if not isinstance(ob, bpy.types.Object):
