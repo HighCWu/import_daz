@@ -248,7 +248,7 @@ class Instance(Accessor, Channels):
     def buildExtra(self, context):
         if self.strand_hair:
             print("Strand-based hair is not implemented.")
-            #return
+            return
             import base64
             bytes = base64.b64decode(self.strand_hair, validate=True)
             with open(os.path.expanduser("~/foo.obj"), "wb") as fp:
@@ -562,8 +562,8 @@ class Node(Asset, Formula, Channels):
 
     def setExtra(self, extra):
         if extra["type"] == "studio/node/strand_hair":
+            print("EXTRA STRAND", extra.keys())
             self.strand_hair = extra["data"]
-            print("STRAND")
 
 
     Indices = { "x": 0, "y": 1, "z": 2 }

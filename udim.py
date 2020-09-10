@@ -246,6 +246,49 @@ class NormalMap:
         description = "Size of the normal map texture image",
         default = "512"
     )
+
+
+    def getBaseName(self, ob):
+        if ob.name[-3:] == "_HD":
+            obname = ob.name[:-3]
+        else:
+            obname = ob.name
+        if ob.name[-5:] == " Mesh":
+            obname = obname[:-5]
+        return bpy.path.clean_name(obname.lower())
+    
+
+    def getImageName(self, basename, tile):
+        return ("%s_NM_%d_%s.png" % (basename, tile, self.imageSize))
+        
+    
+    def getImagePath(self, basename, imgname, create):
+        folder = os.path.dirname(bpy.data.filepath)
+        dirpath = os.path.join(folder, "textures", "normals", basename)
+        if not os.path.exists(dirpath):
+            if create:
+                os.makedirs(dirpath)    
+            else:
+                return None
+        return os.path.join(dirpath, imgname)        
+
+
+    def getTiles(self, ob):
+        tiles = {}
+        uvloop = ob.data.uv_layers[0]
+        m = 0
+        for f in ob.data.polygons:
+            n = len(f.vertices)
+            rx = sum([uvloop.data[k].uv[0] for k in f.loop_indices])/n
+            ry = sum([uvloop.data[k].uv[1] for k in f.loop_indices])/n
+            i = max(0, int(round(rx-0.5)))
+            j = max(0, int(round(ry-0.5)))            
+            tile = 1001 + 10*j + i
+            if tile not in tiles.keys():
+                tiles[tile] = []
+            tiles[tile].append(f.index)
+            m += n
+        return tiles  
         
 
 class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
@@ -314,7 +357,7 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
     def bakeObject(self, context, ob):
         bpy.ops.object.mode_set(mode='OBJECT')
         context.view_layer.objects.active = ob
-        tiles,uvloop = self.getTiles(ob)
+        tiles = self.getTiles(ob)
         for tile,fnums in tiles.items():
             img = self.makeImage(ob, tile)
             mat = self.makeMaterial(ob, img)
@@ -327,40 +370,13 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
             ob.data.materials.pop()
 
 
-    def getTiles(self, ob):
-        tiles = {}
-        uvloop = ob.data.uv_layers[0]
-        m = 0
-        for f in ob.data.polygons:
-            n = len(f.vertices)
-            rx = sum([uvloop.data[k].uv[0] for k in f.loop_indices])/n
-            ry = sum([uvloop.data[k].uv[1] for k in f.loop_indices])/n
-            i = max(0, int(round(rx-0.5)))
-            j = max(0, int(round(ry-0.5)))            
-            tile = 1001 + 10*j + i
-            if tile not in tiles.keys():
-                tiles[tile] = []
-            tiles[tile].append(f.index)
-            m += n
-        return tiles, uvloop  
-    
-
     def makeImage(self, ob, tile):
-        if ob.name.lower()[-3:] == "_hd":
-            obname = ob.name[:-3]
-        else:
-            obname = ob.name
-        basename = bpy.path.clean_name(obname.lower())
+        basename = self.getBaseName(ob)
+        imgname = self.getImageName(basename, tile)
         size = int(self.imageSize)
-        imgname = ("%s_NM_%d_%d" % (basename, tile, size))
         img = bpy.data.images.new(imgname, size, size)
-        folder = os.path.dirname(bpy.data.filepath)
-        dirpath = os.path.join(folder, "textures", "normals", basename)
-        if not os.path.exists(dirpath):
-            os.makedirs(dirpath)    
-        filename = ("%s.png" % imgname)
-        filepath = os.path.join(dirpath, filename)        
-        img.filepath = filepath
+        img.colorspace_settings.name = "Non-Color"       
+        img.filepath = self.getImagePath(basename, imgname, True)
         return img
     
         
@@ -419,12 +435,102 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
         ob = context.object
         return (ob and ob.DazLocalTextures and not ob.DazMultires)
 
+
     def draw(self, context):
         self.layout.prop(self, "imageSize")
 
-    def run(self, context):
-        pass
 
+    def run(self, context):        
+        for ob in context.view_layer.objects:
+            if ob.type == 'MESH' and not ob.DazMultires and ob.select_get():
+                self.loadObjectNormals(ob)
+
+
+    def loadObjectNormals(self, ob):
+        tiles = self.getTiles(ob)
+        nmaps = {}
+        mattiles = dict([(mn,None) for mn in range(len(ob.data.materials))])
+        for tile,fnums in tiles.items():
+            img = self.loadImage(ob, tile)
+            img.colorspace_settings.name = "Non-Color"
+            nmaps[tile] = img
+            for fn in fnums:
+                f = ob.data.polygons[fn]
+                mattiles[f.material_index] = tile
+        for mn,mat in enumerate(ob.data.materials):
+            tile = mattiles[mn]
+            if tile:
+                self.loadNormalMap(mat, nmaps[tile])
+            else:
+                print("No matching tile for material %s" % mat.name)
+
+
+    def loadImage(self, ob, tile):
+        basename = self.getBaseName(ob)
+        imgname = self.getImageName(basename, tile)
+        filepath = self.getImagePath(basename, imgname, False)
+        if not filepath:
+            raise DazError("No normal maps found for\nobject %s" % ob.name)
+        if not os.path.exists(filepath):
+            size = int(self.imageSize)
+            raise DazError("No %d x %d normal maps found for\nobject %s" % (size, size, ob.name))
+        img = bpy.data.images.load(filepath)
+        img.filepath = filepath
+        return img    
+
+
+    def loadNormalMap(self, mat, img):
+        tree = mat.node_tree
+        texco = self.findTexco(tree)
+        tex = self.addTexture(tree, img)
+        tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
+        normal,isnew = self.findNormal(tree)
+        normal.inputs["Strength"].default_value = 1
+        tree.links.new(tex.outputs["Color"], normal.inputs["Color"])
+        if isnew:   
+            self.linkNormal(tree, normal)
+            
+
+    def findNode(self, tree, type):
+        for node in tree.nodes:
+            if node.type == type:
+                return node
+        return None
+        
+    
+    def findTexco(self, tree):
+        node = self.findNode(tree, 'TEX_COORD')
+        if node:
+            return node
+        node = tree.nodes.new(type="ShaderNodeTexCoord")             
+        node.location = (-300,0)
+        return node
+            
+ 
+    def findNormal(self, tree):
+        node = self.findNode(tree, 'NORMAL_MAP')
+        if node:
+            return node,False
+        node = tree.nodes.new(type="ShaderNodeNormalMap")               
+        node.location = (-300,500)
+        return node,True
+
+
+    def linkNormal(self, tree, normal):            
+        for node in tree.nodes:
+            if "Normal" in node.inputs.keys():
+                tree.links.new(normal.outputs["Normal"], node.inputs["Normal"])
+
+
+    def addTexture(self, tree, img):
+        node = tree.nodes.new(type="ShaderNodeTexImage")
+        node.location = (-300,250)
+        node.label = img.name
+        node.image = img
+        if hasattr(node, "image_user"):
+            node.image_user.frame_duration = 1
+            node.image_user.frame_current = 1        
+        return node
 
 #----------------------------------------------------------
 #   Initialize
