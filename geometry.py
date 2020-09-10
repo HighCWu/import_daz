@@ -203,7 +203,7 @@ class GeoNode(Node):
             self.data.buildHair(self, context)
             
             
-    def buildHighDef(context, inst):            
+    def buildHighDef(self, context, inst):            
             from .material import getMatKey
             me = self.hdobject.data
             matgroups = [(mname,mn) for mn,mname in enumerate(self.highdef.matgroups)]
