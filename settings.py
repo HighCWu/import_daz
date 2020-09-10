@@ -90,7 +90,7 @@ class GlobalSettings:
         self.useConnect = True
 
         self.buildHighdef = True
-        self.strandsAsHair = False
+        self.strandsAsHair = True
         self.addFaceDrivers = True
 
 
