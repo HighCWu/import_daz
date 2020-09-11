@@ -63,6 +63,7 @@ class GeoNode(Node):
         self.modifiers = []
         self.morphsValues = {}
         self.shell = {}
+        self.polylines = False
 
 
     def __repr__(self):

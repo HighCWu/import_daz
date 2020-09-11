@@ -563,7 +563,7 @@ class Node(Asset, Formula, Channels):
 
 
     def setExtra(self, extra):
-        if extra["type"] == "studio/node/strand_hair":
+        if False and extra["type"] == "studio/node/strand_hair":
             print("EXTRA STRAND", extra.keys())
             self.strand_hair = extra["data"]
 

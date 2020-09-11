@@ -51,7 +51,7 @@ class CyclesMaterial(Material):
             type = self.tree.type
         else:
             type = None
-        return ("<%sMaterial %s r: %s i:%s t:%s>" % (type, self.id, self.rna, self.ignore, self.hasAnyTexture()))
+        return ("<%sMaterial %s r:%s g:%s i:%s t:%s>" % (type, self.id, self.rna, self.geometry, self.ignore, self.hasAnyTexture()))
 
 
     def build(self, context):
@@ -65,6 +65,9 @@ class CyclesMaterial(Material):
     def setupTree(self):
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
+            if self.geometry and self.geometry.polylines:            
+                from .hair import HairTree
+                return HairTree(self)
             if self.metallic:
                 return PbrTree(self)
             elif LS.materialMethod == 'PRINCIPLED':
@@ -451,8 +454,12 @@ class CyclesTree:
         effect = self.getValue(["Base Color Effect"], 0)
         if effect > 0:  # Scatter Transmit, Scatter Transmit Intensity
             tint = self.getColor(["SSS Reflectance Tint"], WHITE)
-            color = compProd(color, tint)
+            color = self.compProd(color, tint)
         return color,tex
+
+
+    def compProd(self, x, y):
+        return [x[0]*y[0], x[1]*y[1], x[2]*y[2]]
 
 
     def buildDiffuse(self, scn):
@@ -758,7 +765,7 @@ class CyclesTree:
 
 
     def multiplyColors(self, color, tex, color2, tex2):
-        color = compProd(color, color2)
+        color = self.compProd(color, color2)
         if tex and tex2:
             tex = self.mixTexs('MULTIPLY', tex, tex2)
         elif tex2:
@@ -1274,7 +1281,3 @@ def areEqualTexs(tex1, tex2):
     if tex1.type == 'TEX_IMAGE' and tex2.type == 'TEX_IMAGE':
         return (tex1.image == tex2.image)
     return False
-
-
-def compProd(x, y):
-    return (x[0]*y[0], x[1]*y[1], x[2]*y[2])
