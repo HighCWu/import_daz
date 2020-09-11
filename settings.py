@@ -91,6 +91,7 @@ class GlobalSettings:
 
         self.buildHighdef = True
         self.strandsAsHair = True
+        self.multipleHairMaterials = True
         self.addFaceDrivers = True
 
 
@@ -129,6 +130,7 @@ class GlobalSettings:
 
         "DazBuildHighdef" : "buildHighdef",
         "DazStrandsAsHair" : "strandsAsHair",
+        "DazMultipleHairMaterials" : "multipleHairMaterials",
         "DazAddFaceDrivers" : "addFaceDrivers",
     }
 

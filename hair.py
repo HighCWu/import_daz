@@ -380,7 +380,10 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
         print("Make particle hair")
         activateObject(context, hum)
-        addHair(hum, hsystems, context, self.skullType)
+        hsystems1 = {}
+        for n,hsys in hsystems.items():
+            hsystems1["Hair-%02d" % n] = hsys
+        addHair(hum, hsystems1, context, self.skullType)
         print("Done")
 
         if self.nonquads:
@@ -436,7 +439,7 @@ def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
             continue
         bpy.ops.object.particle_system_add()
         psys = hum.particle_systems.active        
-        psys.name = "Hair-%02d" % hlen
+        psys.name = key
         psystems[key] = psys
         if vgrp:
             psys.vertex_group_density = vgrp.name
@@ -498,7 +501,7 @@ def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
                 pass
         psys = updateHair(context, hum, psys)
         setEditProperties(context, hum)
-        return psystems
+    return psystems
 
 
 def updateHair(context, hum, psys):
@@ -777,6 +780,7 @@ class NodeTree:
         tex.image = loadImage(filepath, cfg)
         self.links.new(texco.outputs['UV'], tex.inputs['Vector'])
         return tex
+
 
 def buildHairMaterialCycles(mat, rgb):
     print("Creating CYCLES HAIR material", mat.name)

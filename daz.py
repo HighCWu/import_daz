@@ -1202,7 +1202,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazCaseSensitivePaths")
         box.prop(scn, "DazAddFaceDrivers")
         box.prop(scn, "DazBuildHighdef")
-        box.prop(scn, "DazStrandsAsHair")
+
         box.separator()
         box.prop(scn, "DazUsePropLimits")
         box.prop(scn, "DazUsePropDefault")
@@ -1218,6 +1218,11 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseLockLoc")
         box.prop(scn, "DazUseLimitLoc")
         box.prop(scn, "DazUseLegacyLocks")
+
+        box = col.box()
+        box.label(text = "Hair")
+        box.prop(scn, "DazStrandsAsHair")
+        box.prop(scn, "DazMultipleHairMaterials")
 
         box = split.box()
         box.label(text = "Materials")
@@ -1508,6 +1513,10 @@ def initialize():
     bpy.types.Scene.DazStrandsAsHair = BoolProperty(
         name = "Strands As Hair",
         description = "Convert polylines to particle hair")
+
+    bpy.types.Scene.DazMultipleHairMaterials = BoolProperty(
+        name = "Multiple Hair Materials",
+        description = "Create a separate particle system for each hair material")
 
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shells",

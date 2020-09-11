@@ -652,31 +652,46 @@ class Geometry(Asset, Channels):
         #    print(" K", key, geonode.getValue([key], -100))
 
         hsystems = {}
+        matnames = {}
         for mnum,strand in self.strands:
             n = len(strand)
-            if n not in hsystems.keys():
-                hsystems[n] = []
-            hsystems[n].append(strand)
-        
-        activateObject(context, ob)
+            if GS.multipleHairMaterials: 
+                mat = self.getHairMaterial(mnum, hair, ob)
+                key = ("%s-%02d" % (mat.name, n))
+            else:
+                mat = self.getHairMaterial(0, hair, ob)
+                key = ("Hair-%02d" % n)
+            matnames[key] = mat.name            
+            if key not in hsystems.keys():
+                hsystems[key] = []
+            hsystems[key].append(strand)
+
         if hair.data.materials:
-            hairmat = hair.data.materials[0]
-            mnum = len(ob.data.materials)
-            ob.data.materials.append(hairmat)
+            if GS.multipleHairMaterials:
+                for hairmat in hair.data.materials:
+                    ob.data.materials.append(hairmat)
+            else:                                
+                hairmat = hair.data.materials[0]
+                ob.data.materials.append(hairmat)
         else:
             hairmat = ob.data.materials[0]
-            mnum = 0
+
+        activateObject(context, ob)
         psystems = addHair(ob, hsystems, context, 'TOP')
-        for psys in psystems.values():
+        for key,psys in psystems.items():
             pset = psys.settings
             pset.child_nbr = geonode.getValue(["PreSim Hairs Density"], 1)
             pset.rendered_child_count = geonode.getValue(["PreRender Hairs Density"], 10)
-            if hasattr(pset, "material_slot"):
-                pset.material_slot = hairmat.name
-            else:
-                pset.material = mnum
+            pset.material_slot = matnames[key]
             geonode.getValue(["PreSim Clumping 1 Curves Density"], 1)
 
+
+    def getHairMaterial(self, mnum, hair, ob):
+        if hair.data.materials:
+            return hair.data.materials[mnum]
+        else:
+            return ob.data.materials[0]
+        
 #-------------------------------------------------------------
 #   UV Asset
 #-------------------------------------------------------------
