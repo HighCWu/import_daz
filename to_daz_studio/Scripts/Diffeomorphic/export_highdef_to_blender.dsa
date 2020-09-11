@@ -17,6 +17,8 @@ function exportHighdefToBlender()
         return;
     }
     
+    var date1 = new Date();
+    var time1 = date1.getTime(); 
     fp = new DzGZFile( filepath );
     debug( fp.baseName() );
     fp.open( fp.WriteOnly );
@@ -54,7 +56,10 @@ function exportHighdefToBlender()
     fp.writeLine("}" );
 
     fp.close();
-    msg = "File \"" + filepath + "\" saved.";
+    var date2 = new Date();
+    var time2 = date2.getTime(); 
+
+    msg = "File \"" + filepath + "\"\nsaved in " + (time2-time1)/1000 + " seconds.";
     MessageBox.information( msg, appName, "&OK" );
 }
 
