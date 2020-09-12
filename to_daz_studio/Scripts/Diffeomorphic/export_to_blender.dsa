@@ -19,15 +19,13 @@ function exportToBlender()
     
     var date1 = new Date();
     var time1 = date1.getTime(); 
-    fp = new DzGZFile( filepath );
-    debug( fp.baseName() );
-    fp.open( fp.WriteOnly );
+
+    var buf = "";    
+    buf = addLine(buf, "{");
+    buf = addLine(buf, "    \"application\": \"" + appName + "\",");
+    buf = addLine(buf, "    \"version\": " + version + ",");
     
-    fp.writeLine("{");
-    fp.writeLine("    \"application\": \"" + appName + "\",");
-    fp.writeLine("    \"version\": " + version + ",");
-    
-    fp.writeLine("    \"figures\": [");
+    buf = addLine(buf, "    \"figures\": [");
 
     for ( var i = 0; i < Scene.getNumNodes(); i++ )
     {
@@ -35,31 +33,44 @@ function exportToBlender()
 
         if ( node.inherits( "DzSkeleton" ) )
         {
-            doFigure(fp, node);
+            buf = doFigure(buf, node);
         }
         else
         {
             obj = node.getObject();
             if (obj != null) 
             {
-                doMesh(fp, obj, true, node, "        ]", "    },");
+                buf = doMesh(buf, obj, true, node, "        ]", "    },");
             }
         }
     }
 
-    fp.writeLine("    {" );
-    fp.writeLine("        \"name\": \"dummy\",");
-    fp.writeLine("        \"num verts\": 0");
-    fp.writeLine("    }" );
+    buf = addLine(buf, "    {" );
+    buf = addLine(buf, "        \"name\": \"dummy\",");
+    buf = addLine(buf, "        \"num verts\": 0");
+    buf = addLine(buf, "    }" );
     
-    fp.writeLine("    ]");
-    fp.writeLine("}" );
+    buf = addLine(buf, "    ]");
+    buf = addLine(buf, "}" );
 
-    fp.close();
     var date2 = new Date();
     var time2 = date2.getTime(); 
 
-    msg = "File \"" + filepath + "\"\nsaved in " + (time2-time1)/1000 + " seconds.";
+    fp = new DzGZFile( filepath );
+    fp.open( fp.WriteOnly );
+    fp.writeLine(buf);
+    fp.close();
+
+    var date3 = new Date();
+    var time3 = date3.getTime(); 
+    dtime1 = (time2-time1)/1000;
+    dtime2 = (time3-time2)/1000;
+    dtime = (time3-time1)/1000;
+
+    msg = ("File \"" + filepath + "\"\n" +
+    	   "saved in " + dtime + " seconds.\n" +
+           "Generate lines: " + dtime1 + "seconds.\n" +
+           "Write to disk: " + dtime2 + "seconds.")
     MessageBox.information( msg, appName, "&OK" );
 }
 
@@ -67,61 +78,63 @@ function exportToBlender()
 //
 //===============================================================================
 
-function doFigure (fp, figure)
+function doFigure (buf, figure)
 {
     figure.finalize();
     var flabel = figure.getLabel();
-        startObject(fp, figure, flabel);
+    buf = startObject(buf, figure, flabel);
 
     var obj = figure.getObject();
     if (obj != null) 
     {
-        doMesh(fp, obj, false, figure, "        ],", "")
+        buf = doMesh(buf, obj, false, figure, "        ],", "")
     }
     
     var bones = figure.getAllBones();
     var n = bones.length;
     
-    fp.writeLine("        \"bones\": ");
-    fp.writeLine("        [");  
+    buf = addLine(buf, "        \"bones\": ");
+    buf = addLine(buf, "        [");  
     c = ","
     for( var i = 0; i < n; i++ )
     {
         bone = bones[i];
         bone.finalize();
-        fp.writeLine("            {");
-        fp.writeLine("                \"name\": \""+ bone.name + "\",");
-        fp.writeLine("                \"center_point\": " + bone.getOrigin() + ",");
-        fp.writeLine("                \"end_point\": " + bone.getEndPoint() + ",");     
-        fp.writeLine("                \"orientation\": " + bone.getOrientation() + ",");             
-        fp.writeLine("                \"origin\": " + bone.getOrigin() + ",");             
-        fp.writeLine("                \"rotation_order\": \"" + bone.getRotationOrder() + "\",");             
-        fp.writeLine("                \"ws_pos\": " + bone.getWSPos() + ",");     
-        fp.writeLine("                \"ws_rot\": " + bone.getWSRot() + ",");     
-        fp.writeLine("                \"ws_scale\": " + bone.getWSScale() + ",");     
-        fp.writeLine("                \"ws_transform\": " + bone.getWSTransform() );             
+        buf = addLine(buf, "            {");
+        buf = addLine(buf, "                \"name\": \""+ bone.name + "\",");
+        buf = addLine(buf, "                \"center_point\": " + bone.getOrigin() + ",");
+        buf = addLine(buf, "                \"end_point\": " + bone.getEndPoint() + ",");     
+        buf = addLine(buf, "                \"orientation\": " + bone.getOrientation() + ",");             
+        buf = addLine(buf, "                \"origin\": " + bone.getOrigin() + ",");             
+        buf = addLine(buf, "                \"rotation_order\": \"" + bone.getRotationOrder() + "\",");             
+        buf = addLine(buf, "                \"ws_pos\": " + bone.getWSPos() + ",");     
+        buf = addLine(buf, "                \"ws_rot\": " + bone.getWSRot() + ",");     
+        buf = addLine(buf, "                \"ws_scale\": " + bone.getWSScale() + ",");     
+        buf = addLine(buf, "                \"ws_transform\": " + bone.getWSTransform() );             
         if (i == n-1) c = "";
-        fp.writeLine("            }" + c );
+        buf = addLine(buf, "            }" + c );
     }
-    fp.writeLine("        ]");      
-    fp.writeLine("    }," );    
+    buf = addLine(buf, "        ]");      
+    buf = addLine(buf, "    }," );  
+    return buf;
 }
 
 //===============================================================================
 //
 //===============================================================================
 
-function startObject(fp, node, label)
+function startObject(buf, node, label)
 {        
-    fp.writeLine("    {" );
-    fp.writeLine("        \"name\": \"" + node.name + "\",");
-    fp.writeLine("        \"label\": \"" + label + "\",");
-    fp.writeLine("        \"center_point\": " + node.getOrigin() + ",");
-    fp.writeLine("        \"end_point\": " + node.getEndPoint() + ",");     
+    buf = addLine(buf, "    {" );
+    buf = addLine(buf, "        \"name\": \"" + node.name + "\",");
+    buf = addLine(buf, "        \"label\": \"" + label + "\",");
+    buf = addLine(buf, "        \"center_point\": " + node.getOrigin() + ",");
+    buf = addLine(buf, "        \"end_point\": " + node.getEndPoint() + ",");     
+    return buf;
 }
 
 
-function doMesh (fp, obj, start, node, str1, str2)
+function doMesh (buf, obj, start, node, str1, str2)
 {
     var shape = obj.getCurrentShape();
     if (shape == null)
@@ -143,30 +156,30 @@ function doMesh (fp, obj, start, node, str1, str2)
 
     if (start)
     {
-        startObject(fp, node, "undefined");
+        buf = startObject(buf, node, "undefined");
     }
 
     var nv = mesh.getNumVertices();
     var ne = mesh.getNumEdges();
     var nf = mesh.getNumFacets();
         
-    fp.writeLine("        \"num verts\": " + nv + ",");
-    fp.writeLine("        \"num edges\": " + ne + ",");
-    fp.writeLine("        \"num faces\": " + nf + ",");
-    fp.writeLine("        \"vertices\": [" );
+    buf = addLine(buf, "        \"num verts\": " + nv + ",");
+    buf = addLine(buf, "        \"num edges\": " + ne + ",");
+    buf = addLine(buf, "        \"num faces\": " + nf + ",");
+    buf = addLine(buf, "        \"vertices\": [" );
     
     var c = ","
     for (var i = 0; i < nv; i++)
     {
         var v = geom.getVertex(i);
         if (i == nv-1) c = "";
-        fp.writeLine("            [" + v.x + ", " + v.y + ", " + v.z + "]" + c)
+        buf = addLine(buf, "            [" + v.x + ", " + v.y + ", " + v.z + "]" + c)
     }    
-    fp.writeLine(str1)
-    fp.writeLine(str2)
+    buf = addLine(buf, str1)
+    buf = addLine(buf, str2)
     
     lodctrl.setValue(lodvalue);    
-    return true;
+    return buf;
 }
 
 //==============================================================================
@@ -178,6 +191,11 @@ function getScenePath()
     var fPath = Scene.getFilename(); //get current scene file path
     var val = fPath.left( fPath.length - 4 ) + ".dbz"; // .duf => .dbz
     return (val);
+}
+
+function addLine(buf, str)
+{
+    return (buf + str + "\n");
 }
 
 //==============================================================================
