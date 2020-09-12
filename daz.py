@@ -35,7 +35,7 @@ from .utils import *
 #   Import DAZ
 #------------------------------------------------------------------
 
-class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
+class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions, B.PoleTargets):
     """Import a DAZ DUF/DSF File"""
     bl_idname = "daz.import_daz"
     bl_label = "Import DAZ File"
@@ -91,6 +91,8 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         box.prop(self, "useCustomShapes")
         if self.useLimitRot and self.useLockRot:
             box.prop(self, "useSimpleIK")
+            if self.useSimpleIK:
+                box.prop(self, "usePoleTargets")
 
 #-------------------------------------------------------------
 #   Silent mode
@@ -592,7 +594,7 @@ class DAZ_PT_Posing(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return (context.object)
+        return (context.object and context.object.type == 'ARMATURE')
 
     def draw(self, context):
         ob = context.object
@@ -800,8 +802,8 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
 #    Simple IK Panel
 #------------------------------------------------------------------------
 
-class DAZ_PT_SimpleIK(bpy.types.Panel):
-    bl_label = "Simple IK"
+class DAZ_PT_Rig(bpy.types.Panel):
+    bl_label = "Rig"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ Importer"
@@ -809,12 +811,18 @@ class DAZ_PT_SimpleIK(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return (context.object and context.object.DazSimpleIK)
+        return (context.object and context.object.type == 'ARMATURE')
 
     def draw(self, context):
-        layout = self.layout
         rig = context.object
+        self.drawLayers(rig)
+        if rig.DazSimpleIK:
+            self.drawSimpleIK(rig)
 
+
+    def drawSimpleIK(self, rig):
+        layout = self.layout
+        layout.separator()
         layout.label(text="IK Influence")
         split = splitLayout(layout, 0.2)
         split.label(text="")
@@ -831,47 +839,53 @@ class DAZ_PT_SimpleIK(bpy.types.Panel):
 
         layout.label(text="Snap FK bones")
         row = layout.row()
-        op = row.operator("daz.snap_simple_fk", text="L Arm")
+        op = row.operator("daz.snap_simple_fk", text="Left Arm")
         op.prefix = "l"
         op.type = "Arm"
-        op = row.operator("daz.snap_simple_fk", text="R Arm")
+        op = row.operator("daz.snap_simple_fk", text="Right Arm")
         op.prefix = "r"
         op.type = "Arm"
         row = layout.row()
-        op = row.operator("daz.snap_simple_fk", text="L Leg")
+        op = row.operator("daz.snap_simple_fk", text="Left Leg")
         op.prefix = "l"
         op.type = "Leg"
-        op = row.operator("daz.snap_simple_fk", text="R Leg")
+        op = row.operator("daz.snap_simple_fk", text="Right Leg")
         op.prefix = "r"
         op.type = "Leg"
 
         layout.label(text="Snap IK bones")
         row = layout.row()
-        op = row.operator("daz.snap_simple_ik", text="L Arm")
+        op = row.operator("daz.snap_simple_ik", text="Left Arm")
         op.prefix = "l"
         op.type = "Arm"
-        op = row.operator("daz.snap_simple_ik", text="R Arm")
+        op = row.operator("daz.snap_simple_ik", text="Right Arm")
         op.prefix = "r"
         op.type = "Arm"
         row = layout.row()
-        op = row.operator("daz.snap_simple_ik", text="L Leg")
+        op = row.operator("daz.snap_simple_ik", text="Left Leg")
         op.prefix = "l"
         op.type = "Leg"
-        op = row.operator("daz.snap_simple_ik", text="R Leg")
+        op = row.operator("daz.snap_simple_ik", text="Right Leg")
         op.prefix = "r"
         op.type = "Leg"
 
-        from .figure import Layers
+
+    def drawLayers(self, rig):
+        from .figure import BoneLayers
+        layout = self.layout
         layout.label(text="Layers")
-        layout.operator("daz.select_named_layers")
-        for lnames in [("Spine", "Face"), "Arm", "Leg", "Hand", "Foot"]:
+        row = layout.row()
+        row.operator("daz.select_named_layers")
+        row.operator("daz.unselect_named_layers")
+        layout.separator()
+        for lnames in [("Spine", "Face"), "FK Arm", "IK Arm", "FK Leg", "IK Leg", "Hand", "Foot"]:
             row = layout.row()
             if isinstance(lnames, str):
                 first,second = "Left "+lnames, "Right "+lnames
             else:
                 first,second = lnames
-            m = Layers[first]
-            n = Layers[second]
+            m = BoneLayers[first]
+            n = BoneLayers[second]
             row.prop(rig.data, "layers", index=m, toggle=True, text=first)
             row.prop(rig.data, "layers", index=n, toggle=True, text=second)
             
@@ -1304,7 +1318,7 @@ classes = [
     DAZ_PT_Visemes,
     DAZ_PT_BodyMorphs,
     DAZ_PT_CustomMorphs,
-    DAZ_PT_SimpleIK,
+    DAZ_PT_Rig,
     DAZ_PT_MhxLayers,
     DAZ_PT_MhxFKIK,
     DAZ_PT_MhxProperties,

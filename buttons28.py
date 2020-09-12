@@ -389,6 +389,13 @@ class XYZ:
     Y : FloatProperty(name = "Y")
     Z : FloatProperty(name = "Z")
 
+
+class PoleTargets:
+    usePoleTargets : BoolProperty(
+        name = "Pole Targets",
+        description = "Add pole targets to the IK chains.\nPoses will not be loaded correctly.",
+        default = False)
+
 #-------------------------------------------------------------
 #   fix.py
 #-------------------------------------------------------------

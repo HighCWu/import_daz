@@ -359,6 +359,7 @@ class LocalSettings:
         self.useLimitRot = True
         self.useCustomShapes = True
         self.useSimpleIK = True
+        self.usePoleTargets = False
 
         self.useNodes = False
         self.useGeometries = False
@@ -429,8 +430,10 @@ class LocalSettings:
         self.useCustomShapes = btn.useCustomShapes
         if self.useLockRot and self.useLimitRot:
             self.useSimpleIK = btn.useSimpleIK
+            self.usePoleTargets = btn.usePoleTargets
         else:
             self.useSimpleIK = False
+            self.usePoleTargets = False
 
         self.useStrict = True
         self.singleUser = True
