@@ -111,7 +111,7 @@ class FigureInstance(Instance):
         rig.DazLocLimits = GS.useLimitLoc
         self.fixDependencyLoops(rig)
 
-        if self.node.rigtype and (LS.useCustomShapes or LS.useSimpleIK or LS.useConnectIKChains):
+        if self.node.rigtype and (LS.useCustomShapes or LS.useSimpleIK):
             for geo in self.geometries:
                 if geo.rna:
                     _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
@@ -119,8 +119,6 @@ class FigureInstance(Instance):
                         simpleIK = SimpleIK()
                         if LS.useCustomShapes:
                             addCustomShapes(rig, simpleIK)
-                        if LS.useConnectIKChains:
-                            connectIKChains(rig, simpleIK)
                         if LS.useSimpleIK:
                             addSimpleIK(rig, simpleIK)
 
@@ -867,28 +865,25 @@ def driveConstraint(pb, type, rig, prop, expr):
             addDriver(cns, "influence", rig, prop, expr)
 
 #----------------------------------------------------------
-#   Custom shapes
+#   Connect bones in IK chains
 #----------------------------------------------------------
 
-class DAZ_OT_ConnectIKChains(DazOperator, IsArmature):
+class DAZ_OT_ConnectIKChains(DazOperator, SimpleIK, IsArmature):
     bl_idname = "daz.connect_ik_chains"
     bl_label = "Connect IK Chains"
     bl_description = "Connect all bones in IK chains to their parents"
     bl_options = {'UNDO'}
     
     def run(self, context):
-        connectIKChains(context.object, SimpleIK())
-
-
-def connectIKChains(rig, IK):
-    bpy.ops.object.mode_set(mode="EDIT")
-    for prefix in ["l", "r"]:
-        for type in ["Arm", "Leg"]:
-            bnames = IK.getLimbBoneNames(rig, prefix, type)
-            if bnames:
-                for bname in bnames[1:]:
-                    eb = rig.data.edit_bones[bname]
-                    eb.use_connect = True
+        rig = context.object
+        bpy.ops.object.mode_set(mode="EDIT")
+        for prefix in ["l", "r"]:
+            for type in ["Arm", "Leg"]:
+                bnames = self.getLimbBoneNames(rig, prefix, type)
+                if bnames:
+                    for bname in bnames[1:]:
+                        eb = rig.data.edit_bones[bname]
+                        eb.use_connect = True
 
 #----------------------------------------------------------
 #   Custom shapes

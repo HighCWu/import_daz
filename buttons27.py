@@ -258,11 +258,6 @@ class DazOptions:
         description = "Add custom shapes to character bones",
         default = True)
 
-    useConnectIKChains = BoolProperty(
-        name = "Connect IK Chains", 
-        description = "Connect bones in IK chains to their parents.\nMakes IK more stable but may ruin JCMs",
-        default = False)
-
     useSimpleIK = BoolProperty(
         name = "Inverse Kinematics", 
         description = "Add simple kinematics to character rigs",

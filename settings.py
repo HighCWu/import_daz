@@ -358,7 +358,6 @@ class LocalSettings:
         self.useLockRot = True
         self.useLimitRot = True
         self.useCustomShapes = True
-        self.useConnectIKChains = True
         self.useSimpleIK = True
 
         self.useNodes = False
@@ -429,10 +428,9 @@ class LocalSettings:
         self.useLimitRot = btn.useLimitRot
         self.useCustomShapes = btn.useCustomShapes
         if self.useLockRot and self.useLimitRot:
-            self.useConnectIKChains = btn.useConnectIKChains
             self.useSimpleIK = btn.useSimpleIK
         else:
-            self.useConnectIKChains = self.useSimpleIK = False
+            self.useSimpleIK = False
 
         self.useStrict = True
         self.singleUser = True

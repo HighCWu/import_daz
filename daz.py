@@ -90,7 +90,6 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions):
         box.prop(self, "useLimitRot")
         box.prop(self, "useCustomShapes")
         if self.useLimitRot and self.useLockRot:
-            box.prop(self, "useConnectIKChains")
             box.prop(self, "useSimpleIK")
 
 #-------------------------------------------------------------
