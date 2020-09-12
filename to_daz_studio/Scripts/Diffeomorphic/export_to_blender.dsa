@@ -150,18 +150,19 @@ function doMesh (fp, obj, start, node, str1, str2)
     var ne = mesh.getNumEdges();
     var nf = mesh.getNumFacets();
         
-    fp.writeLine("        \"num verts\": " + nv + ",");
-    fp.writeLine("        \"num edges\": " + ne + ",");
-    fp.writeLine("        \"num faces\": " + nf + ",");
-    fp.writeLine("        \"vertices\": [" );
+    var buf = ("        \"num verts\": " + nv + ",\n");
+    buf += ("        \"num edges\": " + ne + ",\n");
+    buf += ("        \"num faces\": " + nf + ",\n");
+    buf += ("        \"vertices\": [\n" );
     
-    var c = ","
+    var c = ",\n"
     for (var i = 0; i < nv; i++)
     {
         var v = geom.getVertex(i);
-        if (i == nv-1) c = "";
-        fp.writeLine("            [" + v.x + ", " + v.y + ", " + v.z + "]" + c)
-    }    
+        if (i == nv-1) c = "\n";
+        buf += ("            [" + v.x + ", " + v.y + ", " + v.z + "]" + c)
+    }   
+    fp.writeLine(buf)
     fp.writeLine(str1)
     fp.writeLine(str2)
     
