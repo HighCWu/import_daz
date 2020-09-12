@@ -849,13 +849,15 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator, B.KeepDirsBool):
     bl_description = "Copy textures to the textures subfolder in the blend file's directory"
     bl_options = {'UNDO'}
 
+    @classmethod
+    def poll(self, context):
+        return bpy.data.filepath
+        
     def draw(self, context):
         self.layout.prop(self, "keepdirs")
         
     def run(self, context):
         from shutil import copyfile
-        if not bpy.data.filepath:
-            raise DazError("Save the blend file first")
         texpath = os.path.join(os.path.dirname(bpy.data.filepath), "textures")
         print("Save textures to '%s'" % texpath)
         if not os.path.exists(texpath):

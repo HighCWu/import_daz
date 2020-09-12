@@ -29,6 +29,7 @@ import bpy
 import os
 from bpy.props import *
 from .error import *
+from .utils import *
 
 
 class DazUdimGroup(bpy.types.PropertyGroup):
@@ -256,21 +257,21 @@ class NormalMap:
         if ob.name[-5:] == " Mesh":
             obname = obname[:-5]
         return bpy.path.clean_name(obname.lower())
-    
+
 
     def getImageName(self, basename, tile):
         return ("%s_NM_%d_%s.png" % (basename, tile, self.imageSize))
-        
-    
+
+
     def getImagePath(self, basename, imgname, create):
         folder = os.path.dirname(bpy.data.filepath)
         dirpath = os.path.join(folder, "textures", "normals", basename)
         if not os.path.exists(dirpath):
             if create:
-                os.makedirs(dirpath)    
+                os.makedirs(dirpath)
             else:
                 return None
-        return os.path.join(dirpath, imgname)        
+        return os.path.join(dirpath, imgname)
 
 
     def getTiles(self, ob):
@@ -282,14 +283,14 @@ class NormalMap:
             rx = sum([uvloop.data[k].uv[0] for k in f.loop_indices])/n
             ry = sum([uvloop.data[k].uv[1] for k in f.loop_indices])/n
             i = max(0, int(round(rx-0.5)))
-            j = max(0, int(round(ry-0.5)))            
+            j = max(0, int(round(ry-0.5)))
             tile = 1001 + 10*j + i
             if tile not in tiles.keys():
                 tiles[tile] = []
             tiles[tile].append(f.index)
             m += n
-        return tiles  
-        
+        return tiles
+
 
 class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
     bl_idname = "daz.bake_normal_maps"
@@ -300,7 +301,7 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (ob and ob.DazLocalTextures and ob.DazMultires)
+        return (bpy.data.filepath and ob and ob.DazMultires)
 
 
     def draw(self, context):
@@ -311,29 +312,33 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
         scn = context.scene
         self.engine = scn.render.engine
         scn.render.engine = 'CYCLES'
-        self.bake_type = scn.render.bake_type        
+        self.bake_type = scn.render.bake_type
         self.use_bake_multires = scn.render.use_bake_multires
+        self.samples = scn.cycles.samples
         scn.render.bake_type = 'NORMALS'
         scn.render.use_bake_multires = True
         scn.render.bake_margin = 2
+        scn.cycles.samples = 512
         self.object = context.view_layer.objects.active
 
 
-    def sequel(self, context):        
+    def sequel(self, context):
         scn = context.scene
         scn.render.use_bake_multires = self.use_bake_multires
         scn.render.bake_type = self.bake_type
         scn.render.engine = self.engine
+        scn.cycles.samples = self.samples
         context.view_layer.objects.active = self.object
-        
 
-    def run(self, context):        
+
+    def run(self, context):
         for ob in context.view_layer.objects:
             if ob.type == 'MESH' and ob.DazMultires and ob.select_get():
                 try:
                     self.storeMaterials(ob)
                     self.bakeObject(context, ob)
                 finally:
+                    pass
                     self.restoreMaterials(ob)
 
 
@@ -352,22 +357,42 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
         for fn,mn in enumerate(self.mnums):
             f = ob.data.polygons[fn]
             f.material_index = mn
-        
+
 
     def bakeObject(self, context, ob):
         bpy.ops.object.mode_set(mode='OBJECT')
         context.view_layer.objects.active = ob
+        mod = self.getMultires(ob)
+        if mod is None:
+            print("Object %s has no multires modifier" % ob.name)
+            return
+        levels = mod.levels
+        mod.levels = 0
         tiles = self.getTiles(ob)
-        for tile,fnums in tiles.items():
+        ntiles = len(tiles)
+        startProgress("Baking %s" % ob.name)
+        for n,data in enumerate(tiles.items()):
+            showProgress(n, ntiles)
+            tile,fnums = data
             img = self.makeImage(ob, tile)
             mat = self.makeMaterial(ob, img)
             self.translateTile(ob, fnums, tile, -1)
             self.selectFaces(ob, fnums, tile)
             bpy.ops.object.bake_image()
-            img.save()        
+            img.save()
             print("Saved %s" % img.filepath)
             self.translateTile(ob, fnums, tile, 1)
             ob.data.materials.pop()
+        showProgress(ntiles, ntiles)
+        endProgress()
+        mod.levels = levels
+
+
+    def getMultires(self, ob):
+        for mod in ob.modifiers:
+            if mod.type == 'MULTIRES':
+                return mod
+        return None
 
 
     def makeImage(self, ob, tile):
@@ -375,11 +400,11 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
         imgname = self.getImageName(basename, tile)
         size = int(self.imageSize)
         img = bpy.data.images.new(imgname, size, size)
-        img.colorspace_settings.name = "Non-Color"       
+        img.colorspace_settings.name = "Non-Color"
         img.filepath = self.getImagePath(basename, imgname, True)
         return img
-    
-        
+
+
     def makeMaterial(self, ob, img):
         mat = bpy.data.materials.new(img.name)
         ob.data.materials.append(mat)
@@ -392,6 +417,7 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
         node = tree.nodes.new(type = "ShaderNodeTexImage")
         node.location = (200,0)
         node.image = img
+        node.extension = 'CLIP'
         node.select = True
         tree.nodes.active = node
         tree.links.new(texco.outputs["UV"], node.inputs["Vector"])
@@ -405,20 +431,20 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
         bpy.ops.object.mode_set(mode='OBJECT')
         for fn in fnums:
             f = ob.data.polygons[fn]
-            f.select = True    
-        #bpy.ops.object.mode_set(mode='EDIT')
-        #bpy.ops.uv.select_all(action='SELECT')
-        
-        
-    def translateTile(self, ob, fnums, tile, sign):        
+            f.select = True
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.uv.select_all(action='SELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+
+    def translateTile(self, ob, fnums, tile, sign):
         bpy.ops.object.mode_set(mode='OBJECT')
         j = (tile-1001)//10
         i = (tile-1001-10*j)%10
         dx = sign*i
         dy = sign*j
         uvloop = ob.data.uv_layers[0]
-        for fn in fnums:
-            f = ob.data.polygons[fn]
+        for f in ob.data.polygons:
             for n in f.loop_indices:
                 uvloop.data[n].uv[0] += dx
                 uvloop.data[n].uv[1] += dy
@@ -433,14 +459,14 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (ob and ob.DazLocalTextures and not ob.DazMultires)
+        return (bpy.data.filepath and ob and not ob.DazMultires)
 
 
     def draw(self, context):
         self.layout.prop(self, "imageSize")
 
 
-    def run(self, context):        
+    def run(self, context):
         for ob in context.view_layer.objects:
             if ob.type == 'MESH' and not ob.DazMultires and ob.select_get():
                 self.loadObjectNormals(ob)
@@ -476,7 +502,7 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
             raise DazError("No %d x %d normal maps found for\nobject %s" % (size, size, ob.name))
         img = bpy.data.images.load(filepath)
         img.filepath = filepath
-        return img    
+        return img
 
 
     def loadNormalMap(self, mat, img):
@@ -487,36 +513,36 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
         normal,isnew = self.findNormal(tree)
         normal.inputs["Strength"].default_value = 1
         tree.links.new(tex.outputs["Color"], normal.inputs["Color"])
-        if isnew:   
+        if isnew:
             self.linkNormal(tree, normal)
-            
+
 
     def findNode(self, tree, type):
         for node in tree.nodes:
             if node.type == type:
                 return node
         return None
-        
-    
+
+
     def findTexco(self, tree):
         node = self.findNode(tree, 'TEX_COORD')
         if node:
             return node
-        node = tree.nodes.new(type="ShaderNodeTexCoord")             
+        node = tree.nodes.new(type="ShaderNodeTexCoord")
         node.location = (-300,0)
         return node
-            
- 
+
+
     def findNormal(self, tree):
         node = self.findNode(tree, 'NORMAL_MAP')
         if node:
             return node,False
-        node = tree.nodes.new(type="ShaderNodeNormalMap")               
+        node = tree.nodes.new(type="ShaderNodeNormalMap")
         node.location = (-300,500)
         return node,True
 
 
-    def linkNormal(self, tree, normal):            
+    def linkNormal(self, tree, normal):
         for node in tree.nodes:
             if "Normal" in node.inputs.keys():
                 tree.links.new(normal.outputs["Normal"], node.inputs["Normal"])
@@ -529,7 +555,7 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
         node.image = img
         if hasattr(node, "image_user"):
             node.image_user.frame_duration = 1
-            node.image_user.frame_current = 1        
+            node.image_user.frame_current = 1
         return node
 
 #----------------------------------------------------------
