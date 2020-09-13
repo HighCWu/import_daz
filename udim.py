@@ -292,6 +292,13 @@ class NormalMap:
         return tiles
 
 
+def getMultires(ob):
+    for mod in ob.modifiers:
+        if mod.type == 'MULTIRES':
+            return mod
+    return None
+
+
 class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
     bl_idname = "daz.bake_normal_maps"
     bl_label = "Bake Normal Maps"
@@ -301,7 +308,7 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (bpy.data.filepath and ob and ob.DazMultires)
+        return (bpy.data.filepath and ob and getMultires(ob))
 
 
     def draw(self, context):
@@ -333,7 +340,7 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
 
     def run(self, context):
         for ob in context.view_layer.objects:
-            if ob.type == 'MESH' and ob.DazMultires and ob.select_get():
+            if ob.type == 'MESH' and ob.select_get() and getMultires(ob):
                 try:
                     self.storeMaterials(ob)
                     self.bakeObject(context, ob)
@@ -362,7 +369,7 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
     def bakeObject(self, context, ob):
         bpy.ops.object.mode_set(mode='OBJECT')
         context.view_layer.objects.active = ob
-        mod = self.getMultires(ob)
+        mod = getMultires(ob)
         if mod is None:
             print("Object %s has no multires modifier" % ob.name)
             return
@@ -386,13 +393,6 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
         showProgress(ntiles, ntiles)
         endProgress()
         mod.levels = levels
-
-
-    def getMultires(self, ob):
-        for mod in ob.modifiers:
-            if mod.type == 'MULTIRES':
-                return mod
-        return None
 
 
     def makeImage(self, ob, tile):
@@ -459,7 +459,7 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (bpy.data.filepath and ob and not ob.DazMultires)
+        return (bpy.data.filepath and ob)
 
 
     def draw(self, context):
@@ -468,11 +468,14 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
 
     def run(self, context):
         for ob in context.view_layer.objects:
-            if ob.type == 'MESH' and not ob.DazMultires and ob.select_get():
+            if ob.type == 'MESH' and ob.select_get():
                 self.loadObjectNormals(ob)
 
 
     def loadObjectNormals(self, ob):
+        mod = getMultires(ob)
+        if mod:
+            mod.show_viewport = mod.show_render = False
         tiles = self.getTiles(ob)
         nmaps = {}
         mattiles = dict([(mn,None) for mn in range(len(ob.data.materials))])
