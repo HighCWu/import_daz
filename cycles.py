@@ -65,7 +65,7 @@ class CyclesMaterial(Material):
     def setupTree(self):
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
-            if self.geometry and self.geometry.polylines:            
+            if GS.strandsAsHair and self.geometry and self.geometry.polylines:
                 from .hair import HairTree
                 return HairTree(self)
             if self.metallic:
@@ -283,7 +283,7 @@ class CyclesTree:
         scn = context.scene
         self.buildBumpNodes(scn)
         self.buildDiffuse(scn)
-        self.checkTranslucency()        
+        self.checkTranslucency()
         self.buildTranslucency(scn)
         self.buildOverlay()
         if self.material.dualLobeWeight == 1:
@@ -630,7 +630,7 @@ class CyclesTree:
 
         LS.usedFeatures["Glossy"] = True
         self.mixWithActive(1.0, self.fresnel, glossy, useAlpha=False)
-        
+
 
     def getFresnelIOR(self):
         #   fresnel ior = 1.1 + iray glossy reflectivity * 0.7
@@ -680,11 +680,11 @@ class CyclesTree:
     def checkTranslucency(self):
         if (self.material.thinWalled or
             self.volume or
-            self.material.translucent): 
+            self.material.translucent):
             self.useTranslucency = True
         if (self.material.refractive or
             not self.material.translucent):
-            self.useTranslucency = False            
+            self.useTranslucency = False
 
 
     def buildTranslucency(self, scn):
@@ -717,8 +717,8 @@ class CyclesTree:
 #-------------------------------------------------------------
 #   Subsurface
 #-------------------------------------------------------------
-        
-    def endSSS(self):        
+
+    def endSSS(self):
         LS.usedFeatures["SSS"] = True
         mat = self.material.rna
         if hasattr(mat, "use_sss_translucency"):
@@ -731,7 +731,7 @@ class CyclesTree:
         # as for blender 2.8x eevee doesn't support nodes in the radius channel so we deal with it
         if self.material.thinWalled:
             return color,None
-            
+
         sssmode = self.getValue(["SSS Mode"], 0)
         # [ "Mono", "Chromatic" ]
         if sssmode == 1:    # Chromatic
@@ -816,18 +816,18 @@ class CyclesTree:
             roughness, roughtex = self.getColorTex("getChannelGlossyRoughness", "NONE", 0, False, maxval=1)
             roughness = roughness**2
             self.linkColor(tex, node, color, "Glossy Color")
-            self.linkScalar(roughtex, node, roughness, "Glossy Roughness")            
+            self.linkScalar(roughtex, node, roughness, "Glossy Roughness")
 
             color,tex,roughness,roughtex = self.getRefractionColor()
             roughness = roughness**2
             self.linkColor(tex, node, color, "Refraction Color")
             ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
-            self.linkScalar(iortex, node, ior, "Fresnel IOR")            
+            self.linkScalar(iortex, node, ior, "Fresnel IOR")
             if self.material.thinWalled:
                 node.inputs["Refraction IOR"].default_value = 1.0
                 node.inputs["Refraction Roughness"].default_value = 0.0
             else:
-                self.linkScalar(roughtex, node, roughness, "Refraction Roughness")            
+                self.linkScalar(roughtex, node, roughness, "Refraction Roughness")
                 self.linkScalar(iortex, node, ior, "Refraction IOR")
 
             self.linkNormal(node)
@@ -872,7 +872,7 @@ class CyclesTree:
                 if channel:
                     tex = self.addTexImageNode(channel, "COLOR")
                     self.linkColor(tex, emit, color, "Color")
-    
+
             lum = self.getValue(["Luminance"], 1500)
             # "cd/m^2", "kcd/m^2", "cd/ft^2", "cd/cm^2", "lm", "W"
             units = self.getValue(["Luminance Units"], 3)
@@ -935,14 +935,14 @@ class CyclesTree:
                 color,tex = self.invertColor(ssscolor, ssstex, 6)
             #scatter = self.addNode(6, "ShaderNodeVolumeScatter")
             if self.volume is None:
-                self.volume = self.addGroup(VolumeGroup, "DAZ Volume")            
+                self.volume = self.addGroup(VolumeGroup, "DAZ Volume")
             self.linkColor(tex, self.volume, color, "Scatter Color")
             self.volume.inputs["Scatter Density"].default_value = 50/dist
             self.volume.inputs["Scatter Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
         elif sss > 0 and dist > 0.0:
             #scatter = self.addNode(6, "ShaderNodeVolumeScatter")
             if self.volume is None:
-                self.volume = self.addGroup(VolumeGroup, "DAZ Volume")                        
+                self.volume = self.addGroup(VolumeGroup, "DAZ Volume")
             sss,tex = self.getColorTex(["SSS Amount"], "NONE", 0.0)
             color = (sss,sss,sss)
             self.linkColor(tex, self.volume, color, "Scatter Color")
@@ -972,7 +972,7 @@ class CyclesTree:
                 self.links.new(node.outputs[0], lie.inputs["Alpha"])
 
         if bpy.app.version >= (2,80,0) and (self.volume or self.eevee):
-            output.target = 'CYCLES'        
+            output.target = 'CYCLES'
             outputEevee = self.addNode("ShaderNodeOutputMaterial")
             outputEevee.target = 'EEVEE'
             if self.eevee:
@@ -1143,9 +1143,9 @@ class CyclesTree:
         if self.cycles:
             self.makeActiveMix("Cycles", self.cycles, self.getCyclesSocket(), fac, tex, shader, useAlpha, flip)
         self.cycles = shader
-            
-            
-    def makeActiveMix(self, slot, active, socket, fac, tex, shader, useAlpha, flip):            
+
+
+    def makeActiveMix(self, slot, active, socket, fac, tex, shader, useAlpha, flip):
         self.links.new(socket, shader.inputs[slot])
         shader.inputs["Fac"].default_value = fac
         if tex:
@@ -1209,7 +1209,7 @@ class CyclesTree:
             tex = self.multiplyVectorTex(value, tex)
         return value,tex
 
-    
+
     def multiplyVectorTex(self, color, tex, col=None):
         if isWhite(color):
             return tex

@@ -86,9 +86,6 @@ class GeoNode(Node):
         Node.buildObject(self, context, inst, center)
         ob = self.rna
         self.storeRna(ob)
-        scn = context.scene
-        if ob and self.data:
-            self.data.buildRigidity(ob)
 
 
     def subtractCenter(self, ob, inst, center):
@@ -99,11 +96,16 @@ class GeoNode(Node):
 
     def subdivideObject(self, ob, inst, context, cscale, center):
         if self.highdef:
-            me = self.buildHDMesh(ob, cscale, center)            
+            me = self.buildHDMesh(ob, cscale, center)
             hdob = self.hdobject = bpy.data.objects.new(ob.name + "_HD", me)
             self.addHDMaterials(ob.data.materials, "")
             self.arrangeObject(hdob, inst, context, cscale, center)
             self.addMultires(ob, hdob)
+
+        if ob and self.data:
+            self.data.buildRigidity(ob)
+            if self.hdobject:
+                self.data.buildRigidity(self.hdobject)
 
         if (self.type == "subdivision_surface" and
             self.data and
@@ -113,25 +115,25 @@ class GeoNode(Node):
             mod.levels = self.data.SubDIALevel
 
 
-    def buildHDMesh(self, ob, cscale, center):            
-            verts = self.highdef.verts
-            uvs = self.highdef.uvs
-            hdfaces = self.highdef.faces
-            faces = self.stripNegatives([f[0] for f in hdfaces])
-            uvfaces = self.stripNegatives([f[1] for f in hdfaces])
-            mnums = [f[4] for f in hdfaces]
-            nverts = len(verts)
-            me = bpy.data.meshes.new(ob.data.name + "_HD")
-            print("Build HD mesh for %s: %d verts, %d faces" % (ob.name, nverts, len(faces)))
-            me.from_pydata([cscale*vco-center for vco in verts], [], faces)
-            print("HD mesh %s built" % me.name)
-            uvlayers = getUvTextures(ob.data)
-            addUvs(me, uvlayers[0].name, uvs, uvfaces)
-            for f in me.polygons:
-                f.material_index = mnums[f.index]
-                f.use_smooth = True
-            return me
-            
+    def buildHDMesh(self, ob, cscale, center):
+        verts = self.highdef.verts
+        uvs = self.highdef.uvs
+        hdfaces = self.highdef.faces
+        faces = self.stripNegatives([f[0] for f in hdfaces])
+        uvfaces = self.stripNegatives([f[1] for f in hdfaces])
+        mnums = [f[4] for f in hdfaces]
+        nverts = len(verts)
+        me = bpy.data.meshes.new(ob.data.name + "_HD")
+        print("Build HD mesh for %s: %d verts, %d faces" % (ob.name, nverts, len(faces)))
+        me.from_pydata([cscale*vco-center for vco in verts], [], faces)
+        print("HD mesh %s built" % me.name)
+        uvlayers = getUvTextures(ob.data)
+        addUvs(me, uvlayers[0].name, uvs, uvfaces)
+        for f in me.polygons:
+            f.material_index = mnums[f.index]
+            f.use_smooth = True
+        return me
+
 
     def addMultires(self, ob, hdob):
         if bpy.app.version < (2,90,0):
@@ -184,8 +186,8 @@ class GeoNode(Node):
             LS.collection.objects.unlink(hdob)
             LS.hdcollection.objects.link(hdob)
             LS.hdcollection.objects.link(hdob.parent)
-    
-    
+
+
     def finishHair(self, context):
         if self.skull and GS.strandsAsHair:
             ob = self.rna
@@ -193,7 +195,7 @@ class GeoNode(Node):
             print("DELETE", ob, rig)
             deleteObject(context, ob)
             deleteObject(context, rig)
-    
+
 
     def postbuild(self, context, inst):
         if self.rna:
@@ -202,9 +204,9 @@ class GeoNode(Node):
             self.buildHighDef(context, inst)
         if self.skull and GS.strandsAsHair:
             self.data.buildHair(self, context)
-            
-            
-    def buildHighDef(self, context, inst):            
+
+
+    def buildHighDef(self, context, inst):
             from .material import getMatKey
             me = self.hdobject.data
             matgroups = [(mname,mn) for mn,mname in enumerate(self.highdef.matgroups)]
@@ -232,40 +234,38 @@ class GeoNode(Node):
             inst.parentObject(context, self.hdobject)
 
 
-    def setHideInfo(self, parent):
-        par = parent.rna
-        if par is None or self.data is None:
+    def setHideInfo(self):
+        if self.data is None:
             return
-        me = self.rna.data
-        if me is None:
+        self.setHideInfoMesh(self.rna)
+        if self.hdobject:
+            self.setHideInfoMesh(self.hdobject)
+
+
+    def setHideInfoMesh(self, ob):
+        if ob.data is None:
             return
-        me.DazVertexCount = self.data.vertex_count
+        ob.data.DazVertexCount = self.data.vertex_count
         if self.data.hidden_polys:
-            hgroup = me.DazMaskGroup
+            hgroup = ob.data.DazMaskGroup
             for fn in self.data.hidden_polys:
                 elt = hgroup.add()
                 elt.a = fn
         if self.data.vertex_pairs:
-            ggroup = me.DazGraftGroup
+            ggroup = ob.data.DazGraftGroup
             for vn,pvn in self.data.vertex_pairs:
                 pair = ggroup.add()
                 pair.a = vn
                 pair.b = pvn
 
 
-    def getUsedVerts(self, usedFaces):
-        ob = self.rna
-        used = dict([(vn,True) for vn in range(len(ob.data.vertices))])
-        for f in ob.data.polygons:
-            if f.index not in usedFaces:
-                for vn in f.vertices:
-                    used[vn] = False
-        verts = [vn for vn in used.keys() if used[vn]]
-        return verts
-
-
     def hideVertexGroups(self, hidden):
-        ob = self.rna
+        self.hideVertexGroupsMesh(self.rna, hidden)
+        if self.hdobject:
+            self.hideVertexGroupsMesh(self.hdobject.rna, hidden)
+
+
+    def hideVertexGroupsMesh(self, ob, hidden):
         if ob is None:
             return
         idxs = []
@@ -370,7 +370,7 @@ class Geometry(Asset, Channels):
 
         if "polyline_list" in struct.keys():
             self.polylines = struct["polyline_list"]["values"]
-        
+
         fdata = struct["polylist"]["values"]
         self.faces = [ f[2:] for f in fdata]
         self.material_indices = [f[1] for f in fdata]
@@ -557,7 +557,7 @@ class Geometry(Asset, Channels):
         if self.polylines:
             faces = []
             for pline in self.polylines:
-                edges += [(pline[i-1],pline[i]) for i in range(3,len(pline))]                
+                edges += [(pline[i-1],pline[i]) for i in range(3,len(pline))]
                 mn = pline[1]
                 lverts = [verts[vn] for vn in pline[2:]]
                 self.strands.append((mn,lverts))
@@ -656,13 +656,13 @@ class Geometry(Asset, Channels):
         matnames = {}
         for mnum,strand in self.strands:
             n = len(strand)
-            if GS.multipleHairMaterials: 
+            if GS.multipleHairMaterials:
                 mat = self.getHairMaterial(mnum, hair, ob)
                 key = ("%s-%02d" % (mat.name, n))
             else:
                 mat = self.getHairMaterial(0, hair, ob)
                 key = ("Hair-%02d" % n)
-            matnames[key] = mat.name            
+            matnames[key] = mat.name
             if key not in hsystems.keys():
                 hsystems[key] = []
             hsystems[key].append(strand)
@@ -671,7 +671,7 @@ class Geometry(Asset, Channels):
             if GS.multipleHairMaterials:
                 for hairmat in hair.data.materials:
                     ob.data.materials.append(hairmat)
-            else:                                
+            else:
                 hairmat = hair.data.materials[0]
                 ob.data.materials.append(hairmat)
         else:
@@ -692,7 +692,7 @@ class Geometry(Asset, Channels):
             return hair.data.materials[mnum]
         else:
             return ob.data.materials[0]
-        
+
 #-------------------------------------------------------------
 #   UV Asset
 #-------------------------------------------------------------
@@ -731,19 +731,19 @@ class Uvset(Asset):
             uvnums += fverts
         if uvnums:
             uvmin = min(uvnums)
-            uvmax = max(uvnums) + 1       
+            uvmax = max(uvnums) + 1
         else:
             uvmin = uvmax = -1
         if (uvmin != 0 or uvmax != len(self.uvs)):
                 msg = ("Vertex number mismatch.\n" +
                        "Expected mesh with %d UV vertices        \n" % len(self.uvs) +
                        "but %s has %d UV vertices." % (me.name, uvmax))
-                if error:                
+                if error:
                     raise DazError(msg)
                 else:
                     print(msg)
-    
-    
+
+
     def getPolyVerts(self, me):
         polyverts = dict([(f.index, list(f.vertices)) for f in me.polygons])
         if self.polyverts:
@@ -758,7 +758,7 @@ class Uvset(Asset):
     def build(self, context, me, geo, setActive):
         if self.name is None or me in self.built:
             return
-            
+
         if geo.polylines:
             return
 

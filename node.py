@@ -397,8 +397,7 @@ class Instance(Accessor, Channels):
 
         elif isinstance(self.parent, FigureInstance):
             for geo in self.geometries:
-                for pgeo in self.parent.geometries:
-                    geo.setHideInfo(pgeo)
+                geo.setHideInfo()
             setParent(context, ob, self.parent.rna)
             self.transformObject(ob)
 
