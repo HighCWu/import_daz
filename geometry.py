@@ -645,53 +645,47 @@ class Geometry(Asset, Channels):
 
 
     def buildHair(self, geonode, context):
-        from .hair import addHair
+        from .hair import HairSystem, addHair
         ob = geonode.skull.rna
         hair = geonode.rna
         #print("BHAIR", self, geonode, ob)
+        #print(" P", self.polygon_material_groups)
         #for key in geonode.channels.keys():
         #    print(" K", key, geonode.getValue([key], -100))
 
+        if not self.polygon_material_groups:
+            pass
+        elif GS.multipleHairMaterials:
+            for mname in self.polygon_material_groups:
+                hmat = self.materials[mname][0]
+                ob.data.materials.append(hmat.rna)
+        else:
+            mname = self.polygon_material_groups[0]
+            hmat = self.materials[mname][0]
+            ob.data.materials.append(hmat.rna)
+
         hsystems = {}
-        matnames = {}
         for mnum,strand in self.strands:
             n = len(strand)
-            if GS.multipleHairMaterials:
-                mat = self.getHairMaterial(mnum, hair, ob)
-                key = ("%s-%02d" % (mat.name, n))
-            else:
-                mat = self.getHairMaterial(0, hair, ob)
-                key = ("Hair-%02d" % n)
-            matnames[key] = mat.name
-            if key not in hsystems.keys():
-                hsystems[key] = []
-            hsystems[key].append(strand)
-
-        if hair.data.materials:
-            if GS.multipleHairMaterials:
-                for hairmat in hair.data.materials:
-                    ob.data.materials.append(hairmat)
-            else:
-                hairmat = hair.data.materials[0]
-                ob.data.materials.append(hairmat)
-        else:
-            hairmat = ob.data.materials[0]
+            matname,hmat = self.getHairMaterial(mnum)
+            hname = ("%s-%02d" % (matname, n))
+            if hname not in hsystems.keys():
+                hsys = hsystems[hname] = HairSystem(hname, n)
+                hsys.setSettings(geonode, hmat)
+            hsystems[hname].strands.append(strand)
 
         activateObject(context, ob)
-        psystems = addHair(ob, hsystems, context, 'TOP')
-        for key,psys in psystems.items():
-            pset = psys.settings
-            pset.child_nbr = geonode.getValue(["PreSim Hairs Density"], 1)
-            pset.rendered_child_count = geonode.getValue(["PreRender Hairs Density"], 10)
-            pset.material_slot = matnames[key]
-            geonode.getValue(["PreSim Clumping 1 Curves Density"], 1)
+        addHair(ob, hsystems, context, 'TOP')
 
 
-    def getHairMaterial(self, mnum, hair, ob):
-        if hair.data.materials:
-            return hair.data.materials[mnum]
+    def getHairMaterial(self, mnum):
+        if self.polygon_material_groups:
+            idx = (mnum if GS.multipleHairMaterials else 0)
+            mname = self.polygon_material_groups[idx]
+            hmat = self.materials[mname][0]
+            return hmat.rna.name, hmat
         else:
-            return ob.data.materials[0]
+            return "Hair", None
 
 #-------------------------------------------------------------
 #   UV Asset

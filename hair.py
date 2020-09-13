@@ -37,6 +37,169 @@ from .material import WHITE, GREY, BLACK, isWhite, isBlack
 from .cycles import CyclesMaterial, CyclesTree
 
 #-------------------------------------------------------------
+#   Hair system class
+#-------------------------------------------------------------
+
+class HairSystem:
+    def __init__(self, name, n, object=None):
+        if name is None:
+            self.name = ("Hair%02d" % n)
+        else:
+            self.name = name
+        self.object = object
+        if self.object:
+            self.scale = self.object.DazScale
+        else:
+            self.scale = LS.scale
+        self.npoints = n
+        self.strands = []
+        self.psys = None
+        self.density = 1
+        self.renderDensity = 10
+        self.material = None
+        self.clumping = 1
+        self.rootRadius = 0.25
+        self.tipRadius = 0
+
+
+    def setSettings(self, geonode, hairmat):
+        self.density = geonode.getValue(["PreSim Hairs Density"], 1)
+        self.renderDensity = geonode.getValue(["PreRender Hairs Density"], 10)
+        self.clumping = geonode.getValue(["PreSim Clumping 1 Curves Density"], 1)
+        if hairmat:
+            self.material = hairmat.rna.name
+            self.rootRadius = hairmat.getValue(["Line Start Width"], 0.25)
+            self.tipRadius = hairmat.getValue(["Line End Width"], 0)
+            return
+            # Unused properties
+            hairmat.getValue(["Line UV Width"], 0.5)
+            hairmat.getValue(["separation"], 0.1)
+            hairmat.getValue(["Line Preview Color"], WHITE)
+            hairmat.getValue(["Root To Tip Bias"], 0.5)
+            hairmat.getValue(["Root to Tip Gain"], 0.5)
+            hairmat.getValue(["Bump Mode"], 0)  # [ "Height Map", "Normal Map" ]
+            hairmat.getValue(["Bump Strength"], 0)
+            hairmat.getValue(["Cutout Opacity"], 1)
+            hairmat.getValue(["strength"], 0) # Displacement Strength
+            hairmat.getValue(["Minimum Displacement"], -0.1)
+            hairmat.getValue(["Maximum Displacement"], 0.1)
+            hairmat.getValue(["SubD Displacement Level"], 0)
+            hairmat.getValue(["Horizontal Tiles"], 1)
+            hairmat.getValue(["Horizontal Offset"], 0)
+            hairmat.getValue(["Vertical Tiles"], 1)
+            hairmat.getValue(["Vertical Offset"], 0)
+            hairmat.getValue(["Roughness Squared"], True)
+
+
+    def addStrand(self, strand):
+        self.strands.append(strand)
+
+
+    def resize(self, size):
+        nstrands = []
+        for strand in self.strands:
+            nstrand = self.resizeStrand(strand, size)
+            nstrands.append(nstrand)
+        return nstrands
+
+
+    def resizeBlock(self):
+        n = 10*((self.npoints+5)//10)
+        if n < 10:
+            n = 10
+        return n, self.resize(n)
+
+
+    def resizeStrand(self, strand, n):
+        m = len(strand)
+        step = (m-1)/(n-1)
+        nstrand = []
+        for i in range(n-1):
+            j = floor(i*step + 1e-4)
+            x = strand[j]
+            y = strand[j+1]
+            eps = i*step - j
+            z = eps*y + (1-eps)*x
+            nstrand.append(z)
+        nstrand.append(strand[m-1])
+        return nstrand
+
+
+    def build(self, context, ob, vgrp, useEmitter):
+        strands = self.strands
+        hlen = int(len(strands[0]))
+        if hlen < 3:
+            return
+        bpy.ops.object.particle_system_add()
+        psys = ob.particle_systems.active
+        psys.name = self.name
+        if vgrp:
+            psys.vertex_group_density = vgrp.name
+
+        pset = psys.settings
+        pset.type = 'HAIR'
+        pset.use_strand_primitive = True
+        if hasattr(pset, "use_render_emitter"):
+            pset.use_render_emitter = useEmitter
+        elif hasattr(ob, "show_instancer_for_render"):
+            ob.show_instancer_for_render = useEmitter
+        pset.render_type = 'PATH'
+        pset.child_type = 'SIMPLE'
+
+        pset.material = len(ob.data.materials)
+        pset.path_start = 0
+        pset.path_end = 1
+        pset.count = int(len(strands))
+        pset.hair_step = hlen-1
+        pset.child_nbr = self.density
+        pset.rendered_child_count = self.renderDensity
+        pset.child_radius = 2*self.scale
+        if self.material:
+            pset.material_slot = self.material
+        self.clumping
+
+        if hasattr(pset, "cycles_curve_settings"):
+            ccset = pset.cycles_curve_settings
+        elif hasattr(pset, "cycles"):
+            ccset = pset.cycles
+        else:
+            ccset = pset
+        if hasattr(ccset, "root_width"):
+            ccset.root_width = self.rootRadius
+            ccset.tip_width = self.tipRadius
+        else:
+            ccset.root_radius = self.rootRadius
+            ccset.tip_radius = self.tipRadius
+        ccset.radius_scale = self.scale
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+        psys.use_hair_dynamics = False
+        psys = updateHair(context, ob, psys)
+        for m,hair in enumerate(psys.particles):
+            verts = strands[m]
+            hair.location = verts[0]
+            #print("H", m, len(verts))
+            if len(verts) < len(hair.hair_keys):
+                continue
+            for n,v in enumerate(hair.hair_keys):
+                v.co = verts[n]
+                #print("  ", n, verts[n], v.co)
+                pass
+        psys = updateHair(context, ob, psys)
+        setEditProperties(context, ob)
+        self.psys = psys
+        self.object = ob
+
+
+    def addHairDynamics(self):
+        self.psys.use_hair_dynamics = True
+        cset = self.psys.cloth.settings
+        cset.pin_stiffness = 1.0
+        cset.mass = 0.05
+        deflector = findDeflector(self.object)
+
+
+#-------------------------------------------------------------
 #
 #-------------------------------------------------------------
 
@@ -235,21 +398,6 @@ def getColumnCoords(columns, centers):
     return hcoords
 
 
-def resizeStrand(strand, n):
-    m = len(strand)
-    step = (m-1)/(n-1)
-    nstrand = []
-    for i in range(n-1):
-        j = floor(i*step + 1e-4)
-        x = strand[j]
-        y = strand[j+1]
-        eps = i*step - j
-        z = eps*y + (1-eps)*x
-        nstrand.append(z)
-    nstrand.append(strand[m-1])
-    return nstrand
-
-
 #-------------------------------------------------------------
 #   Make Hair
 #-------------------------------------------------------------
@@ -279,6 +427,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         self.layout.prop(self, "resizeInBlocks")
         self.layout.prop(self, "sparsity")
         self.layout.prop(self, "skullType")
+
 
     def run(self, context):
         self.nonquads = []
@@ -351,41 +500,32 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
                         continue
                     n = len(strand)
                     if n not in hsystems.keys():
-                        hsystems[n] = []
-                    hsystems[n].append(strand)
+                        hsystems[n] = HairSystem(None, n, object=hum)
+                    hsystems[n].strands.append(strand)
 
         print("Total number of strands: %d" % (haircount+1))
 
         if self.resizeInBlocks:
             print("Resize hair in blocks of ten")
             nsystems = {}
-            for strands in hsystems.values():
-                for strand in strands:
-                    n = 10*((len(strand)+5)//10)
-                    if n < 10:
-                        n = 10
-                    nstrand = resizeStrand(strand, n)
-                    if n in nsystems.keys():
-                        nsystems[n].append(nstrand)
-                    else:
-                        nsystems[n] = [nstrand]
+            for hsys in hsystems.values():
+                n,nstrands = hsys.resizeBlock()
+                if n not in nsystems.keys():
+                    nsystems[n] = HairSystem(None, n, object=hum)
+                nsystems[n].strands += nstrands
             hsystems = nsystems
 
         elif self.resizeHair:
             print("Resize hair")
-            nstrands = []
-            for strands in hsystems.values():
-                for strand in strands:
-                    nstrand = resizeStrand(strand, self.size)
-                    nstrands.append(nstrand)
-            hsystems = {self.size: nstrands}
+            nsystem = HairSystem(None, self.size, object=hum)
+            for hsys in hsystems.values():
+                nstrands = hsys.resize(self.size)
+                nsystem.strands += nstrands
+            hsystems = {self.size: nsystem}
 
         print("Make particle hair")
         activateObject(context, hum)
-        hsystems1 = {}
-        for n,hsys in hsystems.items():
-            hsystems1["Hair-%02d" % n] = hsys
-        addHair(hum, hsystems1, context, self.skullType)
+        addHair(hum, hsystems, context, self.skullType)
         print("Done")
 
         if self.nonquads:
@@ -431,88 +571,23 @@ def createSkullGroup(hum, skullType):
         return None
 
 
-def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
-    vgrp = createSkullGroup(hum, skullType)
-    psystems = {}
-    for key,strands in hsystems.items():
-        hlen = int(len(strands[0]))
-        if hlen < 3:
-            continue
-        bpy.ops.object.particle_system_add()
-        psys = hum.particle_systems.active
-        psys.name = key
-        psystems[key] = psys
-        if vgrp:
-            psys.vertex_group_density = vgrp.name
-
-        pset = psys.settings
-        pset.type = 'HAIR'
-        pset.use_strand_primitive = True
-        useEmitter = (skullType == 'TOP')
-        if hasattr(pset, "use_render_emitter"):
-            pset.use_render_emitter = useEmitter
-        elif hasattr(hum, "show_instancer_for_render"):
-            hum.show_instancer_for_render = useEmitter
-        pset.render_type = 'PATH'
-        pset.child_type = 'SIMPLE'
-
-        pset.material = len(hum.data.materials)
-        pset.path_start = 0
-        pset.path_end = 1
-        pset.count = int(len(strands))
-        pset.hair_step = hlen-1
-        pset.child_nbr = 1
-        pset.rendered_child_count = 10
-        pset.child_radius = 2*hum.DazScale
-
-        if hasattr(pset, "cycles_curve_settings"):
-            ccset = pset.cycles_curve_settings
-        elif hasattr(pset, "cycles"):
-            ccset = pset.cycles
-        else:
-            ccset = pset
-        if hasattr(ccset, "root_width"):
-            ccset.root_width = 1.0
-            ccset.tip_width = 0
-        else:
-            ccset.root_radius = 1.0
-            ccset.tip_radius = 0
-        ccset.radius_scale = 0.1*hum.DazScale
-
-        bpy.ops.object.mode_set(mode='OBJECT')
-        if not useHairDynamics:
-            psys.use_hair_dynamics = False
-        else:
-            psys.use_hair_dynamics = True
-            cset = psys.cloth.settings
-            cset.pin_stiffness = 1.0
-            cset.mass = 0.05
-            deflector = findDeflector(hum)
-
-        psys = updateHair(context, hum, psys)
-        for m,hair in enumerate(psys.particles):
-            verts = strands[m]
-            hair.location = verts[0]
-            #print("H", m, len(verts))
-            if len(verts) < len(hair.hair_keys):
-                continue
-            for n,v in enumerate(hair.hair_keys):
-                v.co = verts[n]
-                #print("  ", n, verts[n], v.co)
-                pass
-        psys = updateHair(context, hum, psys)
-        setEditProperties(context, hum)
-    return psystems
+def addHair(ob, hsystems, context, skullType, useHairDynamics=False):
+    vgrp = createSkullGroup(ob, skullType)
+    useEmitter = (skullType == 'TOP')
+    for hsys in hsystems.values():
+        hsys.build(context, ob, vgrp, useEmitter)
+        if useHairDynamics:
+            hsys.addHairDynamics()
 
 
-def updateHair(context, hum, psys):
+def updateHair(context, ob, psys):
     if bpy.app.version < (2,80,0):
         bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
         bpy.ops.object.mode_set(mode='OBJECT')
         return psys
     else:
         dg = context.evaluated_depsgraph_get()
-        return hum.evaluated_get(dg).particle_systems.active
+        return ob.evaluated_get(dg).particle_systems.active
 
 
 def setEditProperties(context, hum):
@@ -822,11 +897,6 @@ class HairTree(CyclesTree):
         self.column = 4
         active = None
 
-        # Unused properties
-        self.getValue(["Line Start Width"], 0.15)
-        self.getValue(["Line UV Width"], 0.5)
-        self.getValue(["separation"], 0.1)
-
         # Hair info node
         self.info = self.addNode('ShaderNodeHairInfo', col=1)
 
@@ -873,7 +943,7 @@ class HairTree(CyclesTree):
             active = refl
 
         # Color => diffuse
-        color,tex = self.getColorTex("getChannelDiffuse", "COLOR", self.color)
+        color,colortex = self.getColorTex("getChannelDiffuse", "COLOR", self.color)
         root,roottex = self.getColorTex(["Hair Root Color"], "COLOR", self.color)
         tip,tiptex = self.getColorTex(["Hair Tip Color"], "COLOR", self.color)
         rough = self.getValue(["base_roughness"], 0.2)
@@ -881,7 +951,7 @@ class HairTree(CyclesTree):
         diffuse.inputs["Roughness"].default_value = rough
         diffuse.inputs["Color"].default_value[0:3] = color
         ramp = self.addRamp(diffuse, "Color", root, tip)
-        self.linkRamp(ramp, [roottex, tiptex], diffuse, "Color")
+        colorramp = self.linkRamp(ramp, [roottex, tiptex], diffuse, "Color")
         self.linkNormal(diffuse)
         self.material.rna.diffuse_color[0:3] = color
         self.column += 1
@@ -889,24 +959,25 @@ class HairTree(CyclesTree):
         # Mix
         if trans and refl:
             weight = self.getValue(["Highlight Weight"], 0.11)
-            active = self.mixNodes(trans, refl, weight)
+            active = self.mixShaders(trans, refl, weight)
         if active:
             weight = self.getValue(["Glossy Layer Weight"], 0.75)
-            active = self.mixNodes(diffuse, active, weight)
+            active = self.mixShaders(diffuse, active, weight)
         else:
             active = diffuse
 
         # Anisotropic
-        self.getValue(["Anisotropy"], 1)
-        self.getValue(["Anisotropy Rotations"], 0)
-        aniso = self.addNode('ShaderNodeBsdfAnisotropic')
-        self.linkTangent(aniso)
-        self.linkNormal(aniso)
-        self.column += 1
-
-        # Mix
-        weight = 0.05
-        active = self.mixNodes(active, aniso, weight)
+        aniso = self.getValue(["Anisotropy"], 0)
+        if aniso:
+            node = self.addNode('ShaderNodeBsdfAnisotropic')
+            self.links.new(colorramp.outputs[0], node.inputs["Color"])
+            node.inputs["Anisotropy"].default_value = aniso
+            arots = self.getValue(["Anisotropy Rotations"], 0)
+            node.inputs["Rotation"].default_value = arots
+            self.linkTangent(node)
+            self.linkNormal(node)
+            self.column += 1
+            active = self.addShaders(active, node)
 
         # Cutout
         alpha = self.getValue(["Cutout Opacity"], 1)
@@ -914,7 +985,7 @@ class HairTree(CyclesTree):
             transp = self.addNode("ShaderNodeBsdfTransparent")
             transp.inputs["Color"].default_value[0:3] = WHITE
             self.column += 1
-            active = self.mixNodes(transp, active, weight)
+            active = self.mixShaders(transp, active, weight)
             self.material.alphaBlend(alpha, None)
             LS.usedFeatures["Transparent"] = True
 
@@ -936,14 +1007,22 @@ class HairTree(CyclesTree):
                 src = mix
                 break
         self.links.new(src.outputs[0], node.inputs[slot])
+        return src
 
 
-    def mixNodes(self, node1, node2, weight):
+    def mixShaders(self, node1, node2, weight):
         mix = self.addNode('ShaderNodeMixShader')
         mix.inputs[0].default_value = weight
         self.links.new(node1.outputs[0], mix.inputs[1])
         self.links.new(node2.outputs[0], mix.inputs[2])
         return mix
+
+
+    def addShaders(self, node1, node2):
+        add = self.addNode('ShaderNodeAddShader')
+        self.links.new(node1.outputs[0], add.inputs[0])
+        self.links.new(node2.outputs[0], add.inputs[1])
+        return add
 
 # ---------------------------------------------------------------------
 #   Pinning
