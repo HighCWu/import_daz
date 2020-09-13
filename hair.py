@@ -439,7 +439,7 @@ def addHair(hum, hsystems, context, skullType, useHairDynamics=False):
         if hlen < 3:
             continue
         bpy.ops.object.particle_system_add()
-        psys = hum.particle_systems.active        
+        psys = hum.particle_systems.active
         psys.name = key
         psystems[key] = psys
         if vgrp:
@@ -716,7 +716,7 @@ def buildHairMaterial(mname, color, context):
 
 def buildHairMaterialInternal(mname, rgb):
     mat = bpy.data.materials.new("Hair")
-    
+
     mat.diffuse_color = rgb
     mat.diffuse_intensity = 0.1
     mat.specular_color = rgb
@@ -769,7 +769,7 @@ def buildHairMaterialCycles(mname, color, context):
     hmat.build(context, color)
     return hmat.rna
 
-    
+
 class HairMaterial(CyclesMaterial):
     def build(self, context, color):
         from .material import Material
@@ -778,13 +778,13 @@ class HairMaterial(CyclesMaterial):
         self.tree.color = color
         self.tree.build(context)
 
-    
+
 class HairTree(CyclesTree):
     def __init__(self, hmat):
         CyclesTree.__init__(self, hmat)
         self.type = 'HAIR'
         self.color = GREY
-        
+
 
     def build(self, context):
         scn = context.scene
@@ -793,50 +793,46 @@ class HairTree(CyclesTree):
         #self.prune()
 
 
-    def addTexco(self, slot):
-        pass
-    
-    
     def linkTangent(self, node):
         self.links.new(self.info.outputs["Tangent Normal"], node.inputs["Tangent"])
-    
-    
+
+
     def linkNormal(self, node):
         self.links.new(self.info.outputs["Tangent Normal"], node.inputs["Normal"])
-    
-    
-    def addRamp(self, node, label, color, root, tip, col):
-        ramp = self.addNode('ShaderNodeValToRGB', col)
+
+
+    def addRamp(self, node, label, root, tip):
+        ramp = self.addNode('ShaderNodeValToRGB', col=self.column-2)
         ramp.label = label
         self.links.new(self.info.outputs['Intercept'], ramp.inputs['Fac'])
         ramp.color_ramp.interpolation = 'LINEAR'
         colramp = ramp.color_ramp
         elt = colramp.elements[0]
         elt.position = 0
-        rootColor = self.compProd(color, root)
-        elt.color = rootColor + [1]
+        elt.color = list(root) + [1]
         elt = colramp.elements[1]
         elt.position = 1
-        tipColor = self.compProd(color, tip)
-        elt.color = tipColor + [0]
+        elt.color = list(tip) + [0]
         node.inputs["Color"].default_value[0:3] == root
-        self.links.new(ramp.outputs[0], node.inputs["Color"])
+        return ramp
 
-        
+
     def buildLayer(self, context):
         scn = context.scene
+        self.column = 4
+        active = None
 
         # Unused properties
         self.getValue(["Line Start Width"], 0.15)
         self.getValue(["Line UV Width"], 0.5)
         self.getValue(["separation"], 0.1)
 
-        # Hair info node        
+        # Hair info node
         self.info = self.addNode('ShaderNodeHairInfo', col=1)
-        
+
         # Bump
         strength = self.getValue(["Bump Strength"], 1)
-        if False and strength:    
+        if False and strength:
             bump = self.addNode("ShaderNodeBump", col=2)
             bump.inputs["Strength"].default_value = strength
             bump.inputs["Distance"].default_value = 0.1 * LS.scale
@@ -844,75 +840,106 @@ class HairTree(CyclesTree):
             self.normal = bump
 
         # Transmission => Transmission
-        root = self.getValue(["Root Transmission Color"], self.color)
-        tip = self.getValue(["Tip Transmission Color"], self.color)
-        trans = self.addNode('ShaderNodeBsdfHair', col=3)
-        trans.component = 'Transmission'
-        trans.inputs['Offset'].default_value = 0
-        trans.inputs["RoughnessU"].default_value = 0
-        trans.inputs["RoughnessV"].default_value = 0
-        self.addRamp(trans, "Transmission", WHITE, root, tip, 2)
-        self.linkTangent(trans)
-    
-        # Highlight => Reflection    
-        root = self.getValue(["Highlight Root Color"], WHITE)
-        tip = self.getValue(["Tip Highlight Color"], WHITE)
-        rough = self.getValue(["highlight_roughness"], 0.5)
-        refl = self.addNode('ShaderNodeBsdfHair', col=3)
-        refl.component = 'Reflection'
-        refl.inputs['Offset'].default_value = 0
-        refl.inputs["RoughnessU"].default_value = rough
-        refl.inputs["RoughnessV"].default_value = rough
-        self.addRamp(refl, "Highlight", WHITE, root, tip, 2)
-        self.linkTangent(refl)
+        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", BLACK)
+        tip,tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", BLACK)
+        if isBlack(root) and isBlack(tip):
+            trans = None
+        else:
+            trans = self.addNode('ShaderNodeBsdfHair')
+            trans.component = 'Transmission'
+            trans.inputs['Offset'].default_value = 0
+            trans.inputs["RoughnessU"].default_value = 0
+            trans.inputs["RoughnessV"].default_value = 0
+            ramp = self.addRamp(trans, "Transmission", root, tip)
+            self.linkRamp(ramp, [roottex, tiptex], trans, "Color")
+            self.linkTangent(trans)
+            active = trans
 
-        # Mix highlight and transmission
-        weight = self.getValue(["Highlight Weight"], 0.11)
-        active = self.mixNodes(trans, refl, weight, col=4)
-    
+        # Highlight => Reflection
+        root,roottex = self.getColorTex(["Highlight Root Color"], "COLOR", BLACK)
+        tip,tiptex = self.getColorTex(["Tip Highlight Color"], "COLOR", BLACK)
+        rough = self.getValue(["highlight_roughness"], 0.5)
+        if isBlack(root) and isBlack(tip):
+            refl = None
+        else:
+            refl = self.addNode('ShaderNodeBsdfHair')
+            refl.component = 'Reflection'
+            refl.inputs['Offset'].default_value = 0
+            refl.inputs["RoughnessU"].default_value = rough
+            refl.inputs["RoughnessV"].default_value = rough
+            ramp = self.addRamp(refl, "Highlight", root, tip)
+            self.linkRamp(ramp, [roottex, tiptex], refl, "Color")
+            self.linkTangent(refl)
+            active = refl
+
         # Color => diffuse
-        color = self.getValue(["diffuse", "Diffuse Color"], self.color)
-        root = self.getValue(["Hair Root Color"], self.color)
-        tip = self.getValue(["Hair Tip Color"], self.color)
+        color,tex = self.getColorTex("getChannelDiffuse", "COLOR", self.color)
+        root,roottex = self.getColorTex(["Hair Root Color"], "COLOR", self.color)
+        tip,tiptex = self.getColorTex(["Hair Tip Color"], "COLOR", self.color)
         rough = self.getValue(["base_roughness"], 0.2)
-        diffuse = self.addNode('ShaderNodeBsdfDiffuse', col=3)
+        diffuse = self.addNode('ShaderNodeBsdfDiffuse')
         diffuse.inputs["Roughness"].default_value = rough
-        self.addRamp(diffuse, "Color", color, root, tip, 2)
         diffuse.inputs["Color"].default_value[0:3] = color
+        ramp = self.addRamp(diffuse, "Color", root, tip)
+        self.linkRamp(ramp, [roottex, tiptex], diffuse, "Color")
         self.linkNormal(diffuse)
         self.material.rna.diffuse_color[0:3] = color
-    
+        self.column += 1
+
         # Mix
-        weight = self.getValue(["Glossy Layer Weight"], 0.75)
-        active = self.mixNodes(diffuse, active, weight, col=4)
-        
+        if trans and refl:
+            weight = self.getValue(["Highlight Weight"], 0.11)
+            active = self.mixNodes(trans, refl, weight)
+        if active:
+            weight = self.getValue(["Glossy Layer Weight"], 0.75)
+            active = self.mixNodes(diffuse, active, weight)
+        else:
+            active = diffuse
+
         # Anisotropic
         self.getValue(["Anisotropy"], 1)
         self.getValue(["Anisotropy Rotations"], 0)
-        aniso = self.addNode('ShaderNodeBsdfAnisotropic', col=4)
+        aniso = self.addNode('ShaderNodeBsdfAnisotropic')
         self.linkTangent(aniso)
         self.linkNormal(aniso)
-    
+        self.column += 1
+
         # Mix
         weight = 0.05
-        active = self.mixNodes(active, aniso, weight, col=5)
-    
+        active = self.mixNodes(active, aniso, weight)
+
         # Cutout
-        alpha = self.getValue(["Cutout Opacity"], 1)        
+        alpha = self.getValue(["Cutout Opacity"], 1)
         if alpha < 1:
-            transp = self.addNode("ShaderNodeBsdfTransparent", col=5)
+            transp = self.addNode("ShaderNodeBsdfTransparent")
             transp.inputs["Color"].default_value[0:3] = WHITE
-            active = self.mixNodes(transp, active, weight, col=6)            
+            self.column += 1
+            active = self.mixNodes(transp, active, weight)
             self.material.alphaBlend(alpha, None)
             LS.usedFeatures["Transparent"] = True
 
         # Output
-        output = self.addNode('ShaderNodeOutputMaterial', col=6)
+        self.column += 1
+        output = self.addNode('ShaderNodeOutputMaterial')
         self.links.new(active.outputs[0], output.inputs['Surface'])
 
 
-    def mixNodes(self, node1, node2, weight, col=3):                
-        mix = self.addNode('ShaderNodeMixShader', col)
+    def linkRamp(self, ramp, texs, node, slot):
+        src = ramp
+        for tex in texs:
+            if tex:
+                mix = self.addNode("ShaderNodeMixRGB", col=self.column-1)
+                mix.blend_type = 'MULTIPLY'
+                mix.inputs[0].default_value = 1.0
+                self.links.new(tex.outputs[0], mix.inputs[1])
+                self.links.new(ramp.outputs[0], mix.inputs[2])
+                src = mix
+                break
+        self.links.new(src.outputs[0], node.inputs[slot])
+
+
+    def mixNodes(self, node1, node2, weight):
+        mix = self.addNode('ShaderNodeMixShader')
         mix.inputs[0].default_value = weight
         self.links.new(node1.outputs[0], mix.inputs[1])
         self.links.new(node2.outputs[0], mix.inputs[2])
