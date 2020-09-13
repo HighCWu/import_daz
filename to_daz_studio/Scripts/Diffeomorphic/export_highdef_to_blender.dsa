@@ -142,7 +142,6 @@ function doMesh (fp, obj, start, node, str1, str2)
     fp.writeLine("        \"subd level\": " + level + ",");
     writeVertices(geom, geom, "hd ");
     fp.writeLine("        ],");
-    writeNormals(geom, "hd ");
     writeUVs(geom, "hd ");
     writeFaces(geom, "hd ");
     writeMaterialGroups(geom, "hd ");
@@ -160,7 +159,6 @@ function doMesh (fp, obj, start, node, str1, str2)
 
     writeMaterials(shape);
     writeUVs(mesh, "");
-    writeNormals(mesh, "");
     writeFaces(mesh, "");
     writeVertices(mesh, geom, "")    
     fp.writeLine(str1)
@@ -222,7 +220,7 @@ function writeVertices(mesh, geom, hd)
     for (var i = 0; i < nv; i++)
     {
         var v = geom.getVertex(i);
-        if (i == nv-1) c = "\n";
+        if (i == nv-1) c = "";
         buf += ("            [" + v.x + ", " + v.y + ", " + v.z + "]" + c)
     }    
     fp.writeLine(buf);
@@ -242,22 +240,6 @@ function writeUVs(geom, hd)
         var uv = uvs.getPnt2Vec(i);
         if (i == nuv-1) c = "\n";
         buf += ("            [" + uv.x + ", " + uv.y + "]" + c);
-    }    
-    buf += ("        ],");
-    fp.writeLine(buf);
-}
-
-function writeNormals(geom, hd)
-{    
-    var nn = geom.getNumNormals();
-    var buf = ("        \"num " + hd + "normals\": " + nn + ",\n");
-    buf += ("        \"" + hd + "normals\": [\n" );    
-    var c = ",\n"
-    for (var i = 0; i < nn; i++)
-    {
-        var n = geom.getNormal(i);
-        if (i == nn-1) c = "\n";
-        buf += ("            [" + n.x + ", " + n.y + ", " + n.z + "]" + c)
     }    
     buf += ("        ],");
     fp.writeLine(buf);
