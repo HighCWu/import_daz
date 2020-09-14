@@ -399,8 +399,6 @@ def setupMorphPaths(scn, force):
                         isright,name = isRightType(fname, prefixes, includes, excludes)
                         if isright:
                             fname = fname.lower()
-                            if fname in typeNames.keys():
-                                continue
                             fpath = os.path.join(folder, file)
                             typeFiles[name] = os.path.join(folderpath, file)
                             prop = BoolProperty(name=name, default=True)

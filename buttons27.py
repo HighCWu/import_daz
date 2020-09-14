@@ -261,7 +261,7 @@ class DazOptions:
     useSimpleIK = BoolProperty(
         name = "Inverse Kinematics",
         description = "Add simple kinematics to character rigs",
-        default = True)
+        default = False)
 
 
 class LoadRootPaths:

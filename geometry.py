@@ -137,7 +137,7 @@ class GeoNode(Node):
 
     def addMultires(self, ob, hdob):
         if bpy.app.version < (2,90,0):
-            print("Cannot rebuild subdiv in Blender %s" % bpy.app.version)
+            print("Cannot rebuild subdiv in Blender %d.%d.%d" % bpy.app.version)
             return
         mod = hdob.modifiers.new("Multires", 'MULTIRES')
         try:
