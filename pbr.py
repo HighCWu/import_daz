@@ -93,8 +93,8 @@ class PbrTree(CyclesTree):
 
     def buildVolume(self):
         pass
-        
-        
+
+
     def buildEmission(self, scn):
         if not GS.useEmission:
             return
@@ -118,7 +118,7 @@ class PbrTree(CyclesTree):
         useTex = not (self.material.shader == 'IRAY' and self.material.basemix == 0 and metallicity > 0.5)
 
         # Subsurface scattering
-        self.checkTranslucency()        
+        self.checkTranslucency()
         self.buildSSS(scn)
 
         # Anisotropic
@@ -209,7 +209,7 @@ class PbrTree(CyclesTree):
         self.linkScalar(wttex, self.pbr, wt, "Subsurface")
         self.linkColor(radtex, self.pbr, radius, "Subsurface Radius")
         self.endSSS()
-                    
+
 
     def setPbrSlot(self, slot, value):
         self.pbr.inputs[slot].default_value = value

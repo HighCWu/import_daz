@@ -99,9 +99,9 @@ class DAZ_OT_GetFingerPrint(bpy.types.Operator):
     def draw(self, context):
         for line in self.lines:
             self.layout.label(text=line)
-    
+
     def execute(self, context):
-        return{'FINISHED'}    
+        return{'FINISHED'}
 
     def invoke(self, context, event):
         ob = context.object

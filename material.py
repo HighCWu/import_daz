@@ -852,17 +852,17 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator, B.KeepDirsBool):
     @classmethod
     def poll(self, context):
         return bpy.data.filepath
-        
+
     def draw(self, context):
         self.layout.prop(self, "keepdirs")
-        
+
     def run(self, context):
         from shutil import copyfile
         texpath = os.path.join(os.path.dirname(bpy.data.filepath), "textures")
         print("Save textures to '%s'" % texpath)
         if not os.path.exists(texpath):
             os.makedirs(texpath)
-    
+
         images = []
         for ob in getSceneObjects(context):
             if ob.type == 'MESH':
@@ -876,7 +876,7 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator, B.KeepDirsBool):
                                 if hasattr(tex, "image") and tex.image:
                                     images.append(tex.image)
                 ob.DazLocalTextures = True
-    
+
         for img in images:
             src = bpy.path.abspath(img.filepath)
             src = bpy.path.reduce_dirs([src])[0]
@@ -1389,8 +1389,8 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolutio
     def run(self, context):
         from .fileutils import getMultiFiles
         from .globvars import theImageExtensions
-                
-        if self.resizeAll:                
+
+        if self.resizeAll:
             paths = self.getAllTextures(context)
         else:
             paths = getMultiFiles(self, theImageExtensions)
@@ -1523,7 +1523,7 @@ def checkSetting(attr, op, val, minval, first, header):
                 negop = ">"
         elif val > minval+eps:
             negop = ">"
-    
+
     if negop:
         msg = ("  %s: %s %s %s" % (attr, val, negop, minval))
         if first:
@@ -1539,7 +1539,7 @@ class DAZ_OT_UpdateSettings(DazOperator):
     bl_label = "Update Render Settings"
     bl_description = "Update render and lamp settings if they are inadequate"
     bl_options = {'UNDO'}
-    
+
     def run(self, context):
         checkRenderSettings(context, True)
 

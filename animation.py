@@ -590,7 +590,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                     snapSimpleIK(rig, self.lArmIK, "DazArmIK_L")
                     snapSimpleIK(rig, self.rArmIK, "DazArmIK_R")
                     snapSimpleIK(rig, self.lLegIK, "DazLegIK_L")
-                    snapSimpleIK(rig, self.rLegIK, "DazLegIK_R")        
+                    snapSimpleIK(rig, self.rLegIK, "DazLegIK_R")
                     if self.insertKeys:
                         updateScene(context)
                         self.simpleIK.insertIKKeys(rig, n+offset)
@@ -666,37 +666,37 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         if self.ignoreLimits:
             return
         for cns in pb.constraints:
-            if (cns.type == 'LIMIT_ROTATION' and 
+            if (cns.type == 'LIMIT_ROTATION' and
                 pb.rotation_mode != 'QUATERNION'):
                 if cns.use_limit_x:
                     if pb.rotation_euler[0] > cns.max_x:
-                        pb.rotation_euler[0] = cns.max_x 
+                        pb.rotation_euler[0] = cns.max_x
                     elif pb.rotation_euler[0] < cns.min_x:
-                        pb.rotation_euler[0] = cns.min_x 
+                        pb.rotation_euler[0] = cns.min_x
                 if cns.use_limit_y:
                     if pb.rotation_euler[1] > cns.max_y:
-                        pb.rotation_euler[1] = cns.max_y 
+                        pb.rotation_euler[1] = cns.max_y
                     elif pb.rotation_euler[1] < cns.min_y:
-                        pb.rotation_euler[1] = cns.min_y 
+                        pb.rotation_euler[1] = cns.min_y
                 if cns.use_limit_z:
                     if pb.rotation_euler[2] > cns.max_z:
-                        pb.rotation_euler[2] = cns.max_z 
+                        pb.rotation_euler[2] = cns.max_z
                     elif pb.rotation_euler[2] < cns.min_z:
-                        pb.rotation_euler[2] = cns.min_z 
+                        pb.rotation_euler[2] = cns.min_z
             elif cns.type == 'LIMIT_LOCATION':
                 if cns.use_max_x and pb.location[0] > cns.max_x:
-                    pb.location[0] = cns.max_x 
+                    pb.location[0] = cns.max_x
                 if cns.use_min_x and pb.location[0] < cns.min_x:
-                    pb.location[0] = cns.min_x 
+                    pb.location[0] = cns.min_x
                 if cns.use_max_y and pb.location[0] > cns.max_y:
-                    pb.location[1] = cns.max_y 
+                    pb.location[1] = cns.max_y
                 if cns.use_min_y and pb.location[0] < cns.min_y:
-                    pb.location[1] = cns.min_y 
+                    pb.location[1] = cns.min_y
                 if cns.use_max_z and pb.location[0] > cns.max_z:
-                    pb.location[2] = cns.max_z 
+                    pb.location[2] = cns.max_z
                 if cns.use_min_z and pb.location[0] < cns.min_z:
-                    pb.location[2] = cns.min_z 
-                        
+                    pb.location[2] = cns.min_z
+
 
     def findDrivers(self, rig):
         driven = {}
@@ -1056,7 +1056,7 @@ class DAZ_OT_PruneAction(DazOperator):
                 if channel == "scale":
                     default = 1
                     eps = 0.001
-                elif (channel == "rotation_quaternion" and 
+                elif (channel == "rotation_quaternion" and
                     fcu.array_index == 0):
                     default = 1
                     eps = 0.001

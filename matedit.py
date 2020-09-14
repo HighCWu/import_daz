@@ -158,7 +158,7 @@ def getTweakableChannel(cname):
 class ChannelSetter:
     def setChannelCycles(self, mat, item):
         nodeType, slot, useAttr, factorAttr, ncomps, fromType = getTweakableChannel(item.name)
-            
+
         for node in mat.node_tree.nodes.values():
             if self.matchingNode(node, nodeType, mat, fromType):
                 socket = node.inputs[slot]

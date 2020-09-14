@@ -70,7 +70,7 @@ def getMainAsset(filepath, context, btn):
     showProgress(30, 100)
 
     print("Preprocessing...")
-    grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()    
+    grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()
     LS.collection = makeRootCollection(grpname, context)
     for asset,inst in main.nodes:
         inst.preprocess(context)

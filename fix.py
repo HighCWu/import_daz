@@ -37,7 +37,7 @@ from .utils import *
 #-------------------------------------------------------------
 
 class Fixer:
-    
+
     def fixPelvis(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
         hip = rig.data.edit_bones["hip"]
@@ -60,8 +60,8 @@ class Fixer:
             lThigh.parent = pelvis
             rThigh.parent = pelvis
         bpy.ops.object.mode_set(mode='OBJECT')
-    
-    
+
+
     def fixCustomShape(self, rig, bnames, factor, offset=0):
         for bname in bnames:
             if bname in rig.pose.bones.keys():
@@ -72,8 +72,8 @@ class Fixer:
                         for v in pb.custom_shape.data.vertices:
                             v.co += offset
                 return
-    
-    
+
+
     def fixHands(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
         for suffix in [".L", ".R"]:
@@ -92,7 +92,7 @@ class Fixer:
             "Carpal3" : "Ring1",
             "Carpal4" : "Pinky1",
         }
-    
+
         if "lCarpal3" in rig.data.bones.keys():
             return
         bpy.ops.object.mode_set(mode='EDIT')
@@ -121,7 +121,7 @@ class Fixer:
                         if vgrp.name == prefix+"Carpal2":
                             vgrp.name = prefix+"Carpal4"
 
-    
+
     def fixKnees(self, rig):
         from .bone import setRoll
         eps = 0.5
@@ -144,12 +144,12 @@ class Fixer:
             else:
                 xaxis = vec.cross(dknee)
                 xaxis.normalize()
-    
+
             eb1.tail = eb2.head = knee
             setRoll(eb1, xaxis)
             eb2.roll = eb1.roll
-    
-    
+
+
     def fixCorrectives(self, rig):
         from .driver import getShapekeyDriver, replaceDriverBone
         for ob in rig.children:
@@ -172,8 +172,8 @@ class Fixer:
 #-------------------------------------------------------------
 #   Constraints class
 #-------------------------------------------------------------
-    
-class ConstraintStore:        
+
+class ConstraintStore:
     Attributes = [
         "type", "name", "mute", "target", "subtarget",
         "head_tail", "use_offset", "owner_space", "target_space",
@@ -188,12 +188,12 @@ class ConstraintStore:
 
     def __init__(self):
         self.constraints = {}
-        
-        
+
+
     def untouchable(self, cns):
         return (cns.name == "Do Not Touch")
-        
-        
+
+
     def storeConstraints(self, key, pb):
         clist = []
         for cns in pb.constraints:
@@ -206,16 +206,16 @@ class ConstraintStore:
             clist.append(struct)
         if clist:
             self.constraints[key] = clist
-            
-            
+
+
     def storeAllConstraints(self, rig):
         for pb in rig.pose.bones:
             self.storeConstraints(pb.name, pb)
             self.removeConstraints(pb)
-            
+
 
     def getFkBone(self, key, rig):
-        if key[-2] == ".":        
+        if key[-2] == ".":
             base, suffix = key[:-2], key[-1]
             bname = base + ".fk." + suffix
             if bname in rig.pose.bones.keys():
@@ -225,9 +225,9 @@ class ConstraintStore:
                 return rig.pose.bones[bname]
         if key in rig.pose.bones.keys():
             return rig.pose.bones[key]
-        return None                
+        return None
 
-        
+
     def restoreAllConstraints(self, rig):
         for key,clist in self.constraints.items():
             pb = self.getFkBone(key, rig)
@@ -243,16 +243,16 @@ class ConstraintStore:
         clist = self.constraints[key]
         for struct in clist:
             self.restoreConstraint(struct, pb)
-            
-                
+
+
     def restoreConstraint(self, struct, pb):
         cns = pb.constraints.new(struct["type"])
         for attr,value in struct.items():
             if attr != "type":
                 setattr(cns, attr, value)
-                
 
-    def removeConstraints(self, pb):            
+
+    def removeConstraints(self, pb):
         for cns in list(pb.constraints):
             if not self.untouchable(cns):
                 pb.constraints.remove(cns)
@@ -276,7 +276,7 @@ class BendTwists:
 
     def joinBendTwists(self, rig, renames, keep=True):
         hiddenLayer = 31*[False] + [True]
-    
+
         rotmodes = {}
         bpy.ops.object.mode_set(mode='POSE')
         for bname,tname in self.BendTwists:
@@ -290,7 +290,7 @@ class BendTwists:
             self.removeConstraints(pb)
             pb = rig.pose.bones[twistname]
             self.removeConstraints(pb)
-    
+
         bpy.ops.object.mode_set(mode='EDIT')
         for bname,tname in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
@@ -310,17 +310,17 @@ class BendTwists:
             children = [eb for eb in bend.children if eb != twist] + list(twist.children)
             for child in children:
                 child.parent = eb
-    
+
         for bname3,bname2 in renames.items():
             eb = rig.data.edit_bones[bname3]
             eb.name = bname2
-    
+
         bpy.ops.object.mode_set(mode='OBJECT')
         for bname,rotmode in rotmodes.items():
             if bname in rig.pose.bones.keys():
                 pb = rig.pose.bones[bname]
                 pb.DazRotMode = rotmode
-    
+
         from .figure import copyBoneInfo
         for bname,tname in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
@@ -332,7 +332,7 @@ class BendTwists:
             srcpb = rig.pose.bones[bendname]
             trgpb = rig.pose.bones[bname]
             trgpb.rotation_mode = srcpb.rotation_mode
-    
+
         bpy.ops.object.mode_set(mode='EDIT')
         for bname,tname in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
@@ -348,7 +348,7 @@ class BendTwists:
                     eb.layers = hiddenLayer
                 else:
                     rig.data.edit_bones.remove(eb)
-    
+
         bpy.ops.object.mode_set(mode='OBJECT')
         for ob in rig.children:
             for bname,tname in self.BendTwists:
@@ -370,7 +370,7 @@ class BendTwists:
         elif vgtwist is None:
             vgbend.name = bname
             return
-    
+
         vgrp = ob.vertex_groups.new(name=bname)
         indices = [vgbend.index, vgtwist.index]
         for v in ob.data.vertices:
@@ -394,7 +394,7 @@ class BendTwists:
     def createBendTwists(self, rig):
         hiddenLayer = 31*[False] + [True]
         bpy.ops.object.mode_set(mode='EDIT')
-    
+
         for bname,_ in self.BendTwists:
             eb = rig.data.edit_bones[bname]
             vec = eb.tail - eb.head
@@ -412,12 +412,12 @@ class BendTwists:
             eb.use_deform = False
             eb1.use_deform = eb2.use_deform = True
             eb1.layers = eb2.layers = hiddenLayer
-    
+
             for ob in rig.children:
                 if (ob.type == 'MESH' and
                     self.getVertexGroup(ob, bname)):
                     self.splitVertexGroup2(ob, bname, eb.head, eb.tail)
-    
+
 
     def getVertexGroup(self, ob, vgname):
         for vgrp in ob.vertex_groups:
@@ -445,8 +445,8 @@ class BendTwists:
                     elif x > 1:
                         vgrp2.add([v.index], g.weight, 'REPLACE')
         ob.vertex_groups.remove(vgrp)
-    
-    
+
+
     def splitVertexGroup(self, ob, vgname, bendname, twistname, head, tail):
         vgrp = self.getVertexGroup(ob, vgname)
         bend = ob.vertex_groups.new(name=bendname)
@@ -464,12 +464,12 @@ class BendTwists:
                     bend.add([v.index], g.weight*(1-x), 'REPLACE')
                     twist.add([v.index], g.weight*x, 'REPLACE')
         ob.vertex_groups.remove(vgrp)
-    
-    
+
+
     def constrainBendTwists(self, rig):
         from .utils import hasPoseBones
         bpy.ops.object.mode_set(mode='POSE')
-    
+
         for bname,tname in self.BendTwists:
             bname1,bname2 = self.getSubBoneNames(bname)
             if not hasPoseBones(rig, [bname, bname1, bname2]):
@@ -477,12 +477,12 @@ class BendTwists:
             pb = rig.pose.bones[bname]
             pb1 = rig.pose.bones[bname1]
             pb2 = rig.pose.bones[bname2]
-    
+
             cns1 = pb1.constraints.new('IK')
             cns1.target = rig
             cns1.subtarget = tname
             cns1.chain_count = 1
-    
+
             cns2 = pb2.constraints.new('COPY_ROTATION')
             cns2.target = rig
             cns2.subtarget = bname
@@ -501,7 +501,7 @@ class DAZ_OT_PruneVertexGroups(DazPropsOperator, B.ThresholdFloat, IsMesh):
 
     def draw(self, context):
         self.layout.prop(self, "threshold")
-        
+
     def run(self, context):
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob.type == 'MESH':

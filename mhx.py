@@ -426,7 +426,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
     bl_options = {'UNDO'}
-    
+
     BendTwists = [
         ("thigh.L", "shin.L"),
         ("forearm.L", "hand.L"),
@@ -435,14 +435,14 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         ("forearm.R", "hand.R"),
         ("upper_arm.R", "forearm.R"),
         ]
-    
+
     Knees = [
         ("thigh.L", "shin.L", Vector((0,-1,0))),
         ("thigh.R", "shin.R", Vector((0,-1,0))),
         ("upper_arm.L", "forearm.L", Vector((0,1,0))),
         ("upper_arm.R", "forearm.R", Vector((0,1,0))),
     ]
-    
+
     Correctives = [
         ("upper_arm-1.L", "upper_armBend.L"),
         ("forearm-1.L", "forearmBend.L"),
@@ -451,7 +451,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         ("forearm-1.R", "forearmBend.R"),
         ("thigh-1.R", "thighBend.R"),
     ]
-    
+
     Sacred = ["root", "hips", "spine"]
 
     BreastBones = [
@@ -465,7 +465,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         "tongue01Drv" :     "lowerTeeth",
     }
 
-    
+
     def run(self, context):
         from .merge import reparentToes
         rig = context.object
@@ -475,11 +475,11 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             if getSelected(ob) and ob.type == 'ARMATURE' and ob != rig:
                 gen2 = ob
                 break
-    
+
         self.skeleton = MhxSkeleton
         if rig.data.DazExtraDrivenBones:
             self.skeleton += self.BreastBones
-    
+
         self.constraints = {}
         rig.data.layers = 32*[True]
         bchildren = applyBoneChildren(context, rig)
@@ -507,7 +507,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             self.fixCorrectives(rig)
         else:
             raise DazError("Cannot convert %s to Mhx" % rig.name)
-    
+
         self.constrainBendTwists(rig)
         self.addLongFingers(rig)
         self.addBack(rig)
@@ -530,12 +530,12 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         rig.data.layers = [T,T,F,T, F,T,T,F, F,F,F,F, F,F,F,F,
                            F,F,F,T, F,T,T,F, F,F,F,F, F,F,F,F]
         rig.DazRig = "mhx"
-    
+
         for pb in rig.pose.bones:
             pb.bone.select = False
             if pb.custom_shape:
                 pb.bone.show_wire = True
-    
+
         self.restoreBoneChildren(bchildren, context, rig)
         self.checkCorrectives(rig)
         doHardUpdate(context, rig)
@@ -564,7 +564,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         clothesLayer = L_CLOTHES*[False] + [True] + (31-L_CLOTHES)*[False]
         helpLayer = L_HELP*[False] + [True] + (31-L_HELP)*[False]
         deformLayer = 31*[False] + [True]
-    
+
         bpy.ops.object.mode_set(mode='EDIT')
         for bname,pname in self.DrivenParents.items():
             if (bname in rig.data.edit_bones.keys() and
@@ -574,19 +574,19 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                 eb.parent = parb
                 eb.layers = helpLayer
                 fixed.append(bname)
-    
+
         bpy.ops.object.mode_set(mode='OBJECT')
         for bone in rig.data.bones:
             if bone.name in self.Sacred:
                 bone.name = bone.name + ".1"
-    
+
         for mname,dname,layer in self.skeleton:
             if dname in rig.data.bones.keys():
                 bone = rig.data.bones[dname]
                 bone.name = mname
                 bone.layers = layer*[False] + [True] + (31-layer)*[False]
                 fixed.append(mname)
-    
+
         for pb in rig.pose.bones:
             bname = pb.name
             lname = bname.lower()
@@ -625,8 +625,8 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             else:
                 print("Could not restore bone parent for %s", ob.name)
         rig.data.layers = layers
-    
-    
+
+
     def getMhxBone(self, rig, bname):
         if bname in rig.data.bones.keys():
             return rig.data.bones[bname]
@@ -646,11 +646,11 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
     #-------------------------------------------------------------
     #   Gizmos
     #-------------------------------------------------------------
-    
+
     Gizmos = {
         "master" :          "GZM_Master",
         "back" :            "GZM_Knuckle",
-    
+
         #Spine
         "root" :            "GZM_CrownHips",
         "hips" :            "GZM_CircleHips",
@@ -663,27 +663,27 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         "head" :            "GZM_Head",
         #"breast.L" :        "GZM_Breast_L",
         #"breast.R" :        "GZM_Breast_R",
-    
+
         # Head
-    
+
         "lowerJaw" :        "GZM_Jaw",
         "rEye" :            "GZM_Circle025",
         "lEye" :            "GZM_Circle025",
         "gaze" :            "GZM_Gaze",
         "gaze.L" :          "GZM_Circle025",
         "gaze.R" :          "GZM_Circle025",
-    
+
         "uplid.L" :         "GZM_UpLid",
         "uplid.R" :         "GZM_UpLid",
         "lolid.L" :         "GZM_LoLid",
         "lolid.R" :         "GZM_LoLid",
-    
+
         "tongue_base" :     "GZM_Tongue",
         "tongue_mid" :      "GZM_Tongue",
         "tongue_tip" :      "GZM_Tongue",
-    
+
         # Leg
-    
+
         "thigh.fk.L" :      "GZM_Circle025",
         "thigh.fk.R" :      "GZM_Circle025",
         "shin.fk.L" :       "GZM_Circle025",
@@ -704,17 +704,17 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         "ankle.R" :         "GZM_Ball025",
         "knee.pt.ik.L" :    "GZM_Cube025",
         "knee.pt.ik.R" :    "GZM_Cube025",
-    
+
         "toe.marker.L" :     "GZM_Ball025",
         "ball.marker.L" :    "GZM_Ball025",
         "heel.marker.L" :    "GZM_Ball025",
         "toe.marker.R" :     "GZM_Ball025",
         "ball.marker.R" :    "GZM_Ball025",
         "heel.marker.R" :    "GZM_Ball025",
-    
-    
+
+
         # Arm
-    
+
         "clavicle.L" :      "GZM_Shoulder",
         "clavicle.R" :      "GZM_Shoulder",
         "upper_arm.fk.L" :  "GZM_Circle025",
@@ -729,22 +729,22 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         "hand.ik.R" :       "GZM_HandIK",
         "elbow.pt.ik.L" :   "GZM_Cube025",
         "elbow.pt.ik.R" :   "GZM_Cube025",
-    
+
         # Finger
-    
+
         "thumb.L" :         "GZM_Knuckle",
         "index.L" :         "GZM_Knuckle",
         "middle.L" :        "GZM_Knuckle",
         "ring.L" :          "GZM_Knuckle",
         "pinky.L" :         "GZM_Knuckle",
-    
+
         "thumb.R" :         "GZM_Knuckle",
         "index.R" :         "GZM_Knuckle",
         "middle.R" :        "GZM_Knuckle",
         "ring.R" :          "GZM_Knuckle",
         "pinky.R" :         "GZM_Knuckle",
     }
-    
+
     def makeGizmos(self, gnames, parent, hidden):
         from .load_json import loadJson
         folder = os.path.dirname(__file__)
@@ -765,8 +765,8 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                 ob.modifiers.new('SUBSURF', 'SUBSURF')
             gizmos[gname] = ob
         return gizmos
-    
-    
+
+
     def addGizmos(self, rig, context):
         hidden = createHiddenCollection(context)
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -782,11 +782,11 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                 pb = rig.pose.bones[bname]
                 pb.custom_shape = gizmo
                 pb.bone.show_wire = True
-    
+
     #-------------------------------------------------------------
     #   Bone groups
     #-------------------------------------------------------------
-    
+
     def addBoneGroups(self, rig):
         boneGroups = [
             ('Spine', 'THEME01', L_SPINE),
@@ -799,7 +799,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             ('LegIK.L', 'THEME14', L_LLEGIK),
             ('LegIK.R', 'THEME09', L_RLEGIK),
             ]
-    
+
         for bgname,theme,layer in boneGroups:
             bpy.ops.pose.group_add()
             bgrp = rig.pose.bone_groups.active
@@ -807,55 +807,55 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             bgrp.color_set = theme
             for pb in rig.pose.bones.values():
                 if pb.bone.layers[layer]:
-                    pb.bone_group = bgrp    
-    
+                    pb.bone_group = bgrp
+
     #-------------------------------------------------------------
     #   Spine
     #-------------------------------------------------------------
-    
+
     def addBack(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
         spine = rig.data.edit_bones["spine"]
         chest = rig.data.edit_bones["chest"]
         makeBone("back", rig, spine.head, chest.tail, 0, L_MAIN, spine.parent)
-    
+
         bpy.ops.object.mode_set(mode='POSE')
         back = rig.pose.bones["back"]
         back.rotation_mode = 'YZX'
         for bname in ["spine", "spine-1", "chest", "chest-1"]:
             if bname in rig.pose.bones.keys():
-                pb = rig.pose.bones[bname]                
+                pb = rig.pose.bones[bname]
                 cns = copyRotation(pb, back, (True,True,True), rig)
                 cns.use_offset = True
-    
+
     #-------------------------------------------------------------
     #   Fingers
     #-------------------------------------------------------------
-    
+
     FingerNames = ["thumb", "index", "middle", "ring", "pinky"]
     PalmNames = ["thumb", "index", "index", "middle", "middle"]
-    
+
     def linkName(self, m, n, suffix):
         if m == 0:
             fname = "thumb"
         else:
             fname = "f_" + self.FingerNames[m]
         return ("%s.0%d%s" % (fname, n+1, suffix))
-    
-    
+
+
     def longName(self, m, suffix):
         return ("%s%s" % (self.FingerNames[m], suffix))
-    
-    
+
+
     def palmName(self, m, suffix):
         return ("palm_%s%s" % (self.PalmNames[m], suffix))
-    
-    
-    def addLongFingers(self, rig):    
+
+
+    def addLongFingers(self, rig):
         for suffix,dlayer in [(".L",0), (".R",16)]:
             prop = "MhaFingerControl_" + suffix[1]
             setattr(rig, prop, 1.0)
-    
+
             bpy.ops.object.mode_set(mode='EDIT')
             for m in range(5):
                 if m == 0:
@@ -866,7 +866,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                     palm = rig.data.edit_bones[self.palmName(m, suffix)]
                 fing3 = rig.data.edit_bones[self.linkName(m, 2, suffix)]
                 makeBone(self.longName(m, suffix), rig, fing1.head, fing3.tail, fing1.roll, L_LHAND+dlayer, palm)
-    
+
             bpy.ops.object.mode_set(mode='POSE')
             thumb1 = rig.data.bones[self.linkName(0, 0, suffix)]
             thumb1.layers[L_LHAND+dlayer] = True
@@ -888,18 +888,18 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                     fing.lock_rotation = (False,True,True)
                     cns = copyRotation(fing, long, (True,False,False), rig, prop)
                     cns.use_offset = True
-    
+
     #-------------------------------------------------------------
     #   FK/IK
     #-------------------------------------------------------------
-    
+
     FkIk = {
         ("thigh.L", "shin.L", "foot.L"),
         ("upper_arm.L", "forearm.L", "toe.L"),
         ("thigh.R", "shin.R", "foot.R"),
         ("upper_arm.R", "forearm.R", "toe.R"),
     }
-    
+
     def setupFkIk(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
         root = rig.data.edit_bones["root"]
@@ -918,13 +918,13 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             hand = makeBone("hand"+suffix, rig, hand0.head, tail, roll, L_HELP, forearm)
             hand0.use_connect = False
             hand0.parent = hand
-    
+
             size = 10*rig.DazScale
             armSocket = makeBone("arm_socket"+suffix, rig, upper_arm.head, upper_arm.head+Vector((0,0,size)), 0, L_TWEAK, upper_arm.parent)
             armParent = deriveBone("arm_parent"+suffix, armSocket, rig, L_HELP, root)
             upper_arm.parent = armParent
             rig.data.edit_bones["upper_arm-1"+suffix].parent = armParent
-    
+
             upper_armFk = deriveBone("upper_arm.fk"+suffix, upper_arm, rig, L_LARMFK+dlayer, armParent)
             forearmFk = deriveBone("forearm.fk"+suffix, forearm, rig, L_LARMFK+dlayer, upper_armFk)
             handFk = deriveBone("hand.fk"+suffix, hand, rig, L_LARMFK+dlayer, forearmFk)
@@ -932,7 +932,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
             handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
             hand0Ik = deriveBone("hand0.ik"+suffix, hand, rig, L_HELP2, forearmIk)
-    
+
             size = 5*rig.DazScale
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
@@ -940,19 +940,19 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             elbowPt = makeBone("elbow.pt.ik"+suffix, rig, locElbowPt, locElbowPt+Vector((0,0,size)), 0, L_LARMIK+dlayer, upper_arm.parent)
             elbowLink = makeBone("elbow.link"+suffix, rig, forearm.head, locElbowPt, 0, L_LARMIK+dlayer, upper_armIk)
             elbowLink.hide_select = True
-    
+
             thigh = setLayer("thigh"+suffix, rig, L_HELP)
             shin = setLayer("shin"+suffix, rig, L_HELP)
             foot = setLayer("foot"+suffix, rig, L_HELP)
             toe = setLayer("toe"+suffix, rig, L_HELP)
             foot.tail = toe.head
-    
+
             size = 10*rig.DazScale
             legSocket = makeBone("leg_socket"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_TWEAK, thigh.parent)
             legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, root)
             thigh.parent = legParent
             rig.data.edit_bones["thigh-1"+suffix].parent = legParent
-    
+
             thighFk = deriveBone("thigh.fk"+suffix, thigh, rig, L_LLEGFK+dlayer, thigh.parent)
             shinFk = deriveBone("shin.fk"+suffix, shin, rig, L_LLEGFK+dlayer, thighFk)
             footFk = makeBone("foot.fk"+suffix, rig, foot.head, foot.tail, foot.roll, L_LLEGFK+dlayer, shinFk)
@@ -961,7 +961,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             toeFk.layers[L_LEXTRA+dlayer] = True
             thighIk = deriveBone("thigh.ik"+suffix, thigh, rig, L_HELP2, thigh.parent)
             shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
-    
+
             if "heel"+suffix in rig.data.edit_bones.keys():
                 heel = rig.data.edit_bones["heel"+suffix]
                 locFootIk = (foot.head[0], heel.tail[1], toe.tail[2])
@@ -973,7 +973,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             locAnkle = foot.head + Vector((0,3*size,0))
             ankle = makeBone("ankle"+suffix, rig, foot.head, locAnkle, 0, L_LEXTRA+dlayer, None)
             ankleIk = makeBone("ankle.ik"+suffix, rig, foot.head, locAnkle, 0, L_HELP2, footRev)
-    
+
             vec = thigh.matrix.to_3x3().col[2]
             vec.normalize()
             locKneePt = shin.head - 15*rig.DazScale*vec
@@ -982,21 +982,21 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             kneeLink = makeBone("knee.link"+suffix, rig, shin.head, locKneePt, 0, L_LLEGIK+dlayer, thighIk)
             kneeLink.layers[L_LEXTRA+dlayer] = True
             kneeLink.hide_select = True
-    
+
             for bname,parent in [
                     ("foot",footRev),
                     ("toe", toeRev)]:
                 eb = rig.data.edit_bones[bname+suffix]
                 locPt = eb.tail + size*eb.matrix.to_3x3().col[2]
                 pt = makeBone("%s.pt.ik%s"%(bname,suffix), rig, locPt, locPt+Vector((0,0,size)), 0, L_HELP2, parent)
-    
+
             prefix = suffix[1].lower()
             eye = rig.data.edit_bones[prefix + "Eye"]
             vec = eye.tail-eye.head
             vec.normalize()
             loc = eye.head + vec*rig.DazScale*30
             gaze = makeBone("gaze"+suffix, rig, loc, loc+Vector((0,5*rig.DazScale,0)), 0, L_HEAD, None)
-    
+
         lgaze = rig.data.edit_bones["gaze.L"]
         rgaze = rig.data.edit_bones["gaze.R"]
         loc = (lgaze.head + rgaze.head)/2
@@ -1005,7 +1005,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         gaze = deriveBone("gaze", gaze0, rig, L_HEAD, gaze1)
         lgaze.parent = gaze
         rgaze.parent = gaze
-    
+
         from .figure import copyBoneInfo
         bpy.ops.object.mode_set(mode='OBJECT')
         for suffix in [".L", ".R"]:
@@ -1014,16 +1014,16 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                 bone = rig.data.bones[bname+suffix]
                 fkbone = rig.data.bones[bname+".fk"+suffix]
                 copyBoneInfo(bone, fkbone)
-    
+
         bpy.ops.object.mode_set(mode='POSE')
         rpbs = rig.pose.bones
         for bname in ["root", "hips"]:
             pb = rpbs[bname]
             pb.rotation_mode = 'YZX'
-    
+
         rotmodes = {
             'YZX': ["shin", "shin.fk", "shin.ik",
-                    "forearm", "forearm.fk", "forearm.ik",                    
+                    "forearm", "forearm.fk", "forearm.ik",
                     "foot", "foot.fk", "toe", "toe.fk",
                     "foot.rev", "toe.rev",
                     "breast",
@@ -1036,7 +1036,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                     if bname+suffix in rpbs.keys():
                         pb = rpbs[bname+suffix]
                         pb.rotation_mode = rmode
-    
+
             armSocket = rpbs["arm_socket"+suffix]
             armParent = rpbs["arm_parent"+suffix]
             upper_arm = rpbs["upper_arm"+suffix]
@@ -1051,12 +1051,12 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             hand0Ik = rpbs["hand0.ik"+suffix]
             elbowPt = rpbs["elbow.pt.ik"+suffix]
             elbowLink = rpbs["elbow.link"+suffix]
-    
+
             prop = "MhaArmHinge_" + suffix[1]
             setattr(rig, prop, 0.0)
             copyTransform(armParent, None, armSocket, rig, prop, "1-x")
             copyLocation(armParent, armSocket, rig, prop, "x")
-    
+
             prop = "MhaArmIk_"+suffix[1]
             setattr(rig, prop, 0.0)
             copyTransform(upper_arm, upper_armFk, upper_armIk, rig, prop)
@@ -1066,12 +1066,12 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             hintRotation(forearmIk)
             ikConstraint(forearmIk, handIk, elbowPt, -90, 2, rig)
             stretchTo(elbowLink, elbowPt, rig)
-    
+
             yTrue = (False,True,False)
             copyRotation(forearm, handFk, yTrue, rig)
             copyRotation(forearm, hand0Ik, yTrue, rig, prop)
             forearmFk.lock_rotation = yTrue
-    
+
             legSocket = rpbs["leg_socket"+suffix]
             legParent = rpbs["leg_parent"+suffix]
             thigh = rpbs["thigh"+suffix]
@@ -1093,19 +1093,19 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             footRev = rpbs["foot.rev"+suffix]
             footPt = rpbs["foot.pt.ik"+suffix]
             toePt = rpbs["toe.pt.ik"+suffix]
-    
+
             prop = "MhaLegHinge_" + suffix[1]
             setattr(rig, prop, 0.0)
             copyTransform(legParent, None, legSocket, rig, prop, "1-x")
             copyLocation(legParent, legSocket, rig, prop, "x")
-    
+
             prop1 = "MhaLegIk_"+suffix[1]
             setattr(rig, prop1, 0.0)
             prop2 = "MhaLegIkToAnkle_"+suffix[1]
             setattr(rig, prop2, False)
-    
+
             footRev.lock_rotation = (False,True,True)
-    
+
             copyTransform(thigh, thighFk, thighIk, rig, prop1)
             copyTransform(shin, shinFk, shinIk, rig, prop1)
             copyTransform(foot, footFk, None, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
@@ -1121,30 +1121,30 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             ikConstraint(toe, toeRev, toePt, 90, 1, rig, (prop1,prop2), "x1*(1-x2)")
             cns = copyLocation(ankleIk, ankle, rig, prop2)
             cns.influence = 0
-    
+
             prop = "MhaGaze_" + suffix[1]
             setattr(rig, prop, False)
             prefix = suffix[1].lower()
             eye = rpbs[prefix+"Eye"]
             gaze = rpbs["gaze"+suffix]
             trackTo(eye, gaze, rig, prop)
-    
+
             lockLocations([upper_armFk, forearmFk, handFk,
                            upper_armIk, forearmIk, elbowLink,
                            thighFk, shinFk, footFk, toeFk,
                            thighIk, shinIk, kneeLink, footRev, toeRev,
                            ])
-    
+
         prop = "DazGazeFollowsHead"
         setattr(rig, prop, 0.0)
         gaze0 = rpbs["gaze0"]
         gaze1 = rpbs["gaze1"]
         copyTransform(gaze1, None, gaze0, rig, prop)
-    
+
     #-------------------------------------------------------------
-    #   Fix hand constraints - 
+    #   Fix hand constraints -
     #-------------------------------------------------------------
-    
+
     def fixHandConstraints(self, rig):
         for suffix in [".L", ".R"]:
             pb = rig.pose.bones["hand.fk" + suffix]
@@ -1161,11 +1161,11 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                         cns.max_x = cns.max_z
                     cns.min_z = minx
                     cns.max_z = maxx
-                
+
     #-------------------------------------------------------------
     #   Markers
     #-------------------------------------------------------------
-    
+
     def addMarkers(self, rig):
         for suffix in [".L", ".R"]:
             bpy.ops.object.mode_set(mode='EDIT')
@@ -1176,17 +1176,17 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                 heelTail = rig.data.edit_bones["heel"+suffix].tail
             else:
                 heelTail = Vector((foot.head[0], foot.head[1], toe.head[2]))
-    
+
             ballLoc = Vector((toe.head[0], toe.head[1], heelTail[2]))
             mBall = makeBone("ball.marker"+suffix, rig, ballLoc, ballLoc+offs, 0, L_TWEAK, foot)
             toeLoc = Vector((toe.tail[0], toe.tail[1], heelTail[2]))
             mToe = makeBone("toe.marker"+suffix, rig, toeLoc, toeLoc+offs, 0, L_TWEAK, toe)
             mHeel = makeBone("heel.marker"+suffix, rig, heelTail, heelTail+offs, 0, L_TWEAK, foot)
-        
+
     #-------------------------------------------------------------
     #   Master bone
     #-------------------------------------------------------------
-    
+
     def addMaster(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
         root = rig.data.edit_bones["root"]
@@ -1198,26 +1198,26 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
     #-------------------------------------------------------------
     #   Move all deform bones to layer 31
     #-------------------------------------------------------------
-    
+
     def collectDeformBones(self, rig):
         bpy.ops.object.mode_set(mode='OBJECT')
         for bone in rig.data.bones:
             if bone.use_deform:
                 bone.layers[L_DEF] = True
-    
-    
+
+
     def addLayers(self, rig):
         bpy.ops.object.mode_set(mode='OBJECT')
         for suffix,dlayer in [(".L",0), (".R",16)]:
             clavicle = rig.data.bones["clavicle"+suffix]
             clavicle.layers[L_SPINE] = True
             clavicle.layers[L_LARMIK+dlayer] = True
-    
-    
+
+
 #-------------------------------------------------------------
 #   connectToParent used by Rigify
 #-------------------------------------------------------------
-    
+
 def connectToParent(rig):
     bpy.ops.object.mode_set(mode='EDIT')
     for bname in [

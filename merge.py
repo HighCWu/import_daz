@@ -350,7 +350,7 @@ class DAZ_OT_MergeUVLayers(DazPropsOperator, IsMesh, B.MergeUVLayers):
     bl_label = "Merge UV Layers"
     bl_description = "Merge two UV layers"
     bl_options = {'UNDO'}
-    
+
     def draw(self, context):
         self.layout.prop(self, "layer1")
         self.layout.prop(self, "layer2")
@@ -530,7 +530,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                 if rig in coll.objects.values():
                     if coll.name.endswith("HD"):
                         if hdcoll is None:
-                            hdcoll = bpy.data.collections.new(name= rig.name + " Meshes_HD")                        
+                            hdcoll = bpy.data.collections.new(name= rig.name + " Meshes_HD")
                             hdadds = [hdcoll]
                         coll.children.link(hdcoll)
                     else:
@@ -668,9 +668,9 @@ class DAZ_OT_CopyBones(DazOperator, IsArmature):
         if not subrigs:
             raise DazError("No source armature")
         copyBones(context, rig, subrigs)
-        
-        
-def copyBones(context, rig, subrigs):        
+
+
+def copyBones(context, rig, subrigs):
     print("Copy bones to %s:" % rig.name)
     ebones = []
     for ob in subrigs:

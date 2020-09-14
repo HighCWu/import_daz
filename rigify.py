@@ -327,8 +327,8 @@ def setupTables(meta):
 def deleteChildren(eb, meta):
     for child in eb.children:
         deleteChildren(child, meta)
-        meta.data.edit_bones.remove(child)    
-    
+        meta.data.edit_bones.remove(child)
+
 
 class DazBone:
     def __init__(self, eb):
@@ -379,7 +379,7 @@ class Rigify:
             spineBones = Genesis3Spine
         elif meta.DazRigifyType in ["genesis3", "genesis8"]:
             spineBones = Genesis3Spine
-    
+
         dazskel = {}
         for rbone, dbone in rigifySkel.items():
             if isinstance(dbone, tuple):
@@ -387,8 +387,8 @@ class Rigify:
             if isinstance(dbone, str):
                 dazskel[dbone] = rbone
         return rigifySkel, spineBones, dazskel
-    
-    
+
+
     def renameBones(self, rig, bones):
         bpy.ops.object.mode_set(mode='EDIT')
         for dname,rname in bones.items():
@@ -398,8 +398,8 @@ class Rigify:
             else:
                 raise DazError("Did not find bone %s     " % dname)
         bpy.ops.object.mode_set(mode='OBJECT')
-    
-    
+
+
     def reparentBones(self, rig, parents):
         bpy.ops.object.mode_set(mode='EDIT')
         for bname,pname in parents.items():
@@ -410,8 +410,8 @@ class Rigify:
                 eb.use_connect = False
                 eb.parent = parb
         bpy.ops.object.mode_set(mode='OBJECT')
-    
-    
+
+
     def setupExtras(self, rig, rigifySkel, spineBones):
         extras = OrderedDict()
         taken = []
@@ -437,8 +437,8 @@ class Rigify:
                 extras[pname] = pname
                 bone = bone.parent
         return extras
-    
-    
+
+
     def splitBone(self, rig, bname, upname):
         if upname in rig.data.bones.keys():
             return
@@ -455,8 +455,8 @@ class Rigify:
         ebup.roll = eblow.roll
         eblow.tail = mid
         bpy.ops.object.mode_set(mode='OBJECT')
-    
-    
+
+
     def splitNeck(self, meta):
         bpy.ops.object.mode_set(mode='EDIT')
         spine = meta.data.edit_bones["spine"]
@@ -475,8 +475,8 @@ class Rigify:
             spinebones[x].name = "spine" + ".00" + y
         bpy.ops.armature.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
-    
-    
+
+
     def deleteIfNotExist(self, bnames, rig, meta, context):
         setActiveObject(context, meta)
         bpy.ops.object.mode_set(mode='EDIT')
@@ -487,15 +487,15 @@ class Rigify:
                 meta.data.edit_bones.remove(eb)
         bpy.ops.object.mode_set(mode='OBJECT')
         setActiveObject(context, rig)
-    
-    
+
+
     def checkRigifyEnabled(self, context):
         for addon in context.user_preferences.addons:
             if addon.module == "rigify":
                 return True
         return False
-    
-    
+
+
     def getRigifyBone(self, bname, dazSkel, extras, spineBones):
         global DeformBones
         if bname in DeformBones:
@@ -517,8 +517,8 @@ class Rigify:
                     return "DEF-" + rname
         print("MISS", bname)
         return None
-    
-    
+
+
     def getDazBones(self, rig):
         # Setup info about DAZ bones
         dazBones = OrderedDict()
@@ -528,26 +528,26 @@ class Rigify:
         bpy.ops.object.mode_set(mode='POSE')
         for pb in rig.pose.bones:
             dazBones[pb.name].getPose(pb)
-    
+
         bpy.ops.object.mode_set(mode='OBJECT')
         return dazBones
-    
-    
+
+
     def createMeta(self, context):
         from collections import OrderedDict
         from .mhx import connectToParent, unhideAllObjects
         from .figure import getRigType
         from .merge import mergeBonesAndVgroups
-    
+
         print("Create metarig")
         rig = context.object
         scale = rig.DazScale
         scn = context.scene
         if not(rig and rig.type == 'ARMATURE'):
             raise DazError("Rigify: %s is neither an armature nor has armature parent" % ob)
-    
+
         unhideAllObjects(context, rig)
-    
+
         # Create metarig
         bpy.ops.object.mode_set(mode='OBJECT')
         try:
@@ -559,13 +559,13 @@ class Rigify:
         bpy.ops.object.scale_clear()
         bpy.ops.transform.resize(value=(100*scale, 100*scale, 100*scale))
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-    
+
         meta = context.object
         cns = meta.constraints.new('COPY_SCALE')
         cns.name = "Rigify Source"
         cns.target = rig
         cns.mute = True
-    
+
         meta.DazPre278 = ("hips" in meta.data.bones.keys())
         meta.DazRigifyType = getRigType(rig)
         meta.DazUseBreasts = (not meta.DazPre278 and rig.data.DazExtraDrivenBones)
@@ -573,11 +573,11 @@ class Rigify:
         if meta.DazUseSplitNeck:
             self.splitNeck(meta)
         meta.DazRigType,hips,head = setupTables(meta)
-    
+
         activateObject(context, rig)
         setSelected(rig, True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    
+
         if meta.DazRigifyType in ["genesis1", "genesis2"]:
             self.fixPelvis(rig)
             self.fixCarpals(rig)
@@ -596,19 +596,19 @@ class Rigify:
             activateObject(context, meta)
             deleteObject(context, meta)
             raise DazError("Cannot rigify %s %s" % (meta.DazRigifyType, rig.name))
-    
+
         connectToParent(rig)
         rigifySkel, spineBones, dazSkel = self.setupDazSkeleton(meta)
         dazBones = self.getDazBones(rig)
-    
+
         # Fit metarig to default DAZ rig
         setActiveObject(context, meta)
         setSelected(meta, True)
         bpy.ops.object.mode_set(mode='EDIT')
-    
+
         for eb in meta.data.edit_bones:
             eb.use_connect = False
-    
+
         for eb in meta.data.edit_bones:
             try:
                 dname = rigifySkel[eb.name]
@@ -629,46 +629,46 @@ class Rigify:
                     dbone2 = dazBones[dname[1]]
                     eb.head = dbone1.head
                     eb.tail = dbone2.head
-    
+
         hip = meta.data.edit_bones[hips]
         dbone = dazBones["hip"]
         hip.tail = Vector((1,2,3))
         hip.head = dbone.tail
         hip.tail = dbone.head
-    
+
         if meta.DazRigifyType in ["genesis3", "genesis8"]:
             eb = meta.data.edit_bones[head]
             eb.tail = eb.head + 1.0*(eb.tail - eb.head)
-    
+
         self.fixHands(meta)
-    
+
         for suffix in [".L", ".R"]:
             shoulder = meta.data.edit_bones["shoulder"+suffix]
             upperarm = meta.data.edit_bones["upper_arm"+suffix]
             shin = meta.data.edit_bones["shin"+suffix]
             foot = meta.data.edit_bones["foot"+suffix]
             toe = meta.data.edit_bones["toe"+suffix]
-    
+
             vec = shoulder.tail - shoulder.head
             if (upperarm.head - shoulder.tail).length < 0.02*vec.length:
                 shoulder.tail -= 0.02*vec
-    
+
             if "pelvis"+suffix in meta.data.edit_bones.keys():
                 thigh = meta.data.edit_bones["thigh"+suffix]
                 pelvis = meta.data.edit_bones["pelvis"+suffix]
                 pelvis.head = hip.head
                 pelvis.tail = thigh.head
-    
+
             #if "breast"+suffix in meta.data.edit_bones.keys():
             #    breast = meta.data.edit_bones["breast"+suffix]
             #    breast.head[0] = breast.tail[0]
             #    breast.head[2] = breast.tail[2]
-    
+
             foot.head = shin.tail
             toe.head = foot.tail
             xa,ya,za = foot.head
             xb,yb,zb = toe.head
-    
+
             heelhead = foot.head
             heeltail = Vector((xa, yb-1.3*(yb-ya), zb))
             mid = (toe.head + heeltail)/2
@@ -679,7 +679,7 @@ class Rigify:
                 fac = -0.3
             heel02head = mid + fac*r
             heel02tail = mid - fac*r
-    
+
             if "heel"+suffix in meta.data.edit_bones.keys():
                 heel = meta.data.edit_bones["heel"+suffix]
                 heel.head = heelhead
@@ -688,13 +688,13 @@ class Rigify:
                 heel02 = meta.data.edit_bones["heel.02"+suffix]
                 heel02.head = heel02head
                 heel02.tail = heel02tail
-    
+
         for eb in meta.data.edit_bones:
             if (eb.parent and
                 eb.head == eb.parent.tail and
                 eb.name not in MetaDisconnect):
                 eb.use_connect = True
-    
+
         # Fix spine
         mbones = meta.data.edit_bones
         for dname,rname,pname in spineBones:
@@ -713,9 +713,9 @@ class Rigify:
             eb.parent = mbones[pname]
             eb.use_connect = True
             eb.layers = list(eb.parent.layers)
-    
+
         self.reparentBones(meta, MetaParents)
-    
+
         # Add rigify properties to spine bones
         bpy.ops.object.mode_set(mode='OBJECT')
         disconnect = []
@@ -733,7 +733,7 @@ class Rigify:
                     pb.rigify_parameters.rotation_axis = 'x'
                     pb.rigify_parameters.auto_align_extremity = self.useAutoAlign
                 elif pb["rigify_type"] in [
-                    "spines.super_spine", 
+                    "spines.super_spine",
                     "spines.basic_spine",
                     "basic.super_copy",
                     "limbs.super_palm",
@@ -741,12 +741,12 @@ class Rigify:
                     pass
                 else:
                     print("RIGIFYTYPE %s: %s" % (pb.name, pb["rigify_type"]))
-    
+
         for rname,prop,value in RigifyParams:
             if rname in meta.pose.bones:
                 pb = meta.pose.bones[rname]
                 setattr(pb.rigify_parameters, prop, value)
-    
+
         # Disconnect bones that have to be disconnected
         bpy.ops.object.mode_set(mode='EDIT')
         for rname in disconnect:
@@ -756,69 +756,69 @@ class Rigify:
             eb = meta.data.edit_bones[rname]
             eb.use_connect = True
         bpy.ops.object.mode_set(mode='OBJECT')
-    
+
         print("Metarig created")
         return meta
-    
-    
+
+
     def rigifyMeta(self, context, deleteMeta):
         from .driver import getBoneDrivers, copyDriver, changeBoneTarget, changeDriverTarget
         from .node import setParent, clearParent
         from .daz import copyPropGroups
         from .mhx import unhideAllObjects
         from .figure import copyBoneInfo
-    
+
         print("Rigify metarig")
         meta = context.object
         rig = None
         for cns in meta.constraints:
             if cns.type == 'COPY_SCALE' and cns.name == "Rigify Source":
                 rig = cns.target
-    
+
         if rig is None:
             raise DazError("Original rig not found")
         unhideAllObjects(context, rig)
         if not inSceneLayer(context, rig):
             showSceneLayer(context, rig)
-    
+
         bpy.ops.object.mode_set(mode='POSE')
         for pb in meta.pose.bones:
             if hasattr(pb, "rigify_parameters"):
                 if hasattr (pb.rigify_parameters, "roll_alignment"):
                     pb.rigify_parameters.roll_alignment = "manual"
-    
+
         try:
             bpy.ops.pose.rigify_generate()
         except:
             raise DazError("Cannot rigify %s rig %s    " % (meta.DazRigifyType, rig.name))
-    
+
         scn = context.scene
         gen = context.object
         coll = getCollection(context)
         print("Fix generated rig", gen.name)
-    
+
         setActiveObject(context, rig)
         rigifySkel, spineBones, dazSkel = self.setupDazSkeleton(meta)
         dazBones = self.getDazBones(rig)
-    
+
         empty = bpy.data.objects.new("Widgets", None)
         coll.objects.link(empty)
         empty.parent = gen
         for ob in getSceneObjects(context):
             if ob.parent is None and ob.name[0:4] == "WGT-":
                 ob.parent = empty
-    
+
         extras = self.setupExtras(rig, rigifySkel, spineBones)
         if meta.DazUseBreasts:
             for prefix in ["l", "r"]:
                 extras[prefix+"PectoralDrv"] = prefix+"PectoralDrv"
-    
+
         driven = {}
         for pb in rig.pose.bones:
             fcus = getBoneDrivers(rig, pb)
             if fcus:
                 driven[pb.name] = fcus
-    
+
         # Add extra bones to generated rig
         faceLayers = R_FACE*[False] + [True] + (31-R_FACE)*[False]
         helpLayers = R_HELP*[False] + [True] + (31-R_HELP)*[False]
@@ -840,7 +840,7 @@ class Rigify:
                 eb.layers = helpLayers
             if dname in driven.keys():
                 eb.layers = helpLayers
-    
+
         # Add parents to extra bones
         for dname,rname in extras.items():
             if dname not in dazBones.keys():
@@ -859,16 +859,16 @@ class Rigify:
                     print("Bones:", bones)
                     msg = ("Bone %s has no parent %s" % (dbone.name, dbone.parent))
                     raise DazError(msg)
-    
+
         if meta.DazUseBreasts:
             for prefix,suffix in [("l", ".L"), ("r", ".R")]:
                 db = gen.data.edit_bones[prefix + "PectoralDrv"]
                 eb = gen.data.edit_bones["breast" + suffix]
                 db.parent = eb.parent
                 eb.parent = db
-    
+
         bpy.ops.object.mode_set(mode='POSE')
-    
+
         # Lock extras
         for dname,rname in extras.items():
             if dname not in dazBones.keys():
@@ -876,19 +876,19 @@ class Rigify:
             if rname in gen.pose.bones.keys():
                 pb = gen.pose.bones[rname]
                 dazBones[dname].setPose(pb)
-    
+
         # Remove breast custom shapes, because they are placed differently in Daz
         for rname in ["breast.L", "breast.R"]:
             if rname in gen.pose.bones.keys():
                 pb = gen.pose.bones[rname]
                 pb.custom_shape = None
-    
+
         # Rescale custom shapes
         if meta.DazRigifyType in ["genesis3", "genesis8"]:
             self.fixCustomShape(gen, ["head", "spine_fk.007"], 4)
         if bpy.app.version >= (2,82,0):
             self.fixCustomShape(gen, ["chest"], 1, Vector((0,-100*rig.DazScale,0)))
-    
+
         # Add DAZ properties
         for key in rig.keys():
             self.copyProp(key, rig, gen)
@@ -913,14 +913,14 @@ class Rigify:
                             fkbone = None
                         if fkbone:
                             copyBoneInfo(bone, fkbone)
-    
+
         # Handle bone parents
         boneParents = []
         for ob in rig.children:
             if ob.parent_type == 'BONE':
                 boneParents.append((ob, ob.parent_bone))
                 clearParent(ob)
-    
+
         for ob,dname in boneParents:
             rname = self.getRigifyBone(dname, dazSkel, extras, spineBones)
             if rname and rname in gen.data.bones.keys():
@@ -930,18 +930,18 @@ class Rigify:
             else:
                 print("Did not find bone parent %s %s" %(dname, rname))
                 setParent(context, ob, gen, None)
-    
+
         # Copy DAZ morph drivers and change armature modifier
         activateObject(context, gen)
         for ob in rig.children:
             if ob.type == 'MESH':
                 ob.parent = gen
-    
+
                 for dname,rname,_pname in spineBones:
                     if dname in ob.vertex_groups.keys():
                         vgrp = ob.vertex_groups[dname]
                         vgrp.name = "DEF-" + rname
-    
+
                 for rname,dname in rigifySkel.items():
                     if dname[1:] in ["Thigh", "Shin", "Shldr", "ForeArm"]:
                         self.rigifySplitGroup(rname, dname, ob, rig, True, meta)
@@ -954,28 +954,28 @@ class Rigify:
                             vgrp.name = "DEF-" + rname
                     else:
                         self.mergeVertexGroups(rname, dname[1], ob)
-    
+
                 for dname,rname in extras.items():
                     if dname in ob.vertex_groups.keys():
                         vgrp = ob.vertex_groups[dname]
                         vgrp.name = rname
-    
+
                 if ob.animation_data:
                     for fcu in ob.animation_data.drivers:
                         changeDriverTarget(fcu, gen)
-    
+
                 if ob.data.animation_data:
                     for fcu in ob.data.animation_data.drivers:
                         changeDriverTarget(fcu, gen)
-    
+
                 if ob.data.shape_keys and ob.data.shape_keys.animation_data:
                     for fcu in ob.data.shape_keys.animation_data.drivers:
                         changeDriverTarget(fcu, gen)
-    
+
                 for mod in ob.modifiers:
                     if mod.type == 'ARMATURE' and mod.object == rig:
                         mod.object = gen
-    
+
         # Add generated rig to group
         group = None
         if bpy.app.version <= (2,80,0):
@@ -986,7 +986,7 @@ class Rigify:
             print("Group: %s" % group)
         if group:
             group.objects.link(gen)
-    
+
         # Fix drivers
         assoc = [(rigi,daz) for (daz,rigi,_) in Genesis3Spine]
         assoc += [(rigi,daz) for (rigi,daz) in RigifySkeleton.items()]
@@ -999,12 +999,12 @@ class Rigify:
                 for fcu in fcus:
                     fcu2 = copyDriver(fcu, pb, gen)
                     changeBoneTarget(fcu2, assoc)
-    
+
         # Fix correctives
         self.Correctives = [("ORG-"+rigi,daz) for (rigi,daz) in assoc]
         self.fixCorrectives(gen)
         self.checkCorrectives(gen)
-    
+
         #Clean up
         setattr(gen.data, DrawType, 'STICK')
         setattr(gen, ShowXRay, True)
@@ -1020,23 +1020,23 @@ class Rigify:
         bpy.ops.object.mode_set(mode='POSE')
         print("Rigify created")
         return gen
-    
+
 
     def copyProp(self, prop, src, trg):
         trg[prop] = src[prop]
         if (hasattr(trg, "property_overridable_library_set") and
             prop[0:3] not in ["Daz", "_RN"]):
             trg.property_overridable_library_set('["%s"]' % prop, True)
-    
-    
+
+
     def getChildren(self, pb):
         chlist = []
         for child in pb.children:
             chlist.append(child.name)
             chlist += self.getChildren(child)
         return chlist
-    
-    
+
+
     def rigifySplitGroup(self, rname, dname, ob, rig, before, meta):
         if dname not in ob.vertex_groups.keys():
             return
@@ -1052,43 +1052,43 @@ class Rigify:
             bendname = "DEF-" + rname + ".01"
             twistname = "DEF-" + rname + ".02"
         self.splitVertexGroup(ob, dname, bendname, twistname, bone.head_local, bone.tail_local)
-    
-    
+
+
     def mergeVertexGroups(self, rname, dnames, ob):
         if not (dnames and
                 dnames[0] in ob.vertex_groups.keys()):
             return
         vgrp = ob.vertex_groups[dnames[0]]
         vgrp.name = "DEF-" + rname
-    
-    
+
+
     def setBoneName(self, bone, gen):
         fkname = bone.name.replace(".", ".fk.")
         if fkname in gen.data.bones.keys():
             gen.data.bones[fkname]
             bone.fkname = fkname
             bone.ikname = fkname.replace(".fk.", ".ik")
-    
+
         defname = "DEF-" + bone.name
         if defname in gen.data.bones.keys():
             gen.data.bones[defname]
             bone.realname = defname
             return
-    
+
         defname1 = "DEF-" + bone.name + ".01"
         if defname in gen.data.bones.keys():
             gen.data.bones[defname1]
             bone.realname1 = defname1
             bone.realname2 = defname1.replace(".01.", ".02.")
             return
-    
+
         defname1 = "DEF-" + bone.name.replace(".", ".01.")
         if defname in gen.data.bones.keys():
             gen.data.bones[defname1]
             bone.realname1 = defname1
             bone.realname2 = defname1.replace(".01.", ".02")
             return
-    
+
         if bone.name in gen.data.bones.keys():
             gen.data.edit_bones[bone.name]
             bone.realname = bone.name
@@ -1137,7 +1137,7 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists, B.Meta):
 
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
-    
+
     def run(self, context):
         self.createMeta(context)
 

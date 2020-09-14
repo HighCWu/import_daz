@@ -1179,8 +1179,8 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
 def printStatistics(ob):
     print(getStatistics(ob))
 
-    
-def getStatistics(ob):    
+
+def getStatistics(ob):
     return ("Verts: %d, Edges: %d, Faces: %d" %
             (len(ob.data.vertices), len(ob.data.edges), len(ob.data.polygons)))
 
@@ -1193,9 +1193,9 @@ class DAZ_OT_PrintStatistics(bpy.types.Operator, IsMesh):
     def draw(self, context):
         for line in self.lines:
             self.layout.label(text=line)
-    
+
     def execute(self, context):
-        return{'FINISHED'}    
+        return{'FINISHED'}
 
     def invoke(self, context, event):
         self.lines = []

@@ -102,7 +102,7 @@ class AffectOptions:
         name = "Selected Bones Only",
         description = "Only animate selected bones.",
         default = False)
-        
+
     ignoreLimits : BoolProperty(
         name = "Ignore Limits",
         description = "Set pose even if outside limit constraints",
@@ -239,9 +239,9 @@ class DazOptions:
         name = "Material Method",
         description = "Type of material node tree",
         default = 'BSDF')
-        
-    lastMethod : StringProperty(default = "")  
-    
+
+    lastMethod : StringProperty(default = "")
+
     useLockRot : BoolProperty(
         name = "Rotation Locks",
         description = "Use rotation locks",
@@ -253,12 +253,12 @@ class DazOptions:
         default = True)
 
     useCustomShapes : BoolProperty(
-        name = "Custom Shapes", 
+        name = "Custom Shapes",
         description = "Add custom shapes to character bones",
         default = True)
 
     useSimpleIK : BoolProperty(
-        name = "Inverse Kinematics", 
+        name = "Inverse Kinematics",
         description = "Add simple kinematics to character rigs",
         default = True)
 
@@ -267,15 +267,15 @@ class LoadRootPaths:
     useContent : BoolProperty(
         name = "Load Content Directories",
         default = True)
-        
+
     useMDL : BoolProperty(
         name = "Load MDL Directories",
         default = True)
-        
+
     useCloud : BoolProperty(
         name = "Load Cloud Directories",
         default = True)
-        
+
 #-------------------------------------------------------------
 #   material.py
 #-------------------------------------------------------------
@@ -291,7 +291,7 @@ class KeepDirsBool:
         name = "Keep Directories",
         description = "Keep the directory tree from Daz Studio, otherwise flatten the directory structure",
         default = True)
-        
+
 
 class CopyMaterials:
     useMatchNames : BoolProperty(
@@ -313,10 +313,10 @@ class ResizeOptions:
         default = 2)
 
     resizeAll : BoolProperty(
-        name = "Resize All", 
+        name = "Resize All",
         description = "Resize all textures of the selected meshes",
         default = True)
-        
+
     overwrite : BoolProperty(
         name = "Overwrite Files",
         description = "Overwrite the original image files.",
@@ -418,7 +418,7 @@ class MergeRigs:
         description = "Bone layer used for extra bones when merging clothes",
         min = 1, max = 32,
         default = 3)
-        
+
     useApplyRestPose : BoolProperty(
         name = "Apply Rest Pose",
         description = "Apply current pose as rest pose for all armatures",
@@ -432,19 +432,19 @@ def getUVLayers(scn, context):
         ename = "%s (%d)" % (uv.name, n)
         enums.append((str(n), ename, ename))
     return enums
-    
+
 
 class MergeUVLayers:
     layer1 : EnumProperty(
         items = getUVLayers,
         name = "Layer To Keep",
         description = "UV layer that the other layer is merged with")
-        
+
     layer2 : EnumProperty(
         items = getUVLayers,
         name = "Layer To Merge",
         description = "UV layer that is merged with the other layer")
-        
+
 #-------------------------------------------------------------
 #   morphing.py
 #-------------------------------------------------------------
@@ -587,7 +587,7 @@ class SingleGroup:
         name = "Single Group",
         description = "Treat all selected meshes as a single group",
         default = False)
-        
+
     groupName : StringProperty(
         name = "Group Name",
         description = "Name of the single group",

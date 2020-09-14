@@ -151,8 +151,8 @@ class MixGroup(CyclesGroup):
         self.group.inputs.new("NodeSocketShader", "Eevee")
         self.group.outputs.new("NodeSocketShader", "Cycles")
         self.group.outputs.new("NodeSocketShader", "Eevee")
-        
-        
+
+
     def addNodes(self, args=None):
         self.mix1 = self.addNode("ShaderNodeMixShader", self.ncols-1)
         self.mix2 = self.addNode("ShaderNodeMixShader", self.ncols-1)
@@ -174,8 +174,8 @@ class AddGroup(CyclesGroup):
         self.group.inputs.new("NodeSocketShader", "Eevee")
         self.group.outputs.new("NodeSocketShader", "Cycles")
         self.group.outputs.new("NodeSocketShader", "Eevee")
-        
-        
+
+
     def addNodes(self, args=None):
         self.add1 = self.addNode("ShaderNodeAddShader", 2)
         self.add2 = self.addNode("ShaderNodeAddShader", 2)
@@ -270,7 +270,7 @@ class GlossyGroup(MixGroup):
         self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
         self.links.new(glossy.outputs[0], self.mix1.inputs[2])
         self.links.new(glossy.outputs[0], self.mix2.inputs[2])
-       
+
 # ---------------------------------------------------------------------
 #   Refraction Group
 # ---------------------------------------------------------------------
@@ -302,7 +302,7 @@ class RefractionGroup(MixGroup):
         self.links.new(self.inputs.outputs["Glossy Color"], glossy.inputs["Color"])
         self.links.new(self.inputs.outputs["Glossy Roughness"], glossy.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
-        
+
         self.links.new(self.inputs.outputs["Fresnel IOR"], fresnel.inputs["IOR"])
         self.links.new(self.inputs.outputs["Glossy Roughness"], fresnel.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
@@ -311,7 +311,7 @@ class RefractionGroup(MixGroup):
         self.links.new(fresnel.outputs[0], mix.inputs[0])
         self.links.new(refr.outputs[0], mix.inputs[1])
         self.links.new(glossy.outputs[0], mix.inputs[2])
-        
+
         self.links.new(mix.outputs[0], self.mix1.inputs[2])
         self.links.new(mix.outputs[0], self.mix2.inputs[2])
 
@@ -392,7 +392,7 @@ class SSSGroup(MixGroup):
         self.links.new(self.inputs.outputs["Normal"], sss.inputs["Normal"])
         self.links.new(sss.outputs[0], self.mix1.inputs[2])
         self.links.new(sss.outputs[0], self.mix2.inputs[2])
-       
+
 # ---------------------------------------------------------------------
 #   Dual Lobe Group
 # ---------------------------------------------------------------------
@@ -424,7 +424,7 @@ class DualLobeGroup(CyclesGroup):
         eevee2 = self.mixGlossy(fresnel2, glossy2, "Eevee")
         self.mixOutput(cycles1, cycles2, "Cycles")
         self.mixOutput(eevee1, eevee2, "Eevee")
-        
+
 
     def addFresnel(self, useNormal):
         fresnel = self.addNode("ShaderNodeFresnel", 1)
@@ -432,7 +432,7 @@ class DualLobeGroup(CyclesGroup):
         if useNormal:
             self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
         return fresnel
-        
+
 
     def addGlossy(self, roughness, useNormal):
         glossy = self.addNode("ShaderNodeBsdfGlossy", 1)
@@ -451,7 +451,7 @@ class DualLobeGroup(CyclesGroup):
         return mix
 
 
-    def mixOutput(self, node1, node2, slot):       
+    def mixOutput(self, node1, node2, slot):
         mix = self.addNode("ShaderNodeMixShader", 3)
         self.links.new(self.inputs.outputs["Fac"], mix.inputs[0])
         self.links.new(node1.outputs[0], mix.inputs[2])
@@ -486,7 +486,7 @@ class VolumeGroup(CyclesGroup):
 
         volume = self.addNode("ShaderNodeAddShader", 2)
         self.links.new(absorb.outputs[0], volume.inputs[0])
-        self.links.new(scatter.outputs[0], volume.inputs[1]) 
+        self.links.new(scatter.outputs[0], volume.inputs[1])
         self.links.new(volume.outputs[0], self.outputs.inputs["Volume"])
 
 # ---------------------------------------------------------------------
