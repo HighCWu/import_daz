@@ -49,7 +49,7 @@ RollCorrection = {
     "lThumb1" : 180,
     "lThumb2" : 180,
     "lThumb3" : 180,
-    
+
     "rCollar" : 180,
     "rShldr" : 90,
     "rShldrBend" : 90,
@@ -58,10 +58,10 @@ RollCorrection = {
     "rThumb1" : 180,
     "rThumb2" : 180,
     "rThumb3" : 180,
-    
+
     "lEar" : -90,
     "rEar" : 90,
-}    
+}
 
 RollCorrectionGenesis = {
     "lEye" : 180,
@@ -83,7 +83,7 @@ RotationModes = {
 #-------------------------------------------------------------
 #   Roll tables in Legacy mode
 #-------------------------------------------------------------
-    
+
 RotateRoll = {
     "lPectoral" : -90,
     "rPectoral" : 90,
@@ -329,7 +329,7 @@ class BoneInstance(Instance):
         node.rotation = []
         node.scale = []
         self.name = self.node.name
-        self.roll = 0.0        
+        self.roll = 0.0
         self.useRoll = False
         self.axes = [0,1,2]
         self.flipped = [False,False,False]
@@ -387,7 +387,7 @@ class BoneInstance(Instance):
     RX = Matrix.Rotation(pi/2, 4, 'X')
     FX = Matrix.Rotation(pi, 4, 'X')
     FZ = Matrix.Rotation(pi, 4, 'Z')
-    
+
     def buildEdit(self, figure, rig, parent, cscale, center, isFace):
         if self.name in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[self.name]
@@ -426,7 +426,7 @@ class BoneInstance(Instance):
                 if GS.orientMethod == 'DAZ UNFLIPPED':
                     omat.col[3][0:3] = head
                     eb.matrix = omat
-                else:                
+                else:
                     omat = self.flipBone(omat, head, tail, flip)
                     self.testPrint("FBONE")
                     omat.col[3][0:3] = head
@@ -434,8 +434,8 @@ class BoneInstance(Instance):
                     self.correctRoll(eb, figure)
             else:
                 msg = ("Illegal orientation type: %s       \nReload factory settings." % GS.orientMethod)
-                raise DazError(msg)            
-            
+                raise DazError(msg)
+
             if GS.useConnect and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*LS.scale:
@@ -457,12 +457,12 @@ class BoneInstance(Instance):
         if diff < 0:
             diff += 360
         elif diff >= 360:
-            diff -= 360 
+            diff -= 360
         if diff != 0 and not isFace:
             print('    "%s" : %d,' % (eb.name, diff))
         eb.matrix = bmat
-        
-    
+
+
     def flipAxes(self, omat, xyz):
         if xyz == 'YZX':    #
             # Blender orientation: Y = twist, X = bend
@@ -496,7 +496,7 @@ class BoneInstance(Instance):
             euler = Euler((pi/2, 0, -pi/2))
             flip = self.FZ
             self.axes = [2,0,1]
-            self.flipped = [False,False,False]
+            self.flipped = [True,False,True]
             self.flopped = [False,False,False]
         elif xyz == 'XYZ':  #
             euler = Euler((pi/2, pi/2, 0))
@@ -510,8 +510,8 @@ class BoneInstance(Instance):
         omat = Mult2(omat, rmat)
         return omat, flip
 
-        
-    def flipBone(self, omat, head, tail, flip):        
+
+    def flipBone(self, omat, head, tail, flip):
         vec = tail-head
         yaxis = Vector(omat.col[1][0:3])
         if vec.dot(yaxis) < 0:
@@ -529,7 +529,7 @@ class BoneInstance(Instance):
             offset = RollCorrectionGenesis[eb.name]
         else:
             return
-            
+
         roll = eb.roll + offset*D
         if roll > pi:
             roll -= 2*pi
@@ -559,7 +559,7 @@ class BoneInstance(Instance):
         elif offset == 180:
             f[i] = not f[i]
             f[k] = not f[k]
-        self.testPrint("CORR")        
+        self.testPrint("CORR")
 
 
     def buildBoneProps(self, rig, cscale, center):
@@ -676,7 +676,7 @@ class BoneInstance(Instance):
         else:
             return False
 
-    
+
     def getRotationMode(self, pb, useEulers):
         if GS.orientMethod == 'DAZ UNFLIPPED':
             return self.rotation_order
@@ -698,8 +698,8 @@ class BoneInstance(Instance):
             return RotationModes[pb.name]
         else:
             return 'YZX'
-            
-        
+
+
     def buildPose(self, figure, inFace, targets, missing):
         from .node import setBoneTransform
         from .driver import isBoneDriven
@@ -791,7 +791,7 @@ class BoneInstance(Instance):
                 else:
                     limits[idx] = (comp["min"], comp["max"])
                     useLimits = True
-        return locks,limits,useLimits 
+        return locks,limits,useLimits
 
 
     IndexComp = { 0 : "x", 1 : "y", 2 : "z" }
@@ -860,16 +860,16 @@ def setRoll(eb, xaxis):
     zaxis = xaxis.cross(yaxis)
     zaxis.normalize()
     eb.roll = getRoll(xaxis, yaxis, zaxis)
-    
-    
+
+
 def getRoll(xaxis, yaxis, zaxis):
     mat = Matrix().to_3x3()
     mat.col[0] = xaxis
     mat.col[1] = yaxis
     mat.col[2] = zaxis
     return getRollFromQuat(mat.to_quaternion())
-    
-    
+
+
 def getRollFromQuat(quat):
     if abs(quat.w) < 1e-4:
         roll = pi
@@ -888,7 +888,7 @@ class Bone(Node):
         self.translation = []
         self.rotation = []
         self.scale = []
-        
+
 
     def __repr__(self):
         return ("<Bone %s %s>" % (self.id, self.rna))
