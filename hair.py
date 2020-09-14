@@ -32,7 +32,6 @@ from mathutils import Vector
 from math import floor
 from .error import *
 from .utils import *
-from .tables import *
 from .material import WHITE, GREY, BLACK, isWhite, isBlack
 from .cycles import CyclesMaterial, CyclesTree
 
@@ -54,6 +53,8 @@ class HairSystem:
         self.npoints = n
         self.strands = []
         self.psys = None
+        self.useEmitter = True
+        self.vertexGroup = None
         self.density = 1
         self.renderDensity = 10
         self.material = None
@@ -62,7 +63,7 @@ class HairSystem:
         self.tipRadius = 0
 
 
-    def setSettings(self, geonode, hairmat):
+    def setHairSettings(self, geonode, hairmat):
         self.density = geonode.getValue(["PreSim Hairs Density"], 1)
         self.renderDensity = geonode.getValue(["PreRender Hairs Density"], 10)
         self.clumping = geonode.getValue(["PreSim Clumping 1 Curves Density"], 1)
@@ -125,7 +126,7 @@ class HairSystem:
         return nstrand
 
 
-    def build(self, context, ob, vgrp, useEmitter):
+    def build(self, context, ob):
         strands = self.strands
         hlen = int(len(strands[0]))
         if hlen < 3:
@@ -133,16 +134,16 @@ class HairSystem:
         bpy.ops.object.particle_system_add()
         psys = ob.particle_systems.active
         psys.name = self.name
-        if vgrp:
-            psys.vertex_group_density = vgrp.name
+        if self.vertexGroup:
+            psys.vertex_group_density = self.vertexGroup.name
 
         pset = psys.settings
         pset.type = 'HAIR'
         pset.use_strand_primitive = True
         if hasattr(pset, "use_render_emitter"):
-            pset.use_render_emitter = useEmitter
+            pset.use_render_emitter = self.useEmitter
         elif hasattr(ob, "show_instancer_for_render"):
-            ob.show_instancer_for_render = useEmitter
+            ob.show_instancer_for_render = self.useEmitter
         pset.render_type = 'PATH'
         pset.child_type = 'SIMPLE'
 
@@ -186,9 +187,23 @@ class HairSystem:
                 #print("  ", n, verts[n], v.co)
                 pass
         psys = updateHair(context, ob, psys)
-        setEditProperties(context, ob)
+        self.setEditProperties(context, ob)
         self.psys = psys
         self.object = ob
+
+
+    def setEditProperties(self, context, hum):
+        scn = context.scene
+        activateObject(context, hum)
+        bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
+        pedit = scn.tool_settings.particle_edit
+        pedit.use_emitter_deflect = False
+        pedit.use_preserve_length = False
+        pedit.use_preserve_root = False
+        hum.data.use_mirror_x = False
+        pedit.select_mode = 'POINT'
+        bpy.ops.transform.translate()
+        bpy.ops.object.mode_set(mode='OBJECT')
 
 
     def addHairDynamics(self):
@@ -197,206 +212,6 @@ class HairSystem:
         cset.pin_stiffness = 1.0
         cset.mass = 0.05
         deflector = findDeflector(self.object)
-
-
-#-------------------------------------------------------------
-#
-#-------------------------------------------------------------
-
-def findCenters(ob):
-    vs = ob.data.vertices
-    uvs = ob.data.uv_layers.active.data
-    centers = {}
-    uvcenters = {}
-    m = 0
-    for f in ob.data.polygons:
-        f.select = True
-        fn = f.index
-        if len(f.vertices) == 4:
-            vn0,vn1,vn2,vn3 = f.vertices
-            centers[fn] = (vs[vn0].co+vs[vn1].co+vs[vn2].co+vs[vn3].co)/4
-            uvcenters[fn] = (uvs[m].uv+uvs[m+1].uv+uvs[m+2].uv+uvs[m+3].uv)/4
-            m += 4
-        else:
-            vn0,vn1,vn2 = f.vertices
-            centers[fn] = (vs[vn0].co+vs[vn1].co+vs[vn2].co)/4
-            uvcenters[fn] = (uvs[m].uv+uvs[m+1].uv+uvs[m+2].uv)/4
-            m += 3
-        f.select = False
-    return centers, uvcenters
-
-
-#-------------------------------------------------------------
-#   Collect rectangles
-#-------------------------------------------------------------
-
-def collectRects(faceverts, neighbors, test=False):
-    #fclusters = dict([(fn,-1) for fn,_ in faceverts])
-    fclusters = {}
-    for fn,_ in faceverts:
-        fclusters[fn] = -1
-        for nn in neighbors[fn]:
-            fclusters[nn] = -1
-    clusters = {-1 : -1}
-    nclusters = 0
-
-    for fn,_ in faceverts:
-        fncl = [deref(nn, fclusters, clusters) for nn in neighbors[fn] if nn < fn]
-        if fncl == []:
-            cn = clusters[cn] = nclusters
-            nclusters += 1
-        else:
-            cn = min(fncl)
-            for cn1 in fncl:
-                clusters[cn1] = cn
-        fclusters[fn] = cn
-
-    for fn,_ in faceverts:
-        fclusters[fn] = deref(fn, fclusters, clusters)
-
-    rects = []
-    for cn in clusters.keys():
-        if cn == clusters[cn]:
-            faces = [fn for fn,_ in faceverts if fclusters[fn] == cn]
-            vertsraw = [vs for fn,vs in faceverts if fclusters[fn] == cn]
-            vstruct = {}
-            for vlist in vertsraw:
-                for vn in vlist:
-                    vstruct[vn] = True
-            verts = list(vstruct.keys())
-            verts.sort()
-            rects.append((verts, faces))
-            if len(rects) > 1000:
-                print("Too many rects")
-                return rects, clusters, fclusters
-
-    return rects, clusters, fclusters
-
-
-def deref(fn, fclusters, clusters):
-    cn = fclusters[fn]
-    updates = []
-    while cn != clusters[cn]:
-        updates.append(cn)
-        cn = clusters[cn]
-    for nn in updates:
-        clusters[nn] = cn
-    fclusters[fn] = cn
-    return cn
-
-
-
-def selectFaces(ob, faces):
-    for fn in faces:
-        ob.data.polygons[fn].select = True
-
-#-------------------------------------------------------------
-#
-#-------------------------------------------------------------
-
-def findStartingPoint(ob, neighbors, uvcenters):
-    types = dict([(n,[]) for n in range(1,5)])
-    for fn,neighs in neighbors.items():
-        nneighs = len(neighs)
-        if nneighs not in types.keys():
-            print("  Face %d has %d neighbors" % (fn, nneighs))
-            #selectFaces(ob, [fn]+neighs)
-            return None,None,None,None
-        types[nneighs].append(fn)
-
-    singlets = [(uvcenters[fn][0]+uvcenters[fn][1], fn) for fn in types[1]]
-    singlets.sort()
-    if len(singlets) > 0:
-        if len(singlets) != 2:
-            print("  Has %d singlets" % len(singlets))
-            return None,None,None,None
-        if (types[3] != [] or types[4] != []):
-            print("  Has 2 singlets, %d triplets and %d quadruplets" % (len(types[3]), len(types[4])))
-            return None,None,None,None
-        first = singlets[0][1]
-        corner = types[1]
-        boundary = types[2]
-        bulk = types[3]
-    else:
-        doublets = [(uvcenters[fn][0]+uvcenters[fn][1], fn) for fn in types[2]]
-        doublets.sort()
-        if len(doublets) > 4:
-            print("  Has %d doublets" % len(doublets))
-            selectFaces(ob, [fn for _,fn in doublets])
-            return None,None,None,None
-        if len(doublets) < 4:
-            if len(doublets) == 2:
-                print("  Has %d doublets" % len(doublets))
-                selectFaces(ob, neighbors.keys())
-            return None,None,None,None
-        first = doublets[0][1]
-        corner = types[2]
-        boundary = types[3]
-        bulk = types[4]
-
-    return first, corner, boundary, bulk
-
-
-def sortColumns(first, corner, boundary, bulk, neighbors, uvcenters):
-    column = getDown(first, neighbors, corner, boundary, uvcenters)
-    columns = [column]
-    if len(corner) <= 2:
-        return columns
-    fn = first
-    n = 0
-    while (True):
-        n += 1
-        horizontal = [(uvcenters[nb][0], nb) for nb in neighbors[fn]]
-        horizontal.sort()
-        fn = horizontal[-1][1]
-        if n > 50:
-            return columns
-        elif fn in corner:
-            column = getDown(fn, neighbors, corner, boundary, uvcenters)
-            columns.append(column)
-            return columns
-        elif fn in boundary:
-            column = getDown(fn, neighbors, boundary, bulk, uvcenters)
-            columns.append(column)
-        else:
-            print("Hair bug", fn)
-            return None
-            raise DazError("Hair bug")
-    print("Sorted")
-
-
-def getDown(top, neighbors, boundary, bulk, uvcenters):
-    column = [top]
-    fn = top
-    n = 0
-    while (True):
-        n += 1
-        vertical = [(uvcenters[nb][1], nb) for nb in neighbors[fn]]
-        vertical.sort()
-        fn = vertical[-1][1]
-        if fn in boundary or n > 500:
-            column.append(fn)
-            column.reverse()
-            return column
-        else:
-            column.append(fn)
-
-
-def getColumnCoords(columns, centers):
-    #print("Get column coords")
-    length = len(columns[0])
-    hcoords = []
-    short = False
-    for column in columns:
-        if len(column) < length:
-            length = len(column)
-            short = True
-        hcoord = [centers[fn] for fn in column]
-        hcoords.append(hcoord)
-    if short:
-        hcoords = [hcoord[0:length] for hcoord in hcoords]
-    return hcoords
-
 
 #-------------------------------------------------------------
 #   Make Hair
@@ -430,10 +245,11 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
 
     def run(self, context):
+        from .tables import getVertFaces, findNeighbors, findTexVerts
+
         self.nonquads = []
         scn = context.scene
         hair,hum = getHairAndHuman(context, True)
-        #vgrp = createSkullGroup(hum, scn)
 
         setActiveObject(context, hum)
         self.clearHair(hum, hair, self.color, context)
@@ -449,11 +265,11 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         faceverts,vertfaces = getVertFaces(hair)
         nfaces = len(hair.data.polygons)
         neighbors = findNeighbors(range(nfaces), faceverts, vertfaces)
-        centers,uvcenters = findCenters(hair)
+        centers,uvcenters = self.findCenters(hair)
 
         print("Collect rects")
         ordfaces = [(f.index,f.vertices) for f in hair.data.polygons]
-        rects1,_,_ = collectRects(ordfaces, neighbors)
+        rects1,_,_ = self.collectRects(ordfaces, neighbors)
 
         print("Find texverts")
         texverts,texfaces = findTexVerts(hair, vertfaces)
@@ -467,7 +283,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         for verts1,faces1 in rects1:
             texfaces1 = [(fn,texfaces[fn]) for fn in faces1]
             nn = [(fn,neighbors[fn]) for fn in faces1]
-            rects2,clusters,fclusters = collectRects(texfaces1, neighbors, True)
+            rects2,clusters,fclusters = self.collectRects(texfaces1, neighbors, True)
             for rect in rects2:
                 rects.append(rect)
 
@@ -487,13 +303,13 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             neighbors = findNeighbors(faces, faceverts, vertfaces)
             if neighbors is None:
                 continue
-            first, corner, boundary, bulk = findStartingPoint(hair, neighbors, uvcenters)
+            first, corner, boundary, bulk = self.findStartingPoint(hair, neighbors, uvcenters)
             if first is None:
                 continue
-            selectFaces(hair, faces)
-            columns = sortColumns(first, corner, boundary, bulk, neighbors, uvcenters)
+            self.selectFaces(hair, faces)
+            columns = self.sortColumns(first, corner, boundary, bulk, neighbors, uvcenters)
             if columns:
-                strands = getColumnCoords(columns, centers)
+                strands = self.getColumnCoords(columns, centers)
                 for strand in strands:
                     haircount += 1
                     if haircount % self.sparsity != 0:
@@ -525,13 +341,217 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
         print("Make particle hair")
         activateObject(context, hum)
-        addHair(hum, hsystems, context, self.skullType)
+        vgrp = createSkullGroup(hum, self.skullType)
+        useEmitter = (self.skullType == 'TOP')
+        for hsys in hsystems.values():
+            hsys.useEmitter = useEmitter
+            hsys.vertexGroup = vgrp
+            hsys.build(context, hum)
         print("Done")
 
         if self.nonquads:
-            #print("The following non-quad faces were ignored: %s" % self.nonquads)
             print("Ignored %d non-quad faces out of %d faces" % (len(self.nonquads), len(hair.data.polygons)))
 
+    #-------------------------------------------------------------
+    #   Collect rectangles
+    #-------------------------------------------------------------
+
+    def collectRects(self, faceverts, neighbors, test=False):
+        #fclusters = dict([(fn,-1) for fn,_ in faceverts])
+        fclusters = {}
+        for fn,_ in faceverts:
+            fclusters[fn] = -1
+            for nn in neighbors[fn]:
+                fclusters[nn] = -1
+        clusters = {-1 : -1}
+        nclusters = 0
+
+        for fn,_ in faceverts:
+            fncl = [self.deref(nn, fclusters, clusters) for nn in neighbors[fn] if nn < fn]
+            if fncl == []:
+                cn = clusters[cn] = nclusters
+                nclusters += 1
+            else:
+                cn = min(fncl)
+                for cn1 in fncl:
+                    clusters[cn1] = cn
+            fclusters[fn] = cn
+
+        for fn,_ in faceverts:
+            fclusters[fn] = self.deref(fn, fclusters, clusters)
+
+        rects = []
+        for cn in clusters.keys():
+            if cn == clusters[cn]:
+                faces = [fn for fn,_ in faceverts if fclusters[fn] == cn]
+                vertsraw = [vs for fn,vs in faceverts if fclusters[fn] == cn]
+                vstruct = {}
+                for vlist in vertsraw:
+                    for vn in vlist:
+                        vstruct[vn] = True
+                verts = list(vstruct.keys())
+                verts.sort()
+                rects.append((verts, faces))
+                if len(rects) > 1000:
+                    print("Too many rects")
+                    return rects, clusters, fclusters
+
+        return rects, clusters, fclusters
+
+
+    def deref(self, fn, fclusters, clusters):
+        cn = fclusters[fn]
+        updates = []
+        while cn != clusters[cn]:
+            updates.append(cn)
+            cn = clusters[cn]
+        for nn in updates:
+            clusters[nn] = cn
+        fclusters[fn] = cn
+        return cn
+
+    #-------------------------------------------------------------
+    #   Find centers
+    #-------------------------------------------------------------
+
+    def findCenters(self, ob):
+        vs = ob.data.vertices
+        uvs = ob.data.uv_layers.active.data
+        centers = {}
+        uvcenters = {}
+        m = 0
+        for f in ob.data.polygons:
+            f.select = True
+            fn = f.index
+            if len(f.vertices) == 4:
+                vn0,vn1,vn2,vn3 = f.vertices
+                centers[fn] = (vs[vn0].co+vs[vn1].co+vs[vn2].co+vs[vn3].co)/4
+                uvcenters[fn] = (uvs[m].uv+uvs[m+1].uv+uvs[m+2].uv+uvs[m+3].uv)/4
+                m += 4
+            else:
+                vn0,vn1,vn2 = f.vertices
+                centers[fn] = (vs[vn0].co+vs[vn1].co+vs[vn2].co)/4
+                uvcenters[fn] = (uvs[m].uv+uvs[m+1].uv+uvs[m+2].uv)/4
+                m += 3
+            f.select = False
+        return centers, uvcenters
+
+    #-------------------------------------------------------------
+    #   Find starting point
+    #-------------------------------------------------------------
+
+    def findStartingPoint(self, ob, neighbors, uvcenters):
+        types = dict([(n,[]) for n in range(1,5)])
+        for fn,neighs in neighbors.items():
+            nneighs = len(neighs)
+            if nneighs not in types.keys():
+                print("  Face %d has %d neighbors" % (fn, nneighs))
+                #self.selectFaces(ob, [fn]+neighs)
+                return None,None,None,None
+            types[nneighs].append(fn)
+
+        singlets = [(uvcenters[fn][0]+uvcenters[fn][1], fn) for fn in types[1]]
+        singlets.sort()
+        if len(singlets) > 0:
+            if len(singlets) != 2:
+                print("  Has %d singlets" % len(singlets))
+                return None,None,None,None
+            if (types[3] != [] or types[4] != []):
+                print("  Has 2 singlets, %d triplets and %d quadruplets" % (len(types[3]), len(types[4])))
+                return None,None,None,None
+            first = singlets[0][1]
+            corner = types[1]
+            boundary = types[2]
+            bulk = types[3]
+        else:
+            doublets = [(uvcenters[fn][0]+uvcenters[fn][1], fn) for fn in types[2]]
+            doublets.sort()
+            if len(doublets) > 4:
+                print("  Has %d doublets" % len(doublets))
+                self.selectFaces(ob, [fn for _,fn in doublets])
+                return None,None,None,None
+            if len(doublets) < 4:
+                if len(doublets) == 2:
+                    print("  Has %d doublets" % len(doublets))
+                    self.selectFaces(ob, neighbors.keys())
+                return None,None,None,None
+            first = doublets[0][1]
+            corner = types[2]
+            boundary = types[3]
+            bulk = types[4]
+
+        return first, corner, boundary, bulk
+
+    #-------------------------------------------------------------
+    #   Sort columns
+    #-------------------------------------------------------------
+
+    def sortColumns(self, first, corner, boundary, bulk, neighbors, uvcenters):
+        column = self.getDown(first, neighbors, corner, boundary, uvcenters)
+        columns = [column]
+        if len(corner) <= 2:
+            return columns
+        fn = first
+        n = 0
+        while (True):
+            n += 1
+            horizontal = [(uvcenters[nb][0], nb) for nb in neighbors[fn]]
+            horizontal.sort()
+            fn = horizontal[-1][1]
+            if n > 50:
+                return columns
+            elif fn in corner:
+                column = self.getDown(fn, neighbors, corner, boundary, uvcenters)
+                columns.append(column)
+                return columns
+            elif fn in boundary:
+                column = self.getDown(fn, neighbors, boundary, bulk, uvcenters)
+                columns.append(column)
+            else:
+                print("Hair bug", fn)
+                return None
+                raise DazError("Hair bug")
+        print("Sorted")
+
+
+    def getDown(self, top, neighbors, boundary, bulk, uvcenters):
+        column = [top]
+        fn = top
+        n = 0
+        while (True):
+            n += 1
+            vertical = [(uvcenters[nb][1], nb) for nb in neighbors[fn]]
+            vertical.sort()
+            fn = vertical[-1][1]
+            if fn in boundary or n > 500:
+                column.append(fn)
+                column.reverse()
+                return column
+            else:
+                column.append(fn)
+
+    #-------------------------------------------------------------
+    #   Get column coords
+    #-------------------------------------------------------------
+
+    def getColumnCoords(self, columns, centers):
+        #print("Get column coords")
+        length = len(columns[0])
+        hcoords = []
+        short = False
+        for column in columns:
+            if len(column) < length:
+                length = len(column)
+                short = True
+            hcoord = [centers[fn] for fn in column]
+            hcoords.append(hcoord)
+        if short:
+            hcoords = [hcoord[0:length] for hcoord in hcoords]
+        return hcoords
+
+    #-------------------------------------------------------------
+    #   Clear hair
+    #-------------------------------------------------------------
 
     def clearHair(self, hum, hair, color, context):
         nsys = len(hum.particle_systems)
@@ -551,6 +571,13 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         return True
 
 
+    def selectFaces(self, ob, faces):
+        for fn in faces:
+            ob.data.polygons[fn].select = True
+
+# ---------------------------------------------------------------------
+#
+# ---------------------------------------------------------------------
 
 def createSkullGroup(hum, skullType):
     if skullType == 'TOP':
@@ -571,15 +598,6 @@ def createSkullGroup(hum, skullType):
         return None
 
 
-def addHair(ob, hsystems, context, skullType, useHairDynamics=False):
-    vgrp = createSkullGroup(ob, skullType)
-    useEmitter = (skullType == 'TOP')
-    for hsys in hsystems.values():
-        hsys.build(context, ob, vgrp, useEmitter)
-        if useHairDynamics:
-            hsys.addHairDynamics()
-
-
 def updateHair(context, ob, psys):
     if bpy.app.version < (2,80,0):
         bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
@@ -589,24 +607,9 @@ def updateHair(context, ob, psys):
         dg = context.evaluated_depsgraph_get()
         return ob.evaluated_get(dg).particle_systems.active
 
-
-def setEditProperties(context, hum):
-    scn = context.scene
-    activateObject(context, hum)
-    bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
-    pedit = scn.tool_settings.particle_edit
-    pedit.use_emitter_deflect = False
-    pedit.use_preserve_length = False
-    pedit.use_preserve_root = False
-    hum.data.use_mirror_x = False
-    pedit.select_mode = 'POINT'
-    bpy.ops.transform.translate()
-    bpy.ops.object.mode_set(mode='OBJECT')
-
 # ---------------------------------------------------------------------
 #   Hair settings
 # ---------------------------------------------------------------------
-
 
 def getSettings(pset):
     settings = {}

@@ -645,7 +645,7 @@ class Geometry(Asset, Channels):
 
 
     def buildHair(self, geonode, context):
-        from .hair import HairSystem, addHair
+        from .hair import HairSystem, createSkullGroup
         ob = geonode.skull.rna
         hair = geonode.rna
         #print("BHAIR", self, geonode, ob)
@@ -671,11 +671,14 @@ class Geometry(Asset, Channels):
             hname = ("%s-%02d" % (matname, n))
             if hname not in hsystems.keys():
                 hsys = hsystems[hname] = HairSystem(hname, n)
-                hsys.setSettings(geonode, hmat)
+                hsys.setHairSettings(geonode, hmat)
             hsystems[hname].strands.append(strand)
 
         activateObject(context, ob)
-        addHair(ob, hsystems, context, 'TOP')
+        vgrp = createSkullGroup(ob, 'TOP')
+        for hsys in hsystems.values():
+            hsys.vertexGroup = vgrp
+            hsys.build(context, ob)
 
 
     def getHairMaterial(self, mnum):
