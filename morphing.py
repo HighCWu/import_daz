@@ -700,7 +700,6 @@ class LoadAllMorphs(LoadMorph):
         scn = context.scene
         setupMorphPaths(scn, False)
         self.usePropDrivers = (GS.addFaceDrivers and not self.useShapekeysOnly)
-        self.rig["Daz"+self.morphset] = self.char
         self.rig.DazMorphPrefixes = False
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
@@ -739,7 +738,6 @@ class StandardMorphSelector(Selector):
             return {'FINISHED'}
         setupMorphPaths(scn, False)
         for key,path in theMorphFiles[self.char][self.morphset].items():
-            #print("INVO", key)
             item = self.selection.add()
             item.name = path
             item.text = key

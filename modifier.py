@@ -141,7 +141,7 @@ class ExtraAsset(Modifier):
     def build(self, context, inst):
         pinst = inst.parent
         geonode = self.getGeoNode(inst)
-        pgeonode = self.getGeoNode(pinst)  
+        pgeonode = self.getGeoNode(pinst)
         if "studio/modifier/dynamic_generate_hair" in self.extras.keys():
             geonode.skull = pgeonode
         for etype in [
@@ -153,13 +153,13 @@ class ExtraAsset(Modifier):
             ]:
             if etype in self.extras.keys():
                 if "studio_modifier_channels" in self.extras.keys():
-                    modchannels = self.extras["studio_modifier_channels"] 
+                    modchannels = self.extras["studio_modifier_channels"]
                     for channel in modchannels["channels"]:
                         geonode.setChannel(channel["channel"])
 
 
-        
-    def getGeoNode(self, inst):    
+
+    def getGeoNode(self, inst):
         from .figure import FigureInstance
         from .geometry import GeoNode
         if isinstance(inst, FigureInstance):
@@ -167,8 +167,8 @@ class ExtraAsset(Modifier):
         elif isinstance(inst, GeoNode):
             return inst
         else:
-            return None 
-    
+            return None
+
 #-------------------------------------------------------------
 #   ChannelAsset
 #-------------------------------------------------------------
