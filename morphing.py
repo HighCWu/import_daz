@@ -145,12 +145,12 @@ def getMorphs(ob, morphset, category=None):
 def getSelector():
     global theSelector
     return theSelector
-    
+
 def setSelector(selector):
     global theSelector
     theSelector = selector
-    
-    
+
+
 class DAZ_OT_SelectAll(bpy.types.Operator):
     bl_idname = "daz.select_all"
     bl_label = "All"
@@ -398,11 +398,14 @@ def setupMorphPaths(scn, force):
                             continue
                         isright,name = isRightType(fname, prefixes, includes, excludes)
                         if isright:
+                            fname = fname.lower()
+                            if fname in typeNames.keys():
+                                continue
                             fpath = os.path.join(folder, file)
                             typeFiles[name] = os.path.join(folderpath, file)
                             prop = BoolProperty(name=name, default=True)
                             setattr(bpy.types.Scene, "Daz"+name, prop)
-                            typeNames[fname.lower()] = name
+                            typeNames[fname] = name
 
 
 def isRightType(fname, prefixes, includes, excludes):
@@ -736,6 +739,7 @@ class StandardMorphSelector(Selector):
             return {'FINISHED'}
         setupMorphPaths(scn, False)
         for key,path in theMorphFiles[self.char][self.morphset].items():
+            #print("INVO", key)
             item = self.selection.add()
             item.name = path
             item.text = key
@@ -1262,7 +1266,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
         prettifyAll(context)
 
 
-    def removeAllMorphs(self, rig): 
+    def removeAllMorphs(self, rig):
         for pb in rig.pose.bones:
             for pgs in [pb.DazLocProps, pb.DazRotProps, pb.DazScaleProps]:
                 pgs.clear()
@@ -1270,10 +1274,10 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
         for key in rig.keys():
             if key[0:3] in self.morphsets.keys():
                 deletes.append(key)
-        for key in deletes:        
+        for key in deletes:
             rig[key] = 0
             del rig[key]
-                
+
 
     def updateKey(self, ob, key):
         prefix = key[0:3]
@@ -1856,7 +1860,7 @@ class DAZ_OT_LoadMoho(DazOperator, B.DatFile, B.SingleFile):
         print("Moho file %s loaded" % self.filepath)
 
 
-    def getMohoKey(self, moho, rig):    
+    def getMohoKey(self, moho, rig):
         Moho2Daz = {
             "rest" : "Rest",
             "etc" : "K",

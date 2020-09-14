@@ -139,9 +139,10 @@ class GlobalSettings:
 
 
     def getDazPaths(self):
-        return self.contentDirs + self.mdlDirs + self.cloudDirs
-        
-    
+        paths = self.contentDirs + self.mdlDirs + self.cloudDirs
+        return paths
+
+
     def fromScene(self, scn):
         for prop,key in self.SceneTable.items():
             if hasattr(scn, prop) and hasattr(self, key):
@@ -156,7 +157,7 @@ class GlobalSettings:
         self.eliminateDuplicates()
 
 
-    def pathsFromScene(self, pgs):        
+    def pathsFromScene(self, pgs):
         paths = []
         for pg in pgs:
             path = self.fixPath(pg.name)
@@ -165,9 +166,9 @@ class GlobalSettings:
             else:
                 print("Skip non-existent path:", path)
         return paths
-        
-        
-    def pathsToScene(self, paths, pgs):        
+
+
+    def pathsToScene(self, paths, pgs):
         pgs.clear()
         for path in paths:
             pg = pgs.add()
@@ -217,7 +218,7 @@ class GlobalSettings:
         if struct:
             print("Load settings from", filepath)
             self.readDazSettings(struct)
-    
+
 
     def readDazSettings(self, struct):
         if "daz-settings" in struct.keys():
@@ -235,7 +236,7 @@ class GlobalSettings:
             raise DazError("Not a settings file   :\n'%s'" % filepath)
 
 
-    def readSettingsDirs(self, prefix, settings):         
+    def readSettingsDirs(self, prefix, settings):
         paths = []
         n = len(prefix)
         pathlist = [(key, path) for key,path in settings.items() if key[0:n] == prefix]
@@ -256,7 +257,7 @@ class GlobalSettings:
         for path in self.mdlDirs + self.cloudDirs:
             if path in content.keys():
                 print("Remove duplicate path: %s" % path)
-                del content[path]                       
+                del content[path]
         self.contentDirs = list(content.keys())
         self.mdlDirs = list(mdl.keys())
         self.cloudDirs = list(cloud.keys())
@@ -265,15 +266,15 @@ class GlobalSettings:
     def readDazPaths(self, struct, btn):
         self.contentDirs = []
         if btn.useContent:
-            self.contentDirs = self.readAutoDirs("content", struct) 
-            self.contentDirs += self.readAutoDirs("builtin_content", struct) 
+            self.contentDirs = self.readAutoDirs("content", struct)
+            self.contentDirs += self.readAutoDirs("builtin_content", struct)
         self.mdlDirs = []
         if btn.useMDL:
-            self.mdlDirs = self.readAutoDirs("builtin_mdl", struct) 
-            self.mdlDirs += self.readAutoDirs("mdl_dirs", struct) 
+            self.mdlDirs = self.readAutoDirs("builtin_mdl", struct)
+            self.mdlDirs += self.readAutoDirs("mdl_dirs", struct)
         self.cloudDirs = []
         if btn.useCloud:
-            self.cloudDirs = self.readCloudDirs("cloud_content", struct) 
+            self.cloudDirs = self.readCloudDirs("cloud_content", struct)
         self.eliminateDuplicates()
 
 
@@ -305,14 +306,14 @@ class GlobalSettings:
                     for file in os.listdir(cloud):
                         if file != "meta":
                             path = self.fixPath(os.path.join(cloud, file))
-                            if os.path.isdir(path):    
+                            if os.path.isdir(path):
                                 paths.append(path)
                             else:
                                 print("Folder does not exist", folder)
         return paths
-        
 
-    def saveDirs(self, paths, prefix, struct):        
+
+    def saveDirs(self, paths, prefix, struct):
         for n,path in enumerate(paths):
             struct["%s%03d" % (prefix, n+1)] = self.fixPath(path)
 
@@ -329,7 +330,7 @@ class GlobalSettings:
                 struct[prop] = value
         self.saveDirs(self.contentDirs, "DazContent", struct)
         self.saveDirs(self.mdlDirs, "DazMDL", struct)
-        self.saveDirs(self.cloudDirs, "DazCloud", struct)        
+        self.saveDirs(self.cloudDirs, "DazCloud", struct)
         filepath = os.path.expanduser(filepath)
         filepath = os.path.splitext(filepath)[0] + ".json"
         saveJson({"daz-settings" : struct}, filepath)
