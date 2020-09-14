@@ -56,7 +56,7 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions, B.PoleT
             elif engine == 'CYCLES':
                 self.materialMethod = 'BSDF'
             else:
-                self.materialMethod = 'PRINCIPLED'            
+                self.materialMethod = 'PRINCIPLED'
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
@@ -182,7 +182,7 @@ def addSelfRef(rig, pb):
         cns = pb.constraints[0]
         if cns.name == "Do Not Touch":
             return
-        elif not hasattr(pb.constraints, "move"):            
+        elif not hasattr(pb.constraints, "move"):
             for cns in list(pb.constraints):
                 pb.constraints.remove(cns)
 
@@ -193,7 +193,7 @@ def addSelfRef(rig, pb):
     n = len(pb.constraints)
     if n > 1:
         pb.constraints.move(n-1, 0)
-            
+
 
 def copyPropGroups(rig1, rig2, pb2):
     if pb2.name not in rig1.pose.bones.keys():
@@ -460,10 +460,10 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowRigging", box):
-            box.operator("daz.add_custom_shapes")            
-            box.operator("daz.remove_custom_shapes")            
-            box.operator("daz.connect_ik_chains")            
-            box.operator("daz.add_simple_ik")            
+            box.operator("daz.add_custom_shapes")
+            box.operator("daz.remove_custom_shapes")
+            box.operator("daz.connect_ik_chains")
+            box.operator("daz.add_simple_ik")
             box.separator()
             box.operator("daz.convert_rig")
             box.separator()
@@ -510,7 +510,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.import_dbz")
             box.separator()
             box.operator("daz.update_morphs")
-            
+
 
         layout.separator()
         box = layout.box()
@@ -548,10 +548,10 @@ class DAZ_PT_Utils(bpy.types.Panel):
             box.prop(ob, "DazUrl")
             box.prop(ob, "DazRig")
             box.prop(ob, "DazMesh")
-            box.prop(ob, "DazOrientMethod")            
+            box.prop(ob, "DazOrientMethod")
             box.prop(ob, "DazScale")
         else:
-            box.label(text = "No active object")         
+            box.label(text = "No active object")
         layout.separator()
         pb = context.active_pose_bone
         box = layout.box()
@@ -564,8 +564,8 @@ class DAZ_PT_Utils(bpy.types.Panel):
             self.propRow(box, pb, "DazLocLocks")
             self.propRow(box, pb, "DazRotLocks")
         else:
-            box.label(text = "No active bone")          
-        
+            box.label(text = "No active bone")
+
         layout.separator()
         from .error import getSilentMode
         if getSilentMode():
@@ -580,10 +580,10 @@ class DAZ_PT_Utils(bpy.types.Panel):
     def propRow(self, layout, rna, prop):
         row = layout.row()
         row.label(text=prop[3:])
-        attr = getattr(rna, prop) 
+        attr = getattr(rna, prop)
         for n in range(3):
             row.label(text=str(attr[n]))
-        
+
 
 class DAZ_PT_Posing(bpy.types.Panel):
     bl_label = "Posing"
@@ -888,7 +888,7 @@ class DAZ_PT_Rig(bpy.types.Panel):
             n = BoneLayers[second]
             row.prop(rig.data, "layers", index=m, toggle=True, text=first)
             row.prop(rig.data, "layers", index=n, toggle=True, text=second)
-            
+
 #------------------------------------------------------------------------
 #    Mhx Layers Panel
 #------------------------------------------------------------------------
@@ -1145,7 +1145,7 @@ class DAZ_OT_LoadRootPaths(DazOperator, B.SingleFile, B.JsonFile, B.LoadRootPath
         self.layout.prop(self, "useContent")
         self.layout.prop(self, "useMDL")
         self.layout.prop(self, "useCloud")
-        
+
     def execute(self, context):
         struct = GS.openFile(self.filepath)
         if struct:
@@ -1225,7 +1225,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         col = split.column()
         box = col.box()
         box.label(text = "Rigging")
-        box.prop(scn, "DazOrientMethod")        
+        box.prop(scn, "DazOrientMethod")
         box.prop(scn, "DazUseQuaternions")
         box.separator()
         box.prop(scn, "DazUseLockLoc")
@@ -1242,7 +1242,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazChooseColors")
         box.prop(scn, "DazMergeShells")
         box.prop(scn, "DazBrightenEyes")
-        box.prop(scn, "DazUseEnvironment")        
+        box.prop(scn, "DazUseEnvironment")
         box.prop(scn, "DazLimitBump")
         if scn.DazLimitBump:
             box.prop(scn, "DazMaxBump")

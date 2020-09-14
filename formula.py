@@ -522,7 +522,6 @@ class PoseboneDriver:
         from .daz import addSelfRef
         fcu.driver.type = 'SCRIPTED'
         if abs(value) > 1e-4:
-            #expr = 'evalMorphs2(self, %d, "%s")' % (fcu.array_index, key)
             expr = 'evalMorphs%s(self, %d)' % (key, fcu.array_index)
             drvexpr = fcu.driver.expression[len(init):]
             if drvexpr in ["0.000", "-0.000"]:
@@ -754,11 +753,11 @@ class PropFormulas(PoseboneDriver):
                 props.append(prop)
             if len(remains) == nremains:
                 break
-            nremains = len(remains)
             for key in batch.keys():
                 self.built[key] = True
             for key in used.keys():
                 self.taken[key] = True
+            nremains = len(remains)
         if remains:
             print("Missing:")
             for key in remains.keys():
@@ -857,6 +856,18 @@ class PropFormulas(PoseboneDriver):
                 if not success:
                     self.addOtherShapekey(prop, prop1, factor1)
                     self.addOtherShapekey(prop, prop2, factor2)
+
+            if success:
+                self.addToPropGroup(prop)
+
+
+    def addToPropGroup(self, prop):
+        from .modifier import stripPrefix
+        pg = getattr(self.rig, "Daz"+self.morphset)
+        if prop not in pg.keys():
+            item = pg.add()
+            item.name = prop
+            item.text = stripPrefix(prop)
 
 
     def addOtherShapekey(self, prop, key, factor):
