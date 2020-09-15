@@ -274,7 +274,7 @@ class LoadRootPaths:
 
     useCloud : BoolProperty(
         name = "Load Cloud Directories",
-        default = True)
+        default = False)
 
 #-------------------------------------------------------------
 #   material.py
