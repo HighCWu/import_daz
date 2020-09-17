@@ -503,11 +503,13 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                     if self.insertKeys:
                         tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
         if self.clearMorphs:
-            for key in rig.keys():
-                if key[0:2] == "Dz" and key[0:3] != "DzA":
-                    rig[key] = 0.0
+            from .morphing import getAllMorphNames
+            props = getAllMorphNames(rig)
+            for prop in props:
+                if prop in rig.keys():
+                    rig[prop] = 0.0
                     if self.insertKeys:
-                        rig.keyframe_insert('["%s"]' % key, frame=frame, group=key)
+                        rig.keyframe_insert('["%s"]' % prop, frame=frame, group=prop)
 
 
     def animateBones(self, context, animations, offset, prop, filepath, missing):
@@ -966,9 +968,12 @@ class DAZ_OT_SaveCurrentFrame(DazOperator):
             ob.keyframe_insert("location", frame=frame)
             ob.keyframe_insert("rotation_euler", frame=frame)
             ob.keyframe_insert("scale", frame=frame)
+
+            from .morphing import getAllMorphNames
+            props = getAllMorphNames(ob)
             for key in dir(ob):
-                if (key[0:2] == "Dz" or
-                    key[0:3] in ["Daz", "Mha", "Mhh"]):
+                if (key in props or
+                    key[0:3] in ["Mha", "Mhh"]):
                     value = getattr(ob, key)
                     if (isinstance(value, int) or
                         isinstance(value, float) or

@@ -85,6 +85,16 @@ def prunePropGroup(ob, pg, morphset):
             pg.remove(idx)
 
 
+def getAllMorphNames(rig):
+    props = []
+    for cat in rig.DazMorphCats:
+        props += [morph.name for morph in cat.morphs]
+    for morphset in theStandardMorphSets:
+        pg = getattr(rig, "Daz"+morphset)
+        props += list(pg.keys())
+    return props
+
+
 def getMorphList(ob, morphset, sets=None):
     pgs = getMorphs0(ob, morphset, sets, None)
     mlist = []
@@ -543,6 +553,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 min = skey.slider_min if GS.useDazPropLimits else None
                 max = skey.slider_max if GS.useDazPropLimits else None
                 makeShapekeyDriver(ob, prop, skey.value, self.rig, prop, min=min, max=max)
+                self.addToPropGroup(prop)
                 self.taken[prop] = self.built[prop] = True
                 props = [prop]
             elif self.rig and self.useBoneDrivers:
@@ -1397,35 +1408,6 @@ class DAZ_OT_UnkeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
 #   Update property limits
 #------------------------------------------------------------------
 
-def getCustomProps(ob):
-    props = []
-    for cat in ob.DazMorphCats:
-        props += [morph.name for morph in cat.morphs]
-    return props
-
-
-def updatePropLimits(rig, context):
-    from .driver import setFloatProp
-    scn = context.scene
-    min = GS.propMin
-    max = GS.propMax
-    props = getCustomProps(rig)
-    for ob in rig.children:
-        if ob.type == 'MESH' and ob.data.shape_keys:
-            for skey in ob.data.shape_keys.key_blocks:
-                if skey.name in props or skey.name[0:2] == "Dz":
-                    skey.slider_min = min
-                    skey.slider_max = max
-
-    for prop in rig.keys():
-        if (prop in props or
-            (prop[0:2] == "Dz" and prop[0:3] != "DzA")):
-            setFloatProp(rig, prop, rig[prop], min, max)
-    updateScene(context)
-    updateRig(rig, context)
-    print("Property limits updated")
-
-
 class DAZ_OT_UpdatePropLimits(DazPropsOperator, IsMeshArmature):
     bl_idname = "daz.update_prop_limits"
     bl_label = "Update Property Limits"
@@ -1437,10 +1419,37 @@ class DAZ_OT_UpdatePropLimits(DazPropsOperator, IsMeshArmature):
         self.layout.prop(scn, "DazPropMin")
         self.layout.prop(scn, "DazPropMax")
 
+
     def run(self, context):
+        GS.propMin = context.scene.DazPropMin
+        GS.propMax = context.scene.DazPropMax
         rig = getRigFromObject(context.object)
         if rig:
-            updatePropLimits(rig, context)
+            self.updatePropLimits(rig, context)
+
+
+    def invoke(self, context, event):
+        context.scene.DazPropMin = GS.propMin
+        context.scene.DazPropMax = GS.propMax
+        return DazPropsOperator.invoke(self, context, event)
+
+
+    def updatePropLimits(self, rig, context):
+        from .driver import setFloatProp
+        scn = context.scene
+        props = getAllMorphNames(rig)
+        for ob in rig.children:
+            if ob.type == 'MESH' and ob.data.shape_keys:
+                for skey in ob.data.shape_keys.key_blocks:
+                    if skey.name in props:
+                        skey.slider_min = GS.propMin
+                        skey.slider_max = GS.propMax
+        for prop in props:
+            if prop in rig.keys():
+                setFloatProp(rig, prop, rig[prop], GS.propMin, GS.propMax)
+        updateScene(context)
+        updateRig(rig, context)
+        print("Property limits updated")
 
 #------------------------------------------------------------------
 #   Remove all morph drivers
