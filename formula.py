@@ -872,7 +872,7 @@ class PropFormulas(PoseboneDriver):
 
     def addOtherShapekey(self, prop, key, factor):
         from .driver import getShapekeyPropDriver, addVarToDriver
-        if self.mesh and self.rig:
+        if self.mesh and self.mesh.type == 'MESH' and self.rig:
             skeys = self.mesh.data.shape_keys
             if skeys and key in skeys.key_blocks.keys():
                 fcu = getShapekeyPropDriver(skeys, key)
