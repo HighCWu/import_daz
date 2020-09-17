@@ -10,7 +10,7 @@
 	"expressions" : {
 		"prefix" : "phm",
 		"include" : ["phm"],
-		"exclude" : "phmunits",
+		"exclude" : "units",
 		"path" : "data/DAZ 3D/Genesis/Base/Morphs/DAZ 3D/Base/"
 	},
 	"visemes" : {
@@ -34,7 +34,8 @@
 	"body" : {
 		"prefix" : ["ctrl", "pbm"],
 		"include" : ["ctrl", "pbm"],
-		"exclude" : [],
+		"exclude" : "units",
+		"exclude2" : ["ctrlvsm"],
 		"path" : "data/DAZ 3D/Genesis/Base/Morphs/DAZ 3D/Base/"
 	}
 }	
