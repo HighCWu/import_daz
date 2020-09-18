@@ -812,7 +812,7 @@ class DAZ_PT_Rig(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return (context.object and context.object.type == 'ARMATURE')
+        return (context.object and context.object.DazRig[0:7] == "genesis")
 
     def draw(self, context):
         rig = context.object
