@@ -59,11 +59,6 @@ class Accessor:
     def storeRna(self, rna):
         global theRnas
         theRnas[self.name] = rna
-        return
-        if hasattr(rna, "type"):
-            print("Store", rna.type, self.name, rna)
-        else:
-            print("Store RNA", self.name, rna)
 
 
     def getAsset(self, id, strict=True):

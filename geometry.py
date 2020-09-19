@@ -97,7 +97,8 @@ class GeoNode(Node):
     def subdivideObject(self, ob, inst, context, cscale, center):
         if self.highdef:
             me = self.buildHDMesh(ob, cscale, center)
-            hdob = self.hdobject = bpy.data.objects.new(ob.name + "_HD", me)
+            hdob = bpy.data.objects.new(ob.name + "_HD", me)
+            self.hdobject = inst.hdobject = hdob
             self.addHDMaterials(ob.data.materials, "")
             self.arrangeObject(hdob, inst, context, cscale, center)
             self.addMultires(ob, hdob)
@@ -186,6 +187,7 @@ class GeoNode(Node):
             LS.collection.objects.unlink(hdob)
             LS.hdcollection.objects.link(hdob)
             LS.hdcollection.objects.link(hdob.parent)
+            hdob.matrix_world = Matrix()
 
 
     def finishHair(self, context):

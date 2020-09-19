@@ -134,6 +134,7 @@ class Instance(Accessor, Channels):
         self.isGroupNode = False
         self.isNodeInstance = False
         self.node2 = None
+        self.hdobject = None
         self.strand_hair = node.strand_hair
         node.strand_hair = None
         self.name = node.getLabel(self)
@@ -332,6 +333,7 @@ class Instance(Accessor, Channels):
                 return
             ob = geonode.rna
         else:
+            self.finishHD(context)
             ob = self.rna
         if not isinstance(ob, bpy.types.Object):
             return
@@ -353,6 +355,11 @@ class Instance(Accessor, Channels):
                 pass
         elif LS.fitFile and ob.type == 'MESH':
             ob.matrix_world = Matrix()
+
+
+    def finishHD(self, context):
+        if self.hdobject:
+            self.hdobject.matrix_world = Matrix()
 
 
     def formulate(self, key, value):
