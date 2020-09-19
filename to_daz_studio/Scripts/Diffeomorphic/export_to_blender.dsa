@@ -137,18 +137,15 @@ function doMesh (fp, obj, start, node, str1, str2)
     var geom = obj.getCachedGeom();
     if (geom == null)
         return false;
-    var mesh = shape.getFacetMesh( false );
-    if (mesh == null)
-        return false;
 
     if (start)
     {
         startObject(fp, node, "undefined");
     }
 
-    var nv = mesh.getNumVertices();
-    var ne = mesh.getNumEdges();
-    var nf = mesh.getNumFacets();
+    var nv = geom.getNumVertices();
+    var ne = geom.getNumEdges();
+    var nf = geom.getNumFacets();
         
     var buf = ("        \"num verts\": " + nv + ",\n");
     buf += ("        \"num edges\": " + ne + ",\n");

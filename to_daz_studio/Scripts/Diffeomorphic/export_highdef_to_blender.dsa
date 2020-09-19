@@ -140,7 +140,7 @@ function doMesh (fp, obj, start, node, str1, str2)
     var geom = obj.getCachedGeom();
     fp.writeLine("        \"lod\": " + lodvalue + ",");
     fp.writeLine("        \"subd level\": " + level + ",");
-    writeVertices(geom, geom, "hd ");
+    writeVertices(geom, "hd ");
     fp.writeLine("        ],");
     writeUVs(geom, "hd ");
     writeFaces(geom, "hd ");
@@ -151,18 +151,14 @@ function doMesh (fp, obj, start, node, str1, str2)
     obj.forceCacheUpdate(node,false);   
         
     var geom = obj.getCachedGeom();
-    if (geom == null)
-    	return endMesh(fp, str1, str2);
-    var mesh = shape.getFacetMesh( false );
-    if (mesh == null)
-    	return endMesh(fp, str1, str2);
-
+    if (geom == null) {
+        lodctrl.setValue(lodvalue);    
+        return endMesh(fp, str1, str2);
+    }
     writeMaterials(shape);
-    writeUVs(mesh, "");
-    writeFaces(mesh, "");
-    writeVertices(mesh, geom, "")    
-    fp.writeLine(str1)
-    fp.writeLine(str2)    
+    writeVertices(geom, "");   
+    fp.writeLine(str1);
+    fp.writeLine(str2);
     lodctrl.setValue(lodvalue);    
     return true;
 }
@@ -206,11 +202,11 @@ function writeMaterialGroups(geom, hd)
     fp.writeLine("        ],");
 }
 
-function writeVertices(mesh, geom, hd)
+function writeVertices(geom, hd)
 {    
-    var nv = mesh.getNumVertices();
-    var ne = mesh.getNumEdges();
-    var nf = mesh.getNumFacets();
+    var nv = geom.getNumVertices();
+    var ne = geom.getNumEdges();
+    var nf = geom.getNumFacets();
     var buf = ("        \"num " + hd + "verts\": " + nv + ",\n");
     buf += ("        \"num " + hd + "edges\": " + ne + ",\n");
     buf += ("        \"num " + hd + "faces\": " + nf + ",\n");
