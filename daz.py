@@ -456,6 +456,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.find_seams")
             box.operator("daz.get_finger_print")
             box.operator("daz.mesh_add_pinning")
+            if bpy.app.version >= (2,90,0):
+                box.operator("daz.make_multires")
 
         layout.separator()
         box = layout.box()
@@ -1216,6 +1218,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazCaseSensitivePaths")
         box.prop(scn, "DazAddFaceDrivers")
         box.prop(scn, "DazBuildHighdef")
+        box.prop(scn, "DazMultires")
 
         box.separator()
         box.prop(scn, "DazUsePropLimits")
@@ -1523,6 +1526,10 @@ def initialize():
     bpy.types.Scene.DazBuildHighdef = BoolProperty(
         name = "Build HD Meshes",
         description = "Build HD meshes if included in .dbz file")
+
+    bpy.types.Scene.DazMultires = BoolProperty(
+        name = "Add Multires",
+        description = "Add multires modifier to HD meshes and rebuild lower subdivision levels")
 
     bpy.types.Scene.DazStrandsAsHair = BoolProperty(
         name = "Strands As Hair",

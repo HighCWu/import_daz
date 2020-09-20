@@ -285,7 +285,6 @@ class DAZ_OT_ConvertRigPose(DazPropsOperator, B.NewRig):
         self.layout.prop(self, "newRig")
 
     def run(self, context):
-        from .merge import applyRestPoses
         from .globvars import theRestPoseFolder
         global RestPoses
 
@@ -308,7 +307,6 @@ class DAZ_OT_ConvertRigPose(DazPropsOperator, B.NewRig):
             if "scale" in table.keys():
                 scale = table["scale"] * rig.DazScale
         loadPose(rig, self.newRig, RestPoses, modify)
-        #applyRestPoses(context)
         rig.DazRig = src
         print("Rig converted to %s" % self.newRig)
         if scale != 1.0:

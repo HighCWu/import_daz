@@ -335,37 +335,13 @@ class SkinBinding(Modifier):
         ob,rig,geonode = self.getGeoRig(context, inst, self.skin["geometry"])
         if ob is None or rig is None or ob.type != 'MESH':
             return
-        self.makeArmatureModifier(context, ob, rig)
+        makeArmatureModifier(self.name, context, ob, rig)
         self.addVertexGroups(ob, geonode, rig)
         hdob = geonode.hdobject
-        if hdob and hdob.DazMultires:
+        if hdob and hdob.DazMultires and GS.useMultires:
             hdob.parent = ob.parent
-            self.makeArmatureModifier(context, hdob, rig)
-            vmatch = geonode.getHDMatch(ob)
-            self.copyVertexGroups(ob, hdob, vmatch)
-
-
-    def makeArmatureModifier(self, context, ob, rig):
-        mod = ob.modifiers.new(self.name, 'ARMATURE')
-        mod.object = rig
-        mod.use_deform_preserve_volume = True
-        activateObject(context, ob)
-        for n in range(len(ob.modifiers)-1):
-            bpy.ops.object.modifier_move_up(modifier=mod.name)
-        ob.lock_location = (True,True,True)
-        ob.lock_rotation = (True,True,True)
-        ob.lock_scale = (True,True,True)
-
-
-    def copyVertexGroups(self, ob, hdob, vmatch):
-        hdvgrps = {}
-        for vgrp in ob.vertex_groups:
-            hdvgrp = hdob.vertex_groups.new(name=vgrp.name)
-            hdvgrps[vgrp.index] = hdvgrp
-        for v in ob.data.vertices:
-            hdvn = v.index
-            for g in v.groups:
-                hdvgrps[g.group].add([hdvn], g.weight, 'REPLACE')
+            makeArmatureModifier(self.name, context, hdob, rig)
+            copyVertexGroups(ob, hdob)
 
 
     def getGeoRig(self, context, inst, geoname):
@@ -496,6 +472,29 @@ def buildVertexGroup(ob, vgname, weights, default=None):
         else:
             for vn in weights["values"]:
                 vgrp.add([vn], default, 'REPLACE')
+
+
+def makeArmatureModifier(name, context, ob, rig):
+    mod = ob.modifiers.new(name, 'ARMATURE')
+    mod.object = rig
+    mod.use_deform_preserve_volume = True
+    activateObject(context, ob)
+    for n in range(len(ob.modifiers)-1):
+        bpy.ops.object.modifier_move_up(modifier=mod.name)
+    ob.lock_location = (True,True,True)
+    ob.lock_rotation = (True,True,True)
+    ob.lock_scale = (True,True,True)
+
+
+def copyVertexGroups(ob, hdob):
+    hdvgrps = {}
+    for vgrp in ob.vertex_groups:
+        hdvgrp = hdob.vertex_groups.new(name=vgrp.name)
+        hdvgrps[vgrp.index] = hdvgrp
+    for v in ob.data.vertices:
+        vn = v.index
+        for g in v.groups:
+            hdvgrps[g.group].add([vn], g.weight, 'REPLACE')
 
 
 class LegacySkinBinding(SkinBinding):

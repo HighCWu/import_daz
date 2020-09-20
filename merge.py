@@ -608,9 +608,12 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                     mod.name = rig.name
                     mod.object = rig
                     return
-            mod = ob.modifiers.new(rig.name, "ARMATURE")
-            mod.object = rig
-            mod.use_deform_preserve_volume = True
+            if len(ob.vertex_groups) == 0:
+                print("Mesh with no vertex groups: %s" % ob.name)
+            else:
+                mod = ob.modifiers.new(rig.name, "ARMATURE")
+                mod.object = rig
+                mod.use_deform_preserve_volume = True
 
 
     def addExtraBones(self, ob, rig, context, scn, parbone):
@@ -730,6 +733,8 @@ def setRestPose(ob, rig, context):
         for mod in ob.modifiers:
             if mod.type == 'ARMATURE':
                 mod.object = rig
+    elif len(ob.vertex_groups) == 0:
+        print("Mesh with no vertex groups: %s" % ob.name)
     else:
         for mod in ob.modifiers:
             if mod.type == 'ARMATURE':

@@ -101,7 +101,8 @@ class GeoNode(Node):
             self.hdobject = inst.hdobject = hdob
             self.addHDMaterials(ob.data.materials, "")
             self.arrangeObject(hdob, inst, context, cscale, center)
-            self.addMultires(ob, hdob)
+            if GS.useMultires:
+                addMultires(ob, hdob, False)
 
         if ob and self.data:
             self.data.buildRigidity(ob)
@@ -136,24 +137,6 @@ class GeoNode(Node):
         return me
 
 
-    def addMultires(self, ob, hdob):
-        if bpy.app.version < (2,90,0):
-            print("Cannot rebuild subdiv in Blender %d.%d.%d" % bpy.app.version)
-            return
-        mod = hdob.modifiers.new("Multires", 'MULTIRES')
-        try:
-            bpy.ops.object.multires_rebuild_subdiv(modifier="Multires")
-            ok = True
-        except RuntimeError:
-            reportError('Cannot rebuild subdivisions for "%s"' % hdob.name, trigger=(2,4))
-            ok = False
-        if ok:
-            hdob.DazMultires = True
-        else:
-            hdob.modifiers.remove(mod)
-            LS.hdfailures.append(hdob)
-
-
     def addHDMaterials(self, mats, prefix):
         from .material import getMatKey
         for mat in mats:
@@ -170,10 +153,6 @@ class GeoNode(Node):
 
     def stripNegatives(self, faces):
         return [(f if f[-1] >= 0 else f[:-1]) for f in faces]
-
-
-    def getHDMatch(self, ob):
-        return [(vn,vn) for vn in range(len(ob.data.vertices))]
 
 
     def finishHD(self, context):
@@ -209,31 +188,31 @@ class GeoNode(Node):
 
 
     def buildHighDef(self, context, inst):
-            from .material import getMatKey
-            me = self.hdobject.data
-            matgroups = [(mname,mn) for mn,mname in enumerate(self.highdef.matgroups)]
-            matnames = [(pg.name,pg.text) for pg in me.DazHDMaterials]
-            matgroups.sort()
-            matnames.sort()
-            diff = len(matnames) - len(matgroups)
-            matnums = []
-            n = 0
-            for mname1,mname in matnames:
-                if n >= len(matgroups):
-                    break
-                mname2,mn = matgroups[n]
-                ename = mname1.rsplit("?",1)[-1]
-                if not mname2.endswith(ename) and diff > 0:
-                    diff -= 1
-                else:
-                    matnums.append((mn, mname))
-                    n += 1
-            matnums.sort()
-            for _,mname in matnums:
-                mat = bpy.data.materials[mname]
-                me.materials.append(mat)
+        from .material import getMatKey
+        me = self.hdobject.data
+        matgroups = [(mname,mn) for mn,mname in enumerate(self.highdef.matgroups)]
+        matnames = [(pg.name,pg.text) for pg in me.DazHDMaterials]
+        matgroups.sort()
+        matnames.sort()
+        diff = len(matnames) - len(matgroups)
+        matnums = []
+        n = 0
+        for mname1,mname in matnames:
+            if n >= len(matgroups):
+                break
+            mname2,mn = matgroups[n]
+            ename = mname1.rsplit("?",1)[-1]
+            if not mname2.endswith(ename) and diff > 0:
+                diff -= 1
+            else:
+                matnums.append((mn, mname))
+                n += 1
+        matnums.sort()
+        for _,mname in matnums:
+            mat = bpy.data.materials[mname]
+            me.materials.append(mat)
 
-            inst.parentObject(context, self.hdobject)
+        inst.parentObject(context, self.hdobject)
 
 
     def setHideInfo(self):
@@ -294,6 +273,58 @@ def isEmpty(vgrp, ob):
                 abs(g.weight-0.5) > 1e-4):
                 return False
     return True
+
+#-------------------------------------------------------------
+#   Add multires
+#-------------------------------------------------------------
+
+def addMultires(ob, hdob, strict):
+    if bpy.app.version < (2,90,0):
+        print("Cannot rebuild subdiv in Blender %d.%d.%d" % bpy.app.version)
+        return
+    mod = hdob.modifiers.new("Multires", 'MULTIRES')
+    try:
+        bpy.ops.object.multires_rebuild_subdiv(modifier="Multires")
+        msg = None
+    except RuntimeError:
+        msg = ('Cannot rebuild subdivisions for "%s"' % hdob.name)
+    if msg is None:
+        hdob.DazMultires = True
+    elif strict:
+        raise DazError(msg)
+    else:
+        reportError(msg, trigger=(2,4))
+        hdob.modifiers.remove(mod)
+        LS.hdfailures.append(hdob)
+
+
+class DAZ_OT_MakeMultires(DazOperator, IsMesh):
+    bl_idname = "daz.make_multires"
+    bl_label = "Make Multires"
+    bl_description = "Convert HD mesh into mesh with multires modifier, and add vertex groups"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        from .modifier import makeArmatureModifier, copyVertexGroups
+        hdob = context.object
+        baseob = None
+        for ob in getSceneObjects(context):
+            if ob.type == 'MESH' and getSelected(ob) and ob != hdob:
+                if len(hdob.data.vertices) > len(ob.data.vertices):
+                    baseob = ob
+                else:
+                    hdob = ob
+                    baseob = context.object
+                break
+        if baseob is None:
+            raise DazError("Two meshes must be selected, \none subdivided and one at base resolution.")
+        addMultires(baseob, hdob, True)
+        rig = baseob.parent
+        if not (rig and rig.type == 'ARMATURE'):
+            return
+        hdob.parent = rig
+        makeArmatureModifier(rig.name, context, hdob, rig)
+        copyVertexGroups(baseob, hdob)
 
 #-------------------------------------------------------------
 #   Geometry Asset
@@ -1028,6 +1059,7 @@ class DAZ_OT_LimitVertexGroups(DazPropsOperator, IsMesh, B.LimitInt):
 
 classes = [
     DAZ_OT_PruneUvMaps,
+    DAZ_OT_MakeMultires,
     DAZ_OT_CollapseUDims,
     DAZ_OT_RestoreUDims,
     DAZ_OT_LoadUV,

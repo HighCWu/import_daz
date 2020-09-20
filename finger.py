@@ -44,6 +44,35 @@ FingerPrints = {
     "16384-32538-16196" : "Genesis8-male",
 }
 
+FingerPrintsHD = {
+    "19296-38115-18872" : ("Genesis", 0),
+    "76283-151718-75488" : ("Genesis", 1),
+    "303489-605388-301952" : ("Genesis", 2),
+
+    "21556-42599-21098" : ("Genesis2-female", 0),
+    "85253-169556-84358" : ("Genesis2-female", 1),
+    "339167-676544-337432" : ("Genesis2-female", 2),
+
+    "17418-34326-17000" : ("Genesis3-female", 0),
+    "68744-136652-68000" : ("Genesis3-female", 1),
+    "273396-545304-272000" : ("Genesis3-female", 2),
+
+    "17246-33982-16828" : ("Genesis3-male", 0),
+    "68056-135276-67312" : ("Genesis3-male", 1),
+    "270644-539800-269248" : ("Genesis3-male", 2),
+
+    "16556-32882-16368" : ("Genesis8-female", 0),
+    "65806-131236-65472" : ("Genesis8-female", 1),
+    "262514-524360-261888" : ("Genesis8-female", 2),
+    "1048762-2096272-1047552" : ("Genesis8-female", 3),
+
+    "16384-32538-16196" : ("Genesis8-male", 0),
+    "65118-129860-64784" : ("Genesis8-male", 1),
+    "259762-518856-259136" : ("Genesis8-male", 2),
+    "1037754-2074256-1036544" : ("Genesis8-male", 3),
+}
+
+
 def getFingerPrint(ob):
     if ob.type == 'MESH':
         return ("%d-%d-%d" % (len(ob.data.vertices), len(ob.data.edges), len(ob.data.polygons)))
