@@ -152,6 +152,7 @@ class WorldTree(CyclesTree):
         backdrop = self.material.backdrop
         envmap = self.material.envmap
         eeveefix = False
+        tex = None
         if envmap:
             self.makeTree(slot="Generated")
             rot = self.getValue(["Dome Rotation"], 0)
@@ -170,8 +171,9 @@ class WorldTree(CyclesTree):
             color = WHITE
             value = self.material.getChannelValue(envmap, 1)
             img = self.getImage(envmap, "NONE")
-            tex = self.addTexEnvNode(img, "NONE")
-            self.links.new(self.texco, tex.inputs["Vector"])
+            if img:
+                tex = self.addTexEnvNode(img, "NONE")
+                self.links.new(self.texco, tex.inputs["Vector"])
             strength = self.getValue(["Environment Intensity"], 1) * value
         elif backdrop:
             self.makeTree(slot="Window")
@@ -179,8 +181,9 @@ class WorldTree(CyclesTree):
             color = background
             eeveefix = True
             img = self.getImage(backdrop, "COLOR")
-            tex = self.addTextureNode(2, img, "COLOR")
-            self.linkVector(self.texco, tex)
+            if img:
+                tex = self.addTextureNode(2, img, "COLOR")
+                self.linkVector(self.texco, tex)
         else:
             self.makeTree()
             strength = 1
