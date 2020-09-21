@@ -125,6 +125,7 @@ def getMainAsset(filepath, context, btn):
             asset.guessColor(scn, GS.chooseColors, inst)
 
     finishMain("File", filepath, t1)
+
     msg = None
     if LS.missingAssets:
         msg = ("Some assets were not found.\n" +

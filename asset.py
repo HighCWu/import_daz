@@ -241,8 +241,8 @@ class Asset(Accessor):
         self.parent = None
         self.children = []
         self.source = None
+        self.sourcing = None
         self.drivable = True
-        self.isSourced = False
 
 
     def __repr__(self):
@@ -320,8 +320,6 @@ class Asset(Accessor):
 
 
     def parse(self, struct):
-        self.source = struct
-
         if "id" in struct.keys():
             self.id = getId(struct["id"], self.fileref)
         else:
@@ -355,10 +353,9 @@ class Asset(Accessor):
                 self.parent.children.append(self)
 
         if "source" in struct.keys():
-            asset = self.copySourceFile(struct["source"])
-            if asset and not asset.isSourced:
-                self.copySource(asset)
-                asset.isSourced = True
+            asset = self.getAsset(struct["source"])
+            self.source = asset
+            asset.sourcing = self
 
         return self
 

@@ -91,7 +91,9 @@ class WorldMaterial(CyclesMaterial):
         CyclesMaterial.__init__(self, fileref)
         self.name = os.path.splitext(os.path.basename(fileref))[0] + " World"
         self.channels = render.channels
-        self.background = self.srgbToLinear(render.background)
+        self.background = None
+        if render.background:
+            self.background = self.srgbToLinear(render.background)
         self.backdrop = render.backdrop
         self.envmap = None
 

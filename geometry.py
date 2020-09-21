@@ -571,6 +571,11 @@ class Geometry(Asset, Channels):
         if (self.rna and not LS.singleUser):
             return
 
+        if self.sourcing:
+            # This does not seem to be good for anything
+            # asset = self.sourcing
+            pass
+
         name = self.getName()
         me = self.rna = bpy.data.meshes.new(name)
 
@@ -599,6 +604,13 @@ class Geometry(Asset, Channels):
             me.from_pydata([cscale*vco for vco in verts], edges, faces)
         else:
             me.from_pydata([cscale*vco-center for vco in verts], edges, faces)
+
+        if len(faces) != len(me.polygons):
+            msg = ("Not all faces were created:\n" +
+                   "Geometry: '%s'\n" % self.name +
+                   "\# DAZ faces: %d\n" % len(faces) +
+                   "\# Blender polygons: %d\n" % len(me.polygons))
+            reportError(msg, trigger=(2,3))
 
         for fn,mn in enumerate(self.material_indices):
             f = me.polygons[fn]

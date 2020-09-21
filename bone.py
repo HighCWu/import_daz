@@ -473,7 +473,6 @@ class BoneInstance(Instance):
             self.flopped = [False,False,True]
         elif xyz == 'YXZ':
             # Apparently not used
-            print("YXZ", self.name)
             euler = Euler((0, pi/2, 0))
             flip = self.FZ
             self.axes = [2,1,0]
