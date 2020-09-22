@@ -400,6 +400,110 @@ class Rigify:
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
+    def fitToDaz(self, meta, rigifySkel, dazBones):
+        for eb in meta.data.edit_bones:
+            eb.use_connect = False
+
+        for eb in meta.data.edit_bones:
+            try:
+                dname = rigifySkel[eb.name]
+            except KeyError:
+                dname = None
+            if isinstance(dname, tuple):
+                dname,_vgrps = dname
+            if isinstance(dname, str):
+                if dname in dazBones.keys():
+                    dbone = dazBones[dname]
+                    eb.head = dbone.head
+                    eb.tail = dbone.tail
+                    eb.roll = dbone.roll
+            elif isinstance(dname, tuple):
+                if (dname[0] in dazBones.keys() and
+                    dname[1] in dazBones.keys()):
+                    dbone1 = dazBones[dname[0]]
+                    dbone2 = dazBones[dname[1]]
+                    eb.head = dbone1.head
+                    eb.tail = dbone2.head
+
+
+    def fitHip(self, meta, hips, dazBones):
+        hip = meta.data.edit_bones[hips]
+        dbone = dazBones["hip"]
+        hip.tail = Vector((1,2,3))
+        hip.head = dbone.tail
+        hip.tail = dbone.head
+        return hip
+
+
+    def fitLimbs(self, meta, hip):
+        for suffix in [".L", ".R"]:
+            shoulder = meta.data.edit_bones["shoulder"+suffix]
+            upperarm = meta.data.edit_bones["upper_arm"+suffix]
+            shin = meta.data.edit_bones["shin"+suffix]
+            foot = meta.data.edit_bones["foot"+suffix]
+            toe = meta.data.edit_bones["toe"+suffix]
+
+            vec = shoulder.tail - shoulder.head
+            if (upperarm.head - shoulder.tail).length < 0.02*vec.length:
+                shoulder.tail -= 0.02*vec
+
+            if "pelvis"+suffix in meta.data.edit_bones.keys():
+                thigh = meta.data.edit_bones["thigh"+suffix]
+                pelvis = meta.data.edit_bones["pelvis"+suffix]
+                pelvis.head = hip.head
+                pelvis.tail = thigh.head
+
+            #if "breast"+suffix in meta.data.edit_bones.keys():
+            #    breast = meta.data.edit_bones["breast"+suffix]
+            #    breast.head[0] = breast.tail[0]
+            #    breast.head[2] = breast.tail[2]
+
+            foot.head = shin.tail
+            toe.head = foot.tail
+            xa,ya,za = foot.head
+            xb,yb,zb = toe.head
+
+            heelhead = foot.head
+            heeltail = Vector((xa, yb-1.3*(yb-ya), zb))
+            mid = (toe.head + heeltail)/2
+            r = Vector((yb-ya,0,0))
+            if xa > 0:
+                fac = 0.3
+            else:
+                fac = -0.3
+            heel02head = mid + fac*r
+            heel02tail = mid - fac*r
+
+            if "heel"+suffix in meta.data.edit_bones.keys():
+                heel = meta.data.edit_bones["heel"+suffix]
+                heel.head = heelhead
+                heel.tail = heeltail
+            if "heel.02"+suffix in meta.data.edit_bones.keys():
+                heel02 = meta.data.edit_bones["heel.02"+suffix]
+                heel02.head = heel02head
+                heel02.tail = heel02tail
+
+
+    def fitSpine(self, meta, spineBones, dazBones):
+        mbones = meta.data.edit_bones
+        for dname,rname,pname in spineBones:
+            if dname not in dazBones.keys():
+                continue
+            dbone = dazBones[dname]
+            if rname in mbones.keys():
+                eb = mbones[rname]
+            else:
+                eb = mbones.new(dname)
+                eb.name = rname
+            eb.use_connect = False
+            eb.head = dbone.head
+            eb.tail = dbone.tail
+            eb.roll = dbone.roll
+            eb.parent = mbones[pname]
+            eb.use_connect = True
+            eb.layers = list(eb.parent.layers)
+
+
     def reparentBones(self, rig, parents):
         bpy.ops.object.mode_set(mode='EDIT')
         for bname,pname in parents.items():
@@ -410,6 +514,59 @@ class Rigify:
                 eb.use_connect = False
                 eb.parent = parb
         bpy.ops.object.mode_set(mode='OBJECT')
+
+
+    def addRigifyProps(self, meta):
+        # Add rigify properties to spine bones
+        bpy.ops.object.mode_set(mode='OBJECT')
+        disconnect = []
+        connect = []
+        for pb in meta.pose.bones:
+            if "rigify_type" in pb.keys():
+                if pb["rigify_type"] == "":
+                    pass
+                elif pb["rigify_type"] == "spines.super_head":
+                    disconnect.append(pb.name)
+                elif pb["rigify_type"] == "limbs.super_finger":
+                    connect += self.getChildren(pb)
+                    pb.rigify_parameters.primary_rotation_axis = 'X'
+                elif pb["rigify_type"] == "limbs.super_limb":
+                    pb.rigify_parameters.rotation_axis = 'x'
+                    pb.rigify_parameters.auto_align_extremity = self.useAutoAlign
+                elif pb["rigify_type"] in [
+                    "spines.super_spine",
+                    "spines.basic_spine",
+                    "basic.super_copy",
+                    "limbs.super_palm",
+                    "limbs.simple_tentacle"]:
+                    pass
+                else:
+                    print("RIGIFYTYPE %s: %s" % (pb.name, pb["rigify_type"]))
+        for rname,prop,value in RigifyParams:
+            if rname in meta.pose.bones:
+                pb = meta.pose.bones[rname]
+                setattr(pb.rigify_parameters, prop, value)
+        return connect, disconnect
+
+
+    def setConnected(self, meta, connect, disconnect):
+        # Connect and disconnect bones that have to be so
+        for rname in disconnect:
+            eb = meta.data.edit_bones[rname]
+            eb.use_connect = False
+        for rname in connect:
+            eb = meta.data.edit_bones[rname]
+            eb.use_connect = True
+
+
+    def recalcRoll(self, meta):
+        # https://bitbucket.org/Diffeomorphic/import_daz/issues/199/rigi-fy-thigh_ik_targetl-and
+        for eb in meta.data.edit_bones:
+            eb.select = False
+        for rname in ["thigh.L", "thigh.R", "shin.L", "shin.R"]:
+            eb = meta.data.edit_bones[rname]
+            eb.select = True
+        bpy.ops.armature.calculate_roll(type='GLOBAL_POS_Y')
 
 
     def setupExtras(self, rig, rigifySkel, spineBones):
@@ -602,92 +759,19 @@ class Rigify:
         dazBones = self.getDazBones(rig)
 
         # Fit metarig to default DAZ rig
-        setActiveObject(context, meta)
-        setSelected(meta, True)
+        #setActiveObject(context, meta)
+        #setSelected(meta, True)
+        activateObject(context, meta)
         bpy.ops.object.mode_set(mode='EDIT')
-
-        for eb in meta.data.edit_bones:
-            eb.use_connect = False
-
-        for eb in meta.data.edit_bones:
-            try:
-                dname = rigifySkel[eb.name]
-            except KeyError:
-                dname = None
-            if isinstance(dname, tuple):
-                dname,_vgrps = dname
-            if isinstance(dname, str):
-                if dname in dazBones.keys():
-                    dbone = dazBones[dname]
-                    eb.head = dbone.head
-                    eb.tail = dbone.tail
-                    eb.roll = dbone.roll
-            elif isinstance(dname, tuple):
-                if (dname[0] in dazBones.keys() and
-                    dname[1] in dazBones.keys()):
-                    dbone1 = dazBones[dname[0]]
-                    dbone2 = dazBones[dname[1]]
-                    eb.head = dbone1.head
-                    eb.tail = dbone2.head
-
-        hip = meta.data.edit_bones[hips]
-        dbone = dazBones["hip"]
-        hip.tail = Vector((1,2,3))
-        hip.head = dbone.tail
-        hip.tail = dbone.head
+        self.fitToDaz(meta, rigifySkel, dazBones)
+        hip = self.fitHip(meta, hips, dazBones)
 
         if meta.DazRigifyType in ["genesis3", "genesis8"]:
             eb = meta.data.edit_bones[head]
             eb.tail = eb.head + 1.0*(eb.tail - eb.head)
 
         self.fixHands(meta)
-
-        for suffix in [".L", ".R"]:
-            shoulder = meta.data.edit_bones["shoulder"+suffix]
-            upperarm = meta.data.edit_bones["upper_arm"+suffix]
-            shin = meta.data.edit_bones["shin"+suffix]
-            foot = meta.data.edit_bones["foot"+suffix]
-            toe = meta.data.edit_bones["toe"+suffix]
-
-            vec = shoulder.tail - shoulder.head
-            if (upperarm.head - shoulder.tail).length < 0.02*vec.length:
-                shoulder.tail -= 0.02*vec
-
-            if "pelvis"+suffix in meta.data.edit_bones.keys():
-                thigh = meta.data.edit_bones["thigh"+suffix]
-                pelvis = meta.data.edit_bones["pelvis"+suffix]
-                pelvis.head = hip.head
-                pelvis.tail = thigh.head
-
-            #if "breast"+suffix in meta.data.edit_bones.keys():
-            #    breast = meta.data.edit_bones["breast"+suffix]
-            #    breast.head[0] = breast.tail[0]
-            #    breast.head[2] = breast.tail[2]
-
-            foot.head = shin.tail
-            toe.head = foot.tail
-            xa,ya,za = foot.head
-            xb,yb,zb = toe.head
-
-            heelhead = foot.head
-            heeltail = Vector((xa, yb-1.3*(yb-ya), zb))
-            mid = (toe.head + heeltail)/2
-            r = Vector((yb-ya,0,0))
-            if xa > 0:
-                fac = 0.3
-            else:
-                fac = -0.3
-            heel02head = mid + fac*r
-            heel02tail = mid - fac*r
-
-            if "heel"+suffix in meta.data.edit_bones.keys():
-                heel = meta.data.edit_bones["heel"+suffix]
-                heel.head = heelhead
-                heel.tail = heeltail
-            if "heel.02"+suffix in meta.data.edit_bones.keys():
-                heel02 = meta.data.edit_bones["heel.02"+suffix]
-                heel02.head = heel02head
-                heel02.tail = heel02tail
+        self.fitLimbs(meta, hip)
 
         for eb in meta.data.edit_bones:
             if (eb.parent and
@@ -695,66 +779,13 @@ class Rigify:
                 eb.name not in MetaDisconnect):
                 eb.use_connect = True
 
-        # Fix spine
-        mbones = meta.data.edit_bones
-        for dname,rname,pname in spineBones:
-            if dname not in dazBones.keys():
-                continue
-            dbone = dazBones[dname]
-            if rname in mbones.keys():
-                eb = mbones[rname]
-            else:
-                eb = mbones.new(dname)
-                eb.name = rname
-            eb.use_connect = False
-            eb.head = dbone.head
-            eb.tail = dbone.tail
-            eb.roll = dbone.roll
-            eb.parent = mbones[pname]
-            eb.use_connect = True
-            eb.layers = list(eb.parent.layers)
-
+        self.fitSpine(meta, spineBones, dazBones)
         self.reparentBones(meta, MetaParents)
+        connect,disconnect = self.addRigifyProps(meta)
 
-        # Add rigify properties to spine bones
-        bpy.ops.object.mode_set(mode='OBJECT')
-        disconnect = []
-        connect = []
-        for pb in meta.pose.bones:
-            if "rigify_type" in pb.keys():
-                if pb["rigify_type"] == "":
-                    pass
-                elif pb["rigify_type"] == "spines.super_head":
-                    disconnect.append(pb.name)
-                elif pb["rigify_type"] == "limbs.super_finger":
-                    connect += self.getChildren(pb)
-                    pb.rigify_parameters.primary_rotation_axis = 'X'
-                elif pb["rigify_type"] == "limbs.super_limb":
-                    pb.rigify_parameters.rotation_axis = 'x'
-                    pb.rigify_parameters.auto_align_extremity = self.useAutoAlign
-                elif pb["rigify_type"] in [
-                    "spines.super_spine",
-                    "spines.basic_spine",
-                    "basic.super_copy",
-                    "limbs.super_palm",
-                    "limbs.simple_tentacle"]:
-                    pass
-                else:
-                    print("RIGIFYTYPE %s: %s" % (pb.name, pb["rigify_type"]))
-
-        for rname,prop,value in RigifyParams:
-            if rname in meta.pose.bones:
-                pb = meta.pose.bones[rname]
-                setattr(pb.rigify_parameters, prop, value)
-
-        # Disconnect bones that have to be disconnected
         bpy.ops.object.mode_set(mode='EDIT')
-        for rname in disconnect:
-            eb = meta.data.edit_bones[rname]
-            eb.use_connect = False
-        for rname in connect:
-            eb = meta.data.edit_bones[rname]
-            eb.use_connect = True
+        self.setConnected(meta, connect, disconnect)
+        self.recalcRoll(meta)
         bpy.ops.object.mode_set(mode='OBJECT')
 
         print("Metarig created")

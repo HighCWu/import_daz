@@ -1456,9 +1456,9 @@ def checkRenderSettings(context, force):
     if force:
         handle = "UPDATE"
     msg = ""
-    msg += checkSettings(scn.cycles, renderSettingsCycles, handle, "Cycles Settings")
+    msg += checkSettings(scn.cycles, renderSettingsCycles, handle, "Cycles Settings", force)
     if bpy.app.version >= (2,80,0):
-        msg += checkSettings(scn.eevee, renderSettingsEevee, handle, "Eevee Settings")
+        msg += checkSettings(scn.eevee, renderSettingsEevee, handle, "Eevee Settings", force)
 
     if bpy.app.version < (2,80,0):
         bpydatalamps = bpy.data.lamps
@@ -1471,7 +1471,7 @@ def checkRenderSettings(context, force):
         handle = "UPDATE"
     for lamp in bpydatalamps:
         header = '%s "%s" settings' % (lamptype, lamp.name)
-        msg += checkSettings(lamp, lightSettings, handle, header)
+        msg += checkSettings(lamp, lightSettings, handle, header, force)
 
     if msg:
         msg += "See http://diffeomorphic.blogspot.com/2020/04/render-settings.html for details."
@@ -1481,13 +1481,13 @@ def checkRenderSettings(context, force):
         return ""
 
 
-def checkSettings(engine, settings, handle, header):
+def checkSettings(engine, settings, handle, header, force):
     msg = ""
     if handle == "IGNORE":
         return msg
     ok = True
     for key,used in LS.usedFeatures.items():
-        if used and key in settings.keys():
+        if (force or used) and key in settings.keys():
             for attr,op,minval in settings[key]:
                 if not hasattr(engine, attr):
                     continue
