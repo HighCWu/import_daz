@@ -608,7 +608,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                         mname = bname[1].lower() + bname[2:] + ".L"
                     elif bname[0] == "r":
                         mname = bname[1].lower() + bname[2:] + ".R"
-                if pb.bone.layers[NewFaceLayer]:
+                if pb.bone.layers[NewFaceLayer-1]:
                     pb.bone.layers = faceLayer
                 else:
                     pb.bone.layers = clothesLayer
