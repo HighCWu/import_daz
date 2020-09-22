@@ -33,6 +33,7 @@ import os
 from mathutils import *
 from .error import *
 from .utils import *
+from .globvars import NewFaceLayer
 
 #-------------------------------------------------------------
 #   Bone layers
@@ -607,7 +608,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                         mname = bname[1].lower() + bname[2:] + ".L"
                     elif bname[0] == "r":
                         mname = bname[1].lower() + bname[2:] + ".R"
-                if pb.bone.layers[L_FACE]:
+                if pb.bone.layers[NewFaceLayer]:
                     pb.bone.layers = faceLayer
                 else:
                     pb.bone.layers = clothesLayer

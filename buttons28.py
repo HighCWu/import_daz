@@ -361,7 +361,7 @@ class BoneLayers:
         name = "Posable Bone Layer",
         description = "Put the posable bones on this layer.",
         min = 1, max = 32,
-        default = 8)
+        default = G.NewFaceLayer)
 
     drivenLayer : IntProperty(
         name = "Driven Bone Layer",
