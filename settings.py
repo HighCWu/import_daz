@@ -87,6 +87,8 @@ class GlobalSettings:
 
         self.useLockLoc = True
         self.useLimitLoc = True
+        self.useLockRot = True
+        self.useLimitRot = True
         self.useConnect = True
 
         self.buildHighdef = True
@@ -128,6 +130,8 @@ class GlobalSettings:
         "DazUseQuaternions" : "useQuaternions",
         "DazUseLockLoc" : "useLockLoc",
         "DazUseLimitLoc" : "useLimitLoc",
+        "DazUseLockRot" : "useLockRot",
+        "DazUseLimitRot" : "useLimitRot",
 
         "DazBuildHighdef" : "buildHighdef",
         "DazMultires" : "useMultires",
@@ -358,11 +362,7 @@ class LocalSettings:
         self.fitFile = False
         self.autoMaterials = True
         self.materialMethod = 'BSDF'
-        self.useLockRot = True
-        self.useLimitRot = True
         self.useCustomShapes = True
-        self.useSimpleIK = True
-        self.usePoleTargets = False
 
         self.useNodes = False
         self.useGeometries = False
@@ -428,15 +428,7 @@ class LocalSettings:
         self.skinColor = btn.skinColor
         self.clothesColor = btn.clothesColor
         self.materialMethod = btn.materialMethod
-        self.useLockRot = btn.useLockRot
-        self.useLimitRot = btn.useLimitRot
         self.useCustomShapes = btn.useCustomShapes
-        if self.useLockRot and self.useLimitRot:
-            self.useSimpleIK = btn.useSimpleIK
-            self.usePoleTargets = btn.usePoleTargets
-        else:
-            self.useSimpleIK = False
-            self.usePoleTargets = False
 
         self.useStrict = True
         self.singleUser = True

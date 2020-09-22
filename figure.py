@@ -105,22 +105,19 @@ class FigureInstance(Instance):
         if missing and GS.verbosity > 2:
             print("Missing bones when posing %s" % self.name)
             print("  %s" % [inst.node.name for inst in missing])
-        rig.DazRotLocks = LS.useLockRot
+        rig.DazRotLocks = GS.useLockRot
         rig.DazLocLocks = GS.useLockLoc
-        rig.DazRotLimits = LS.useLimitRot
+        rig.DazRotLimits = GS.useLimitRot
         rig.DazLocLimits = GS.useLimitLoc
         self.fixDependencyLoops(rig)
 
-        if self.node.rigtype and (LS.useCustomShapes or LS.useSimpleIK):
+        if self.node.rigtype and LS.useCustomShapes:
             for geo in self.geometries:
                 if geo.rna:
                     _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
                     if char:
-                        simpleIK = SimpleIK(LS.usePoleTargets)
                         if LS.useCustomShapes:
-                            addCustomShapes(rig, simpleIK)
-                        if LS.useSimpleIK:
-                            addSimpleIK(rig, simpleIK)
+                            addCustomShapes(rig)
 
         bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -1022,10 +1019,12 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        addCustomShapes(context.object, SimpleIK())
+        addCustomShapes(context.object)
 
 
-def addCustomShapes(rig, IK):
+def addCustomShapes(rig):
+    IK = SimpleIK()
+
     csCollar = makeCustomShape("CS_Collar", "CircleX", (0,1,0), (0,0.5,0.1))
     csHand = makeCustomShape("CS_Hand", "CircleX", (0,1,0), (0,0.6,0.5))
     csCarpal = makeCustomShape("CS_Carpal", "CircleZ", (0,1,0), (0.1,0.5,0))

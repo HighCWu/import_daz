@@ -65,6 +65,7 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions, B.PoleT
         layout = self.layout
         scn = context.scene
         layout.prop(self, "unitScale")
+        layout.prop(self, "useCustomShapes")
 
         layout.separator()
         box = layout.box()
@@ -82,17 +83,6 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions, B.PoleT
         box = layout.box()
         box.label(text = "Material Method")
         box.prop(self, "materialMethod", expand=True)
-
-        layout.separator()
-        box = layout.box()
-        box.label(text = "Rigging")
-        box.prop(self, "useLockRot")
-        box.prop(self, "useLimitRot")
-        box.prop(self, "useCustomShapes")
-        if self.useLimitRot and self.useLockRot:
-            box.prop(self, "useSimpleIK")
-            if self.useSimpleIK:
-                box.prop(self, "usePoleTargets")
 
 #-------------------------------------------------------------
 #   Silent mode
@@ -308,8 +298,12 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.merge_rigs")
             box.operator("daz.eliminate_empties")
             box.operator("daz.merge_toes")
+            box.separator()
             box.operator("daz.add_extra_face_bones")
             box.operator("daz.make_all_bones_posable")
+            box.separator()
+            box.operator("daz.add_custom_shapes")
+            box.operator("daz.add_simple_ik")
             box.operator("daz.update_all")
 
         layout.separator()
@@ -462,10 +456,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowRigging", box):
-            box.operator("daz.add_custom_shapes")
             box.operator("daz.remove_custom_shapes")
             box.operator("daz.connect_ik_chains")
-            box.operator("daz.add_simple_ik")
             box.separator()
             box.operator("daz.convert_rig")
             box.separator()
@@ -1234,6 +1226,8 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.separator()
         box.prop(scn, "DazUseLockLoc")
         box.prop(scn, "DazUseLimitLoc")
+        box.prop(scn, "DazUseLockRot")
+        box.prop(scn, "DazUseLimitRot")
         box.prop(scn, "DazUseLegacyLocks")
 
         box = col.box()
@@ -1490,6 +1484,14 @@ def initialize():
     bpy.types.Scene.DazUseLimitLoc = BoolProperty(
         name = "Location Limits",
         description = "Use location limits")
+
+    bpy.types.Scene.DazUseLockRot = BoolProperty(
+        name = "Rotation Locks",
+        description = "Use rotation locks")
+
+    bpy.types.Scene.DazUseLimitRot = BoolProperty(
+        name = "Rotation Limits",
+        description = "Use rotation limits")
 
     bpy.types.Scene.DazZup = BoolProperty(
         name = "Z Up",

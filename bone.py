@@ -761,7 +761,7 @@ class BoneInstance(Instance):
 
 
     def setRotationLockLegacy(self, pb):
-        if LS.useLockRot:
+        if GS.useLockRot:
             pb.lock_rotation = (False,False,False)
             if self.node.name[-5:] == "Twist":
                 pb.lock_rotation = (True,False,True)
@@ -800,11 +800,11 @@ class BoneInstance(Instance):
         pb.DazRotLocks = locks
         if pb.rotation_mode == 'QUATERNION':
             return
-        if LS.useLockRot:
+        if GS.useLockRot:
             for n,lock in enumerate(locks):
                 idx = self.axes[n]
                 pb.lock_rotation[idx] = lock
-        if LS.useLimitRot and useLimits:
+        if GS.useLimitRot and useLimits:
             cns = pb.constraints.new('LIMIT_ROTATION')
             cns.owner_space = 'LOCAL'
             for n,limit in enumerate(limits):

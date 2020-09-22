@@ -243,25 +243,10 @@ class DazOptions:
 
     lastMethod = StringProperty(default = "")
 
-    useLockRot = BoolProperty(
-        name = "Rotation Locks",
-        description = "Use rotation locks",
-        default = True)
-
-    useLimitRot = BoolProperty(
-        name = "Rotation Limits",
-        description = "Use rotation limits",
-        default = True)
-
     useCustomShapes = BoolProperty(
         name = "Custom Shapes",
         description = "Add custom shapes to character bones",
         default = True)
-
-    useSimpleIK = BoolProperty(
-        name = "Inverse Kinematics",
-        description = "Add simple kinematics to character rigs",
-        default = False)
 
 
 class LoadRootPaths:
