@@ -769,7 +769,7 @@ def copyBoneDrivers(rig1, rig2):
                 copyDriver(fcu, rig2, id=rig2)
 
         for pb1 in rig1.pose.bones:
-            if pb1.name in rig2.pose.bones.keys() and pb1.DazMorphs:
+            if pb1.name in rig2.pose.bones.keys() and pb1.DazDriven:
                 pb2 = rig2.pose.bones[pb1.name]
                 copyPropGroups(rig1, rig2, pb2)
 
