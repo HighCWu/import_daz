@@ -124,7 +124,8 @@ class ExtraAsset(Modifier):
 
     def update(self, struct):
         Modifier.update(self, struct)
-
+        if "extra" not in struct.keys():
+            return
         extras = struct["extra"]
         if not isinstance(extras, list):
             extras = [extras]
