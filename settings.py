@@ -96,6 +96,8 @@ class GlobalSettings:
         self.strandsAsHair = True
         self.multipleHairMaterials = True
         self.addFaceDrivers = True
+        self.useInfluence = True
+        self.useSimulation = False
 
 
     SceneTable = {
@@ -138,6 +140,8 @@ class GlobalSettings:
         "DazStrandsAsHair" : "strandsAsHair",
         "DazMultipleHairMaterials" : "multipleHairMaterials",
         "DazAddFaceDrivers" : "addFaceDrivers",
+        "DazInfluence" : "useInfluence",
+        "DazSimulation" : "useSimulation",
     }
 
     def fixPath(self, path):

@@ -142,21 +142,23 @@ class ExtraAsset(Modifier):
         pinst = inst.parent
         geonode = self.getGeoNode(inst)
         pgeonode = self.getGeoNode(pinst)
-        if "studio/modifier/dynamic_generate_hair" in self.extras.keys():
-            geonode.skull = pgeonode
-        for etype in [
-            "studio/modifier/dynamic_hair_follow",
-            "studio/modifier/dynamic_generate_hair",
-            "studio/modifier/dynamic_simulation",
-            "studio/modifier/line_tessellation",
-            "studio/simulation_settings/dynamic_simulation",
-            ]:
-            if etype in self.extras.keys():
-                if "studio_modifier_channels" in self.extras.keys():
-                    modchannels = self.extras["studio_modifier_channels"]
-                    for channel in modchannels["channels"]:
-                        geonode.setChannel(channel["channel"])
-
+        for etype,extra in self.extras.items():
+            if etype == "studio/modifier/dynamic_generate_hair":
+                geonode.skull = pgeonode
+            elif etype == "studio/modifier/dynamic_simulation":
+                if (GS.useInfluence and
+                    "influence_weights" in extra.keys()):
+                    geonode.buildInfluence(self, extra)
+            elif etype == "studio/modifier/dynamic_hair_follow":
+                pass
+            elif etype == "studio/modifier/line_tessellation":
+                pass
+            elif etype == "studio/simulation_settings/dynamic_simulation":
+                pass
+            elif etype == "studio_modifier_channels":
+                modchannels = self.extras["studio_modifier_channels"]
+                for channel in modchannels["channels"]:
+                   geonode.setChannel(channel["channel"])
 
 
     def getGeoNode(self, inst):
@@ -472,6 +474,8 @@ def buildVertexGroup(ob, vgname, weights, default=None):
         else:
             for vn in weights["values"]:
                 vgrp.add([vn], default, 'REPLACE')
+        return vgrp
+    return None
 
 
 def makeArmatureModifier(name, context, ob, rig):

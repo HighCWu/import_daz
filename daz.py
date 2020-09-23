@@ -1186,10 +1186,14 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazZup")
         box.prop(scn, "DazCaseSensitivePaths")
         box.prop(scn, "DazAddFaceDrivers")
+
+        box = col.box()
+        box.label(text = "Meshes")
         box.prop(scn, "DazBuildHighdef")
         box.prop(scn, "DazMultires")
 
-        box.separator()
+        box = col.box()
+        box.label(text = "Properties")
         box.prop(scn, "DazUsePropLimits")
         box.prop(scn, "DazUsePropDefault")
         box.prop(scn, "DazPropMin")
@@ -1211,6 +1215,11 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Hair")
         box.prop(scn, "DazStrandsAsHair")
         box.prop(scn, "DazMultipleHairMaterials")
+
+        box = col.box()
+        box.label(text = "Simulation")
+        box.prop(scn, "DazInfluence")
+        box.prop(scn, "DazSimulation")
 
         box = split.box()
         box.label(text = "Materials")
@@ -1509,6 +1518,14 @@ def initialize():
     bpy.types.Scene.DazMultires = BoolProperty(
         name = "Add Multires",
         description = "Add multires modifier to HD meshes and rebuild lower subdivision levels")
+
+    bpy.types.Scene.DazInfluence = BoolProperty(
+        name = "Influence Groups",
+        description = "Add influence vertex groups")
+
+    bpy.types.Scene.DazSimulation = BoolProperty(
+        name = "Simulation",
+        description = "Add simultations")
 
     bpy.types.Scene.DazStrandsAsHair = BoolProperty(
         name = "Strands As Hair",
