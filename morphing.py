@@ -1483,7 +1483,6 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, B.MorphSets, IsMeshArmat
         if rig:
             setupMorphPaths(scn, False)
             removeRigDrivers(rig)
-            self.removeSelfRefs(rig)
             self.clearPropGroups(rig)
             if self.useCustom:
                 self.removeCustom(rig, morphsets)
@@ -1496,15 +1495,6 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, B.MorphSets, IsMeshArmat
                     self.removeMorphSets(ob, morphsets)
             updateScene(context)
             updateRig(rig, context)
-
-
-    def removeSelfRefs(self, rig):
-        for pb in rig.pose.bones:
-            if len(pb.constraints) > 0:
-                cns = pb.constraints[0]
-                if (cns.mute and
-                    cns.name == "Do Not Touch"):
-                    pb.constraints.remove(cns)
 
 
     def clearPropGroups(self, rig):

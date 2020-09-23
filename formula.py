@@ -519,7 +519,6 @@ class PoseboneDriver:
 
     def addCustomDriver(self, fcu, pb, init, value, prop, key):
         from .driver import addTransformVar, driverHasVar
-        from .daz import addSelfRef
         fcu.driver.type = 'SCRIPTED'
         if abs(value) > 1e-4:
             expr = 'evalMorphs%s(self, %d)' % (key, fcu.array_index)
@@ -535,7 +534,7 @@ class PoseboneDriver:
                 else:
                     fcu.driver.expression = drvexpr + "+" + expr
             fcu.driver.use_self = True
-            addSelfRef(self.rig, pb)
+            pb.DazDriven = True
             self.addMorphGroup(pb, fcu.array_index, key, prop, self.default, value)
             if len(fcu.modifiers) > 0:
                 fmod = fcu.modifiers[0]

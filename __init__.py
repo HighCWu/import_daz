@@ -29,7 +29,7 @@
 bl_info = {
     "name": "DAZ (.duf, .dsf) format",
     "author": "Thomas Larsson",
-    "version": (1,5,0),
+    "version": (1,5,1),
     "blender": (2,83,0),
     "location": "File > Import-Export",
     "description": "Import-Export DAZ",

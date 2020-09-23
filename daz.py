@@ -137,52 +137,29 @@ class DazMorphGroup(bpy.types.PropertyGroup, B.DazMorphGroupProps):
 
 # Old style evalMorphs, for backward compatibility
 def evalMorphs(pb, idx, key):
-    rig = pb.constraints[0].target
+    rig = pb.id_data
     props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
     return sum([pg.factor*(rig[pg.prop]-pg.default) for pg in props if pg.index == idx])
 
 
 # New style evalMorphs
 def evalMorphs2(pb, idx, key):
-    rig = pb.constraints[0].target
+    rig = pb.id_data
     pgs = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
     return sum([pg.eval(rig) for pg in pgs if pg.index == idx])
 
 # Perhaps faster morph evaluation
 def evalMorphsLoc(pb, idx):
-    rig = pb.constraints[0].target
+    rig = pb.id_data
     return sum([pg.eval(rig) for pg in pb.DazLocProps if pg.index == idx])
 
 def evalMorphsRot(pb, idx):
-    rig = pb.constraints[0].target
+    rig = pb.id_data
     return sum([pg.eval(rig) for pg in pb.DazRotProps if pg.index == idx])
 
 def evalMorphsSca(pb, idx):
-    rig = pb.constraints[0].target
+    rig = pb.id_data
     return sum([pg.eval(rig) for pg in pb.DazScaleProps if pg.index == idx])
-
-
-def hasSelfRef(pb):
-    return (pb.constraints and
-            pb.constraints[0].name == "Do Not Touch")
-
-
-def addSelfRef(rig, pb):
-    if pb.constraints:
-        cns = pb.constraints[0]
-        if cns.name == "Do Not Touch":
-            return
-        elif not hasattr(pb.constraints, "move"):
-            for cns in list(pb.constraints):
-                pb.constraints.remove(cns)
-
-    cns = pb.constraints.new('COPY_LOCATION')
-    cns.name = "Do Not Touch"
-    cns.target = rig
-    cns.mute = True
-    n = len(pb.constraints)
-    if n > 1:
-        pb.constraints.move(n-1, 0)
 
 
 def copyPropGroups(rig1, rig2, pb2):
@@ -191,7 +168,7 @@ def copyPropGroups(rig1, rig2, pb2):
     pb1 = rig1.pose.bones[pb2.name]
     if not (pb1.DazLocProps or pb1.DazRotProps or pb1.DazScaleProps):
         return
-    addSelfRef(rig2, pb2)
+    pb2.DazDriven = True
     for props1,props2 in [
         (pb1.DazLocProps, pb2.DazLocProps),
         (pb1.DazRotProps, pb2.DazRotProps),
@@ -278,7 +255,7 @@ def showBox(scn, attr, layout):
 
 
 class DAZ_PT_Setup(bpy.types.Panel):
-    bl_label = "Setup (version 1.5.0)"
+    bl_label = "Setup (version 1.5.1)"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ Importer"
@@ -1434,7 +1411,7 @@ def initialize():
         default = (False,False,False)
     )
 
-    bpy.types.Object.DazMakeupDrivers = BoolProperty(default = False)
+    bpy.types.PoseBone.DazDriven = BoolProperty(default = False)
 
     bpy.types.Armature.DazExtraFaceBones = BoolProperty(default = False)
     bpy.types.Armature.DazExtraDrivenBones = BoolProperty(default = False)
