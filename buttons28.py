@@ -623,6 +623,11 @@ class Mannequin:
         description = "Add mannequin to this collection",
         default = "Mannequin")
 
+class Offset:
+    offset : FloatProperty(
+        name = "Offset (mm)",
+        description = "Offset the deflection surface from the mesh",
+        default = 0.0)
 
 #-------------------------------------------------------------
 #   hair.py

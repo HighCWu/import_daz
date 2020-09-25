@@ -1439,27 +1439,36 @@ class DAZ_OT_AddSubsurf(DazOperator, IsMesh):
 #   Make deflection
 #-------------------------------------------------------------
 
-class DAZ_OT_MakeDeflection(DazOperator, IsMesh):
+class DAZ_OT_MakeDeflection(DazPropsOperator, B.Offset, IsMesh):
     bl_idname = "daz.make_deflection"
     bl_label = "Make Deflection"
     bl_description = "Make a deflection object"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "offset")
+
     def run(self, context):
         from .load_json import loadJson
         ob = context.object
-        coll = getCollection(context)
         folder = os.path.dirname(__file__)
         filepath = os.path.join(folder, "data", "lowpoly", ob.DazMesh.lower()+".json")
         print(filepath)
         struct = loadJson(filepath, mustOpen=True)
         vnums = struct["vertices"]
-        verts = [ob.data.vertices[vn].co for vn in struct["vertices"]]
+        verts = ob.data.vertices
+        fac = self.offset*0.1*ob.DazScale
+        coords = [(verts[vn].co + fac*verts[vn].normal) for vn in vnums]
         faces = struct["faces"]
         me = bpy.data.meshes.new(ob.data.name+"Deflect")
-        me.from_pydata(verts, [], faces)
+        me.from_pydata(coords, [], faces)
         nob = bpy.data.objects.new(ob.name+"Deflect", me)
-        coll.objects.link(nob)
+        for coll in getAllCollections():
+            if ob in coll.objects.values():
+                coll.objects.link(nob)
+        if bpy.app.version < (2,80,0):
+            context.scene.objects.link(nob)
+        nob.hide_render = True
         setActiveObject(context, nob)
 
         vgrps = dict([(vgrp.index, vgrp) for vgrp in ob.vertex_groups])
@@ -1472,6 +1481,12 @@ class DAZ_OT_MakeDeflection(DazOperator, IsMesh):
             for g in v.groups:
                 ngrp = ngrps[g.group]
                 ngrp.add([nv.index], g.weight, 'REPLACE')
+
+        rig = ob.parent
+        if rig:
+            from .modifier import makeArmatureModifier
+            nob.parent = ob.parent
+            makeArmatureModifier(rig.name, context, nob, rig)
 
 #----------------------------------------------------------
 #   Initialize
