@@ -143,6 +143,10 @@ class ExtraAsset(Modifier):
         pinst = inst.parent
         geonode = self.getGeoNode(inst)
         pgeonode = self.getGeoNode(pinst)
+        if geonode is None:
+            print("No geo", self)
+            print(self.extras.keys())
+            return
         for etype,extra in self.extras.items():
             if etype == "studio/modifier/dynamic_generate_hair":
                 geonode.skull = pgeonode
