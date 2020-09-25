@@ -66,8 +66,11 @@ class CyclesMaterial(Material):
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
             if self.geometry and self.geometry.polylines:
-                from .hair import HairTree
-                return HairTree(self)
+                from .hair import HairPBRTree, HairBSDFTree
+                if LS.materialMethod == 'PRINCIPLED':
+                    return HairPBRTree(self)
+                else:
+                    return HairBSDFTree(self)
             if self.metallic:
                 return PbrTree(self)
             elif LS.materialMethod == 'PRINCIPLED':
