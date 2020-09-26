@@ -327,7 +327,7 @@ def clamp(value):
 
 
 def isVector(value):
-    return hasattr(value, "__len__")
+    return (hasattr(value, "__len__") and len(value) >= 3)
 
 
 def averageColor(value):

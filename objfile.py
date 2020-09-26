@@ -236,9 +236,8 @@ def fitToFile(filepath, nodes):
 
     print("Fitting objects with dbz file...")
     filepath = getFitFile(filepath)
-    if LS.fitFile:
-        dbz = loadDbzFile(filepath)
-        subsurfaced = False
+    dbz = loadDbzFile(filepath)
+    subsurfaced = False
 
     taken = dict([(name,0) for name in dbz.objects.keys()])
     takenfigs = dict([(name,[]) for name in dbz.rigs.keys()])
@@ -311,8 +310,11 @@ def fitToFile(filepath, nodes):
                                 ok = True
                                 break
                         if not ok:
-                            msg = ("Mismatch %s, %s: %d != %d" % (node.name, geo.name, len(base.verts), len(geo.verts)))
+                            msg = ("Mismatch %s, %s: %d != %d. " % (node.name, geo.name, len(base.verts), len(geo.verts)) +
+                                   "(OK for hair)")
                             print(msg)
+                            geonode.verts = base.verts
+                            geonode.center = base.center
                     else:
                         geonode.verts = base.verts
                         geonode.center = base.center

@@ -161,9 +161,15 @@ class ExtraAsset(Modifier):
             elif etype == "studio/simulation_settings/dynamic_simulation":
                 pass
             elif etype == "studio_modifier_channels":
+                test = (False and self.name == 'DZ__SPS_Face')
+                #print("\nMOD '%s' '%s' %s" % (self.name, geonode.name, test))
                 modchannels = self.extras["studio_modifier_channels"]
-                for channel in modchannels["channels"]:
-                   geonode.setChannel(channel["channel"])
+                for cstruct in modchannels["channels"]:
+                    channel = cstruct["channel"]
+                    geonode.setChannel(channel)
+                    key = channel["id"]
+                    if test:
+                        print("  C '%s' %s" % (key, geonode.getValue([key], 0)))
 
 
     def getGeoNode(self, inst):

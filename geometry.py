@@ -667,10 +667,12 @@ class Geometry(Asset, Channels):
         name = self.getName()
         me = self.rna = bpy.data.meshes.new(name)
 
+        verts = self.verts
         if isinstance(node, GeoNode) and node.verts:
-            verts = node.verts
-        else:
-            verts = self.verts
+            if len(node.verts) == len(verts):
+                verts = node.verts
+            elif self.polylines:
+                verts = node.verts
 
         if not verts:
             for mats in self.materials.values():
