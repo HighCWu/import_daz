@@ -86,8 +86,26 @@ def parseMorph(asset, struct):
 #-------------------------------------------------------------
 
 class Modifier(Asset):
+    def __init__(self, fileref):
+        Asset.__init__(self, fileref)
+        self.groups = []
+
+
+    def parse(self, struct):
+        Asset.parse(self, struct)
+        if "groups" in struct.keys():
+            self.groups = struct["groups"]
+
+
+    def update(self, struct):
+        Asset.update(self, struct)
+        if "groups" in struct.keys():
+            self.groups = struct["groups"]
+
+
     def __repr__(self):
         return ("<Modifier %s %s>" % (self.id, self.type))
+
 
     def postbuild(self, context, inst):
         pass
@@ -150,7 +168,7 @@ class ExtraAsset(Modifier, Channels):
             if etype == "studio/modifier/dynamic_generate_hair":
                 geonode.skull = pgeonode
             elif etype == "studio/modifier/dynamic_simulation":
-                geonode.addDForce(self, extra)
+                geonode.addDForce(self, extra, pgeonode)
             elif etype == "studio/modifier/dynamic_hair_follow":
                 pass
             elif etype == "studio/modifier/line_tessellation":
@@ -404,7 +422,7 @@ class SkinBinding(Modifier):
                 reportError("No weights for %s in %s" % (bname, ob.name), trigger=(2,5))
                 continue
 
-            buildVertexGroup(ob, vgname, weights)
+            buildVertexGroup(ob, vgname, weights["values"])
 
 
     def calcLocalWeights(self, bname, joint, rig):
@@ -466,17 +484,17 @@ class SkinBinding(Modifier):
 
 
 def buildVertexGroup(ob, vgname, weights, default=None):
-    if weights and weights["values"]:
+    if weights:
         if vgname in ob.vertex_groups.keys():
             print("Duplicate vertex group:\n  %s %s" % (ob.name, vgname))
-            vgrp = ob.vertex_groups[vgname]
+            return ob.vertex_groups[vgname]
         else:
             vgrp = ob.vertex_groups.new(name=vgname)
         if default is None:
-            for vn,w in weights["values"]:
+            for vn,w in weights:
                 vgrp.add([vn], w, 'REPLACE')
         else:
-            for vn in weights["values"]:
+            for vn in weights:
                 vgrp.add([vn], default, 'REPLACE')
         return vgrp
     return None

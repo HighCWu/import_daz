@@ -128,7 +128,7 @@ class Channels:
     def getValueImage(self, attr, default):
         channel = self.getChannel(attr)
         value = self.getChannelValue(channel, default)
-        if "image_file" in channel.keys():
+        if channel and "image_file" in channel.keys():
             return value,channel["image_file"]
         else:
             return value,None

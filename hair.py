@@ -61,8 +61,9 @@ class HairSystem:
 
 
     def getModifier(self, geonode):
+        from .channels import Channels
         if geonode is None:
-            return {"channels" : {}}
+            return Channels()
         for key in geonode.modifiers.keys():
             if (key[0:8] == "DZ__SPS_" and
                 self.name.startswith(key[8:])):
@@ -97,7 +98,7 @@ class HairSystem:
         if self.material:
             pset.material_slot = self.material
 
-        rootrad = mod.getValue(["Line Start Width"], 0.25)
+        rootrad = mod.getValue(["Line Start Width"], 0.1)
         tiprad = mod.getValue(["Line End Width"], 0)
         if hasattr(ccset, "root_width"):
             ccset.root_width = rootrad
@@ -105,10 +106,10 @@ class HairSystem:
         else:
             ccset.root_radius = rootrad
             ccset.tip_radius = tiprad
-        ccset.radius_scale = self.scale * mod.getValue(["PreRender Hair Distribution Radius"], 2)
+        ccset.radius_scale = self.scale * mod.getValue(["PreRender Hair Distribution Radius"], 1)
 
         psys.child_seed = mod.getValue(["PreRender Hair Seed"], 0)
-        pset.child_radius = mod.getValue(["PreRender Hair Distribution Radius"], 0) * self.scale
+        pset.child_radius = mod.getValue(["PreRender Hair Distribution Radius"], 1) * self.scale
 
         pset.clump_factor = mod.getValue(["PreRender Clumping 1 Curves Density"], 0)
         pset.clump_shape = mod.getValue(["PreRender Clumpiness 1"], 0)
@@ -997,8 +998,8 @@ class HairBSDFTree(HairTree):
 
     def buildTransmission(self):
         # Transmission => Transmission
-        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", BLACK)
-        tip,tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", BLACK)
+        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", self.color)
+        tip,tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", self.color)
         if isBlack(root) and isBlack(tip):
             trans = None
         else:
@@ -1016,8 +1017,8 @@ class HairBSDFTree(HairTree):
 
     def buildHighlight(self):
         # Highlight => Reflection
-        root,roottex = self.getColorTex(["Highlight Root Color"], "COLOR", BLACK)
-        tip,tiptex = self.getColorTex(["Tip Highlight Color"], "COLOR", BLACK)
+        root,roottex = self.getColorTex(["Highlight Root Color"], "COLOR", WHITE)
+        tip,tiptex = self.getColorTex(["Tip Highlight Color"], "COLOR", WHITE)
         rough = self.getValue(["highlight_roughness"], 0.5)
         if isBlack(root) and isBlack(tip):
             refl = None
@@ -1048,7 +1049,7 @@ class HairBSDFTree(HairTree):
 
     def buildAnisotropic(self):
         # Anisotropic
-        aniso = self.getValue(["Anisotropy"], 0)
+        aniso = self.getValue(["Anisotropy"], 1)
         if aniso:
             node = self.addNode('ShaderNodeBsdfAnisotropic')
             self.links.new(self.colorramp.outputs[0], node.inputs["Color"])

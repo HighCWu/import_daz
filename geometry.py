@@ -179,10 +179,10 @@ class GeoNode(Node):
             deleteObject(context, rig)
 
 
-    def addDForce(self, mod, extra):
+    def addDForce(self, mod, extra, pgeonode):
         from .dforce import DForce
         if self.dforce is None:
-            self.dforce = DForce(mod, self, extra)
+            self.dforce = DForce(mod, self, extra, pgeonode)
 
 
     def postbuild(self, context, inst):
@@ -351,8 +351,10 @@ class Geometry(Asset, Channels):
         self.polylines = []
         self.strands = []
         self.materials = {}
+        self.polygon_indices = []
         self.material_indices = []
         self.polygon_material_groups = []
+        self.polygon_groups = []
 
         self.material_selection_sets = []
         self.type = None
@@ -415,6 +417,8 @@ class Geometry(Asset, Channels):
 
         fdata = struct["polylist"]["values"]
         self.faces = [ f[2:] for f in fdata]
+        self.polygon_indices = [f[0] for f in fdata]
+        self.polygon_groups = struct["polygon_groups"]["values"]
         self.material_indices = [f[1] for f in fdata]
         self.polygon_material_groups = struct["polygon_material_groups"]["values"]
 
@@ -685,7 +689,7 @@ class Geometry(Asset, Channels):
         from .modifier import buildVertexGroup
         if self.rigidity:
             if "weights" in self.rigidity.keys():
-                buildVertexGroup(ob, "Rigidity", self.rigidity["weights"])
+                buildVertexGroup(ob, "Rigidity", self.rigidity["weights"]["values"])
             if "groups" not in self.rigidity.keys():
                 return
             for group in self.rigidity["groups"]:
