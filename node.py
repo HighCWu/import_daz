@@ -138,7 +138,7 @@ class Instance(Accessor, Channels):
         self.strand_hair = node.strand_hair
         node.strand_hair = None
         self.name = node.getLabel(self)
-        self.modifiers = []
+        self.modifiers = {}
         self.materials = node.materials
         node.materials = {}
         self.material_group_vis = {}

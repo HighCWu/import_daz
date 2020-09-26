@@ -31,6 +31,7 @@ import collections
 import os
 
 from .asset import Asset
+from .channels import Channels
 from .utils import *
 from .error import *
 from .formula import Formula
@@ -88,9 +89,6 @@ class Modifier(Asset):
     def __repr__(self):
         return ("<Modifier %s %s>" % (self.id, self.type))
 
-    def addModifier(self, inst):
-        pass
-
     def postbuild(self, context, inst):
         pass
 
@@ -103,9 +101,10 @@ class DForm(Modifier):
 #   Extra
 #-------------------------------------------------------------
 
-class ExtraAsset(Modifier):
+class ExtraAsset(Modifier, Channels):
     def __init__(self, fileref):
         Modifier.__init__(self, fileref)
+        Channels.__init__(self)
         self.extras = {}
 
     def __repr__(self):
@@ -161,15 +160,11 @@ class ExtraAsset(Modifier):
             elif etype == "studio/simulation_settings/dynamic_simulation":
                 pass
             elif etype == "studio_modifier_channels":
-                test = (False and self.name == 'DZ__SPS_Face')
-                #print("\nMOD '%s' '%s' %s" % (self.name, geonode.name, test))
+                geonode.modifiers[self.name] = self
                 modchannels = self.extras["studio_modifier_channels"]
                 for cstruct in modchannels["channels"]:
                     channel = cstruct["channel"]
-                    geonode.setChannel(channel)
-                    key = channel["id"]
-                    if test:
-                        print("  C '%s' %s" % (key, geonode.getValue([key], 0)))
+                    self.setChannel(channel)
 
 
     def getGeoNode(self, inst):
@@ -616,11 +611,6 @@ class Morph(FormulaAsset):
             msg = ("Strange morph parent.\n  %s\n  %s" % (self, parent))
             return reportError(msg)
         geonode.morphsValues[self.name] = self.value
-
-
-    def addModifier(self, inst):
-        if inst:
-            inst.modifiers.append(self)
 
 
     def build(self, context, inst, value=-1):

@@ -63,33 +63,46 @@ class HairSystem:
         self.tipRadius = 0
 
 
+    def getModifier(self, geonode):
+        for key in geonode.modifiers.keys():
+            if (key[0:8] == "DZ__SPS_" and
+                self.name.startswith(key[8:])):
+                return geonode.modifiers[key]
+        print("No modifier found")
+        return geonode
+
+
     def setHairSettings(self, geonode, hairmat):
-        self.density = geonode.getValue(["PreSim Hairs Density"], 10)
-        self.renderDensity = geonode.getValue(["PreRender Hairs Density"], 100)
-        self.clumping = geonode.getValue(["PreSim Clumping 1 Curves Density"], 1)
+        mod = self.getModifier(geonode)
+        dval,dimg = mod.getValueImage(["PreSim Hairs Density"], 1)
+        rdval,rdimg = mod.getValueImage(["PreRender Hairs Density"], 1)
+        self.density = dval
+        self.renderDensity = rdval
+
+        self.clumping = mod.getValue(["PreSim Clumping 1 Curves Density"], 1)
         if hairmat:
             self.material = hairmat.rna.name
-            self.rootRadius = hairmat.getValue(["Line Start Width"], 0.25)
-            self.tipRadius = hairmat.getValue(["Line End Width"], 0)
+            self.rootRadius = mod.getValue(["Line Start Width"], 0.25)
+            self.tipRadius = mod.getValue(["Line End Width"], 0)
             return
             # Unused properties
-            hairmat.getValue(["Line UV Width"], 0.5)
-            hairmat.getValue(["separation"], 0.1)
-            hairmat.getValue(["Line Preview Color"], WHITE)
-            hairmat.getValue(["Root To Tip Bias"], 0.5)
-            hairmat.getValue(["Root to Tip Gain"], 0.5)
-            hairmat.getValue(["Bump Mode"], 0)  # [ "Height Map", "Normal Map" ]
-            hairmat.getValue(["Bump Strength"], 0)
-            hairmat.getValue(["Cutout Opacity"], 1)
-            hairmat.getValue(["strength"], 0) # Displacement Strength
-            hairmat.getValue(["Minimum Displacement"], -0.1)
-            hairmat.getValue(["Maximum Displacement"], 0.1)
-            hairmat.getValue(["SubD Displacement Level"], 0)
-            hairmat.getValue(["Horizontal Tiles"], 1)
-            hairmat.getValue(["Horizontal Offset"], 0)
-            hairmat.getValue(["Vertical Tiles"], 1)
-            hairmat.getValue(["Vertical Offset"], 0)
-            hairmat.getValue(["Roughness Squared"], True)
+            mod.getValue(["Line UV Width"], 0.5)
+            mod.getValue(["separation"], 0.1)
+            mod.getValue(["Line Preview Color"], WHITE)
+            mod.getValue(["Root To Tip Bias"], 0.5)
+            mod.getValue(["Root to Tip Gain"], 0.5)
+            mod.getValue(["Bump Mode"], 0)  # [ "Height Map", "Normal Map" ]
+            mod.getValue(["Bump Strength"], 0)
+            mod.getValue(["Cutout Opacity"], 1)
+            mod.getValue(["strength"], 0) # Displacement Strength
+            mod.getValue(["Minimum Displacement"], -0.1)
+            mod.getValue(["Maximum Displacement"], 0.1)
+            mod.getValue(["SubD Displacement Level"], 0)
+            mod.getValue(["Horizontal Tiles"], 1)
+            mod.getValue(["Horizontal Offset"], 0)
+            mod.getValue(["Vertical Tiles"], 1)
+            mod.getValue(["Vertical Offset"], 0)
+            mod.getValue(["Roughness Squared"], True)
 
 
     def addStrand(self, strand):

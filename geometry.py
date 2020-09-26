@@ -62,7 +62,7 @@ class GeoNode(Node):
         if geo:
             geo.caller = self
             geo.nodes[self.id] = self
-        self.modifiers = []
+        self.modifiers = {}
         self.morphsValues = {}
         self.shell = {}
         self.polylines = False
@@ -672,6 +672,7 @@ class Geometry(Asset, Channels):
             if len(node.verts) == len(verts):
                 verts = node.verts
             elif self.polylines:
+                print("HAIR", len(verts), len(node.verts))
                 verts = node.verts
 
         if not verts:

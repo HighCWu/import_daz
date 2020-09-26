@@ -125,6 +125,15 @@ class Channels:
         return self.getChannelValue(self.getChannel(attr), default)
 
 
+    def getValueImage(self, attr, default):
+        channel = self.getChannel(attr)
+        value = self.getChannelValue(channel, default)
+        if "image_file" in channel.keys():
+            return value,channel["image_file"]
+        else:
+            return value,None
+
+
     def getChannelValue(self, channel, default, warn=True):
         if channel is None:
             return default

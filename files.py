@@ -140,7 +140,6 @@ class FileAsset(Asset):
                     else:
                         par = inst = None
                     self.modifiers.append((asset,inst))
-                    asset.addModifier(inst)
 
             if self.toplevel:
                 self.parseRender(scene)
