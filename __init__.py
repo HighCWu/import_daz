@@ -69,6 +69,7 @@ def importModules():
                     "mhx", "layers", "fkik", "hair", "transfer"]
         if bpy.app.version >= (2,82,0):
             modnames.append("udim")
+            modnames.append("dforce")
         anchor = os.path.basename(__file__[0:-12])
         theModules = []
         for modname in modnames:

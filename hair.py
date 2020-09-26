@@ -40,7 +40,7 @@ from .cycles import CyclesMaterial, CyclesTree
 #-------------------------------------------------------------
 
 class HairSystem:
-    def __init__(self, name, n, object=None):
+    def __init__(self, name, n, geonode=None, object=None):
         if name is None:
             self.name = ("Hair%02d" % n)
         else:
@@ -50,20 +50,19 @@ class HairSystem:
             self.scale = self.object.DazScale
         else:
             self.scale = LS.scale
+        self.geonode = geonode
+        self.modifier = self.getModifier(geonode)
         self.npoints = n
         self.strands = []
         self.psys = None
         self.useEmitter = True
         self.vertexGroup = None
-        self.density = 10
-        self.renderDensity = 100
         self.material = None
-        self.clumping = 1
-        self.rootRadius = 0.25
-        self.tipRadius = 0
 
 
     def getModifier(self, geonode):
+        if geonode is None:
+            return {"channels" : {}}
         for key in geonode.modifiers.keys():
             if (key[0:8] == "DZ__SPS_" and
                 self.name.startswith(key[8:])):
@@ -72,37 +71,48 @@ class HairSystem:
         return geonode
 
 
-    def setHairSettings(self, geonode, hairmat):
-        mod = self.getModifier(geonode)
-        dval,dimg = mod.getValueImage(["PreSim Hairs Density"], 1)
-        rdval,rdimg = mod.getValueImage(["PreRender Hairs Density"], 1)
-        self.density = dval
-        self.renderDensity = rdval
+    def getDensity(self, mod, channels, default):
+        for channel in channels:
+            val,img = mod.getValueImage([channel], 0)
+            if val:
+                return val,img
+        return default,None
 
-        self.clumping = mod.getValue(["PreSim Clumping 1 Curves Density"], 1)
-        if hairmat:
-            self.material = hairmat.rna.name
-            self.rootRadius = mod.getValue(["Line Start Width"], 0.25)
-            self.tipRadius = mod.getValue(["Line End Width"], 0)
-            return
-            # Unused properties
-            mod.getValue(["Line UV Width"], 0.5)
-            mod.getValue(["separation"], 0.1)
-            mod.getValue(["Line Preview Color"], WHITE)
-            mod.getValue(["Root To Tip Bias"], 0.5)
-            mod.getValue(["Root to Tip Gain"], 0.5)
-            mod.getValue(["Bump Mode"], 0)  # [ "Height Map", "Normal Map" ]
-            mod.getValue(["Bump Strength"], 0)
-            mod.getValue(["Cutout Opacity"], 1)
-            mod.getValue(["strength"], 0) # Displacement Strength
-            mod.getValue(["Minimum Displacement"], -0.1)
-            mod.getValue(["Maximum Displacement"], 0.1)
-            mod.getValue(["SubD Displacement Level"], 0)
-            mod.getValue(["Horizontal Tiles"], 1)
-            mod.getValue(["Horizontal Offset"], 0)
-            mod.getValue(["Vertical Tiles"], 1)
-            mod.getValue(["Vertical Offset"], 0)
-            mod.getValue(["Roughness Squared"], True)
+
+    def setHairSettings(self, psys):
+        mod = self.modifier
+        pset = psys.settings
+        if hasattr(pset, "cycles_curve_settings"):
+            ccset = pset.cycles_curve_settings
+        elif hasattr(pset, "cycles"):
+            ccset = pset.cycles
+        else:
+            ccset = pset
+
+        dval,dimg = self.getDensity(mod, ["PreSim Hairs Density", "PreRender Hairs Per Guide"], 10)
+        rdval,rdimg = self.getDensity(mod, ["PreRender Hairs Density", "PreSim Hairs Per Guide"], 100)
+        pset.child_nbr = dval
+        pset.rendered_child_count = rdval
+
+        if self.material:
+            pset.material_slot = self.material
+
+        rootrad = mod.getValue(["Line Start Width"], 0.25)
+        tiprad = mod.getValue(["Line End Width"], 0)
+        if hasattr(ccset, "root_width"):
+            ccset.root_width = rootrad
+            ccset.tip_width = tiprad
+        else:
+            ccset.root_radius = rootrad
+            ccset.tip_radius = tiprad
+        ccset.radius_scale = self.scale * mod.getValue(["PreRender Hair Distribution Radius"], 2)
+
+        psys.child_seed = mod.getValue(["PreRender Hair Seed"], 0)
+        pset.child_radius = mod.getValue(["PreRender Hair Distribution Radius"], 0) * self.scale
+
+        pset.clump_factor = mod.getValue(["PreRender Clumping 1 Curves Density"], 0)
+        pset.clump_shape = mod.getValue(["PreRender Clumpiness 1"], 0)
+        pset.twist = mod.getValue(["PreRender Clumping 1 Bias"], 0.5)
 
 
     def addStrand(self, strand):
@@ -165,26 +175,7 @@ class HairSystem:
         pset.path_end = 1
         pset.count = int(len(strands))
         pset.hair_step = hlen-1
-        pset.child_nbr = self.density
-        pset.rendered_child_count = self.renderDensity
-        pset.child_radius = 2*self.scale
-        if self.material:
-            pset.material_slot = self.material
-        self.clumping
-
-        if hasattr(pset, "cycles_curve_settings"):
-            ccset = pset.cycles_curve_settings
-        elif hasattr(pset, "cycles"):
-            ccset = pset.cycles
-        else:
-            ccset = pset
-        if hasattr(ccset, "root_width"):
-            ccset.root_width = self.rootRadius
-            ccset.tip_width = self.tipRadius
-        else:
-            ccset.root_radius = self.rootRadius
-            ccset.tip_radius = self.tipRadius
-        ccset.radius_scale = self.scale
+        self.setHairSettings(psys)
 
         bpy.ops.object.mode_set(mode='OBJECT')
         psys.use_hair_dynamics = False

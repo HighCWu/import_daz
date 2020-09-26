@@ -56,8 +56,7 @@ class GeoNode(Node):
         self.highdef = None
         self.hdobject = None
         self.skull = None
-        self.simulated = False
-        self.simInfluence = None
+        self.dforce = None
         self.index = figure.count
         if geo:
             geo.caller = self
@@ -180,88 +179,10 @@ class GeoNode(Node):
             deleteObject(context, rig)
 
 
-    def buildInfluence(self, modif, extra):
-        from .modifier import buildVertexGroup
-        ob = self.rna
-        nverts = len(ob.data.vertices)
-        if nverts != extra["vertex_count"]:
-            msg = ("Influence vertex count mismatch: %s" % inst.name)
-            reportError(msg, trigger=(2,4))
-        else:
-            weights = extra["influence_weights"]
-            self.simulated = True
-            vgrp = buildVertexGroup(ob, modif.name, weights)
-            self.simInfluence = (vgrp, weights["values"])
-
-
-    def buildSimulation(self):
-        if not self.getValue(["Visible in Simulation"], False):
-            return
-        if not self.simulated:
-            return
-        sot = self.getValue(["Simulation Object Type"], 0)
-        # [ "Static Surface", "Dynamic Surface", "Dynamic Surface Add-On" ]
-        if sot != 1:
-            return
-        ob = self.rna
-
-        # Unused simulation properties
-        sbt = self.getValue(["Simulation Base Shape"], 0)
-        # [ "Use Simulation Start Frame", "Use Scene Frame 0", "Use Shape from Simulation Start Frame", "Use Shape from Scene Frame 0" ]
-        freeze = self.getValue(["Freeze Simulation"], False)
-        collLayer = self.getValue(["Collision Layer"], 0)
-        collOffset = self.getValue(["Collision Offset"], 0)
-        collRespDamping = self.getValue(["Collision Response Damping"], 0)
-        dynStrength = self.getValue(["Dynamics Strength"], 0)
-        buckStiff = self.getValue(["Buckling Stiffness"], 0)
-        buckRatio = self.getValue(["Buckling Ratio"], 0)
-        bendDamp = self.getValue(["Bend Damping"], 0)
-        stretchDamp = self.getValue(["Stretch Damping"], 0)
-        shearDamp = self.getValue(["Shear Damping"], 0)
-
-        # Create modifier
-        vgrp = None
-        sizes = Vector((10,10,10))*LS.scale
-        if self.simInfluence:
-            vgrp,weights = self.simInfluence
-            verts = ob.data.vertices
-            for n in range(3):
-                coord = [verts[vn].co[n] for vn,_ in weights]
-                sizes[n] = max(coord) - min(coord)
-        mod = ob.modifiers.new("Softbody", 'SOFT_BODY')
-        mset = mod.settings
-        if vgrp:
-            mset.vertex_group_mass = vgrp.name
-
-        # Object settings
-        density = self.getValue(["Density"], 0) # grams/m^2
-        size = sizes.length
-        mass = density * size**2 * 1e-3     # kg
-        mset.mass = mass
-        #mset.friction = self.getValue(["Friction"], 0)
-
-        # Self collisions - off
-        #mset.use_self_collision = self.getValue(["Self Collide"], False)
-        mset.use_self_collision = False
-        mset.ball_size = sizes.length
-        mset.ball_stiff = self.getValue(["Bend Stiffness"], 0)
-        mset.ball_damp = self.getValue(["Damping"], 0)
-
-        # Goal - on
-        mset.use_goal = True
-
-        # Edges - definitely off
-        mset.use_edges = False
-        if vgrp:
-            mset.vertex_group_spring = vgrp.name
-        ceRatio = self.getValue(["Contraction-Expansion Ratio"], 1)
-        mset.pull = self.getValue(["Stretch Stiffness"], 0)
-        mset.push = mset.pull * ceRatio
-        mset.damping = self.getValue(["Damping"], 0)
-        mset.bend = self.getValue(["Bend Stiffness"], 0)
-
-        mset.use_stiff_quads = False
-        mset.shear = self.getValue(["Shear Stiffness"], 0)
+    def addDForce(self, mod, extra):
+        from .dforce import DForce
+        if self.dforce is None:
+            self.dforce = DForce(mod, self, extra)
 
 
     def postbuild(self, context, inst):
@@ -271,8 +192,8 @@ class GeoNode(Node):
             self.buildHighDef(context, inst)
         if self.skull and GS.strandsAsHair:
             self.data.buildHair(self, context)
-        if GS.useSimulation:
-            self.buildSimulation()
+        if GS.useSimulation and self.dforce:
+            self.dforce.build(self)
 
 
     def buildHighDef(self, context, inst):
@@ -806,8 +727,7 @@ class Geometry(Asset, Channels):
             matname,hmat = self.getHairMaterial(mnum)
             hname = ("%s-%02d" % (matname, n))
             if hname not in hsystems.keys():
-                hsys = hsystems[hname] = HairSystem(hname, n)
-                hsys.setHairSettings(geonode, hmat)
+                hsys = hsystems[hname] = HairSystem(hname, n, geonode=geonode)
             hsystems[hname].strands.append(strand)
 
         activateObject(context, ob)
