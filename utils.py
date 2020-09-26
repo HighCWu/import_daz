@@ -49,6 +49,9 @@ if bpy.app.version < (2,80,0):
     def getAllCollections():
         return bpy.data.groups
 
+    def makeNewCollection(gname):
+        return bpy.data.groups.new(name=gname)
+
     def getSceneObjects(context):
         return context.scene.objects
 
@@ -145,6 +148,9 @@ else:
 
     def getAllCollections():
         return bpy.data.collections
+
+    def makeNewCollection(gname):
+        return bpy.data.collections.new(name=gname)
 
     def getSceneObjects(context):
         return context.view_layer.objects

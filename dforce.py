@@ -89,7 +89,8 @@ class DForce:
         verts = ob.data.vertices
         for n in range(3):
             coord = [verts[vn].co[n] for vn in weights.keys()]
-            sizes[n] = max(coord) - min(coord)
+            if coord:
+                sizes[n] = max(coord) - min(coord)
         return sim, vgrp, weights, sizes
 
 

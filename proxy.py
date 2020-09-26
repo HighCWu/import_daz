@@ -1463,11 +1463,14 @@ class DAZ_OT_MakeDeflection(DazPropsOperator, B.Offset, IsMesh):
         me = bpy.data.meshes.new(ob.data.name+"Deflect")
         me.from_pydata(coords, [], faces)
         nob = bpy.data.objects.new(ob.name+"Deflect", me)
-        for coll in getAllCollections():
-            if ob in coll.objects.values():
-                coll.objects.link(nob)
+        ncoll = makeNewCollection(ob.name+"Deflect")
+        ncoll.objects.link(nob)
         if bpy.app.version < (2,80,0):
             context.scene.objects.link(nob)
+        else:
+            for coll in getAllCollections():
+                if ob in coll.objects.values():
+                    coll.children.link(ncoll)
         nob.hide_render = True
         setActiveObject(context, nob)
 
