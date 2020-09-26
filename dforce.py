@@ -37,22 +37,30 @@ class DForce:
             self.buildInfluence(mod, geonode, extra)
 
 
-    def buildInfluence(self, modif, geonode, extra):
+    def buildInfluence(self, mod, geonode, extra):
         from .modifier import buildVertexGroup
         ob = geonode.rna
         nverts = len(ob.data.vertices)
-        print("BIF", nverts, extra["vertex_count"])
         if nverts != extra["vertex_count"]:
             msg = ("Influence vertex count mismatch: %s" % inst.name)
             reportError(msg, trigger=(2,4))
         else:
             weights = extra["influence_weights"]
             self.simulated = True
-            self.vertexGroup = buildVertexGroup(ob, modif.name, weights)
+            self.vertexGroup = buildVertexGroup(ob, mod.name, weights)
             self.weights = weights["values"]
 
 
-    def getSimulationVertexGroup(self, ob):
+    def getSimulationData(self, geonode):
+        matnames = []
+        sim = None
+        for modname,mod in geonode.modifiers.items():
+            if (mod.getValue(["Visible in Simulation"], False) and
+                modname[0:8] == "DZ__SPS_"):
+                matnames.append(modname[8:])
+                sim = mod
+
+        ob = geonode.rna
         if "dForce Simulation" in ob.vertex_groups.keys():
             vgrp = ob.vertex_groups["dForce Simulation"]
             weights = {}
@@ -61,26 +69,19 @@ class DForce:
                     if g.group == vgrp.index:
                         weights[v.index] = g.weight
         else:
-            matnames = []
-            for modname,mod in self.modifiers.items():
-                if (mod.getValue(["Visible in Simulation"], False) and
-                    modname[0:8] == "DZ__SPS_"):
-                    matnames.append(modname[8:])
-            print("MATNAM", matnames)
             mnums = []
             for mn,mat in enumerate(ob.data.materials):
                 for matname in matnames:
                     if mat.name.startswith(matname):
                         mnums.append(mn)
                         break
-            print("MNUMS", mnums)
             nverts = len(ob.data.vertices)
             weights = {}
             for f in ob.data.polygons:
                 if f.material_index in mnums:
                     for vn in f.vertices:
                         weights[vn] = 1
-            vgrp = ob.vertex_groups.new("dForce Simulation")
+            vgrp = ob.vertex_groups.new(name="dForce Simulation")
             for vn,w in weights.items():
                 vgrp.add([vn], w, 'REPLACE')
 
@@ -89,30 +90,28 @@ class DForce:
         for n in range(3):
             coord = [verts[vn].co[n] for vn in weights.keys()]
             sizes[n] = max(coord) - min(coord)
-        return vgrp, weights, sizes
+        return sim, vgrp, weights, sizes
 
 
-    def buildSimulation(self, geonode):
+    def build(self, geonode):
         if "dForce Simulation" in geonode.modifiers.keys():
             sim = geonode.modifiers["dForce Simulation"]
-            print("SIM", geonode.name)
         else:
             return
 
         sot = sim.getValue(["Simulation Object Type"], 0)
         # [ "Static Surface", "Dynamic Surface", "Dynamic Surface Add-On" ]
         ob = geonode.rna
-        print("SSIM", ob, sot)
         if sot != 1:
             return
-
-        print("MODS", geonode.modifiers.keys())
-        vgrp,weights,sizes = self.getSimulationVertexGroup(ob)
-
         # Unused simulation properties
         sbt = sim.getValue(["Simulation Base Shape"], 0)
         # [ "Use Simulation Start Frame", "Use Scene Frame 0", "Use Shape from Simulation Start Frame", "Use Shape from Scene Frame 0" ]
         freeze = sim.getValue(["Freeze Simulation"], False)
+
+        sim,vgrp,weights,sizes = self.getSimulationData(geonode)
+
+        # More unused
         collLayer = sim.getValue(["Collision Layer"], 0)
         collOffset = sim.getValue(["Collision Offset"], 0)
         collRespDamping = sim.getValue(["Collision Response Damping"], 0)
@@ -130,7 +129,6 @@ class DForce:
             mset.vertex_group_mass = vgrp.name
 
         # Object settings
-        print("OSS", sim.channels.keys())
         density = sim.getValue(["Density"], 0) # grams/m^2
         size = sizes.length
         mass = density * size**2 * 1e-3     # kg

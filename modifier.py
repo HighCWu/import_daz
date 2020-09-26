@@ -150,8 +150,7 @@ class ExtraAsset(Modifier, Channels):
             if etype == "studio/modifier/dynamic_generate_hair":
                 geonode.skull = pgeonode
             elif etype == "studio/modifier/dynamic_simulation":
-                print("DD", geonode.name, self.name, extra.keys())
-                dforce = geonode.addDForce(self, extra)
+                geonode.addDForce(self, extra)
             elif etype == "studio/modifier/dynamic_hair_follow":
                 pass
             elif etype == "studio/modifier/line_tessellation":

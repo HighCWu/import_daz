@@ -66,10 +66,9 @@ def importModules():
                     "cycles", "cgroup", "pbr", "render", "camera", "light",
                     "guess", "animation", "files", "main", "finger",
                     "morphing", "tables", "proxy", "rigify", "merge", "hide",
-                    "mhx", "layers", "fkik", "hair", "transfer"]
+                    "mhx", "layers", "fkik", "hair", "transfer", "dforce"]
         if bpy.app.version >= (2,82,0):
             modnames.append("udim")
-            modnames.append("dforce")
         anchor = os.path.basename(__file__[0:-12])
         theModules = []
         for modname in modnames:
