@@ -166,6 +166,7 @@ class ExtraAsset(Modifier, Channels):
             return
         for etype,extra in self.extras.items():
             if etype == "studio/modifier/dynamic_generate_hair":
+                geonode.addSimData(self, extra, pgeonode)
                 geonode.skull = pgeonode
             elif etype == "studio/modifier/dynamic_simulation":
                 geonode.addDForce(self, extra, pgeonode)

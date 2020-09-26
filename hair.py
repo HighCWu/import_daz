@@ -51,6 +51,9 @@ class HairSystem:
         else:
             self.scale = LS.scale
         self.geonode = geonode
+        self.simdata = None
+        if geonode:
+            self.simdata = geonode.simdata
         self.modifier = self.getModifier(geonode)
         self.npoints = n
         self.strands = []
@@ -861,6 +864,7 @@ class HairMaterial(CyclesMaterial):
         Material.build(self, context)
         self.tree = HairBSDFTree(self)
         self.tree.color = color
+        self.tree.dark = Vector(color)*GREY
         self.tree.build(context)
 
 #-------------------------------------------------------------
@@ -872,6 +876,7 @@ class HairTree(CyclesTree):
         CyclesTree.__init__(self, hmat)
         self.type = 'HAIR'
         self.color = GREY
+        self.dark = BLACK
 
 
     def build(self, context):
@@ -932,7 +937,7 @@ class HairTree(CyclesTree):
     def buildDiffuse(self, diffuse):
         # Color => diffuse
         color,colortex = self.getColorTex("getChannelDiffuse", "COLOR", self.color)
-        root,roottex = self.getColorTex(["Hair Root Color"], "COLOR", self.color)
+        root,roottex = self.getColorTex(["Hair Root Color"], "COLOR", self.dark)
         tip,tiptex = self.getColorTex(["Hair Tip Color"], "COLOR", self.color)
         rough = self.getValue(["base_roughness"], 0.2)
         self.setRoughness(diffuse, rough)
@@ -998,7 +1003,7 @@ class HairBSDFTree(HairTree):
 
     def buildTransmission(self):
         # Transmission => Transmission
-        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", self.color)
+        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", self.dark)
         tip,tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", self.color)
         if isBlack(root) and isBlack(tip):
             trans = None

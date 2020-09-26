@@ -28,74 +28,111 @@
 import bpy
 from .utils import *
 
-class DForce:
+class SimData:
     def __init__(self, mod, geonode, extra, pgeonode):
         self.extra = extra
         self.modifier = mod
+        self.geonode = geonode
         self.pgeonode = pgeonode
 
 
-    def getSimulationData(self, geonode, ob):
+    def getSimulationData(self):
+        if self.useParent:
+            geonode = self.pgeonode
+        else:
+            geonode = self.geonode
+        if geonode.rna:
+            ob = geonode.rna
+        else:
+            return None,{},{},{},{}
+
         from .modifier import buildVertexGroup
         matnames = []
-        sim = None
-        for modname,mod in geonode.modifiers.items():
+        sims = {}
+        for modname,mod in self.geonode.modifiers.items():
             if (mod.getValue(["Visible in Simulation"], False) and
                 modname[0:8] == "DZ__SPS_"):
+                matname = mod.groups[0]
                 matnames += mod.groups
-                sim = mod
+                sims[matname] = mod
         if not matnames:
-            return None, None, None, None
+            return ob,{},{},{},{}
 
         nverts = len(ob.data.vertices)
-        geo = geonode.data
-        pgeo = self.pgeonode.data
+        oldvgrps = dict([(vgrp.name.lower(),vgrp) for vgrp in ob.vertex_groups])
         vgrps = {}
         if "influence_weights" in self.extra.keys():
             if nverts != self.extra["vertex_count"]:
                 msg = ("Influence vertex count mismatch: %s" % ob.name)
                 reportError(msg, trigger=(2,4))
-                return None, None, None, None
+                return ob,{},{},{},{}
             else:
                 weights = self.extra["influence_weights"]["values"]
-                vgrp = buildVertexGroup(ob, self.modifier.name, weights)
-                vgrps[0] = vgrp
-                weights[0] = dict(weights)
-        else:
-            ngroups = len(pgeo.polygon_groups)
-            weights = dict([(gn,{}) for gn in range(ngroups)])
-            for gn,face in zip(pgeo.polygon_indices, pgeo.faces):
+                mname = self.modifier.name
+                vgrp = buildVertexGroup(ob, mname, weights)
+                sim = list(sims.values())[0]
+                sims = {mname : sim}
+                vgrps = {mname : vgrp}
+                weights = {mname : dict(weights)}
+        elif geonode:
+            geo = geonode.data
+            ngroups = len(geo.polygon_groups)
+            gweights = dict([(gn,{}) for gn in range(ngroups)])
+            for gn,face in zip(geo.polygon_indices, geo.faces):
                 for vn in face:
-                    weights[gn][vn] = 1
-            for gn,gname in enumerate(pgeo.polygon_groups):
-                vgrp = buildVertexGroup(ob, gname, weights[gn].items())
-                vgrps[gn] = vgrp
+                    gweights[gn][vn] = 1
+            if self.useSingleGroup:
+                weights = {}
+                for gn in gweights.keys():
+                    for vn,wt in gweights[gn].items():
+                        weights[vn] = wt
+                mname = self.modifier.name
+                vgrp = buildVertexGroup(ob, mname, weights.items())
+                sim = list(sims.values())[0]
+                sims = {mname : sim}
+                vgrps = {mname : vgrp}
+                weights = {mname : dict(weights)}
+            else:
+                weights = {}
+                for gn,gname in enumerate(geo.polygon_groups):
+                    if False and gname.lower() in oldvgrps.keys():
+                        vgrp = oldvgrps[gname.lower()]
+                    else:
+                        vgrp = buildVertexGroup(ob, gname.upper(), gweights[gn].items())
+                    vgrps[gname] = vgrp
+                    weights[gname] = gweights[gn]
+        else:
+            print("FOO", self)
+            return ob,{},{},{},{}
 
         sizes = {}
-        for gn in vgrps.keys():
+        verts = ob.data.vertices
+        for gname,gweights in weights.items():
             size = Vector((10,10,10))*LS.scale
-            verts = ob.data.vertices
             for n in range(3):
-                coord = [verts[vn].co[n] for vn in weights.keys()]
+                coord = [verts[vn].co[n] for vn in gweights.keys()]
                 if coord:
                     size[n] = max(coord) - min(coord)
-            sizes[gn] = size
+            sizes[gname] = size
 
-        return sim, vgrps, weights, sizes
+        return ob, sims, vgrps, weights, sizes
 
 
-    def build(self, geonode):
-        if "dForce Simulation" in geonode.modifiers.keys():
-            sim = geonode.modifiers["dForce Simulation"]
+class DForce(SimData):
+    def __init__(self, mod, geonode, extra, pgeonode):
+        SimData.__init__(self, mod, geonode, extra, pgeonode)
+        self.useParent = False
+        self.useSingleGroup = True
+
+
+    def build(self):
+        if "dForce Simulation" in self.geonode.modifiers.keys():
+            sim = self.geonode.modifiers["dForce Simulation"]
         else:
             return
 
         sot = sim.getValue(["Simulation Object Type"], 0)
         # [ "Static Surface", "Dynamic Surface", "Dynamic Surface Add-On" ]
-        if geonode.skull and self.pgeonode.rna:
-            ob = self.pgeonode.rna
-        else:
-            ob = geonode.rna
         if sot != 1:
             return
         # Unused simulation properties
@@ -103,12 +140,13 @@ class DForce:
         # [ "Use Simulation Start Frame", "Use Scene Frame 0", "Use Shape from Simulation Start Frame", "Use Shape from Scene Frame 0" ]
         freeze = sim.getValue(["Freeze Simulation"], False)
 
-        sim,vgrps,weights,sizes = self.getSimulationData(geonode, ob)
-        if sim is None:
+        ob,sims,vgrps,weights,sizes = self.getSimulationData()
+        if not sims:
             print("Cannot build: %s" % self.modifier.name)
             return
-        vgrp = vgrps[0]
-        size = sizes[0].length
+        sim = list(sims.values())[0]
+        vgrp = list(vgrps.values())[0]
+        size = list(sizes.values())[0].length
 
         # More unused
         collLayer = sim.getValue(["Collision Layer"], 0)
@@ -124,8 +162,8 @@ class DForce:
         # Create modifier
         mod = ob.modifiers.new("Softbody", 'SOFT_BODY')
         mset = mod.settings
-        if vgrps[0]:
-            mset.vertex_group_mass = vgrps[0].name
+        if vgrp:
+            mset.vertex_group_mass = vgrp.name
 
         # Object settings
         density = sim.getValue(["Density"], 0) # grams/m^2

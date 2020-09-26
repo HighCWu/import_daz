@@ -56,6 +56,7 @@ class GeoNode(Node):
         self.highdef = None
         self.hdobject = None
         self.skull = None
+        self.simdata = None
         self.dforce = None
         self.index = figure.count
         if geo:
@@ -179,6 +180,12 @@ class GeoNode(Node):
             deleteObject(context, rig)
 
 
+    def addSimData(self, mod, extra, pgeonode):
+        from .dforce import SimData
+        if self.simdata is None:
+            self.simdata = SimData(mod, self, extra, pgeonode)
+
+
     def addDForce(self, mod, extra, pgeonode):
         from .dforce import DForce
         if self.dforce is None:
@@ -193,7 +200,7 @@ class GeoNode(Node):
         if self.skull and GS.strandsAsHair:
             self.data.buildHair(self, context)
         if GS.useSimulation and self.dforce:
-            self.dforce.build(self)
+            self.dforce.build()
 
 
     def buildHighDef(self, context, inst):
@@ -709,10 +716,6 @@ class Geometry(Asset, Channels):
         from .hair import HairSystem, createSkullGroup
         ob = geonode.skull.rna
         hair = geonode.rna
-        #print("BHAIR", self, geonode, ob)
-        #print(" P", self.polygon_material_groups)
-        #for key in geonode.channels.keys():
-        #    print(" K", key, geonode.getValue([key], -100))
 
         if not self.polygon_material_groups:
             pass
