@@ -98,6 +98,7 @@ class GlobalSettings:
         self.addFaceDrivers = True
         self.useInfluence = True
         self.useSimulation = False
+        self.useDeflectors = True
 
 
     SceneTable = {
@@ -142,6 +143,7 @@ class GlobalSettings:
         "DazAddFaceDrivers" : "addFaceDrivers",
         "DazInfluence" : "useInfluence",
         "DazSimulation" : "useSimulation",
+        "DazDeflectors" : "useDeflectors",
     }
 
     def fixPath(self, path):
@@ -385,6 +387,7 @@ class LocalSettings:
         self.integerFrames = True
         self.missingAssets = {}
         self.hdfailures = []
+        self.deflectors = {}
         self.singleUser = False
 
         self.usedFeatures = {

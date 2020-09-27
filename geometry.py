@@ -200,7 +200,7 @@ class GeoNode(Node):
         if self.skull and GS.strandsAsHair:
             self.data.buildHair(self, context)
         if GS.useSimulation and self.dforce:
-            self.dforce.build()
+            self.dforce.build(context)
 
 
     def buildHighDef(self, context, inst):

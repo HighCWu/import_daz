@@ -1449,47 +1449,53 @@ class DAZ_OT_MakeDeflection(DazPropsOperator, B.Offset, IsMesh):
         self.layout.prop(self, "offset")
 
     def run(self, context):
-        from .load_json import loadJson
         ob = context.object
-        folder = os.path.dirname(__file__)
-        filepath = os.path.join(folder, "data", "lowpoly", ob.DazMesh.lower()+".json")
-        print(filepath)
-        struct = loadJson(filepath, mustOpen=True)
-        vnums = struct["vertices"]
-        verts = ob.data.vertices
         fac = self.offset*0.1*ob.DazScale
-        coords = [(verts[vn].co + fac*verts[vn].normal) for vn in vnums]
-        faces = struct["faces"]
-        me = bpy.data.meshes.new(ob.data.name+"Deflect")
-        me.from_pydata(coords, [], faces)
-        nob = bpy.data.objects.new(ob.name+"Deflect", me)
-        ncoll = makeNewCollection(ob.name+"Deflect")
-        ncoll.objects.link(nob)
-        if bpy.app.version < (2,80,0):
-            context.scene.objects.link(nob)
-        else:
-            for coll in getAllCollections():
-                if ob in coll.objects.values():
-                    coll.children.link(ncoll)
-        nob.hide_render = True
-        setActiveObject(context, nob)
+        makeDeflection(context, ob, ob.DazMesh, fac)
 
-        vgrps = dict([(vgrp.index, vgrp) for vgrp in ob.vertex_groups])
-        ngrps = {}
-        for vgrp in ob.vertex_groups:
-            ngrp = nob.vertex_groups.new(name=vgrp.name)
-            ngrps[ngrp.index] = ngrp
-        for nv in nob.data.vertices:
-            v = ob.data.vertices[vnums[nv.index]]
-            for g in v.groups:
-                ngrp = ngrps[g.group]
-                ngrp.add([nv.index], g.weight, 'REPLACE')
 
-        rig = ob.parent
-        if rig:
-            from .modifier import makeArmatureModifier
-            nob.parent = ob.parent
-            makeArmatureModifier(rig.name, context, nob, rig)
+def makeDeflection(context, ob, char, fac):
+    from .load_json import loadJson
+    folder = os.path.dirname(__file__)
+    filepath = os.path.join(folder, "data", "lowpoly", char.lower()+".json")
+    print("Loading %s" % filepath)
+    struct = loadJson(filepath, mustOpen=True)
+    vnums = struct["vertices"]
+    verts = ob.data.vertices
+    coords = [(verts[vn].co + fac*verts[vn].normal) for vn in vnums]
+    faces = struct["faces"]
+    me = bpy.data.meshes.new(ob.data.name+"Deflect")
+    me.from_pydata(coords, [], faces)
+    nob = bpy.data.objects.new(ob.name+"Deflect", me)
+    ncoll = makeNewCollection(ob.name+"Deflect")
+    ncoll.objects.link(nob)
+    if bpy.app.version < (2,80,0):
+        context.scene.objects.link(nob)
+    else:
+        for coll in getAllCollections():
+            if ob in coll.objects.values():
+                coll.children.link(ncoll)
+    nob.hide_render = True
+    setActiveObject(context, nob)
+
+    vgrps = dict([(vgrp.index, vgrp) for vgrp in ob.vertex_groups])
+    ngrps = {}
+    for vgrp in ob.vertex_groups:
+        ngrp = nob.vertex_groups.new(name=vgrp.name)
+        ngrps[ngrp.index] = ngrp
+    for nv in nob.data.vertices:
+        v = ob.data.vertices[vnums[nv.index]]
+        for g in v.groups:
+            ngrp = ngrps[g.group]
+            ngrp.add([nv.index], g.weight, 'REPLACE')
+
+    rig = ob.parent
+    if rig:
+        from .modifier import makeArmatureModifier
+        nob.parent = ob.parent
+        makeArmatureModifier(rig.name, context, nob, rig)
+
+    return nob,ncoll
 
 #----------------------------------------------------------
 #   Initialize

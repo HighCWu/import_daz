@@ -1220,6 +1220,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Simulation")
         box.prop(scn, "DazInfluence")
         box.prop(scn, "DazSimulation")
+        box.prop(scn, "DazDeflectors")
 
         box = split.box()
         box.label(text = "Materials")
@@ -1526,6 +1527,10 @@ def initialize():
     bpy.types.Scene.DazSimulation = BoolProperty(
         name = "Simulation",
         description = "Add simultations")
+
+    bpy.types.Scene.DazDeflectors = BoolProperty(
+        name = "Deflectors",
+        description = "Add deflection surface")
 
     bpy.types.Scene.DazStrandsAsHair = BoolProperty(
         name = "Strands As Hair",

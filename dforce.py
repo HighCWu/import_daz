@@ -125,7 +125,7 @@ class DForce(SimData):
         self.useSingleGroup = True
 
 
-    def build(self):
+    def build(self, context):
         if "dForce Simulation" in self.geonode.modifiers.keys():
             sim = self.geonode.modifiers["dForce Simulation"]
         else:
@@ -144,22 +144,90 @@ class DForce(SimData):
         if not sims:
             print("Cannot build: %s" % self.modifier.name)
             return
-        sim = list(sims.values())[0]
-        vgrp = list(vgrps.values())[0]
-        size = list(sizes.values())[0].length
 
-        # More unused
-        collLayer = sim.getValue(["Collision Layer"], 0)
-        collOffset = sim.getValue(["Collision Offset"], 0)
-        collRespDamping = sim.getValue(["Collision Response Damping"], 0)
+        # Make modifier
+        _,hum,char = self.getHuman(ob)
+        activateObject(context, ob)
+        deflect = None
+        for key,sim in sims.items():
+            if GS.useDeflectors:
+                deflect = self.makeDeflectionCollection(context, hum, char, sim)
+            if ob == hum or not hum:
+                mod = self.buildSoftBody(ob, sim, vgrps[key], sizes[key].length)
+            else:
+                mod = self.buildCloth(ob, sim, vgrps[key], sizes[key].length)
+                if deflect:
+                    self.addDeflection(mod.collision_settings, deflect, sim)
+            self.moveModifierUp(ob, mod)
+
+
+        # Unused
         dynStrength = sim.getValue(["Dynamics Strength"], 0)
         buckStiff = sim.getValue(["Buckling Stiffness"], 0)
         buckRatio = sim.getValue(["Buckling Ratio"], 0)
-        bendDamp = sim.getValue(["Bend Damping"], 0)
-        stretchDamp = sim.getValue(["Stretch Damping"], 0)
-        shearDamp = sim.getValue(["Shear Damping"], 0)
 
-        # Create modifier
+
+    def getHuman(self, ob):
+        from .finger import getFingeredCharacter
+        while ob.parent:
+            ob = ob.parent
+        return getFingeredCharacter(ob)
+
+
+    def makeDeflectionCollection(self, context, hum, char, sim):
+        from .proxy import makeDeflection
+        if hum is None:
+            return None
+        if not sim.getValue(["Collision Layer"], 0):
+            return
+        if char in LS.deflectors.keys():
+            return LS.deflectors[char]
+        _,deflect = makeDeflection(context, hum, char, 0)
+        LS.deflectors[char] = deflect
+        return deflect
+
+
+    def addDeflection(self, mcset, deflect, sim):
+        mcset.collection = deflect
+        mcset.distance_min = sim.getValue(["Collision Offset"], 0) * LS.scale
+        mcset.self_impulse_clamp = sim.getValue(["Collision Response Damping"], 0)
+
+
+    def moveModifierUp(self, ob, cloth):
+        m = 0
+        for n,mod in enumerate(ob.modifiers):
+            if mod.type in ["SUBSURF", "MULTIRES"]:
+                m = len(ob.modifiers) - n - 1
+                break
+        for n in range(m):
+            bpy.ops.object.modifier_move_up(modifier=cloth.name)
+
+
+    def buildCloth(self, ob, sim, vgrp, size):
+        mod = ob.modifiers.new("Cloth", 'CLOTH')
+        mset = mod.settings
+
+        density = sim.getValue(["Density"], 0)  # grams/m^2
+        mset.mass = density * 1e-3 * 1e-2       # kg/cm^2 - 1 vert/cm^2
+        mset.air_damping = sim.getValue(["Damping"], 0)
+
+        ceRatio = sim.getValue(["Contraction-Expansion Ratio"], 1)
+        mset.tension_stiffness = sim.getValue(["Stretch Stiffness"], 15)
+        mset.compression_stiffness = mset.tension_stiffness * ceRatio
+        mset.shear_stiffness = sim.getValue(["Shear Stiffness"], 5)
+        mset.bending_stiffness = sim.getValue(["Bend Stiffness"], 0.5)
+
+        mset.tension_damping = sim.getValue(["Stretch Damping"], 5)
+        mset.compression_damping = mset.tension_damping * ceRatio
+        mset.shear_damping = sim.getValue(["Shear Damping"], 5)
+        mset.bending_damping = sim.getValue(["Bend Damping"], 0.5)
+
+        mset.vertex_group_mass = vgrp.name
+
+        return mod
+
+
+    def buildSoftBody(self, ob, sim, vgrp, size):
         mod = ob.modifiers.new("Softbody", 'SOFT_BODY')
         mset = mod.settings
         if vgrp:
@@ -193,3 +261,4 @@ class DForce(SimData):
 
         mset.use_stiff_quads = False
         mset.shear = sim.getValue(["Shear Stiffness"], 0)
+        return mod
