@@ -165,23 +165,24 @@ def varnames():
 
 
 def makeDriverString(vec):
-    string = "("
+    string = ""
     first = True
     vars = []
     for j,comp in enumerate(varnames()):
-        x = int(1000*vec[j])
-        if x != 0:
+        x = vec[j]
+        if abs(x) > 5e-4:
+            xx = getMult(x, comp)
             if first:
-                string += ("%d*%s" % (x, comp))
+                string += xx
                 first = False
             else:
                 if x > 0:
-                    string += ("+%d*%s" % (x, comp))
+                    string += ("+" + xx)
                 else:
-                    string += ("%d*%s" % (x, comp))
+                    string += xx
             vars.append((j,comp))
     if vars:
-        return (string + ")*1e-3"), vars
+        return string, vars
     else:
         return "", []
 
@@ -213,14 +214,17 @@ def makeSplineBoneDriver(uvec, points, rna, channel, rig, ob, bname, idx):
         xj,yj = points[i]
         kij = (yj-yi)/(xj-xi)
         zs,zi = getSign(yi - kij*xi)
-        string += (" else %s*x%s%s if x< %s " %
-            (getPrint(kij), zs, getPrint(zi), getPrint(xj)))
+        zstring = ""
+        if abs(zi) > 5e-4:
+            zstring = ("%s%s" % (zs, getPrint(zi)))
+        string += (" else %s%s if x< %s " % (getMult(kij, "x"), zstring, getPrint(xj)))
         xi,yi = xj,yj
     string += " else %s for x in [" % getPrint(yj)
     for i,comp in enumerate(["A","B","C"]):
         us,ui = getSign(uvec[i])
-        string += "%s%s*%s" % (us, getPrint(ui), comp)
-        vars.append((i,comp))
+        if abs(ui) > 5e-4:
+            string += "%s%s*%s" % (us, getPrint(ui), comp)
+            vars.append((i,comp))
     string += "]][0]     "
     if len(string) > 254:
         msg = "String driver too long:\n"
@@ -232,10 +236,22 @@ def makeSplineBoneDriver(uvec, points, rna, channel, rig, ob, bname, idx):
 
 
 def getPrint(x):
-    string = "%4f" % x
+    string = "%.3f" % x
     while (string[-1] == "0"):
         string = string[:-1]
     return string[:-1] if string[-1] == "." else string
+
+
+def getMult(x, comp):
+    xx = getPrint(x)
+    if xx == "0":
+        return "0"
+    elif xx == "1":
+        return comp
+    elif xx == "-1":
+        return "-" + comp
+    else:
+        return xx + "*" + comp
 
 
 def getSign(u):
