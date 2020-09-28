@@ -671,14 +671,15 @@ class Hair:
         description = "Resize hair in blocks of ten afterwards"
     )
 
-    skullType : EnumProperty(
-        items = [('NONE', "None", "No Skull group"),
-                 ('TOP', "Top", "Assign only top vertex to Skull group"),
-                 ('ALL', "All", "Assign all vertices to Skull group"),
-                 ],
-        name = "Skull Group",
-        description = "Vertex group to control hair density",
-        default = 'TOP')
+    useHead : BoolProperty(
+        name = "Head Vertex Group",
+        description = "Use head vertex group for density",
+        default = True)
+
+    activeVertexGroup: EnumProperty(
+        items = G.getVertexGroups,
+        name = "Vertex group",
+        description = "Vertex group to control hair density")
 
 
 class Pinning:

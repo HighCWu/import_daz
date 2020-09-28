@@ -55,7 +55,7 @@ class GeoNode(Node):
         self.verts = None
         self.highdef = None
         self.hdobject = None
-        self.skull = None
+        self.pgeonode = None
         self.hairgen = None
         self.dforce = None
         self.index = figure.count
@@ -172,7 +172,7 @@ class GeoNode(Node):
 
 
     def finishHair(self, context):
-        if self.skull and GS.strandsAsHair:
+        if self.pgeonode and GS.strandsAsHair:
             ob = self.rna
             rig = self.parent.rna
             print("DELETE", ob, rig)
@@ -197,7 +197,7 @@ class GeoNode(Node):
             pruneUvMaps(self.rna)
         if self.highdef:
             self.buildHighDef(context, inst)
-        if self.skull and GS.strandsAsHair:
+        if self.pgeonode and GS.strandsAsHair:
             self.data.buildHair(self, context)
         if self.dforce:
             self.dforce.build(context)
@@ -714,8 +714,8 @@ class Geometry(Asset, Channels):
 
 
     def buildHair(self, geonode, context):
-        from .hair import HairSystem, createSkullGroup
-        ob = geonode.skull.rna
+        from .hair import HairSystem
+        ob = geonode.pgeonode.rna
         hair = geonode.rna
 
         if not self.polygon_material_groups:
@@ -733,7 +733,8 @@ class Geometry(Asset, Channels):
         for pnum,mnum,strand in self.strands:
             n = len(strand)
             matname,hmat = self.getHairMaterial(mnum)
-            polygrp = self.polygon_groups[pnum]
+            idx = (pnum if GS.multipleHairMaterials else 0)
+            polygrp = self.polygon_groups[idx]
             hname = ("%s-%s-%02d" % (matname, polygrp, n))
             if hname not in hsystems.keys():
                 hsys = hsystems[hname] = HairSystem(hname, n, polygrp=polygrp, geonode=geonode)

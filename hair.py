@@ -165,14 +165,18 @@ class HairSystem:
         psys = ob.particle_systems.active
         psys.name = self.name
 
+        vgrp = None
         if self.hairgen:
             vgrp = self.hairgen.build(ob, self.polygrp)
         if vgrp is None:
             if self.vertexGroup is None:
                 vgrp = createSkullGroup(ob, 'TOP')
+                vgname = vgrp.name
             else:
-                vgrp = self.vertexGroup
-        psys.vertex_group_density = vgrp.name
+                vgname = self.vertexGroup
+        else:
+            vgname = vgrp.name
+        psys.vertex_group_density = vgname
 
         pset = psys.settings
         pset.type = 'HAIR'
@@ -236,13 +240,13 @@ class HairSystem:
 #-------------------------------------------------------------
 
 def getHairAndHuman(context, strict):
-    hair = context.object
-    hum = None
+    hum = context.object
+    hair = None
     for ob in getSceneObjects(context):
-        if getSelected(ob) and ob.type == 'MESH' and ob != hair:
-            hum = ob
+        if getSelected(ob) and ob.type == 'MESH' and ob != hum:
+            hair = ob
             break
-    if strict and hum is None:
+    if strict and hair is None:
         raise DazError("Select hair and human")
     return hair,hum
 
@@ -255,20 +259,33 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def draw(self, context):
         self.layout.prop(self, "color")
+        self.layout.prop(self, "useHead")
+        if (not self.useHead or not self.head):
+            self.layout.prop(self, "activeVertexGroup")
+        self.layout.separator()
         self.layout.prop(self, "resizeHair")
         self.layout.prop(self, "size")
         self.layout.prop(self, "resizeInBlocks")
         self.layout.prop(self, "sparsity")
-        self.layout.prop(self, "skullType")
+
+
+    def invoke(self, context, event):
+        ob = context.object
+        vgrps = dict([(vgrp.name.lower(), vgrp) for vgrp in ob.vertex_groups])
+        if "head" in vgrps.keys():
+            self.head = vgrps["head"]
+        else:
+            self.head = None
+            self.useHead = False
+        return DazPropsOperator.invoke(self, context, event)
 
 
     def run(self, context):
         from .tables import getVertFaces, findNeighbors, findTexVerts
-
         self.nonquads = []
         scn = context.scene
-        hair,hum = getHairAndHuman(context, True)
 
+        hair,hum = getHairAndHuman(context, True)
         setActiveObject(context, hum)
         self.clearHair(hum, hair, self.color, context)
         hsystems = {}
@@ -358,12 +375,14 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             hsystems = {self.size: nsystem}
 
         print("Make particle hair")
+        if self.head and self.useHead:
+            vgname = self.head.name
+        else:
+            vgname = self.activeVertexGroup
         activateObject(context, hum)
-        vgrp = createSkullGroup(hum, self.skullType)
-        useEmitter = (self.skullType == 'TOP')
         for hsys in hsystems.values():
-            hsys.useEmitter = useEmitter
-            hsys.vertexGroup = vgrp
+            hsys.useEmitter = True
+            hsys.vertexGroup = vgname
             hsys.build(context, hum)
         print("Done")
 
