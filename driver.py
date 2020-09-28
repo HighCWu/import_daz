@@ -194,9 +194,11 @@ def makeSimpleBoneDriver(vec, rna, channel, rig, ob, bname, idx):
 
 def makeProductBoneDriver(vecs, rna, channel, rig, ob, bname, idx):
     string = ""
+    vars = []
     for vec in vecs:
-        string1,vars = makeDriverString(vec)
+        string1,vars1 = makeDriverString(vec)
         if string1:
+            vars += vars1
             string += ("*min(1,max(0,%s))" % string1)
     if string:
         makeBoneDriver(string[1:], vars, rna, channel, rig, ob, bname, idx)
