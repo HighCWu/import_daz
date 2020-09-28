@@ -155,7 +155,7 @@ class HairSystem:
 
 
     def build(self, context, ob):
-        print("BHA", self.name, self.polygrp)
+        print("Build hair", self.name)
 
         strands = self.strands
         hlen = int(len(strands[0]))

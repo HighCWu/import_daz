@@ -156,6 +156,7 @@ class HairGenerator(SimData):
         self.useSingleGroup = False
         self.isHair = True
         self.vertexGroups = {}
+        self.weights = None
 
 
     def build(self, ob, polygrp):
@@ -165,11 +166,12 @@ class HairGenerator(SimData):
             if not geonode:
                 return None
             geo = geonode.data
-            gweights = self.getWeights(geo)
+            if self.weights is None:
+                self.weights = self.getWeights(geo)
             vgrp = None
             for gn,gname in enumerate(geo.polygon_groups):
                 if gname == polygrp:
-                    vgrp = buildVertexGroup(ob, polygrp.upper(), gweights[gn].items())
+                    vgrp = buildVertexGroup(ob, polygrp.upper(), self.weights[gn].items())
                     break
             self.vertexGroups[polygrp] = vgrp
         return self.vertexGroups[polygrp]

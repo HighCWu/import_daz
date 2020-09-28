@@ -733,8 +733,8 @@ class Geometry(Asset, Channels):
         for pnum,mnum,strand in self.strands:
             n = len(strand)
             matname,hmat = self.getHairMaterial(mnum)
-            hname = ("%s-%02d" % (matname, n))
             polygrp = self.polygon_groups[pnum]
+            hname = ("%s-%s-%02d" % (matname, polygrp, n))
             if hname not in hsystems.keys():
                 hsys = hsystems[hname] = HairSystem(hname, n, polygrp=polygrp, geonode=geonode)
             hsystems[hname].strands.append(strand)
