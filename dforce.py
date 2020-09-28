@@ -28,25 +28,48 @@
 import bpy
 from .utils import *
 
+#-------------------------------------------------------------
+#   SimData base class
+#-------------------------------------------------------------
+
 class SimData:
     def __init__(self, mod, geonode, extra, pgeonode):
         self.extra = extra
         self.modifier = mod
         self.geonode = geonode
         self.pgeonode = pgeonode
+        self.isHair = False
 
 
-    def getSimulationData(self):
+    def getGeoObject(self):
+        geonode = self.geonode
         if self.useParent:
             geonode = self.pgeonode
-        else:
-            geonode = self.geonode
+        ob = None
         if geonode.rna:
             ob = geonode.rna
-        else:
-            return None,{},{},{},{}
+        return geonode, ob
 
+
+    def getInfluence(self, ob):
         from .modifier import buildVertexGroup
+        nverts = len(ob.data.vertices)
+        if "influence_weights" not in self.extra.keys():
+            return {},{}
+        if nverts != self.extra["vertex_count"]:
+            msg = ("Influence vertex count mismatch: %s" % ob.name)
+            reportError(msg, trigger=(2,4))
+            return {},{}
+        else:
+            weights = self.extra["influence_weights"]["values"]
+            mname = self.modifier.name
+            vgrp = buildVertexGroup(ob, mname, weights)
+            vgrps = {mname : vgrp}
+            weights = {mname : dict(weights)}
+            return vgrps, weights
+
+
+    def getSims(self):
         matnames = []
         sims = {}
         for modname,mod in self.geonode.modifiers.items():
@@ -55,56 +78,62 @@ class SimData:
                 matname = mod.groups[0]
                 matnames += mod.groups
                 sims[matname] = mod
-        if not matnames:
-            return ob,{},{},{},{}
+        if matnames:
+            return sims
+        else:
+            return {}
 
-        nverts = len(ob.data.vertices)
+
+    def getWeights(self, geo):
+        ngroups = len(geo.polygon_groups)
+        gweights = dict([(gn,{}) for gn in range(ngroups)])
+        for gn,face in zip(geo.polygon_indices, geo.faces):
+            for vn in face:
+                gweights[gn][vn] = 1
+        return gweights
+
+
+    def getPolyGroups(self, geonode, ob):
+        from .modifier import buildVertexGroup
+        if not geonode:
+            return {},{}
         oldvgrps = dict([(vgrp.name.lower(),vgrp) for vgrp in ob.vertex_groups])
         vgrps = {}
-        if "influence_weights" in self.extra.keys():
-            if nverts != self.extra["vertex_count"]:
-                msg = ("Influence vertex count mismatch: %s" % ob.name)
-                reportError(msg, trigger=(2,4))
-                return ob,{},{},{},{}
-            else:
-                weights = self.extra["influence_weights"]["values"]
-                mname = self.modifier.name
-                vgrp = buildVertexGroup(ob, mname, weights)
-                sim = list(sims.values())[0]
-                sims = {mname : sim}
-                vgrps = {mname : vgrp}
-                weights = {mname : dict(weights)}
-        elif geonode:
-            geo = geonode.data
-            ngroups = len(geo.polygon_groups)
-            gweights = dict([(gn,{}) for gn in range(ngroups)])
-            for gn,face in zip(geo.polygon_indices, geo.faces):
-                for vn in face:
-                    gweights[gn][vn] = 1
+        geo = geonode.data
+        gweights = self.getWeights(geo)
+        weights = {}
+        for gn,gname in enumerate(geo.polygon_groups):
             if self.useSingleGroup:
-                weights = {}
-                for gn in gweights.keys():
-                    for vn,wt in gweights[gn].items():
-                        weights[vn] = wt
-                mname = self.modifier.name
-                vgrp = buildVertexGroup(ob, mname, weights.items())
-                sim = list(sims.values())[0]
-                sims = {mname : sim}
-                vgrps = {mname : vgrp}
-                weights = {mname : dict(weights)}
+                vgrp = None
+            elif gname.lower() in oldvgrps.keys():
+                vgrp = oldvgrps[gname.lower()]
             else:
-                weights = {}
-                for gn,gname in enumerate(geo.polygon_groups):
-                    if False and gname.lower() in oldvgrps.keys():
-                        vgrp = oldvgrps[gname.lower()]
-                    else:
-                        vgrp = buildVertexGroup(ob, gname.upper(), gweights[gn].items())
-                    vgrps[gname] = vgrp
-                    weights[gname] = gweights[gn]
-        else:
-            print("FOO", self)
-            return ob,{},{},{},{}
+                vgrp = buildVertexGroup(ob, gname.upper(), gweights[gn].items())
+            vgrps[gname] = vgrp
+            weights[gname] = gweights[gn]
 
+        if self.useSingleGroup:
+            return self.mergeGroups(ob, weights)
+        else:
+            return vgrps, weights
+
+
+    def mergeGroups(self, ob, gweights):
+        if not gweights:
+            return {},{}
+        from .modifier import buildVertexGroup
+        vweights = {}
+        for gname in gweights.keys():
+            for vn,wt in gweights[gname].items():
+                vweights[vn] = wt
+        mname = self.modifier.name
+        vgrp = buildVertexGroup(ob, mname, vweights.items())
+        vgrps = {mname : vgrp}
+        weights = {mname : dict(vweights)}
+        return vgrps,weights
+
+
+    def getSizes(self, ob, weights):
         sizes = {}
         verts = ob.data.vertices
         for gname,gweights in weights.items():
@@ -114,9 +143,40 @@ class SimData:
                 if coord:
                     size[n] = max(coord) - min(coord)
             sizes[gname] = size
+        return sizes
 
-        return ob, sims, vgrps, weights, sizes
+#-------------------------------------------------------------
+#   Hair simulation
+#-------------------------------------------------------------
 
+class HairGenerator(SimData):
+    def __init__(self, mod, geonode, extra, pgeonode):
+        SimData.__init__(self, mod, geonode, extra, pgeonode)
+        self.useParent = True
+        self.useSingleGroup = False
+        self.isHair = True
+        self.vertexGroups = {}
+
+
+    def build(self, ob, polygrp):
+        from .modifier import buildVertexGroup
+        if polygrp not in self.vertexGroups.keys():
+            geonode,ob = self.getGeoObject()
+            if not geonode:
+                return None
+            geo = geonode.data
+            gweights = self.getWeights(geo)
+            vgrp = None
+            for gn,gname in enumerate(geo.polygon_groups):
+                if gname == polygrp:
+                    vgrp = buildVertexGroup(ob, polygrp.upper(), gweights[gn].items())
+                    break
+            self.vertexGroups[polygrp] = vgrp
+        return self.vertexGroups[polygrp]
+
+#-------------------------------------------------------------
+#  dForce simulation
+#-------------------------------------------------------------
 
 class DForce(SimData):
     def __init__(self, mod, geonode, extra, pgeonode):
@@ -126,8 +186,20 @@ class DForce(SimData):
 
 
     def build(self, context):
-        if "dForce Simulation" in self.geonode.modifiers.keys():
+        if self.geonode.hairgen:
+            print("Ignore hair simulation: %s" % self.modifier.id)
+            return
+        geonode,ob = self.getGeoObject()
+        if ob is None:
+            return
+
+        if (GS.useSimulation and
+            "dForce Simulation" in self.geonode.modifiers.keys()):
             sim = self.geonode.modifiers["dForce Simulation"]
+        elif (GS.useInfluence and
+              "influence_weights" in self.extra.keys()):
+            self.getInfluence(ob)
+            return
         else:
             return
 
@@ -140,10 +212,19 @@ class DForce(SimData):
         # [ "Use Simulation Start Frame", "Use Scene Frame 0", "Use Shape from Simulation Start Frame", "Use Shape from Scene Frame 0" ]
         freeze = sim.getValue(["Freeze Simulation"], False)
 
-        ob,sims,vgrps,weights,sizes = self.getSimulationData()
+        sims = self.getSims()
         if not sims:
-            print("Cannot build: %s" % self.modifier.name)
+            print("Cannot build:", self.modifier.name, ob)
             return
+        if "influence_weights" in self.extra.keys():
+            vgrps,weights = self.getInfluence(ob)
+        else:
+            vgrps,weights = self.getPolyGroups(geonode, ob)
+        sizes = self.getSizes(ob, weights)
+        if self.useSingleGroup:
+            key = list(vgrps.keys())[0]
+            sim = list(sims.values())[0]
+            sims = {key : sim}
 
         # Make modifier
         _,hum,char = self.getHuman(ob)

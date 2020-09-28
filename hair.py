@@ -40,7 +40,7 @@ from .cycles import CyclesMaterial, CyclesTree
 #-------------------------------------------------------------
 
 class HairSystem:
-    def __init__(self, name, n, geonode=None, object=None):
+    def __init__(self, name, n, polygrp=None, geonode=None, object=None):
         if name is None:
             self.name = ("Hair%02d" % n)
         else:
@@ -51,14 +51,15 @@ class HairSystem:
         else:
             self.scale = LS.scale
         self.geonode = geonode
-        self.simdata = None
+        self.hairgen = None
         if geonode:
-            self.simdata = geonode.simdata
+            self.hairgen = geonode.hairgen
         self.modifier = self.getModifier(geonode)
         self.npoints = n
         self.strands = []
         self.psys = None
         self.useEmitter = True
+        self.polygrp = polygrp
         self.vertexGroup = None
         self.material = None
 
@@ -154,6 +155,8 @@ class HairSystem:
 
 
     def build(self, context, ob):
+        print("BHA", self.name, self.polygrp)
+
         strands = self.strands
         hlen = int(len(strands[0]))
         if hlen < 3:
@@ -161,8 +164,15 @@ class HairSystem:
         bpy.ops.object.particle_system_add()
         psys = ob.particle_systems.active
         psys.name = self.name
-        if self.vertexGroup:
-            psys.vertex_group_density = self.vertexGroup.name
+
+        if self.hairgen:
+            vgrp = self.hairgen.build(ob, self.polygrp)
+        if vgrp is None:
+            if self.vertexGroup is None:
+                vgrp = createSkullGroup(ob, 'TOP')
+            else:
+                vgrp = self.vertexGroup
+        psys.vertex_group_density = vgrp.name
 
         pset = psys.settings
         pset.type = 'HAIR'

@@ -56,7 +56,7 @@ class GeoNode(Node):
         self.highdef = None
         self.hdobject = None
         self.skull = None
-        self.simdata = None
+        self.hairgen = None
         self.dforce = None
         self.index = figure.count
         if geo:
@@ -180,10 +180,10 @@ class GeoNode(Node):
             deleteObject(context, rig)
 
 
-    def addSimData(self, mod, extra, pgeonode):
-        from .dforce import SimData
-        if self.simdata is None:
-            self.simdata = SimData(mod, self, extra, pgeonode)
+    def addHairSim(self, mod, extra, pgeonode):
+        from .dforce import HairGenerator
+        if self.hairgen is None:
+            self.hairgen = HairGenerator(mod, self, extra, pgeonode)
 
 
     def addDForce(self, mod, extra, pgeonode):
@@ -199,7 +199,7 @@ class GeoNode(Node):
             self.buildHighDef(context, inst)
         if self.skull and GS.strandsAsHair:
             self.data.buildHair(self, context)
-        if GS.useSimulation and self.dforce:
+        if self.dforce:
             self.dforce.build(context)
 
 
@@ -619,9 +619,10 @@ class Geometry(Asset, Channels):
             faces = []
             for pline in self.polylines:
                 edges += [(pline[i-1],pline[i]) for i in range(3,len(pline))]
+                pn = pline[0]
                 mn = pline[1]
                 lverts = [verts[vn] for vn in pline[2:]]
-                self.strands.append((mn,lverts))
+                self.strands.append((pn,mn,lverts))
 
         if LS.fitFile:
             me.from_pydata([cscale*vco for vco in verts], edges, faces)
@@ -729,18 +730,17 @@ class Geometry(Asset, Channels):
             ob.data.materials.append(hmat.rna)
 
         hsystems = {}
-        for mnum,strand in self.strands:
+        for pnum,mnum,strand in self.strands:
             n = len(strand)
             matname,hmat = self.getHairMaterial(mnum)
             hname = ("%s-%02d" % (matname, n))
+            polygrp = self.polygon_groups[pnum]
             if hname not in hsystems.keys():
-                hsys = hsystems[hname] = HairSystem(hname, n, geonode=geonode)
+                hsys = hsystems[hname] = HairSystem(hname, n, polygrp=polygrp, geonode=geonode)
             hsystems[hname].strands.append(strand)
 
         activateObject(context, ob)
-        vgrp = createSkullGroup(ob, 'TOP')
         for hsys in hsystems.values():
-            hsys.vertexGroup = vgrp
             hsys.build(context, ob)
 
 

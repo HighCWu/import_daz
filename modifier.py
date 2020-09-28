@@ -124,6 +124,7 @@ class ExtraAsset(Modifier, Channels):
         Modifier.__init__(self, fileref)
         Channels.__init__(self)
         self.extras = {}
+        self.type = None
 
     def __repr__(self):
         return ("<Extra %s %s>" % (self.id, list(self.extras.keys())))
@@ -166,7 +167,7 @@ class ExtraAsset(Modifier, Channels):
             return
         for etype,extra in self.extras.items():
             if etype == "studio/modifier/dynamic_generate_hair":
-                geonode.addSimData(self, extra, pgeonode)
+                geonode.addHairSim(self, extra, pgeonode)
                 geonode.skull = pgeonode
             elif etype == "studio/modifier/dynamic_simulation":
                 geonode.addDForce(self, extra, pgeonode)
