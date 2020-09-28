@@ -658,10 +658,16 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         for n in range(3):
             if pb.lock_location[n]:
                 pb.location[n] = 0
-            if pb.lock_rotation[n] and pb.rotation_mode != 'QUATERNION':
-                pb.rotation_euler[n] = 0
             if pb.lock_scale[n]:
                 pb.scale[n] = 1
+        if pb.rotation_mode == 'QUATERNION':
+            for n in range(3):
+                if pb.lock_rotation[n]:
+                    pb.rotation_quaternion[n+1] = 0
+        else:
+            for n in range(3):
+                if pb.lock_rotation[n]:
+                    pb.rotation_euler[n] = 0
 
 
     def imposeLimits(self, pb):
