@@ -155,10 +155,11 @@ class HairSystem:
 
 
     def build(self, context, ob):
-        print("Build hair", self.name)
+        import time
+        t1 = time.perf_counter()
+        #print("Build hair", self.name)
 
-        strands = self.strands
-        hlen = int(len(strands[0]))
+        hlen = int(len(self.strands[0]))
         if hlen < 3:
             return
         bpy.ops.object.particle_system_add()
@@ -191,15 +192,27 @@ class HairSystem:
         pset.material = len(ob.data.materials)
         pset.path_start = 0
         pset.path_end = 1
-        pset.count = int(len(strands))
+        pset.count = int(len(self.strands))
         pset.hair_step = hlen-1
         self.setHairSettings(psys)
 
         bpy.ops.object.mode_set(mode='OBJECT')
         psys.use_hair_dynamics = False
+        t2 = time.perf_counter()
         psys = updateHair(context, ob, psys)
+        t3 = time.perf_counter()
+        self.buildStrands(psys)
+        t4 = time.perf_counter()
+        psys = updateHair(context, ob, psys)
+        t5 = time.perf_counter()
+        self.buildFinish(context, psys, ob)
+        t6 = time.perf_counter()
+        print("Hair %s: %.3f %.3f %.3f %.3f %.3f" % (self.name, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5))
+
+
+    def buildStrands(self, psys):
         for m,hair in enumerate(psys.particles):
-            verts = strands[m]
+            verts = self.strands[m]
             hair.location = verts[0]
             #print("H", m, len(verts))
             if len(verts) < len(hair.hair_keys):
@@ -208,15 +221,11 @@ class HairSystem:
                 v.co = verts[n]
                 #print("  ", n, verts[n], v.co)
                 pass
-        psys = updateHair(context, ob, psys)
-        self.setEditProperties(context, ob)
-        self.psys = psys
-        self.object = ob
 
 
-    def setEditProperties(self, context, hum):
+    def buildFinish(self, context, psys, hum):
         scn = context.scene
-        activateObject(context, hum)
+        #activateObject(context, hum)
         bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
         pedit = scn.tool_settings.particle_edit
         pedit.use_emitter_deflect = False
@@ -226,6 +235,8 @@ class HairSystem:
         pedit.select_mode = 'POINT'
         bpy.ops.transform.translate()
         bpy.ops.object.mode_set(mode='OBJECT')
+        self.psys = psys
+        self.object = hum
 
 
     def addHairDynamics(self):
@@ -645,6 +656,16 @@ def updateHair(context, ob, psys):
     else:
         dg = context.evaluated_depsgraph_get()
         return ob.evaluated_get(dg).particle_systems.active
+
+
+def updateHairs(context, ob):
+    if bpy.app.version < (2,80,0):
+        bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        return psys
+    else:
+        dg = context.evaluated_depsgraph_get()
+        return ob.evaluated_get(dg).particle_systems
 
 # ---------------------------------------------------------------------
 #   Hair settings
