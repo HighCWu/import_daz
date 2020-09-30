@@ -190,15 +190,9 @@ class ConstraintStore:
         self.constraints = {}
 
 
-    def untouchable(self, cns):
-        return (cns.name == "Do Not Touch")
-
-
     def storeConstraints(self, key, pb):
         clist = []
         for cns in pb.constraints:
-            if self.untouchable(cns):
-                continue
             struct = {}
             for attr in self.Attributes:
                 if hasattr(cns, attr):
@@ -254,8 +248,9 @@ class ConstraintStore:
 
     def removeConstraints(self, pb):
         for cns in list(pb.constraints):
-            if not self.untouchable(cns):
-                pb.constraints.remove(cns)
+            cns.driver_remove("influence")
+            cns.driver_remove("mute")
+            pb.constraints.remove(cns)
 
 #-------------------------------------------------------------
 #   BendTwist class

@@ -356,19 +356,6 @@ class LaunchEditor:
 #   figure.py
 #-------------------------------------------------------------
 
-class BoneLayers:
-    poseLayer : IntProperty(
-        name = "Posable Bone Layer",
-        description = "Put the posable bones on this layer.",
-        min = 1, max = 32,
-        default = G.NewFaceLayer)
-
-    drivenLayer : IntProperty(
-        name = "Driven Bone Layer",
-        description = "Put the driven bones on this layer.",
-        min = 1, max = 32,
-        default = 32)
-
 class XYZ:
     X : FloatProperty(name = "X")
     Y : FloatProperty(name = "Y")

@@ -390,12 +390,7 @@ def copyBoneInfo(srcbone, trgbone):
     trgbone.DazNormal = Vector(srcbone.DazNormal)
 
 
-class ExtraBones(B.BoneLayers):
-    def draw(self, context):
-        self.layout.prop(self, "poseLayer")
-        self.layout.prop(self, "drivenLayer")
-
-
+class ExtraBones:
     def run(self, context):
         rig = context.object
         oldvis = list(rig.data.layers)
@@ -406,9 +401,6 @@ class ExtraBones(B.BoneLayers):
             success = True
         finally:
             rig.data.layers = oldvis
-            if success:
-                rig.data.layers[self.poseLayer-1] = True
-                rig.data.layers[self.drivenLayer-1] = False
 
 
     def addExtraBones(self, rig):
@@ -421,10 +413,7 @@ class ExtraBones(B.BoneLayers):
 
         if rig.DazRig[0:6] == "rigify":
             raise DazError("Cannot add extra bones to Rigify rig")
-        elif rig.DazRig == "mhx":
-            raise DazError("Cannot add extra bones to MHX rig")
-        poseLayers = (self.poseLayer-1)*[False] + [True] + (32-self.poseLayer)*[False]
-        drivenLayers = (self.drivenLayer-1)*[False] + [True] + (32-self.drivenLayer)*[False]
+        drivenLayers = 31*[False] + [True]
 
         bones = self.getBoneNames(rig)
         drivers = storeBoneDrivers(rig, bones)
@@ -442,7 +431,7 @@ class ExtraBones(B.BoneLayers):
             eb.tail = par.tail
             eb.roll = par.roll
             eb.parent = par
-            eb.layers = poseLayers
+            eb.layers = list(par.layers)
             par.layers = drivenLayers
             eb.use_deform = True
             par.use_deform = False
@@ -497,7 +486,7 @@ class ExtraBones(B.BoneLayers):
                         vgrp.name = vgrp.name[:-3]
 
 
-class DAZ_OT_SetAddExtraFaceBones(DazPropsOperator, ExtraBones, IsArmature):
+class DAZ_OT_SetAddExtraFaceBones(DazOperator, ExtraBones, IsArmature):
     bl_idname = "daz.add_extra_face_bones"
     bl_label = "Add Extra Face Bones"
     bl_description = "Add an extra layer of face bones, which can be both driven and posed"
@@ -533,7 +522,7 @@ class DAZ_OT_SetAddExtraFaceBones(DazPropsOperator, ExtraBones, IsArmature):
         return facebones
 
 
-class DAZ_OT_MakeAllBonesPosable(DazPropsOperator, ExtraBones, IsArmature):
+class DAZ_OT_MakeAllBonesPosable(DazOperator, ExtraBones, IsArmature):
     bl_idname = "daz.make_all_bones_posable"
     bl_label = "Make All Bones Posable"
     bl_description = "Add an extra layer of driven bones, to make them posable"
