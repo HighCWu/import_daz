@@ -43,6 +43,12 @@ if bpy.app.version < (2,80,0):
     DrawType = "draw_type"
     ShowXRay = "show_x_ray"
 
+    def getHideViewport(ob):
+        return ob.hide
+
+    def setHideViewport(ob, value):
+        ob.hide = value
+
     def getCollection(context):
         return context.scene
 
@@ -142,6 +148,12 @@ else:
     HideViewport = "hide_viewport"
     DrawType = "display_type"
     ShowXRay = "show_in_front"
+
+    def getHideViewport(ob):
+        return ob.hide_viewport
+
+    def setHideViewport(ob, value):
+        ob.hide_viewport = value
 
     def getCollection(context):
         return context.collection

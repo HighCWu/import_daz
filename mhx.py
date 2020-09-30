@@ -1250,11 +1250,11 @@ def connectToParent(rig):
 def doHardUpdate(context, rig):
     meshes = [ob for ob in rig.children if ob.type == 'MESH']
     for ob in meshes:
-        hide = getattr(ob, HideViewport)
-        setattr(ob, HideViewport, False)
+        hidden = getHideViewport(ob)
+        setHideViewport(ob, False)
         activateObject(context, ob)
         toggleEditMode()
-        setattr(ob, HideViewport, hide)
+        setHideViewport(ob, hidden)
     updateScene(context)
     activateObject(context, rig)
     updateDrivers(rig)

@@ -217,7 +217,7 @@ class DAZ_OT_RemoveVisibility(DazOperator):
         for ob in rig.children:
             ob.driver_remove(HideViewport)
             ob.driver_remove("hide_render")
-            setattr(ob, HideViewport, False)
+            setHideViewport(ob, False)
             ob.hide_render = False
             for mod in ob.modifiers:
                 if mod.type == 'MASK':
