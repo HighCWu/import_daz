@@ -55,18 +55,6 @@ for file in os.listdir(theRestPoseFolder):
     theRestPoseItems.append((fname, name, name))
 
 #-------------------------------------------------------------
-#   hair.py
-#-------------------------------------------------------------
-
-def getVertexGroups(scn, context):
-    ob = context.object
-    enums = []
-    for vgrp in ob.vertex_groups:
-        enums.append((vgrp.name, vgrp.name, vgrp.name))
-    enums.sort()
-    return enums
-
-#-------------------------------------------------------------
 #   hide.py
 #-------------------------------------------------------------
 

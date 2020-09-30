@@ -95,6 +95,7 @@ class GlobalSettings:
         self.useMultires = True
         self.strandsAsHair = True
         self.multipleHairMaterials = True
+        self.useSkullGroup = False
         self.addFaceDrivers = True
         self.useInfluence = True
         self.useSimulation = False
@@ -140,6 +141,7 @@ class GlobalSettings:
         "DazMultires" : "useMultires",
         "DazStrandsAsHair" : "strandsAsHair",
         "DazMultipleHairMaterials" : "multipleHairMaterials",
+        "DazSkullGroup" : "useSkullGroup",
         "DazAddFaceDrivers" : "addFaceDrivers",
         "DazInfluence" : "useInfluence",
         "DazSimulation" : "useSimulation",

@@ -45,9 +45,8 @@ class HairSystem:
             self.name = ("Hair%02d" % n)
         else:
             self.name = name
-        self.object = object
-        if self.object:
-            self.scale = self.object.DazScale
+        if object:
+            self.scale = object.DazScale
         else:
             self.scale = LS.scale
         self.geonode = geonode
@@ -57,7 +56,6 @@ class HairSystem:
         self.modifier = self.getModifier(geonode)
         self.npoints = n
         self.strands = []
-        self.psys = None
         self.useEmitter = True
         self.polygrp = polygrp
         self.vertexGroup = None
@@ -117,7 +115,8 @@ class HairSystem:
 
         pset.clump_factor = mod.getValue(["PreRender Clumping 1 Curves Density"], 0)
         pset.clump_shape = mod.getValue(["PreRender Clumpiness 1"], 0)
-        pset.twist = mod.getValue(["PreRender Clumping 1 Bias"], 0.5)
+        if hasattr(pset, "twist"):
+            pset.twist = mod.getValue(["PreRender Clumping 1 Bias"], 0.5)
 
 
     def addStrand(self, strand):
@@ -166,18 +165,11 @@ class HairSystem:
         psys = ob.particle_systems.active
         psys.name = self.name
 
-        vgrp = None
-        if self.hairgen:
-            vgrp = self.hairgen.build(ob, self.polygrp)
-        if vgrp is None:
-            if self.vertexGroup is None:
-                vgrp = createSkullGroup(ob, 'TOP')
-                vgname = vgrp.name
-            else:
-                vgname = self.vertexGroup
-        else:
-            vgname = vgrp.name
-        psys.vertex_group_density = vgname
+        if self.vertexGroup:
+            psys.vertex_group_density = self.vertexGroup
+        elif bpy.app.version < (2,80,0):
+            vgrp = createSkullGroup(ob, 'TOP')
+            psys.vertex_group_density = vgrp.name
 
         pset = psys.settings
         pset.type = 'HAIR'
@@ -196,9 +188,11 @@ class HairSystem:
         pset.hair_step = hlen-1
         self.setHairSettings(psys)
 
-        bpy.ops.object.mode_set(mode='OBJECT')
         psys.use_hair_dynamics = False
+
         t2 = time.perf_counter()
+        bpy.ops.particle.disconnect_hair(all=True)
+        bpy.ops.particle.connect_hair(all=True)
         psys = updateHair(context, ob, psys)
         t3 = time.perf_counter()
         self.buildStrands(psys)
@@ -207,6 +201,7 @@ class HairSystem:
         t5 = time.perf_counter()
         self.buildFinish(context, psys, ob)
         t6 = time.perf_counter()
+        bpy.ops.object.mode_set(mode='OBJECT')
         print("Hair %s: %.3f %.3f %.3f %.3f %.3f" % (self.name, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5))
 
 
@@ -214,13 +209,10 @@ class HairSystem:
         for m,hair in enumerate(psys.particles):
             verts = self.strands[m]
             hair.location = verts[0]
-            #print("H", m, len(verts))
             if len(verts) < len(hair.hair_keys):
                 continue
             for n,v in enumerate(hair.hair_keys):
                 v.co = verts[n]
-                #print("  ", n, verts[n], v.co)
-                pass
 
 
     def buildFinish(self, context, psys, hum):
@@ -235,16 +227,16 @@ class HairSystem:
         pedit.select_mode = 'POINT'
         bpy.ops.transform.translate()
         bpy.ops.object.mode_set(mode='OBJECT')
-        self.psys = psys
-        self.object = hum
+        bpy.ops.particle.disconnect_hair(all=True)
+        bpy.ops.particle.connect_hair(all=True)
 
 
-    def addHairDynamics(self):
-        self.psys.use_hair_dynamics = True
-        cset = self.psys.cloth.settings
+    def addHairDynamics(self, psys, hum):
+        psys.use_hair_dynamics = True
+        cset = psys.cloth.settings
         cset.pin_stiffness = 1.0
         cset.mass = 0.05
-        deflector = findDeflector(self.object)
+        deflector = findDeflector(hum)
 
 #-------------------------------------------------------------
 #   Make Hair
@@ -270,25 +262,12 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def draw(self, context):
         self.layout.prop(self, "color")
-        self.layout.prop(self, "useHead")
-        if (not self.useHead or not self.head):
-            self.layout.prop(self, "activeVertexGroup")
+        self.layout.prop(self, "useVertexGroup")
         self.layout.separator()
         self.layout.prop(self, "resizeHair")
         self.layout.prop(self, "size")
         self.layout.prop(self, "resizeInBlocks")
         self.layout.prop(self, "sparsity")
-
-
-    def invoke(self, context, event):
-        ob = context.object
-        vgrps = dict([(vgrp.name.lower(), vgrp) for vgrp in ob.vertex_groups])
-        if "head" in vgrps.keys():
-            self.head = vgrps["head"]
-        else:
-            self.head = None
-            self.useHead = False
-        return DazPropsOperator.invoke(self, context, event)
 
 
     def run(self, context):
@@ -386,10 +365,11 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             hsystems = {self.size: nsystem}
 
         print("Make particle hair")
-        if self.head and self.useHead:
-            vgname = self.head.name
-        else:
-            vgname = self.activeVertexGroup
+        vgname = None
+        if self.useVertexGroup:
+            vgrp = createSkullGroup(hum, 'TOP')
+            vgname = vgrp.name
+
         activateObject(context, hum)
         for hsys in hsystems.values():
             hsys.useEmitter = True

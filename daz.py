@@ -1215,6 +1215,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Hair")
         box.prop(scn, "DazStrandsAsHair")
         box.prop(scn, "DazMultipleHairMaterials")
+        box.prop(scn, "DazSkullGroup")
 
         box = col.box()
         box.label(text = "Simulation")
@@ -1539,6 +1540,10 @@ def initialize():
     bpy.types.Scene.DazMultipleHairMaterials = BoolProperty(
         name = "Multiple Hair Materials",
         description = "Create a separate particle system for each hair material")
+
+    bpy.types.Scene.DazSkullGroup = BoolProperty(
+        name = "Skull Group",
+        description = "Use top of skull as density vertex group.\nMakes hair posing more stable.")
 
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shells",

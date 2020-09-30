@@ -666,15 +666,10 @@ class Hair:
         description = "Resize hair in blocks of ten afterwards"
     )
 
-    useHead = BoolProperty(
-        name = "Head Vertex Group",
-        description = "Use head vertex group for density",
+    useVertexGroup = BoolProperty(
+        name = "Use Vertex Group",
+        description = "Use top vertex vertex group for density",
         default = True)
-
-    activeVertexGroup = EnumProperty(
-        items = G.getVertexGroups,
-        name = "Vertex group",
-        description = "Vertex group to control hair density")
 
 
 class Pinning:
