@@ -1463,7 +1463,9 @@ def makeDeflection(context, ob, char, fac):
     vnums = struct["vertices"]
     verts = ob.data.vertices
     coords = [(verts[vn].co + fac*verts[vn].normal) for vn in vnums]
-    faces = struct["faces"]
+    #faces = struct["faces"]
+    faces = ([(f[0],f[1],f[2]) for f in struct["faces"]] +
+             [(f[0],f[2],f[3]) for f in struct["faces"]])
     me = bpy.data.meshes.new(ob.data.name+"Deflect")
     me.from_pydata(coords, [], faces)
     nob = bpy.data.objects.new(ob.name+"Deflect", me)
