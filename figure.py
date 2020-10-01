@@ -1221,6 +1221,22 @@ def toggleLayer(rig, fk, prefix, type, on):
     rig.data.layers[layer] = on
 
 #----------------------------------------------------------
+#   Update for 1.5
+#----------------------------------------------------------
+
+class DAZ_OT_UpdateRigVersion(DazOperator, IsArmature):
+    bl_idname = "daz.update_rig_version"
+    bl_label = "Update Rig For Version 1.5"
+    bl_description = "Use this if you have problems with posing old characters"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        rig = context.object
+        for bone in rig.data.bones:
+            if "DazOrientation" in bone.keys():
+                bone.DazOrient = list(bone["DazOrientation"])
+
+#----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
@@ -1241,6 +1257,7 @@ classes = [
     DAZ_OT_AddSimpleIK,
     DAZ_OT_SnapSimpleFK,
     DAZ_OT_SnapSimpleIK,
+    DAZ_OT_UpdateRigVersion,
 ]
 
 def initialize():

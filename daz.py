@@ -437,6 +437,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.connect_ik_chains")
             box.separator()
             box.operator("daz.convert_rig")
+            box.operator("daz.update_rig_version")
             box.separator()
             box.operator("daz.apply_rest_pose")
             box.operator("daz.copy_bones")
