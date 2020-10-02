@@ -886,22 +886,86 @@ def driveConstraint(pb, type, rig, prop, expr):
 #   Connect bones in IK chains
 #----------------------------------------------------------
 
-class DAZ_OT_ConnectIKChains(DazOperator, SimpleIK, IsArmature):
+class DAZ_OT_ConnectIKChains(DazPropsOperator, SimpleIK, B.ConnectIK, IsArmature):
     bl_idname = "daz.connect_ik_chains"
     bl_label = "Connect IK Chains"
     bl_description = "Connect all bones in IK chains to their parents"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "type")
+        self.layout.prop(self, "location")
+        self.layout.prop(self, "unlock")
+
+
     def run(self, context):
         rig = context.object
+        self.getBoneNames(rig)
         bpy.ops.object.mode_set(mode="EDIT")
-        for prefix in ["l", "r"]:
-            for type in ["Arm", "Leg"]:
-                bnames = self.getLimbBoneNames(rig, prefix, type)
-                if bnames:
-                    for bname in bnames[1:]:
-                        eb = rig.data.edit_bones[bname]
-                        eb.use_connect = True
+        for chain in self.chains:
+            parb = rig.data.edit_bones[chain[0]]
+            for child in chain[1:]:
+                eb = rig.data.edit_bones[child]
+                self.relocate(parb, eb)
+                eb.use_connect = True
+                parb = eb
+        if self.unlock:
+            bpy.ops.object.mode_set(mode="EDIT")
+            for chain in self.chains:
+                pb = rig.pose.bones[chain[-1]]
+                pb.lock_location = (False,False,False)
+
+
+    def relocate(self, parb, eb):
+        if self.location == 'TAIL':
+            eb.head = parb.tail
+        elif self.location == 'HEAD':
+            parb.tail = eb.head
+        elif self.location == 'CENTER':
+            center = (eb.head + parb.tail)/2
+            parb.tail = eb.head = center
+
+
+    def getBoneNames(self, rig):
+        self.chains = []
+        if self.type == 'ARMS':
+            for prefix in ["l", "r"]:
+                chain = self.getLimbBoneNames(rig, prefix, "Arm")
+                self.chains.append(chain)
+        elif self.type == 'LEGS':
+            for prefix in ["l", "r"]:
+                chain = self.getLimbBoneNames(rig, prefix, "Leg")
+                self.chains.append(chain)
+        elif self.type == 'ARMSLEGS':
+            for prefix in ["l", "r"]:
+                for type in ["Arm", "Leg"]:
+                    chain = self.getLimbBoneNames(rig, prefix, type)
+                    self.chains.append(chain)
+        elif self.type == 'SELECTED':
+            roots = []
+            for bone in rig.data.bones:
+                if bone.parent is None:
+                    roots.append(bone)
+            for root in roots:
+                self.getChildNames(rig, root)
+        return self.chains
+
+
+    def getChildNames(self, rig, bone):
+        if bone.select:
+            self.chain = []
+            self.getChainNames(rig, bone)
+            self.chains.append(self.chain)
+        else:
+            for child in bone.children:
+                self.getChildNames(rig, child)
+
+
+    def getChainNames(self, rig, bone):
+        if bone.select:
+            self.chain.append(bone.name)
+            for child in bone.children:
+                self.getChainNames(rig, child)
 
 #----------------------------------------------------------
 #   Custom shapes

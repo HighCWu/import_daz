@@ -702,12 +702,12 @@ class DAZ_OT_ApplyRestPoses(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig,subrigs = getSelectedRigs(context)
-        LS.forAnimation(None, rig, context.scene)
+        _rig,subrigs = getSelectedRigs(context)
         applyRestPoses(context, rig, subrigs)
 
 
 def applyRestPoses(context, rig, subrigs):
+    LS.forAnimation(None, rig, context.scene)
     rigs = [rig] + subrigs
     for subrig in rigs:
         for ob in subrig.children:

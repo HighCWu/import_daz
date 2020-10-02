@@ -234,27 +234,25 @@ class DAZ_OT_LoadPose(DazOperator, B.JsonFile, B.SingleFile, IsArmature):
         return {'RUNNING_MODAL'}
 
 #-------------------------------------------------------------
-#   Optimize pose for Rigify
+#   Optimize pose for IK
 #-------------------------------------------------------------
 
-def optimizePose(context):
-    from .globvars import theIkPoseFolder
-    rig = context.object
-    char = getCharacter(rig)
-    if char is None:
-        raise DazError("Did not recognize character")
-    loadRestPoseEntry(char, IkPoses, theIkPoseFolder)
-    loadPose(rig, char, IkPoses, False)
-
-
-class DAZ_OT_OptimizePoses(DazOperator, IsArmature):
+class DAZ_OT_OptimizePose(DazOperator, IsArmature):
     bl_idname = "daz.optimize_pose"
-    bl_label = "Optimize Pose For IK"
-    bl_description = "Optimize rest pose for IK. Incompatible with pose loading."
+    bl_label = "Optimize Rest Pose For IK"
+    bl_description = "Optimize rest pose for IK.\nIncompatible with pose loading."
     bl_options = {'UNDO'}
 
     def run(self, context):
-        optimizePose(context)
+        from .globvars import theIkPoseFolder
+        from .merge import applyRestPoses
+        rig = context.object
+        char = getCharacter(rig)
+        if char is None:
+            raise DazError("Did not recognize character")
+        loadRestPoseEntry(char, IkPoses, theIkPoseFolder)
+        loadPose(rig, char, IkPoses, False)
+        applyRestPoses(context, rig, [])
 
 #-------------------------------------------------------------
 #   Convert Rig
@@ -396,7 +394,7 @@ def getConverterEntry(cname):
 classes = [
     DAZ_OT_SaveCurrentPose,
     DAZ_OT_LoadPose,
-    DAZ_OT_OptimizePoses,
+    DAZ_OT_OptimizePose,
     DAZ_OT_ConvertRigPose,
 ]
 

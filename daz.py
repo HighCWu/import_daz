@@ -275,13 +275,12 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.merge_rigs")
             box.operator("daz.eliminate_empties")
             box.operator("daz.merge_toes")
-            box.separator()
             box.operator("daz.add_extra_face_bones")
-            box.operator("daz.make_all_bones_posable")
             box.separator()
             box.operator("daz.add_custom_shapes")
+            box.operator("daz.optimize_pose")
+            box.operator("daz.connect_ik_chains")
             box.operator("daz.add_simple_ik")
-            box.operator("daz.update_all")
 
         layout.separator()
         box = layout.box()
@@ -350,9 +349,8 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.merge_uv_layers")
 
             box.separator()
-            box.operator("daz.optimize_pose")
-            box.operator("daz.apply_rest_pose")
             box.operator("daz.convert_mhx")
+            box.operator("daz.make_all_bones_posable")
             box.separator()
             box.operator("daz.rigify_daz")
             box.operator("daz.create_meta")
@@ -393,6 +391,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         scn = context.scene
         ob = context.object
         layout = self.layout
+        layout.operator("daz.update_all")
 
         box = layout.box()
         if showBox(scn, "DazShowLowpoly", box):
@@ -434,7 +433,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         box = layout.box()
         if showBox(scn, "DazShowRigging", box):
             box.operator("daz.remove_custom_shapes")
-            box.operator("daz.connect_ik_chains")
             box.separator()
             box.operator("daz.convert_rig")
             box.operator("daz.update_rig_version")

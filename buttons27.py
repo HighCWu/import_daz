@@ -368,6 +368,29 @@ class PoleTargets:
         description = "Add pole targets to the IK chains.\nPoses will not be loaded correctly.",
         default = False)
 
+class ConnectIK:
+    type = EnumProperty(
+        items = [('ARMS', "Arms Only", "Connect arms only"),
+                 ('LEGS', "Legs Only", "Connect legs only"),
+                 ('ARMSLEGS', "Arms And Legs", "Connect both arms and legs"),
+                 ('SELECTED', "Selected", "Connect selected bones")],
+        name = "Chain Types",
+        description = "Connect the specified types of chains",
+        default = 'ARMSLEGS')
+
+    unlock = BoolProperty(
+        name = "Unlock Last Bone",
+        description = "Remove location locks of the last bone in each chain for use as Auto IK target",
+        default = True)
+
+    location = EnumProperty(
+        items = [('HEAD', "Head", "Connect at the head of the child bone"),
+                 ('TAIL', "Tail", "Connect at the tail of the parent bone"),
+                 ('CENTER', "Center", "Connect at the midpoint between the parent tail and child head")],
+        name = "Location",
+        description = "Where to connect parent and child bones",
+        default = 'TAIL')
+
 #-------------------------------------------------------------
 #   fix.py
 #-------------------------------------------------------------
