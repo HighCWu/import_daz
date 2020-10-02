@@ -702,7 +702,7 @@ class DAZ_OT_ApplyRestPoses(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        _rig,subrigs = getSelectedRigs(context)
+        rig,subrigs = getSelectedRigs(context)
         applyRestPoses(context, rig, subrigs)
 
 
