@@ -237,11 +237,15 @@ class DAZ_OT_LoadPose(DazOperator, B.JsonFile, B.SingleFile, IsArmature):
 #   Optimize pose for IK
 #-------------------------------------------------------------
 
-class DAZ_OT_OptimizePose(DazOperator, IsArmature):
+class DAZ_OT_OptimizePose(DazPropsOperator, B.MergeRigs, IsArmature):
     bl_idname = "daz.optimize_pose"
-    bl_label = "Optimize Rest Pose For IK"
-    bl_description = "Optimize rest pose for IK.\nIncompatible with pose loading."
+    bl_label = "Optimize Pose For IK"
+    bl_description = "Optimize pose for IK.\nIncompatible with pose loading and body morphs."
     bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "useApplyRestPose")
+
 
     def run(self, context):
         from .globvars import theIkPoseFolder
@@ -252,7 +256,8 @@ class DAZ_OT_OptimizePose(DazOperator, IsArmature):
             raise DazError("Did not recognize character")
         loadRestPoseEntry(char, IkPoses, theIkPoseFolder)
         loadPose(rig, char, IkPoses, False)
-        applyRestPoses(context, rig, [])
+        if self.useApplyRestPose:
+            applyRestPoses(context, rig, [])
 
 #-------------------------------------------------------------
 #   Convert Rig
