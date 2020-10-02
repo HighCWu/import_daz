@@ -704,7 +704,8 @@ class SimpleIK:
         bgrp.color_set = 'THEME01'
 
 
-    def limitBone(self, pb, twist, stiffness=(0,0,0)):
+    def limitBone(self, pb, twist, rig, prop, stiffness=(0,0,0)):
+        from .mhx import addDriver
         pb.lock_ik_x = pb.lock_rotation[0]
         pb.lock_ik_y = pb.lock_rotation[1]
         pb.lock_ik_z = pb.lock_rotation[2]
@@ -724,7 +725,7 @@ class SimpleIK:
                 pb.ik_max_y = cns.max_y
                 pb.ik_min_z = cns.min_z
                 pb.ik_max_z = cns.max_z
-                cns.influence = 0
+                addDriver(cns, "influence", rig, prop, "1-x")
                 break
 
         if twist:
@@ -808,13 +809,13 @@ def addSimpleIK(rig, IK):
 
         if genesis == "G38":
             shldrBend = rpbs[prefix+"ShldrBend"]
-            IK.limitBone(shldrBend, False)
+            IK.limitBone(shldrBend, False, rig, armProp)
             shldrTwist = rpbs[prefix+"ShldrTwist"]
-            IK.limitBone(shldrTwist, True)
+            IK.limitBone(shldrTwist, True, rig, armProp)
             forearmBend = rpbs[prefix+"ForearmBend"]
-            IK.limitBone(forearmBend, False)
+            IK.limitBone(forearmBend, False, rig, armProp)
             forearmTwist = rpbs[prefix+"ForearmTwist"]
-            IK.limitBone(forearmTwist, True)
+            IK.limitBone(forearmTwist, True, rig, armProp)
             if IK.usePoleTargets:
                 elbow = rpbs[prefix+"Elbow"]
                 elbow.lock_rotation = (True,True,True)
@@ -828,11 +829,11 @@ def addSimpleIK(rig, IK):
             ikConstraint(forearmTwist, handIK, elbow, -90, 4, rig, prop=armProp)
 
             thighBend = rpbs[prefix+"ThighBend"]
-            IK.limitBone(thighBend, False, stiffness=(0,0,0.326))
+            IK.limitBone(thighBend, False, rig, legProp, stiffness=(0,0,0.326))
             thighTwist = rpbs[prefix+"ThighTwist"]
-            IK.limitBone(thighTwist, True, stiffness=(0,0.160,0))
+            IK.limitBone(thighTwist, True, rig, legProp, stiffness=(0,0.160,0))
             shin = rpbs[prefix+"Shin"]
-            IK.limitBone(shin, False, stiffness=(0.068,0,0.517))
+            IK.limitBone(shin, False, rig, legProp, stiffness=(0.068,0,0.517))
             if IK.usePoleTargets:
                 knee = rpbs[prefix+"Knee"]
                 knee.lock_rotation = (True,True,True)
@@ -847,15 +848,15 @@ def addSimpleIK(rig, IK):
 
         elif genesis == "G12":
             shldr = rpbs[prefix+"Shldr"]
-            IK.limitBone(shldr, False)
+            IK.limitBone(shldr, False, rig, armProp)
             forearm = rpbs[prefix+"ForeArm"]
-            IK.limitBone(forearm, False)
+            IK.limitBone(forearm, False, rig, armProp)
             ikConstraint(forearm, handIK, None, 0, 2, rig, prop=armProp)
 
             thigh = rpbs[prefix+"Thigh"]
-            IK.limitBone(thigh, False)
+            IK.limitBone(thigh, False, rig, legProp)
             shin = rpbs[prefix+"Shin"]
-            IK.limitBone(shin, False)
+            IK.limitBone(shin, False, rig, legProp)
             ikConstraint(shin, footIK, None, 0, 2, rig, prop=legProp)
 
 
