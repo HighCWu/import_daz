@@ -385,12 +385,12 @@ class ConnectIK:
         default = True)
 
     location : EnumProperty(
-        items = [('HEAD', "Head", "Connect at the head of the child bone"),
-                 ('TAIL', "Tail", "Connect at the tail of the parent bone"),
+        items = [('HEAD', "Child Head", "Connect at the head of the child bone"),
+                 ('TAIL', "Parent Tail", "Connect at the tail of the parent bone"),
                  ('CENTER', "Center", "Connect at the midpoint between the parent tail and child head")],
         name = "Location",
         description = "Where to connect parent and child bones",
-        default = 'TAIL')
+        default = 'HEAD')
 
 #-------------------------------------------------------------
 #   fix.py
