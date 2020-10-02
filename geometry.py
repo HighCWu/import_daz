@@ -734,11 +734,9 @@ class Geometry(Asset, Channels):
         for pnum,mnum,strand in self.strands:
             n = len(strand)
             matname,hmat = self.getHairMaterial(mnum)
-            idx = (pnum if GS.multipleHairMaterials else 0)
-            polygrp = self.polygon_groups[idx]
             hname = ("%s-%02d" % (matname, n))
             if hname not in hsystems.keys():
-                hsys = hsystems[hname] = HairSystem(hname, n, polygrp=polygrp, geonode=geonode)
+                hsys = hsystems[hname] = HairSystem(hname, n, geonode=geonode)
                 if GS.useSkullGroup:
                     if vgrp is None:
                         vgrp = createSkullGroup(ob, 'TOP')

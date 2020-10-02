@@ -40,7 +40,7 @@ from .cycles import CyclesMaterial, CyclesTree
 #-------------------------------------------------------------
 
 class HairSystem:
-    def __init__(self, name, n, polygrp=None, geonode=None, object=None):
+    def __init__(self, name, n, geonode=None, object=None):
         if name is None:
             self.name = ("Hair%02d" % n)
         else:
@@ -57,7 +57,6 @@ class HairSystem:
         self.npoints = n
         self.strands = []
         self.useEmitter = True
-        self.polygrp = polygrp
         self.vertexGroup = None
         self.material = None
 
