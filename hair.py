@@ -74,14 +74,34 @@ class HairSystem:
 
 
     def getDensity(self, mod, channels, default):
+        from .material import Map
         for channel in channels:
-            val,img = mod.getValueImage([channel], 0)
+            val,url = mod.getValueImage([channel], 0)
             if val:
-                return val,img
+                if url:
+                    map = Map({}, False)
+                    map.url = url
+                    map.build()
+                    tex = map.getTexture()
+                    tex.buildInternal()
+                    return val,tex.rna
+                else:
+                    return val,None
         return default,None
 
 
-    def setHairSettings(self, psys):
+    def addTexture(self, tex, pset, ob, use, factor):
+        ptex = pset.texture_slots.add()
+        ptex.texture = tex
+        setattr(ptex, use, True)
+        setattr(ptex, factor, 1)
+        ptex.use_map_time = False
+        ptex.texture_coords = 'UV'
+        if ob and ob.data.uv_layers.active:
+            ptex.uv_layer = ob.data.uv_layers.active.name
+
+
+    def setHairSettings(self, psys, ob):
         mod = self.modifier
         pset = psys.settings
         if hasattr(pset, "cycles_curve_settings"):
@@ -91,10 +111,15 @@ class HairSystem:
         else:
             ccset = pset
 
-        dval,dimg = self.getDensity(mod, ["PreSim Hairs Density", "PreRender Hairs Per Guide"], 10)
-        rdval,rdimg = self.getDensity(mod, ["PreRender Hairs Density", "PreSim Hairs Per Guide"], 100)
-        pset.child_nbr = dval
+        rdval,rdtex = self.getDensity(mod, ["PreRender Hairs Density", "PreSim Hairs Per Guide"], 100)
         pset.rendered_child_count = rdval
+        if rdtex:
+            self.addTexture(rdtex, pset, ob, "use_map_density", "density_factor")
+
+        dval,dtex = self.getDensity(mod, ["PreSim Hairs Density", "PreRender Hairs Per Guide"], 10)
+        pset.child_nbr = dval
+        if dtex and not rdtex:
+            self.addTexture(dtex, pset, ob, "use_map_density", "density_factor")
 
         if self.material:
             pset.material_slot = self.material
@@ -109,10 +134,19 @@ class HairSystem:
             ccset.tip_radius = tiprad
         ccset.radius_scale = self.scale * mod.getValue(["PreRender Hair Distribution Radius"], 1)
 
+        val,tex = self.getDensity(mod, ["PreRender Generated Hair Scale", "PreSim Generated Hair Scale"], 1)
+        #pset.length_factor = val
+        if tex:
+            self.addTexture(tex, pset, ob, "use_map_length", "length_factor")
+
         psys.child_seed = mod.getValue(["PreRender Hair Seed"], 0)
         pset.child_radius = mod.getValue(["PreRender Hair Distribution Radius"], 1) * self.scale
 
-        pset.clump_factor = mod.getValue(["PreRender Clumping 1 Curves Density"], 0)
+        val,tex = self.getDensity(mod, ["PreRender Clumping 1 Curves Density"], 0)
+        pset.clump_factor = val
+        if tex:
+            self.addTexture(tex, pset, ob, "use_map_clump", "clump_factor")
+
         pset.clump_shape = mod.getValue(["PreRender Clumpiness 1"], 0)
         if hasattr(pset, "twist"):
             pset.twist = mod.getValue(["PreRender Clumping 1 Bias"], 0.5)
@@ -185,7 +219,7 @@ class HairSystem:
         pset.path_end = 1
         pset.count = int(len(self.strands))
         pset.hair_step = hlen-1
-        self.setHairSettings(psys)
+        self.setHairSettings(psys, ob)
 
         psys.use_hair_dynamics = False
 

@@ -676,7 +676,7 @@ class Texture:
         self.images = {"COLOR":None, "NONE":None}
 
     def __repr__(self):
-        return ("<Texture %s %s %s>" % (self.map.url, self.map.image, self.image))
+        return ("<Texture %s %s %s>" % (self.map.url, self.map.image, self.rna))
 
 
     def buildInternal(self):

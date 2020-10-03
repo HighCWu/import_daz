@@ -668,7 +668,6 @@ class Geometry(Asset, Channels):
 
         for key,uvset in self.uv_sets.items():
             self.buildUVSet(context, uvset, me, False)
-
         self.buildUVSet(context, self.uv_set, me, True)
         if self.shells and self.uv_set != self.default_uv_set:
             self.buildUVSet(context, self.default_uv_set, me, False)
