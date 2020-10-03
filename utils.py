@@ -102,15 +102,19 @@ if bpy.app.version < (2,80,0):
                 scn.layers[n] = True
                 return
 
+
     def activateObject(context, ob):
-        try:
-            if context.object:
-                bpy.ops.object.mode_set(mode='OBJECT')
-            bpy.ops.object.select_all(action='DESELECT')
-            ob.select = True
-        except RuntimeError:
-            print("Could not activate", ob)
         context.scene.objects.active = ob
+        try:
+            bpy.ops.object.mode_set(mode='OBJECT')
+            ok = True
+        except RuntimeError:
+            print("Could not activate", ob.name)
+            ok = False
+        bpy.ops.object.select_all(action='DESELECT')
+        ob.select = True
+        return ok
+
 
     def Mult2(x, y):
         return x * y
@@ -218,15 +222,19 @@ else:
         coll = context.collection
         coll.objects.link(ob)
 
+
     def activateObject(context, ob):
-        try:
-            if context.object:
-                bpy.ops.object.mode_set(mode='OBJECT')
-            bpy.ops.object.select_all(action='DESELECT')
-            ob.select_set(True)
-        except RuntimeError:
-            print("Could not activate", context.object)
         context.view_layer.objects.active = ob
+        try:
+            bpy.ops.object.mode_set(mode='OBJECT')
+            ok = True
+        except RuntimeError:
+            print("Could not activate", ob.name)
+            ok = False
+        bpy.ops.object.select_all(action='DESELECT')
+        ob.select_set(True)
+        return ok
+
 
     def printActive(name, context):
         coll = context.collection

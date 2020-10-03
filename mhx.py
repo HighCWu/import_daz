@@ -1252,12 +1252,12 @@ def doHardUpdate(context, rig):
     for ob in meshes:
         hidden = getHideViewport(ob)
         setHideViewport(ob, False)
-        activateObject(context, ob)
-        toggleEditMode()
+        if activateObject(context, ob):
+            toggleEditMode()
         setHideViewport(ob, hidden)
     updateScene(context)
-    activateObject(context, rig)
-    updateDrivers(rig)
+    if activateObject(context, rig):
+        updateDrivers(rig)
 
 #-------------------------------------------------------------
 #   Init MHX props. Same as mhx2 importer

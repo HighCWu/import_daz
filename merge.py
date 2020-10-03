@@ -626,11 +626,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
 
         if extras:
             storage = {}
-            activateObject(context, ob)
-            try:
+            if activateObject(context, ob):
                 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-            except RuntimeError:
-                pass
 
             bpy.ops.object.mode_set(mode='EDIT')
             for bname in extras:

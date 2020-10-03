@@ -868,9 +868,9 @@ class MakeProxy(IsMesh):
         print("-----")
         errors = []
         for ob in meshes:
-            activateObject(context, ob)
-            print("\nMake %s low-poly" % ob.name)
-            self.makeProxy(ob, context, errors)
+            if activateObject(context, ob):
+                print("\nMake %s low-poly" % ob.name)
+                self.makeProxy(ob, context, errors)
         restoreSelectedObjects(context, meshes, active)
         if errors:
             msg = "Cannot make low-poly version\nof meshes with shapekeys:"
@@ -925,15 +925,15 @@ class DAZ_OT_Quadify(MakeProxy, DazOperator, IsMesh):
         print("-----")
         errors = []
         for ob in meshes:
-            activateObject(context, ob)
-            print("\nQuadify %s" % ob.name)
-            printStatistics(ob)
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.mesh.select_mode(type='FACE')
-            bpy.ops.mesh.select_all(action='SELECT')
-            bpy.ops.mesh.tris_convert_to_quads()
-            bpy.ops.object.mode_set(mode='OBJECT')
-            printStatistics(ob)
+            if activateObject(context, ob):
+                print("\nQuadify %s" % ob.name)
+                printStatistics(ob)
+                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.mesh.select_mode(type='FACE')
+                bpy.ops.mesh.select_all(action='SELECT')
+                bpy.ops.mesh.tris_convert_to_quads()
+                bpy.ops.object.mode_set(mode='OBJECT')
+                printStatistics(ob)
         restoreSelectedObjects(context, meshes, active)
 
 
@@ -957,7 +957,8 @@ def restoreSelectedObjects(context, meshes, active):
 #-------------------------------------------------------------
 
 def splitNgons(ob, context):
-    activateObject(context, ob)
+    if not activateObject(context, ob):
+        return
     printStatistics(ob)
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_mode(type='FACE')
