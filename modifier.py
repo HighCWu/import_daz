@@ -161,6 +161,10 @@ class ExtraAsset(Modifier, Channels):
         pinst = inst.parent
         geonode = self.getGeoNode(inst)
         pgeonode = self.getGeoNode(pinst)
+        for etype,extra in self.extras.items():
+            if etype == "studio/modifier/push":
+                #print("PUSH", self)
+                return
         if geonode is None:
             print("No geo", self)
             print(self.extras.keys())
@@ -175,6 +179,8 @@ class ExtraAsset(Modifier, Channels):
                 pass
             elif etype == "studio/modifier/line_tessellation":
                 pass
+            elif etype == "studio/modifier/push":
+                pass
             elif etype == "studio/simulation_settings/dynamic_simulation":
                 pass
             elif etype == "studio_modifier_channels":
@@ -183,6 +189,7 @@ class ExtraAsset(Modifier, Channels):
                 for cstruct in modchannels["channels"]:
                     channel = cstruct["channel"]
                     self.setChannel(channel)
+
 
 
     def getGeoNode(self, inst):

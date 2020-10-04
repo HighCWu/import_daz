@@ -292,7 +292,7 @@ def updateRig(rig, context):
     if ob is None:
         return
     if bpy.app.version >= (2,80,0):
-        if ob.type == 'MESH':
+        if ob.type == 'MESH' and rig.name in context.view_layer.objects:
             context.view_layer.objects.active = rig
             bpy.ops.object.posemode_toggle()
             bpy.ops.object.posemode_toggle()

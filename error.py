@@ -257,31 +257,25 @@ class DazOperator(bpy.types.Operator):
 
 
     def prequel(self, context):
-        from .utils import getHideViewport, setHideViewport, getSceneObjects
         self.mode = None
-        self.hidden = []
-        self.activeObject = context.object
-        for ob in getSceneObjects(context):
-            if getHideViewport(ob):
-                setHideViewport(ob, False)
-                self.hidden.append(ob)
         if context.object:
             self.mode = context.object.mode
-            bpy.ops.object.mode_set(mode='OBJECT')
+            try:
+                bpy.ops.object.mode_set(mode='OBJECT')
+            except RuntimeError:
+                pass
         clearErrorMessage()
 
 
     def sequel(self, context):
-        from .utils import setHideViewport, activateObject
         wm = bpy.context.window_manager
         wm.progress_update(100)
         wm.progress_end()
-        if context.object != self.activeObject:
-            activateObject(context, self.activeObject)
-        if self.mode and context.object:
-            bpy.ops.object.mode_set(mode=self.mode)
-        for ob in self.hidden:
-            setHideViewport(ob, True)
+        if self.mode:
+            try:
+                bpy.ops.object.mode_set(mode=self.mode)
+            except RuntimeError:
+                pass
 
 
 class DazPropsOperator(DazOperator):
