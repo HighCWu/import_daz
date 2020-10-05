@@ -101,6 +101,14 @@ class HairSystem:
             ptex.uv_layer = ob.data.uv_layers.active.name
 
 
+    def getTexDensity(self, mod, channels, default, attr, pset, ob, use, factor, cond=True):
+        val,tex = self.getDensity(mod, channels, default)
+        setattr(pset, attr, val)
+        if tex and cond:
+            self.addTexture(tex, pset, ob, use, factor)
+        return val,tex
+
+
     def setHairSettings(self, psys, ob):
         mod = self.modifier
         pset = psys.settings
@@ -111,15 +119,11 @@ class HairSystem:
         else:
             ccset = pset
 
-        rdval,rdtex = self.getDensity(mod, ["PreRender Hairs Density", "PreSim Hairs Per Guide"], 100)
-        pset.rendered_child_count = rdval
-        if rdtex:
-            self.addTexture(rdtex, pset, ob, "use_map_density", "density_factor")
+        channels = ["PreRender Hairs Density", "PreSim Hairs Per Guide"]
+        val,rdtex = self.getTexDensity(mod, channels, 100, "rendered_child_count", pset, ob, "use_map_density", "density_factor")
 
-        dval,dtex = self.getDensity(mod, ["PreSim Hairs Density", "PreRender Hairs Per Guide"], 10)
-        pset.child_nbr = dval
-        if dtex and not rdtex:
-            self.addTexture(dtex, pset, ob, "use_map_density", "density_factor")
+        channels = ["PreSim Hairs Density", "PreRender Hairs Per Guide"]
+        self.getTexDensity(mod, channels, 10, "child_nbr", pset, ob, "use_map_density", "density_factor", cond=(not rdtex))
 
         if self.material:
             pset.material_slot = self.material
@@ -134,22 +138,28 @@ class HairSystem:
             ccset.tip_radius = tiprad
         ccset.radius_scale = self.scale * mod.getValue(["PreRender Hair Distribution Radius"], 1)
 
-        val,tex = self.getDensity(mod, ["PreRender Generated Hair Scale", "PreSim Generated Hair Scale"], 1)
-        #pset.length_factor = val
-        if tex:
-            self.addTexture(tex, pset, ob, "use_map_length", "length_factor")
+        channels = ["PreRender Generated Hair Scale", "PreSim Generated Hair Scale"]
+        self.getTexDensity(mod, channels, 1, "child_length", pset, ob, "use_map_length", "length_factor")
 
         psys.child_seed = mod.getValue(["PreRender Hair Seed"], 0)
         pset.child_radius = mod.getValue(["PreRender Hair Distribution Radius"], 1) * self.scale
 
-        val,tex = self.getDensity(mod, ["PreRender Clumping 1 Curves Density"], 0)
-        pset.clump_factor = val
-        if tex:
-            self.addTexture(tex, pset, ob, "use_map_clump", "clump_factor")
+        channels = ["PreRender Clumping 1 Curves Density"]
+        self.getTexDensity(mod, channels, 0, "clump_factor", pset, ob, "use_map_clump", "clump_factor")
 
         pset.clump_shape = mod.getValue(["PreRender Clumpiness 1"], 0)
+
+        channels = ["PreRender Scraggliness 1"]
+        val,tex = self.getTexDensity(mod, channels, 0, "kink_amplitude", pset, ob, "use_map_kink_amp", "kink_amp_factor")
+        if val:
+            pset.kink = 'CURL'
+
+        channels = ["PreRender Scraggle 1 Frequency "]
+        self.getTexDensity(mod, channels, 0, "kink_frequency", pset, ob, "use_map_kink_freq", "kink_freq_factor")
+
         if hasattr(pset, "twist"):
-            pset.twist = mod.getValue(["PreRender Clumping 1 Bias"], 0.5)
+            channels = ["PreRender Frizz Tip Amount", "PreRender Frizz Base Amount"]
+            self.getTexDensity(mod, channels, 0, "twist", pset, ob, "use_map_twist", "twist_factor")
 
 
     def addStrand(self, strand):
@@ -680,39 +690,6 @@ def updateHairs(context, ob):
         dg = context.evaluated_depsgraph_get()
         return ob.evaluated_get(dg).particle_systems
 
-# ---------------------------------------------------------------------
-#   Hair settings
-# ---------------------------------------------------------------------
-
-def getSettings(pset):
-    settings = {}
-    for key in dir(pset):
-        attr = getattr(pset, key)
-        if (key[0] == "_" or
-            key in ["count"]):
-            continue
-        if (
-            isinstance(attr, int) or
-            isinstance(attr, bool) or
-            isinstance(attr, float) or
-            isinstance(attr, str) or
-            #attr is None or
-            False
-            ):
-            settings[key] = attr
-    return settings
-
-
-def setSettings(pset, settings):
-    for key,value in settings.items():
-        if key in ["use_absolute_path_time"]:
-            continue
-        try:
-            setattr(pset, key, value)
-        except AttributeError:
-            pass
-
-
 #------------------------------------------------------------------------
 #   Deflector
 #------------------------------------------------------------------------
@@ -787,19 +764,44 @@ class DAZ_OT_UpdateHair(DazOperator, IsHair):
         hum = context.object
         psys0 = hum.particle_systems.active
         idx0 = hum.particle_systems.active_index
-        psettings = getSettings(psys0.settings)
+        psettings = self.getSettings(psys0.settings)
         hdyn0 = psys0.use_hair_dynamics
-        csettings = getSettings(psys0.cloth.settings)
+        csettings = self.getSettings(psys0.cloth.settings)
         for idx,psys in enumerate(hum.particle_systems):
             if idx == idx0:
                 continue
-            psys = updateHair(context, hum, psys)
             hum.particle_systems.active_index = idx
-            setSettings(psys.settings, psettings)
+            self.setSettings(psys.settings, psettings)
             psys.use_hair_dynamics = hdyn0
-            #setSettings(psys.cloth.settings, csettings)
-        psys = updateHair(context, hum, psys)
+            self.setSettings(psys.cloth.settings, csettings)
         hum.particle_systems.active_index = idx0
+
+
+    def getSettings(self, pset):
+        settings = {}
+        for key in dir(pset):
+            attr = getattr(pset, key)
+            if (key[0] == "_" or
+                key in ["count"]):
+                continue
+            if (
+                isinstance(attr, int) or
+                isinstance(attr, bool) or
+                isinstance(attr, float) or
+                isinstance(attr, str)
+                ):
+                settings[key] = attr
+        return settings
+
+
+    def setSettings(self, pset, settings):
+        for key,value in settings.items():
+            if key in ["use_absolute_path_time"]:
+                continue
+            try:
+                setattr(pset, key, value)
+            except AttributeError:
+                pass
 
 
 class DAZ_OT_ColorHair(DazPropsOperator, IsHair, B.ColorProp):

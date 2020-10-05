@@ -496,7 +496,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.separator()
             box.operator("daz.update_hair")
             box.operator("daz.color_hair")
-            #box.operator("daz.connect_hair")
 
 
 class DAZ_PT_Utils(bpy.types.Panel):
