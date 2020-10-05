@@ -713,11 +713,9 @@ class Geometry(Asset, Channels):
 
 
     def buildHair(self, geonode, context):
-        from .hair import HairSystem, createSkullGroup
         ob = geonode.pgeonode.rna
-        hair = geonode.rna
         if not self.strands:
-            print("No strands", ob, hair)
+            print("No strands", ob)
             return
 
         if not self.polygon_material_groups:
@@ -732,7 +730,7 @@ class Geometry(Asset, Channels):
             ob.data.materials.append(hmat.rna)
 
         if GS.strandsAsHair:
-            self.buildHairSystems(ob)
+            self.buildHairSystems(ob, geonode, context)
         else:
             self.storeHairSystems(ob)
 
@@ -747,7 +745,8 @@ class Geometry(Asset, Channels):
                 pg.a = vn
 
 
-    def buildHairSystems(self, ob):
+    def buildHairSystems(self, ob, geonode, context):
+        from .hair import HairSystem, createSkullGroup
         hsystems = {}
         vgrp = None
         for pnum,mnum,strand in self.strands:
