@@ -197,7 +197,7 @@ class GeoNode(Node):
             pruneUvMaps(self.rna)
         if self.highdef:
             self.buildHighDef(context, inst)
-        if self.pgeonode and GS.strandsAsHair:
+        if self.pgeonode:
             self.data.buildHair(self, context)
         if self.dforce:
             self.dforce.build(context)
@@ -716,6 +716,9 @@ class Geometry(Asset, Channels):
         from .hair import HairSystem, createSkullGroup
         ob = geonode.pgeonode.rna
         hair = geonode.rna
+        if not self.strands:
+            print("No strands", ob, hair)
+            return
 
         if not self.polygon_material_groups:
             pass
@@ -728,6 +731,23 @@ class Geometry(Asset, Channels):
             hmat = self.materials[mname][0]
             ob.data.materials.append(hmat.rna)
 
+        if GS.strandsAsHair:
+            self.buildHairSystems(ob)
+        else:
+            self.storeHairSystems(ob)
+
+
+    def storeHairSystems(self, ob):
+        for pnum,mnum,strand in self.strands:
+            matname,hmat = self.getHairMaterial(mnum)
+            pgs = ob.DazStrands.add()
+            pgs.name = matname
+            for vn in strand:
+                pg = pgs.strand.add()
+                pg.a = vn
+
+
+    def buildHairSystems(self, ob):
         hsystems = {}
         vgrp = None
         for pnum,mnum,strand in self.strands:
@@ -1102,6 +1122,8 @@ classes = [
     B.DazRigidityGroup,
     B.DazStringStringGroup,
     B.DazTextGroup,
+    B.DazVectorGroup,
+    B.DazStrandGroup,
 ]
 
 def initialize():
@@ -1115,6 +1137,7 @@ def initialize():
     bpy.types.Mesh.DazVertexCount = IntProperty(default=0)
     bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = B.DazStringStringGroup)
     bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = B.DazTextGroup)
+    bpy.types.Object.DazStrands = CollectionProperty(type = B.DazStrandGroup)
     bpy.types.Object.DazMultires = BoolProperty(default=False)
 
 

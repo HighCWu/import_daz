@@ -282,6 +282,42 @@ class HairSystem:
         deflector = findDeflector(hum)
 
 #-------------------------------------------------------------
+#   Make Strand Hair
+#-------------------------------------------------------------
+
+class DAZ_OT_MakeStrandHair(DazOperator):
+    bl_idname = "daz.make_strand_hair"
+    bl_label = "Make Strand Hair"
+    bl_description = "Make particle hair from stored strand-based hair"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'MESH' and ob.DazStrands)
+
+    def run(self, context):
+        hsystems = {}
+        vgrp = None
+        ob = context.object
+        for pgs in ob.DazStrands:
+            matname = pgs.name
+            strand = [pg.a for pg in pgs.strand]
+            n = len(strand)
+            hname = ("%s-%02d" % (matname, n))
+            if hname not in hsystems.keys():
+                hsys = hsystems[hname] = HairSystem(hname, n, object=ob)
+                if GS.useSkullGroup:
+                    if vgrp is None:
+                        vgrp = createSkullGroup(ob, 'TOP')
+                    hsys.vertexGroup = vgrp.name
+            hsystems[hname].strands.append(strand)
+
+        activateObject(context, ob)
+        for hsys in hsystems.values():
+            hsys.build(context, ob)
+
+#-------------------------------------------------------------
 #   Make Hair
 #-------------------------------------------------------------
 
@@ -1222,6 +1258,7 @@ class DAZ_OT_HairAddPinning(DazPropsOperator, IsMesh, Pinning):
 
 classes = [
     DAZ_OT_MakeHair,
+    DAZ_OT_MakeStrandHair,
     DAZ_OT_UpdateHair,
     DAZ_OT_ColorHair,
     DAZ_OT_ConnectHair,
