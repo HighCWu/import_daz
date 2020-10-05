@@ -863,21 +863,19 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator, B.KeepDirsBool):
         if not os.path.exists(texpath):
             os.makedirs(texpath)
 
-        images = []
+        self.images = []
         for ob in getSceneObjects(context):
             if ob.type == 'MESH':
                 for mat in ob.data.materials:
                     if mat and mat.use_nodes:
-                        self.saveNodesInTree(mat.node_tree, images)
+                        self.saveNodesInTree(mat.node_tree)
                     elif mat:
-                        for mtex in mat.texture_slots:
-                            if mtex:
-                                tex = mtex.texture
-                                if hasattr(tex, "image") and tex.image:
-                                    images.append(tex.image)
+                        self.saveTextureSlots(mat)
+                for psys in ob.particle_systems:
+                    self.saveTextureSlots(psys.settings)
                 ob.DazLocalTextures = True
 
-        for img in images:
+        for img in self.images:
             src = bpy.path.abspath(img.filepath)
             src = bpy.path.reduce_dirs([src])[0]
             file = bpy.path.basename(src)
@@ -897,12 +895,20 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator, B.KeepDirsBool):
             img.filepath = bpy.path.relpath(trg)
 
 
-    def saveNodesInTree(self, tree, images):
+    def saveNodesInTree(self, tree):
         for node in tree.nodes.values():
             if node.type == 'TEX_IMAGE':
-                images.append(node.image)
+                self.images.append(node.image)
             elif node.type == 'GROUP':
-                self.saveNodesInTree(node.node_tree, images)
+                self.saveNodesInTree(node.node_tree)
+
+
+    def saveTextureSlots(self, mat):
+        for mtex in mat.texture_slots:
+            if mtex:
+                tex = mtex.texture
+                if hasattr(tex, "image") and tex.image:
+                    self.images.append(tex.image)
 
 #-------------------------------------------------------------
 #   Merge identical materials
@@ -1223,10 +1229,16 @@ class ChangeResolution(B.ResizeOptions):
                     if mat.node_tree:
                         self.getTreeTextures(mat.node_tree, paths)
                     else:
-                        for mtex in mat.texture_slots:
-                            if mtex and mtex.texture.type == 'IMAGE':
-                                paths[mtex.texture.image.filepath] = True
+                        self.getSlotTextures(mat, paths)
+                for psys in ob.particle_systems:
+                    self.getSlotTextures(psys.settings, paths)
         return paths
+
+
+    def getSlotTextures(self, mat, paths):
+        for mtex in mat.texture_slots:
+            if mtex and mtex.texture.type == 'IMAGE':
+                paths[mtex.texture.image.filepath] = True
 
 
     def getTreeTextures(self, tree, paths):
@@ -1244,9 +1256,15 @@ class ChangeResolution(B.ResizeOptions):
                     if mat.node_tree:
                         self.resizeTree(mat.node_tree)
                     else:
-                        for mtex in mat.texture_slots:
-                            if mtex and mtex.texture.type == 'IMAGE':
-                                mtex.texture.image = self.replaceImage(mtex.texture.image)
+                        self.resizeSlots(mat)
+                for psys in ob.particle_systems:
+                    self.resizeSlots(psys.settings)
+
+
+    def resizeSlots(self, mat):
+        for mtex in mat.texture_slots:
+            if mtex and mtex.texture.type == 'IMAGE':
+                mtex.texture.image = self.replaceImage(mtex.texture.image)
 
 
     def resizeTree(self, tree):
