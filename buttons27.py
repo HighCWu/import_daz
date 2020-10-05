@@ -939,6 +939,12 @@ class DazKeys(bpy.types.PropertyGroup):
 class DazActiveGroup(bpy.types.PropertyGroup):
     active = BoolProperty(default = True)
 
+class DazVectorGroup(bpy.types.PropertyGroup):
+    a = FloatVectorProperty(size=3)
+
+class DazStrandGroup(bpy.types.PropertyGroup):
+    strand = CollectionProperty(type = DazVectorGroup)
+
 class DazTextGroup(bpy.types.PropertyGroup):
     text = StringProperty()
 

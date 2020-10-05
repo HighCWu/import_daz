@@ -172,7 +172,7 @@ class GeoNode(Node):
 
 
     def finishHair(self, context):
-        if self.pgeonode and GS.strandsAsHair:
+        if self.pgeonode and not GS.keepMeshStrands:
             ob = self.rna
             rig = self.parent.rna
             print("DELETE", ob, rig)
@@ -755,6 +755,7 @@ class Geometry(Asset, Channels):
             hname = ("%s-%02d" % (matname, n))
             if hname not in hsystems.keys():
                 hsys = hsystems[hname] = HairSystem(hname, n, geonode=geonode)
+                hsys.material = matname
                 if GS.useSkullGroup:
                     if vgrp is None:
                         vgrp = createSkullGroup(ob, 'TOP')

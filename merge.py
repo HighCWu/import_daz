@@ -213,10 +213,10 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
                     replaceNodeNames(mat, aname, newname)
 
         # Remove unused materials
-        self.mathits = dict([(mn,False) for mn in range(len(cob.data.materials))])
-        for f in cob.data.polygons:
-            self.mathits[f.material_index] = True
-        self.mergeMaterials(cob)
+        #self.mathits = dict([(mn,False) for mn in range(len(cob.data.materials))])
+        #for f in cob.data.polygons:
+        #    self.mathits[f.material_index] = True
+        #self.mergeMaterials(cob)
 
         copyShapeKeyDrivers(cob, drivers)
         updateDrivers(cob)

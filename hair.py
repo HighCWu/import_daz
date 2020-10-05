@@ -224,7 +224,7 @@ class HairSystem:
         pset.render_type = 'PATH'
         pset.child_type = 'SIMPLE'
 
-        pset.material = len(ob.data.materials)
+        #pset.material = len(ob.data.materials)
         pset.path_start = 0
         pset.path_end = 1
         pset.count = int(len(self.strands))
@@ -307,6 +307,7 @@ class DAZ_OT_MakeStrandHair(DazOperator):
             hname = ("%s-%02d" % (matname, n))
             if hname not in hsystems.keys():
                 hsys = hsystems[hname] = HairSystem(hname, n, object=ob)
+                hsys.material = matname
                 if GS.useSkullGroup:
                     if vgrp is None:
                         vgrp = createSkullGroup(ob, 'TOP')
@@ -316,6 +317,7 @@ class DAZ_OT_MakeStrandHair(DazOperator):
         activateObject(context, ob)
         for hsys in hsystems.values():
             hsys.build(context, ob)
+        ob.DazStrands.clear()
 
 #-------------------------------------------------------------
 #   Make Hair
