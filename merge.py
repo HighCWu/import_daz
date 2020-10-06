@@ -436,7 +436,7 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
         setActiveObject(context, rig)
 
 #-------------------------------------------------------------
-#   Merge rigs
+#   Eliminate Empties
 #-------------------------------------------------------------
 
 class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
@@ -477,6 +477,9 @@ def isDuplicated(ob):
     else:
         return (ob.instance_type != 'NONE')
 
+#-------------------------------------------------------------
+#   Merge rigs
+#-------------------------------------------------------------
 
 class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
     bl_idname = "daz.merge_rigs"
@@ -486,12 +489,39 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
 
     def draw(self, context):
         self.layout.prop(self, "clothesLayer")
+        self.layout.prop(self, "separateCharacters")
         self.layout.prop(self, "useApplyRestPose")
         self.layout.prop(self, "createMeshCollection")
 
 
     def run(self, context):
-        rig,subrigs = getSelectedRigs(context)
+        if not self.separateCharacters:
+            rig,subrigs = getSelectedRigs(context)
+            self.mergeRigs(context, rig, subrigs)
+        else:
+            rigs = []
+            for ob in getSceneObjects(context):
+                if ob.type == 'ARMATURE' and getSelected(ob) and ob.parent is None:
+                    rigs.append(ob)
+            pairs = []
+            for rig in rigs:
+                subrigs = self.getSubRigs(context, rig)
+                pairs.append((rig,subrigs))
+            for rig,subrigs in pairs:
+                activateObject(context, rig)
+                self.mergeRigs(context, rig, subrigs)
+
+
+    def getSubRigs(self, context, rig):
+        subrigs = []
+        for ob in rig.children:
+            if ob.type == 'ARMATURE' and getSelected(ob):
+                subrigs.append(ob)
+                subrigs += self.getSubRigs(context, ob)
+        return subrigs
+
+
+    def mergeRigs(self, context, rig, subrigs):
         LS.forAnimation(None, rig, context.scene)
         if rig is None:
             raise DazError("No rigs to merge")
@@ -501,7 +531,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         try:
             if self.useApplyRestPose:
                 applyRestPoses(context, rig, subrigs)
-            self.mergeRigs(rig, subrigs, context)
+            self.mergeRigs1(rig, subrigs, context)
             success = True
         finally:
             rig.data.layers = oldvis
@@ -510,7 +540,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
             setActiveObject(context, rig)
 
 
-    def mergeRigs(self, rig, subrigs, context):
+    def mergeRigs1(self, rig, subrigs, context):
         from .proxy import stripName
         from .node import clearParent, reParent
         scn = context.scene

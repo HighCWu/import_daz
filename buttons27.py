@@ -414,6 +414,11 @@ class MergeRigs:
         min = 1, max = 32,
         default = 3)
 
+    separateCharacters = BoolProperty(
+        name = "Separate Characters",
+        description = "Don't merge armature that belong to different characters",
+        default = False)
+
     useApplyRestPose = BoolProperty(
         name = "Apply Rest Pose",
         description = "Apply current pose as rest pose for all armatures",
