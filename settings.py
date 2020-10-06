@@ -94,7 +94,7 @@ class GlobalSettings:
         self.buildHighdef = True
         self.useMultires = True
         self.strandsAsHair = True
-        self.keepMeshStrands = False
+        self.postponeHair = False
         self.multipleHairMaterials = True
         self.useSkullGroup = False
         self.addFaceDrivers = True
@@ -141,7 +141,7 @@ class GlobalSettings:
         "DazBuildHighdef" : "buildHighdef",
         "DazMultires" : "useMultires",
         "DazStrandsAsHair" : "strandsAsHair",
-        "DazKeepMeshStrands" : "keepMeshStrands",
+        "DazPostponeHair" : "postponeHair",
         "DazMultipleHairMaterials" : "multipleHairMaterials",
         "DazSkullGroup" : "useSkullGroup",
         "DazAddFaceDrivers" : "addFaceDrivers",

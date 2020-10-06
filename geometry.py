@@ -172,7 +172,7 @@ class GeoNode(Node):
 
 
     def finishHair(self, context):
-        if self.pgeonode and not GS.keepMeshStrands:
+        if self.pgeonode and GS.strandsAsHair:
             ob = self.rna
             rig = self.parent.rna
             print("DELETE", ob, rig)
@@ -197,7 +197,7 @@ class GeoNode(Node):
             pruneUvMaps(self.rna)
         if self.highdef:
             self.buildHighDef(context, inst)
-        if self.pgeonode:
+        if self.pgeonode and GS.strandsAsHair:
             self.data.buildHair(self, context)
         if self.dforce:
             self.dforce.build(context)
@@ -729,10 +729,10 @@ class Geometry(Asset, Channels):
             hmat = self.materials[mname][0]
             ob.data.materials.append(hmat.rna)
 
-        if GS.strandsAsHair:
-            self.buildHairSystems(ob, geonode, context)
-        else:
+        if GS.postponeHair:
             self.storeHairSystems(ob)
+        else:
+            self.buildHairSystems(ob, geonode, context)
 
 
     def storeHairSystems(self, ob):

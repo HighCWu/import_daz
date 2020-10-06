@@ -285,10 +285,10 @@ class HairSystem:
 #   Make Strand Hair
 #-------------------------------------------------------------
 
-class DAZ_OT_MakeStrandHair(DazOperator):
-    bl_idname = "daz.make_strand_hair"
-    bl_label = "Make Strand Hair"
-    bl_description = "Make particle hair from stored strand-based hair"
+class DAZ_OT_RestoreStrandHair(DazOperator):
+    bl_idname = "daz.restore_strand_hair"
+    bl_label = "Restore Strand Hair"
+    bl_description = "Restore particle hair from stored strand-based hair"
     bl_options = {'UNDO'}
 
     @classmethod
@@ -1260,7 +1260,7 @@ class DAZ_OT_HairAddPinning(DazPropsOperator, IsMesh, Pinning):
 
 classes = [
     DAZ_OT_MakeHair,
-    DAZ_OT_MakeStrandHair,
+    DAZ_OT_RestoreStrandHair,
     DAZ_OT_UpdateHair,
     DAZ_OT_ColorHair,
     DAZ_OT_ConnectHair,

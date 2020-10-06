@@ -347,7 +347,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.make_udim_materials")
             box.operator("daz.merge_uv_layers")
-            box.operator("daz.make_strand_hair")
+            box.operator("daz.restore_strand_hair")
 
             box.separator()
             box.operator("daz.convert_mhx")
@@ -1213,7 +1213,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box = col.box()
         box.label(text = "Hair")
         box.prop(scn, "DazStrandsAsHair")
-        box.prop(scn, "DazKeepMeshStrands")
+        box.prop(scn, "DazPostponeHair")
         box.prop(scn, "DazMultipleHairMaterials")
         box.prop(scn, "DazSkullGroup")
 
@@ -1537,9 +1537,9 @@ def initialize():
         name = "Strands As Hair",
         description = "Convert polylines to particle hair")
 
-    bpy.types.Scene.DazKeepMeshStrands = BoolProperty(
-        name = "Keep Mesh Strands",
-        description = "Keep mesh hair guides")
+    bpy.types.Scene.DazPostponeHair = BoolProperty(
+        name = "Postpone Hair Creation",
+        description = "Postpone creation of particle hair until later")
 
     bpy.types.Scene.DazMultipleHairMaterials = BoolProperty(
         name = "Multiple Hair Materials",
