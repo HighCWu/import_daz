@@ -487,6 +487,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
     def draw(self, context):
         self.layout.prop(self, "clothesLayer")
         self.layout.prop(self, "useApplyRestPose")
+        self.layout.prop(self, "createMeshCollection")
 
 
     def run(self, context):
@@ -517,33 +518,12 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         print("Merge rigs to %s:" % rig.name)
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        adds = []
-        hdadds = []
-        removes = []
-        mcoll = hdcoll = None
-        if bpy.app.version < (2,80,0):
-            for grp in bpy.data.groups:
-                if rig.name in grp.objects:
-                    adds.append(grp)
-        else:
-            for coll in bpy.data.collections:
-                if rig in coll.objects.values():
-                    if coll.name.endswith("HD"):
-                        if hdcoll is None:
-                            hdcoll = bpy.data.collections.new(name= rig.name + " Meshes_HD")
-                            hdadds = [hdcoll]
-                        coll.children.link(hdcoll)
-                    else:
-                        if mcoll is None:
-                            mcoll = bpy.data.collections.new(name= rig.name + " Meshes")
-                            adds = [mcoll]
-                        coll.children.link(mcoll)
-                    removes.append(coll)
+        adds, hdadds, removes = self.createNewCollections(rig)
 
         for ob in rig.children:
             if ob.type == 'MESH':
                 self.changeArmatureModifier(ob, rig, context)
-                self.addToGroups(ob, adds, hdadds, removes)
+                self.addToCollections(ob, adds, hdadds, removes)
             elif ob.type == 'EMPTY':
                 reParent(context, ob, rig)
 
@@ -565,7 +545,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                     if ob.type == 'MESH':
                         self.changeArmatureModifier(ob, rig, context)
                         self.changeVertexGroupNames(ob, storage)
-                        self.addToGroups(ob, adds, hdadds, removes)
+                        self.addToCollections(ob, adds, hdadds, removes)
                         ob.name = stripName(ob.name)
                         ob.data.name = stripName(ob.data.name)
                         ob.parent = rig
@@ -579,6 +559,35 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
+    def createNewCollections(self, rig):
+        adds = []
+        hdadds = []
+        removes = []
+        if not self.createMeshCollection:
+            return adds, hdadds, removes
+
+        mcoll = hdcoll = None
+        if bpy.app.version < (2,80,0):
+            for grp in bpy.data.groups:
+                if rig.name in grp.objects:
+                    adds.append(grp)
+        else:
+            for coll in bpy.data.collections:
+                if rig in coll.objects.values():
+                    if coll.name.endswith("HD"):
+                        if hdcoll is None:
+                            hdcoll = bpy.data.collections.new(name= rig.name + " Meshes_HD")
+                            hdadds = [hdcoll]
+                        coll.children.link(hdcoll)
+                    else:
+                        if mcoll is None:
+                            mcoll = bpy.data.collections.new(name= rig.name + " Meshes")
+                            adds = [mcoll]
+                        coll.children.link(mcoll)
+                    removes.append(coll)
+        return adds, hdadds, removes
+
+
     def changeVertexGroupNames(self, ob, storage):
         for bname in storage.keys():
             if bname in ob.vertex_groups.keys():
@@ -586,7 +595,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                 vgrp.name = storage[bname].realname
 
 
-    def addToGroups(self, ob, adds, hdadds, removes):
+    def addToCollections(self, ob, adds, hdadds, removes):
+        if not self.createMeshCollection:
+            return
         if ob.name.endswith("HD"):
             adders = hdadds
         else:

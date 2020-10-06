@@ -419,6 +419,11 @@ class MergeRigs:
         description = "Apply current pose as rest pose for all armatures",
         default = True)
 
+    createMeshCollection = BoolProperty(
+        name = "Create Mesh Collection",
+        description = "Create a new collection and move all meshes to it",
+        default = True)
+
 
 def getUVTextures(scn, context):
     ob = context.object
