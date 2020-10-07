@@ -55,7 +55,7 @@ class CyclesMaterial(Material):
 
 
     def build(self, context):
-        if self.ignore:
+        if self.ignore or self.alreadyBuilt():
             return
         Material.build(self, context)
         self.tree = self.setupTree()

@@ -273,6 +273,8 @@ class CyclesLightMaterial(CyclesMaterial):
         self.instance = inst
 
     def build(self, context):
+        if self.alreadyBuilt():
+            return
         Material.build(self, context)
         self.tree = LightTree(self)
         self.tree.build(context)

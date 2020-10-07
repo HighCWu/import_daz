@@ -75,6 +75,7 @@ class GlobalSettings:
         self.useEmission = True
         self.useReflection = True
         self.useEnvironment = True
+        self.reuseMaterials = False
         self.diffuseShader = 'OREN_NAYAR'
         self.specularShader = 'BLINN'
         self.diffuseRoughness = 0.3
@@ -113,6 +114,7 @@ class GlobalSettings:
         "DazMergeShells" : "mergeShells",
         "DazBrightenEyes" : "brightenEyes",
         "DazUseEnvironment" : "useEnvironment",
+        "DazReuseMaterials" : "reuseMaterials",
         "DazLimitBump" : "limitBump",
         "DazMaxBump" : "maxBump",
         "DazHandleRenderSettings" : "handleRenderSettings",

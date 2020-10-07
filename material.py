@@ -141,7 +141,7 @@ class Material(Asset, Channels):
     def build(self, context):
         from .asset import normalizePath
         from .geometry import Geometry
-        if self.ignore:
+        if self.ignore or self.alreadyBuilt():
             return
         if self.rna is None:
             self.rna = bpy.data.materials.new(self.name)
@@ -164,6 +164,13 @@ class Material(Asset, Channels):
         if self.thinGlass:
             mat.DazThinGlass = True
 
+
+    def alreadyBuilt(self):
+        if GS.reuseMaterials and self.name in bpy.data.materials.keys():
+            self.rna = bpy.data.materials[self.name]
+            return True
+        else:
+            return False
 
 
     def postbuild(self, context):

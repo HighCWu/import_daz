@@ -99,6 +99,8 @@ class WorldMaterial(CyclesMaterial):
 
 
     def build(self, context):
+        if self.alreadyBuilt():
+            return
         self.refractive = False
         Material.build(self, context)
         self.tree = WorldTree(self)

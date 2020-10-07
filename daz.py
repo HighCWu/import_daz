@@ -1229,6 +1229,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazMergeShells")
         box.prop(scn, "DazBrightenEyes")
         box.prop(scn, "DazUseEnvironment")
+        box.prop(scn, "DazReuseMaterials")
         box.prop(scn, "DazLimitBump")
         if scn.DazLimitBump:
             box.prop(scn, "DazMaxBump")
@@ -1462,8 +1463,11 @@ def initialize():
 
     bpy.types.Scene.DazUseEnvironment = BoolProperty(
         name = "Environment",
-        description = "Load environment",
-        default = True)
+        description = "Load environment")
+
+    bpy.types.Scene.DazReuseMaterials = BoolProperty(
+        name = "Reuse Materials",
+        description = "Use existing materials if such exists.\nMay lead to incorrect materials")
 
     bpy.types.Scene.DazUseLockLoc = BoolProperty(
         name = "Location Locks",
