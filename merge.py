@@ -439,7 +439,12 @@ class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig = context.object
+        rig,subrigs = getSelectedRigs(context)
+        for rig in [rig]+subrigs:
+            self.eliminateEmpties(rig, context)
+
+
+    def eliminateEmpties(self, rig, context):
         deletes = []
         for empty in rig.children:
             if empty.type == 'EMPTY' and not isDuplicated(empty):
@@ -459,7 +464,6 @@ class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
                             ob.matrix_world = wmat
                         else:
                             raise DazError("Unknown parent type: %s %s" % (ob.name, empty.parent_type))
-
         for empty in deletes:
             deleteObject(context, empty)
 

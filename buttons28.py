@@ -423,7 +423,7 @@ class MergeRigs:
     useApplyRestPose : BoolProperty(
         name = "Apply Rest Pose",
         description = "Apply current pose as rest pose for all armatures",
-        default = True)
+        default = False)
 
     createMeshCollection : BoolProperty(
         name = "Create Mesh Collection",
