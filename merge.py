@@ -572,16 +572,23 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                 print("  ", subrig.name, parbone)
                 storage = self.addExtraBones(subrig, rig, context, scn, parbone)
 
+                meshes = []
                 for ob in subrig.children:
                     if ob.type == 'MESH':
-                        self.changeArmatureModifier(ob, rig, context)
-                        self.changeVertexGroupNames(ob, storage)
-                        self.addToCollections(ob, adds, hdadds, removes)
-                        ob.name = stripName(ob.name)
-                        ob.data.name = stripName(ob.data.name)
-                        ob.parent = rig
+                        meshes.append(ob)
                     elif ob.type == 'EMPTY':
                         reParent(context, ob, rig)
+                        for child in ob.children:
+                            if child.type == 'MESH':
+                                meshes.append(child)
+
+                for ob in meshes:
+                    self.changeArmatureModifier(ob, rig, context)
+                    self.changeVertexGroupNames(ob, storage)
+                    self.addToCollections(ob, adds, hdadds, removes)
+                    ob.name = stripName(ob.name)
+                    ob.data.name = stripName(ob.data.name)
+                    ob.parent = rig
 
                 subrig.parent = None
                 deleteObject(context, subrig)
