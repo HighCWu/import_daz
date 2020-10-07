@@ -404,7 +404,7 @@ def getSelectedRigs(context):
 class DAZ_OT_CopyPoses(DazOperator, IsArmature):
     bl_idname = "daz.copy_poses"
     bl_label = "Copy Poses"
-    bl_description = "Copy selected rig poses to active rig"
+    bl_description = "Copy active rig pose to selected rigs"
     bl_options = {'UNDO'}
 
     def run(self, context):
@@ -412,28 +412,21 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
         if rig is None:
             print("No poses to copy")
             return
-
         print("Copy pose to %s:" % rig.name)
         for ob in subrigs:
             print("  ", ob.name)
-            if not setActiveObject(context, rig):
-                continue
+            copyPose(context, rig, ob)
 
-            # L_b = R^-1_b R_p M^-1_p M_b
-            for cb in ob.pose.bones:
-                if cb.name in rig.pose.bones:
-                    pb = rig.pose.bones[cb.name]
-                    mat = cb.matrix.copy()
-                    mat.col[3] = pb.matrix.col[3]
-                    mat = Mult2(ob.matrix_world.inverted(), mat)
-                    par = pb.parent
-                    if par:
-                        mat = Mult3(par.bone.matrix_local, par.matrix.inverted(), mat)
-                    mat = Mult2(pb.bone.matrix_local.inverted(), mat)
-                    pb.matrix_basis = mat
-                    toggleEditMode()
 
-        setActiveObject(context, rig)
+def copyPose(context, rig, ob):
+    if not setActiveObject(context, ob):
+        return
+    ob.matrix_world = rig.matrix_world.copy()
+    for cb in rig.pose.bones:
+        if cb.name in ob.pose.bones:
+            pb = ob.pose.bones[cb.name]
+            pb.matrix_basis = cb.matrix_basis.copy()
+    setActiveObject(context, rig)
 
 #-------------------------------------------------------------
 #   Eliminate Empties
@@ -529,8 +522,6 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         rig.data.layers = 32*[True]
         success = False
         try:
-            if self.useApplyRestPose:
-                applyRestPoses(context, rig, subrigs)
             self.mergeRigs1(rig, subrigs, context)
             success = True
         finally:
@@ -547,6 +538,12 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
 
         print("Merge rigs to %s:" % rig.name)
         bpy.ops.object.mode_set(mode='OBJECT')
+
+        for subrig in subrigs:
+            copyPose(context, rig, subrig)
+
+        if self.useApplyRestPose:
+            applyRestPoses(context, rig, subrigs)
 
         adds, hdadds, removes = self.createNewCollections(rig)
 
@@ -642,7 +639,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
 
     def changeArmatureModifier(self, ob, rig, context):
         from .node import reParent
-        reParent(context, ob, rig)
+        #reParent(context, ob, rig)
         if ob.parent_type != 'BONE':
             for mod in ob.modifiers:
                 if mod.type == "ARMATURE":
@@ -774,24 +771,34 @@ def setRestPose(ob, rig, context):
     elif len(ob.vertex_groups) == 0:
         print("Mesh with no vertex groups: %s" % ob.name)
     else:
-        for mod in ob.modifiers:
-            if mod.type == 'ARMATURE':
-                mname = mod.name
-                if ob.data.shape_keys:
-                    if bpy.app.version < (2,90,0):
-                        bpy.ops.object.modifier_apply(apply_as='SHAPE', modifier=mname)
-                    else:
-                        bpy.ops.object.modifier_apply_as_shapekey(modifier=mname)
-                    skey = ob.data.shape_keys.key_blocks[mname]
-                    skey.value = 1.0
+        try:
+            applyArmatureModifier(ob)
+            ok = True
+        except RuntimeError:
+            print("Could not apply armature to %s" % ob.name)
+            ok = False
+        if ok:
+            mod = ob.modifiers.new(rig.name, "ARMATURE")
+            mod.object = rig
+            mod.use_deform_preserve_volume = True
+            nmods = len(ob.modifiers)
+            for n in range(nmods-1):
+                bpy.ops.object.modifier_move_up(modifier=mod.name)
+
+
+def applyArmatureModifier(ob):
+    for mod in ob.modifiers:
+        if mod.type == 'ARMATURE':
+            mname = mod.name
+            if ob.data.shape_keys:
+                if bpy.app.version < (2,90,0):
+                    bpy.ops.object.modifier_apply(apply_as='SHAPE', modifier=mname)
                 else:
-                    bpy.ops.object.modifier_apply(modifier=mname)
-        mod = ob.modifiers.new(rig.name, "ARMATURE")
-        mod.object = rig
-        mod.use_deform_preserve_volume = True
-        nmods = len(ob.modifiers)
-        for n in range(nmods-1):
-            bpy.ops.object.modifier_move_up(modifier=mod.name)
+                    bpy.ops.object.modifier_apply_as_shapekey(modifier=mname)
+                skey = ob.data.shape_keys.key_blocks[mname]
+                skey.value = 1.0
+            else:
+                bpy.ops.object.modifier_apply(modifier=mname)
 
 #-------------------------------------------------------------
 #   Merge toes
