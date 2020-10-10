@@ -135,14 +135,17 @@ if bpy.app.version < (2,80,0):
             bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
         ob.select = True
+        unlinkAll(ob)
+        bpy.ops.object.delete(use_global=False)
+        del ob
+
+    def unlinkAll(ob):
         for scn in bpy.data.scenes:
             if ob in scn.objects.values():
                 scn.objects.unlink(ob)
         for grp in bpy.data.groups:
             if ob.name in grp.objects:
                 grp.objects.unlink(ob)
-        bpy.ops.object.delete(use_global=False)
-        del ob
 
 else:
 
@@ -261,11 +264,15 @@ else:
             bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
         ob.select_set(True)
+        unlinkAll(ob)
+        bpy.ops.object.delete(use_global=False)
+        del ob
+
+    def unlinkAll(ob):
         for coll in bpy.data.collections:
             if ob in coll.objects.values():
                 coll.objects.unlink(ob)
-        bpy.ops.object.delete(use_global=False)
-        del ob
+                print("UNL", ob.name, coll.name)
 
 #-------------------------------------------------------------
 #

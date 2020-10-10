@@ -97,7 +97,8 @@ def getMainAsset(filepath, context, btn):
     showProgress(90, 100)
 
     for asset,inst in main.nodes:
-        asset.postbuild(context, inst)
+        inst.postbuild(context)
+
     # Need to update scene before calculating object areas
     updateScene(context)
     for asset in main.materials:
@@ -113,11 +114,18 @@ def getMainAsset(filepath, context, btn):
     for asset,inst in main.modifiers:
         asset.postbuild(context, inst)
     for _,inst in main.nodes:
+        inst.buildInstance(context)
+    for _,inst in main.nodes:
         inst.finalize(context)
 
     for extra in main.extras:
         if extra:
             extra.build(context)
+
+    print("\nLSC", [coll.name for coll in LS.collection.objects])
+    for ob in LS.unlinkables:
+        if ob.name in LS.collection.objects:
+            LS.collection.objects.unlink(ob)
 
     if (LS.useMaterials and
         GS.chooseColors != 'WHITE'):

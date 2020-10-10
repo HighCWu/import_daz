@@ -129,8 +129,8 @@ class Instance(Accessor, Channels):
         self.shell = {}
         self.center = Vector((0,0,0))
         self.dupli = None
-        self.nodeInstances = []
-        self.refGroup = None
+        #self.nodeInstances = []
+        self.refgroup = None
         self.isGroupNode = False
         self.isNodeInstance = False
         self.node2 = None
@@ -260,7 +260,16 @@ class Instance(Accessor, Channels):
             return
 
 
+    def postbuild(self, context):
+        self.parentObject(context, self.rna)
+        for geonode in self.geometries:
+            geonode.postbuild(context, self)
+        #self.buildInstance(context)
+        #self.buildChannels(context)
+
+
     def buildInstance(self, context):
+        print("BUIL", self.rna)
         if self.isNodeInstance:
             if self.node2 is None:
                 print('Instance "%s" has no node' % self.name)
@@ -276,32 +285,74 @@ class Instance(Accessor, Channels):
 
     def buildNodeInstance(self, context):
         ob = self.node2.rna
-        if self.node2.refGroup:
-            refGroup = self.node2.refGroup
+        if self.node2.refgroup:
+            refgroup = self.node2.refgroup
         else:
-            refGroup = self.getInstanceGroup(ob)
-        if refGroup is None:
-            obname = ob.name
-            ob.name = obname + " REF"
-            if bpy.app.version < (2,80,0):
-                putOnHiddenLayer(ob)
-                refGroup = bpy.data.groups.new(name=ob.name)
-            else:
-                refGroup = bpy.data.collections.new(name=ob.name)
-                if LS.refGroups is None:
-                    LS.refGroups = bpy.data.collections.new(name=LS.collection.name + " REFS")
-                    context.scene.collection.children.link(LS.refGroups)
-                LS.refGroups.children.link(refGroup)
-                layer = findLayerCollection(context.view_layer.layer_collection, refGroup)
-                layer.exclude = True
-            refGroup.objects.link(ob)
-            empty = bpy.data.objects.new(obname, None)
-            LS.collection.objects.link(empty)
+            refgroup = self.getInstanceGroup(ob)
+        if refgroup is None:
+            children = self.makeNewRefgroups(context, self.node2)
+            refgroup,empty = self.makeNewRefgroup(context, ob, children)
+        self.duplicate(self.rna, refgroup)
+
+
+    def makeNewRefgroups(self, context, node2):
+        children = []
+        for child in self.node2.children:
+            ref = "#"+child
+            node = self.getAsset(ref)
+            if node:
+                inst = node.instances[instRef(ref)]
+                ob = inst.rna
+                refgroup = self.getInstanceGroup(ob)
+                if refgroup:
+                    children.append((refgroup,ob,None))
+                elif ob:
+                    refgroup,empty = inst.makeNewRefgroup(context, ob, [])
+                    children.append((refgroup,ob,empty))
+        return children
+
+
+    def makeNewRefgroup(self, context, ob, children):
+        refname = ob.name + " REF"
+        print("  RG", self.name, ob.type, ob.instance_type)
+        if bpy.app.version < (2,80,0):
+            putOnHiddenLayer(ob)
+            refgroup = bpy.data.groups.new(name=refname)
+        else:
+            refgroup = bpy.data.collections.new(name=refname)
+            if LS.refGroups is None:
+                LS.refGroups = bpy.data.collections.new(name=LS.collection.name + " REFS")
+                context.scene.collection.children.link(LS.refGroups)
+            LS.refGroups.children.link(refgroup)
+            layer = findLayerCollection(context.view_layer.layer_collection, refgroup)
+            layer.exclude = True
+
+        obname = ob.name
+        empty = bpy.data.objects.new(obname, None)
+        if self.node2:
             self.node2.dupli = empty
-            self.node2.refGroup = refGroup
-            self.duplicate(empty, refGroup)
-        self.duplicate(self.rna, refGroup)
-        self.node2.nodeInstances.append(self)
+            self.node2.refgroup = refgroup
+        self.duplicate(empty, refgroup)
+        empty.parent = ob.parent
+        self.transformDupli(ob, empty)
+        for child in list(ob.children):
+            child.parent = empty
+        LS.collection.objects.link(empty)
+        LS.unlinkables.append(ob)
+        refgroup.objects.link(ob)
+
+        if children:
+            print("OC", empty.name, ob.name, ob.parent, list(ob.children))
+            for cgrp,cob,cempty in children:
+                print("  NNC", cgrp,ob,cob,cempty)
+                cempty.parent = ob
+                self.transformDupli(cob, cempty)
+                LS.unlinkables.append(cempty)
+                refgroup.objects.link(cempty)
+        ob.name = refname
+        print("  O", ob.name, refgroup)
+
+        return refgroup,empty
 
 
     def getInstanceGroup(self, ob):
@@ -331,6 +382,16 @@ class Instance(Accessor, Channels):
             empty.instance_collection = group
 
 
+    def transformDupli(self, ob, empty):
+        wmat = ob.matrix_world.copy()
+        empty.matrix_world = wmat
+        ob.parent = None
+        if LS.fitFile and ob.type == 'MESH':
+            ob.matrix_world = wmat.inverted()
+        else:
+            ob.matrix_world = Matrix()
+
+
     def pose(self, context):
         pass
 
@@ -347,23 +408,11 @@ class Instance(Accessor, Channels):
         if not isinstance(ob, bpy.types.Object):
             return
         from mathutils import Matrix
-        if self.dupli:
-            empty = self.dupli
-            empty.parent = ob.parent
-            wmat = ob.matrix_world.copy()
-            empty.matrix_world = wmat
-            ob.parent = None
-            if LS.fitFile and ob.type == 'MESH':
-                ob.matrix_world = wmat.inverted()
-            else:
-                ob.matrix_world = Matrix()
-            for child in list(ob.children):
-                child.parent = empty
-            LS.collection.objects.unlink(ob)
-            for inst in self.nodeInstances:
-                pass
-        elif LS.fitFile and ob.type == 'MESH':
+        #if self.dupli:
+        #    self.transformDupli(ob, self.dupli)
+        if LS.fitFile and ob.type == 'MESH':
             ob.matrix_world = Matrix()
+        self.buildChannels(context)
 
 
     def finishHD(self, context):
@@ -630,14 +679,6 @@ class Node(Asset, Formula, Channels):
             self.buildObject(context, inst, center)
         if inst.extra:
             inst.buildExtra(context)
-
-
-    def postbuild(self, context, inst):
-        inst.buildInstance(context)
-        inst.parentObject(context, inst.rna)
-        for geonode in inst.geometries:
-            geonode.postbuild(context, inst)
-        inst.buildChannels(context)
 
 
     def buildObject(self, context, inst, center):
