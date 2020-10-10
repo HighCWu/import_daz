@@ -269,7 +269,6 @@ class Instance(Accessor, Channels):
 
 
     def buildInstance(self, context):
-        print("BUIL", self.rna)
         if self.isNodeInstance:
             if self.node2 is None:
                 print('Instance "%s" has no node' % self.name)
@@ -291,6 +290,7 @@ class Instance(Accessor, Channels):
             refgroup = self.getInstanceGroup(ob)
         if refgroup is None:
             children = self.makeNewRefgroups(context, self.node2)
+            children = []
             refgroup,empty = self.makeNewRefgroup(context, ob, children)
         self.duplicate(self.rna, refgroup)
 
@@ -314,7 +314,6 @@ class Instance(Accessor, Channels):
 
     def makeNewRefgroup(self, context, ob, children):
         refname = ob.name + " REF"
-        print("  RG", self.name, ob.type, ob.instance_type)
         if bpy.app.version < (2,80,0):
             putOnHiddenLayer(ob)
             refgroup = bpy.data.groups.new(name=refname)
@@ -334,23 +333,18 @@ class Instance(Accessor, Channels):
             self.node2.refgroup = refgroup
         self.duplicate(empty, refgroup)
         empty.parent = ob.parent
-        self.transformDupli(ob, empty)
         for child in list(ob.children):
             child.parent = empty
         LS.collection.objects.link(empty)
-        LS.unlinkables.append(ob)
+        LS.duplis.append((ob, empty))
         refgroup.objects.link(ob)
 
         if children:
-            print("OC", empty.name, ob.name, ob.parent, list(ob.children))
             for cgrp,cob,cempty in children:
-                print("  NNC", cgrp,ob,cob,cempty)
                 cempty.parent = ob
-                self.transformDupli(cob, cempty)
-                LS.unlinkables.append(cempty)
+                LS.duplis.append((cob, cempty))
                 refgroup.objects.link(cempty)
         ob.name = refname
-        print("  O", ob.name, refgroup)
 
         return refgroup,empty
 
@@ -380,16 +374,6 @@ class Instance(Accessor, Channels):
         else:
             empty.instance_type = 'COLLECTION'
             empty.instance_collection = group
-
-
-    def transformDupli(self, ob, empty):
-        wmat = ob.matrix_world.copy()
-        empty.matrix_world = wmat
-        ob.parent = None
-        if LS.fitFile and ob.type == 'MESH':
-            ob.matrix_world = wmat.inverted()
-        else:
-            ob.matrix_world = Matrix()
 
 
     def pose(self, context):
