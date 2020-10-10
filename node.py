@@ -259,40 +259,49 @@ class Instance(Accessor, Channels):
         elif self.isGroupNode:
             return
 
-        elif self.isNodeInstance:
-            if not (self.node2 and
-                    self.rna and
-                    self.rna.type == 'EMPTY' and
-                    self.node2.rna):
-                print("Instance %s node2 %s not built" % (self.name, self.node2.name))
-                return
-            ob = self.node2.rna
-            if self.node2.refGroup:
-                refGroup = self.node2.refGroup
+
+    def buildInstance(self, context):
+        if self.isNodeInstance:
+            if self.node2 is None:
+                print('Instance "%s" has no node' % self.name)
+            elif self.rna is None:
+                print('Instance "%s" has not been built' % self.name)
+            elif self.rna.type != 'EMPTY':
+                print('Instance "%s" is not an empty' % self.name)
+            elif self.node2.rna is None:
+                print('Instance "%s" node2 "%s" not built' % (inst.name, inst.node2.name))
             else:
-                refGroup = self.getInstanceGroup(ob)
-            if refGroup is None:
-                obname = ob.name
-                ob.name = obname + " REF"
-                if bpy.app.version < (2,80,0):
-                    putOnHiddenLayer(ob)
-                    refGroup = bpy.data.groups.new(name=ob.name)
-                else:
-                    refGroup = bpy.data.collections.new(name=ob.name)
-                    if LS.refGroups is None:
-                        LS.refGroups = bpy.data.collections.new(name=LS.collection.name + " REFS")
-                        context.scene.collection.children.link(LS.refGroups)
-                    LS.refGroups.children.link(refGroup)
-                    layer = findLayerCollection(context.view_layer.layer_collection, refGroup)
-                    layer.exclude = True
-                refGroup.objects.link(ob)
-                empty = bpy.data.objects.new(obname, None)
-                LS.collection.objects.link(empty)
-                self.node2.dupli = empty
-                self.node2.refGroup = refGroup
-                self.duplicate(empty, refGroup)
-            self.duplicate(self.rna, refGroup)
-            self.node2.nodeInstances.append(self)
+                self.buildNodeInstance(context)
+
+
+    def buildNodeInstance(self, context):
+        ob = self.node2.rna
+        if self.node2.refGroup:
+            refGroup = self.node2.refGroup
+        else:
+            refGroup = self.getInstanceGroup(ob)
+        if refGroup is None:
+            obname = ob.name
+            ob.name = obname + " REF"
+            if bpy.app.version < (2,80,0):
+                putOnHiddenLayer(ob)
+                refGroup = bpy.data.groups.new(name=ob.name)
+            else:
+                refGroup = bpy.data.collections.new(name=ob.name)
+                if LS.refGroups is None:
+                    LS.refGroups = bpy.data.collections.new(name=LS.collection.name + " REFS")
+                    context.scene.collection.children.link(LS.refGroups)
+                LS.refGroups.children.link(refGroup)
+                layer = findLayerCollection(context.view_layer.layer_collection, refGroup)
+                layer.exclude = True
+            refGroup.objects.link(ob)
+            empty = bpy.data.objects.new(obname, None)
+            LS.collection.objects.link(empty)
+            self.node2.dupli = empty
+            self.node2.refGroup = refGroup
+            self.duplicate(empty, refGroup)
+        self.duplicate(self.rna, refGroup)
+        self.node2.nodeInstances.append(self)
 
 
     def getInstanceGroup(self, ob):
@@ -619,15 +628,16 @@ class Node(Asset, Formula, Channels):
                 inst.rna = geonode.rna
         else:
             self.buildObject(context, inst, center)
-        inst.buildChannels(context)
         if inst.extra:
             inst.buildExtra(context)
 
 
     def postbuild(self, context, inst):
+        inst.buildInstance(context)
         inst.parentObject(context, inst.rna)
         for geonode in inst.geometries:
             geonode.postbuild(context, inst)
+        inst.buildChannels(context)
 
 
     def buildObject(self, context, inst, center):

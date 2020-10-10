@@ -154,10 +154,12 @@ else:
     ShowXRay = "show_in_front"
 
     def getHideViewport(ob):
-        return ob.hide_viewport
+        #return ob.hide_viewport
+        return ob.hide_get()
 
     def setHideViewport(ob, value):
-        ob.hide_viewport = value
+        #ob.hide_viewport = value
+        ob.hide_set(value)
 
     def getCollection(context):
         return context.collection
