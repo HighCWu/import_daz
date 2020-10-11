@@ -376,21 +376,25 @@ class Instance(Accessor, Channels):
 
     def updateMatrices(self):
         # Dont do zup here
-        center = d2b00(self.attributes["center_point"])
+        # Rest matrix.
+        center = Vector(self.attributes["center_point"])
         rotmat = Matrix()
         self.restMatrix = Mult2(Matrix.Translation(center), rotmat)
-        self.updateDeltaMatrix(self.attributes["translation"], self.attributes["rotation"], self.attributes["scale"])
 
+        # Delta matrix
+        wspos = self.attributes["translation"]
+        wsrot = self.attributes["rotation"]
+        wsscale = self.attributes["scale"]
+        wsgen = self.attributes["general_scale"]
 
-    def updateDeltaMatrix(self, wspos, wsrot, wsscale):
         trans = d2b00(wspos)
-        rot = d2b00u(wsrot)*D
-        scale = d2b00s(wsscale) * self.attributes["general_scale"]
+        rot = Vector(wsrot)*D
+        scale = Vector(wsscale)*wsgen
+
+        transmat = Matrix.Translation(trans)
         rotmat = Euler(rot, self.rotation_order).to_matrix().to_4x4()
-        scalemat = Matrix()
-        for i in range(3):
-            scalemat[i][i] = scale[i]
-        self.deltaMatrix = Mult3(Matrix.Translation(trans), rotmat, scalemat)
+        scalemat = Matrix.Diagonal(scale).to_4x4()
+        self.deltaMatrix = Mult3(transmat, rotmat, scalemat)
 
 
     def parentObject(self, context, ob):
@@ -436,7 +440,7 @@ class Instance(Accessor, Channels):
             raise RuntimeError("Unknown parent %s %s" % (self, self.parent))
 
 
-    def getTransformMatrix(self, pb):
+    def getMatrix(self, pb):
         if GS.zup:
             wmat = Matrix.Rotation(math.pi/2, 4, 'X')
         else:
@@ -459,7 +463,7 @@ class Instance(Accessor, Channels):
 
 
     def transformObject(self, ob, pb=None):
-        mat,offset = self.getTransformMatrix(pb)
+        mat,offset = self.getMatrix(pb)
         trans,quat,scale = mat.decompose()
         ob.location = trans - offset
         ob.rotation_euler = quat.to_euler(ob.rotation_mode)
@@ -489,6 +493,8 @@ def addToRefgroup(ob, refgroup):
     if ob.name in LS.collection.objects:
         LS.collection.objects.unlink(ob)
     if ob.name not in refgroup.objects:
+        if bpy.app.version < (2,80,0):
+            putOnHiddenLayer(ob)
         try:
             refgroup.objects.link(ob)
         except RuntimeError:
