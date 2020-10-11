@@ -122,9 +122,8 @@ def getMainAsset(filepath, context, btn):
         if extra:
             extra.build(context)
 
-    taken = dict([(empty.name,False) for ob,empty in LS.duplis])
-    for ob,empty in LS.duplis:
-        transformDupli(ob, empty, taken)
+    from .node import transformDuplis
+    transformDuplis()
 
     if (LS.useMaterials and
         GS.chooseColors != 'WHITE'):
@@ -152,23 +151,6 @@ def getMainAsset(filepath, context, btn):
     msg = checkRenderSettings(context, False)
     if msg:
         raise DazError(msg, warning=True)
-
-
-def transformDupli(ob, empty, taken):
-    from mathutils import Matrix
-    if ob.name in LS.collection.objects:
-        LS.collection.objects.unlink(ob)
-    if not taken[empty.name]:
-        wmat = ob.matrix_world.copy()
-        empty.matrix_world = wmat
-        ob.parent = None
-        if LS.fitFile and ob.type == 'MESH':
-            ob.matrix_world = wmat.inverted()
-        else:
-            ob.matrix_world = Matrix()
-        taken[empty.name] = True
-    elif empty.name in LS.collection.objects:
-        LS.collection.objects.unlink(empty)
 
 
 def makeRootCollection(grpname, context):

@@ -27,7 +27,7 @@
 
 import bpy
 import math
-from mathutils import *
+from mathutils import Matrix, Vector, Euler
 from collections import OrderedDict
 from .asset import Accessor, Asset
 from .channels import Channels
@@ -128,8 +128,6 @@ class Instance(Accessor, Channels):
         node.channels = {}
         self.shell = {}
         self.center = Vector((0,0,0))
-        self.dupli = None
-        #self.nodeInstances = []
         self.refgroup = None
         self.isGroupNode = False
         self.isNodeInstance = False
@@ -236,6 +234,10 @@ class Instance(Accessor, Channels):
             elif channel["id"] == "Cast Shadows":
                 pass
             elif channel["id"] == "Instance Mode":
+                #print("InstMode", ob.name, value)
+                pass
+            elif channel["id"] == "Instance Target":
+                #print("InstTarg", ob.name)
                 pass
             elif channel["id"] == "Point At":
                 pass
@@ -264,8 +266,6 @@ class Instance(Accessor, Channels):
         self.parentObject(context, self.rna)
         for geonode in self.geometries:
             geonode.postbuild(context, self)
-        #self.buildInstance(context)
-        #self.buildChannels(context)
 
 
     def buildInstance(self, context):
@@ -289,13 +289,14 @@ class Instance(Accessor, Channels):
         else:
             refgroup = self.getInstanceGroup(ob)
         if refgroup is None:
-            children = self.makeNewRefgroups(context, self.node2)
-            children = []
-            refgroup,empty = self.makeNewRefgroup(context, ob, children)
+            children = self.replaceChildrenRefs(context, self.node2)
+            refgroup,empty = self.makeNewRefgroup(context, ob)
+            for cob,cempty,crefgroup in children:
+                LS.duplis.append((ob, refgroup, cob, cempty, crefgroup))
         self.duplicate(self.rna, refgroup)
 
 
-    def makeNewRefgroups(self, context, node2):
+    def replaceChildrenRefs(self, context, node2):
         children = []
         for child in self.node2.children:
             ref = "#"+child
@@ -305,17 +306,16 @@ class Instance(Accessor, Channels):
                 ob = inst.rna
                 refgroup = self.getInstanceGroup(ob)
                 if refgroup:
-                    children.append((refgroup,ob,None))
+                    children.append((ob,None,refgroup))
                 elif ob:
-                    refgroup,empty = inst.makeNewRefgroup(context, ob, [])
-                    children.append((refgroup,ob,empty))
+                    refgroup,empty = inst.makeNewRefgroup(context, ob)
+                    children.append((ob,empty,refgroup))
         return children
 
 
-    def makeNewRefgroup(self, context, ob, children):
+    def makeNewRefgroup(self, context, ob):
         refname = ob.name + " REF"
         if bpy.app.version < (2,80,0):
-            putOnHiddenLayer(ob)
             refgroup = bpy.data.groups.new(name=refname)
         else:
             refgroup = bpy.data.collections.new(name=refname)
@@ -329,23 +329,11 @@ class Instance(Accessor, Channels):
         obname = ob.name
         empty = bpy.data.objects.new(obname, None)
         if self.node2:
-            self.node2.dupli = empty
             self.node2.refgroup = refgroup
         self.duplicate(empty, refgroup)
-        empty.parent = ob.parent
-        for child in list(ob.children):
-            child.parent = empty
-        LS.collection.objects.link(empty)
-        LS.duplis.append((ob, empty))
+        LS.duplis.append((ob, None, ob, empty, None))
         refgroup.objects.link(ob)
-
-        if children:
-            for cgrp,cob,cempty in children:
-                cempty.parent = ob
-                LS.duplis.append((cob, cempty))
-                refgroup.objects.link(cempty)
         ob.name = refname
-
         return refgroup,empty
 
 
@@ -391,9 +379,6 @@ class Instance(Accessor, Channels):
             ob = self.rna
         if not isinstance(ob, bpy.types.Object):
             return
-        from mathutils import Matrix
-        #if self.dupli:
-        #    self.transformDupli(ob, self.dupli)
         if LS.fitFile and ob.type == 'MESH':
             ob.matrix_world = Matrix()
         self.buildChannels(context)
@@ -499,6 +484,57 @@ class Instance(Accessor, Channels):
         ob.rotation_euler = quat.to_euler(ob.rotation_mode)
         ob.scale = scale
         self.node.postTransform()
+
+
+def transformDuplis():
+    for ob,refgroup,cob,empty,crefgroup in LS.duplis:
+        if bpy.app.version < (2,80,0):
+            putOnHiddenLayer(ob)
+        if cob.name in LS.collection.objects:
+            LS.collection.objects.unlink(cob)
+        if refgroup:
+            if empty.name in LS.collection.objects:
+                LS.collection.objects.unlink(empty)
+            refgroup.objects.link(empty)
+            if checkDependency(empty, empty):
+                refgroup.objects.unlink(empty)
+        else:
+            empty.parent = cob.parent
+            wmat = ob.matrix_world.copy()
+            empty.matrix_world = wmat
+            cob.parent = None
+            if LS.fitFile and cob.type == 'MESH':
+                cob.matrix_world = wmat.inverted()
+            else:
+                cob.matrix_world = Matrix()
+            #for child in list(cob.children):
+            #    print("  PAP", child.name, ob.name, cob.name, empty.name)
+            #    child.parent = empty
+            LS.collection.objects.link(empty)
+
+
+def checkDependency(empty, ob):
+    dupli = getDupli(ob)
+    if dupli:
+        if empty.name in dupli.objects:
+            print("DEPENDENCY", empty.name)
+            return True
+        else:
+            for ob in dupli.objects:
+                if checkDependency(empty, ob):
+                    return True
+    else:
+        return False
+
+
+def getDupli(empty):
+    if bpy.app.version < (2,80,0):
+        if empty.dupli_type == 'GROUP':
+            return empty.dupli_group
+    else:
+        if empty.instance_type == 'COLLECTION':
+            return empty.instance_collection
+    return None
 
 
 def printExtra(self, name):
