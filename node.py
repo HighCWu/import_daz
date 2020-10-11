@@ -269,7 +269,7 @@ class Instance(Accessor, Channels):
 
 
     def buildInstance(self, context):
-        if self.isNodeInstance:
+        if self.isNodeInstance and GS.useInstancing:
             if self.node2 is None:
                 print('Instance "%s" has no node' % self.name)
             elif self.rna is None:
@@ -289,28 +289,8 @@ class Instance(Accessor, Channels):
         else:
             refgroup = self.getInstanceGroup(ob)
         if refgroup is None:
-            children = self.replaceChildrenRefs(context, self.node2)
             refgroup,empty = self.makeNewRefgroup(context, ob)
-            for cob,cempty,crefgroup in children:
-                LS.duplis.append((ob, refgroup, cob, cempty, crefgroup))
         self.duplicate(self.rna, refgroup)
-
-
-    def replaceChildrenRefs(self, context, node2):
-        children = []
-        for child in self.node2.children:
-            ref = "#"+child
-            node = self.getAsset(ref)
-            if node:
-                inst = node.instances[instRef(ref)]
-                ob = inst.rna
-                refgroup = self.getInstanceGroup(ob)
-                if refgroup:
-                    children.append((ob,None,refgroup))
-                elif ob:
-                    refgroup,empty = inst.makeNewRefgroup(context, ob)
-                    children.append((ob,empty,refgroup))
-        return children
 
 
     def makeNewRefgroup(self, context, ob):
@@ -327,13 +307,14 @@ class Instance(Accessor, Channels):
             layer.exclude = True
 
         obname = ob.name
+        ob.name = refname
         empty = bpy.data.objects.new(obname, None)
         if self.node2:
             self.node2.refgroup = refgroup
         self.duplicate(empty, refgroup)
-        LS.duplis.append((ob, None, ob, empty, None))
+        wmat = ob.matrix_world.copy()
+        LS.duplis.append((ob, empty, wmat, refgroup))
         refgroup.objects.link(ob)
-        ob.name = refname
         return refgroup,empty
 
 
@@ -487,30 +468,36 @@ class Instance(Accessor, Channels):
 
 
 def transformDuplis():
-    for ob,refgroup,cob,empty,crefgroup in LS.duplis:
+    for ob,empty,wmat,refgroup in LS.duplis:
         if bpy.app.version < (2,80,0):
             putOnHiddenLayer(ob)
-        if cob.name in LS.collection.objects:
-            LS.collection.objects.unlink(cob)
-        if refgroup:
-            if empty.name in LS.collection.objects:
-                LS.collection.objects.unlink(empty)
-            refgroup.objects.link(empty)
-            if checkDependency(empty, empty):
-                refgroup.objects.unlink(empty)
+        if ob.name in LS.collection.objects:
+            LS.collection.objects.unlink(ob)
+        empty.parent = ob.parent
+        empty.matrix_world = wmat
+        for child in ob.children:
+            addToRefgroup(child, refgroup)
+        ob.parent = None
+        if LS.fitFile and ob.type == 'MESH':
+            ob.matrix_world = wmat.inverted()
         else:
-            empty.parent = cob.parent
-            wmat = ob.matrix_world.copy()
-            empty.matrix_world = wmat
-            cob.parent = None
-            if LS.fitFile and cob.type == 'MESH':
-                cob.matrix_world = wmat.inverted()
-            else:
-                cob.matrix_world = Matrix()
-            #for child in list(cob.children):
-            #    print("  PAP", child.name, ob.name, cob.name, empty.name)
-            #    child.parent = empty
-            LS.collection.objects.link(empty)
+            ob.matrix_world = Matrix()
+        LS.collection.objects.link(empty)
+
+
+def addToRefgroup(ob, refgroup):
+    if ob.name in LS.collection.objects:
+        LS.collection.objects.unlink(ob)
+    if ob.name not in refgroup.objects:
+        try:
+            refgroup.objects.link(ob)
+        except RuntimeError:
+            print("Cannot link '%s' to '%s'" % (ob.name, refgroup.name))
+            pass
+    if checkDependency(ob, ob):
+        refgroup.objects.unlink(ob)
+    for child in ob.children:
+        addToRefgroup(child, refgroup)
 
 
 def checkDependency(empty, ob):

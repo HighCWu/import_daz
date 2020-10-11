@@ -92,6 +92,7 @@ class GlobalSettings:
         self.useLimitRot = True
         self.useConnect = True
 
+        self.useInstancing = True
         self.buildHighdef = True
         self.useMultires = True
         self.strandsAsHair = True
@@ -140,6 +141,7 @@ class GlobalSettings:
         "DazUseLockRot" : "useLockRot",
         "DazUseLimitRot" : "useLimitRot",
 
+        "DazUseInstancing" : "useInstancing",
         "DazBuildHighdef" : "buildHighdef",
         "DazMultires" : "useMultires",
         "DazStrandsAsHair" : "strandsAsHair",

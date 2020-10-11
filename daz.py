@@ -1190,6 +1190,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Meshes")
         box.prop(scn, "DazBuildHighdef")
         box.prop(scn, "DazMultires")
+        box.prop(scn, "DazUseInstancing")
 
         box = col.box()
         box.label(text = "Properties")
@@ -1516,6 +1517,10 @@ def initialize():
     bpy.types.Scene.DazAddFaceDrivers = BoolProperty(
         name = "Add Face Drivers",
         description = "Add drivers to facial morphs. Only for Genesis 1 and 2.")
+
+    bpy.types.Scene.DazUseInstancing = BoolProperty(
+        name = "Use Instancing",
+        description = "Use instancing for DAZ instances")
 
     bpy.types.Scene.DazBuildHighdef = BoolProperty(
         name = "Build HD Meshes",
