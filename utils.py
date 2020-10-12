@@ -147,6 +147,15 @@ if bpy.app.version < (2,80,0):
             if ob.name in grp.objects:
                 grp.objects.unlink(ob)
 
+    def updateScene(context):
+        scn = context.scene
+        scn.update()
+        scn.frame_current = scn.frame_current
+
+    def updateObject(context, ob):
+        updateScene(context)
+        return ob
+
 else:
 
     from . import buttons28 as B
@@ -274,18 +283,17 @@ else:
                 coll.objects.unlink(ob)
                 print("UNL", ob.name, coll.name)
 
+    def updateScene(context):
+        dg = context.evaluated_depsgraph_get()
+        dg.update()
+
+    def updateObject(context, ob):
+        dg = context.evaluated_depsgraph_get()
+        return ob.evaluated_get(dg)
+
 #-------------------------------------------------------------
 #
 #-------------------------------------------------------------
-
-def updateScene(context):
-    if bpy.app.version < (2,80,0):
-        scn = context.scene
-        scn.update()
-        scn.frame_current = scn.frame_current
-    else:
-        depth = context.evaluated_depsgraph_get()
-        depth.update()
 
 
 def toggleEditMode():

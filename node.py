@@ -156,7 +156,6 @@ class Instance(Accessor, Channels):
 
 
     def clearTransforms(self):
-        self.deltaMatrix = Matrix()
         default = self.node.defaultAttributes()
         for key in ["translation", "rotation", "scale", "general_scale"]:
             self.attributes[key] = default[key]
@@ -360,8 +359,8 @@ class Instance(Accessor, Channels):
             ob = self.rna
         if not isinstance(ob, bpy.types.Object):
             return
-        if LS.fitFile and ob.type == 'MESH':
-            ob.matrix_world = Matrix()
+        #if LS.fitFile and ob.type == 'MESH':
+        #    ob.matrix_world = Matrix()
         self.buildChannels(context)
 
 
@@ -378,8 +377,7 @@ class Instance(Accessor, Channels):
         # Dont do zup here
         # Rest matrix.
         center = Vector(self.attributes["center_point"])
-        rotmat = Matrix()
-        self.restMatrix = Mult2(Matrix.Translation(center), rotmat)
+        self.restMatrix = Matrix.Translation(center)
 
         # Delta matrix
         wspos = self.attributes["translation"]
@@ -388,86 +386,74 @@ class Instance(Accessor, Channels):
         wsgen = self.attributes["general_scale"]
 
         trans = d2b00(wspos)
+        end = d2b00(self.attributes["end_point"])
         rot = Vector(wsrot)*D
         scale = Vector(wsscale)*wsgen
 
-        transmat = Matrix.Translation(trans)
-        rotmat = Euler(rot, self.rotation_order).to_matrix().to_4x4()
-        scalemat = Matrix.Diagonal(scale).to_4x4()
-        self.deltaMatrix = Mult3(transmat, rotmat, scalemat)
+        self.rotmat = Euler(rot, self.rotation_order).to_matrix().to_4x4()
+        self.scalemat = Matrix.Diagonal(scale).to_4x4()
 
+        if self.parent:
+            trans = Mult2(self.parent.deltaMatrix, trans)
+            self.rotmat = Mult2(self.parent.rotmat, self.rotmat)
+            self.scalemat = Mult2(self.parent.scalemat, self.scalemat)
+        self.transmat = Matrix.Translation(trans)
+
+        self.deltaMatrix = Mult3(self.transmat, self.rotmat, self.scalemat)
+        print("\nDELTA", self.name)
+        print(self.deltaMatrix)
+        t,r,s = self.deltaMatrix.decompose()
+        print("T", t)
+        print("Q", r)
+        print("S", s)
+
+    RXP = Matrix.Rotation(math.pi/2, 4, 'X')
+    RXN = Matrix.Rotation(-math.pi/2, 4, 'X')
 
     def parentObject(self, context, ob):
         from .figure import FigureInstance
         from .bone import BoneInstance
-        from .geometry import GeoNode
 
         if ob is None:
             return
-        activateObject(context, ob)
 
         if self.parent is None:
             ob.parent = None
-            self.transformObject(ob)
-
         elif self.parent.rna == ob:
             print("Warning: Trying to parent %s to itself" % ob)
             ob.parent = None
-
         elif isinstance(self.parent, FigureInstance):
             for geo in self.geometries:
                 geo.setHideInfo()
-            setParent(context, ob, self.parent.rna)
-            self.transformObject(ob)
-
+            ob.parent = self.parent.rna
+            ob.parent_type = 'OBJECT'
         elif isinstance(self.parent, BoneInstance):
             self.hasBoneParent = True
             if self.parent.figure is None:
                 print("No figure found:", self.parent)
                 return
             rig = self.parent.figure.rna
+            ob.parent = rig
             bname = self.parent.node.name
             if bname in rig.pose.bones.keys():
-                setParent(context, ob, rig, bname)
-                pb = rig.pose.bones[bname]
-                self.transformObject(ob, pb)
-
+                ob.parent_bone = bname
+                ob.parent_type = 'BONE'
         elif isinstance(self.parent, Instance):
-            setParent(context, ob, self.parent.rna)
-            self.transformObject(ob)
-
+            ob.parent = self.parent.rna
+            ob.parent_type = 'OBJECT'
         else:
             raise RuntimeError("Unknown parent %s %s" % (self, self.parent))
 
-
-    def getMatrix(self, pb):
-        if GS.zup:
-            wmat = Matrix.Rotation(math.pi/2, 4, 'X')
-        else:
+        if LS.fitFile:
             wmat = Matrix()
-
-        if pb:
-            rmat = self.restMatrix
-            mat = Mult2(rmat, self.deltaMatrix)
-            mat = Mult3(wmat, mat, wmat.inverted())
-            mat = Mult2(pb.bone.matrix_local.inverted(), mat)
-            offset = Vector((0,pb.bone.length,0))
+        elif GS.zup:
+            wmat = Mult3(self.RXP, self.deltaMatrix, self.RXN)
         else:
-            rmat = self.restMatrix
-            if self.parent:
-                rmat = Mult2(rmat, self.parent.restMatrix.inverted())
-            mat = Mult2(rmat, self.deltaMatrix)
-            mat = Mult3(wmat, mat, wmat.inverted())
-            offset = Vector((0,0,0))
-        return mat, offset
-
-
-    def transformObject(self, ob, pb=None):
-        mat,offset = self.getMatrix(pb)
-        trans,quat,scale = mat.decompose()
-        ob.location = trans - offset
-        ob.rotation_euler = quat.to_euler(ob.rotation_mode)
-        ob.scale = scale
+            wmat = self.deltaMatrix
+        ob.matrix_world = wmat
+        print("\nMWORL", ob, ob.parent, ob.parent_type, ob.parent_bone)
+        print(wmat)
+        ob = updateObject(context, ob)
         self.node.postTransform()
 
 
@@ -582,7 +568,6 @@ class Node(Asset, Formula, Channels):
 
 
     def clearTransforms(self):
-        self.deltaMatrix = Matrix()
         default = self.defaultAttributes()
         for key in ["translation", "rotation", "scale", "general_scale"]:
             self.attributes[key] = default[key]
