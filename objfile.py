@@ -79,7 +79,6 @@ class DBZInfo:
         inst.restdata = restdata[inst.node.name]
         inst.clearTransforms()
         rmat,wsloc,wsrot,wsscale = transforms[inst.node.name]
-        inst.restMatrix = rmat
 
         for child in inst.children.values():
             if isinstance(child, FigureInstance):

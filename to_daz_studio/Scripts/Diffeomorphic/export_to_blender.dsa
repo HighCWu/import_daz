@@ -118,6 +118,8 @@ function startObject(fp, node, label)
     fp.writeLine("        \"label\": \"" + label + "\",");
     fp.writeLine("        \"center_point\": " + node.getOrigin() + ",");
     fp.writeLine("        \"end_point\": " + node.getEndPoint() + ",");     
+    fp.writeLine("        \"orientation\": " + node.getOrientation() + ",");             
+    fp.writeLine("        \"rotation_order\": \"" + node.getRotationOrder() + "\",");             
     fp.writeLine("        \"ws_pos\": " + node.getWSPos() + ",");     
     fp.writeLine("        \"ws_rot\": " + node.getWSRot() + ",");     
     fp.writeLine("        \"ws_scale\": " + node.getWSScale() + ",");     

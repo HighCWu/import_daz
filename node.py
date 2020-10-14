@@ -133,8 +133,6 @@ class Instance(Accessor, Channels):
         self.isNodeInstance = False
         self.node2 = None
         self.hdobject = None
-        self.strand_hair = node.strand_hair
-        node.strand_hair = None
         self.name = node.getLabel(self)
         self.modifiers = {}
         self.materials = node.materials
@@ -142,7 +140,6 @@ class Instance(Accessor, Channels):
         self.material_group_vis = {}
         self.attributes = copyElements(node.attributes)
         self.restdata = None
-        self.updateMatrices()
         node.clearTransforms()
 
 
@@ -178,6 +175,7 @@ class Instance(Accessor, Channels):
 
 
     def preprocess(self, context):
+        self.updateMatrices()
         for channel in self.channels.values():
             if "type" not in channel.keys():
                 continue
@@ -248,17 +246,7 @@ class Instance(Accessor, Channels):
 
 
     def buildExtra(self, context):
-        if self.strand_hair:
-            print("Strand-based hair is not implemented.")
-            return
-            import base64
-            bytes = base64.b64decode(self.strand_hair, validate=True)
-            with open(os.path.expanduser("~/foo.obj"), "wb") as fp:
-                fp.write(bytes)
-            return
-
-        elif self.isGroupNode:
-            return
+        pass
 
 
     def postbuild(self, context):
@@ -374,38 +362,63 @@ class Instance(Accessor, Channels):
 
 
     def updateMatrices(self):
-        # Dont do zup here
-        # Rest matrix.
-        center = Vector(self.attributes["center_point"])
-        self.restMatrix = Matrix.Translation(center)
+        self.worldmat = self.dazmat = self.rotmat = self.scalemat = Matrix()
+        if LS.fitFile and self.geometries:
+            return
 
-        # Delta matrix
+        # Dont do zup here
         wspos = self.attributes["translation"]
         wsrot = self.attributes["rotation"]
         wsscale = self.attributes["scale"]
         wsgen = self.attributes["general_scale"]
 
+        if self.restdata:
+            center = self.restdata[0]
+        else:
+            center = d2b00(self.attributes["center_point"])
         trans = d2b00(wspos)
-        end = d2b00(self.attributes["end_point"])
         rot = Vector(wsrot)*D
         scale = Vector(wsscale)*wsgen
 
         self.rotmat = Euler(rot, self.rotation_order).to_matrix().to_4x4()
         self.scalemat = Matrix.Diagonal(scale).to_4x4()
+        self.restmat = Matrix.Translation(center)
 
         if self.parent:
-            trans = Mult2(self.parent.deltaMatrix, trans)
+            trans = Mult2(self.parent.dazmat, trans)
             self.rotmat = Mult2(self.parent.rotmat, self.rotmat)
             self.scalemat = Mult2(self.parent.scalemat, self.scalemat)
         self.transmat = Matrix.Translation(trans)
+        self.dazmat = Mult3(self.transmat, self.rotmat, self.scalemat)
+        #self.dazmat = self.normalizeMatrix(self.dazmat)
 
-        self.deltaMatrix = Mult3(self.transmat, self.rotmat, self.scalemat)
+        self.worldmat = Mult2(self.dazmat, self.restmat)
+        if GS.zup:
+            self.worldmat = Mult3(self.RXP, self.worldmat, self.RXN)
+
+        return
         print("\nDELTA", self.name)
-        print(self.deltaMatrix)
-        t,r,s = self.deltaMatrix.decompose()
-        print("T", t)
-        print("Q", r)
-        print("S", s)
+        #print(self.dazmat)
+        #print(self.worldmat)
+        t,r,s = self.restmat.decompose()
+        print("TR", t)
+        print("QR", r)
+        print("SR", s)
+        t,r,s = self.worldmat.decompose()
+        print("TW", t)
+        print("QW", r)
+        print("SW", s)
+
+
+    def normalizeMatrix(self, mat):
+        print("\nNORM", self.name)
+        print(mat)
+        trans,quat,scale = mat.decompose()
+        quat.normalize()
+        mat = Mult3(Matrix.Translation(trans), quat.to_matrix().to_4x4(), Matrix.Diagonal(scale).to_4x4())
+        print(mat)
+        return mat
+
 
     RXP = Matrix.Rotation(math.pi/2, 4, 'X')
     RXN = Matrix.Rotation(-math.pi/2, 4, 'X')
@@ -444,15 +457,9 @@ class Instance(Accessor, Channels):
         else:
             raise RuntimeError("Unknown parent %s %s" % (self, self.parent))
 
-        if LS.fitFile:
-            wmat = Matrix()
-        elif GS.zup:
-            wmat = Mult3(self.RXP, self.deltaMatrix, self.RXN)
-        else:
-            wmat = self.deltaMatrix
-        ob.matrix_world = wmat
-        print("\nMWORL", ob, ob.parent, ob.parent_type, ob.parent_bone)
-        print(wmat)
+        ob.matrix_world = self.worldmat
+        #print("\nMWORL", ob, ob.parent, ob.parent_type, ob.parent_bone)
+        #print(self.worldmat)
         ob = updateObject(context, ob)
         self.node.postTransform()
 
@@ -547,7 +554,6 @@ class Node(Asset, Formula, Channels):
         self.center = None
         self.geometries = []
         self.materials = {}
-        self.strand_hair = None
         self.inherits_scale = False
         self.rotation_order = 'XYZ'
         self.attributes = self.defaultAttributes()
@@ -625,9 +631,7 @@ class Node(Asset, Formula, Channels):
 
 
     def setExtra(self, extra):
-        if False and extra["type"] == "studio/node/strand_hair":
-            print("EXTRA STRAND", extra.keys())
-            self.strand_hair = extra["data"]
+        pass
 
 
     Indices = { "x": 0, "y": 1, "z": 2 }
