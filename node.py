@@ -122,6 +122,8 @@ class Instance(Accessor, Channels):
         self.children = {}
         self.label = node.label
         node.label = None
+        self.inherits_scale = node.inherits_scale
+        node.inherits_scale = True
         self.extra = node.extra
         node.extra = []
         self.channels = node.channels
@@ -362,9 +364,14 @@ class Instance(Accessor, Channels):
 
 
     def updateMatrices(self):
-        self.worldmat = self.wmat = self.wrot = self.lscale = self.wscale = Matrix()
-        self.cpoint = Vector((0,0,0))
-        if LS.fitFile and self.geometries:
+        from .bone import BoneInstance
+        from .figure import FigureInstance
+        hasBoneParent = (self.parent and isinstance(self.parent, BoneInstance))
+        if (LS.fitFile and
+            self.geometries and
+            not (False and hasBoneParent and self.children)):
+            self.worldmat = self.wmat = self.wrot = self.lscale = self.wscale = Matrix()
+            self.cpoint = Vector((0,0,0))
             return
 
         # From http://docs.daz3d.com/doku.php/public/dson_spec/object_definitions/node/start
@@ -380,7 +387,6 @@ class Instance(Accessor, Channels):
         rotation = Vector(self.attributes["rotation"])*D
         genscale = self.attributes["general_scale"]
         scale = Vector(self.attributes["scale"]) * genscale
-        inherits = True
         orientation = Vector(self.attributes["orientation"])*D
         if self.restdata:
             self.cpoint = self.restdata[0]
@@ -397,7 +403,7 @@ class Instance(Accessor, Channels):
             self.wtrans = Mult2(par.wmat, coffset + trans)
             self.wrot = Mult4(par.wrot, orient, lrot, orient.inverted())
             oscale = Mult3(orient, self.lscale, orient.inverted())
-            if inherits:
+            if self.inherits_scale:
                 self.wscale = Mult2(par.wscale, oscale)
             else:
                 self.wscale = Mult3(par.wscale, par.lscale.inverted(), oscale)
@@ -548,7 +554,7 @@ class Node(Asset, Formula, Channels):
         self.center = None
         self.geometries = []
         self.materials = {}
-        self.inherits_scale = False
+        self.inherits_scale = True
         self.rotation_order = 'XYZ'
         self.attributes = self.defaultAttributes()
         self.origAttrs = self.defaultAttributes()
