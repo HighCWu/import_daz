@@ -384,7 +384,10 @@ class Instance(Accessor, Channels):
             self.cpoint = d2b00(self.attributes["center_point"])
 
         lrot = Euler(rotation, self.rotation_order).to_matrix().to_4x4()
-        self.lscale = Matrix.Diagonal(scale).to_4x4()
+        self.lscale = Matrix()
+        for i in range(3):
+            self.lscale[i][i] = scale[i]
+        #self.lscale = Matrix.Diagonal(scale).to_4x4()
         orient = Euler(orientation).to_matrix().to_4x4()
 
         par = self.parent
@@ -448,11 +451,6 @@ class Instance(Accessor, Channels):
             raise RuntimeError("Unknown parent %s %s" % (self, self.parent))
 
         ob.matrix_world = self.worldmat
-        if False and LS.fitFile and ob.type == 'MESH':
-            from .geometry import shiftMesh
-            shiftMesh(ob, self.worldmat.inverted())
-        #print("\nMWORL", ob, ob.parent, ob.parent_type, ob.parent_bone)
-        #print(self.worldmat)
         ob = updateObject(context, ob)
         self.node.postTransform()
 
