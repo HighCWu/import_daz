@@ -362,8 +362,8 @@ class Instance(Accessor, Channels):
 
 
     def updateMatrices(self):
-        self.worldmat = self.wrot = self.lscale = self.wscale = Matrix()
-        self.center = Vector((0,0,0))
+        self.worldmat = self.wmat = self.wrot = self.lscale = self.wscale = Matrix()
+        self.cpoint = Vector((0,0,0))
         if LS.fitFile and self.geometries:
             return
 
@@ -380,11 +380,12 @@ class Instance(Accessor, Channels):
         rotation = Vector(self.attributes["rotation"])*D
         genscale = self.attributes["general_scale"]
         scale = Vector(self.attributes["scale"]) * genscale
+        inherits = True
         orientation = Vector(self.attributes["orientation"])*D
         if self.restdata:
-            self.center = self.restdata[0]
+            self.cpoint = self.restdata[0]
         else:
-            self.center = d2b00(self.attributes["center_point"])
+            self.cpoint = d2b00(self.attributes["center_point"])
 
         lrot = Euler(rotation, self.rotation_order).to_matrix().to_4x4()
         self.lscale = Matrix.Diagonal(scale).to_4x4()
@@ -392,41 +393,29 @@ class Instance(Accessor, Channels):
 
         par = self.parent
         if par:
-            coffset = self.center - self.parent.center
-            self.wtrans = Mult2(par.worldmat, coffset + trans)
+            coffset = self.cpoint - self.parent.cpoint
+            self.wtrans = Mult2(par.wmat, coffset + trans)
             self.wrot = Mult4(par.wrot, orient, lrot, orient.inverted())
             oscale = Mult3(orient, self.lscale, orient.inverted())
-            self.wscale = Mult3(par.wscale, par.lscale.inverted(), oscale)
-            self.wscale = Mult2(par.wscale, oscale)
+            if inherits:
+                self.wscale = Mult2(par.wscale, oscale)
+            else:
+                self.wscale = Mult3(par.wscale, par.lscale.inverted(), oscale)
         else:
-            self.wtrans = self.center + trans
+            self.wtrans = self.cpoint + trans
             self.wrot = Mult3(orient, lrot, orient.inverted())
             self.wscale = Mult3(orient, self.lscale, orient.inverted())
 
         transmat = Matrix.Translation(self.wtrans)
-        self.worldmat = Mult3(transmat, self.wrot, self.wscale)
+        self.wmat = Mult3(transmat, self.wrot, self.wscale)
         if GS.zup:
-            self.worldmat = Mult3(self.RXP, self.worldmat, self.RXN)
-
-        print("\nDELTA", self.name)
-        t,r,s = self.worldmat.decompose()
-        print("TW", t)
-        print("QW", r)
-        print("SW", s)
-
-
-    def normalizeMatrix(self, mat):
-        print("\nNORM", self.name)
-        print(mat)
-        trans,quat,scale = mat.decompose()
-        quat.normalize()
-        mat = Mult3(Matrix.Translation(trans), quat.to_matrix().to_4x4(), Matrix.Diagonal(scale).to_4x4())
-        print(mat)
-        return mat
-
+            self.worldmat = Mult3(self.RXP, self.wmat, self.RXN)
+        else:
+            self.worldmat = self.wmat
 
     RXP = Matrix.Rotation(math.pi/2, 4, 'X')
     RXN = Matrix.Rotation(-math.pi/2, 4, 'X')
+
 
     def parentObject(self, context, ob):
         from .figure import FigureInstance
