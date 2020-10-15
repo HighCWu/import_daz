@@ -362,48 +362,53 @@ class Instance(Accessor, Channels):
 
 
     def updateMatrices(self):
-        self.worldmat = self.dazmat = self.rotmat = self.scalemat = Matrix()
+        self.worldmat = self.wrot = self.lscale = self.wscale = Matrix()
+        self.center = Vector((0,0,0))
         if LS.fitFile and self.geometries:
             return
 
-        # Dont do zup here
-        wspos = self.attributes["translation"]
-        wsrot = self.attributes["rotation"]
-        wsscale = self.attributes["scale"]
-        wsgen = self.attributes["general_scale"]
+        # From http://docs.daz3d.com/doku.php/public/dson_spec/object_definitions/node/start
+        #
+        # center_offset = center_point - parent.center_point
+        # global_translation = parent.global_transform * (center_offset + translation)
+        # global_rotation = parent.global_rotation * orientation * rotation * (orientation)-1
+        # global_scale for nodes that inherit scale = parent.global_scale * orientation * scale * general_scale * (orientation)-1
+        # global_scale for nodes = parent.global_scale * (parent.local_scale)-1 * orientation * scale * general_scale * (orientation)-1
+        # global_transform = global_translation * global_rotation * global_scale
 
+        trans = d2b00(self.attributes["translation"])
+        rotation = Vector(self.attributes["rotation"])*D
+        genscale = self.attributes["general_scale"]
+        scale = Vector(self.attributes["scale"]) * genscale
+        orientation = Vector(self.attributes["orientation"])*D
         if self.restdata:
-            center = self.restdata[0]
+            self.center = self.restdata[0]
         else:
-            center = d2b00(self.attributes["center_point"])
-        trans = d2b00(wspos)
-        rot = Vector(wsrot)*D
-        scale = Vector(wsscale)*wsgen
+            self.center = d2b00(self.attributes["center_point"])
 
-        self.rotmat = Euler(rot, self.rotation_order).to_matrix().to_4x4()
-        self.scalemat = Matrix.Diagonal(scale).to_4x4()
-        self.restmat = Matrix.Translation(center)
+        lrot = Euler(rotation, self.rotation_order).to_matrix().to_4x4()
+        self.lscale = Matrix.Diagonal(scale).to_4x4()
+        orient = Euler(orientation).to_matrix().to_4x4()
 
-        if self.parent:
-            trans = Mult2(self.parent.dazmat, trans)
-            self.rotmat = Mult2(self.parent.rotmat, self.rotmat)
-            self.scalemat = Mult2(self.parent.scalemat, self.scalemat)
-        self.transmat = Matrix.Translation(trans)
-        self.dazmat = Mult3(self.transmat, self.rotmat, self.scalemat)
-        #self.dazmat = self.normalizeMatrix(self.dazmat)
+        par = self.parent
+        if par:
+            coffset = self.center - self.parent.center
+            self.wtrans = Mult2(par.worldmat, coffset + trans)
+            self.wrot = Mult4(par.wrot, orient, lrot, orient.inverted())
+            oscale = Mult3(orient, self.lscale, orient.inverted())
+            self.wscale = Mult3(par.wscale, par.lscale.inverted(), oscale)
+            self.wscale = Mult2(par.wscale, oscale)
+        else:
+            self.wtrans = self.center + trans
+            self.wrot = Mult3(orient, lrot, orient.inverted())
+            self.wscale = Mult3(orient, self.lscale, orient.inverted())
 
-        self.worldmat = Mult2(self.dazmat, self.restmat)
+        transmat = Matrix.Translation(self.wtrans)
+        self.worldmat = Mult3(transmat, self.wrot, self.wscale)
         if GS.zup:
             self.worldmat = Mult3(self.RXP, self.worldmat, self.RXN)
 
-        return
         print("\nDELTA", self.name)
-        #print(self.dazmat)
-        #print(self.worldmat)
-        t,r,s = self.restmat.decompose()
-        print("TR", t)
-        print("QR", r)
-        print("SR", s)
         t,r,s = self.worldmat.decompose()
         print("TW", t)
         print("QW", r)
