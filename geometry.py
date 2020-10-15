@@ -193,14 +193,30 @@ class GeoNode(Node):
 
 
     def postbuild(self, context, inst):
-        if self.rna:
-            pruneUvMaps(self.rna)
+        ob = self.rna
+        if ob:
+            pruneUvMaps(ob)
+            if LS.fitFile and ob.type == 'MESH':
+                self.shiftMesh(ob, inst.worldmat.inverted())
         if self.highdef:
             self.buildHighDef(context, inst)
         if self.pgeonode and GS.strandsAsHair:
             self.data.buildHair(self, context)
         if self.dforce:
             self.dforce.build(context)
+
+
+    def shiftMesh(self, ob, mat):
+        diff = mat - Matrix()
+        maxelt = max([abs(diff[i][j]) for i in range(3) for j in range(4)])
+        if maxelt < 0.01*LS.scale:  # Ignore shifts < 0.1 mm
+            return
+        if bpy.app.version < (2,80,0):
+            for v in ob.data.vertices:
+                v.co = mat * v.co
+        else:
+            for v in ob.data.vertices:
+                v.co = mat @ v.co
 
 
     def buildHighDef(self, context, inst):

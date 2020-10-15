@@ -364,16 +364,6 @@ class Instance(Accessor, Channels):
 
 
     def updateMatrices(self):
-        from .bone import BoneInstance
-        from .figure import FigureInstance
-        hasBoneParent = (self.parent and isinstance(self.parent, BoneInstance))
-        if (LS.fitFile and
-            self.geometries and
-            not (False and hasBoneParent and self.children)):
-            self.worldmat = self.wmat = self.wrot = self.lscale = self.wscale = Matrix()
-            self.cpoint = Vector((0,0,0))
-            return
-
         # From http://docs.daz3d.com/doku.php/public/dson_spec/object_definitions/node/start
         #
         # center_offset = center_point - parent.center_point
@@ -458,6 +448,9 @@ class Instance(Accessor, Channels):
             raise RuntimeError("Unknown parent %s %s" % (self, self.parent))
 
         ob.matrix_world = self.worldmat
+        if False and LS.fitFile and ob.type == 'MESH':
+            from .geometry import shiftMesh
+            shiftMesh(ob, self.worldmat.inverted())
         #print("\nMWORL", ob, ob.parent, ob.parent_type, ob.parent_bone)
         #print(self.worldmat)
         ob = updateObject(context, ob)
@@ -475,10 +468,7 @@ def transformDuplis():
         for child in ob.children:
             addToRefgroup(child, refgroup)
         ob.parent = None
-        if LS.fitFile and ob.type == 'MESH':
-            ob.matrix_world = wmat.inverted()
-        else:
-            ob.matrix_world = Matrix()
+        ob.matrix_world = Matrix()
         LS.collection.objects.link(empty)
 
 
