@@ -450,6 +450,8 @@ class Instance(Accessor, Channels):
         else:
             raise RuntimeError("Unknown parent %s %s" % (self, self.parent))
 
+        if self.parent:
+            ob.matrix_parent_inverse = self.parent.worldmat.inverted()
         ob.matrix_world = self.worldmat
         ob = updateObject(context, ob)
         self.node.postTransform()
