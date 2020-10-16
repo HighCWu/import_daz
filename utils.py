@@ -295,6 +295,11 @@ else:
 #
 #-------------------------------------------------------------
 
+def setWorldMatrix(ob, wmat):
+    if ob.parent:
+        ob.matrix_parent_inverse = ob.parent.matrix_world.inverted()
+    ob.matrix_world = wmat
+
 
 def toggleEditMode():
     try:

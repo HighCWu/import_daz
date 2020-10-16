@@ -421,7 +421,7 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
 def copyPose(context, rig, ob):
     if not setActiveObject(context, ob):
         return
-    ob.matrix_world = rig.matrix_world.copy()
+    setWorldMatrix(ob, rig.matrix_world.copy())
     for cb in rig.pose.bones:
         if cb.name in ob.pose.bones:
             pb = ob.pose.bones[cb.name]
@@ -455,13 +455,13 @@ class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
                         if empty.parent_type == 'OBJECT':
                             ob.parent = rig
                             ob.parent_type = 'OBJECT'
-                            ob.matrix_world = wmat
+                            setWorldMatrix(ob, wmat)
                         elif empty.parent_type == 'BONE':
                             bone = rig.data.bones[empty.parent_bone]
                             ob.parent = rig
                             ob.parent_type = 'BONE'
                             ob.parent_bone = empty.parent_bone
-                            ob.matrix_world = wmat
+                            setWorldMatrix(ob, wmat)
                         else:
                             raise DazError("Unknown parent type: %s %s" % (ob.name, empty.parent_type))
         for empty in deletes:

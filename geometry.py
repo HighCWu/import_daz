@@ -168,7 +168,7 @@ class GeoNode(Node):
             LS.collection.objects.unlink(hdob)
             LS.hdcollection.objects.link(hdob)
             LS.hdcollection.objects.link(hdob.parent)
-            hdob.matrix_world = Matrix()
+            setWorldMatrix(hdob, Matrix())
 
 
     def finishHair(self, context):

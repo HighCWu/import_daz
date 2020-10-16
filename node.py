@@ -349,8 +349,6 @@ class Instance(Accessor, Channels):
             ob = self.rna
         if not isinstance(ob, bpy.types.Object):
             return
-        #if LS.fitFile and ob.type == 'MESH':
-        #    ob.matrix_world = Matrix()
         self.buildChannels(context)
 
 
@@ -450,10 +448,8 @@ class Instance(Accessor, Channels):
         else:
             raise RuntimeError("Unknown parent %s %s" % (self, self.parent))
 
-        if self.parent:
-            ob.matrix_parent_inverse = self.parent.worldmat.inverted()
-        ob.matrix_world = self.worldmat
-        ob = updateObject(context, ob)
+        setWorldMatrix(ob, self.worldmat)
+        #ob = updateObject(context, ob)
         self.node.postTransform()
 
 
@@ -705,7 +701,7 @@ class Node(Asset, Formula, Channels):
         LS.collection.objects.link(ob)
         if bpy.app.version < (2,80,0):
             context.scene.objects.link(ob)
-        activateObject(context, ob)
+        setActiveObject(context, ob)
         setSelected(ob, True)
         ob.DazId = self.id
         ob.DazUrl = normalizePath(self.url)
@@ -743,6 +739,7 @@ class Node(Asset, Formula, Channels):
 #-------------------------------------------------------------
 
 def setParent(context, ob, rig, bname=None, update=True):
+    print("SETPAR", ob.name, rig.name)
     if update:
         updateScene(context)
     if ob.parent != rig:
@@ -753,7 +750,7 @@ def setParent(context, ob, rig, bname=None, update=True):
             ob.parent_type = 'BONE'
         else:
             ob.parent_type = 'OBJECT'
-        ob.matrix_world = wmat
+        setWorldMatrix(ob, wmat)
 
 
 def reParent(context, ob, rig, update=False):

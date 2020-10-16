@@ -100,12 +100,12 @@ class CyclesMaterial(Material):
     def correctArea(self, nodes, me, mnum):
         ob = nodes[0].rna
         ob.data = me2 = me.copy()
-        mat = ob.matrix_world.copy()
+        wmat = ob.matrix_world.copy()
         me2.transform(mat)
-        ob.matrix_world = Matrix()
+        setWorldMatrix(ob, Matrix())
         area = sum([f.area for f in me2.polygons if f.material_index == mnum])
         ob.data = me
-        ob.matrix_world = mat
+        setWorldMatrix(ob, wmat)
         bpy.data.meshes.remove(me2, do_unlink=True)
 
         area *= 1e-4/(LS.scale*LS.scale)
