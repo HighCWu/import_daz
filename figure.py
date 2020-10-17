@@ -79,6 +79,8 @@ class FigureInstance(Instance):
 
 
     def poseChildren(self, ob, rig):
+        from .fix import ConstraintStore
+        store = ConstraintStore()
         for child in ob.children:
             if child.type == 'ARMATURE':
                 setSelected(child, True)
@@ -86,6 +88,12 @@ class FigureInstance(Instance):
                     if pb.name in rig.pose.bones.keys():
                         parb = rig.pose.bones[pb.name]
                         pb.matrix_basis = parb.matrix_basis
+                        pb.lock_location = parb.lock_location
+                        pb.lock_rotation = parb.lock_rotation
+                        pb.lock_scale = parb.lock_scale
+                        store.storeConstraints(parb.name, parb)
+                        store.removeConstraints(pb)
+                        store.restoreConstraints(parb.name, pb)
                 self.poseChildren(child, rig)
 
 
@@ -94,9 +102,6 @@ class FigureInstance(Instance):
         from .finger import getFingeredCharacter
 
         Instance.pose(self, context)
-        if bpy.app.version >= (2.80,0):
-            print("SKIP pose")
-            return
         rig = self.rna
         activateObject(context, rig)
         tchildren = {}

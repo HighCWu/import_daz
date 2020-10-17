@@ -449,7 +449,6 @@ class Instance(Accessor, Channels):
             raise RuntimeError("Unknown parent %s %s" % (self, self.parent))
 
         setWorldMatrix(ob, self.worldmat)
-        #ob = updateObject(context, ob)
         self.node.postTransform()
 
 

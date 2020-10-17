@@ -96,6 +96,8 @@ def getMainAsset(filepath, context, btn):
         asset.build(context, inst)      # Builds morphs
     showProgress(90, 100)
 
+    for _,inst in main.nodes:
+        inst.pose(context)
     for asset,inst in main.nodes:
         inst.postbuild(context)
 
@@ -109,8 +111,6 @@ def getMainAsset(filepath, context, btn):
         asset.postprocess(context, inst)
     for asset,inst in main.modifiers:
         asset.postprocess(context, inst)
-    for _,inst in main.nodes:
-        inst.pose(context)
     for asset,inst in main.modifiers:
         asset.postbuild(context, inst)
     for _,inst in main.nodes:
