@@ -947,7 +947,7 @@ class Bone(Node):
         pass
 
 
-    def pose(self, context, inst):
+    def poseRig(self, context, inst):
         pass
 
 

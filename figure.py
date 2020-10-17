@@ -97,15 +97,25 @@ class FigureInstance(Instance):
                 self.poseChildren(child, rig)
 
 
-    def pose(self, context):
-        from .bone import BoneInstance
-        from .finger import getFingeredCharacter
-
-        Instance.pose(self, context)
+    def poseRig(self, context):
+        Instance.poseRig(self, context)
         rig = self.rna
         activateObject(context, rig)
-        tchildren = {}
         bpy.ops.object.mode_set(mode='POSE')
+        if not LS.fitFile:
+            self.poseArmature(rig)
+        rig.DazRotLocks = GS.useLockRot
+        rig.DazLocLocks = GS.useLockLoc
+        rig.DazRotLimits = GS.useLimitRot
+        rig.DazLocLimits = GS.useLimitLoc
+        self.fixDependencyLoops(rig)
+        self.addCustomShapes(rig)
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+
+    def poseArmature(self, rig):
+        from .bone import BoneInstance
+        tchildren = {}
         missing = []
         for child in self.children.values():
             if isinstance(child, BoneInstance):
@@ -113,12 +123,10 @@ class FigureInstance(Instance):
         if missing and GS.verbosity > 2:
             print("Missing bones when posing %s" % self.name)
             print("  %s" % [inst.node.name for inst in missing])
-        rig.DazRotLocks = GS.useLockRot
-        rig.DazLocLocks = GS.useLockLoc
-        rig.DazRotLimits = GS.useLimitRot
-        rig.DazLocLimits = GS.useLimitLoc
-        self.fixDependencyLoops(rig)
 
+
+    def addCustomShapes(self, rig):
+        from .finger import getFingeredCharacter
         if self.node.rigtype and LS.useCustomShapes:
             for geo in self.geometries:
                 if geo.rna:
@@ -126,8 +134,6 @@ class FigureInstance(Instance):
                     if char:
                         if LS.useCustomShapes:
                             addCustomShapes(rig)
-
-        bpy.ops.object.mode_set(mode='OBJECT')
 
 
     def fixDependencyLoops(self, rig):

@@ -97,7 +97,7 @@ def getMainAsset(filepath, context, btn):
     showProgress(90, 100)
 
     for _,inst in main.nodes:
-        inst.pose(context)
+        inst.poseRig(context)
     for asset,inst in main.nodes:
         inst.postbuild(context)
 

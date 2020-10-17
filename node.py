@@ -154,12 +154,6 @@ class Instance(Accessor, Channels):
         return self.id
 
 
-    def clearTransforms(self):
-        default = self.node.defaultAttributes()
-        for key in ["translation", "rotation", "scale", "general_scale"]:
-            self.attributes[key] = default[key]
-
-
     def addToOffset(self, name, key, value):
         channel,idx = getChannelIndex(key)
         if name not in self.namedOffsets.keys():
@@ -334,7 +328,7 @@ class Instance(Accessor, Channels):
             empty.instance_collection = group
 
 
-    def pose(self, context):
+    def poseRig(self, context):
         pass
 
 
@@ -376,16 +370,12 @@ class Instance(Accessor, Channels):
         genscale = self.attributes["general_scale"]
         scale = Vector(self.attributes["scale"]) * genscale
         orientation = Vector(self.attributes["orientation"])*D
-        if self.restdata:
-            self.cpoint = self.restdata[0]
-        else:
-            self.cpoint = d2b00(self.attributes["center_point"])
+        self.cpoint = d2b00(self.attributes["center_point"])
 
         lrot = Euler(rotation, self.rotation_order).to_matrix().to_4x4()
         self.lscale = Matrix()
         for i in range(3):
             self.lscale[i][i] = scale[i]
-        #self.lscale = Matrix.Diagonal(scale).to_4x4()
         orient = Euler(orientation).to_matrix().to_4x4()
 
         par = self.parent
