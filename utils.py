@@ -281,7 +281,6 @@ else:
         for coll in bpy.data.collections:
             if ob in coll.objects.values():
                 coll.objects.unlink(ob)
-                print("UNL", ob.name, coll.name)
 
     def updateScene(context):
         dg = context.evaluated_depsgraph_get()

@@ -77,7 +77,7 @@ class DBZInfo:
         if inst.node.name not in restdata.keys():
             return
         inst.restdata = restdata[inst.node.name]
-        #inst.clearTransforms()
+        inst.clearTransforms()
         rmat,wsloc,wsrot,wsscale = transforms[inst.node.name]
 
         for child in inst.children.values():

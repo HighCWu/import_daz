@@ -207,9 +207,8 @@ class GeoNode(Node):
 
 
     def shiftMesh(self, ob, mat):
-        diff = mat - Matrix()
-        maxelt = max([abs(diff[i][j]) for i in range(3) for j in range(4)])
-        if maxelt < 0.01*LS.scale:  # Ignore shifts < 0.1 mm
+        from .node import isUnitMatrix
+        if isUnitMatrix(mat):
             return
         if bpy.app.version < (2,80,0):
             for v in ob.data.vertices:

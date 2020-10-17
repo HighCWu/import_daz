@@ -59,6 +59,24 @@ class FigureInstance(Instance):
         pass
 
 
+    def postbuild(self, context):
+        Instance.postbuild(self, context)
+        if LS.fitFile:
+            self.shiftBones(context, self.rna, self.worldmat.inverted())
+
+
+    def shiftBones(self, context, rig, mat):
+        from .node import isUnitMatrix
+        if isUnitMatrix(mat):
+            return
+        activateObject(context, rig)
+        bpy.ops.object.mode_set(mode='EDIT')
+        for eb in rig.data.edit_bones:
+            eb.head = Mult2(mat, eb.head)
+            eb.tail = Mult2(mat, eb.tail)
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+
     def finalize(self, context):
         from .finger import getFingeredCharacter
         Instance.finalize(self, context)

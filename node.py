@@ -155,6 +155,7 @@ class Instance(Accessor, Channels):
 
 
     def clearTransforms(self):
+        return
         default = self.node.defaultAttributes()
         for key in ["translation", "rotation", "scale", "general_scale"]:
             self.attributes[key] = default[key]
@@ -817,3 +818,11 @@ def setBoneTwist(tfm, pb):
         pb.rotation_quaternion = euler.to_quaternion()
     else:
         pb.rotation_euler = euler
+
+
+def isUnitMatrix(mat):
+    diff = mat - Matrix()
+    maxelt = max([abs(diff[i][j]) for i in range(3) for j in range(4)])
+    return (maxelt < 0.01*LS.scale)  # Ignore shifts < 0.1 mm
+
+
