@@ -48,6 +48,7 @@ class DBZInfo:
         from .figure import FigureInstance
         from .bone import BoneInstance
         name = inst.node.name
+        inst.clearTransforms()
         if name in self.rigs.keys():
             if inst.id in takenfigs[name]:
                 return
@@ -76,6 +77,7 @@ class DBZInfo:
         if inst.node.name not in restdata.keys():
             return
         inst.restdata = restdata[inst.node.name]
+        #inst.clearTransforms()
         rmat,wsloc,wsrot,wsscale = transforms[inst.node.name]
 
         for child in inst.children.values():

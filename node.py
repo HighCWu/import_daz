@@ -154,6 +154,12 @@ class Instance(Accessor, Channels):
         return self.id
 
 
+    def clearTransforms(self):
+        default = self.node.defaultAttributes()
+        for key in ["translation", "rotation", "scale", "general_scale"]:
+            self.attributes[key] = default[key]
+
+
     def addToOffset(self, name, key, value):
         channel,idx = getChannelIndex(key)
         if name not in self.namedOffsets.keys():
