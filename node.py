@@ -104,7 +104,6 @@ class Instance(Accessor, Channels):
         self.id = self.getSelfId()
         node.instances[self.id] = self
         self.offsets = self.node.defaultAttributes()
-        self.namedOffsets = {}
         self.geometries = node.geometries
         node.geometries = []
         self.rotation_order = node.rotation_order
@@ -154,23 +153,12 @@ class Instance(Accessor, Channels):
         return self.id
 
 
-    def clearTransforms(self):
-        return
-        default = self.node.defaultAttributes()
-        for key in ["translation", "rotation", "scale", "general_scale"]:
-            self.attributes[key] = default[key]
-
-
     def addToOffset(self, name, key, value):
         channel,idx = getChannelIndex(key)
-        if name not in self.namedOffsets.keys():
-            self.namedOffsets[name] = self.node.defaultAttributes()
         if idx >= 0:
             self.offsets[channel][idx] += value
-            self.namedOffsets[name][channel][idx] = value
         else:
             self.offsets[channel] += value
-            self.namedOffsets[name][channel] = value
 
 
     def getCharacterScale(self):
