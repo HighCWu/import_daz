@@ -633,7 +633,7 @@ class Geometry(Asset, Channels):
                 self.strands.append((pn,mn,lverts))
 
         if LS.fitFile:
-            me.from_pydata([vco for vco in verts], edges, faces)
+            me.from_pydata(verts, edges, faces)
         else:
             me.from_pydata([vco-center for vco in verts], edges, faces)
 
