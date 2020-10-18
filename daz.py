@@ -65,7 +65,6 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions, B.PoleT
         layout = self.layout
         scn = context.scene
         layout.prop(self, "unitScale")
-        layout.prop(self, "useCustomShapes")
 
         layout.separator()
         box = layout.box()
@@ -1203,26 +1202,15 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box = col.box()
         box.label(text = "Rigging")
         box.prop(scn, "DazOrientMethod")
+        box.prop(scn, "DazUseCustomShapes")
         box.prop(scn, "DazUseQuaternions")
+        box.prop(scn, "DazConnectClose")
         box.separator()
         box.prop(scn, "DazUseLockLoc")
         box.prop(scn, "DazUseLimitLoc")
         box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLimitRot")
         box.prop(scn, "DazUseLegacyLocks")
-
-        box = col.box()
-        box.label(text = "Hair")
-        box.prop(scn, "DazStrandsAsHair")
-        box.prop(scn, "DazPostponeHair")
-        box.prop(scn, "DazMultipleHairMaterials")
-        box.prop(scn, "DazSkullGroup")
-
-        box = col.box()
-        box.label(text = "Simulation")
-        box.prop(scn, "DazInfluence")
-        box.prop(scn, "DazSimulation")
-        box.prop(scn, "DazDeflectors")
 
         box = split.box()
         box.label(text = "Materials")
@@ -1247,6 +1235,20 @@ class DAZ_OT_GlobalSettings(DazOperator):
             box.prop(scn, "DazDiffuseRoughness")
             box.prop(scn, "DazSpecularRoughness")
 
+        col = split.column()
+        box = col.box()
+        box.label(text = "Hair")
+        box.prop(scn, "DazStrandsAsHair")
+        box.prop(scn, "DazPostponeHair")
+        box.prop(scn, "DazMultipleHairMaterials")
+        box.prop(scn, "DazSkullGroup")
+
+        box = col.box()
+        box.label(text = "Simulation")
+        box.prop(scn, "DazInfluence")
+        box.prop(scn, "DazSimulation")
+        box.prop(scn, "DazDeflectors")
+
         row = self.layout.row()
         row.operator("daz.load_root_paths")
         row.operator("daz.load_factory_settings")
@@ -1262,7 +1264,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
     def invoke(self, context, event):
         GS.toScene(context.scene)
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=900)
+        return wm.invoke_props_dialog(self, width=1200)
 
 #-------------------------------------------------------------
 #   Initialize
@@ -1470,6 +1472,10 @@ def initialize():
         name = "Reuse Materials",
         description = "Use existing materials if such exists.\nMay lead to incorrect materials")
 
+    bpy.types.Scene.DazConnectClose = BoolProperty(
+        name = "Connect Close",
+        description = "Connect bones to their parent if the head is close to the parent's tail")
+
     bpy.types.Scene.DazUseLockLoc = BoolProperty(
         name = "Location Locks",
         description = "Use location locks")
@@ -1499,6 +1505,11 @@ def initialize():
         name = "Orientation Method",
         description = "Bone orientation method",
         default = 'DAZ STUDIO')
+
+    bpy.types.Scene.DazUseCustomShapes = BoolProperty(
+        name = "Custom Shapes",
+        description = "Add custom shapes to character bones",
+        default = True)
 
     bpy.types.Scene.DazUseQuaternions = BoolProperty(
         name = "Quaternions",

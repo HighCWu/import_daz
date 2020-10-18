@@ -145,12 +145,12 @@ class FigureInstance(Instance):
 
     def addCustomShapes(self, rig):
         from .finger import getFingeredCharacter
-        if self.node.rigtype and LS.useCustomShapes:
+        if self.node.rigtype and GS.useCustomShapes:
             for geo in self.geometries:
                 if geo.rna:
                     _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
                     if char:
-                        if LS.useCustomShapes:
+                        if GS.useCustomShapes:
                             addCustomShapes(rig)
 
 
@@ -297,6 +297,7 @@ class Figure(Node):
 
         cscale = inst.getCharacterScale()
         center = inst.attributes["center_point"]
+        center = Vector((0,0,0))
         inst.setupPlanes()
         activateObject(context, rig)
 

@@ -436,7 +436,7 @@ class BoneInstance(Instance):
                 msg = ("Illegal orientation type: %s       \nReload factory settings." % GS.orientMethod)
                 raise DazError(msg)
 
-            if GS.useConnect and parent:
+            if GS.useConnectClose and parent:
                 dist = parent.tail - eb.head
                 if dist.length < 1e-4*LS.scale:
                     eb.use_connect = True

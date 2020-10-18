@@ -61,6 +61,7 @@ class GlobalSettings:
         self.zup = True
         self.chooseColors = 'GUESS'
         self.orientMethod = 'DAZ STUDIO'
+        self.useCustomShapes = True
         self.useQuaternions = False
         self.useLegacyLocks = False
         self.caseSensitivePaths = (platform != 'win32')
@@ -90,7 +91,7 @@ class GlobalSettings:
         self.useLimitLoc = True
         self.useLockRot = True
         self.useLimitRot = True
-        self.useConnect = True
+        self.useConnectClose = False
 
         self.useInstancing = True
         self.buildHighdef = True
@@ -134,8 +135,10 @@ class GlobalSettings:
         "DazUsePropDefault" : "useDazPropDefault",
 
         "DazOrientMethod" : "orientMethod",
+        "DazUseCustomShapes" : "useCustomShapes",
         "DazUseLegacyLocks" : "useLegacyLocks",
         "DazUseQuaternions" : "useQuaternions",
+        "DazConnectClose" : "useConnectClose",
         "DazUseLockLoc" : "useLockLoc",
         "DazUseLimitLoc" : "useLimitLoc",
         "DazUseLockRot" : "useLockRot",
@@ -376,7 +379,6 @@ class LocalSettings:
         self.fitFile = False
         self.autoMaterials = True
         self.materialMethod = 'BSDF'
-        self.useCustomShapes = True
 
         self.useNodes = False
         self.useGeometries = False
@@ -444,7 +446,6 @@ class LocalSettings:
         self.skinColor = btn.skinColor
         self.clothesColor = btn.clothesColor
         self.materialMethod = btn.materialMethod
-        self.useCustomShapes = btn.useCustomShapes
 
         self.useStrict = True
         self.singleUser = True

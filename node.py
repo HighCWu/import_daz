@@ -174,6 +174,7 @@ class Instance(Accessor, Channels):
 
 
     def getCharacterScale(self):
+        return 1
         return self.offsets["general_scale"]
 
 
