@@ -297,7 +297,6 @@ class Figure(Node):
 
         cscale = inst.getCharacterScale()
         center = inst.attributes["center_point"]
-        center = Vector((0,0,0))
         inst.setupPlanes()
         activateObject(context, rig)
 

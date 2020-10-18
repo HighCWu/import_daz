@@ -408,6 +408,7 @@ class BoneInstance(Instance):
             elif GS.orientMethod in ['DAZ STUDIO', 'DAZ UNFLIPPED']:
                 head = d2b(head)
                 tail = d2b(tail)
+                length = (head-tail).length
                 omat = orient.to_matrix().to_4x4()
                 if GS.zup:
                     omat = Mult2(self.RX, omat)
@@ -432,6 +433,7 @@ class BoneInstance(Instance):
                     omat.col[3][0:3] = head
                     eb.matrix = omat
                     self.correctRoll(eb, figure)
+                self.correctLength(eb, length)
             else:
                 msg = ("Illegal orientation type: %s       \nReload factory settings." % GS.orientMethod)
                 raise DazError(msg)
@@ -559,6 +561,11 @@ class BoneInstance(Instance):
             f[i] = not f[i]
             f[k] = not f[k]
         self.testPrint("CORR")
+
+
+    def correctLength(self, eb, length):
+        vec = (eb.tail - eb.head).normalized()
+        eb.tail = eb.head + length*vec
 
 
     def buildBoneProps(self, rig, cscale, center):

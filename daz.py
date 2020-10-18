@@ -1204,7 +1204,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazOrientMethod")
         box.prop(scn, "DazUseCustomShapes")
         box.prop(scn, "DazUseQuaternions")
-        box.prop(scn, "DazConnectClose")
+        #box.prop(scn, "DazConnectClose")
         box.separator()
         box.prop(scn, "DazUseLockLoc")
         box.prop(scn, "DazUseLimitLoc")
