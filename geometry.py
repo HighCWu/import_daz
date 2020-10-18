@@ -97,7 +97,7 @@ class GeoNode(Node):
             self.addHDMaterials(ob.data.materials, "")
             self.arrangeObject(hdob, inst, context, center)
             if GS.useMultires:
-                addMultires(ob, hdob, False)
+                addMultires(context, hdob, False)
 
         if ob and self.data:
             self.data.buildRigidity(ob)
@@ -302,10 +302,11 @@ def isEmpty(vgrp, ob):
 #   Add multires
 #-------------------------------------------------------------
 
-def addMultires(ob, hdob, strict):
+def addMultires(context, hdob, strict):
     if bpy.app.version < (2,90,0):
         print("Cannot rebuild subdiv in Blender %d.%d.%d" % bpy.app.version)
         return
+    activateObject(context, hdob)
     mod = hdob.modifiers.new("Multires", 'MULTIRES')
     try:
         bpy.ops.object.multires_rebuild_subdiv(modifier="Multires")
@@ -342,7 +343,7 @@ class DAZ_OT_MakeMultires(DazOperator, IsMesh):
                 break
         if baseob is None:
             raise DazError("Two meshes must be selected, \none subdivided and one at base resolution.")
-        addMultires(baseob, hdob, True)
+        addMultires(context, hdob, True)
         rig = baseob.parent
         if not (rig and rig.type == 'ARMATURE'):
             return
