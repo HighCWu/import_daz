@@ -668,7 +668,6 @@ class Morph(FormulaAsset):
             msg = ("Morph not found:\n  %s\n  %s\n  %s" % (self.id, self.parent, asset))
             reportError(msg, trigger=(2,3))
             return None
-        cscale = 1.0
 
         for geonode in geonodes:
             ob = geonode.rna
@@ -689,23 +688,23 @@ class Morph(FormulaAsset):
             if ob is None:
                 continue
             elif LS.applyMorphs:
-                self.addMorphToVerts(ob.data, cscale)
+                self.addMorphToVerts(ob.data)
             elif self.value > 0.0:
-                self.buildMorph(ob, cscale)
+                self.buildMorph(ob)
         return self
 
 
-    def addMorphToVerts(self, me, cscale):
+    def addMorphToVerts(self, me):
         if self.value == 0.0:
             return
 
-        scale = self.value * cscale * LS.scale
+        scale = self.value * LS.scale
         for delta in self.deltas:
             vn = delta[0]
             me.vertices[vn].co += scale * d2bu(delta[1:])
 
 
-    def buildMorph(self, ob, cscale, useSoftLimits=False, morphset=None, usePropDrivers=False):
+    def buildMorph(self, ob, useSoftLimits=False, morphset=None, usePropDrivers=False):
         if not ob.data.shape_keys:
             basic = ob.shape_key_add(name="Basic")
         else:
@@ -721,37 +720,34 @@ class Morph(FormulaAsset):
             skey.slider_max = self.max if self.max is not None and GS.useDazPropLimits else GS.propMax
         skey.value = self.value
         self.rna = (skey, ob, sname)
-        self.buildShapeKey(ob, skey, cscale)
+        self.buildShapeKey(ob, skey)
 
 
-    def buildShapeKey(self, ob, skey, cscale):
+    def buildShapeKey(self, ob, skey):
         for v in ob.data.vertices:
             skey.data[v.index].co = v.co
-
-        scale = cscale * LS.scale
         if GS.zup:
             for delta in self.deltas:
                 vn = delta[0]
-                skey.data[vn].co += scale * d2b90u(delta[1:])
+                skey.data[vn].co += d2b90(delta[1:])
         else:
             for delta in self.deltas:
                 vn = delta[1]
-                skey.data[vn].co += scale * d2b00u(delta[1:])
+                skey.data[vn].co += d2b00(delta[1:])
 
 
     def rebuild(self, geonode, value):
         ob = geonode.rna
-        cscale = 1.0
         self.value = value
         if (ob.data.shape_keys and
             self.name in ob.data.shape_keys.key_blocks.keys()):
             skey = ob.data.shape_keys.key_blocks[self.name]
             skey.value = value
-            self.buildShapeKey(ob, skey, cscale)
+            self.buildShapeKey(ob, skey)
         else:
             if LS.applyMorphs:
-                self.addMorphToVerts(ob.data, cscale)
+                self.addMorphToVerts(ob.data)
             elif ob:
                 if self.value > 0.0:
-                    self.buildMorph(ob, cscale)
+                    self.buildMorph(ob)
             #raise DazError("No such shapekey %s in %s" % (skey, ob))

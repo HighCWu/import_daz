@@ -480,7 +480,7 @@ See console for details.
 
 from .formula import PropFormulas, ShapeFormulas
 
-class LoadMorph(PropFormulas, ShapeFormulas):
+class LoadMorph(PropFormulas, ShapeFormulas, B.MorphStrength):
 
     useSoftLimits = True
     useShapekeysOnly = False
@@ -503,6 +503,10 @@ class LoadMorph(PropFormulas, ShapeFormulas):
     def poll(self, context):
         ob = context.object
         return (ob and ob.DazId)
+
+
+    def draw(self, custom):
+        self.layout.prop(self, "strength")
 
 
     def getObject(self):
@@ -546,7 +550,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                     else:
                         raise DazError(msg)
                 return [],miss
-            asset.buildMorph(self.mesh, ob.DazCharacterScale, self.useSoftLimits, morphset=self.morphset)
+            asset.buildMorph(self.mesh, self.useSoftLimits, morphset=self.morphset)
             skey,ob,sname = asset.rna
             if self.rig and self.usePropDrivers:
                 prop = skey.name
@@ -608,7 +612,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             ob = self.rig
         else:
             raise DazError("Neither mesh nor rig selected")
-        LS.forMorphLoad(ob, scn)
+        LS.forMorphLoad(ob, scn, strength=self.strength)
         clearDependecies()
 
         self.errors = {}
@@ -763,6 +767,10 @@ class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMe
 
     morphset = "Units"
 
+    def draw(self, context):
+        LoadAllMorphs.draw(self, context)
+        StandardMorphSelector.draw(self, context)
+
 
 class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_expressions"
@@ -771,6 +779,10 @@ class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs
     bl_options = {'UNDO'}
 
     morphset = "Expressions"
+
+    def draw(self, context):
+        LoadAllMorphs.draw(self, context)
+        StandardMorphSelector.draw(self, context)
 
 
 class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -781,6 +793,10 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, Is
 
     morphset = "Visemes"
 
+    def draw(self, context):
+        LoadAllMorphs.draw(self, context)
+        StandardMorphSelector.draw(self, context)
+
 
 class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_body_morphs"
@@ -789,6 +805,10 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs,
     bl_options = {'UNDO'}
 
     morphset = "Body"
+
+    def draw(self, context):
+        LoadAllMorphs.draw(self, context)
+        StandardMorphSelector.draw(self, context)
 
 
 class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
@@ -805,6 +825,10 @@ class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorph
     useBoneDrivers = True
     useStages = True
 
+    def draw(self, context):
+        LoadAllMorphs.draw(self, context)
+        StandardMorphSelector.draw(self, context)
+
 
 class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
     bl_idname = "daz.import_flexions"
@@ -819,6 +843,10 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
     usePropDrivers = False
     useBoneDrivers = True
     useStages = False
+
+    def draw(self, context):
+        LoadAllMorphs.draw(self, context)
+        StandardMorphSelector.draw(self, context)
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -855,6 +883,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
     def draw(self, context):
         self.layout.prop(self, "usePropDrivers")
         self.layout.prop(self, "catname")
+        LoadMorph.draw(self, context)
 
     def run(self, context):
         from .driver import setBoolProp
@@ -883,6 +912,10 @@ class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMesh):
     usePropDrivers = False
     useBoneDrivers = True
     useStages = True
+
+    def draw(self, context):
+        ImportCustom.draw(self, context)
+        LoadMorph.draw(self, context)
 
     def run(self, context):
         namepaths = self.getNamePaths()

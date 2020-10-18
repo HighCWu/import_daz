@@ -1386,8 +1386,6 @@ def initialize():
         default = 0.1,
         precision = 3)
 
-    bpy.types.Object.DazCharacterScale = FloatProperty(default = 0.1, precision = 3)
-
     bpy.types.Object.DazUnits = StringProperty(default = "")
     bpy.types.Object.DazExpressions = StringProperty(default = "")
     bpy.types.Object.DazVisemes = StringProperty(default = "")

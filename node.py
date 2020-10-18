@@ -680,8 +680,8 @@ class Node(Asset, Formula, Channels):
         LS.collection.objects.link(ob)
         if bpy.app.version < (2,80,0):
             context.scene.objects.link(ob)
-        setActiveObject(context, ob)
-        setSelected(ob, True)
+        #setActiveObject(context, ob)
+        #setSelected(ob, True)
         ob.DazId = self.id
         ob.DazUrl = normalizePath(self.url)
         ob.DazScale = LS.scale
