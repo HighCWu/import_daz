@@ -91,6 +91,9 @@ class FigureInstance(Instance):
         self.rna.name = self.name
         for geonode in self.geometries:
             Instance.finalize(self, context, geonode)
+        if rig and char:
+            activateObject(context, rig)
+            self.selectChildren(rig)
         if self.hiddenBones:
             for geonode in self.geometries:
                 geonode.hideVertexGroups(self.hiddenBones.keys())
@@ -101,7 +104,6 @@ class FigureInstance(Instance):
         store = ConstraintStore()
         for child in ob.children:
             if child.type == 'ARMATURE':
-                setSelected(child, True)
                 for pb in child.pose.bones:
                     if pb.name in rig.pose.bones.keys():
                         parb = rig.pose.bones[pb.name]
@@ -115,11 +117,18 @@ class FigureInstance(Instance):
                 self.poseChildren(child, rig)
 
 
+    def selectChildren(self, rig):
+        for child in rig.children:
+            if child.type == 'ARMATURE':
+                setSelected(child, True)
+                self.selectChildren(child)
+
+
     def poseRig(self, context):
         Instance.poseRig(self, context)
         rig = self.rna
-        activateObject(context, rig)
-        bpy.ops.object.mode_set(mode='POSE')
+        #activateObject(context, rig)
+        #bpy.ops.object.mode_set(mode='POSE')
         if not LS.fitFile:
             self.poseArmature(rig)
         rig.DazRotLocks = GS.useLockRot
@@ -128,7 +137,7 @@ class FigureInstance(Instance):
         rig.DazLocLimits = GS.useLimitLoc
         self.fixDependencyLoops(rig)
         self.addCustomShapes(rig)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        #bpy.ops.object.mode_set(mode='OBJECT')
 
 
     def poseArmature(self, rig):

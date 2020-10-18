@@ -339,7 +339,7 @@ class Instance(Accessor, Channels):
 
     def finishHD(self, context):
         if self.hdobject:
-            self.hdobject.matrix_world = Matrix()
+            setWorldMatrix(self.hdobject, Matrix())
 
 
     def formulate(self, key, value):
