@@ -63,10 +63,6 @@ class Formula:
                 continue
             if key == "value" and isinstance(asset, Morph):
                 asset.build(context, inst, value)
-            elif isinstance(asset, Node):
-                inst = asset.getInstance(self.caller, ref, False)
-                if inst:
-                    inst.addToOffset(self.name, key, value)
 
 
     def build(self, context, inst):

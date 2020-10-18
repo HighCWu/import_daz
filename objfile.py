@@ -241,21 +241,8 @@ def fitToFile(filepath, nodes):
     unfitted = []
     for node,inst in nodes:
         if inst is None:
-            print("fitToFile inst is None:\n  ", None)
-            pass
-        elif isinstance(inst, BoneInstance):
-            inst.hasBoneParent = True
+            print("fitToFile inst is None:\n  ", node)
             continue
-        elif (isinstance(inst.parent, Instance) and
-                (inst.parent.hasBoneParent or
-                 not isinstance(inst.parent, FigureInstance))):
-            inst.hasBoneParent = True
-            #if GS.verbosity > 1:
-            #    print("  Dont fit %s" % inst.id)
-            #continue
-        else:
-            pass
-
         if isinstance(inst, FigureInstance):
             if inst.node.name in dbz.rigs.keys():
                 dbz.fitFigure(inst, takenfigs)

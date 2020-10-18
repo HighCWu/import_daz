@@ -103,11 +103,9 @@ class Instance(Accessor, Channels):
         self.id = normalizeRef(struct["id"])
         self.id = self.getSelfId()
         node.instances[self.id] = self
-        self.offsets = self.node.defaultAttributes()
         self.geometries = node.geometries
         node.geometries = []
         self.rotation_order = node.rotation_order
-        self.hasBoneParent = False
         if "parent" in struct.keys() and node.parent is not None:
             self.parent = node.parent.getInstance(node.caller, struct["parent"])
             if self.parent == self:
@@ -151,14 +149,6 @@ class Instance(Accessor, Channels):
 
     def getSelfId(self):
         return self.id
-
-
-    def addToOffset(self, name, key, value):
-        channel,idx = getChannelIndex(key)
-        if idx >= 0:
-            self.offsets[channel][idx] += value
-        else:
-            self.offsets[channel] += value
 
 
     def preprocess(self, context):
@@ -413,7 +403,6 @@ class Instance(Accessor, Channels):
             ob.parent = self.parent.rna
             ob.parent_type = 'OBJECT'
         elif isinstance(self.parent, BoneInstance):
-            self.hasBoneParent = True
             if self.parent.figure is None:
                 print("No figure found:", self.parent)
                 return
