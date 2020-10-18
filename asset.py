@@ -383,7 +383,7 @@ class Asset(Accessor):
         raise NotImplementedError("Cannot build %s yet" % self.type)
 
 
-    def buildData(self, context, inst, cscale, center):
+    def buildData(self, context, inst, center):
         print("BDATA", self)
         if self.rna is None:
             self.build(context)

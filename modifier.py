@@ -668,7 +668,7 @@ class Morph(FormulaAsset):
             msg = ("Morph not found:\n  %s\n  %s\n  %s" % (self.id, self.parent, asset))
             reportError(msg, trigger=(2,3))
             return None
-        cscale = inst.getCharacterScale()
+        cscale = 1.0
 
         for geonode in geonodes:
             ob = geonode.rna
@@ -741,7 +741,7 @@ class Morph(FormulaAsset):
 
     def rebuild(self, geonode, value):
         ob = geonode.rna
-        cscale = geonode.getCharacterScale()
+        cscale = 1.0
         self.value = value
         if (ob.data.shape_keys and
             self.name in ob.data.shape_keys.key_blocks.keys()):

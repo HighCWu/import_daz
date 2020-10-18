@@ -280,7 +280,6 @@ class Figure(Node):
         self.rigtype = getRigType1(inst.bones.keys())
 
         center = d2b(inst.attributes["center_point"])
-        cscale = inst.getCharacterScale()
         Asset.build(self, context, inst)
         for geo in inst.geometries:
             geo.buildObject(context, inst, center)
@@ -295,7 +294,6 @@ class Figure(Node):
             geo.parent = geo.figure = self
             geo.rna.parent = rig
 
-        cscale = inst.getCharacterScale()
         center = inst.attributes["center_point"]
         inst.setupPlanes()
         activateObject(context, rig)
@@ -303,14 +301,13 @@ class Figure(Node):
         bpy.ops.object.mode_set(mode='EDIT')
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.buildEdit(self, rig, None, cscale, center, False)
-        rig.DazCharacterScale = cscale
+                child.buildEdit(self, rig, None, center, False)
         rig.DazRig = self.rigtype
 
         bpy.ops.object.mode_set(mode='OBJECT')
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.buildBoneProps(rig, cscale, center)
+                child.buildBoneProps(rig, center)
 
         for child in inst.children.values():
             if isinstance(child, BoneInstance):

@@ -161,11 +161,6 @@ class Instance(Accessor, Channels):
             self.offsets[channel] += value
 
 
-    def getCharacterScale(self):
-        return 1
-        return self.offsets["general_scale"]
-
-
     def preprocess(self, context):
         self.updateMatrices()
         for channel in self.channels.values():
@@ -655,22 +650,21 @@ class Node(Asset, Formula, Channels):
 
 
     def buildObject(self, context, inst, center):
-        cscale = inst.getCharacterScale()
         scn = context.scene
         if isinstance(self.data, Asset):
             if self.data.shell and GS.mergeShells:
                 return
-            ob = self.data.buildData(context, self, inst, cscale, center)
+            ob = self.data.buildData(context, self, inst, center)
             if not isinstance(ob, bpy.types.Object):
                 ob = bpy.data.objects.new(inst.name, self.data.rna)
         else:
             ob = bpy.data.objects.new(inst.name, self.data)
         self.rna = inst.rna = ob
-        self.arrangeObject(ob, inst, context, cscale, center)
-        self.subdivideObject(ob, inst, context, cscale, center)
+        self.arrangeObject(ob, inst, context, center)
+        self.subdivideObject(ob, inst, context, center)
 
 
-    def arrangeObject(self, ob, inst, context, cscale, center):
+    def arrangeObject(self, ob, inst, context, center):
         from .asset import normalizePath
         blenderRotMode = {
             'XYZ' : 'XZY',
@@ -691,7 +685,6 @@ class Node(Asset, Formula, Channels):
         ob.DazId = self.id
         ob.DazUrl = normalizePath(self.url)
         ob.DazScale = LS.scale
-        ob.DazCharacterScale = cscale
         ob.DazOrient = inst.attributes["orientation"]
         self.subtractCenter(ob, inst, center)
 
@@ -701,7 +694,7 @@ class Node(Asset, Formula, Channels):
         inst.center = center
 
 
-    def subdivideObject(self, ob, inst, context, cscale, center):
+    def subdivideObject(self, ob, inst, context, center):
         pass
 
 

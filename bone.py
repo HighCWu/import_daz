@@ -363,11 +363,11 @@ class BoneInstance(Instance):
         pass
 
 
-    def getHeadTail(self, cscale, center, mayfit=True):
+    def getHeadTail(self, center, mayfit=True):
         if mayfit and self.restdata:
             cp,ep,orient,xyz,origin,wsmat = self.restdata
-            head = cscale*(cp - center)
-            tail = cscale*(ep - center)
+            head = (cp - center)
+            tail = (ep - center)
             if orient:
                 x,y,z,w = orient
                 orient = Quaternion((-w,x,y,z)).to_euler()
@@ -375,8 +375,8 @@ class BoneInstance(Instance):
                 orient = Euler(self.attributes["orientation"]*D)
                 xyz = self.rotation_order
         else:
-            head = cscale*(self.attributes["center_point"] - center)
-            tail = cscale*(self.attributes["end_point"] - center)
+            head = (self.attributes["center_point"] - center)
+            tail = (self.attributes["end_point"] - center)
             orient = Euler(self.attributes["orientation"]*D)
             xyz = self.rotation_order
             wsmat = None
@@ -388,11 +388,11 @@ class BoneInstance(Instance):
     FX = Matrix.Rotation(pi, 4, 'X')
     FZ = Matrix.Rotation(pi, 4, 'Z')
 
-    def buildEdit(self, figure, rig, parent, cscale, center, isFace):
+    def buildEdit(self, figure, rig, parent, center, isFace):
         if self.name in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[self.name]
         else:
-            head,tail,orient,xyz,wsmat = self.getHeadTail(cscale, center)
+            head,tail,orient,xyz,wsmat = self.getHeadTail(center)
             eb = rig.data.edit_bones.new(self.name)
             figure.bones[self.name] = eb.name
             eb.parent = parent
@@ -447,7 +447,7 @@ class BoneInstance(Instance):
             isFace = True
         for child in self.children.values():
             if isinstance(child, BoneInstance):
-                child.buildEdit(figure, rig, eb, cscale, center, isFace)
+                child.buildEdit(figure, rig, eb, center, isFace)
 
 
     def printRollDiff(self, omat, eb, figure, isFace):
@@ -568,15 +568,15 @@ class BoneInstance(Instance):
         eb.tail = eb.head + length*vec
 
 
-    def buildBoneProps(self, rig, cscale, center):
+    def buildBoneProps(self, rig, center):
         if self.name not in rig.data.bones.keys():
             return
         bone = rig.data.bones[self.name]
         bone.use_inherit_scale = self.node.inherits_scale
         bone.DazOrient = self.attributes["orientation"]
 
-        head,tail,orient,xyz,wsmat = self.getHeadTail(cscale, center)
-        head0,tail0,orient0,xyz0,wsmat = self.getHeadTail(cscale, center, False)
+        head,tail,orient,xyz,wsmat = self.getHeadTail(center)
+        head0,tail0,orient0,xyz0,wsmat = self.getHeadTail(center, False)
         bone.DazHead = head
         bone.DazTail = tail
         bone.DazAngle = 0
@@ -593,7 +593,7 @@ class BoneInstance(Instance):
 
         for child in self.children.values():
             if isinstance(child, BoneInstance):
-                child.buildBoneProps(rig, cscale, center)
+                child.buildBoneProps(rig, center)
 
 
     def buildFormulas(self, rig, hide):

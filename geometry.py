@@ -72,13 +72,6 @@ class GeoNode(Node):
         return ("<GeoNode %s %d %s %s>" % (self.id, self.index, self.center, self.rna))
 
 
-    def getCharacterScale(self):
-        if self.figureInst:
-            return self.figureInst.getCharacterScale()
-        else:
-            return 1.0
-
-
     def preprocess(self, context, inst):
         if self.data:
             self.data.preprocess(context, inst)
@@ -96,13 +89,13 @@ class GeoNode(Node):
         inst.center = center
 
 
-    def subdivideObject(self, ob, inst, context, cscale, center):
+    def subdivideObject(self, ob, inst, context, center):
         if self.highdef:
-            me = self.buildHDMesh(ob, cscale, center)
+            me = self.buildHDMesh(ob, center)
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
             self.hdobject = inst.hdobject = hdob
             self.addHDMaterials(ob.data.materials, "")
-            self.arrangeObject(hdob, inst, context, cscale, center)
+            self.arrangeObject(hdob, inst, context, center)
             if GS.useMultires:
                 addMultires(ob, hdob, False)
 
@@ -119,7 +112,7 @@ class GeoNode(Node):
             mod.levels = self.data.SubDIALevel
 
 
-    def buildHDMesh(self, ob, cscale, center):
+    def buildHDMesh(self, ob, center):
         verts = self.highdef.verts
         uvs = self.highdef.uvs
         hdfaces = self.highdef.faces
@@ -129,7 +122,7 @@ class GeoNode(Node):
         nverts = len(verts)
         me = bpy.data.meshes.new(ob.data.name + "_HD")
         print("Build HD mesh for %s: %d verts, %d faces" % (ob.name, nverts, len(faces)))
-        me.from_pydata([cscale*vco-center for vco in verts], [], faces)
+        me.from_pydata([vco-center for vco in verts], [], faces)
         print("HD mesh %s built" % me.name)
         uvlayers = getUvTextures(ob.data)
         addUvs(me, uvlayers[0].name, uvs, uvfaces)
@@ -602,7 +595,7 @@ class Geometry(Asset, Channels):
         return None
 
 
-    def buildData(self, context, node, inst, cscale, center):
+    def buildData(self, context, node, inst, center):
         if (self.rna and not LS.singleUser):
             return
 
@@ -640,9 +633,9 @@ class Geometry(Asset, Channels):
                 self.strands.append((pn,mn,lverts))
 
         if LS.fitFile:
-            me.from_pydata([cscale*vco for vco in verts], edges, faces)
+            me.from_pydata([vco for vco in verts], edges, faces)
         else:
-            me.from_pydata([cscale*vco-center for vco in verts], edges, faces)
+            me.from_pydata([vco-center for vco in verts], edges, faces)
 
         if len(faces) != len(me.polygons):
             msg = ("Not all faces were created:\n" +
