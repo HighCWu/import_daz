@@ -588,7 +588,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                     self.addToCollections(ob, adds, hdadds, removes)
                     ob.name = stripName(ob.name)
                     ob.data.name = stripName(ob.data.name)
+                    wmat = ob.matrix_world.copy()
                     ob.parent = rig
+                    setWorldMatrix(ob, wmat)
 
                 subrig.parent = None
                 deleteObject(context, subrig)
@@ -659,6 +661,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                     return
             if len(ob.vertex_groups) == 0:
                 print("Mesh with no vertex groups: %s" % ob.name)
+
             else:
                 mod = ob.modifiers.new(rig.name, "ARMATURE")
                 mod.object = rig
