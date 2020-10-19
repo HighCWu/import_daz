@@ -661,7 +661,6 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                     return
             if len(ob.vertex_groups) == 0:
                 print("Mesh with no vertex groups: %s" % ob.name)
-
             else:
                 mod = ob.modifiers.new(rig.name, "ARMATURE")
                 mod.object = rig

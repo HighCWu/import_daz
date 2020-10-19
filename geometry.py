@@ -155,7 +155,8 @@ class GeoNode(Node):
         if self.finishHair(context):
             return
         ob = self.rna
-        self.finishHD(context, self.rna, self.hdobject, None)
+        if self.hdobject:
+            self.finishHD(context, self.rna, self.hdobject, None)
         if LS.fitFile and ob.type == 'MESH':
             shiftMesh(ob, inst.worldmat.inverted())
             if self.hdobject:
