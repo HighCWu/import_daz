@@ -1586,7 +1586,7 @@ class MorphRemover(B.DeleteShapekeysBool):
                                 ob.shape_key_remove(skey)
             for prop in props:
                 removeFromPropGroups(rig, prop)
-            self.finalize(rig, props)
+            self.finishRemove(rig, props)
             updateScene(context)
             updateRig(rig, context)
 
@@ -1596,7 +1596,7 @@ class MorphRemover(B.DeleteShapekeysBool):
         removePropDrivers(ob.data.shape_keys, paths, rig, force=True)
 
 
-    def finalize(self, rig, props):
+    def finishRemove(self, rig, props):
         return
 
 
@@ -1621,7 +1621,7 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMes
     def drawExtra(self, context):
         self.layout.prop(self, "deleteShapekeys")
 
-    def finalize(self, rig, props):
+    def finishRemove(self, rig, props):
         for cat in rig.DazMorphCats:
             for prop in props:
                 removeFromPropGroup(cat.morphs, prop)

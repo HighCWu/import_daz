@@ -79,7 +79,6 @@ class FigureInstance(Instance):
 
     def finalize(self, context):
         from .finger import getFingeredCharacter
-        Instance.finalize(self, context)
         rig,mesh,char = getFingeredCharacter(self.rna)
         if rig and mesh:
             if mesh.name == self.name:
@@ -89,8 +88,7 @@ class FigureInstance(Instance):
         elif mesh:
             mesh.DazMesh = char
         self.rna.name = self.name
-        for geonode in self.geometries:
-            Instance.finalize(self, context, geonode)
+        Instance.finalize(self, context)
         if rig and char:
             activateObject(context, rig)
             self.selectChildren(rig)

@@ -363,6 +363,10 @@ class BoneInstance(Instance):
         pass
 
 
+    def finalize(self, context):
+        pass
+
+
     def getHeadTail(self, center, mayfit=True):
         if mayfit and self.restdata:
             cp,ep,orient,xyz,origin,wsmat = self.restdata

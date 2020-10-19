@@ -313,23 +313,10 @@ class Instance(Accessor, Channels):
         pass
 
 
-    def finalize(self, context, geonode=None):
-        if geonode:
-            geonode.finishHD(context)
-            if geonode.finishHair(context):
-                return
-            ob = geonode.rna
-        else:
-            self.finishHD(context)
-            ob = self.rna
-        if not isinstance(ob, bpy.types.Object):
-            return
+    def finalize(self, context):
+        for geonode in self.geometries:
+            geonode.finalize(context, self)
         self.buildChannels(context)
-
-
-    def finishHD(self, context):
-        if self.hdobject:
-            setWorldMatrix(self.hdobject, Matrix())
 
 
     def formulate(self, key, value):
@@ -650,7 +637,7 @@ class Node(Asset, Formula, Channels):
             ob = bpy.data.objects.new(inst.name, self.data)
         self.rna = inst.rna = ob
         self.arrangeObject(ob, inst, context, center)
-        self.subdivideObject(ob, inst, context, center)
+        self.subdivideObject(ob, inst, context)
 
 
     def arrangeObject(self, ob, inst, context, center):
@@ -683,7 +670,7 @@ class Node(Asset, Formula, Channels):
         inst.center = center
 
 
-    def subdivideObject(self, ob, inst, context, center):
+    def subdivideObject(self, ob, inst, context):
         pass
 
 

@@ -89,12 +89,13 @@ class GeoNode(Node):
         inst.center = center
 
 
-    def subdivideObject(self, ob, inst, context, center):
+    def subdivideObject(self, ob, inst, context):
         if self.highdef:
-            me = self.buildHDMesh(ob, center)
+            me = self.buildHDMesh(ob)
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
             self.hdobject = inst.hdobject = hdob
             self.addHDMaterials(ob.data.materials, "")
+            center = Vector((0,0,0))
             self.arrangeObject(hdob, inst, context, center)
             if GS.useMultires:
                 addMultires(context, hdob, False)
@@ -112,7 +113,7 @@ class GeoNode(Node):
             mod.levels = self.data.SubDIALevel
 
 
-    def buildHDMesh(self, ob, center):
+    def buildHDMesh(self, ob):
         verts = self.highdef.verts
         uvs = self.highdef.uvs
         hdfaces = self.highdef.faces
@@ -122,7 +123,7 @@ class GeoNode(Node):
         nverts = len(verts)
         me = bpy.data.meshes.new(ob.data.name + "_HD")
         print("Build HD mesh for %s: %d verts, %d faces" % (ob.name, nverts, len(faces)))
-        me.from_pydata([vco-center for vco in verts], [], faces)
+        me.from_pydata(verts, [], faces)
         print("HD mesh %s built" % me.name)
         uvlayers = getUvTextures(ob.data)
         addUvs(me, uvlayers[0].name, uvs, uvfaces)
@@ -150,18 +151,34 @@ class GeoNode(Node):
         return [(f if f[-1] >= 0 else f[:-1]) for f in faces]
 
 
-    def finishHD(self, context):
-        if self.hdobject:
-            ob = self.rna
-            hdob = self.hdobject
-            hdob.parent = ob.parent
-            if LS.hdcollection is None:
-                from .main import makeRootCollection
-                LS.hdcollection = makeRootCollection(LS.collection.name + "_HD", context)
+    def finalize(self, context, inst):
+        if self.finishHair(context):
+            return
+        ob = self.rna
+        self.finishHD(context, self.rna, self.hdobject, None)
+        if LS.fitFile and ob.type == 'MESH':
+            shiftMesh(ob, inst.worldmat.inverted())
+            if self.hdobject:
+                shiftMesh(self.hdobject, inst.worldmat.inverted())
+
+
+
+    def finishHD(self, context, ob, hdob, inst):
+        if LS.hdcollection is None:
+            from .main import makeRootCollection
+            LS.hdcollection = makeRootCollection(LS.collection.name + "_HD", context)
+        if hdob.name in LS.hdcollection.objects:
+            print("DUPHD", hdob.name)
+            return
+        hdob.parent = ob.parent
+        hdob.parent_type = ob.parent_type
+        hdob.parent_bone = ob.parent_bone
+        setWorldMatrix(hdob, ob.matrix_world)
+        LS.hdcollection.objects.link(hdob)
+        if hdob.name in LS.collection.objects:
             LS.collection.objects.unlink(hdob)
-            LS.hdcollection.objects.link(hdob)
+        if hdob.parent and hdob.parent.name not in LS.hdcollection.objects:
             LS.hdcollection.objects.link(hdob.parent)
-            setWorldMatrix(hdob, Matrix())
 
 
     def finishHair(self, context):
@@ -189,26 +206,12 @@ class GeoNode(Node):
         ob = self.rna
         if ob:
             pruneUvMaps(ob)
-            if LS.fitFile and ob.type == 'MESH':
-                self.shiftMesh(ob, inst.worldmat.inverted())
         if self.highdef:
             self.buildHighDef(context, inst)
         if self.pgeonode and GS.strandsAsHair:
             self.data.buildHair(self, context)
         if self.dforce:
             self.dforce.build(context)
-
-
-    def shiftMesh(self, ob, mat):
-        from .node import isUnitMatrix
-        if isUnitMatrix(mat):
-            return
-        if bpy.app.version < (2,80,0):
-            for v in ob.data.vertices:
-                v.co = mat * v.co
-        else:
-            for v in ob.data.vertices:
-                v.co = mat @ v.co
 
 
     def buildHighDef(self, context, inst):
@@ -287,6 +290,18 @@ class GeoNode(Node):
         mod = ob.modifiers.new(vgname, 'MASK')
         mod.vertex_group = vgname
         mod.invert_vertex_group = True
+
+
+def shiftMesh(ob, mat):
+    from .node import isUnitMatrix
+    if isUnitMatrix(mat):
+        return
+    if bpy.app.version < (2,80,0):
+        for v in ob.data.vertices:
+            v.co = mat * v.co
+    else:
+        for v in ob.data.vertices:
+            v.co = mat @ v.co
 
 
 def isEmpty(vgrp, ob):
