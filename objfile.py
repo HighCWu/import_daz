@@ -157,6 +157,7 @@ def loadDbzFile(filepath):
             dbz.objects[name].append(DBZObject(verts, uvs, faces, [], 0, center))
 
         if "hd vertices" in figure.keys():
+            LS.useHDObjects = True
             if name not in dbz.hdobjects.keys():
                 dbz.hdobjects[name] = []
             verts = [d2b(vec) for vec in figure["hd vertices"]]

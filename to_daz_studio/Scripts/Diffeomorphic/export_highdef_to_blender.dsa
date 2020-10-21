@@ -138,13 +138,16 @@ function doMesh (fp, obj, start, node, str1, str2)
     // Write HD data
     //obj.forceCacheUpdate(node,false);   
     var geom = obj.getCachedGeom();
-    fp.writeLine("        \"lod\": " + lodvalue + ",");
-    fp.writeLine("        \"subd level\": " + level + ",");
-    writeVertices(geom, "hd ");
-    fp.writeLine("        ],");
-    writeUVs(geom, "hd ");
-    writeFaces(geom, "hd ");
-    writeMaterialGroups(geom, "hd ");
+    fp.writeLine("        \"lod\": " + lodvalue + ",");    
+    if (lodvalue > 0) 
+    {
+    	fp.writeLine("        \"subd level\": " + level + ",");
+    	writeVertices(geom, "hd ");
+    	fp.writeLine("        ],");
+    	writeUVs(geom, "hd ");
+    	writeFaces(geom, "hd ");
+    	writeMaterialGroups(geom, "hd ");
+    }
 
     // Turn off high resolution
     lodctrl.setValue(0);

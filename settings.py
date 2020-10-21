@@ -387,6 +387,7 @@ class LocalSettings:
         self.useModifiers = False
         self.useMorph = False
         self.useFormulas = False
+        self.useHDObjects = False
         self.applyMorphs = False
         self.useAnimations = False
         self.useUV = False

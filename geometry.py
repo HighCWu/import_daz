@@ -97,12 +97,19 @@ class GeoNode(Node):
             self.addHDMaterials(ob.data.materials, "")
             center = Vector((0,0,0))
             self.arrangeObject(hdob, inst, context, center)
+            multi = False
             if GS.useMultires:
-                addMultires(context, hdob, False)
+                multi = addMultires(context, hdob, False)
+            if not multi and len(hdob.data.vertices) == len(ob.data.vertices):
+                print("HD mesh same as base mesh:", ob.name)
+                self.hdobject = inst.hdobject = ob
+                deleteObject(context, hdob)
+        elif LS.useHDObjects:
+            self.hdobject = inst.hdobject = ob
 
         if ob and self.data:
             self.data.buildRigidity(ob)
-            if self.hdobject:
+            if self.hdobject and self.hdobject != ob:
                 self.data.buildRigidity(self.hdobject)
 
         if (self.type == "subdivision_surface" and
@@ -143,7 +150,7 @@ class GeoNode(Node):
             # Geograft
             inst = list(self.figure.instances.values())[0]
             par = inst.parent.geometries[0]
-            if par and par.hdobject:
+            if par and par.hdobject and par.hdobject != par.rna:
                 par.addHDMaterials(mats, inst.name + "?" + prefix)
 
 
@@ -159,8 +166,9 @@ class GeoNode(Node):
             self.finishHD(context, self.rna, self.hdobject, None)
         if LS.fitFile and ob.type == 'MESH':
             shiftMesh(ob, inst.worldmat.inverted())
-            if self.hdobject:
-                shiftMesh(self.hdobject, inst.worldmat.inverted())
+            hdob = self.hdobject
+            if hdob and hdob != ob:
+                shiftMesh(hdob, inst.worldmat.inverted())
 
 
 
@@ -171,15 +179,17 @@ class GeoNode(Node):
         if hdob.name in LS.hdcollection.objects:
             print("DUPHD", hdob.name)
             return
+        LS.hdcollection.objects.link(hdob)
+        if hdob.parent and hdob.parent.name not in LS.hdcollection.objects:
+            LS.hdcollection.objects.link(hdob.parent)
+        if hdob == ob:
+            return
         hdob.parent = ob.parent
         hdob.parent_type = ob.parent_type
         hdob.parent_bone = ob.parent_bone
         setWorldMatrix(hdob, ob.matrix_world)
-        LS.hdcollection.objects.link(hdob)
         if hdob.name in LS.collection.objects:
             LS.collection.objects.unlink(hdob)
-        if hdob.parent and hdob.parent.name not in LS.hdcollection.objects:
-            LS.hdcollection.objects.link(hdob.parent)
 
 
     def finishHair(self, context):
@@ -205,9 +215,10 @@ class GeoNode(Node):
 
     def postbuild(self, context, inst):
         ob = self.rna
+        hdob = self.hdobject
         if ob:
             pruneUvMaps(ob)
-        if self.highdef:
+        if hdob and hdob != ob:
             self.buildHighDef(context, inst)
         if self.pgeonode and GS.strandsAsHair:
             self.data.buildHair(self, context)
@@ -247,7 +258,7 @@ class GeoNode(Node):
         if self.data is None:
             return
         self.setHideInfoMesh(self.rna)
-        if self.hdobject:
+        if self.hdobject and self.hdobject != self.rna:
             self.setHideInfoMesh(self.hdobject)
 
 
@@ -270,7 +281,7 @@ class GeoNode(Node):
 
     def hideVertexGroups(self, hidden):
         self.hideVertexGroupsMesh(self.rna, hidden)
-        if self.hdobject:
+        if self.hdobject and self.hdobject != self.rna:
             self.hideVertexGroupsMesh(self.hdobject.rna, hidden)
 
 
@@ -321,7 +332,7 @@ def isEmpty(vgrp, ob):
 def addMultires(context, hdob, strict):
     if bpy.app.version < (2,90,0):
         print("Cannot rebuild subdiv in Blender %d.%d.%d" % bpy.app.version)
-        return
+        return False
     activateObject(context, hdob)
     mod = hdob.modifiers.new("Multires", 'MULTIRES')
     try:
@@ -331,12 +342,14 @@ def addMultires(context, hdob, strict):
         msg = ('Cannot rebuild subdivisions for "%s"' % hdob.name)
     if msg is None:
         hdob.DazMultires = True
+        return True
     elif strict:
         raise DazError(msg)
     else:
         reportError(msg, trigger=(2,4))
         hdob.modifiers.remove(mod)
         LS.hdfailures.append(hdob)
+        return False
 
 
 class DAZ_OT_MakeMultires(DazOperator, IsMesh):
