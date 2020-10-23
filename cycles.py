@@ -844,12 +844,18 @@ class CyclesTree:
         alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
         if alpha < 1 or tex:
             self.column += 1
-            from .cgroup import TransparentGroup
             self.useCutout = True
-            node = self.addGroup(TransparentGroup, "DAZ Transparent")
+            if alpha == 0:
+                node = self.addNode("ShaderNodeBsdfTransparent")
+                self.cycles = node
+                self.eevee = node
+                tex = None
+            else:
+                from .cgroup import TransparentGroup
+                node = self.addGroup(TransparentGroup, "DAZ Transparent")
+                self.mixWithActive(1-alpha, tex, node, useAlpha=False, flip=True)
             node.inputs["Color"].default_value[0:3] = WHITE
             self.material.alphaBlend(alpha, tex)
-            self.mixWithActive(1-alpha, tex, node, useAlpha=False, flip=True)
             LS.usedFeatures["Transparent"] = True
 
 #-------------------------------------------------------------

@@ -162,6 +162,8 @@ class GeoNode(Node):
         if self.finishHair(context):
             return
         ob = self.rna
+        if ob is None:
+            return
         if self.hdobject:
             self.finishHD(context, self.rna, self.hdobject, None)
         if LS.fitFile and ob.type == 'MESH':
