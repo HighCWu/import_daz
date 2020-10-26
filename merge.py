@@ -58,6 +58,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
                 aob != cob and
                 aob.data.DazGraftGroup):
                 anatomies.append(aob)
+                self.removeMultires(aob)
 
         if len(anatomies) < 1:
             raise DazError("At least two meshes must be selected.\nGeografts selected and target active.")
@@ -262,6 +263,12 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
             if uvtex.active_render:
                 return uvtex.name
         return None
+
+
+    def removeMultires(self, ob):
+        for mod in ob.modifiers:
+            if mod.type == 'MULTIRES':
+                ob.modifiers.remove(mod)
 
 
 def replaceNodeNames(mat, oldname, newname):
