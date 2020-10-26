@@ -63,21 +63,6 @@ class ConvertOptions:
 
 
 class AffectOptions:
-    clearBones : BoolProperty(
-        name = "Clear Bones",
-        description = "Clear bones pose before adding new one",
-        default = True)
-
-    clearMorphs : BoolProperty(
-        name = "Clear Morphs",
-        description = "Clear morph pose before adding new one",
-        default = True)
-
-    clearObject : BoolProperty(
-        name = "Clear Object",
-        description = "Clear object pose before adding new one",
-        default = True)
-
     affectBones : BoolProperty(
         name = "Affect Bones",
         description = "Animate bones.",
@@ -115,9 +100,6 @@ class AffectOptions:
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(self, "clearBones")
-        layout.prop(self, "clearObject")
-        layout.prop(self, "clearMorphs")
         layout.prop(self, "affectBones")
         if self.affectBones:
             layout.prop(self, "affectSelectedOnly")
@@ -152,7 +134,6 @@ class ActionOptions:
 
     useAction = True
     usePoseLib = False
-    useDrivers = False
     useTranslations = True
     useRotations = True
     useScale = True
@@ -180,7 +161,6 @@ class PoseLibOptions:
 
     useAction = False
     usePoseLib = True
-    useDrivers = False
     useTranslations = True
     useRotations = True
     useScale = True

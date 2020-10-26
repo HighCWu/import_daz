@@ -85,13 +85,13 @@ def prunePropGroup(ob, pg, morphset):
             pg.remove(idx)
 
 
-def getAllMorphNames(rig):
+def getAllLowerMorphNames(rig):
     props = []
     for cat in rig.DazMorphCats:
-        props += [morph.name for morph in cat.morphs]
+        props += [morph.name.lower() for morph in cat.morphs]
     for morphset in theStandardMorphSets:
         pg = getattr(rig, "Daz"+morphset)
-        props += list(pg.keys())
+        props += [prop.lower() for prop in pg.keys()]
     return props
 
 
@@ -1470,15 +1470,15 @@ class DAZ_OT_UpdatePropLimits(DazPropsOperator, IsMeshArmature):
     def updatePropLimits(self, rig, context):
         from .driver import setFloatProp
         scn = context.scene
-        props = getAllMorphNames(rig)
+        props = getAllLowerMorphNames(rig)
         for ob in rig.children:
             if ob.type == 'MESH' and ob.data.shape_keys:
                 for skey in ob.data.shape_keys.key_blocks:
-                    if skey.name in props:
+                    if skey.name.lower() in props:
                         skey.slider_min = GS.propMin
                         skey.slider_max = GS.propMax
-        for prop in props:
-            if prop in rig.keys():
+        for prop in rig.keys():
+            if prop.lower() in props:
                 setFloatProp(rig, prop, rig[prop], GS.propMin, GS.propMax)
         updateScene(context)
         updateRig(rig, context)

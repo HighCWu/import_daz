@@ -477,7 +477,6 @@ class LocalSettings:
         self.useFormulas = True
         self.applyMorphs = False
         self.useModifiers = True
-        print("FFF", ob.DazScale, strength, self.scale)
 
 
     def forUV(self, ob, scn):

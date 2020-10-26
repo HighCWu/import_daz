@@ -397,11 +397,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             self.prepareRig(rig)
         self.clearPose(rig, offset)
         animations,locks = self.convertAnimations(animations, rig)
-        if self.useDrivers:
-            prop = os.path.splitext(os.path.basename(filepath))[0]
-            setFloatProp(rig, prop, 0.0)
-        else:
-            prop = None
+        prop = None
         result = self.animateBones(context, animations, offset, prop, filepath, missing)
         for pb,lock in locks:
             pb.lock_location = lock
@@ -411,6 +407,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
 
     def prepareRig(self, rig):
+        self.rigProps = dict([(key.lower(),key) for key in rig.keys()])
         if rig.DazRig == "rigify":
             for bname in ["hand.ik.L", "hand.ik.R",
                           "foot.ik.L", "foot.ik.R"]:
@@ -488,13 +485,13 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
     def clearPose(self, rig, frame):
         tfm = Transform()
-        if self.clearObject:
+        if self.affectObject:
             tfm.setRna(rig)
             if self.insertKeys:
                 tfm.insertKeys(rig, None, frame, rig.name, self.driven)
         if rig.type != 'ARMATURE':
             return
-        if self.clearBones:
+        if self.affectBones:
             for pb in rig.pose.bones:
                 if pb.bone.select or not self.affectSelectedOnly:
                     pb.location = (0,0,0)
@@ -502,11 +499,11 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                     pb.rotation_quaternion = (1,0,0,0)
                     if self.insertKeys:
                         tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
-        if self.clearMorphs:
-            from .morphing import getAllMorphNames
-            props = getAllMorphNames(rig)
-            for prop in props:
-                if prop in rig.keys():
+        if self.affectMorphs:
+            from .morphing import getAllLowerMorphNames
+            props = getAllLowerMorphNames(rig)
+            for prop in rig.keys():
+                if prop.lower() in props:
                     rig[prop] = 0.0
                     if self.insertKeys:
                         rig.keyframe_insert('["%s"]' % prop, frame=frame, group=prop)
@@ -568,13 +565,13 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                                 tfm.insertKeys(rig, None, n+offset, rig.name, self.driven)
                     elif rig.type != 'ARMATURE':
                         continue
-                    elif bname in rig.pose.bones.keys():
+                    elif bname in rig.data.bones.keys():
                         self.transformBone(rig, bname, tfm, value, n, offset, False)
                     elif bname[0:6] == "TWIST-":
                         twists.append((bname[6:], tfm, value))
                     else:
                         if self.affectMorphs:
-                            keys = getRigKeys(bname, rig, props, taken, missing)
+                            keys = self.getRigKeys(bname, rig, props, taken, missing)
                         else:
                             keys = None
                         if keys:
@@ -614,8 +611,21 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                     addToPoseLib(rig, name)
 
             offset += n + 1
-
         return offset,prop
+
+
+    def getRigKeys(self, bname, rig, props, taken, missing):
+        from .modifier import stripPrefix
+        lname = bname.lower()
+        if lname in self.rigProps.keys():
+            return [(self.rigProps[lname],1)]
+        cname = stripPrefix(stripSuffix(lname))
+        for key in getSynonyms(cname):
+            if key in props.keys():
+                return [(props[key],1)]
+        if bname not in missing:
+            missing.append(bname)
+        return None
 
 
     def transformBone(self, rig, bname, tfm, value, n, offset, twist):
@@ -630,26 +640,14 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                 print("Face driven", pb.name)
             pass
         elif pb.bone.select or not self.affectSelectedOnly:
-            if self.useDrivers:
-                if not self.useTranslations:
-                    tfm.noTrans()
-                if not self.useRotations:
-                    tfm.noRot()
-                if not self.useScale:
-                    tfm.noScale()
-                if not self.useGeneral:
-                    tfm.noGeneral()
-                if not twist:
-                    self.addPoseboneDriver(rig, pb, tfm)
+            if twist:
+                setBoneTwist(tfm, pb)
             else:
-                if twist:
-                    setBoneTwist(tfm, pb)
-                else:
-                    setBoneTransform(tfm, pb)
-                    self.imposeLocks(pb)
-                    self.imposeLimits(pb)
-                if self.insertKeys:
-                    tfm.insertKeys(rig, pb, n+offset, bname, self.driven)
+                setBoneTransform(tfm, pb)
+                self.imposeLocks(pb)
+                self.imposeLimits(pb)
+            if self.insertKeys:
+                tfm.insertKeys(rig, pb, n+offset, bname, self.driven)
 
 
     def imposeLocks(self, pb):
@@ -735,19 +733,6 @@ def addToPoseLib(rig, name):
     pmarker.name = name
     #for pmarker in rig.pose_library.pose_markers:
     #    print("  ", pmarker.name, pmarker.frame)
-
-
-def getRigKeys(bname, rig, props, taken, missing):
-    from .modifier import stripPrefix
-    if bname in rig.keys():
-        return [(bname,1)]
-    cname = stripPrefix(stripSuffix(bname.lower()))
-    for key in getSynonyms(cname):
-        if key in props.keys():
-            return [(props[key],1)]
-    if bname not in missing:
-        missing.append(bname)
-    return None
 
 
 def stripSuffix(key):
@@ -893,7 +878,6 @@ class DAZ_OT_ImportPoseLib(HideOperator, B.AffectOptions, B.ConvertOptions, B.Po
     bl_options = {'UNDO'}
 
     loadType = 'POSES'
-    useDrivers = False
     verbose = False
 
     def draw(self, context):
@@ -912,7 +896,6 @@ class DAZ_OT_ImportSinglePose(HideOperator, B.AffectOptions, B.ConvertOptions, A
     bl_options = {'UNDO'}
 
     loadType = 'POSES'
-    useDrivers = False
     verbose = False
     useAction = False
     usePoseLib = False
@@ -975,10 +958,10 @@ class DAZ_OT_SaveCurrentFrame(DazOperator):
             ob.keyframe_insert("rotation_euler", frame=frame)
             ob.keyframe_insert("scale", frame=frame)
 
-            from .morphing import getAllMorphNames
-            props = getAllMorphNames(ob)
-            for key in dir(ob):
-                if (key in props or
+            from .morphing import getAllLowerMorphNames
+            props = getAllLowerMorphNames(ob)
+            for key in rig.keys():
+                if (key.lower() in props or
                     key[0:3] in ["Mha", "Mhh"]):
                     value = getattr(ob, key)
                     if (isinstance(value, int) or
