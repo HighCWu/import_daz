@@ -407,7 +407,8 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
 
     def prepareRig(self, rig):
-        self.rigProps = dict([(key.lower(),key) for key in rig.keys()])
+        self.setupRigProps(rig)
+
         if rig.DazRig == "rigify":
             for bname in ["hand.ik.L", "hand.ik.R",
                           "foot.ik.L", "foot.ik.R"]:
@@ -501,9 +502,9 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                         tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
         if self.affectMorphs:
             from .morphing import getAllLowerMorphNames
-            props = getAllLowerMorphNames(rig)
+            lprops = getAllLowerMorphNames(rig)
             for prop in rig.keys():
-                if prop.lower() in props:
+                if prop.lower() in lprops:
                     rig[prop] = 0.0
                     if self.insertKeys:
                         rig.keyframe_insert('["%s"]' % prop, frame=frame, group=prop)
@@ -513,15 +514,6 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         from .driver import setFloatProp
 
         rig = context.object
-        if self.affectMorphs:
-            props = {}
-            taken = {}
-            for prop in rig.keys():
-                key = prop[3:].lower()
-                key = stripSuffix(key)
-                props[key] = prop
-                taken[key] = False
-
         errors = {}
         for banim,vanim in animations:
             frames = {}
@@ -571,12 +563,9 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                         twists.append((bname[6:], tfm, value))
                     else:
                         if self.affectMorphs:
-                            keys = self.getRigKeys(bname, rig, props, taken, missing)
-                        else:
-                            keys = None
-                        if keys:
-                            for key,factor in keys:
-                                setFloatProp(rig, key, factor*float(value))
+                            key = self.getRigKey(bname, rig, missing)
+                            if key:
+                                setFloatProp(rig, key, value)
                                 if self.insertKeys:
                                     rig.keyframe_insert('["%s"]' % key, frame=n+offset, group=key)
 
@@ -614,18 +603,50 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         return offset,prop
 
 
-    def getRigKeys(self, bname, rig, props, taken, missing):
+    def getCanonicalKey(self, key):
         from .modifier import stripPrefix
-        lname = bname.lower()
-        if lname in self.rigProps.keys():
-            return [(self.rigProps[lname],1)]
-        cname = stripPrefix(stripSuffix(lname))
-        for key in getSynonyms(cname):
-            if key in props.keys():
-                return [(props[key],1)]
-        if bname not in missing:
-            missing.append(bname)
-        return None
+        lkey = stripPrefix(key.lower())
+        if lkey[-5:] == "_div2":
+            lkey = lkey[:-5]
+        if lkey[-3:] == "_hd":
+            lkey = lkey[:-3]
+        if lkey[-2:] == "hd":
+            lkey = lkey[:-2]
+        if lkey[-4:-1] == "_hd":
+            lkey = lkey[:-4] + lkey[-1]
+        if lkey[-3:-1] == "hd":
+            lkey = lkey[:-3] + lkey[-1]
+        return lkey
+
+
+    def getRigKey(self, key, rig, missing):
+        lkey = self.getCanonicalKey(key)
+        if lkey in self.rigProps.keys():
+            return self.rigProps[lkey]
+        elif key not in missing:
+            missing.append(key)
+            return None
+
+
+    def setupRigProps(self, rig):
+        if not self.affectMorphs:
+            return
+        synonymList = [
+            ["updown", "up-down", "downup", "down-up"],
+            ["inout", "in-out", "outin", "out-in"],
+            ["cheeks", "cheek"],
+        ]
+        self.rigProps = {}
+        for key in rig.keys():
+            lkey = self.getCanonicalKey(key)
+            self.rigProps[lkey] = key
+            for syns in synonymList:
+                for syn1 in syns:
+                    if syn1 in lkey:
+                        for syn2 in syns:
+                            if syn1 != syn2:
+                                synkey = lkey.replace(syn1, syn2)
+                                self.rigProps[synkey] = key
 
 
     def transformBone(self, rig, bname, tfm, value, n, offset, twist):
@@ -733,33 +754,6 @@ def addToPoseLib(rig, name):
     pmarker.name = name
     #for pmarker in rig.pose_library.pose_markers:
     #    print("  ", pmarker.name, pmarker.frame)
-
-
-def stripSuffix(key):
-    if key[-5:] == "_div2":
-        key = key[:-5]
-    if key[-3:] == "_hd":
-        key = key[:-3]
-    if key[-2:] == "hd":
-        key = key[:-2]
-    if key[-4:-1] == "_hd":
-        key = key[:-4] + key[-1]
-    if key[-3:-1] == "hd":
-        key = key[:-3] + key[-1]
-    return key
-
-
-def getSynonyms(key):
-    synonymList = [
-        ["updown", "up-down", "downup", "down-up"],
-        ["inout", "in-out", "outin", "out-in"],
-        ["cheeks", "cheek"],
-    ]
-    for synkeys in synonymList:
-        for synkey in synkeys:
-            if synkey in key:
-                return [key] + [key.replace(synkey, syn) for syn in synkeys if syn != synkey]
-    return [key]
 
 
 def getAnimKeys(anim):
@@ -959,9 +953,9 @@ class DAZ_OT_SaveCurrentFrame(DazOperator):
             ob.keyframe_insert("scale", frame=frame)
 
             from .morphing import getAllLowerMorphNames
-            props = getAllLowerMorphNames(ob)
+            lprops = getAllLowerMorphNames(ob)
             for key in rig.keys():
-                if (key.lower() in props or
+                if (key.lower() in lprops or
                     key[0:3] in ["Mha", "Mhh"]):
                     value = getattr(ob, key)
                     if (isinstance(value, int) or
