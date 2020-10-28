@@ -739,15 +739,24 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
 
 
     def retargetRna(self, rna, rig):
+        from .morphing import addToCategories
         if rna and rna.animation_data:
+            props = []
             for fcu in rna.animation_data.drivers:
                 for var in fcu.driver.variables:
                     if var.type == 'SINGLE_PROP':
                         trg = var.targets[0]
-                        prop = trg.data_path.split('"')[1]
-                        rig[prop] = 0
+                        words = trg.data_path.split('"')
+                        if len(words) == 3:
+                            prop = words[1]
+                            setFloatProp(rig, prop, 0.0, GS.propMin, GS.propMax)
+                            props.append(prop)
                     for trg in var.targets:
                         trg.id = rig
+            updateDrivers(rna)
+            if props:
+                addToCategories(rig, props, "Shapes")
+                rig.DazCustomMorphs = True
 
 #----------------------------------------------------------
 #   Copy props
