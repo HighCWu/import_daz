@@ -410,6 +410,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowVisibility", box):
+            box.operator("daz.add_shrinkwrap")
             box.operator("daz.create_masks")
             box.operator("daz.add_visibility_drivers")
             box.operator("daz.remove_visibility_drivers")

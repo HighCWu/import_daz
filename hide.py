@@ -357,6 +357,47 @@ class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection, B.SingleGrou
     def invoke(self, context, event):
         return ObjectSelection.invoke(self, context, event)
 
+#------------------------------------------------------------------------
+#   Shrinkwrap
+#------------------------------------------------------------------------
+
+class DAZ_OT_AddShrinkwrap(DazPropsOperator, ObjectSelection, IsMesh, B.Offset):
+    bl_idname = "daz.add_shrinkwrap"
+    bl_label = "Add Shrinkwrap"
+    bl_description = "Add a shrinkwrap modifier covering the active mesh"
+    bl_options = {'UNDO'}
+
+    type = 'MESH'
+
+    def draw(self, context):
+        self.layout.prop(self, "offset")
+        ObjectSelection.draw(self, context)
+
+
+    def run(self, context):
+        hum = context.object
+        for ob in self.getSelectedMeshes(context):
+            self.createShrinkwrap(ob, hum)
+
+
+    def createShrinkwrap(self, ob, hum):
+        mod = None
+        for mod1 in ob.modifiers:
+            if mod1.type == 'SHRINKWRAP' and mod1.target == hum:
+                print("Object %s already has shrinkwrap modifier targeting %s" % (ob.name, hum.name))
+                mod = mod1
+                break
+        if mod is None:
+            mod = ob.modifiers.new(hum.name, 'SHRINKWRAP')
+        mod.target = hum
+        mod.wrap_method = 'NEAREST_SURFACEPOINT'
+        mod.wrap_mode = 'OUTSIDE'
+        mod.offset = 0.1*hum.DazScale*self.offset
+
+
+    def invoke(self, context, event):
+        return ObjectSelection.invoke(self, context, event)
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -367,6 +408,7 @@ classes = [
     DAZ_OT_ShowAllVis,
     DAZ_OT_HideAllVis,
     DAZ_OT_CreateMasks,
+    DAZ_OT_AddShrinkwrap,
 ]
 
 if bpy.app.version >= (2,80,0):
