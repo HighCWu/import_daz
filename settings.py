@@ -401,6 +401,7 @@ class LocalSettings:
         self.hdfailures = []
         self.deflectors = {}
         self.singleUser = False
+        self.scene = ""
 
         self.usedFeatures = {
             "Bounces" : True,

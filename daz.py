@@ -517,6 +517,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
             box.prop(ob, "name")
             box.prop(ob, "DazId")
             box.prop(ob, "DazUrl")
+            box.prop(ob, "DazScene")
             box.prop(ob, "DazRig")
             box.prop(ob, "DazMesh")
             box.prop(ob, "DazOrientMethod")
@@ -1372,6 +1373,10 @@ def initialize():
 
     bpy.types.Object.DazUrl = StringProperty(
         name = "URL",
+        default = "")
+
+    bpy.types.Object.DazScene = StringProperty(
+        name = "Scene",
         default = "")
 
     bpy.types.Object.DazRig = StringProperty(

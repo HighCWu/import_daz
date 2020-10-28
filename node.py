@@ -660,6 +660,7 @@ class Node(Asset, Formula, Channels):
         #setSelected(ob, True)
         ob.DazId = self.id
         ob.DazUrl = normalizePath(self.url)
+        ob.DazScene = LS.scene
         ob.DazScale = LS.scale
         ob.DazOrient = inst.attributes["orientation"]
         self.subtractCenter(ob, inst, center)

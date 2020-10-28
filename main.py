@@ -41,6 +41,7 @@ def getMainAsset(filepath, context, btn):
 
     scn = context.scene
     LS.forImport(btn, scn)
+    LS.scene = filepath
     print("Scale", LS.scale)
     t1 = time.perf_counter()
 
