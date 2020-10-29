@@ -298,6 +298,12 @@ def setWorldMatrix(ob, wmat):
     if ob.parent:
         ob.matrix_parent_inverse = ob.parent.matrix_world.inverted()
     ob.matrix_world = wmat
+    if Vector(ob.location).length < 1e-6:
+        ob.location = (0,0,0)
+    if Vector(ob.rotation_euler).length < 1e-6:
+        ob.rotation_euler = (0,0,0)
+    if (Vector(ob.scale) - Vector((1,1,1))).length < 1e-6:
+        ob.scale = (1,1,1)
 
 
 def toggleEditMode():
