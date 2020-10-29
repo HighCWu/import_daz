@@ -656,7 +656,6 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
 
     def setupRigProps(self, rig):
-        return
         if rig.DazPropNames:
             return
         if not self.affectMorphs:
