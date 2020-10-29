@@ -68,10 +68,15 @@ class AffectOptions:
         description = "Animate bones.",
         default = True)
 
-    clearMaster = BoolProperty(
-        name = "Clear Master/Root Bone",
-        description = "Clear the master/root bone. For Rigify and MHX",
-        default = False)
+    affectMaster = BoolProperty(
+        name = "Affect Root/Master Bone",
+        description = "Clear the root/master bone for Rigify and MHX",
+        default = True)
+
+    affectTranslations = BoolProperty(
+        name = "Affect Translations",
+        description = "Animate translations in addition to rotations and scale transformations",
+        default = True)
 
     affectMorphs = BoolProperty(
         name = "Affect Morphs",
@@ -108,7 +113,8 @@ class AffectOptions:
         layout.prop(self, "affectBones")
         if self.affectBones:
             layout.prop(self, "affectSelectedOnly")
-            layout.prop(self, "clearMaster")
+            layout.prop(self, "affectMaster")
+            layout.prop(self, "affectTranslations")
         layout.prop(self, "affectObject")
         layout.prop(self, "affectMorphs")
         if self.affectMorphs:

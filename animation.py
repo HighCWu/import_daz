@@ -484,6 +484,24 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         return animations
 
 
+    def isAvailable(self, pb, rig):
+        if not (self.affectMaster or self.hasParent(pb.name, rig)):
+            return False
+        if self.affectSelectedOnly:
+            return pb.bone.select
+        else:
+            return True
+
+
+    def hasParent(self, bname, rig):
+        if rig.DazRig == "mhx":
+            return (bname not in ["master", "root"])
+        elif rig.DazRig[0:6] == "rigify":
+            return (bname not in ["root", "torso"])
+        else:
+            return (bname != "hip")
+
+
     def clearPose(self, rig, frame):
         tfm = Transform()
         if self.affectObject:
@@ -494,12 +512,9 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             return
         if self.affectBones:
             for pb in rig.pose.bones:
-                if pb.bone.select or not self.affectSelectedOnly:
-                    if not self.clearMaster:
-                        if ((pb.bone.name == "root" and rig.DazRig[0:6] == "rigify") or
-                            (pb.bone.name == "master" and rig.DazRig == "mhx")):
-                            continue
-                    pb.location = (0,0,0)
+                if self.isAvailable(pb, rig):
+                    if self.affectTranslations or self.hasParent(pb.name, rig):
+                        pb.location = (0,0,0)
                     pb.rotation_euler = (0,0,0)
                     pb.rotation_quaternion = (1,0,0,0)
                     if self.insertKeys:
@@ -525,7 +540,9 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             for bname, channels in banim.items():
                 if "rotation" in channels.keys():
                     addFrames(bname, channels["rotation"], 3, "rotation", frames)
-                if "translation" in channels.keys():
+                if ("translation" in channels.keys() and
+                    self.affectTranslations and
+                    bname != "hip"):
                     addFrames(bname, channels["translation"], 3, "translation", frames)
                 if "scale" in channels.keys():
                     addFrames(bname, channels["scale"], 3, "scale", frames)
@@ -601,7 +618,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
                 if self.usePoseLib:
                     name = os.path.splitext(os.path.basename(filepath))[0]
-                    addToPoseLib(rig, name)
+                    self.addToPoseLib(rig, name)
 
             offset += n + 1
         return offset,prop
@@ -673,11 +690,16 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             if GS.verbosity > 4:
                 print("Face driven", pb.name)
             pass
-        elif pb.bone.select or not self.affectSelectedOnly:
+        elif self.isAvailable(pb, rig):
             if twist:
                 setBoneTwist(tfm, pb)
             else:
-                setBoneTransform(tfm, pb)
+                if self.affectTranslations or self.hasParent(bname, rig):
+                    setBoneTransform(tfm, pb)
+                else:
+                    loc = pb.location.copy()
+                    setBoneTransform(tfm, pb)
+                    pb.location = loc
                 self.imposeLocks(pb)
                 self.imposeLimits(pb)
             if self.insertKeys:
@@ -749,42 +771,29 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                     driven[words[1]] = True
         self.driven = list(driven.keys())
 
+
+    def addToPoseLib(self, rig, name):
+        if rig.pose_library:
+            pmarkers = rig.pose_library.pose_markers
+            frame = 0
+            for pmarker in pmarkers:
+                if pmarker.frame >= frame:
+                    frame = pmarker.frame + 1
+        else:
+            frame = 0
+        bpy.ops.poselib.pose_add(frame=frame)
+        pmarker = rig.pose_library.pose_markers.active
+        pmarker.name = name
+        #for pmarker in rig.pose_library.pose_markers:
+        #    print("  ", pmarker.name, pmarker.frame)
+
 #-------------------------------------------------------------
 #
 #-------------------------------------------------------------
 
-def addToPoseLib(rig, name):
-    if rig.pose_library:
-        pmarkers = rig.pose_library.pose_markers
-        frame = 0
-        for pmarker in pmarkers:
-            if pmarker.frame >= frame:
-                frame = pmarker.frame + 1
-    else:
-        frame = 0
-    bpy.ops.poselib.pose_add(frame=frame)
-    pmarker = rig.pose_library.pose_markers.active
-    pmarker.name = name
-    #for pmarker in rig.pose_library.pose_markers:
-    #    print("  ", pmarker.name, pmarker.frame)
-
 
 def getAnimKeys(anim):
     return [key[0:2] for key in anim["keys"]]
-
-
-def selectAll(rig, select):
-    if rig.type != 'ARMATURE':
-        return
-    selected = []
-    for bone in rig.data.bones:
-        if bone.select:
-            selected.append(bone.name)
-        if select == True:
-            bone.select = True
-        else:
-            bone.select = (bone.name in select)
-    return selected
 
 
 def clearAction(self, ob):
@@ -819,7 +828,7 @@ class StandardAnimation:
         rig = context.object
         scn = context.scene
         if not self.affectSelectedOnly:
-            selected = selectAll(rig, True)
+            selected = self.selectAll(rig, True)
         LS.forAnimation(self, rig, scn)
         if scn.tool_settings.use_keyframe_insert_auto:
             self.insertKeys = True
@@ -849,7 +858,7 @@ class StandardAnimation:
         scn.frame_current = startframe
         nameAction(self, rig)
         if not self.affectSelectedOnly:
-            selectAll(rig, selected)
+            self.selectAll(rig, selected)
 
         if missing and self.reportMissingMorphs:
             missing.sort()
@@ -858,6 +867,20 @@ class StandardAnimation:
                 "Animation loaded but some morphs were missing.     \n"+
                 "See list in terminal window.\n" +
                 "Check results carefully.", warning=True)
+
+
+    def selectAll(self, rig, select):
+        if rig.type != 'ARMATURE':
+            return
+        selected = []
+        for bone in rig.data.bones:
+            if bone.select:
+                selected.append(bone.name)
+            if select == True:
+                bone.select = True
+            else:
+                bone.select = (bone.name in select)
+        return selected
 
 
 class DAZ_OT_ImportAction(HideOperator, B.AffectOptions, B.ConvertOptions, B.ActionOptions, AnimatorBase, StandardAnimation):
