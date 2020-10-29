@@ -752,7 +752,8 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
                             setFloatProp(rig, prop, 0.0, GS.propMin, GS.propMax)
                             props.append(prop)
                     for trg in var.targets:
-                        trg.id = rig
+                        if trg.id_type == 'OBJECT':
+                            trg.id = rig
             updateDrivers(rna)
             if props:
                 addToCategories(rig, props, "Shapes")

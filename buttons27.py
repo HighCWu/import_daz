@@ -71,7 +71,7 @@ class AffectOptions:
     clearMaster = BoolProperty(
         name = "Clear Master/Root Bone",
         description = "Clear the master/root bone. For Rigify and MHX",
-        default = True)
+        default = False)
 
     affectMorphs = BoolProperty(
         name = "Affect Morphs",
