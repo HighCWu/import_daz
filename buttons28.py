@@ -68,6 +68,11 @@ class AffectOptions:
         description = "Animate bones.",
         default = True)
 
+    clearMaster : BoolProperty(
+        name = "Clear Master/Root Bone",
+        description = "Clear the master/root bone. For Rigify and MHX",
+        default = True)
+
     affectMorphs : BoolProperty(
         name = "Affect Morphs",
         description = "Animate morph properties.",
@@ -103,6 +108,7 @@ class AffectOptions:
         layout.prop(self, "affectBones")
         if self.affectBones:
             layout.prop(self, "affectSelectedOnly")
+            layout.prop(self, "clearMaster")
         layout.prop(self, "affectObject")
         layout.prop(self, "affectMorphs")
         if self.affectMorphs:
