@@ -607,7 +607,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         return offset,prop
 
 
-    def getCanonicalKey(self, key):
+    def getCanonicalKey(self, key, rig):
         from .modifier import stripPrefix
         lkey = stripPrefix(key.lower())
         if lkey[-5:] == "_div2":
@@ -624,15 +624,24 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
 
     def getRigKey(self, key, rig, missing):
-        lkey = self.getCanonicalKey(key)
-        if lkey in self.rigProps.keys():
-            return self.rigProps[lkey]
-        elif key not in missing:
+        if rig.DazPropNames:
+            lkey = key.lower()
+            if lkey in rig.DazPropNames.keys():
+                pg = rig.DazPropNames[lkey]
+                return pg.text
+        else:
+            lkey = self.getCanonicalKey(key, rig)
+            if lkey in self.rigProps.keys():
+                return self.rigProps[lkey]
+        if key not in missing:
             missing.append(key)
             return None
 
 
     def setupRigProps(self, rig):
+        return
+        if rig.DazPropNames:
+            return
         if not self.affectMorphs:
             return
         synonymList = [
@@ -642,7 +651,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         ]
         self.rigProps = {}
         for key in rig.keys():
-            lkey = self.getCanonicalKey(key)
+            lkey = self.getCanonicalKey(key, rig)
             self.rigProps[lkey] = key
             for syns in synonymList:
                 for syn1 in syns:

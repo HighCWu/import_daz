@@ -2059,6 +2059,7 @@ def initialize():
         default = "Name")
 
     bpy.types.Scene.DazSelector = CollectionProperty(type = B.DazSelectGroup)
+    bpy.types.Object.DazPropNames = CollectionProperty(type = B.DazTextGroup)
 
 
 def uninitialize():

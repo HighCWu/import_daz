@@ -243,6 +243,13 @@ class ChannelAsset(Modifier):
         self.morphset = morphset
         self.rig = rig
         self.prop = normalizePath(self.id.rsplit("#",2)[-1])
+        lname = self.name.lower()
+        if lname in rig.DazPropNames.keys():
+            pg = rig.DazPropNames[lname]
+        else:
+            pg = rig.DazPropNames.add()
+        pg.name = lname
+        pg.text = self.prop
         addToMorphSet(rig, None, morphset, self.prop, usePropDrivers, self)
 
 
