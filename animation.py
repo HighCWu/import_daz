@@ -561,7 +561,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
             master = self.getMasterBone(rig)
             for pb in rig.pose.bones:
                 if self.isAvailable(pb, rig) and pb.name != master:
-                    self.clearBone(pb, rig)
+                    self.clearBone(pb, rig, tfm, frame)
         if self.affectMorphs:
             from .morphing import getAllLowerMorphNames
             lprops = getAllLowerMorphNames(rig)
@@ -572,7 +572,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                         rig.keyframe_insert('["%s"]' % prop, frame=frame, group=prop)
 
 
-    def clearBone(self, pb, rig):
+    def clearBone(self, pb, rig, tfm, frame):
         if self.mayTranslate(pb.name, rig):
             pb.location = (0,0,0)
         pb.rotation_euler = (0,0,0)
