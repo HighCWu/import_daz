@@ -133,18 +133,6 @@ def addFrames(bname, channel, nmax, cname, frames):
                     bframe[cname] = Vector((0,0,0))
                 bframe[cname][comp] = y
 
-KnownRigs = [
-    "Genesis",
-    "GenesisFemale",
-    "GenesisMale",
-    "Genesis2",
-    "Genesis2Female",
-    "Genesis2Male",
-    "Genesis3",
-    "Genesis3Female",
-    "Genesis3Male",
-]
-
 
 def addTransform(node, channel, bones, key):
     if channel in node.keys():
@@ -191,14 +179,34 @@ def getChannel(url):
 
 class FrameConverter:
 
+    SourceType = {
+        "genesis" : "genesis",
+        "genesis_2_female" : "genesis2",
+        "genesis_2_male" : "genesis2",
+        "genesis_3_female" : "genesis3",
+        "genesis_3_male" : "genesis3",
+        "genesis_8_female" : "genesis8",
+        "genesis_8_male" : "genesis8",
+    }
+
     def getConv(self, bones, rig):
         from .figure import getRigType
         from .convert import getConverter
         from collections import OrderedDict
-        stype = getRigType(bones)
-        conv,twists = getConverter(stype, rig)
-        if not conv:
+        if self.srcCharacter == 'AUTOMATIC':
+            stype = getRigType(bones)
+            if not stype:
+                raise DazError("Could not auto-detect character in duf/dsf file.\nPlease select a source character")
+        elif self.srcCharacter == 'NONE':
+            stype = None
             conv = {}
+            twists = {}
+        else:
+            stype = self.SourceType[self.srcCharacter]
+        if stype:
+            conv,twists = getConverter(stype, rig)
+            if not conv:
+                conv = {}
         #bonemap = OrderedDict([(bname,bname) for bname in rig.pose.bones.keys()])
         bonemap = OrderedDict()
         return conv, twists, bonemap
@@ -240,6 +248,10 @@ class FrameConverter:
             nanims.append((nbanim,vanim))
 
         if self.convertPoses:
+            if self.srcCharacter == 'AUTOMATIC':
+                raise DazError("Cannot convert from Automatic source character")
+            elif self.srcCharacter == 'NONE':
+                raise DazError("Cannot convert if source character is not given")
             self.convertAllFrames(nanims, rig, bonemap)
         return nanims, locks
 
@@ -366,11 +378,28 @@ class HideOperator(DazOperator):
 #   AnimatorBase class
 #-------------------------------------------------------------
 
-class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, IsMeshArmature):
+class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B.ConvertOptions, PoseboneDriver, IsMeshArmature):
     lockMeshes = False
 
     def __init__(self):
         pass
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "affectBones")
+        if self.affectBones:
+            layout.prop(self, "affectSelectedOnly")
+        layout.prop(self, "affectObject")
+        if False and self.affectObject and self.affectBones:
+            layout.prop(self, "useMergeHipObject")
+        layout.prop(self, "affectTranslations")
+        layout.prop(self, "affectMorphs")
+        if self.affectMorphs:
+            layout.prop(self, "reportMissingMorphs")
+        layout.prop(self, "ignoreLimits")
+        layout.prop(self, "ignoreLocks")
+        layout.prop(self, "srcCharacter")
+        layout.prop(self, "convertPoses")
 
 
     def invoke(self, context, event):
@@ -552,6 +581,18 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
 
 
+    KnownRigs = [
+        "Genesis",
+        "GenesisFemale",
+        "GenesisMale",
+        "Genesis2",
+        "Genesis2Female",
+        "Genesis2Male",
+        "Genesis3",
+        "Genesis3Female",
+        "Genesis3Male",
+    ]
+
     def animateBones(self, context, animations, offset, prop, filepath, missing):
         from .driver import setFloatProp
 
@@ -592,7 +633,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                             print(" GG ", bname, key)
 
                     if (bname == "@selection" or
-                        bname in KnownRigs):
+                        bname in self.KnownRigs):
                         if self.affectObject:
                             tfm.setRna(rig)
                             if self.insertKeys:
@@ -706,11 +747,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         if not self.affectBones:
             return
         pb = rig.pose.bones[bname]
-        if False and isFaceBoneDriven(rig, pb):
-            if GS.verbosity > 4:
-                print("Face driven", pb.name)
-            pass
-        elif self.isAvailable(pb, rig):
+        if self.isAvailable(pb, rig):
             if twist:
                 setBoneTwist(tfm, pb)
             else:
@@ -724,7 +761,8 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                 self.imposeLimits(pb)
             if self.insertKeys:
                 tfm.insertKeys(rig, pb, n+offset, bname, self.driven)
-
+        else:
+            print("NOT AVIL", pb.name)
 
     def imposeLocks(self, pb):
         if self.ignoreLocks:
@@ -926,7 +964,7 @@ class StandardAnimation:
         return selected
 
 
-class DAZ_OT_ImportAction(HideOperator, B.AffectOptions, B.ConvertOptions, B.ActionOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportAction(HideOperator, B.ActionOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_action"
     bl_label = "Import Action"
     bl_description = "Import poses from native DAZ file(s) (*.duf, *.dsf) to action"
@@ -936,15 +974,14 @@ class DAZ_OT_ImportAction(HideOperator, B.AffectOptions, B.ConvertOptions, B.Act
     verbose = False
 
     def draw(self, context):
-        B.AffectOptions.draw(self, context)
-        B.ConvertOptions.draw(self, context)
+        AnimatorBase.draw(self, context)
         B.ActionOptions.draw(self, context)
 
     def run(self, context):
         StandardAnimation.run(self, context)
 
 
-class DAZ_OT_ImportPoseLib(HideOperator, B.AffectOptions, B.ConvertOptions, B.PoseLibOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportPoseLib(HideOperator, B.PoseLibOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_poselib"
     bl_label = "Import Pose Library"
     bl_description = "Import poses from native DAZ file(s) (*.duf, *.dsf) to pose library"
@@ -954,15 +991,14 @@ class DAZ_OT_ImportPoseLib(HideOperator, B.AffectOptions, B.ConvertOptions, B.Po
     verbose = False
 
     def draw(self, context):
-        B.AffectOptions.draw(self, context)
-        B.ConvertOptions.draw(self, context)
+        AnimatorBase.draw(self, context)
         B.PoseLibOptions.draw(self, context)
 
     def run(self, context):
         StandardAnimation.run(self, context)
 
 
-class DAZ_OT_ImportSinglePose(HideOperator, B.AffectOptions, B.ConvertOptions, AnimatorBase, StandardAnimation):
+class DAZ_OT_ImportSinglePose(HideOperator, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_single_pose"
     bl_label = "Import Pose"
     bl_description = "Import a pose from native DAZ file(s) (*.duf, *.dsf)"
@@ -972,10 +1008,6 @@ class DAZ_OT_ImportSinglePose(HideOperator, B.AffectOptions, B.ConvertOptions, A
     verbose = False
     useAction = False
     usePoseLib = False
-
-    def draw(self, context):
-        B.AffectOptions.draw(self, context)
-        B.ConvertOptions.draw(self, context)
 
     def run(self, context):
         StandardAnimation.run(self, context)

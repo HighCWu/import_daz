@@ -48,19 +48,6 @@ class ConvertOptions:
         description = "Character this file was made for",
         default = "genesis_3_female")
 
-    trgCharacter = EnumProperty(
-        items = G.theRestPoseItems,
-        name = "Target Character",
-        description = "Active character",
-        default = "genesis_3_female")
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "convertPoses")
-        if self.convertPoses:
-            layout.prop(self, "srcCharacter")
-            #layout.prop(self, "trgCharacter")
-
 
 class AffectOptions:
     affectBones = BoolProperty(
@@ -107,21 +94,6 @@ class AffectOptions:
         name = "Ignore Locks",
         description = "Set pose even for locked bones",
         default = False)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "affectBones")
-        if self.affectBones:
-            layout.prop(self, "affectSelectedOnly")
-        layout.prop(self, "affectObject")
-        if False and self.affectObject and self.affectBones:
-            layout.prop(self, "useMergeHipObject")
-        layout.prop(self, "affectTranslations")
-        layout.prop(self, "affectMorphs")
-        if self.affectMorphs:
-            layout.prop(self, "reportMissingMorphs")
-        layout.prop(self, "ignoreLimits")
-        layout.prop(self, "ignoreLocks")
 
 
 class ActionOptions:

@@ -339,12 +339,9 @@ def getModifierPath(moddir, folder, tfile):
 
 def getRigType(data):
     if isinstance(data, bpy.types.Object):
-        return getRigType(data.pose.bones.keys())
+        bones = getRigType(data.pose.bones.keys())
     else:
-        return getRigType1(data)
-
-
-def getRigType1(bones):
+        bones = data
     if match(["abdomenLower", "lShldrBend", "rShldrBend"], bones):
         if "lHeel" in bones:
             return "genesis3"

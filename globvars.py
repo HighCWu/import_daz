@@ -48,7 +48,9 @@ theRestPoseFolder = os.path.join(os.path.dirname(__file__), "data", "restposes")
 theParentsFolder = os.path.join(os.path.dirname(__file__), "data", "parents")
 theIkPoseFolder = os.path.join(os.path.dirname(__file__), "data", "ikposes")
 
-theRestPoseItems = []
+theRestPoseItems = [
+    ('AUTOMATIC', "Automatic", "Automatic conversion of bone names"),
+    ('NONE', "None", "Don't convert bone names")]
 for file in os.listdir(theRestPoseFolder):
     fname = os.path.splitext(file)[0]
     name = fname.replace("_", " ").capitalize()
