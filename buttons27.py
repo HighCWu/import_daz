@@ -68,11 +68,6 @@ class AffectOptions:
         description = "Animate bones.",
         default = True)
 
-    affectMaster = BoolProperty(
-        name = "Affect Root/Master Bone",
-        description = "Clear the root/master bone for Rigify and MHX",
-        default = True)
-
     affectTranslations = BoolProperty(
         name = "Affect Translations",
         description = "Animate translations in addition to rotations and scale transformations",
@@ -85,8 +80,13 @@ class AffectOptions:
 
     affectObject = BoolProperty(
         name = "Affect Object",
-        description = "Animate global object transformation",
+        description = "Animate global object transformation (master/root bone in MHX and Rigify)",
         default = True)
+
+    useMergeHipObject : BoolProperty(
+        name = "Merge Hip Object",
+        description = "Merge hip and object transforms",
+        default = False)
 
     reportMissingMorphs = BoolProperty(
         name = "Report Missing Morphs",
@@ -113,9 +113,10 @@ class AffectOptions:
         layout.prop(self, "affectBones")
         if self.affectBones:
             layout.prop(self, "affectSelectedOnly")
-            layout.prop(self, "affectMaster")
-            layout.prop(self, "affectTranslations")
         layout.prop(self, "affectObject")
+        if False and self.affectObject and self.affectBones:
+            layout.prop(self, "useMergeHipObject")
+        layout.prop(self, "affectTranslations")
         layout.prop(self, "affectMorphs")
         if self.affectMorphs:
             layout.prop(self, "reportMissingMorphs")

@@ -416,7 +416,7 @@ def transformDuplis():
         if ob.name in LS.collection.objects:
             LS.collection.objects.unlink(ob)
         empty.parent = ob.parent
-        empty.matrix_world = wmat
+        setWorldMatrix(empty, wmat)
         for child in ob.children:
             addToRefgroup(child, refgroup)
         ob.parent = None
@@ -717,9 +717,9 @@ def reParent(context, ob, rig, update=False):
 
 
 def clearParent(ob):
-    mat = ob.matrix_world.copy()
+    wmat = ob.matrix_world.copy()
     ob.parent = None
-    ob.matrix_world = mat
+    setWorldMatrix(ob, wmat)
 
 
 def getTransformMatrices(pb):

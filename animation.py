@@ -403,6 +403,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             pb.lock_location = lock
         updateDrivers(rig)
         bpy.ops.object.mode_set(mode='OBJECT')
+        self.mergeHipObject(rig)
         return result
 
 
@@ -485,24 +486,41 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
 
 
     def isAvailable(self, pb, rig):
-        if not (self.affectMaster or self.hasParent(pb.name, rig)):
-            return False
         if self.affectSelectedOnly:
             return pb.bone.select
         else:
             return True
 
 
-    def hasParent(self, bname, rig):
+    def getMasterBone(self, rig):
         if rig.DazRig == "mhx":
-            return (bname not in ["master", "root"])
+            return "master"
         elif rig.DazRig[0:6] == "rigify":
-            return (bname not in ["root", "torso"])
+            return "root"
         else:
-            return (bname != "hip")
+            return None
+
+
+    def mayTranslate(self, bname, rig):
+        if self.affectTranslations:
+            return True
+        else:
+            hip = self.getHipBone(rig)
+            master = self.getMasterBone(rig)
+            return (bname not in [hip, master])
+
+
+    def getHipBone(self, rig):
+        if rig.DazRig == "mhx":
+            return "root"
+        if rig.DazRig[0:6] == "rigify":
+            return "torso"
+        else:
+            return "hip"
 
 
     def clearPose(self, rig, frame):
+        self.worldMatrix = rig.matrix_world.copy()
         tfm = Transform()
         if self.affectObject:
             tfm.setRna(rig)
@@ -511,14 +529,10 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
         if rig.type != 'ARMATURE':
             return
         if self.affectBones:
+            master = self.getMasterBone(rig)
             for pb in rig.pose.bones:
-                if self.isAvailable(pb, rig):
-                    if self.affectTranslations or self.hasParent(pb.name, rig):
-                        pb.location = (0,0,0)
-                    pb.rotation_euler = (0,0,0)
-                    pb.rotation_quaternion = (1,0,0,0)
-                    if self.insertKeys:
-                        tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
+                if self.isAvailable(pb, rig) and pb.name != master:
+                    self.clearBone(pb, rig)
         if self.affectMorphs:
             from .morphing import getAllLowerMorphNames
             lprops = getAllLowerMorphNames(rig)
@@ -527,6 +541,15 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                     rig[prop] = 0.0
                     if self.insertKeys:
                         rig.keyframe_insert('["%s"]' % prop, frame=frame, group=prop)
+
+
+    def clearBone(self, pb, rig):
+        if self.mayTranslate(pb.name, rig):
+            pb.location = (0,0,0)
+        pb.rotation_euler = (0,0,0)
+        pb.rotation_quaternion = (1,0,0,0)
+        if self.insertKeys:
+            tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
 
 
     def animateBones(self, context, animations, offset, prop, filepath, missing):
@@ -540,9 +563,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             for bname, channels in banim.items():
                 if "rotation" in channels.keys():
                     addFrames(bname, channels["rotation"], 3, "rotation", frames)
-                if ("translation" in channels.keys() and
-                    self.affectTranslations and
-                    bname != "hip"):
+                if "translation" in channels.keys():
                     addFrames(bname, channels["translation"], 3, "translation", frames)
                 if "scale" in channels.keys():
                     addFrames(bname, channels["scale"], 3, "scale", frames)
@@ -693,7 +714,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
             if twist:
                 setBoneTwist(tfm, pb)
             else:
-                if self.affectTranslations or self.hasParent(bname, rig):
+                if self.mayTranslate(bname, rig):
                     setBoneTransform(tfm, pb)
                 else:
                     loc = pb.location.copy()
@@ -757,6 +778,29 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, PoseboneDriver, Is
                     pb.location[2] = cns.max_z
                 if cns.use_min_z and pb.location[0] < cns.min_z:
                     pb.location[2] = cns.min_z
+
+
+    def mergeHipObject(self, rig):
+        #print("OLDW",self.worldMatrix)
+        #print("WW", rig.matrix_world)
+        if self.useMergeHipObject and self.affectBones and self.affectObject:
+            hip = self.getHipBone(rig)
+            if hip in rig.pose.bones.keys():
+                pb = rig.pose.bones[hip]
+                wmat = rig.matrix_world.copy()
+                mat = pb.matrix_basis.copy()
+                print("MM", mat)
+                wdiff = Mult2(self.worldMatrix.inverted(), wmat)
+                print("WDI", wdiff)
+                if self.useMergeHipObject:
+                    setWorldMatrix(rig, self.worldMatrix)
+                print("NEWW", rig.matrix_world)
+                #bpy.ops.object.mode_set(mode='POSE')
+                mat2 = Mult2(wdiff, mat)
+                if self.useMergeHipObject:
+                    pb.matrix_basis = mat2
+                #bpy.ops.object.mode_set(mode='OBJECT')
+                print("PMM", pb.matrix_basis)
 
 
     def findDrivers(self, rig):
