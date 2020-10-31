@@ -711,7 +711,6 @@ class BoneInstance(Instance):
 
 
     def buildPose(self, figure, inFace, targets, missing):
-        from .node import setBoneTransform
         from .driver import isBoneDriven
 
         node = self.node
@@ -727,6 +726,25 @@ class BoneInstance(Instance):
             pb.rotation_mode = self.getRotationMode(pb, False)
         pb.DazRotMode = self.rotation_order
 
+        tchildren = self.targetTransform(pb, node, targets)
+        if GS.orientMethod == 'BLENDER LEGACY' or GS.useLegacyLocks:
+            self.setRotationLockLegacy(pb)
+        else:
+            self.setRotationLockDaz(pb)
+        if GS.orientMethod == 'BLENDER LEGACY' or GS.useLegacyLocks:
+            self.setLocationLockLegacy(pb)
+        else:
+            self.setLocationLockDaz(pb)
+
+        for child in self.children.values():
+            if isinstance(child, BoneInstance):
+                child.buildPose(figure, inFace, tchildren, missing)
+
+
+    def targetTransform(self, pb, node, targets):
+        from .node import setBoneTransform
+        if LS.fitFile:
+            return {}
         tname = getTargetName(node.name, targets)
         if tname:
             tinst = targets[tname]
@@ -740,21 +758,8 @@ class BoneInstance(Instance):
                 trans = self.attributes["translation"],
                 rot = self.attributes["rotation"])
             tchildren = {}
-
         setBoneTransform(tfm, pb)
-
-        if GS.orientMethod == 'BLENDER LEGACY' or GS.useLegacyLocks:
-            self.setRotationLockLegacy(pb)
-        else:
-            self.setRotationLockDaz(pb)
-        if GS.orientMethod == 'BLENDER LEGACY' or GS.useLegacyLocks:
-            self.setLocationLockLegacy(pb)
-        else:
-            self.setLocationLockDaz(pb)
-
-        for child in self.children.values():
-            if isinstance(child, BoneInstance):
-                child.buildPose(figure, inFace, tchildren, missing)
+        return tchildren
 
 
     def formulate(self, key, value):

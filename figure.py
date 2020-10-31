@@ -127,8 +127,7 @@ class FigureInstance(Instance):
         rig = self.rna
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='POSE')
-        if not LS.fitFile:
-            self.poseArmature(rig)
+        self.poseArmature(rig)
         rig.DazRotLocks = GS.useLockRot
         rig.DazLocLocks = GS.useLockLoc
         rig.DazRotLimits = GS.useLimitRot

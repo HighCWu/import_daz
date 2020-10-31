@@ -762,7 +762,8 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
             if self.insertKeys:
                 tfm.insertKeys(rig, pb, n+offset, bname, self.driven)
         else:
-            print("NOT AVIL", pb.name)
+            pass
+            #print("NOT AVIL", pb.name)
 
     def imposeLocks(self, pb):
         if self.ignoreLocks:
