@@ -239,8 +239,10 @@ class CyclesTree:
         return node
 
 
-    def addShellGroup(self, context, shname, shmat):
+    def addShellGroup(self, context, shell):
         from .material import theShellGroups
+        shmat = shell.material
+        shname = shell.name
         if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or
             shmat.getValue("getChannelOpacity", 1) == 0):
             print("Invisible shell %s for %s" % (shname, self.material.name))
@@ -253,10 +255,10 @@ class CyclesTree:
                 return node
         if self.type == 'CYCLES':
             from .cgroup import ShellCyclesGroup
-            group = ShellCyclesGroup(node, shname, self)
+            group = ShellCyclesGroup(node, shell, self)
         elif self.type == 'PBR':
             from .cgroup import ShellPbrGroup
-            group = ShellPbrGroup(node, shname, self)
+            group = ShellPbrGroup(node, shell, self)
         else:
             raise RuntimeError("Bug Cycles type %s" % self.type)
         group.addNodes(context, shmat)
@@ -268,12 +270,14 @@ class CyclesTree:
         scn = context.scene
         self.makeTree()
         self.buildLayer(context)
-        for shname,shmat,uv in self.material.shells:
-            node = self.addShellGroup(context, shname, shmat)
+        print("BSS", self.material.name)
+        for shell in self.material.shells:
+            print("  S", shell)
+            node = self.addShellGroup(context, shell)
             if node:
                 self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])
                 self.links.new(self.getEeveeSocket(), node.inputs["Eevee"])
-                self.links.new(self.getTexco(uv), node.inputs["UV"])
+                self.links.new(self.getTexco(shell.uv), node.inputs["UV"])
                 self.cycles = self.eevee = node
         self.buildCutout()
         self.buildVolume()

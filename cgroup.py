@@ -62,8 +62,8 @@ class CyclesGroup(MaterialGroup, CyclesTree):
 
 class ShellGroup(MaterialGroup):
 
-    def __init__(self, node, name, parent):
-        MaterialGroup.__init__(self, node, name, parent, 8)
+    def __init__(self, node, shell, parent):
+        MaterialGroup.__init__(self, node, shell.name, parent, 8)
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
         self.group.inputs.new("NodeSocketVector", "UV")
@@ -98,15 +98,15 @@ class ShellGroup(MaterialGroup):
 
 
 class ShellCyclesGroup(ShellGroup, CyclesTree):
-    def __init__(self, node, name, parent):
+    def __init__(self, node, shell, parent):
         CyclesTree.__init__(self, parent.material)
-        ShellGroup.__init__(self, node, name, parent)
+        ShellGroup.__init__(self, node, shell, parent)
 
 
 class ShellPbrGroup(ShellGroup, PbrTree):
-    def __init__(self, node, name, parent):
+    def __init__(self, node, shell, parent):
         PbrTree.__init__(self, parent.material)
-        ShellGroup.__init__(self, node, name, parent)
+        ShellGroup.__init__(self, node, shell, parent)
 
 
 # ---------------------------------------------------------------------

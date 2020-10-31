@@ -90,8 +90,8 @@ class InternalMaterial(Material):
                         mat.specular_alpha = 0
                         mtex.use_map_alpha = True
                         mtex.alpha_factor = 1.0
-            for shname,shmat,uv in self.shells:
-                mtex = self.buildShellMTex(shmat, "getChannelDiffuse", uv, "sRGB")
+            for shell in self.shells:
+                mtex = self.buildShellMTex(shell, "getChannelDiffuse", "sRGB")
                 if mtex:
                     mtex.use_map_color_diffuse = True
 
@@ -109,14 +109,15 @@ class InternalMaterial(Material):
         mat.roughness = self.getChannelValue(channel, GS.diffuseRoughness)
 
 
-    def buildShellMTex(self, shell, attr, uv, colorspace):
-        uvset = self.getUvSet(uv)
+    def buildShellMTex(self, shell, attr, colorspace):
+        uvset = self.getUvSet(shell.uv)
+        shmat = shell.material
 
-        channel1 = shell.getChannelCutoutOpacity()
-        if channel1 and shell.hasTextures(channel1):
-            channel2 = shell.getChannel(attr)
-            if channel2 and shell.hasTextures(channel2):
-                assets1,maps1 = shell.getTextures(channel1)
+        channel1 = shmat.getChannelCutoutOpacity()
+        if channel1 and shmat.hasTextures(channel1):
+            channel2 = shmat.getChannel(attr)
+            if channel2 and shmat.hasTextures(channel2):
+                assets1,maps1 = shmat.getTextures(channel1)
                 asset1 = assets1[0]
                 asset1.buildInternal()
                 mtex = self.buildMtex(asset1, None)
@@ -128,10 +129,10 @@ class InternalMaterial(Material):
                 if tex and tex.image:
                     setImageColorSpace(tex.image, "Non-Color")
 
-                assets2,maps2 = shell.getTextures(channel2)
+                assets2,maps2 = shmat.getTextures(channel2)
                 asset2 = assets2[0]
                 asset2.buildInternal()
-                color = shell.getChannelColor(channel2, WHITE)
+                color = shmat.getChannelColor(channel2, WHITE)
                 mtex = self.buildMtex(asset2, color)
                 mtex.uv_layer = uvset.name
                 tex = mtex.texture
@@ -257,9 +258,9 @@ class InternalMaterial(Material):
             for mtex in self.buildMtexs(channel, "Non-Color"):
                 if mtex and not mtex.use_stencil:
                     self.setNormalSettings(channel, mtex)
-            for shname,shmat,uv in self.shells:
+            for shell in self.shells:
                 continue
-                mtex = self.buildShellMTex(shmat, "getChannelNormal", uv, "Non-Color")
+                mtex = self.buildShellMTex(shell, "getChannelNormal", "Non-Color")
                 if mtex:
                     shell.setNormalSettings(channel, mtex)
 
@@ -279,9 +280,9 @@ class InternalMaterial(Material):
             for mtex in self.buildMtexs(channel, "Non-Color"):
                 if mtex and not mtex.use_stencil:
                     self.setBumpSettings(channel, mtex)
-            for shname,shmat,uv in self.shells:
+            for shell in self.shells:
                 continue
-                mtex = self.buildShellMTex(shmat, "getChannelBump", uv, "Non-Color")
+                mtex = self.buildShellMTex(shell, "getChannelBump", "Non-Color")
                 if mtex:
                     shell.setBumpSettings(channel, mtex)
 
@@ -299,9 +300,9 @@ class InternalMaterial(Material):
             for mtex in self.buildMtexs(channel, "Non-Color"):
                 if mtex and not mtex.use_stencil:
                     self.setDisplacementSettings(channel, mtex)
-            for shname,shmat,uv in self.shells:
+            for shell in self.shells:
                 continue
-                mtex = self.buildShellMTex(shmat, "getChannelDisplacement", uv, "Non-Color")
+                mtex = self.buildShellMTex(shell, "getChannelDisplacement", "Non-Color")
                 if mtex:
                     shell.setDisplacementSettings(channel, mtex)
 
