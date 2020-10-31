@@ -451,6 +451,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
                 box.separator()
                 box.operator("daz.add_to_group")
                 box.operator("daz.remove_from_groups")
+            box.separator()
+            box.operator("daz.copy_daz_props")
 
         layout.separator()
         box = layout.box()

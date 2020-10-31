@@ -193,15 +193,18 @@ class FrameConverter:
         from .figure import getRigType
         from .convert import getConverter
         from collections import OrderedDict
+        stype = None
+        conv = {}
+        twists = {}
         if self.srcCharacter == 'AUTOMATIC':
-            stype = getRigType(bones)
+            if (rig.DazRig == "mhx" or
+                rig.DazRig[0:6] == "rigify"):
+                stype = "genesis8"
+            else:
+                stype = getRigType(bones)
             if not stype:
-                raise DazError("Could not auto-detect character in duf/dsf file.\nPlease select a source character")
-        elif self.srcCharacter == 'NONE':
-            stype = None
-            conv = {}
-            twists = {}
-        else:
+                print("Could not auto-detect character in duf/dsf file")
+        elif self.srcCharacter != 'NONE':
             stype = self.SourceType[self.srcCharacter]
         if stype:
             conv,twists = getConverter(stype, rig)
@@ -392,7 +395,8 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         layout.prop(self, "affectObject")
         if False and self.affectObject and self.affectBones:
             layout.prop(self, "useMergeHipObject")
-        layout.prop(self, "affectTranslations")
+        if self.affectObject or self.affectBones:
+            layout.prop(self, "affectTranslations")
         layout.prop(self, "affectMorphs")
         if self.affectMorphs:
             layout.prop(self, "reportMissingMorphs")

@@ -1336,6 +1336,37 @@ class DAZ_OT_UpdateRigVersion(DazOperator, IsArmature):
             if "DazOrientation" in bone.keys():
                 bone.DazOrient = list(bone["DazOrientation"])
 
+
+class DAZ_OT_CopyDazProps(DazOperator, IsObject):
+    bl_idname = "daz.copy_daz_props"
+    bl_label = "Copy DAZ Properties"
+    bl_description = ("Copy DAZ properties from active object to selected objects.\n" +
+                      "Only properties that are not already set")
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        src = context.object
+        for trg in getSceneObjects(context):
+            if getSelected(trg) and trg.type == src.type and trg != src:
+                self.copyObjectProps(src, trg)
+                print("DAZ properties copied from %s to %s" % (src.name, trg.name))
+
+
+    def copyObjectProps(self, src, trg):
+        self.copyProps(src, trg)
+        if src.type == 'ARMATURE':
+            for spb in src.pose.bones:
+                if spb.name in trg.pose.bones.keys():
+                    tpb = trg.pose.bones[spb.name]
+                    self.copyProps(spb, tpb)
+                    self.copyProps(spb.bone, tpb.bone)
+
+
+    def copyProps(self, src, trg):
+        for key,value in src.items():
+            if key[0:3] == "Daz" and key not in trg.keys():
+                trg[key] = value
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -1358,6 +1389,7 @@ classes = [
     DAZ_OT_SnapSimpleFK,
     DAZ_OT_SnapSimpleIK,
     DAZ_OT_UpdateRigVersion,
+    DAZ_OT_CopyDazProps,
 ]
 
 def initialize():
