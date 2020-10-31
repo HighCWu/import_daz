@@ -77,8 +77,14 @@ class ShellGroup(MaterialGroup):
         self.texco = self.inputs.outputs["UV"]
         self.buildLayer(context)
         alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
-        self.addOutput(alpha, tex, self.getCyclesSocket(), "Cycles")
-        self.addOutput(alpha, tex, self.getEeveeSocket(), "Eevee")
+        mult = self.addNode("ShaderNodeMath", 6)
+        mult.operation = 'MULTIPLY'
+        mult.inputs[0].default_value = 1
+        mult.inputs[1].default_value = alpha
+        if tex:
+            self.links.new(tex.outputs[0], mult.inputs[1])
+        self.addOutput(alpha, mult, self.getCyclesSocket(), "Cycles")
+        self.addOutput(alpha, mult, self.getEeveeSocket(), "Eevee")
 
 
     def addOutput(self, alpha, tex, socket, slot):
