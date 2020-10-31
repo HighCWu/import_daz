@@ -213,11 +213,10 @@ class Material(Asset, Channels):
 
 
     def getGamma(self, channel):
-        global theGammas
         url = self.getImageFile(channel)
         gamma = 0
-        if url in theGammas.keys():
-            gamma = theGammas[url]
+        if url in LS.gammas.keys():
+            gamma = LS.gammas[url]
         elif "default_image_gamma" in channel.keys():
             gamma = channel["default_image_gamma"]
         return gamma
@@ -567,13 +566,12 @@ class Map:
 
 
     def getTexture(self):
-        global theTextures
-        if self.url in theTextures.keys():
-            return theTextures[self.url]
+        if self.url in LS.textures.keys():
+            return LS.textures[self.url]
         else:
             tex = Texture(self)
         if self.url:
-            theTextures[self.url] = tex
+            LS.textures[self.url] = tex
         return tex
 
 
@@ -588,16 +586,14 @@ class Map:
 
 
 def getImage(url):
-    global theImages
-    if url in theImages.keys():
-        return theImages[url]
+    if url in LS.images.keys():
+        return LS.images[url]
     else:
         return loadImage(url)
 
 
 def loadImage(url):
     from .asset import getDazPath
-    global theImages
     filepath = getDazPath(url)
     if filepath is None:
         reportError('Image not found:  \n"%s"' % filepath, trigger=(3,4))
@@ -605,7 +601,7 @@ def loadImage(url):
     else:
         img = bpy.data.images.load(filepath)
         img.name = os.path.splitext(os.path.basename(filepath))[0]
-        theImages[url] = img
+        LS.images[url] = img
     return img
 
 
@@ -641,11 +637,10 @@ class Images(Asset):
 
 
     def parseGamma(self, struct):
-        global theGammas
         if "map_gamma" in struct.keys():
             gamma = struct["map_gamma"]
             for map in self.maps:
-                theGammas[map.url] = gamma
+                LS.gammas[map.url] = gamma
 
 
     def build(self):
@@ -687,7 +682,6 @@ class Texture:
 
 
     def buildInternal(self):
-        global theTextures
         if self.built["COLOR"]:
             return self
 
@@ -705,7 +699,7 @@ class Texture:
                 tex.image = img
             else:
                 tex = None
-            theTextures[key] = self
+            LS.textures[key] = self
         else:
             tex = self.rna = bpy.data.textures.new(self.map.label, 'BLEND')
             tex.use_color_ramp = True
@@ -828,20 +822,8 @@ class Texture:
 #
 #-------------------------------------------------------------
 
-def clearMaterials():
-    global theImages, theTextures, theGammas, theShellGroups
-    theImages = {}
-    theTextures = {}
-    theGammas = {}
-    theShellGroups = []
-
-
-clearMaterials()
-
-
 def isWhite(color):
     return (tuple(color[0:3]) == (1.0,1.0,1.0))
-
 
 def isBlack(color):
     return (tuple(color[0:3]) == (0.0,0.0,0.0))

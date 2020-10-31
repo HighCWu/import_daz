@@ -400,6 +400,10 @@ class LocalSettings:
         self.missingAssets = {}
         self.hdfailures = []
         self.deflectors = {}
+        self.images = {}
+        self.textures = {}
+        self.gammas = {}
+        self.shellGroups = []
         self.singleUser = False
         self.scene = ""
 
@@ -423,13 +427,11 @@ class LocalSettings:
 
 
     def reset(self, scn):
-        from .material import clearMaterials
         from .asset import setDazPaths, clearAssets
         global theTrace
         theTrace = []
         setDazPaths(scn)
         clearAssets()
-        clearMaterials()
         self.useStrict = False
         self.scene = scn
 

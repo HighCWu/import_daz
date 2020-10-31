@@ -240,7 +240,6 @@ class CyclesTree:
 
 
     def addShellGroup(self, context, shell):
-        from .material import theShellGroups
         shmat = shell.material
         shname = shell.name
         if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or
@@ -249,7 +248,7 @@ class CyclesTree:
             return None
         node = self.addNode("ShaderNodeGroup")
         node.name = shname
-        for shmat1,group in theShellGroups:
+        for shmat1,group in LS.shellGroups:
             if shmat.equalChannels(shmat1):
                 node.node_tree = group
                 return node
@@ -262,7 +261,7 @@ class CyclesTree:
         else:
             raise RuntimeError("Bug Cycles type %s" % self.type)
         group.addNodes(context, shmat)
-        theShellGroups.append((shmat, node.node_tree))
+        LS.shellGroups.append((shmat, node.node_tree))
         return node
 
 
@@ -270,9 +269,8 @@ class CyclesTree:
         scn = context.scene
         self.makeTree()
         self.buildLayer(context)
-        print("BSS", self.material.name)
         for shell in self.material.shells:
-            print("  S", shell)
+            print("SSS", self.material.name, shell.name)
             node = self.addShellGroup(context, shell)
             if node:
                 self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])
