@@ -375,9 +375,8 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         layout.prop(self, "affectBones")
         if self.affectBones:
             layout.prop(self, "affectSelectedOnly")
-        layout.prop(self, "affectObject")
-        if False and self.affectObject and self.affectBones:
-            layout.prop(self, "useMergeHipObject")
+            layout.label(text="Object Transformations Affect:")
+            layout.prop(self, "affectObject", expand=True)
         layout.prop(self, "affectMorphs")
         if self.affectMorphs:
             layout.prop(self, "reportMissingMorphs")
@@ -508,6 +507,9 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
     def isAvailable(self, pb, rig):
         if self.affectSelectedOnly:
             return pb.bone.select
+        if (pb.name == self.getMasterBone(rig) and
+            self.affectObject != 'MASTER'):
+            return False
         else:
             return True
 
@@ -533,17 +535,18 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
     def clearPose(self, rig, frame):
         self.worldMatrix = rig.matrix_world.copy()
         tfm = Transform()
-        if self.affectObject:
+        if self.affectObject == 'OBJECT':
             tfm.setRna(rig)
             if self.insertKeys:
                 tfm.insertKeys(rig, None, frame, rig.name, self.driven)
         if rig.type != 'ARMATURE':
             return
         if self.affectBones:
-            master = self.getMasterBone(rig)
             for pb in rig.pose.bones:
-                if self.isAvailable(pb, rig) and pb.name != master:
-                    self.clearBone(pb, rig, tfm, frame)
+                if self.isAvailable(pb, rig):
+                    pb.matrix_basis = Matrix()
+                    if self.insertKeys:
+                        tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
         if self.affectMorphs:
             from .morphing import getAllLowerMorphNames
             lprops = getAllLowerMorphNames(rig)
@@ -552,14 +555,6 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                     rig[prop] = 0.0
                     if self.insertKeys:
                         rig.keyframe_insert('["%s"]' % prop, frame=frame, group=prop)
-
-
-    def clearBone(self, pb, rig, tfm, frame):
-        pb.location = (0,0,0)
-        pb.rotation_euler = (0,0,0)
-        pb.rotation_quaternion = (1,0,0,0)
-        if self.insertKeys:
-            tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
 
 
     KnownRigs = [
@@ -616,7 +611,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
 
                     if (bname == "@selection" or
                         bname in self.KnownRigs):
-                        if self.affectObject:
+                        if self.affectObject != 'NONE':
                             tfm.setRna(rig)
                             if self.insertKeys:
                                 tfm.insertKeys(rig, None, n+offset, rig.name, self.driven)
@@ -797,26 +792,13 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
 
 
     def mergeHipObject(self, rig):
-        #print("OLDW",self.worldMatrix)
-        #print("WW", rig.matrix_world)
-        if self.useMergeHipObject and self.affectBones and self.affectObject:
-            hip = self.getHipBone(rig)
-            if hip in rig.pose.bones.keys():
-                pb = rig.pose.bones[hip]
+        if self.affectObject == 'MASTER' and self.affectBones:
+            master = self.getMasterBone(rig)
+            if master in rig.pose.bones.keys():
+                pb = rig.pose.bones[master]
                 wmat = rig.matrix_world.copy()
-                mat = pb.matrix_basis.copy()
-                print("MM", mat)
-                wdiff = Mult2(self.worldMatrix.inverted(), wmat)
-                print("WDI", wdiff)
-                if self.useMergeHipObject:
-                    setWorldMatrix(rig, self.worldMatrix)
-                print("NEWW", rig.matrix_world)
-                #bpy.ops.object.mode_set(mode='POSE')
-                mat2 = Mult2(wdiff, mat)
-                if self.useMergeHipObject:
-                    pb.matrix_basis = mat2
-                #bpy.ops.object.mode_set(mode='OBJECT')
-                print("PMM", pb.matrix_basis)
+                setWorldMatrix(rig, self.worldMatrix)
+                pb.matrix_basis = Mult2(self.worldMatrix.inverted(), wmat)
 
 
     def findDrivers(self, rig):
@@ -1105,6 +1087,23 @@ class DAZ_OT_RestoreCurrentFrame(DazOperator):
                 ob.animation_data.action = None
 
 #----------------------------------------------------------
+#   Clear pose
+#----------------------------------------------------------
+
+class DAZ_OT_ClearPose(DazOperator, IsArmature):
+    bl_idname = "daz.clear_pose"
+    bl_label = "Clear Pose"
+    bl_description = "Clear all bones and object transformations"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        rig = context.object
+        unit = Matrix()
+        setWorldMatrix(rig, unit)
+        for pb in rig.pose.bones:
+            pb.matrix_basis = unit
+
+#----------------------------------------------------------
 #   Clear action
 #----------------------------------------------------------
 
@@ -1156,6 +1155,7 @@ classes = [
     DAZ_OT_ImportSinglePose,
     DAZ_OT_SaveCurrentFrame,
     DAZ_OT_RestoreCurrentFrame,
+    DAZ_OT_ClearPose,
     DAZ_OT_PruneAction,
 ]
 

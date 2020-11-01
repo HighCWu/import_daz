@@ -60,15 +60,14 @@ class AffectOptions:
         description = "Animate morph properties.",
         default = True)
 
-    affectObject = BoolProperty(
+    affectObject = EnumProperty(
+        items = [('OBJECT', "Object", "Animate global object transformation"),
+                 ('MASTER', "Master Bone", "Object transformations affect master/root bone instead of object.\nOnly for MHX and Rigify"),
+                 ('NONE', "None", "Don't animate global object transformations"),
+                ],
         name = "Affect Object",
-        description = "Animate global object transformation (master/root bone in MHX and Rigify)",
-        default = True)
-
-    useMergeHipObject : BoolProperty(
-        name = "Merge Hip Object",
-        description = "Merge hip and object transforms",
-        default = False)
+        description = "How to animate global object transformation",
+        default = 'OBJECT')
 
     reportMissingMorphs = BoolProperty(
         name = "Report Missing Morphs",
