@@ -553,6 +553,55 @@ def getActiveMaterial(scn, context):
     ob = context.object
     return [(mat.name, mat.name, mat.name) for mat in ob.data.materials]
 
+# ---------------------------------------------------------------------
+#   Set Shell Visibility
+# ---------------------------------------------------------------------
+
+class DAZ_OT_SetShellVisibility(DazPropsOperator, IsMesh):
+    bl_idname = "daz.set_shell_visibility"
+    bl_label = "Set Shell Visibility"
+    bl_description = "Control the visility of geometry shells"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        for tree,slot in self.shells:
+            self.layout.prop(slot, "default_value", text=tree.name)
+
+    def run(self, context):
+        pass
+
+
+    def invoke(self, context, event):
+        self.shells = []
+        ob = context.object
+        for mat in ob.data.materials:
+            if mat.node_tree:
+                for node in mat.node_tree.nodes:
+                    if node.type == 'GROUP':
+                        self.addShell(node.node_tree)
+        return DazPropsOperator.invoke(self, context, event)
+
+
+    def addShell(self, tree):
+        for shell in self.shells:
+            if shell[0] == tree:
+                return
+        for node in tree.nodes:
+            if node.name == "Influence":
+                slot = node.inputs[0]
+                self.shells.append((tree, slot))
+                return
+
+
+class DAZ_OT_RemoveShells(DazPropsOperator, IsMesh):
+    bl_idname = "daz.remove_shells"
+    bl_label = "Remove Shells"
+    bl_description = "Remove selected geometry shells from active object"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        pass
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -564,6 +613,8 @@ classes = [
     DAZ_OT_LaunchEditor,
     DAZ_OT_ChangeTweakType,
     DAZ_OT_ResetMaterial,
+    DAZ_OT_SetShellVisibility,
+    DAZ_OT_RemoveShells,
 ]
 
 def initialize():

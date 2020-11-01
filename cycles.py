@@ -270,7 +270,6 @@ class CyclesTree:
         self.makeTree()
         self.buildLayer(context)
         for shell in self.material.shells:
-            print("SSS", self.material.name, shell.name)
             node = self.addShellGroup(context, shell)
             if node:
                 self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])

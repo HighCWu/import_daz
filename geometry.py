@@ -64,7 +64,7 @@ class GeoNode(Node):
             geo.nodes[self.id] = self
         self.modifiers = {}
         self.morphsValues = {}
-        self.shell = {}
+        self.shstruct = {}
         self.polylines = False
 
 
@@ -418,7 +418,7 @@ class Geometry(Asset, Channels):
         self.root_region = None
         self.SubDIALevel = 0
         self.SubDRenderLevel = 0
-        self.shell = {}
+        self.shstruct = {}
         self.shells = {}
 
 
@@ -512,14 +512,14 @@ class Geometry(Asset, Channels):
 
     def setExtra(self, extra):
         if extra["type"] == "studio/geometry/shell":
-            self.shell = extra
+            self.shstruct = extra
         elif extra["type"] == "material_selection_sets":
             self.material_selection_sets = extra["material_selection_sets"]
 
 
     def preprocess(self, context, inst):
         scn = context.scene
-        if self.shell:
+        if self.shstruct:
             node = self.getNode(0)
             self.uvs = None
             for extra in node.extra:
@@ -546,7 +546,7 @@ class Geometry(Asset, Channels):
     def addUvSets(self, inst, shname, vis):
         missing = []
         for key,child in inst.children.items():
-            if child.shell:
+            if child.shstruct:
                 geonode = inst.geometries[0]
                 geo = geonode.data
                 for mname,shellmats in self.materials.items():
@@ -562,7 +562,7 @@ class Geometry(Asset, Channels):
                     uv = self.uvs[mname]
                     if mname in geo.materials.keys():
                         mats = geo.materials[mname]
-                        mats[geonode.index].shells.append(Shell(shname,shmat,uv))
+                        mats[geonode.index].shells.append(Shell(shname,shmat,uv,self))
                         shmat.ignore = True
                         # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
                         # so they can be used to define materials assigned to the geometry in Blender.
@@ -593,7 +593,7 @@ class Geometry(Asset, Channels):
             mname1 = None
         if mname1 and mname1 in geo.materials.keys():
             mats = geo.materials[mname1]
-            mats[idx].shells.append(Shell(shname,shmat,uv))
+            mats[idx].shells.append(Shell(shname,shmat,uv,self))
             shmat.ignore = True
             self.addNewUvset(uv, geo)
             self.matused.append(mname)
@@ -821,10 +821,16 @@ class Geometry(Asset, Channels):
 #-------------------------------------------------------------
 
 class Shell:
-    def __init__(self, shname, shmat, uv):
+    def __init__(self, shname, shmat, uv, geo):
         self.name = shname
         self.material = shmat
         self.uv = uv
+        self.geometry = geo
+        print(self)
+
+
+    def __repr__(self):
+        return ("<Shell %s %s\n  %s>" % (self.name, self.material.name, self.geometry.id))
 
 #-------------------------------------------------------------
 #   UV Asset

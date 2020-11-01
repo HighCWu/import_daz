@@ -309,6 +309,10 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.restore_udims")
 
             box.separator()
+            box.operator("daz.set_shell_visibility")
+            box.operator("daz.remove_shells")
+
+            box.separator()
             box.operator("daz.launch_editor")
             box.operator("daz.reset_material")
 

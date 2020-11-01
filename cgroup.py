@@ -78,6 +78,7 @@ class ShellGroup(MaterialGroup):
         self.buildLayer(context)
         alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
         mult = self.addNode("ShaderNodeMath", 6)
+        mult.name = mult.label = "Influence"
         mult.operation = 'MULTIPLY'
         mult.inputs[0].default_value = 1
         mult.inputs[1].default_value = alpha

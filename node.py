@@ -125,7 +125,7 @@ class Instance(Accessor, Channels):
         node.extra = []
         self.channels = node.channels
         node.channels = {}
-        self.shell = {}
+        self.shstruct = {}
         self.center = Vector((0,0,0))
         self.refgroup = None
         self.isGroupNode = False
@@ -172,7 +172,7 @@ class Instance(Accessor, Channels):
             if "type" not in extra.keys():
                 continue
             elif extra["type"] == "studio/node/shell":
-                self.shell = extra
+                self.shstruct = extra
             elif extra["type"] == "studio/node/group_node":
                 self.isGroupNode = True
             elif extra["type"] == "studio/node/instance":
@@ -628,7 +628,7 @@ class Node(Asset, Formula, Channels):
     def buildObject(self, context, inst, center):
         scn = context.scene
         if isinstance(self.data, Asset):
-            if self.data.shell and GS.mergeShells:
+            if self.data.shstruct and GS.mergeShells:
                 return
             ob = self.data.buildData(context, self, inst, center)
             if not isinstance(ob, bpy.types.Object):
