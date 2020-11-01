@@ -311,6 +311,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.separator()
             box.operator("daz.set_shell_visibility")
             box.operator("daz.remove_shells")
+            box.operator("daz.remove_shell_duplicates")
 
             box.separator()
             box.operator("daz.launch_editor")

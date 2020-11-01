@@ -826,7 +826,6 @@ class Shell:
         self.material = shmat
         self.uv = uv
         self.geometry = geo
-        print(self)
 
 
     def __repr__(self):

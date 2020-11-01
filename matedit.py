@@ -592,15 +592,100 @@ class DAZ_OT_SetShellVisibility(DazPropsOperator, IsMesh):
                 self.shells.append((tree, slot))
                 return
 
+# ---------------------------------------------------------------------
+#   Remove shells from materials
+# ---------------------------------------------------------------------
 
-class DAZ_OT_RemoveShells(DazPropsOperator, IsMesh):
+class ShellRemover:
+    def getShells(self, context):
+        ob = context.object
+        self.shells = {}
+        for mat in ob.data.materials:
+            if mat.node_tree:
+                for node in mat.node_tree.nodes:
+                    if node.type == 'GROUP':
+                        self.addShell(mat, node, node.node_tree)
+
+
+    def addShell(self, mat, shell, tree):
+        for node in tree.nodes:
+            if node.name == "Influence":
+                data = (mat,shell)
+                if tree.name in self.shells.keys():
+                    struct = self.shells[tree.name]
+                    if mat.name in struct.keys():
+                        struct[mat.name].append(data)
+                    else:
+                        struct[mat.name] = [data]
+                else:
+                    self.shells[tree.name] = {mat.name : [data]}
+                return
+
+
+    def deleteNodes(self, mat, shell):
+        print("Delete shell '%s' from material '%s'" % (shell.name, mat.name))
+        linkFrom = {}
+        linkTo = {}
+        tree = mat.node_tree
+        for link in tree.links:
+            if link.to_node == shell:
+                linkFrom[link.to_socket.name] = link.from_socket
+            if link.from_node == shell:
+                linkTo[link.from_socket.name] = link.to_socket
+        for key in linkFrom.keys():
+            if key in linkTo.keys():
+                tree.links.new(linkFrom[key], linkTo[key])
+        tree.nodes.remove(shell)
+
+
+class DAZ_OT_RemoveShells(DazPropsOperator, ShellRemover, IsMesh):
     bl_idname = "daz.remove_shells"
     bl_label = "Remove Shells"
-    bl_description = "Remove selected geometry shells from active object"
+    bl_description = "Remove selected shells from active object"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        for pg in context.scene.DazSelector:
+            row = self.layout.row()
+            row.prop(pg, "select", text="")
+            row.label(text = pg.text)
+
+
+    def run(self, context):
+        for pg in context.scene.DazSelector:
+            if pg.select:
+                for data in self.shells[pg.text].values():
+                    for mat,node in data:
+                        #print(mat.name, node.name)
+                        self.deleteNodes(mat, node)
+
+
+    def invoke(self, context, event):
+        self.getShells(context)
+        from .morphing import setSelector
+        setSelector(self)
+        pgs = context.scene.DazSelector
+        pgs.clear()
+        for name,nodes in self.shells.items():
+                pg = pgs.add()
+                pg.text = name
+                pg.select = False
+        return DazPropsOperator.invoke(self, context, event)
+
+
+class DAZ_OT_RemoveShellDuplicates(DazOperator, ShellRemover, IsMesh):
+    bl_idname = "daz.remove_shell_duplicates"
+    bl_label = "Remove Shell Duplicates"
+    bl_description = "Remove duplicated shells from active object"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        pass
+        self.getShells(context)
+        for struct in self.shells.values():
+            for data in struct.values():
+                for mat,node in data[1:]:
+                    #print("  ", mat.name,node.name)
+                    self.deleteNodes(mat, node)
 
 #----------------------------------------------------------
 #   Initialize
@@ -615,6 +700,7 @@ classes = [
     DAZ_OT_ResetMaterial,
     DAZ_OT_SetShellVisibility,
     DAZ_OT_RemoveShells,
+    DAZ_OT_RemoveShellDuplicates,
 ]
 
 def initialize():
