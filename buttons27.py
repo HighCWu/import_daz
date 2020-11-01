@@ -55,11 +55,6 @@ class AffectOptions:
         description = "Animate bones.",
         default = True)
 
-    affectTranslations = BoolProperty(
-        name = "Affect Translations",
-        description = "Animate translations in addition to rotations and scale transformations",
-        default = True)
-
     affectMorphs = BoolProperty(
         name = "Affect Morphs",
         description = "Animate morph properties.",

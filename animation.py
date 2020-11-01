@@ -34,7 +34,7 @@ from mathutils import *
 from .error import *
 from .utils import *
 from .transform import Transform
-from .globvars import theDazExtensions, theRestPoseItems
+from .globvars import theDazExtensions
 from .formula import PoseboneDriver
 from .fileutils import MultiFile
 
@@ -174,22 +174,11 @@ def getChannel(url):
     else:
         return None,None,None
 
-
 #-------------------------------------------------------------
 #   Frame converter class
 #-------------------------------------------------------------
 
 class FrameConverter:
-
-    SourceType = {
-        "genesis" : "genesis",
-        "genesis_2_female" : "genesis2",
-        "genesis_2_male" : "genesis2",
-        "genesis_3_female" : "genesis3",
-        "genesis_3_male" : "genesis3",
-        "genesis_8_female" : "genesis8",
-        "genesis_8_male" : "genesis8",
-    }
 
     def getConv(self, bones, rig):
         from .figure import getRigType
@@ -198,21 +187,17 @@ class FrameConverter:
         stype = None
         conv = {}
         twists = {}
-        if self.srcCharacter == 'AUTOMATIC':
-            if (rig.DazRig == "mhx" or
-                rig.DazRig[0:6] == "rigify"):
-                stype = "genesis8"
-            else:
-                stype = getRigType(bones)
-            if not stype:
-                print("Could not auto-detect character in duf/dsf file")
-        elif self.srcCharacter != 'NONE':
-            stype = self.SourceType[self.srcCharacter]
+        if (rig.DazRig == "mhx" or
+            rig.DazRig[0:6] == "rigify"):
+            stype = "genesis8"
+        else:
+            stype = getRigType(bones)
         if stype:
             conv,twists = getConverter(stype, rig)
             if not conv:
                 conv = {}
-        #bonemap = OrderedDict([(bname,bname) for bname in rig.pose.bones.keys()])
+        else:
+            print("Could not auto-detect character in duf/dsf file")
         bonemap = OrderedDict()
         return conv, twists, bonemap
 
@@ -253,10 +238,6 @@ class FrameConverter:
             nanims.append((nbanim,vanim))
 
         if self.convertPoses:
-            if self.srcCharacter == 'AUTOMATIC':
-                raise DazError("Cannot convert from Automatic source character")
-            elif self.srcCharacter == 'NONE':
-                raise DazError("Cannot convert if source character is not given")
             self.convertAllFrames(nanims, rig, bonemap)
         return nanims, locks
 
@@ -397,15 +378,14 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         layout.prop(self, "affectObject")
         if False and self.affectObject and self.affectBones:
             layout.prop(self, "useMergeHipObject")
-        if self.affectObject or self.affectBones:
-            layout.prop(self, "affectTranslations")
         layout.prop(self, "affectMorphs")
         if self.affectMorphs:
             layout.prop(self, "reportMissingMorphs")
         layout.prop(self, "ignoreLimits")
         layout.prop(self, "ignoreLocks")
-        layout.prop(self, "srcCharacter")
         layout.prop(self, "convertPoses")
+        if self.convertPoses:
+            layout.prop(self, "srcCharacter")
 
 
     def invoke(self, context, event):
@@ -541,15 +521,6 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
             return None
 
 
-    def mayTranslate(self, bname, rig):
-        if self.affectTranslations:
-            return True
-        else:
-            hip = self.getHipBone(rig)
-            master = self.getMasterBone(rig)
-            return (bname not in [hip, master])
-
-
     def getHipBone(self, rig):
         if rig.DazRig == "mhx":
             return "root"
@@ -584,8 +555,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
 
 
     def clearBone(self, pb, rig, tfm, frame):
-        if self.mayTranslate(pb.name, rig):
-            pb.location = (0,0,0)
+        pb.location = (0,0,0)
         pb.rotation_euler = (0,0,0)
         pb.rotation_quaternion = (1,0,0,0)
         if self.insertKeys:
@@ -763,12 +733,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
             if twist:
                 setBoneTwist(tfm, pb)
             else:
-                if self.mayTranslate(bname, rig):
-                    setBoneTransform(tfm, pb)
-                else:
-                    loc = pb.location.copy()
-                    setBoneTransform(tfm, pb)
-                    pb.location = loc
+                setBoneTransform(tfm, pb)
                 self.imposeLocks(pb)
                 self.imposeLimits(pb)
             if self.insertKeys:

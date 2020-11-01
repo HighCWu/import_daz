@@ -46,18 +46,13 @@ class ConvertOptions:
         items = G.theRestPoseItems,
         name = "Source Character",
         description = "Character this file was made for",
-        default = "AUTOMATIC")
+        default = "genesis_3_female")
 
 
 class AffectOptions:
     affectBones : BoolProperty(
         name = "Affect Bones",
         description = "Animate bones.",
-        default = True)
-
-    affectTranslations : BoolProperty(
-        name = "Affect Translations",
-        description = "Animate translations in addition to rotations and scale transformations",
         default = True)
 
     affectMorphs : BoolProperty(
