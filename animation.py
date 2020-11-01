@@ -110,7 +110,7 @@ def extendFcurves(rig, frame0, frame1):
                 fcu.keyframe_points.insert(frame, value, options={'FAST'})
 
 
-def addFrames(bname, channel, nmax, cname, frames):
+def addFrames(bname, channel, nmax, cname, frames, default=None):
     for comp in range(nmax):
         if comp not in channel.keys():
             continue
@@ -128,9 +128,11 @@ def addFrames(bname, channel, nmax, cname, frames):
                 bframe = frame[bname]
             if cname == "value":
                 bframe[cname] = {0: y}
-            else:
+            elif nmax == 1:
+                bframe[cname] = y
+            elif nmax == 3:
                 if cname not in bframe.keys():
-                    bframe[cname] = Vector((0,0,0))
+                    bframe[cname] = Vector(default)
                 bframe[cname][comp] = y
 
 
@@ -495,11 +497,16 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                         elif channel in ["translation", "rotation", "scale"]:
                             if key not in bones.keys():
                                 bone = bones[key] = {
-                                    "translation": {},
-                                    "rotation": {},
-                                    "scale": {},
+                                    "translation" : {},
+                                    "rotation" : {},
+                                    "scale" : {},
+                                    "general_scale" : {},
                                     }
-                            bones[key][channel][getIndex(comp)] = getAnimKeys(anim)
+                            idx = getIndex(comp)
+                            if idx >= 0:
+                                bones[key][channel][idx] = getAnimKeys(anim)
+                            else:
+                                bones[key]["general_scale"][0] = getAnimKeys(anim)
                         else:
                             print("Unknown channel:", channel)
 
@@ -606,12 +613,13 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
             frames = {}
             n = -1
             for bname, channels in banim.items():
-                if "rotation" in channels.keys():
-                    addFrames(bname, channels["rotation"], 3, "rotation", frames)
-                if "translation" in channels.keys():
-                    addFrames(bname, channels["translation"], 3, "translation", frames)
-                if "scale" in channels.keys():
-                    addFrames(bname, channels["scale"], 3, "scale", frames)
+                for key,channel in channels.items():
+                    if key in ["rotation", "translation"]:
+                        addFrames(bname, channel, 3, key, frames, default=(0,0,0))
+                    elif key == "scale":
+                        addFrames(bname, channel, 3, key, frames, default=(1,1,1))
+                    elif key == "general_scale":
+                        addFrames(bname, channel, 1, key, frames)
 
             for vname, channels in vanim.items():
                 addFrames(vname, {0: channels}, 1, "value", frames)
@@ -628,13 +636,13 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                         elif key == "rotation":
                             tfm.setRot(bframe["rotation"], prop)
                         elif key == "scale":
-                            tfm.setScale(bframe["scale"], True, prop)
+                            tfm.setScale(bframe["scale"], False, prop)
                         elif key == "general_scale":
-                            tfm.setGeneral(bframe["general_scale"], True, prop)
+                            tfm.setGeneral(bframe["general_scale"], False, prop)
                         elif key == "value":
                             value = bframe["value"][0]
                         else:
-                            print(" GG ", bname, key)
+                            print("Unknown key:", bname, key)
 
                     if (bname == "@selection" or
                         bname in self.KnownRigs):

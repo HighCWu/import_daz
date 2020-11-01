@@ -66,9 +66,9 @@ class Transform:
         self.scale = None
         self.scaleProp = None
 
-    def setScale(self, scale, subtract, prop=None):
-        if subtract:
-            self.scale = Vector(scale) - Vector((1,1,1))
+    def setScale(self, scale, addUnit, prop=None):
+        if addUnit:
+            self.scale = Vector(scale) + Vector((1,1,1))
         else:
             self.scale = Vector(scale)
         self.scaleProp = prop
@@ -77,20 +77,19 @@ class Transform:
         self.general = None
         self.generalProp = None
 
-    def setGeneral(self, general, subtract, prop=None):
-        if subtract:
-            self.general = Vector(general) - Vector((1,1,1))
+    def setGeneral(self, general, addUnit, prop=None):
+        if addUnit:
+            self.general = general + 1
         else:
-            self.general = Vector(general)
+            self.general = general
         self.generalProp = prop
-        print("GGG", self.general)
 
 
     def evalTrans(self):
         if self.trans is None:
             return Vector((0,0,0))
         else:
-            return d2b00(self.trans)
+            return self.trans
 
     def evalRot(self):
         if self.rot is None:
@@ -99,20 +98,19 @@ class Transform:
             return self.rot*D
 
     def evalScale(self):
-        unit = Vector((1,1,1))
         if self.scale is None:
-            scale = unit
+            scale = Vector((1,1,1))
         else:
-            scale = self.scale + unit
+            scale = self.scale
         if self.general is not None:
-            scale *= (self.general + unit)
+            scale *= self.general
         if scale.length == 0:
             raise RuntimeError("Bug evalScale")
         return scale
 
 
     def getTransMat(self):
-        return Matrix.Translation(self.evalTrans())
+        return Matrix.Translation(d2b00(self.evalTrans()))
 
 
     def getRotMat(self, pb):
