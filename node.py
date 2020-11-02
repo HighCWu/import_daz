@@ -694,7 +694,6 @@ class Node(Asset, Formula, Channels):
 #-------------------------------------------------------------
 
 def setParent(context, ob, rig, bname=None, update=True):
-    print("SETPAR", ob.name, rig.name)
     if update:
         updateScene(context)
     if ob.parent != rig:

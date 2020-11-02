@@ -133,7 +133,7 @@ class FigureInstance(Instance):
         rig.DazRotLimits = GS.useLimitRot
         rig.DazLocLimits = GS.useLimitLoc
         self.fixDependencyLoops(rig)
-        self.addCustomShapes(rig)
+        self.addCustomShapes(rig, context)
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
@@ -149,7 +149,7 @@ class FigureInstance(Instance):
             print("  %s" % [inst.node.name for inst in missing])
 
 
-    def addCustomShapes(self, rig):
+    def addCustomShapes(self, rig, context):
         from .finger import getFingeredCharacter
         if self.node.rigtype and GS.useCustomShapes:
             for geo in self.geometries:
@@ -157,7 +157,7 @@ class FigureInstance(Instance):
                     _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
                     if char:
                         if GS.useCustomShapes:
-                            addCustomShapes(rig)
+                            addCustomShapes(rig, context)
 
 
     def fixDependencyLoops(self, rig):
@@ -1098,6 +1098,7 @@ def makeCustomShape(csname, gname, offset=(0,0,0), scale=1):
     verts = [(a*(x+u), b*(y+v), c*(z+w)) for x,y,z in struct["verts"]]
     me.from_pydata(verts, struct["edges"], [])
     ob = bpy.data.objects.new(csname, me)
+    LS.customShapes.append(ob)
     return ob
 
 
@@ -1108,10 +1109,11 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        addCustomShapes(context.object)
+        addCustomShapes(context.object, context)
 
 
-def addCustomShapes(rig):
+def addCustomShapes(rig, context):
+    LS.customShapes = []
     IK = SimpleIK()
 
     csCollar = makeCustomShape("CS_Collar", "CircleX", (0,1,0), (0,0.5,0.1))
@@ -1236,6 +1238,20 @@ def addCustomShapes(rig):
         else:
             pb.custom_shape = circleY2
             print("Unknown bone:", pb.name)
+
+    hideCustomShapes(rig, context)
+
+
+def hideCustomShapes(rig, context):
+    hidden = createHiddenCollection(context)
+    empty = bpy.data.objects.new("Custom Shapes", None)
+    hidden.objects.link(empty)
+    empty.parent = rig
+    putOnHiddenLayer(empty)
+    for ob in LS.customShapes:
+        hidden.objects.link(ob)
+        ob.parent = empty
+        putOnHiddenLayer(ob)
 
 
 def makeSpine(pb, width, tail=0.5):
