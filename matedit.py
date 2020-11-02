@@ -557,7 +557,30 @@ def getActiveMaterial(scn, context):
 #   Set Shell Visibility
 # ---------------------------------------------------------------------
 
-class DAZ_OT_SetShellVisibility(DazPropsOperator, IsMesh):
+class ShellGetter:
+
+    def getShells(self, meshes):
+        self.shells = []
+        for ob in meshes:
+            for mat in ob.data.materials:
+                if mat.node_tree:
+                    for node in mat.node_tree.nodes:
+                        if node.type == 'GROUP':
+                            self.addShell(node.node_tree)
+
+
+    def addShell(self, tree):
+        for shell in self.shells:
+            if shell[0] == tree:
+                return
+        for node in tree.nodes:
+            if node.name == "Influence":
+                slot = node.inputs[0]
+                self.shells.append((tree, slot))
+                return
+
+
+class DAZ_OT_SetShellVisibility(DazPropsOperator, ShellGetter, IsMesh):
     bl_idname = "daz.set_shell_visibility"
     bl_label = "Set Shell Visibility"
     bl_description = "Control the visility of geometry shells"
@@ -570,27 +593,38 @@ class DAZ_OT_SetShellVisibility(DazPropsOperator, IsMesh):
     def run(self, context):
         pass
 
-
     def invoke(self, context, event):
-        self.shells = []
-        ob = context.object
-        for mat in ob.data.materials:
-            if mat.node_tree:
-                for node in mat.node_tree.nodes:
-                    if node.type == 'GROUP':
-                        self.addShell(node.node_tree)
+        self.getShells([context.object])
         return DazPropsOperator.invoke(self, context, event)
 
 
-    def addShell(self, tree):
-        for shell in self.shells:
-            if shell[0] == tree:
-                return
-        for node in tree.nodes:
-            if node.name == "Influence":
-                slot = node.inputs[0]
-                self.shells.append((tree, slot))
-                return
+class DAZ_OT_CreateShellVisibilityDrivers(DazOperator, ShellGetter, IsMeshArmature):
+    bl_idname = "daz.create_shell_visibility_drivers"
+    bl_label = "Create Shell Visibility Drivers"
+    bl_description = "Create rig properties that drive shell visibility"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        from .driver import setFloatProp, makePropDriver
+        from .finger import getRigMeshes
+        rig,meshes = getRigMeshes(context)
+        self.getShells(meshes)
+        for tree,slot in self.shells:
+            prop = "DzS" + tree.name
+            setFloatProp(rig, prop, 1.0)
+            makePropDriver(prop, slot, "default_value", rig, "x")
+            rig.DazVisibilityDrivers = True
+        for ob in meshes:
+            activateObject(context, ob)
+            for mat in ob.data.materials:
+                for node in mat.node_tree.nodes:
+                    if node.type == 'GROUP':
+                        tree = node.node_tree
+                        if tree.animation_data:
+                            for fcu in tree.animation_data.drivers:
+                                fcu.driver.expression = "x"
+                                print("MM", fcu.data_path, fcu.array_index)
+        activateObject(context, rig)
 
 # ---------------------------------------------------------------------
 #   Remove shells from materials
@@ -699,6 +733,7 @@ classes = [
     DAZ_OT_ChangeTweakType,
     DAZ_OT_ResetMaterial,
     DAZ_OT_SetShellVisibility,
+    DAZ_OT_CreateShellVisibilityDrivers,
     DAZ_OT_RemoveShells,
     DAZ_OT_RemoveShellDuplicates,
 ]

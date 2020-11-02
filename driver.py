@@ -351,8 +351,8 @@ def makePropDriver(prop, rna, channel, rig, expr, idx=-1):
     rna.driver_remove(channel, idx)
     fcu = rna.driver_add(channel, idx)
     fcu.driver.type = 'SCRIPTED'
-    fcu.driver.expression = expr
     addDriverVar(fcu, "x", prop, rig)
+    fcu.driver.expression = expr
 
 
 def makeShapekeyDriver(ob, sname, value, rig, prop, min=None, max=None):

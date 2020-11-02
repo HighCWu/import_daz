@@ -651,7 +651,7 @@ class Geometry(Asset, Channels):
             for mats in self.materials.values():
                 mat = mats[0]
                 me.materials.append(mat.rna)
-            return
+            return None
 
         edges = []
         faces = self.faces
@@ -681,6 +681,7 @@ class Geometry(Asset, Channels):
             f.material_index = mn
             f.use_smooth = True
 
+        hasShells = False
         for mn,mname in enumerate(self.polygon_material_groups):
             if mname in self.materials.keys():
                 mats = self.materials[mname]
@@ -701,6 +702,8 @@ class Geometry(Asset, Channels):
                     reportError(msg, trigger=(2,3))
                     return None
                 me.materials.append(mat.rna)
+                if mat.shells:
+                    hasShells = True
                 if mat.uv_set and mat.uv_set.checkSize(me):
                     self.uv_set = mat.uv_set
                 me.use_auto_smooth = mat.getValue(["Smooth On"], False)
@@ -721,6 +724,11 @@ class Geometry(Asset, Channels):
                 for mname in struct["materials"]:
                     item = items.names.add()
                     item.name = mname
+
+        ob = bpy.data.objects.new(inst.name, me)
+        if hasShells:
+            ob.DazVisibilityDrivers = True
+        return ob
 
 
     def buildUVSet(self, context, uv_set, me, setActive):

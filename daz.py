@@ -309,7 +309,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.restore_udims")
 
             box.separator()
-            box.operator("daz.set_shell_visibility")
             box.operator("daz.remove_shells")
             box.operator("daz.remove_shell_duplicates")
 
@@ -415,6 +414,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowVisibility", box):
+            #box.operator("daz.create_shell_visibility_drivers")
             box.operator("daz.add_shrinkwrap")
             box.operator("daz.create_masks")
             box.operator("daz.add_visibility_drivers")
@@ -1029,24 +1029,30 @@ class DAZ_PT_Visibility(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         ob = context.object
-        return (ob and ob.type == 'ARMATURE' and ob.DazVisibilityDrivers)
+        return (ob and ob.DazVisibilityDrivers)
 
     def draw(self, context):
         ob = context.object
         scn = context.scene
-        layout = self.layout
-        split = splitLayout(layout, 0.3333)
+        if ob.type == 'MESH':
+            self.layout.operator("daz.set_shell_visibility")
+            return
+        split = splitLayout(self.layout, 0.3333)
         split.operator("daz.prettify")
         split.operator("daz.show_all_vis")
         split.operator("daz.hide_all_vis")
         props = list(ob.keys())
         props.sort()
+        self.drawProps(ob, props, "Mhh")
+        self.drawProps(ob, props, "DzS")
+
+    def drawProps(self, ob, props, prefix):
         for prop in props:
-            if prop[0:3] == "Mhh":
+            if prop[0:3] == prefix:
                 if hasattr(ob, prop):
-                    layout.prop(ob, prop, text=prop[3:])
+                    self.layout.prop(ob, prop, text=prop[3:])
                 else:
-                    layout.prop(ob, '["%s"]' % prop, text=prop[3:])
+                    self.layout.prop(ob, '["%s"]' % prop, text=prop[3:])
 
 #-------------------------------------------------------------
 #   Settings popup
