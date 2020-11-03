@@ -100,7 +100,6 @@ class GlobalSettings:
         self.postponeHair = False
         self.multipleHairMaterials = True
         self.useSkullGroup = False
-        self.addFaceDrivers = True
         self.useInfluence = True
         self.useSimulation = False
         self.useDeflectors = True
@@ -151,7 +150,6 @@ class GlobalSettings:
         "DazPostponeHair" : "postponeHair",
         "DazMultipleHairMaterials" : "multipleHairMaterials",
         "DazSkullGroup" : "useSkullGroup",
-        "DazAddFaceDrivers" : "addFaceDrivers",
         "DazInfluence" : "useInfluence",
         "DazSimulation" : "useSimulation",
         "DazDeflectors" : "useDeflectors",

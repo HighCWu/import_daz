@@ -1200,7 +1200,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazVerbosity")
         box.prop(scn, "DazZup")
         box.prop(scn, "DazCaseSensitivePaths")
-        box.prop(scn, "DazAddFaceDrivers")
 
         box = col.box()
         box.label(text = "Meshes")
@@ -1543,10 +1542,6 @@ def initialize():
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(
         name = "Case-Sensitive Paths",
         description = "Convert URLs to lowercase. Works best on Windows.")
-
-    bpy.types.Scene.DazAddFaceDrivers = BoolProperty(
-        name = "Add Face Drivers",
-        description = "Add drivers to facial morphs. Only for Genesis 1 and 2.")
 
     bpy.types.Scene.DazUseInstancing = BoolProperty(
         name = "Use Instancing",

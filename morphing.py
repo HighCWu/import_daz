@@ -712,7 +712,7 @@ class LoadAllMorphs(LoadMorph):
     def run(self, context):
         scn = context.scene
         setupMorphPaths(scn, False)
-        self.usePropDrivers = (GS.addFaceDrivers and not self.useShapekeysOnly)
+        self.usePropDrivers = (not self.useShapekeysOnly)
         self.rig.DazMorphPrefixes = False
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
