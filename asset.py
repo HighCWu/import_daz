@@ -354,8 +354,9 @@ class Asset(Accessor):
 
         if "source" in struct.keys():
             asset = self.getAsset(struct["source"])
-            self.source = asset
-            asset.sourcing = self
+            if asset:
+                self.source = asset
+                asset.sourcing = self
 
         return self
 
@@ -559,6 +560,7 @@ def getDazPath(ref):
     global theDazPaths
 
     path = normalizePath(ref)
+    filepath = path
     if path[2] == ":":
         filepath = path[1:]
         if GS.verbosity > 2:
@@ -572,8 +574,6 @@ def getDazPath(ref):
                 filepath = fixBrokenPath(filepath)
                 if os.path.exists(filepath):
                     return filepath
-    else:
-        filepath = path
 
     if os.path.exists(filepath):
         if GS.verbosity > 2:

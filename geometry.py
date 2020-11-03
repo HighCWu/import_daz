@@ -288,7 +288,7 @@ class GeoNode(Node):
 
 
     def hideVertexGroupsMesh(self, ob, hidden):
-        if ob is None:
+        if not (ob and ob.data):
             return
         idxs = []
         for vgrp in ob.vertex_groups:

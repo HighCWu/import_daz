@@ -158,6 +158,9 @@ class ExtraAsset(Modifier, Channels):
 
 
     def build(self, context, inst):
+        if inst is None:
+            print("Cannot build %s" % self)
+            return
         pinst = inst.parent
         geonode = self.getGeoNode(inst)
         pgeonode = self.getGeoNode(pinst)
