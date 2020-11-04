@@ -70,8 +70,7 @@ function exportHighdefToBlender()
 function doFigure (fp, figure)
 {
     figure.finalize();
-    var flabel = figure.getLabel();
-    startObject(fp, figure, flabel);
+    startObject(fp, figure);
 
     var obj = figure.getObject();
     if (obj != null) 
@@ -111,11 +110,10 @@ function doFigure (fp, figure)
 //
 //===============================================================================
 
-function startObject(fp, node, label)
+function startObject(fp, node)
 {
     fp.writeLine("    {" );
     fp.writeLine("        \"name\": \"" + node.name + "\",");
-    fp.writeLine("        \"label\": \"" + label + "\",");
     fp.writeLine("        \"center_point\": " + node.getOrigin() + ",");
     fp.writeLine("        \"end_point\": " + node.getEndPoint() + ",");     
 }
@@ -132,7 +130,7 @@ function doMesh (fp, obj, start, node, str1, str2)
 
     if (start)
     {
-        startObject(fp, node, "undefined");
+        startObject(fp, node);
     }
 
     // Write HD data
