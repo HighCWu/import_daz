@@ -37,7 +37,12 @@ from .material import WHITE
 # ---------------------------------------------------------------------
 
 class MaterialGroup:
-    def __init__(self, node, name, parent, ncols):
+    def __init__(self):
+        self.insockets = []
+        self.outsockets = []
+
+
+    def create(self, node, name, parent, ncols):
         self.group = bpy.data.node_groups.new(name, 'ShaderNodeTree')
         node.node_tree = self.group
         self.nodes = self.group.nodes
@@ -48,10 +53,22 @@ class MaterialGroup:
         self.ncols = ncols
 
 
+    def checkSockets(self, tree):
+        for socket in self.insockets:
+            if socket not in tree.inputs.keys():
+                print("Missing insocket: %s" % socket)
+                return False
+        for socket in self.outsockets:
+            if socket not in tree.outputs.keys():
+                print("Missing outsocket: %s" % socket)
+                return False
+        return True
+
+
 class CyclesGroup(MaterialGroup, CyclesTree):
-    def __init__(self, node, name, parent, ncols):
+    def create(self, node, name, parent, ncols):
         CyclesTree.__init__(self, parent.material)
-        MaterialGroup.__init__(self, node, name, parent, ncols)
+        MaterialGroup.create(self, node, name, parent, ncols)
 
     def __repr__(self):
         return ("<NodeGroup %s>" % self.group)
@@ -62,8 +79,14 @@ class CyclesGroup(MaterialGroup, CyclesTree):
 
 class ShellGroup(MaterialGroup):
 
-    def __init__(self, node, shell, parent):
-        MaterialGroup.__init__(self, node, shell.name, parent, 8)
+    def __init__(self):
+        MaterialGroup.__init__(self)
+        self.insockets += ["Cycles", "Eevee", "UV"]
+        self.outsockets += ["Cycles", "Eevee"]
+
+
+    def create(self, node, name, parent):
+        MaterialGroup.create(self, node, name, parent, 8)
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
         self.group.inputs.new("NodeSocketVector", "UV")
@@ -99,15 +122,15 @@ class ShellGroup(MaterialGroup):
 
 
 class ShellCyclesGroup(ShellGroup, CyclesTree):
-    def __init__(self, node, shell, parent):
+    def create(self, node, shell, parent):
         CyclesTree.__init__(self, parent.material)
-        ShellGroup.__init__(self, node, shell, parent)
+        ShellGroup.create(self, node, shell, parent)
 
 
 class ShellPbrGroup(ShellGroup, PbrTree):
-    def __init__(self, node, shell, parent):
+    def create(self, node, shell, parent):
         PbrTree.__init__(self, parent.material)
-        ShellGroup.__init__(self, node, shell, parent)
+        ShellGroup.create(self, node, shell, parent)
 
 
 # ---------------------------------------------------------------------
@@ -116,8 +139,14 @@ class ShellPbrGroup(ShellGroup, PbrTree):
 
 class FresnelGroup(CyclesGroup):
 
-    def __init__(self, node, name, parent):
-        CyclesGroup.__init__(self, node, name, parent, 4)
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["IOR", "Roughness", "Normal"]
+        self.outsockets += ["Fac"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 4)
         self.group.inputs.new("NodeSocketFloat", "IOR")
         self.group.inputs.new("NodeSocketFloat", "Roughness")
         self.group.inputs.new("NodeSocketVector", "Normal")
@@ -151,8 +180,14 @@ class FresnelGroup(CyclesGroup):
 # ---------------------------------------------------------------------
 
 class MixGroup(CyclesGroup):
-    def __init__(self, node, name, parent, ncols):
-        CyclesGroup.__init__(self, node, name, parent, ncols)
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["Fac", "Cycles", "Eevee"]
+        self.outsockets += ["Cycles", "Eevee"]
+
+
+    def create(self, node, name, parent, ncols):
+        CyclesGroup.create(self, node, name, parent, ncols)
         self.group.inputs.new("NodeSocketFloat", "Fac")
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
@@ -175,8 +210,14 @@ class MixGroup(CyclesGroup):
 # ---------------------------------------------------------------------
 
 class AddGroup(CyclesGroup):
-    def __init__(self, node, name, parent, ncols):
-        CyclesGroup.__init__(self, node, name, parent, ncols)
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["Cycles", "Eevee"]
+        self.outsockets += ["Cycles", "Eevee"]
+
+
+    def create(self, node, name, parent, ncols):
+        CyclesGroup.create(self, node, name, parent, ncols)
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
         self.group.outputs.new("NodeSocketShader", "Cycles")
@@ -197,8 +238,13 @@ class AddGroup(CyclesGroup):
 
 class EmissionGroup(AddGroup):
 
-    def __init__(self, node, name, parent):
-        AddGroup.__init__(self, node, name, parent, 3)
+    def __init__(self):
+        AddGroup.__init__(self)
+        self.insockets += ["Color", "Strength"]
+
+
+    def create(self, node, name, parent):
+        AddGroup.create(self, node, name, parent, 3)
         self.group.inputs.new("NodeSocketColor", "Color")
         self.group.inputs.new("NodeSocketFloat", "Strength")
 
@@ -213,12 +259,19 @@ class EmissionGroup(AddGroup):
 
 
 class OneSidedGroup(CyclesGroup):
-    def __init__(self, node, name, parent):
-        CyclesGroup.__init__(self, node, name, parent, 3)
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["Cycles", "Eevee"]
+        self.outsockets += ["Cycles", "Eevee"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 3)
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
         self.group.outputs.new("NodeSocketShader", "Cycles")
         self.group.outputs.new("NodeSocketShader", "Eevee")
+
 
     def addNodes(self, args=None):
         geo = self.addNode("ShaderNodeNewGeometry", 1)
@@ -240,8 +293,13 @@ class OneSidedGroup(CyclesGroup):
 
 class DiffuseGroup(MixGroup):
 
-    def __init__(self, node, name, parent):
-        MixGroup.__init__(self, node, name, parent, 3)
+    def __init__(self):
+        MixGroup.__init__(self)
+        self.insockets += ["Color", "Roughness", "Normal"]
+
+
+    def create(self, node, name, parent):
+        MixGroup.create(self, node, name, parent, 3)
         self.group.inputs.new("NodeSocketColor", "Color")
         self.group.inputs.new("NodeSocketFloat", "Roughness")
         self.group.inputs.new("NodeSocketVector", "Normal")
@@ -262,8 +320,13 @@ class DiffuseGroup(MixGroup):
 
 class GlossyGroup(MixGroup):
 
-    def __init__(self, node, name, parent):
-        MixGroup.__init__(self, node, name, parent, 3)
+    def __init__(self):
+        MixGroup.__init__(self)
+        self.insockets += ["Color", "Roughness", "Normal"]
+
+
+    def create(self, node, name, parent):
+        MixGroup.create(self, node, name, parent, 3)
         self.group.inputs.new("NodeSocketColor", "Color")
         self.group.inputs.new("NodeSocketFloat", "Roughness")
         self.group.inputs.new("NodeSocketVector", "Normal")
@@ -284,8 +347,15 @@ class GlossyGroup(MixGroup):
 
 class RefractionGroup(MixGroup):
 
-    def __init__(self, node, name, parent):
-        MixGroup.__init__(self, node, name, parent, 4)
+    def __init__(self):
+        MixGroup.__init__(self)
+        self.insockets += [
+            "Refraction Color", "Refraction Roughness", "Refraction IOR",
+            "Glossy Color", "Glossy Roughness", "Fresnel IOR", "Normal"]
+
+
+    def create(self, node, name, parent):
+        MixGroup.create(self, node, name, parent, 4)
         self.group.inputs.new("NodeSocketColor", "Refraction Color")
         self.group.inputs.new("NodeSocketFloat", "Refraction Roughness")
         self.group.inputs.new("NodeSocketFloat", "Refraction IOR")
@@ -328,8 +398,13 @@ class RefractionGroup(MixGroup):
 
 class TransparentGroup(MixGroup):
 
-    def __init__(self, node, name, parent):
-        MixGroup.__init__(self, node, name, parent, 3)
+    def __init__(self):
+        MixGroup.__init__(self)
+        self.insockets += ["Color"]
+
+
+    def create(self, node, name, parent):
+        MixGroup.create(self, node, name, parent, 3)
         self.group.inputs.new("NodeSocketColor", "Color")
 
 
@@ -349,8 +424,13 @@ class TransparentGroup(MixGroup):
 
 class TranslucentGroup(MixGroup):
 
-    def __init__(self, node, name, parent):
-        MixGroup.__init__(self, node, name, parent, 3)
+    def __init__(self):
+        MixGroup.__init__(self)
+        self.insockets += ["Color", "Scale", "Radius", "Normal"]
+
+
+    def create(self, node, name, parent):
+        MixGroup.create(self, node, name, parent, 3)
         self.group.inputs.new("NodeSocketColor", "Color")
         self.group.inputs.new("NodeSocketFloat", "Scale")
         self.group.inputs.new("NodeSocketVector", "Radius")
@@ -382,8 +462,13 @@ class TranslucentGroup(MixGroup):
 
 class SSSGroup(MixGroup):
 
-    def __init__(self, node, name, parent):
-        MixGroup.__init__(self, node, name, parent, 3)
+    def __init__(self):
+        MixGroup.__init__(self)
+        self.insockets += ["Color", "Scale", "Radius", "Normal"]
+
+
+    def create(self, node, name, parent):
+        MixGroup.create(self, node, name, parent, 3)
         self.group.inputs.new("NodeSocketColor", "Color")
         self.group.inputs.new("NodeSocketFloat", "Scale")
         self.group.inputs.new("NodeSocketVector", "Radius")
@@ -406,8 +491,16 @@ class SSSGroup(MixGroup):
 
 class DualLobeGroup(CyclesGroup):
 
-    def __init__(self, node, name, parent):
-        CyclesGroup.__init__(self, node, name, parent, 4)
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += [
+            "Fac", "Cycles", "Eevee", "Weight", "IOR",
+            "Roughness 1", "Roughness 2"]
+        self.outsockets += ["Cycles", "Eevee"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 4)
         self.group.inputs.new("NodeSocketFloat", "Fac")
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
@@ -418,6 +511,7 @@ class DualLobeGroup(CyclesGroup):
         self.group.inputs.new("NodeSocketVector", "Normal")
         self.group.outputs.new("NodeSocketShader", "Cycles")
         self.group.outputs.new("NodeSocketShader", "Eevee")
+
 
 
     def addNodes(self, args=None):
@@ -471,8 +565,16 @@ class DualLobeGroup(CyclesGroup):
 
 class VolumeGroup(CyclesGroup):
 
-    def __init__(self, node, name, parent):
-        CyclesGroup.__init__(self, node, name, parent, 3)
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += [
+            "Absorbtion Color", "Absorbtion Density", "Scatter Color",
+            "Scatter Density", "Scatter Anisotropy"]
+        self.outsockets += ["Volume"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 3)
         self.group.inputs.new("NodeSocketColor", "Absorbtion Color")
         self.group.inputs.new("NodeSocketFloat", "Absorbtion Density")
         self.group.inputs.new("NodeSocketColor", "Scatter Color")
@@ -504,8 +606,14 @@ class VolumeGroup(CyclesGroup):
 
 class NormalGroup(CyclesGroup):
 
-    def __init__(self, node, name, parent):
-        CyclesGroup.__init__(self, node, name, parent, 8)
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["Strength", "Color"]
+        self.outsockets += ["Normal"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 8)
 
         strength = self.group.inputs.new("NodeSocketFloat", "Strength")
         strength.default_value = 1.0
@@ -621,8 +729,14 @@ class NormalGroup(CyclesGroup):
 
 class DisplacementGroup(CyclesGroup):
 
-    def __init__(self, node, name, parent):
-        CyclesGroup.__init__(self, node, name, parent, 4)
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["Texture", "Strength", "Difference", "Min"]
+        self.outsockets += ["Height"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 4)
         self.group.inputs.new("NodeSocketFloat", "Texture")
         self.group.inputs.new("NodeSocketFloat", "Strength")
         self.group.inputs.new("NodeSocketFloat", "Difference")
@@ -654,8 +768,14 @@ class DisplacementGroup(CyclesGroup):
 
 class LieGroup(CyclesGroup):
 
-    def __init__(self, node, name, parent):
-        CyclesGroup.__init__(self, node, name, parent, 6)
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["Vector", "Alpha"]
+        self.outsockets += ["Color"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 6)
         self.group.inputs.new("NodeSocketVector", "Vector")
         self.texco = self.inputs.outputs[0]
         self.group.inputs.new("NodeSocketFloat", "Alpha")

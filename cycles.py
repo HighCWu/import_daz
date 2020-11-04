@@ -231,11 +231,14 @@ class CyclesTree:
         node = self.addNode("ShaderNodeGroup", col)
         if size:
             self.ycoords[col] -= size
+        group = classdef()
         if name in bpy.data.node_groups.keys():
-            node.node_tree = bpy.data.node_groups[name]
-        else:
-            group = classdef(node, name, self)
-            group.addNodes(args)
+            tree = bpy.data.node_groups[name]
+            if group.checkSockets(tree):
+                node.node_tree = tree
+                return node
+        group.create(node, name, self)
+        group.addNodes(args)
         return node
 
 
@@ -247,19 +250,17 @@ class CyclesTree:
             print("Invisible shell %s for %s" % (shname, self.material.name))
             return None
         node = self.addNode("ShaderNodeGroup")
-        node.name = shname
-        for shmat1,group in LS.shellGroups:
-            if shmat.equalChannels(shmat1):
-                node.node_tree = group
-                return node
+        name = ("%s_%s" % (shname, self.material.name))
+        node.name = name
         if self.type == 'CYCLES':
             from .cgroup import ShellCyclesGroup
-            group = ShellCyclesGroup(node, shell, self)
+            group = ShellCyclesGroup()
         elif self.type == 'PBR':
             from .cgroup import ShellPbrGroup
-            group = ShellPbrGroup(node, shell, self)
+            group = ShellPbrGroup()
         else:
             raise RuntimeError("Bug Cycles type %s" % self.type)
+        group.create(node, name, self)
         group.addNodes(context, shmat)
         LS.shellGroups.append((shmat, node.node_tree))
         return node
