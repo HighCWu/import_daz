@@ -170,23 +170,6 @@ def finishMain(entity, filepath, t1):
     clearAssets()
 
 #------------------------------------------------------------------
-#   Reparent extra bones
-#------------------------------------------------------------------
-
-class DAZ_OT_ReparentBones(DazOperator):
-    bl_idname = "daz.reparent_bones"
-    bl_label = "Reparent Bones"
-    bl_description = "Reparent selected bones to active"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        rig = context.object
-        par = rig.data.edit_bones.active
-        for eb in rig.data.edit_bones:
-            if eb.select and eb != par:
-                eb.parent = par
-
-#------------------------------------------------------------------
 #   Decode file
 #------------------------------------------------------------------
 
@@ -214,7 +197,14 @@ class DAZ_OT_DecodeFile(DazOperator, B.DazFile, B.SingleFile):
                    "Error: %s" % err)
             print(msg)
             raise DazError(msg)
-        string = bytes.decode("utf_8_sig")
+
+        try:
+            string = bytes.decode("utf_8_sig")
+        except UnicodeDecodeError as err:
+            msg = ('Unicode error while reading zipped file\n"%s"\n%s' % (self.filepath, err))
+            print(msg)
+            raise DazError(msg)
+
         newfile = self.filepath + ".txt"
         with safeOpen(newfile, "w") as fp:
             fp.write(string)
@@ -225,7 +215,6 @@ class DAZ_OT_DecodeFile(DazOperator, B.DazFile, B.SingleFile):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_ReparentBones,
     DAZ_OT_DecodeFile,
 ]
 
