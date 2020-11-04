@@ -54,7 +54,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (ob and ob.DazLocalTextures and len(ob.data.materials) > 0)
+        return (ob and ob.type == 'MESH' and len(ob.data.materials) > 0)
 
 
     def draw(self, context):
@@ -66,6 +66,10 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
 
     def invoke(self, context, event):
         ob = context.object
+        if not ob.DazLocalTextures:
+            from .error import invokeErrorMessage
+            invokeErrorMessage("Save local textures first")
+            return {'CANCELLED'}
         self.umats.clear()
         for mat in ob.data.materials:
             item = self.umats.add()

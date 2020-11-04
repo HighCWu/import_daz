@@ -44,6 +44,7 @@ class MaterialGroup:
 
     def create(self, node, name, parent, ncols):
         self.group = bpy.data.node_groups.new(name, 'ShaderNodeTree')
+        node.name = name
         node.node_tree = self.group
         self.nodes = self.group.nodes
         self.links = self.group.links
