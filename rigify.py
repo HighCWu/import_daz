@@ -926,24 +926,37 @@ class Rigify:
         for key in rig.data.keys():
             self.copyProp(key, rig.data, gen.data)
 
+        # Probably dont need this anymore
+        '''
         for bname,dname in rigifySkel.items():
-            if dname in rig.data.bones.keys():
-                bone = rig.data.bones[dname]
-                if bname in gen.data.bones.keys():
-                    rbone = gen.data.bones[bname]
+            if dname in rig.pose.bones.keys():
+                bone = rig.pose.bones[dname]
+                if bname in gen.pose.bones.keys():
+                    rbone = gen.pose.bones[bname]
                     copyBoneInfo(bone, rbone)
                 else:
                     words = bname.split(".")
                     if len(words) == 2:
                         gname,suffix = words
-                        if gname+"_fk."+suffix in gen.data.bones.keys():
-                            fkbone = gen.data.bones[gname+"_fk."+suffix]
-                        elif gname+".fk."+suffix in gen.data.bones.keys():
-                            fkbone = gen.data.bones[gname+".fk."+suffix]
+                        if gname+"_fk."+suffix in gen.pose.bones.keys():
+                            fkbone = gen.pose.bones[gname+"_fk."+suffix]
+                        elif gname+".fk."+suffix in gen.pose.bones.keys():
+                            fkbone = gen.pose.bones[gname+".fk."+suffix]
                         else:
                             fkbone = None
                         if fkbone:
                             copyBoneInfo(bone, fkbone)
+        '''
+
+        # Some more bones
+        from .convert import getConverterEntry
+        conv = getConverterEntry("genesis-" + meta.DazRigType)
+        for srcname,trgname in conv.items():
+            if (srcname in rig.pose.bones.keys() and
+                trgname in gen.pose.bones.keys()):
+                srcpb = rig.pose.bones[srcname]
+                trgpb = gen.pose.bones[trgname]
+                copyBoneInfo(srcpb, trgpb)
 
         # Handle bone parents
         boneParents = []

@@ -321,12 +321,9 @@ class BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
             if not bendname in rig.data.bones.keys():
                 continue
-            srcbone = rig.data.bones[bendname]
-            trgbone = rig.data.bones[bname]
+            srcbone = rig.pose.bones[bendname]
+            trgbone = rig.pose.bones[bname]
             copyBoneInfo(srcbone, trgbone)
-            srcpb = rig.pose.bones[bendname]
-            trgpb = rig.pose.bones[bname]
-            trgpb.rotation_mode = srcpb.rotation_mode
 
         bpy.ops.object.mode_set(mode='EDIT')
         for bname,tname in self.BendTwists:

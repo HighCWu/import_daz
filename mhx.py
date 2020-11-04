@@ -1009,14 +1009,14 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
 
         from .figure import copyBoneInfo
         bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode='POSE')
         for suffix in [".L", ".R"]:
             for bname in ["upper_arm", "forearm", "hand",
                           "thigh", "shin", "foot", "toe"]:
-                bone = rig.data.bones[bname+suffix]
-                fkbone = rig.data.bones[bname+".fk"+suffix]
+                bone = rig.pose.bones[bname+suffix]
+                fkbone = rig.pose.bones[bname+".fk"+suffix]
                 copyBoneInfo(bone, fkbone)
 
-        bpy.ops.object.mode_set(mode='POSE')
         rpbs = rig.pose.bones
         for bname in ["root", "hips"]:
             pb = rpbs[bname]

@@ -417,12 +417,13 @@ class DAZ_OT_RotateBones(DazPropsOperator, B.XYZ, IsArmature):
 #   Add extra face bones
 #-------------------------------------------------------------
 
-def copyBoneInfo(srcbone, trgbone):
-    trgbone.DazOrient = Vector(srcbone.DazOrient)
-    trgbone.DazHead = Vector(srcbone.DazHead)
-    trgbone.DazTail = Vector(srcbone.DazTail)
-    trgbone.DazAngle = srcbone.DazAngle
-    trgbone.DazNormal = Vector(srcbone.DazNormal)
+def copyBoneInfo(srcpb, trgpb):
+    trgpb.bone.DazOrient = Vector(srcpb.bone.DazOrient)
+    trgpb.bone.DazHead = Vector(srcpb.bone.DazHead)
+    trgpb.bone.DazTail = Vector(srcpb.bone.DazTail)
+    trgpb.bone.DazAngle = srcpb.bone.DazAngle
+    trgpb.bone.DazNormal = Vector(srcpb.bone.DazNormal)
+    trgpb.DazRotMode = srcpb.DazRotMode
 
 
 class ExtraBones:
@@ -1369,16 +1370,15 @@ class DAZ_OT_CopyDazProps(DazOperator, IsObject):
 
 
     def copyObjectProps(self, src, trg):
-        self.copyProps(src, trg)
+        self.copyInfo(src, trg)
         if src.type == 'ARMATURE':
-            for spb in src.pose.bones:
-                if spb.name in trg.pose.bones.keys():
-                    tpb = trg.pose.bones[spb.name]
-                    self.copyProps(spb, tpb)
-                    self.copyProps(spb.bone, tpb.bone)
+            for srcpb in src.pose.bones:
+                if srcpb.name in trg.pose.bones.keys():
+                    trgpb = trg.pose.bones[srcpb.name]
+                    copyBoneInfo(srcpb, trgpb)
 
 
-    def copyProps(self, src, trg):
+    def copyInfo(self, src, trg):
         for key,value in src.items():
             if key[0:3] == "Daz" and key not in trg.keys():
                 trg[key] = value

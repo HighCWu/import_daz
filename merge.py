@@ -702,9 +702,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                 storage[bname].realname = eb.name
             bpy.ops.object.mode_set(mode='OBJECT')
             for bname in extras:
-                bone = rig.data.bones[bname]
-                copyBoneInfo(ob.data.bones[bname], bone)
-                bone.layers[self.clothesLayer-1] = True
+                pb = rig.pose.bones[bname]
+                copyBoneInfo(ob.pose.bones[bname], pb)
+                pb.bone.layers[self.clothesLayer-1] = True
             return storage
         else:
             return {}
