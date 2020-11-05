@@ -1116,7 +1116,8 @@ class CyclesTree:
             name = os.path.basename(assets[0].map.url)
         except:
             name = "Group"
-        group = LieGroup(node, name, self)
+        group = LieGroup()
+        group.create(node, name, self)
         self.linkVector(self.texco, node)
         group.addTextureNodes(assets, maps, colorSpace)
         node.inputs["Alpha"].default_value = 1

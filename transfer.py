@@ -41,6 +41,7 @@ class MorphTransferer(Selector, B.TransferOptions):
 
     def draw(self, context):
         self.layout.prop(self, "useDriver")
+        self.layout.prop(self, "useOverwrite")
         self.layout.prop(self, "useSelectedOnly")
         self.layout.prop(self, "ignoreRigidity")
         Selector.draw(self, context)
@@ -96,8 +97,9 @@ class MorphTransferer(Selector, B.TransferOptions):
                 continue
 
             if sname in clo.data.shape_keys.key_blocks.keys():
-                cskey = clo.data.shape_keys.key_blocks[sname]
-                clo.shape_key_remove(cskey)
+                if self.useOverwrite:
+                    cskey = clo.data.shape_keys.key_blocks[sname]
+                    clo.shape_key_remove(cskey)
 
             cskey = None
             path = self.getMorphPath(sname, clo, scn)
@@ -365,18 +367,20 @@ class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
 
 
     def draw(self, context):
-        row = splitLayout(self.layout, 0.2)
-        row.label(text="")
+        row = self.layout.row()
+        row.prop(self, "allSimilar")
         row.prop(self, "overwrite")
         row.prop(self, "delete")
-        if not self.overwrite:
-            row = splitLayout(self.layout, 0.2)
-            row.label(text="")
-            row.prop(self, "newName")
         row = splitLayout(self.layout, 0.2)
         row.label(text="")
         row.label(text="First")
         row.label(text="Second")
+        if self.allSimilar:
+            row = splitLayout(self.layout, 0.2)
+            row.label(text="Factor")
+            row.prop(self, "factor1", text="")
+            row.prop(self, "factor2", text="")
+            return
         row = splitLayout(self.layout, 0.2)
         row.label(text="")
         row.prop(self, "filter1", icon='VIEWZOOM', text="")
@@ -389,6 +393,8 @@ class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
         row.label(text="Shapekey")
         row.prop(self, "shape1", text="")
         row.prop(self, "shape2", text="")
+        if not self.overwrite:
+            self.layout.prop(self, "newName")
 
 
     def invoke(self, context, event):
@@ -399,16 +405,40 @@ class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
     def run(self, context):
         ob = context.object
         skeys = ob.data.shape_keys
-        if self.shape1 == self.shape2:
+        if self.allSimilar:
+            shapes = self.findSimilar(ob, skeys)
+            for shape1,shape2 in shapes:
+                print("Mix", shape1, shape2)
+                self.mixShapekeys(ob, skeys, shape1, shape2)
+        else:
+            self.mixShapekeys(ob, skeys, self.shape1, self.shape2)
+
+
+    def findSimilar(self, ob, skeys):
+        slist = list(skeys.key_blocks.keys())
+        slist.sort()
+        shapes = []
+        for n in range(len(slist)-1):
+            shape1 = slist[n]
+            shape2 = slist[n+1]
+            words = shape2.rsplit(".",1)
+            if (len(words) == 2 and
+                words[0] == shape1):
+                shapes.append((shape1,shape2))
+        return shapes
+
+
+    def mixShapekeys(self, ob, skeys, shape1, shape2):
+        if shape1 == shape2:
             raise DazError("Cannot merge shapekey to itself")
-        skey1 = skeys.key_blocks[self.shape1]
-        if self.shape2 == "-":
+        skey1 = skeys.key_blocks[shape1]
+        if shape2 == "-":
             skey2 = None
             factor = self.factor1 - 1
             coords = [(self.factor1 * skey1.data[n].co - factor * v.co)
                        for n,v in enumerate(ob.data.vertices)]
         else:
-            skey2 = skeys.key_blocks[self.shape2]
+            skey2 = skeys.key_blocks[shape2]
             factor = self.factor1 + self.factor2 - 1
             coords = [(self.factor1 * skey1.data[n].co +
                        self.factor2 * skey2.data[n].co - factor * v.co)
@@ -421,9 +451,9 @@ class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
             skey.data[n].co = co
         if self.delete:
             if skey2:
-                self.deleteShape(ob, skeys, self.shape2)
+                self.deleteShape(ob, skeys, shape2)
             if not self.overwrite:
-                self.deleteShape(ob, skeys, self.shape1)
+                self.deleteShape(ob, skeys, shape1)
 
 
     def deleteShape(self, ob, skeys, sname):

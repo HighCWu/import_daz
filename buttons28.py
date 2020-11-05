@@ -706,6 +706,11 @@ class TransferOptions:
         description = "Transfer both shapekeys and drivers",
         default = True)
 
+    useOverwrite : BoolProperty(
+        name = "Overwrite Existing Shapekeys",
+        description = "Overwrite existing shapekeys or create new ones",
+        default = True)
+
     useSelectedOnly : BoolProperty(
         name = "Selected Verts Only",
         description = "Only copy to selected vertices",
@@ -737,6 +742,11 @@ class MixShapekeysOptions:
         name = "Factor 2",
         description = "Second factor",
         default = 1.0)
+
+    allSimilar : BoolProperty(
+        name = "Mix All Similar",
+        description = "Mix all shapekeys with similar names",
+        default = False)
 
     overwrite : BoolProperty(
         name = "Overwrite First",

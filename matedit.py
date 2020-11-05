@@ -574,7 +574,7 @@ class ShellGetter:
             if shell[0] == tree:
                 return
         for node in tree.nodes:
-            if node.name == "Influence":
+            if node.name == "Shell Influence":
                 slot = node.inputs[0]
                 self.shells.append((tree, slot))
                 return
@@ -643,7 +643,7 @@ class ShellRemover:
 
     def addShell(self, mat, shell, tree):
         for node in tree.nodes:
-            if node.name == "Influence":
+            if node.name == "Shell Influence":
                 data = (mat,shell)
                 if tree.name in self.shells.keys():
                     struct = self.shells[tree.name]

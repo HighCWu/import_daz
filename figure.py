@@ -496,7 +496,7 @@ class ExtraBones:
                 par.custom_shape = None
                 pb.DazRotLocks = par.DazRotLocks
                 pb.DazLocLocks = par.DazLocLocks
-                copyBoneInfo(par.bone, pb.bone)
+                copyBoneInfo(par, pb)
                 store.storeConstraints(par.name, par)
                 store.removeConstraints(par)
                 store.restoreConstraints(par.name, pb)

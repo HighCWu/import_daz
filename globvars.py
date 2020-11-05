@@ -82,10 +82,12 @@ def getActiveCategories(scn, context):
 
 def shapekeyItems1(self, context):
     filter = self.filter1.lower()
-    return [(sname,sname,sname)
+    enums = [(sname,sname,sname)
             for sname in context.object.data.shape_keys.key_blocks.keys()[1:]
             if filter in sname.lower()
            ]
+    enums.sort()
+    return enums
 
 
 def shapekeyItems2(self, context):
@@ -94,4 +96,5 @@ def shapekeyItems2(self, context):
               for sname in context.object.data.shape_keys.key_blocks.keys()[1:]
               if filter in sname.lower()
             ]
+    enums.sort()
     return [("-", "-", "None")] + enums
