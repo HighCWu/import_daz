@@ -124,6 +124,9 @@ function doMesh (fp, obj, start, node, str1, str2)
     var shape = obj.getCurrentShape();
     if (shape == null)
         return false;
+    var clname = node.className();
+    if (clname == "DzGeometryShellNode")
+    	return false;
     var lodctrl = shape.getLODControl();
     var lodvalue = lodctrl.getValue();
     var level = shape.getSubDDrawLevel();    

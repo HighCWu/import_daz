@@ -130,6 +130,9 @@ function doMesh (fp, obj, start, node, str1, str2)
     var shape = obj.getCurrentShape();
     if (shape == null)
         return false;
+    var clname = node.className();
+    if (clname == "DzGeometryShellNode")
+    	return false;
 
     // Turn off high resolution
     var lodctrl = shape.getLODControl();
