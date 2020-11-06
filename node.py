@@ -136,7 +136,6 @@ class Instance(Accessor, Channels):
         self.modifiers = {}
         self.materials = node.materials
         node.materials = {}
-        self.material_group_vis = {}
         self.attributes = copyElements(node.attributes)
         self.restdata = None
         node.clearTransforms()
@@ -164,7 +163,10 @@ class Instance(Accessor, Channels):
             elif channel["type"] == "bool":
                 words = channel["id"].split("_")
                 if (words[0] == "material" and words[1] == "group" and words[-1] == "vis"):
-                    self.material_group_vis[channel["label"]] = getCurrentValue(channel)
+                    label = channel["label"]
+                    value = getCurrentValue(channel)
+                    for geonode in self.geometries:
+                        geonode.data.material_group_vis[label] = value
                 elif (words[0] == "facet" and words[1] == "group" and words[-1] == "vis"):
                     pass
 

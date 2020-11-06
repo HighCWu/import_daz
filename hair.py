@@ -964,7 +964,7 @@ def buildHairMaterialCycles(mname, color, context):
 class HairMaterial(CyclesMaterial):
     def build(self, context, color):
         from .material import Material
-        if self.alreadyBuilt():
+        if self.dontBuild():
             return
         Material.build(self, context)
         self.tree = HairBSDFTree(self)

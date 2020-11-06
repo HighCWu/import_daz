@@ -131,7 +131,8 @@ def guessColor(ob, scn, flag, skinColor, clothesColor, enforce):
         return
 
     for mat in me.materials:
-        if not hasDiffuseTexture(mat, scn, enforce):
+        if (mat is None or
+            not hasDiffuseTexture(mat, scn, enforce)):
             continue
 
         elif flag == 'RANDOM':

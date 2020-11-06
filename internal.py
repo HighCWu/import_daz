@@ -40,7 +40,7 @@ class InternalMaterial(Material):
 
     def build(self, context):
         from .guess import castsShadow
-        if self.ignore or self.alreadyBuilt():
+        if self.dontBuild():
             return
         Material.build(self, context)
         scn = context.scene

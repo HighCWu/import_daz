@@ -55,7 +55,7 @@ class CyclesMaterial(Material):
 
 
     def build(self, context):
-        if self.ignore or self.alreadyBuilt():
+        if self.dontBuild():
             return
         Material.build(self, context)
         self.tree = self.setupTree()
@@ -250,6 +250,7 @@ class CyclesTree:
             print("Invisible shell %s for %s" % (shname, self.material.name))
             return None
         node = self.addNode("ShaderNodeGroup")
+        node.width = 300
         name = ("%s_%s" % (shname, self.material.name))
         node.name = name
         if self.type == 'CYCLES':
@@ -1112,6 +1113,7 @@ class CyclesTree:
 
         from .cgroup import LieGroup
         node = self.addNode("ShaderNodeGroup", col)
+        node.width = 300
         try:
             name = os.path.basename(assets[0].map.url)
         except:

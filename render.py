@@ -99,7 +99,7 @@ class WorldMaterial(CyclesMaterial):
 
 
     def build(self, context):
-        if self.alreadyBuilt():
+        if self.dontBuild():
             return
         self.refractive = False
         Material.build(self, context)

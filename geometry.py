@@ -402,6 +402,7 @@ class Geometry(Asset, Channels):
         self.material_indices = []
         self.polygon_material_groups = []
         self.polygon_groups = []
+        self.material_group_vis = {}
 
         self.material_selection_sets = []
         self.type = None
@@ -517,6 +518,16 @@ class Geometry(Asset, Channels):
             self.material_selection_sets = extra["material_selection_sets"]
 
 
+    def isVisibleMaterial(self, dmat):
+        if not self.material_group_vis.keys():
+            return True
+        label = dmat.name.rsplit("-", 1)[0]
+        if label in self.material_group_vis.keys():
+            return self.material_group_vis[label]
+        else:
+            return True
+
+
     def preprocess(self, context, inst):
         scn = context.scene
         if self.shstruct:
@@ -531,7 +542,7 @@ class Geometry(Asset, Channels):
 
             if GS.mergeShells:
                 if inst.node2:
-                    missing = self.addUvSets(inst.node2, inst.name, inst.material_group_vis)
+                    missing = self.addUvSets(inst.node2, inst.name, self.material_group_vis)
                     for mname,shmat,uv,idx in missing:
                         msg = ("Missing shell material\n" +
                                "Material: %s\n" % mname +
@@ -561,8 +572,8 @@ class Geometry(Asset, Channels):
                         continue
                     uv = self.uvs[mname]
                     if mname in geo.materials.keys():
-                        mats = geo.materials[mname]
-                        mats[geonode.index].shells.append(Shell(shname,shmat,uv,self))
+                        dmats = geo.materials[mname]
+                        dmats[geonode.index].shells.append(Shell(shname,shmat,uv,self))
                         shmat.ignore = True
                         # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
                         # so they can be used to define materials assigned to the geometry in Blender.
@@ -592,8 +603,8 @@ class Geometry(Asset, Channels):
         else:
             mname1 = None
         if mname1 and mname1 in geo.materials.keys():
-            mats = geo.materials[mname1]
-            mats[idx].shells.append(Shell(shname,shmat,uv,self))
+            dmats = geo.materials[mname1]
+            dmats[idx].shells.append(Shell(shname,shmat,uv,self))
             shmat.ignore = True
             self.addNewUvset(uv, geo)
             self.matused.append(mname)
@@ -648,9 +659,10 @@ class Geometry(Asset, Channels):
                 verts = node.verts
 
         if not verts:
-            for mats in self.materials.values():
-                mat = mats[0]
-                me.materials.append(mat.rna)
+            for dmats in self.materials.values():
+                mat = dmats[0].rna
+                if mat:
+                    me.materials.append(mat)
             return None
 
         edges = []
@@ -684,30 +696,30 @@ class Geometry(Asset, Channels):
         hasShells = False
         for mn,mname in enumerate(self.polygon_material_groups):
             if mname in self.materials.keys():
-                mats = self.materials[mname]
+                dmats = self.materials[mname]
                 if (isinstance(node, GeoNode) and
-                    node.index < len(mats)):
-                    mat = mats[node.index]
-                elif inst and inst.index < len(mats):
-                    mat = mats[inst.index]
+                    node.index < len(dmats)):
+                    dmat = dmats[node.index]
+                elif inst and inst.index < len(dmats):
+                    dmat = dmats[inst.index]
                 else:
-                    mat = mats[0]
+                    dmat = dmats[0]
             else:
-                mat = None
+                dmat = None
                 print("\nMaterial \"%s\" not found in %s" % (mname, self))
                 print("Existing materials:\n  %s" % self.materials.keys())
-            if mat:
-                if mat.rna is None:
+            if dmat:
+                if dmat.rna is None:
                     msg = ("Material without rna:\n  %s" % self)
                     reportError(msg, trigger=(2,3))
                     return None
-                me.materials.append(mat.rna)
-                if mat.shells:
+                me.materials.append(dmat.rna)
+                if dmat.shells:
                     hasShells = True
-                if mat.uv_set and mat.uv_set.checkSize(me):
-                    self.uv_set = mat.uv_set
-                me.use_auto_smooth = mat.getValue(["Smooth On"], False)
-                me.auto_smooth_angle = mat.getValue(["Smooth Angle"], 89.9)*D
+                if dmat.uv_set and dmat.uv_set.checkSize(me):
+                    self.uv_set = dmat.uv_set
+                me.use_auto_smooth = dmat.getValue(["Smooth On"], False)
+                me.auto_smooth_angle = dmat.getValue(["Smooth Angle"], 89.9)*D
 
         for key,uvset in self.uv_sets.items():
             self.buildUVSet(context, uvset, me, False)
@@ -938,8 +950,8 @@ class Uvset(Asset):
                         print("UV coordinate difference %f - %f > 1" % (umax, umin))
                 key = geo.polygon_material_groups[mn]
                 if key in geo.materials.keys():
-                    for mat in geo.materials[key]:
-                        mat.fixUdim(context, udim)
+                    for dmat in geo.materials[key]:
+                        dmat.fixUdim(context, udim)
                 else:
                     print("Material \"%s\" not found" % key)
 
