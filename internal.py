@@ -90,7 +90,7 @@ class InternalMaterial(Material):
                         mat.specular_alpha = 0
                         mtex.use_map_alpha = True
                         mtex.alpha_factor = 1.0
-            for shell in self.shells:
+            for shell in self.shells.values():
                 mtex = self.buildShellMTex(shell, "getChannelDiffuse", "sRGB")
                 if mtex:
                     mtex.use_map_color_diffuse = True
@@ -258,7 +258,7 @@ class InternalMaterial(Material):
             for mtex in self.buildMtexs(channel, "Non-Color"):
                 if mtex and not mtex.use_stencil:
                     self.setNormalSettings(channel, mtex)
-            for shell in self.shells:
+            for shell in self.shells.values():
                 continue
                 mtex = self.buildShellMTex(shell, "getChannelNormal", "Non-Color")
                 if mtex:
@@ -280,7 +280,7 @@ class InternalMaterial(Material):
             for mtex in self.buildMtexs(channel, "Non-Color"):
                 if mtex and not mtex.use_stencil:
                     self.setBumpSettings(channel, mtex)
-            for shell in self.shells:
+            for shell in self.shells.values():
                 continue
                 mtex = self.buildShellMTex(shell, "getChannelBump", "Non-Color")
                 if mtex:
@@ -300,7 +300,7 @@ class InternalMaterial(Material):
             for mtex in self.buildMtexs(channel, "Non-Color"):
                 if mtex and not mtex.use_stencil:
                     self.setDisplacementSettings(channel, mtex)
-            for shell in self.shells:
+            for shell in self.shells.values():
                 continue
                 mtex = self.buildShellMTex(shell, "getChannelDisplacement", "Non-Color")
                 if mtex:

@@ -573,7 +573,9 @@ class Geometry(Asset, Channels):
                     uv = self.uvs[mname]
                     if mname in geo.materials.keys():
                         dmats = geo.materials[mname]
-                        dmats[geonode.index].shells.append(Shell(shname,shmat,uv,self))
+                        mshells = dmats[geonode.index].shells
+                        if shname not in mshells.keys():
+                            mshells[shname] = Shell(shname,shmat,uv,self)
                         shmat.ignore = True
                         # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
                         # so they can be used to define materials assigned to the geometry in Blender.
@@ -604,7 +606,9 @@ class Geometry(Asset, Channels):
             mname1 = None
         if mname1 and mname1 in geo.materials.keys():
             dmats = geo.materials[mname1]
-            dmats[idx].shells.append(Shell(shname,shmat,uv,self))
+            mshells = dmats[idx].shells
+            if shname not in mshells.keys():
+                mshells[shname] = Shell(shname,shmat,uv,self)
             shmat.ignore = True
             self.addNewUvset(uv, geo)
             self.matused.append(mname)

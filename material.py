@@ -71,7 +71,7 @@ class Material(Asset, Channels):
         self.textures = OrderedDict()
         self.groups = []
         self.ignore = False
-        self.shells = []
+        self.shells = {}
         self.geometry = None
         self.geosockets = []
         self.uv_set = None
@@ -159,7 +159,7 @@ class Material(Asset, Channels):
             for uv,uvset in geo.uv_sets.items():
                 if uvset:
                     self.uv_sets[uv] = self.uv_sets[uvset.name] = uvset
-        for shell in self.shells:
+        for shell in self.shells.values():
             shell.material.shader = self.shader
         if self.thinGlass:
             mat.DazThinGlass = True

@@ -271,7 +271,7 @@ class CyclesTree:
         scn = context.scene
         self.makeTree()
         self.buildLayer(context)
-        for shell in self.material.shells:
+        for shell in self.material.shells.values():
             node = self.addShellGroup(context, shell)
             if node:
                 self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])
