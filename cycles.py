@@ -279,11 +279,11 @@ class CyclesTree:
 
     def buildShells(self):
         shells = []
-        for shell in self.material.shells.values():
+        for n,shell in enumerate(self.material.shells.values()):
             geonode = shell.geometry.getNode(0)
-            shells.append((geonode.push, shell))
+            shells.append((geonode.push, n, shell))
         shells.sort()
-        for push,shell in shells:
+        for push,n,shell in shells:
             node = self.addShellGroup(shell, push)
             if node:
                 self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])

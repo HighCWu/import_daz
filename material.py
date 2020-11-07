@@ -954,20 +954,22 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
 
 
     def areSameMaterial(self, mat1, mat2):
+        mname1 = mat1.name
+        mname2 = mat2.name
         deadMatProps = [
             "texture_slots", "node_tree",
             "name", "name_full", "active_texture",
         ]
         matProps = self.getRelevantProps(mat1, deadMatProps)
-        if not self.haveSameAttrs(mat1, mat2, matProps):
+        if not self.haveSameAttrs(mat1, mat2, matProps, mname1, mname2):
             return False
         if mat1.use_nodes and mat2.use_nodes:
-            if self.areSameCycles(mat1.node_tree, mat2.node_tree):
+            if self.areSameCycles(mat1.node_tree, mat2.node_tree, mname1, mname2):
                 print(mat1.name, "=", mat2.name)
                 return True
         elif mat1.use_nodes or mat2.use_nodes:
             return False
-        elif self.areSameInternal(mat1.texture_slots, mat2.texture_slots):
+        elif self.areSameInternal(mat1.texture_slots, mat2.texture_slots, mname1, mname2):
             print(mat1.name, "=", mat2.name)
             return True
         else:
@@ -983,11 +985,13 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
         return props
 
 
-    def haveSameAttrs(self, rna1, rna2, props):
+    def haveSameAttrs(self, rna1, rna2, props, mname1, mname2):
         for prop in props:
             attr1 = attr2 = None
             if hasattr(rna1, prop) and hasattr(rna2, prop):
                 attr1 = getattr(rna1, prop)
+                if prop == "name":
+                    attr1 = self.fixKey(attr1, mname1, mname2)
                 attr2 = getattr(rna2, prop)
                 if not self.checkEqual(attr1, attr2):
                     return False
@@ -1014,19 +1018,20 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
         return True
 
 
-    def areSameCycles(self, tree1, tree2):
-        if not self.haveSameKeys(tree1.nodes, tree2.nodes):
+    def areSameCycles(self, tree1, tree2, mname1, mname2):
+        if not self.haveSameKeys(tree1.nodes, tree2.nodes, mname1, mname2):
             return False
-        if not self.haveSameKeys(tree1.links, tree2.links):
+        if not self.haveSameKeys(tree1.links, tree2.links, mname1, mname2):
             return False
-        for key,node1 in tree1.nodes.items():
-            node2 = tree2.nodes[key]
-            if not self.areSameNode(node1, node2):
+        for key1,node1 in tree1.nodes.items():
+            key2 = self.fixKey(key1, mname1, mname2)
+            node2 = tree2.nodes[key2]
+            if not self.areSameNode(node1, node2, mname1, mname2):
                 return False
         for link1 in tree1.links:
             hit = False
             for link2 in tree2.links:
-                if self.areSameLink(link1, link2):
+                if self.areSameLink(link1, link2, mname1, mname2):
                     hit = True
                     break
             if not hit:
@@ -1034,7 +1039,7 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
         for link2 in tree2.links:
             hit = False
             for link1 in tree1.links:
-                if self.areSameLink(link1, link2):
+                if self.areSameLink(link1, link2, mname1, mname2):
                     hit = True
                     break
             if not hit:
@@ -1042,22 +1047,24 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
         return True
 
 
-    def areSameNode(self, node1, node2):
-        if not self.haveSameKeys(node1, node2):
+    def areSameNode(self, node1, node2, mname1, mname2):
+        if not self.haveSameKeys(node1, node2, mname1, mname2):
             return False
         deadNodeProps = ["dimensions", "location"]
         nodeProps = self.getRelevantProps(node1, deadNodeProps)
-        if not self.haveSameAttrs(node1, node2, nodeProps):
+        if not self.haveSameAttrs(node1, node2, nodeProps, mname1, mname2):
             return False
         if not self.haveSameInputs(node1, node2):
             return False
         return True
 
 
-    def areSameLink(self, link1, link2):
+    def areSameLink(self, link1, link2, mname1, mname2):
+        fromname1 = self.fixKey(link1.from_node.name, mname1, mname2)
+        toname1 = self.fixKey(link1.to_node.name, mname1, mname2)
         return (
-            (link1.from_node.name == link2.from_node.name) and
-            (link1.to_node.name == link2.to_node.name) and
+            (fromname1 == link2.from_node.name) and
+            (toname1 == link2.to_node.name) and
             (link1.from_socket.name == link2.from_socket.name) and
             (link1.to_socket.name == link2.to_socket.name)
         )
@@ -1085,14 +1092,24 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
         return True
 
 
-    def haveSameKeys(self, struct1, struct2):
-        for key in struct1.keys():
-            if key not in struct2.keys():
+    def fixKey(self, key, mname1, mname2):
+        n = len(key) - len(mname1)
+        if key[n:] == mname1:
+            return key[:n] + mname2
+        else:
+            return key
+
+
+    def haveSameKeys(self, struct1, struct2, mname1, mname2):
+        m = len(mname1)
+        for key1 in struct1.keys():
+            key2 = self.fixKey(key1, mname1, mname2)
+            if key2 not in struct2.keys():
                 return False
         return True
 
 
-    def areSameInternal(self, mtexs1, mtexs2):
+    def areSameInternal(self, mtexs1, mtexs2, mname1, mname2):
         if len(mtexs1) != len(mtexs2):
             return False
         if len(mtexs1) == 0:
@@ -1109,7 +1126,7 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
                 continue
             if mtex1 is None or mtex2 is None:
                 return False
-            if not self.haveSameAttrs(mtex1, mtex2, mtexProps):
+            if not self.haveSameAttrs(mtex1, mtex2, mtexProps, mname1, mname2):
                 return False
             if hasattr(mtex1.texture, "image"):
                 img1 = mtex1.texture.image
