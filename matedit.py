@@ -567,16 +567,17 @@ class ShellGetter:
                     for node in mat.node_tree.nodes:
                         if node.type == 'GROUP':
                             self.addShell(node.node_tree)
+        self.shells.sort()
 
 
     def addShell(self, tree):
         for shell in self.shells:
-            if shell[0] == tree:
+            if shell[1] == tree:
                 return
         for node in tree.nodes:
             if node.name == "Shell Influence":
                 slot = node.inputs[0]
-                self.shells.append((tree, slot))
+                self.shells.append((tree.name, tree, slot))
                 return
 
 
@@ -587,8 +588,8 @@ class DAZ_OT_SetShellVisibility(DazPropsOperator, ShellGetter, IsMesh):
     bl_options = {'UNDO'}
 
     def draw(self, context):
-        for tree,slot in self.shells:
-            self.layout.prop(slot, "default_value", text=tree.name)
+        for tname,tree,slot in self.shells:
+            self.layout.prop(slot, "default_value", text=tname)
 
     def run(self, context):
         pass
@@ -700,6 +701,36 @@ class DAZ_OT_RemoveShells(DazOperator, Selector, ShellRemover, IsMesh):
         return self.invokeDialog(context)
 
 
+class DAZ_OT_ReplaceShells(DazPropsOperator, ShellRemover, IsMesh):
+    bl_idname = "daz.replace_shells"
+    bl_label = "Replace Shells"
+    bl_description = "Display shell node groups so they can be displaced."
+    bl_options = {'UNDO'}
+
+    dialogWidth = 800
+
+    def draw(self, context):
+        rows = []
+        for tname,struct in self.shells.items():
+            for mname,data in struct.items():
+                for mat,node in data:
+                    rows.append((node.name, node))
+        rows.sort()
+        for nname,node in rows:
+            row = self.layout.row()
+            row.label(text=nname)
+            row.prop(node, "node_tree")
+
+
+    def run(self, context):
+        pass
+
+
+    def invoke(self, context, event):
+        self.getShells(context)
+        return DazPropsOperator.invoke(self, context, event)
+
+
 class DAZ_OT_RemoveShellDuplicates(DazOperator, ShellRemover, IsMesh):
     bl_idname = "daz.remove_shell_duplicates"
     bl_label = "Remove Shell Duplicates"
@@ -727,6 +758,7 @@ classes = [
     DAZ_OT_SetShellVisibility,
     DAZ_OT_CreateShellVisibilityDrivers,
     DAZ_OT_RemoveShells,
+    DAZ_OT_ReplaceShells,
     DAZ_OT_RemoveShellDuplicates,
 ]
 
