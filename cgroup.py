@@ -31,6 +31,7 @@ import bpy
 from .cycles import CyclesTree
 from .pbr import PbrTree
 from .material import WHITE
+from .utils import LS
 
 # ---------------------------------------------------------------------
 #   CyclesGroup
@@ -80,36 +81,54 @@ class CyclesGroup(MaterialGroup, CyclesTree):
 
 class ShellGroup(MaterialGroup):
 
-    def __init__(self):
+    def __init__(self, push):
         MaterialGroup.__init__(self)
-        self.insockets += ["Cycles", "Eevee", "UV"]
-        self.outsockets += ["Cycles", "Eevee"]
+        self.push = push
+        self.insockets += ["Cycles", "Eevee", "Displacement", "UV"]
+        self.outsockets += ["Cycles", "Eevee", "Displacement"]
 
 
     def create(self, node, name, parent):
         MaterialGroup.create(self, node, name, parent, 8)
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
+        self.group.inputs.new("NodeSocketVector", "Displacement")
         self.group.inputs.new("NodeSocketVector", "UV")
         self.group.outputs.new("NodeSocketShader", "Cycles")
         self.group.outputs.new("NodeSocketShader", "Eevee")
+        self.group.outputs.new("NodeSocketVector", "Displacement")
 
 
-    def addNodes(self, context, shell):
+    def addNodes(self, shell):
         shell.rna = self.parent.material.rna
         self.material = shell
         self.texco = self.inputs.outputs["UV"]
-        self.buildLayer(context)
+        self.buildLayer()
         alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
-        mult = self.addNode("ShaderNodeMath", 6)
-        mult.name = mult.label = "Shell Influence"
+        mult = self.addMult("Shell Influence", 6, 1.0, alpha, tex)
+        self.addOutput(alpha, mult, self.getCyclesSocket(), "Cycles")
+        self.addOutput(alpha, mult, self.getEeveeSocket(), "Eevee")
+        if self.push > 0:
+            push = self.push * LS.scale
+            disp = self.addMult("Displacement", 6, push, alpha, tex)
+            add = self.addNode("ShaderNodeMath", 7)
+            self.links.new(disp.outputs[0], add.inputs[0])
+            self.links.new(self.inputs.outputs["Displacement"], add.inputs[1])
+            self.links.new(add.outputs[0], self.outputs.inputs["Displacement"])
+        else:
+            self.links.new(self.inputs.outputs["Displacement"], self.outputs.inputs["Displacement"])
+
+
+    def addMult(self, name, col, value, alpha, tex):
+        mult = self.addNode("ShaderNodeMath", col)
+        mult.name = mult.label = name
         mult.operation = 'MULTIPLY'
-        mult.inputs[0].default_value = 1
+        mult.inputs[0].default_value = value
         mult.inputs[1].default_value = alpha
         if tex:
             self.links.new(tex.outputs[0], mult.inputs[1])
-        self.addOutput(alpha, mult, self.getCyclesSocket(), "Cycles")
-        self.addOutput(alpha, mult, self.getEeveeSocket(), "Eevee")
+        return mult
+
 
 
     def addOutput(self, alpha, tex, socket, slot):
@@ -733,7 +752,7 @@ class DisplacementGroup(CyclesGroup):
     def __init__(self):
         CyclesGroup.__init__(self)
         self.insockets += ["Texture", "Strength", "Difference", "Min"]
-        self.outsockets += ["Height"]
+        self.outsockets += ["Displacement"]
 
 
     def create(self, node, name, parent):
@@ -742,7 +761,7 @@ class DisplacementGroup(CyclesGroup):
         self.group.inputs.new("NodeSocketFloat", "Strength")
         self.group.inputs.new("NodeSocketFloat", "Difference")
         self.group.inputs.new("NodeSocketFloat", "Min")
-        self.group.outputs.new("NodeSocketFloat", "Height")
+        self.group.outputs.new("NodeSocketFloat", "Displacement")
 
 
     def addNodes(self, args=None):
@@ -761,7 +780,7 @@ class DisplacementGroup(CyclesGroup):
         self.links.new(self.inputs.outputs["Strength"], mult2.inputs[0])
         self.links.new(add.outputs[0], mult2.inputs[1])
 
-        self.links.new(mult2.outputs[0], self.outputs.inputs["Height"])
+        self.links.new(mult2.outputs[0], self.outputs.inputs["Displacement"])
 
 # ---------------------------------------------------------------------
 #   LIE Group

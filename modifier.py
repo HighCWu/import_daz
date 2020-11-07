@@ -107,6 +107,10 @@ class Modifier(Asset):
         return ("<Modifier %s %s>" % (self.id, self.type))
 
 
+    def preprocess(self, inst):
+        pass
+
+
     def postbuild(self, context, inst):
         pass
 
@@ -126,8 +130,10 @@ class ExtraAsset(Modifier, Channels):
         self.extras = {}
         self.type = None
 
+
     def __repr__(self):
-        return ("<Extra %s %s>" % (self.id, list(self.extras.keys())))
+        return ("<Extra %s %s p: %s>" % (self.id, list(self.extras.keys()), self.parent))
+
 
     def parse(self, struct):
         Modifier.parse(self, struct)
@@ -157,20 +163,35 @@ class ExtraAsset(Modifier, Channels):
                     self.extras[etype] = extra
 
 
-    def build(self, context, inst):
+    def preprocess(self, inst):
+        geonode, pgeonode = self.getGeoNodes(inst)
+        if geonode is None:
+            return
+        if "studio_modifier_channels" in self.extras.keys():
+            geonode.modifiers[self.name] = self
+            modchannels = self.extras["studio_modifier_channels"]
+            for cstruct in modchannels["channels"]:
+                channel = cstruct["channel"]
+                self.setChannel(channel)
+        if "studio/modifier/push" in self.extras.keys():
+            geonode.push = self.getValue(["Value"], 0)
+
+
+    def getGeoNodes(self, inst):
         if inst is None:
             print("Cannot build %s" % self)
-            return
+            return None,None
         pinst = inst.parent
         geonode = self.getGeoNode(inst)
         pgeonode = self.getGeoNode(pinst)
-        for etype,extra in self.extras.items():
-            if etype == "studio/modifier/push":
-                #print("PUSH", self)
-                return
         if geonode is None:
             print("No geo", self)
-            print(self.extras.keys())
+        return geonode, pgeonode
+
+
+    def build(self, context, inst):
+        geonode, pgeonode = self.getGeoNodes(inst)
+        if geonode is None:
             return
         for etype,extra in self.extras.items():
             if etype == "studio/modifier/dynamic_generate_hair":
@@ -182,23 +203,14 @@ class ExtraAsset(Modifier, Channels):
                 pass
             elif etype == "studio/modifier/line_tessellation":
                 pass
-            elif etype == "studio/modifier/push":
-                pass
             elif etype == "studio/simulation_settings/dynamic_simulation":
                 pass
-            elif etype == "studio_modifier_channels":
-                geonode.modifiers[self.name] = self
-                modchannels = self.extras["studio_modifier_channels"]
-                for cstruct in modchannels["channels"]:
-                    channel = cstruct["channel"]
-                    self.setChannel(channel)
-
 
 
     def getGeoNode(self, inst):
-        from .figure import FigureInstance
+        from .node import Instance
         from .geometry import GeoNode
-        if isinstance(inst, FigureInstance):
+        if isinstance(inst, Instance):
             return inst.geometries[0]
         elif isinstance(inst, GeoNode):
             return inst

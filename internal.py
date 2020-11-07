@@ -43,18 +43,17 @@ class InternalMaterial(Material):
         if self.dontBuild():
             return
         Material.build(self, context)
-        scn = context.scene
         mat = self.rna
         mat.specular_intensity = 0.05
         mat.diffuse_shader = GS.diffuseShader
         mat.specular_shader = GS.specularShader
 
-        self.buildDiffuse(mat, scn)
+        self.buildDiffuse(mat)
         if self.isActive("Specular"):
             self.buildSpecular(mat)
         if GS.useReflection and self.isActive("Reflection"):
             self.buildReflection(mat)
-        if self.sssActive(scn):
+        if self.sssActive():
             self.buildSSS(mat)
         if self.isActive("Translucency"):
             self.buildTranslucency(mat)
@@ -75,7 +74,7 @@ class InternalMaterial(Material):
             mat.alpha = 0
 
 
-    def buildDiffuse(self, mat, scn):
+    def buildDiffuse(self, mat):
         channel = self.getChannelDiffuse()
         if channel:
             mat.diffuse_color = self.getChannelColor(channel, WHITE)

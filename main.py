@@ -75,6 +75,8 @@ def getMainAsset(filepath, context, btn):
     LS.collection = makeRootCollection(grpname, context)
     for asset,inst in main.nodes:
         inst.preprocess(context)
+    for asset,inst in main.modifiers:
+        asset.preprocess(inst)
 
     print("Building objects...")
     for asset in main.materials:
@@ -105,7 +107,7 @@ def getMainAsset(filepath, context, btn):
     # Need to update scene before calculating object areas
     updateScene(context)
     for asset in main.materials:
-        asset.postbuild(context)
+        asset.postbuild()
 
     print("Postprocessing...")
     for asset,inst in main.nodes:

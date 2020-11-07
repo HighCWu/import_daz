@@ -45,7 +45,7 @@ class PbrTree(CyclesTree):
         return ("<Pbr %s %s %s>" % (self.material.rna, self.nodes, self.links))
 
 
-    def buildLayer(self, context):
+    def buildLayer(self):
         self.column = 4
         try:
             self.pbr = self.addNode("ShaderNodeBsdfPrincipled")
@@ -54,12 +54,11 @@ class PbrTree(CyclesTree):
             self.pbr = None
             self.type = 'CYCLES'
         if self.pbr is None:
-            CyclesTree.buildLayer(self, context)
+            CyclesTree.buildLayer(self)
             return
-        scn = context.scene
         self.cycles = self.eevee = self.pbr
-        self.buildBumpNodes(scn)
-        self.buildPBRNode(scn)
+        self.buildBumpNodes()
+        self.buildPBRNode()
         if self.normal:
             self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Normal"])
             self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Clearcoat Normal"])
@@ -75,7 +74,7 @@ class PbrTree(CyclesTree):
             LS.usedFeatures["Transparent"] = True
             self.buildRefraction()
         else:
-            self.buildEmission(scn)
+            self.buildEmission()
 
 
     def buildCutout(self):
@@ -95,7 +94,7 @@ class PbrTree(CyclesTree):
         pass
 
 
-    def buildEmission(self, scn):
+    def buildEmission(self):
         if not GS.useEmission:
             return
         elif "Emission" in self.pbr.inputs.keys():
@@ -103,10 +102,10 @@ class PbrTree(CyclesTree):
             if color != BLACK:
                 self.linkColor(tex, self.pbr, color, "Emission")
         else:
-            CyclesTree.buildEmission(self, scn)
+            CyclesTree.buildEmission(self)
 
 
-    def buildPBRNode(self, scn):
+    def buildPBRNode(self):
         # Basic
         color,tex = self.getDiffuseColor()
         self.diffuseTex = tex
@@ -119,7 +118,7 @@ class PbrTree(CyclesTree):
 
         # Subsurface scattering
         self.checkTranslucency()
-        self.buildSSS(scn)
+        self.buildSSS()
 
         # Anisotropic
         anisotropy,tex = self.getColorTex(["Glossy Anisotropy"], "NONE", 0)
@@ -193,7 +192,7 @@ class PbrTree(CyclesTree):
             self.linkScalar(tex, self.pbr, sheen, "Sheen")
 
 
-    def buildSSS(self, scn):
+    def buildSSS(self):
         if not self.useTranslucency:
             return
         # a 2.5 gamma for the translucency texture is used to avoid the "white skin" effect

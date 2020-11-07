@@ -59,7 +59,7 @@ class CyclesMaterial(Material):
             return
         Material.build(self, context)
         self.tree = self.setupTree()
-        self.tree.build(context)
+        self.tree.build()
 
 
     def setupTree(self):
@@ -81,9 +81,8 @@ class CyclesMaterial(Material):
             return CyclesTree(self)
 
 
-    def postbuild(self, context):
+    def postbuild(self):
         geo = self.geometry
-        scn = context.scene
         if (self.geosockets and geo and geo.rna):
             me = geo.rna
             mnum = 0
@@ -242,7 +241,7 @@ class CyclesTree:
         return node
 
 
-    def addShellGroup(self, context, shell):
+    def addShellGroup(self, shell, push):
         shmat = shell.material
         shname = shell.name
         if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or
@@ -250,47 +249,56 @@ class CyclesTree:
             print("Invisible shell %s for %s" % (shname, self.material.name))
             return None
         node = self.addNode("ShaderNodeGroup")
-        node.width = 300
+        node.width = 240
         name = ("%s_%s" % (shname, self.material.name))
         node.name = name
         if self.type == 'CYCLES':
             from .cgroup import ShellCyclesGroup
-            group = ShellCyclesGroup()
+            group = ShellCyclesGroup(push)
         elif self.type == 'PBR':
             from .cgroup import ShellPbrGroup
-            group = ShellPbrGroup()
+            group = ShellPbrGroup(push)
         else:
             raise RuntimeError("Bug Cycles type %s" % self.type)
         group.create(node, name, self)
-        group.addNodes(context, shmat)
+        group.addNodes(shmat)
         LS.shellGroups.append((shmat, node.node_tree))
         return node
 
 
-    def build(self, context):
-        scn = context.scene
+    def build(self):
         self.makeTree()
-        self.buildLayer(context)
-        for shell in self.material.shells.values():
-            node = self.addShellGroup(context, shell)
-            if node:
-                self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])
-                self.links.new(self.getEeveeSocket(), node.inputs["Eevee"])
-                self.links.new(self.getTexco(shell.uv), node.inputs["UV"])
-                self.cycles = self.eevee = node
+        self.buildLayer()
         self.buildCutout()
         self.buildVolume()
-        self.buildDisplacementNodes(scn)
+        self.buildDisplacementNodes()
+        self.buildShells()
         self.buildOutput()
         self.prune()
 
 
-    def buildLayer(self, context):
-        scn = context.scene
-        self.buildBumpNodes(scn)
-        self.buildDiffuse(scn)
+    def buildShells(self):
+        shells = []
+        for shell in self.material.shells.values():
+            geonode = shell.geometry.getNode(0)
+            shells.append((geonode.push, shell))
+        shells.sort()
+        for push,shell in shells:
+            node = self.addShellGroup(shell, push)
+            if node:
+                self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])
+                self.links.new(self.getEeveeSocket(), node.inputs["Eevee"])
+                self.links.new(self.getTexco(shell.uv), node.inputs["UV"])
+                if self.displacement:
+                    self.links.new(self.displacement.outputs["Displacement"], node.inputs["Displacement"])
+                self.cycles = self.eevee = self.displacement = node
+
+
+    def buildLayer(self):
+        self.buildBumpNodes()
+        self.buildDiffuse()
         self.checkTranslucency()
-        self.buildTranslucency(scn)
+        self.buildTranslucency()
         self.buildOverlay()
         if self.material.dualLobeWeight == 1:
             self.buildDualLobe()
@@ -302,7 +310,7 @@ class CyclesTree:
         if self.material.refractive:
             self.buildRefraction()
         self.buildTopCoat()
-        self.buildEmission(scn)
+        self.buildEmission()
         return self.cycles
 
 
@@ -405,7 +413,7 @@ class CyclesTree:
 #   Bump
 #-------------------------------------------------------------
 
-    def buildBumpNodes(self, scn):
+    def buildBumpNodes(self):
         # Column 3: Normal, Bump and Displacement
 
         # Normal map
@@ -468,7 +476,7 @@ class CyclesTree:
         return [x[0]*y[0], x[1]*y[1], x[2]*y[2]]
 
 
-    def buildDiffuse(self, scn):
+    def buildDiffuse(self):
         channel = self.material.getChannelDiffuse()
         if channel:
             self.column = 4
@@ -693,7 +701,7 @@ class CyclesTree:
             self.useTranslucency = False
 
 
-    def buildTranslucency(self, scn):
+    def buildTranslucency(self):
         if not self.useTranslucency:
             return
         self.column += 1
@@ -865,7 +873,7 @@ class CyclesTree:
 #   Emission
 #-------------------------------------------------------------
 
-    def buildEmission(self, scn):
+    def buildEmission(self):
         if not GS.useEmission:
             return
         color = self.getColor("getChannelEmissionColor", BLACK)
@@ -976,7 +984,7 @@ class CyclesTree:
         if self.volume and not self.useCutout:
             self.links.new(self.volume.outputs[0], output.inputs["Volume"])
         if self.displacement:
-            self.links.new(self.displacement.outputs[0], output.inputs["Displacement"])
+            self.links.new(self.displacement.outputs["Displacement"], output.inputs["Displacement"])
         if self.liegroups:
             node = self.addNode("ShaderNodeValue", col=self.column-1)
             node.outputs[0].default_value = 1.0
@@ -992,10 +1000,10 @@ class CyclesTree:
             elif self.cycles:
                 self.links.new(self.getCyclesSocket(), outputEevee.inputs["Surface"])
             if self.displacement:
-                self.links.new(self.displacement.outputs[0], outputEevee.inputs["Displacement"])
+                self.links.new(self.displacement.outputs["Displacement"], outputEevee.inputs["Displacement"])
 
 
-    def buildDisplacementNodes(self, scn):
+    def buildDisplacementNodes(self):
         channel = self.material.getChannelDisplacement()
         if not( channel and
                 self.material.isActive("Displacement") and
@@ -1113,7 +1121,7 @@ class CyclesTree:
 
         from .cgroup import LieGroup
         node = self.addNode("ShaderNodeGroup", col)
-        node.width = 300
+        node.width = 240
         try:
             name = os.path.basename(assets[0].map.url)
         except:

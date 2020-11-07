@@ -477,7 +477,7 @@ class Material(Asset, Channels):
         return False
 
 
-    def sssActive(self, scn):
+    def sssActive(self):
         if not self.isActive("Subsurface"):
             return False
         if self.refractive or self.thinWalled:

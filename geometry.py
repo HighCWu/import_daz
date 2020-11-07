@@ -66,6 +66,7 @@ class GeoNode(Node):
         self.morphsValues = {}
         self.shstruct = {}
         self.polylines = False
+        self.push = 0
 
 
     def __repr__(self):
@@ -575,7 +576,7 @@ class Geometry(Asset, Channels):
                         dmats = geo.materials[mname]
                         mshells = dmats[geonode.index].shells
                         if shname not in mshells.keys():
-                            mshells[shname] = Shell(shname,shmat,uv,self)
+                            mshells[shname] = Shell(shname, shmat, uv, self)
                         shmat.ignore = True
                         # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
                         # so they can be used to define materials assigned to the geometry in Blender.
@@ -608,7 +609,7 @@ class Geometry(Asset, Channels):
             dmats = geo.materials[mname1]
             mshells = dmats[idx].shells
             if shname not in mshells.keys():
-                mshells[shname] = Shell(shname,shmat,uv,self)
+                mshells[shname] = Shell(shname, shmat, uv, self)
             shmat.ignore = True
             self.addNewUvset(uv, geo)
             self.matused.append(mname)
