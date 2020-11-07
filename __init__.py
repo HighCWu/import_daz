@@ -62,10 +62,10 @@ def importModules():
             modnames.append("buttons28")
         modnames += ["daz", "fileutils", "load_json", "driver", "asset", "channels", "formula",
                     "transform", "node", "figure", "bone", "geometry", "objfile",
-                    "fix", "modifier", "convert", "material", "matedit", "internal",
+                    "fix", "modifier", "convert", "material", "internal",
                     "cycles", "cgroup", "pbr", "render", "camera", "light",
                     "guess", "animation", "files", "main", "finger",
-                    "morphing", "tables", "proxy", "rigify", "merge", "hide",
+                    "morphing", "matedit", "tables", "proxy", "rigify", "merge", "hide",
                     "mhx", "layers", "fkik", "hair", "transfer", "dforce"]
         if bpy.app.version >= (2,82,0):
             modnames.append("udim")
@@ -111,10 +111,10 @@ def register():
     layers.initialize()
     main.initialize()
     material.initialize()
-    matedit.initialize()
     merge.initialize()
     mhx.initialize()
     morphing.initialize()
+    matedit.initialize()
     objfile.initialize()
     proxy.initialize()
     rigify.initialize()
@@ -146,10 +146,10 @@ def unregister():
     layers.uninitialize()
     main.uninitialize()
     material.uninitialize()
-    matedit.uninitialize()
     merge.uninitialize()
     mhx.uninitialize()
     morphing.uninitialize()
+    matedit.uninitialize()
     objfile.uninitialize()
     proxy.uninitialize()
     rigify.uninitialize()

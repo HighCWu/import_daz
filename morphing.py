@@ -183,6 +183,7 @@ class DAZ_OT_SelectNone(bpy.types.Operator):
 
 class Selector(B.Selection):
     defaultSelect = False
+    columnWidth = 180
 
     def draw(self, context):
         scn = context.scene
@@ -264,7 +265,7 @@ class Selector(B.Selection):
         ncols = len(self.selection)//24 + 1
         if ncols > 6:
             ncols = 6
-        wm.invoke_props_dialog(self, width=ncols*180)
+        wm.invoke_props_dialog(self, width=ncols*self.columnWidth)
         return {'RUNNING_MODAL'}
 
 
@@ -1997,6 +1998,7 @@ class DAZ_OT_ConvertCustomMorphsToShapes(DazOperator, CustomSelector, MorphsToSh
 classes = [
     B.DazFormula,
     B.DazSelectGroup,
+    B.DazActiveGroup,
     B.DazCategory,
 
     DAZ_OT_SelectAll,

@@ -630,6 +630,8 @@ class DAZ_OT_CreateShellVisibilityDrivers(DazOperator, ShellGetter, IsMeshArmatu
 #   Remove shells from materials
 # ---------------------------------------------------------------------
 
+from .morphing import Selector
+
 class ShellRemover:
     def getShells(self, context):
         ob = context.object
@@ -672,39 +674,30 @@ class ShellRemover:
         tree.nodes.remove(shell)
 
 
-class DAZ_OT_RemoveShells(DazPropsOperator, ShellRemover, IsMesh):
+class DAZ_OT_RemoveShells(DazOperator, Selector, ShellRemover, IsMesh):
     bl_idname = "daz.remove_shells"
     bl_label = "Remove Shells"
     bl_description = "Remove selected shells from active object"
     bl_options = {'UNDO'}
 
-    def draw(self, context):
-        for pg in context.scene.DazSelector:
-            row = self.layout.row()
-            row.prop(pg, "select", text="")
-            row.label(text = pg.text)
-
+    columnWidth = 350
 
     def run(self, context):
-        for pg in context.scene.DazSelector:
-            if pg.select:
-                for data in self.shells[pg.text].values():
-                    for mat,node in data:
-                        #print(mat.name, node.name)
-                        self.deleteNodes(mat, node)
+        for item in self.getSelectedItems(context.scene):
+            for data in self.shells[item.text].values():
+                for mat,node in data:
+                    self.deleteNodes(mat, node)
 
 
     def invoke(self, context, event):
         self.getShells(context)
-        from .morphing import setSelector
-        setSelector(self)
-        pgs = context.scene.DazSelector
-        pgs.clear()
+        self.selection.clear()
         for name,nodes in self.shells.items():
-                pg = pgs.add()
-                pg.text = name
-                pg.select = False
-        return DazPropsOperator.invoke(self, context, event)
+                item = self.selection.add()
+                item.name = name
+                item.text = name
+                item.select = False
+        return self.invokeDialog(context)
 
 
 class DAZ_OT_RemoveShellDuplicates(DazOperator, ShellRemover, IsMesh):
@@ -726,7 +719,6 @@ class DAZ_OT_RemoveShellDuplicates(DazOperator, ShellRemover, IsMesh):
 #----------------------------------------------------------
 
 classes = [
-    B.DazActiveGroup,
     B.EditSlotGroup,
     B.ShowGroup,
     DAZ_OT_LaunchEditor,
