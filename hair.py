@@ -970,7 +970,7 @@ class HairMaterial(CyclesMaterial):
         self.tree = HairBSDFTree(self)
         self.tree.color = color
         self.tree.dark = Vector(color)*GREY
-        self.tree.build(context)
+        self.tree.build()
 
 #-------------------------------------------------------------
 #   Hair tree base
@@ -984,15 +984,13 @@ class HairTree(CyclesTree):
         self.dark = BLACK
 
 
-    def build(self, context):
-        scn = context.scene
+    def build(self):
         self.makeTree()
-        self.buildLayer(context)
+        self.buildLayer()
         #self.prune()
 
 
-    def initLayer(self, context):
-        scn = context.scene
+    def initLayer(self):
         self.column = 4
         self.active = None
         self.info = self.addNode('ShaderNodeHairInfo', col=1)
@@ -1094,8 +1092,8 @@ class HairTree(CyclesTree):
 
 class HairBSDFTree(HairTree):
 
-    def buildLayer(self, context):
-        self.initLayer(context)
+    def buildLayer(self):
+        self.initLayer()
         trans = self.buildTransmission()
         refl = self.buildHighlight()
         diffuse = self.addNode('ShaderNodeBsdfDiffuse')
@@ -1189,8 +1187,8 @@ class HairBSDFTree(HairTree):
 
 class HairPBRTree(HairTree):
 
-    def buildLayer(self, context):
-        self.initLayer(context)
+    def buildLayer(self):
+        self.initLayer()
         pbr = self.active = self.addNode("ShaderNodeBsdfHairPrincipled")
         self.buildDiffuse(pbr)
         self.buildOutput()

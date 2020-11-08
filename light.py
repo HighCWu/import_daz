@@ -277,12 +277,12 @@ class CyclesLightMaterial(CyclesMaterial):
             return
         Material.build(self, context)
         self.tree = LightTree(self)
-        self.tree.build(context)
+        self.tree.build()
 
 
 class LightTree(CyclesTree):
 
-    def build(self, context):
+    def build(self):
         self.makeTree()
         color = self.getValue(["Color"], WHITE)
         #flux = self.getValue(["Flux"], 15000)

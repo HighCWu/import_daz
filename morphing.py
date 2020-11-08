@@ -915,7 +915,6 @@ class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMesh):
     useStages = True
 
     def draw(self, context):
-        ImportCustom.draw(self, context)
         LoadMorph.draw(self, context)
 
     def run(self, context):

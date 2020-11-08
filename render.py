@@ -128,7 +128,7 @@ class WorldMaterial(CyclesMaterial):
 
         world = self.rna = bpy.data.worlds.new(self.name)
         world.use_nodes = True
-        self.tree.build(context)
+        self.tree.build()
         context.scene.world = world
         if fixray:
             vis = world.cycles_visibility
@@ -149,7 +149,7 @@ class WorldTree(CyclesTree):
         self.type == "WORLD"
 
 
-    def build(self, context):
+    def build(self):
         from mathutils import Euler, Matrix
 
         background = self.material.background
