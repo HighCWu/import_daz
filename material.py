@@ -525,7 +525,7 @@ def getRenderMaterial(struct, base):
     elif isinstance(base, InternalMaterial):
         return InternalMaterial
 
-    if LS.materialMethod == 'INTERNAL':
+    if GS.materialMethod == 'INTERNAL':
         return InternalMaterial
     else:
         return CyclesMaterial

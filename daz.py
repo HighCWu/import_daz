@@ -44,44 +44,29 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions, B.PoleT
 
     def run(self, context):
         from .main import getMainAsset
-        self.lastMethod = self.materialMethod
         getMainAsset(self.filepath, context, self)
 
 
     def invoke(self, context, event):
-        if not self.lastMethod:
-            engine = context.scene.render.engine
-            if engine  in ['BLENDER_RENDER', 'BLENDER_GAME']:
-                self.materialMethod = 'INTERNAL'
-            elif engine == 'CYCLES':
-                self.materialMethod = 'BSDF'
-            else:
-                self.materialMethod = 'PRINCIPLED'
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
 
     def draw(self, context):
         layout = self.layout
-        scn = context.scene
-        layout.prop(self, "unitScale")
-
-        layout.separator()
-        box = layout.box()
+        box = self.layout.box()
         box.label(text = "Mesh Fitting")
         box.prop(self, "fitMeshes", expand=True)
-
         layout.separator()
         box = layout.box()
         box.label(text = "Viewport Color")
         row = box.row()
         row.prop(self, "skinColor")
         row.prop(self, "clothesColor")
-
         layout.separator()
         box = layout.box()
-        box.label(text = "Material Method")
-        box.prop(self, "materialMethod", expand=True)
+        box.label(text = "Unit Scale and Material Method")
+        box.label(text = "have moved to Global Settings.")
 
 #-------------------------------------------------------------
 #   Silent mode
@@ -1198,6 +1183,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         col = split.column()
         box = col.box()
         box.label(text = "General")
+        box.prop(scn, "DazUnitScale")
         box.prop(scn, "DazVerbosity")
         box.prop(scn, "DazZup")
         box.prop(scn, "DazCaseSensitivePaths")
@@ -1231,6 +1217,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
         box = split.box()
         box.label(text = "Materials")
+        box.prop(scn, "DazMaterialMethod")
         box.prop(scn, "DazChooseColors")
         box.prop(scn, "DazMergeShells")
         box.prop(scn, "DazBrightenEyes")
@@ -1356,6 +1343,13 @@ def initialize():
         name = "Error Path",
         description = "Path to error report file")
 
+    bpy.types.Scene.DazUnitScale = FloatProperty(
+        name = "Unit Scale",
+        description = "Scale used to convert between DAZ and Blender units. Default unit meters",
+        default = 0.01,
+        precision = 3,
+        min = 0.001, max = 10.0)
+
     bpy.types.Scene.DazVerbosity = IntProperty(
         name = "Verbosity",
         description = "Controls the number of warning messages when loading files",
@@ -1475,6 +1469,21 @@ def initialize():
         description = "Filter string",
         default = ""
     )
+
+    if bpy.app.version < (2,80,0):
+        enums = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
+                 ('PRINCIPLED', "Principled", "Principled (Cycles)"),
+                 ('INTERNAL', "Internal", "Blender Internal and Game")]
+    else:
+        enums = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
+                 ('PRINCIPLED', "Principled", "Principled (Cycles)")]
+
+    bpy.types.Scene.DazMaterialMethod = EnumProperty(
+        items = enums,
+        name = "Material Method",
+        description = "Type of material node tree",
+        default = 'BSDF')
+
     bpy.types.Scene.DazChooseColors = EnumProperty(
         items = [('WHITE', "White", "Default diffuse color"),
                  ('RANDOM', "Random", "Random colors for each object"),

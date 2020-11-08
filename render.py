@@ -244,7 +244,7 @@ class WorldTree(CyclesTree):
 #-------------------------------------------------------------
 
 def parseRenderOptions(renderSettings, sceneSettings, backdrop, fileref):
-    if LS.materialMethod == 'INTERNAL':
+    if GS.materialMethod == 'INTERNAL':
         return None
     else:
         renderOptions = renderSettings["render_options"]

@@ -57,8 +57,10 @@ class GlobalSettings:
         self.settingsPath = self.fixPath(path)
         self.rootPath = self.fixPath("~/import-daz-paths.json")
 
+        self.unitScale = 0.01
         self.verbosity = 2
         self.zup = True
+        self.materialMethod = 'BSDF'
         self.chooseColors = 'GUESS'
         self.orientMethod = 'DAZ STUDIO'
         self.useCustomShapes = True
@@ -106,11 +108,13 @@ class GlobalSettings:
 
 
     SceneTable = {
+        "DazUnitScale" : "unitScale",
         "DazVerbosity" : "verbosity",
         "DazZup" : "zup",
         "DazErrorPath" : "errorPath",
         "DazCaseSensitivePaths" : "caseSensitivePaths",
 
+        "DazMaterialMethod" : "materialMethod",
         "DazChooseColors" : "chooseColors",
         "DazMergeShells" : "mergeShells",
         "DazBrightenEyes" : "brightenEyes",
@@ -376,7 +380,6 @@ class LocalSettings:
         self.clothesColor = None
         self.fitFile = False
         self.autoMaterials = True
-        self.materialMethod = 'BSDF'
 
         self.useNodes = False
         self.useGeometries = False
@@ -438,7 +441,7 @@ class LocalSettings:
     def forImport(self, btn, scn):
         self.__init__()
         self.reset(scn)
-        self.scale = btn.unitScale
+        self.scale = GS.unitScale
         self.useNodes = True
         self.useGeometries = True
         self.useImages = True
@@ -448,7 +451,6 @@ class LocalSettings:
 
         self.skinColor = btn.skinColor
         self.clothesColor = btn.clothesColor
-        self.materialMethod = btn.materialMethod
 
         self.useStrict = True
         self.singleUser = True

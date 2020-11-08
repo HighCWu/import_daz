@@ -67,13 +67,13 @@ class CyclesMaterial(Material):
         if bpy.app.version >= (2, 78, 0):
             if self.geometry and self.geometry.polylines:
                 from .hair import HairPBRTree, HairBSDFTree
-                if False and LS.materialMethod == 'PRINCIPLED':
+                if False and GS.materialMethod == 'PRINCIPLED':
                     return HairPBRTree(self)
                 else:
                     return HairBSDFTree(self)
             if self.metallic:
                 return PbrTree(self)
-            elif LS.materialMethod == 'PRINCIPLED':
+            elif GS.materialMethod == 'PRINCIPLED':
                 return PbrTree(self)
             else:
                 return CyclesTree(self)
@@ -920,7 +920,7 @@ class CyclesTree:
 
     def buildVolume(self):
         if (self.material.thinWalled or
-            LS.materialMethod != "BSDF"):
+            GS.materialMethod != "BSDF"):
             return
 
         from .cgroup import VolumeGroup
