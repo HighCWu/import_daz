@@ -590,7 +590,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                 addFrames(vname, {0: channels}, 1, "value", frames)
 
             for n,frame in frames.items():
-                twists = []
+                twists = {}
                 for bname in frame.keys():
                     bframe = frame[bname]
                     tfm = Transform()
@@ -620,7 +620,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                     elif bname in rig.data.bones.keys():
                         self.transformBone(rig, bname, tfm, value, n, offset, False)
                     elif bname[0:6] == "TWIST-":
-                        twists.append((bname[6:], tfm, value))
+                        twists[bname[6:]] = (tfm, value)
                     else:
                         if self.affectMorphs:
                             key = self.getRigKey(bname, rig, missing)
@@ -629,14 +629,14 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                                 if self.insertKeys:
                                     rig.keyframe_insert('["%s"]' % key, frame=n+offset, group=key)
 
-                for (bname, tfm, value) in twists:
+                for bname, data in twists.items():
+                    tfm,value = data
                     self.transformBone(rig, bname, tfm, value, n, offset, True)
 
                 # Fix scale: Blender bones inherit scale, DS bones do not
                 for root in rig.pose.bones:
                     if root.parent is None:
-                        pass
-                        #self.fixScale(root, root.scale)
+                        self.fixScale(root, root.scale)
 
                 if self.simpleIK:
                     from .figure import snapSimpleIK
@@ -672,17 +672,25 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
     Unit = Vector((1,1,1))
 
     def fixScale(self, pb, pscale):
-        scale = pb.scale.copy()
+        scale = pb.scale[0]
         if pb.parent:
-            if (pscale - self.Unit).length > 1e-4:
-                #for n in range(3):
-                #    pb.scale[n] /= pscale[n]
+            if abs(pscale - 1) > 1e-4:
                 print("PP", pb.name, pb.parent.name)
                 print("  P", pscale)
                 print("  O", scale)
+                if self.inheritsScale(pb):
+                    scale = scale * pscale
+                else:
+                    for n in range(3):
+                        pb.scale[n] /= pscale
+                print("  T", scale)
                 print("  S", pb.scale)
         for child in pb.children:
             self.fixScale(child, scale)
+
+
+    def inheritsScale(self, pb):
+        return (pb.name[-5:] == "Twist")
 
 
     def getCanonicalKey(self, key, rig):
@@ -749,7 +757,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
             return
         pb = rig.pose.bones[bname]
         if self.isAvailable(pb, rig):
-            if twist:
+            if False and twist:
                 setBoneTwist(tfm, pb)
             else:
                 setBoneTransform(tfm, pb)
