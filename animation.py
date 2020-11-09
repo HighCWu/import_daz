@@ -427,7 +427,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         if rig.DazRig == "rigify":
             for bname in ["hand.ik.L", "hand.ik.R",
                           "foot.ik.L", "foot.ik.R"]:
-                if bname in rig.pose.bones.keys():
+                if self.checkRigifySwitch(bname, rig):
                     pb = rig.pose.bones[bname]
                     pb["ik_fk_switch"] = 0.0
             if "head.001" in rig.pose.bones.keys():
@@ -436,7 +436,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         elif rig.DazRig == "rigify2":
             for bname in ["upper_arm_parent.L", "upper_arm_parent.R",
                           "thigh_parent.L", "thigh_parent.R"]:
-                if bname in rig.pose.bones.keys():
+                if self.checkRigifySwitch(bname, rig):
                     pb = rig.pose.bones[bname]
                     pb["IK_FK"] = 1.0
             if "torso" in rig.pose.bones.keys():
@@ -445,7 +445,36 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                 pb["head_follow"] = 1.0
         elif rig.DazRig == "mhx":
             for pname in ["MhaArmIk_L", "MhaArmIk_R", "MhaLegIk_L", "MhaLegIk_R"]:
-                rig[pname] = 0.0
+                if self.checkSelectedChain(pname, rig):
+                    rig[pname] = 0.0
+
+
+    FKChains = {
+        "hand.ik" : ["upper_arm.fk", "forearm.fk", "hand.fk"],
+        "foot.ik" : ["thigh.fk", "shin.fk", "foot.fk"],
+        "upper_arm_parent" : ["upper_arm_fk", "forearm_fk", "hand_fk"],
+        "thigh_parent" : ["thigh_fk", "shin_fk", "foot_fk"],
+        "MhaArmIk" : ["upper_arm.fk", "forearm.fk", "hand.fk"],
+        "MhaLegIk" : ["thigh.fk", "shin.fk", "foot.fk"],
+    }
+
+    def checkRigifySwitch(self, bname, rig):
+        if bname not in rig.pose.bones.keys():
+            return False
+        return self.checkSelectedChain(bname, rig)
+
+
+    def checkSelectedChain(self, bname, rig):
+        if self.affectSelectedOnly:
+            suffix = bname[-2:]
+            for cname in self.FKChains[bname[:-2]]:
+                if cname+suffix in rig.pose.bones.keys():
+                    pb = rig.pose.bones[cname+suffix]
+                    if pb.bone.select:
+                        return True
+            return False
+        else:
+            return True
 
 
     def parseAnimation(self, struct):
