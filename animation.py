@@ -466,10 +466,11 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
 
     def checkSelectedChain(self, bname, rig):
         if self.affectSelectedOnly:
-            suffix = bname[-2:]
+            suffix = bname[-1:]
             for cname in self.FKChains[bname[:-2]]:
-                if cname+suffix in rig.pose.bones.keys():
-                    pb = rig.pose.bones[cname+suffix]
+                dname = cname + "." + suffix
+                if dname in rig.pose.bones.keys():
+                    pb = rig.pose.bones[dname]
                     if pb.bone.select:
                         return True
             return False
