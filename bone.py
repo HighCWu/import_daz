@@ -576,7 +576,7 @@ class BoneInstance(Instance):
         if self.name not in rig.data.bones.keys():
             return
         bone = rig.data.bones[self.name]
-        bone.use_inherit_scale = self.node.inherits_scale
+        bone.use_inherit_scale = True
         bone.DazOrient = self.attributes["orientation"]
 
         head,tail,orient,xyz,wsmat = self.getHeadTail(center)

@@ -119,8 +119,6 @@ class Instance(Accessor, Channels):
         self.children = {}
         self.label = node.label
         node.label = None
-        self.inherits_scale = node.inherits_scale
-        node.inherits_scale = True
         self.extra = node.extra
         node.extra = []
         self.channels = node.channels
@@ -354,7 +352,7 @@ class Instance(Accessor, Channels):
             self.wtrans = Mult2(par.wmat, coffset + trans)
             self.wrot = Mult4(par.wrot, orient, lrot, orient.inverted())
             oscale = Mult3(orient, self.lscale, orient.inverted())
-            if self.inherits_scale:
+            if True:  # self.inherits_scale:
                 self.wscale = Mult2(par.wscale, oscale)
             else:
                 self.wscale = Mult3(par.wscale, par.lscale.inverted(), oscale)
@@ -498,7 +496,6 @@ class Node(Asset, Formula, Channels):
         self.center = None
         self.geometries = []
         self.materials = {}
-        self.inherits_scale = True
         self.rotation_order = 'XYZ'
         self.attributes = self.defaultAttributes()
         self.origAttrs = self.defaultAttributes()
@@ -563,7 +560,7 @@ class Node(Asset, Formula, Channels):
             if key == "formulas":
                 self.formulas = data
             elif key == "inherits_scale":
-                self.inherits_scale = data
+                pass
             elif key == "rotation_order":
                 self.rotation_order = data
             elif key in self.attributes.keys():
