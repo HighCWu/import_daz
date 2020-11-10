@@ -576,7 +576,7 @@ class Geometry(Asset, Channels):
                         dmats = geo.materials[mname]
                         mshells = dmats[geonode.index].shells
                         if shname not in mshells.keys():
-                            mshells[shname] = Shell(shname, shmat, uv, self)
+                            mshells[shname] = self.addShell(shname, shmat, uv)
                         shmat.ignore = True
                         # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
                         # so they can be used to define materials assigned to the geometry in Blender.
@@ -609,7 +609,7 @@ class Geometry(Asset, Channels):
             dmats = geo.materials[mname1]
             mshells = dmats[idx].shells
             if shname not in mshells.keys():
-                mshells[shname] = Shell(shname, shmat, uv, self)
+                mshells[shname] = self.addShell(shname, shmat, uv)
             shmat.ignore = True
             self.addNewUvset(uv, geo)
             self.matused.append(mname)
@@ -841,6 +841,17 @@ class Geometry(Asset, Channels):
         else:
             return "Hair", None
 
+
+    def addShell(self, shname, shmat, uv):
+        if shname not in self.shells.keys():
+            self.shells[shname] = []
+        for shell in self.shells[shname]:
+            if shmat.equalChannels(shell.material):
+                return shell
+        shell = Shell(shname, shmat, uv, self)
+        self.shells[shname].append(shell)
+        return shell
+
 #-------------------------------------------------------------
 #   Shell
 #-------------------------------------------------------------
@@ -851,6 +862,7 @@ class Shell:
         self.material = shmat
         self.uv = uv
         self.geometry = geo
+        self.tree = None
 
 
     def __repr__(self):

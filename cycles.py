@@ -252,6 +252,9 @@ class CyclesTree:
         node.width = 240
         name = ("%s_%s" % (shname, self.material.name))
         node.name = name
+        if shell.tree:
+            node.node_tree = shell.tree
+            return node
         if self.type == 'CYCLES':
             from .cgroup import ShellCyclesGroup
             group = ShellCyclesGroup(push)
@@ -262,7 +265,7 @@ class CyclesTree:
             raise RuntimeError("Bug Cycles type %s" % self.type)
         group.create(node, name, self)
         group.addNodes(shmat)
-        LS.shellGroups.append((shmat, node.node_tree))
+        shell.tree = node.node_tree
         return node
 
 

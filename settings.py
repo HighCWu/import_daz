@@ -404,7 +404,6 @@ class LocalSettings:
         self.images = {}
         self.textures = {}
         self.gammas = {}
-        self.shellGroups = []
         self.customShapes = []
         self.singleUser = False
         self.scene = ""
