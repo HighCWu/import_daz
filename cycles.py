@@ -250,10 +250,16 @@ class CyclesTree:
             return None
         node = self.addNode("ShaderNodeGroup")
         node.width = 240
-        name = ("%s_%s" % (shname, self.material.name))
-        node.name = name
+        if shell.single:
+            nname = shname
+        else:
+            nname = ("%s_%s" % (shname, self.material.name))
+        node.name = nname
         if shell.tree:
             node.node_tree = shell.tree
+            return node
+        elif shell.match and shell.match.tree:
+            node.node_tree = shell.tree = shell.match.tree
             return node
         if self.type == 'CYCLES':
             from .cgroup import ShellCyclesGroup
@@ -263,7 +269,7 @@ class CyclesTree:
             group = ShellPbrGroup(push)
         else:
             raise RuntimeError("Bug Cycles type %s" % self.type)
-        group.create(node, name, self)
+        group.create(node, nname, self)
         group.addNodes(shmat)
         shell.tree = node.node_tree
         return node

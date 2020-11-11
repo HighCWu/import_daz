@@ -843,12 +843,21 @@ class Geometry(Asset, Channels):
 
 
     def addShell(self, shname, shmat, uv):
+        first = False
         if shname not in self.shells.keys():
+            first = True
             self.shells[shname] = []
+        match = None
         for shell in self.shells[shname]:
             if shmat.equalChannels(shell.material):
-                return shell
-        shell = Shell(shname, shmat, uv, self)
+                if uv == shell.uv:
+                    return shell
+                else:
+                    match = shell
+        if not match:
+            for shell in self.shells[shname]:
+                shell.single = False
+        shell = Shell(shname, shmat, uv, self, first, match)
         self.shells[shname].append(shell)
         return shell
 
@@ -857,16 +866,18 @@ class Geometry(Asset, Channels):
 #-------------------------------------------------------------
 
 class Shell:
-    def __init__(self, shname, shmat, uv, geo):
+    def __init__(self, shname, shmat, uv, geo, first, match):
         self.name = shname
         self.material = shmat
         self.uv = uv
         self.geometry = geo
+        self.single = first
+        self.match = match
         self.tree = None
 
 
     def __repr__(self):
-        return ("<Shell %s %s\n  %s>" % (self.name, self.material.name, self.geometry.id))
+        return ("<Shell %s %s %s>" % (self.name, self.material.name, self.single))
 
 #-------------------------------------------------------------
 #   UV Asset
