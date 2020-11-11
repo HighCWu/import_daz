@@ -524,50 +524,84 @@ class DAZ_OT_PruneVertexGroups(DazPropsOperator, B.ThresholdFloat, IsMesh):
 #   Add IK goals
 #-------------------------------------------------------------
 
-def addIkGoals(rig):
-    ikgoals = []
-    for pb in rig.pose.bones:
-        if pb.bone.select and not pb.children:
-            clen = 0
-            par = pb
-            while par and par.bone.select:
-                pb.ik_stiffness_x = 0.5
-                pb.ik_stiffness_y = 0.5
-                pb.ik_stiffness_z = 0.5
-                clen += 1
-                par = par.parent
-            if clen > 2:
-                ikgoals.append((pb.name, par.name, clen))
-
-    bpy.ops.object.mode_set(mode='EDIT')
-    for bname, pname, clen in ikgoals:
-        eb = rig.data.edit_bones[bname]
-        gb = rig.data.edit_bones.new(bname+"Goal")
-        gb.head = eb.tail
-        gb.tail = 2*eb.tail - eb.head
-
-    bpy.ops.object.mode_set(mode='POSE')
-    for bname, pname, clen in ikgoals:
-        if bname not in rig.pose.bones.keys():
-            continue
-        pb = rig.pose.bones[bname]
-        cns = pb.constraints.new('IK')
-        cns.name = "IK"
-        cns.target = rig
-        cns.subtarget = bname+"Goal"
-        cns.chain_count = clen
-        cns.use_location = True
-        cns.use_rotation = True
-
-
-class DAZ_OT_AddIkGoals(DazOperator, IsArmature):
+class DAZ_OT_AddIkGoals(DazPropsOperator, B.PoleTargets, IsArmature):
     bl_idname = "daz.add_ik_goals"
     bl_label = "Add IK goals"
     bl_description = "Add IK goals"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        self.layout.prop(self, "usePoleTargets")
+
+
     def run(self, context):
-        addIkGoals(context.object)
+        from .figure import makeCustomShape
+        rig = context.object
+        ikgoals = []
+        for pb in rig.pose.bones:
+            if pb.bone.select and not pb.children:
+                clen = 0
+                par = pb
+                while par and par.bone.select:
+                    pb.ik_stiffness_x = 0.5
+                    pb.ik_stiffness_y = 0.5
+                    pb.ik_stiffness_z = 0.5
+                    clen += 1
+                    par = par.parent
+                if clen > 2:
+                    ikgoals.append((pb.name, clen))
+
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname, clen in ikgoals:
+            eb = rig.data.edit_bones[bname]
+            goal = rig.data.edit_bones.new(bname+"Goal")
+            goalname = goal.name
+            goal.head = eb.tail
+            goal.tail = 2*eb.tail - eb.head
+            goal.roll = eb.roll
+            if self.usePoleTargets:
+                for n in range(clen//2):
+                    eb = eb.parent
+                pole = rig.data.edit_bones.new(bname+"Pole")
+                polename = pole.name
+                pole.head = eb.head + eb.length * eb.x_axis
+                pole.tail = eb.tail + eb.length * eb.x_axis
+                pole.roll = eb.roll
+
+        bpy.ops.object.mode_set(mode='POSE')
+        for bname, clen in ikgoals:
+            if bname not in rig.pose.bones.keys():
+                continue
+            pb = rig.pose.bones[bname]
+            rmat = pb.bone.matrix_local
+
+            goal = rig.pose.bones[bname+"Goal"]
+            goal.rotation_mode = pb.rotation_mode
+            goal.bone.use_local_location = True
+            goal.matrix_basis = Mult2(rmat.inverted(), pb.matrix)
+            csCube = makeCustomShape("CS_Cube", "Cube", scale=1.5)
+            goal.custom_shape = csCube
+
+            if self.usePoleTargets:
+                pole = rig.pose.bones[polename]
+                pole.rotation_mode = pb.rotation_mode
+                pole.bone.use_local_location = True
+                pole.matrix_basis = Mult2(rmat.inverted(), pb.matrix)
+                pole.custom_shape = csCube
+
+            cns = pb.constraints.new('IK')
+            cns.name = "IK"
+            cns.target = rig
+            cns.subtarget = goalname
+            cns.chain_count = clen
+            cns.use_location = True
+            if self.usePoleTargets:
+                cns.pole_target = rig
+                cns.pole_subtarget = polename
+                cns.pole_angle = 90*D
+                cns.use_rotation = False
+            else:
+                cns.use_rotation = True
 
 #-------------------------------------------------------------
 #   Add Winder
