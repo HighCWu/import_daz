@@ -484,6 +484,7 @@ class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
                 return False
         else:
             if (ob.hide_get() or
+                ob.hide_viewport or
                 ob.instance_type != 'NONE'):
                 return False
         return True
