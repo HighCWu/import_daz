@@ -157,7 +157,7 @@ class FigureInstance(Instance):
                     _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
                     if char:
                         if GS.useCustomShapes:
-                            addCustomShapes(rig, context)
+                            addCustomShapes(rig, context, LS.collection)
 
 
     def fixDependencyLoops(self, rig):
@@ -1126,10 +1126,10 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        addCustomShapes(context.object, context)
+        addCustomShapes(context.object, context, context.collection)
 
 
-def addCustomShapes(rig, context):
+def addCustomShapes(rig, context, coll):
     LS.customShapes = []
     IK = SimpleIK()
 
@@ -1256,11 +1256,11 @@ def addCustomShapes(rig, context):
             pb.custom_shape = circleY2
             print("Unknown bone:", pb.name)
 
-    hideCustomShapes(rig, context)
+    hideCustomShapes(rig, context, coll)
 
 
-def hideCustomShapes(rig, context):
-    hidden = createHiddenCollection(context)
+def hideCustomShapes(rig, context, coll):
+    hidden = createHiddenCollection(context, coll)
     empty = bpy.data.objects.new("Custom Shapes", None)
     hidden.objects.link(empty)
     empty.parent = rig

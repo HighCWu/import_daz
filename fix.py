@@ -591,7 +591,7 @@ def addWinder(context):
     wname = "Wind"+bname
     gizmo = findChild("GZM_Knuckle", rig)
     if gizmo is None:
-        hidden = createHiddenCollection(context)
+        hidden = createHiddenCollection(context, None)
         gizmos = makeGizmos(["GZM_Knuckle"], rig, hidden)
         gizmo = gizmos["GZM_Knuckle"]
 

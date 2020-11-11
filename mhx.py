@@ -769,7 +769,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
 
 
     def addGizmos(self, rig, context):
-        hidden = createHiddenCollection(context)
+        hidden = createHiddenCollection(context, None)
         bpy.ops.object.mode_set(mode='OBJECT')
         empty = bpy.data.objects.new("Gizmos", None)
         hidden.objects.link(empty)

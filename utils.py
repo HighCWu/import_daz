@@ -80,7 +80,7 @@ if bpy.app.version < (2,80,0):
     def putOnHiddenLayer(ob, coll=None, hidden=None):
         ob.layers = 19*[False] + [True]
 
-    def createHiddenCollection(context):
+    def createHiddenCollection(context, parent):
         return context.scene
 
     def getUvTextures(me):
@@ -207,9 +207,11 @@ else:
         if hidden:
             hidden.objects.link(ob)
 
-    def createHiddenCollection(context):
+    def createHiddenCollection(context, parent):
         coll = bpy.data.collections.new(name="Hidden")
-        context.collection.children.link(coll)
+        if parent is None:
+            parent = context.collection
+        parent.children.link(coll)
         coll.hide_viewport = True
         coll.hide_render = True
         return coll
