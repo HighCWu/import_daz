@@ -558,7 +558,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         for subrig in subrigs:
-            copyPose(context, rig, subrig)
+            if not (subrig.parent and
+                    subrig.parent_type == 'BONE'):
+                copyPose(context, rig, subrig)
 
         if self.useApplyRestPose:
             applyRestPoses(context, rig, subrigs)
@@ -583,7 +585,6 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                 parbone = None
 
             if success:
-                print("  ", subrig.name, parbone)
                 storage = self.addExtraBones(subrig, rig, context, scn, parbone)
 
                 meshes = []

@@ -225,6 +225,17 @@ class DAZ_OT_InspectPropDependencies(DazOperator, IsArmature):
             for prop,val in dep[1:]:
                 print("  %-24s: %6.4f %-24s" % ("", val, prop))
 
+
+class DAZ_OT_InspectWorldMatrix(DazOperator, IsObject):
+    bl_idname = "daz.inspect_world_matrix"
+    bl_label = "Inspect World Matrix"
+    bl_description = "List world matrix of active object"
+
+    def run(self, context):
+        ob = context.object
+        print("World Matrix", ob.name)
+        print(ob.matrix_world)
+
 #----------------------------------------------------------
 #   Panels
 #----------------------------------------------------------
@@ -541,6 +552,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
         layout.operator("daz.get_finger_print")
         layout.operator("daz.inspect_prop_groups")
         layout.operator("daz.inspect_prop_dependencies")
+        layout.operator("daz.inspect_world_matrix")
 
     def propRow(self, layout, rna, prop):
         row = layout.row()
@@ -1292,6 +1304,7 @@ classes = [
     B.DazStringGroup,
     DAZ_OT_InspectPropGroups,
     DAZ_OT_InspectPropDependencies,
+    DAZ_OT_InspectWorldMatrix,
     DAZ_OT_SetSilentMode,
 
     DAZ_OT_AddContentDir,
