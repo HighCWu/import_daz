@@ -524,7 +524,7 @@ class DAZ_OT_PruneVertexGroups(DazPropsOperator, B.ThresholdFloat, IsMesh):
 #   Add IK goals
 #-------------------------------------------------------------
 
-class DAZ_OT_AddIkGoals(DazPropsOperator, B.PoleTargets, IsArmature):
+class DAZ_OT_AddIkGoals(DazPropsOperator, B.AddIkGoals, IsArmature):
     bl_idname = "daz.add_ik_goals"
     bl_label = "Add IK goals"
     bl_description = "Add IK goals"
@@ -532,6 +532,9 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, B.PoleTargets, IsArmature):
 
     def draw(self, context):
         self.layout.prop(self, "usePoleTargets")
+        self.layout.prop(self, "hideBones")
+        self.layout.prop(self, "lockBones")
+        self.layout.prop(self, "disableBones")
 
 
     def run(self, context):
@@ -542,17 +545,19 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, B.PoleTargets, IsArmature):
             if pb.bone.select and not pb.children:
                 clen = 0
                 par = pb
+                pbones = [pb]
                 while par and par.bone.select:
-                    pb.ik_stiffness_x = 0.5
-                    pb.ik_stiffness_y = 0.5
-                    pb.ik_stiffness_z = 0.5
+                    par.ik_stiffness_x = 0.5
+                    par.ik_stiffness_y = 0.5
+                    par.ik_stiffness_z = 0.5
                     clen += 1
                     par = par.parent
+                    pbones.append(par)
                 if clen > 2:
-                    ikgoals.append((pb.name, clen))
+                    ikgoals.append((pb.name, clen, pbones))
 
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname, clen in ikgoals:
+        for bname, clen, pbones in ikgoals:
             eb = rig.data.edit_bones[bname]
             goal = rig.data.edit_bones.new(bname+"Goal")
             goalname = goal.name
@@ -569,7 +574,7 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, B.PoleTargets, IsArmature):
                 pole.roll = eb.roll
 
         bpy.ops.object.mode_set(mode='POSE')
-        for bname, clen in ikgoals:
+        for bname, clen, pbones in ikgoals:
             if bname not in rig.pose.bones.keys():
                 continue
             pb = rig.pose.bones[bname]
@@ -602,6 +607,18 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, B.PoleTargets, IsArmature):
                 cns.use_rotation = False
             else:
                 cns.use_rotation = True
+
+            if self.hideBones:
+                for pb in pbones:
+                    pb.bone.hide = True
+            if self.lockBones:
+                for pb in pbones:
+                    pb.lock_location = (True, True, True)
+                    pb.lock_rotation = (True, True, True)
+                    pb.lock_scale = (True, True, True)
+            if self.disableBones:
+                for pb in pbones:
+                    pb.bone.hide_select = True
 
 #-------------------------------------------------------------
 #   Add Winder

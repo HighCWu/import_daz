@@ -340,6 +340,28 @@ class ThresholdFloat:
         precision = 4,
         default = 1e-3)
 
+
+class AddIkGoals:
+    usePoleTargets : BoolProperty(
+        name = "Pole Targets",
+        description = "Add pole targets to the IK chains",
+        default = False)
+
+    hideBones : BoolProperty(
+        name = "Hide Bones",
+        description = "Hide all bones in the IK chains",
+        default = False)
+
+    lockBones : BoolProperty(
+        name = "Lock Bones",
+        description = "Lock all bones in the IK chains",
+        default = False)
+
+    disableBones : BoolProperty(
+        name = "Disable Bones",
+        description = "Disable all bones in the IK chains",
+        default = False)
+
 #-------------------------------------------------------------
 #   merge.py
 #-------------------------------------------------------------
