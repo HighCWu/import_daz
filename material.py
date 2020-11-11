@@ -960,6 +960,8 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
             "texture_slots", "node_tree",
             "name", "name_full", "active_texture",
         ]
+        if bpy.app.version >= (2,80,0):
+            deadMatProps.append("diffuse_color")
         matProps = self.getRelevantProps(mat1, deadMatProps)
         if not self.haveSameAttrs(mat1, mat2, matProps, mname1, mname2):
             return False
@@ -1048,6 +1050,8 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
 
 
     def areSameNode(self, node1, node2, mname1, mname2):
+        if node1.type != node2.type:
+            return False
         if not self.haveSameKeys(node1, node2, mname1, mname2):
             return False
         deadNodeProps = ["dimensions", "location"]
@@ -1056,6 +1060,9 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
             return False
         if not self.haveSameInputs(node1, node2):
             return False
+        if node1.type == 'GROUP':
+            if node1.node_tree != node2.node_tree:
+                return False
         return True
 
 
