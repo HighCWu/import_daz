@@ -272,9 +272,12 @@ else:
         if context.object:
             bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
-        ob.select_set(True)
         unlinkAll(ob)
-        bpy.ops.object.delete(use_global=False)
+        try:
+            ob.select_set(True)
+            bpy.ops.object.delete(use_global=False)
+        except RuntimeError:
+            pass
         del ob
 
     def unlinkAll(ob):
