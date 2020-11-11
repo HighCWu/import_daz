@@ -211,7 +211,10 @@ class ExtraAsset(Modifier, Channels):
         from .node import Instance
         from .geometry import GeoNode
         if isinstance(inst, Instance):
-            return inst.geometries[0]
+            if inst.geometries:
+                return inst.geometries[0]
+            else:
+                return None
         elif isinstance(inst, GeoNode):
             return inst
         else:

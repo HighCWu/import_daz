@@ -442,7 +442,7 @@ def copyPose(context, rig, ob):
 class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
     bl_idname = "daz.eliminate_empties"
     bl_label = "Eliminate Empties"
-    bl_description = "Delete non-hidden empties with mesh children, parenting the meshes to the rig instead"
+    bl_description = "Delete non-hidden empties, parenting its children to its parent instead"
     bl_options = {'UNDO'}
 
     def run(self, context):
@@ -455,22 +455,21 @@ class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
         deletes = []
         for empty in rig.children:
             if self.doEliminate(empty):
+                deletes.append(empty)
                 for ob in empty.children:
-                    if ob.type == 'MESH':
-                        deletes.append(empty)
-                        wmat = ob.matrix_world.copy()
-                        if empty.parent_type == 'OBJECT':
-                            ob.parent = rig
-                            ob.parent_type = 'OBJECT'
-                            setWorldMatrix(ob, wmat)
-                        elif empty.parent_type == 'BONE':
-                            bone = rig.data.bones[empty.parent_bone]
-                            ob.parent = rig
-                            ob.parent_type = 'BONE'
-                            ob.parent_bone = empty.parent_bone
-                            setWorldMatrix(ob, wmat)
-                        else:
-                            raise DazError("Unknown parent type: %s %s" % (ob.name, empty.parent_type))
+                    wmat = ob.matrix_world.copy()
+                    if empty.parent_type == 'OBJECT':
+                        ob.parent = rig
+                        ob.parent_type = 'OBJECT'
+                        setWorldMatrix(ob, wmat)
+                    elif empty.parent_type == 'BONE':
+                        bone = rig.data.bones[empty.parent_bone]
+                        ob.parent = rig
+                        ob.parent_type = 'BONE'
+                        ob.parent_bone = empty.parent_bone
+                        setWorldMatrix(ob, wmat)
+                    else:
+                        raise DazError("Unknown parent type: %s %s" % (ob.name, empty.parent_type))
         for empty in deletes:
             deleteObject(context, empty)
 
