@@ -442,7 +442,7 @@ def copyPose(context, rig, ob):
 class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
     bl_idname = "daz.eliminate_empties"
     bl_label = "Eliminate Empties"
-    bl_description = "Delete empties with mesh children, parenting the meshes to the rig instead"
+    bl_description = "Delete non-hidden empties with mesh children, parenting the meshes to the rig instead"
     bl_options = {'UNDO'}
 
     def run(self, context):
@@ -454,7 +454,7 @@ class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
     def eliminateEmpties(self, rig, context):
         deletes = []
         for empty in rig.children:
-            if empty.type == 'EMPTY' and not isDuplicated(empty):
+            if self.doEliminate(empty):
                 for ob in empty.children:
                     if ob.type == 'MESH':
                         deletes.append(empty)
@@ -475,11 +475,18 @@ class DAZ_OT_EliminateEmpties(DazOperator, IsArmature):
             deleteObject(context, empty)
 
 
-def isDuplicated(ob):
-    if bpy.app.version < (2,80,0):
-        return (ob.dupli_type != 'NONE')
-    else:
-        return (ob.instance_type != 'NONE')
+    def doEliminate(self, ob):
+        if ob.type != 'EMPTY':
+            return False
+        if bpy.app.version < (2,80,0):
+            if (ob.hide or
+                ob.dupli_type != 'NONE'):
+                return False
+        else:
+            if (ob.hide_get() or
+                ob.instance_type != 'NONE'):
+                return False
+        return True
 
 #-------------------------------------------------------------
 #   Merge rigs

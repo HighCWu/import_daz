@@ -77,8 +77,9 @@ if bpy.app.version < (2,80,0):
         except RuntimeError:
             return False
 
-    def putOnHiddenLayer(ob, coll=None, hidden=None):
+    def putOnHiddenLayer(ob):
         ob.layers = 19*[False] + [True]
+        ob.hide = True
 
     def createHiddenCollection(context, parent):
         return context.scene
@@ -201,11 +202,8 @@ else:
         except RuntimeError:
             return False
 
-    def putOnHiddenLayer(ob, coll=None, hidden=None):
-        if coll:
-            coll.objects.unlink(ob)
-        if hidden:
-            hidden.objects.link(ob)
+    def putOnHiddenLayer(ob):
+        ob.hide_set(True)
 
     def createHiddenCollection(context, parent):
         coll = bpy.data.collections.new(name="Hidden")
