@@ -648,126 +648,6 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
     #   Gizmos
     #-------------------------------------------------------------
 
-    Gizmos = {
-        "master" :          "GZM_Master",
-        "back" :            "GZM_Knuckle",
-
-        #Spine
-        "root" :            "GZM_CrownHips",
-        "hips" :            "GZM_CircleHips",
-        "spine" :           "GZM_CircleSpine",
-        "spine-1" :         "GZM_CircleSpine",
-        "chest" :           "GZM_CircleChest",
-        "chest-1" :         "GZM_CircleChest",
-        "neck" :            "GZM_Neck",
-        "neck-1" :          "GZM_Neck",
-        "head" :            "GZM_Head",
-        #"breast.L" :        "GZM_Breast_L",
-        #"breast.R" :        "GZM_Breast_R",
-
-        # Head
-
-        "lowerJaw" :        "GZM_Jaw",
-        "rEye" :            "GZM_Circle025",
-        "lEye" :            "GZM_Circle025",
-        "gaze" :            "GZM_Gaze",
-        "gaze.L" :          "GZM_Circle025",
-        "gaze.R" :          "GZM_Circle025",
-
-        "uplid.L" :         "GZM_UpLid",
-        "uplid.R" :         "GZM_UpLid",
-        "lolid.L" :         "GZM_LoLid",
-        "lolid.R" :         "GZM_LoLid",
-
-        "tongue_base" :     "GZM_Tongue",
-        "tongue_mid" :      "GZM_Tongue",
-        "tongue_tip" :      "GZM_Tongue",
-
-        # Leg
-
-        "thigh.fk.L" :      "GZM_Circle025",
-        "thigh.fk.R" :      "GZM_Circle025",
-        "shin.fk.L" :       "GZM_Circle025",
-        "shin.fk.R" :       "GZM_Circle025",
-        "foot.fk.L" :       "GZM_Foot_L",
-        "foot.fk.R" :       "GZM_Foot_R",
-        "toe.fk.L" :        "GZM_Toe_L",
-        "toe.fk.R" :        "GZM_Toe_R",
-        "leg_socket.L" :    "GZM_Ball025",
-        "leg_socket.R" :    "GZM_Ball025",
-        "foot.rev.L" :      "GZM_RevFoot",
-        "foot.rev.R" :      "GZM_RevFoot",
-        "foot.ik.L" :       "GZM_FootIK",
-        "foot.ik.R" :       "GZM_FootIK",
-        "toe.rev.L" :       "GZM_RevToe",
-        "toe.rev.R" :       "GZM_RevToe",
-        "ankle.L" :         "GZM_Ball025",
-        "ankle.R" :         "GZM_Ball025",
-        "knee.pt.ik.L" :    "GZM_Cube025",
-        "knee.pt.ik.R" :    "GZM_Cube025",
-
-        "toe.marker.L" :     "GZM_Ball025",
-        "ball.marker.L" :    "GZM_Ball025",
-        "heel.marker.L" :    "GZM_Ball025",
-        "toe.marker.R" :     "GZM_Ball025",
-        "ball.marker.R" :    "GZM_Ball025",
-        "heel.marker.R" :    "GZM_Ball025",
-
-
-        # Arm
-
-        "clavicle.L" :      "GZM_Shoulder",
-        "clavicle.R" :      "GZM_Shoulder",
-        "upper_arm.fk.L" :  "GZM_Circle025",
-        "upper_arm.fk.R" :  "GZM_Circle025",
-        "forearm.fk.L" :    "GZM_Circle025",
-        "forearm.fk.R" :    "GZM_Circle025",
-        "hand.fk.L" :       "GZM_Hand",
-        "hand.fk.R" :       "GZM_Hand",
-        "arm_socket.L" :    "GZM_Ball025",
-        "arm_socket.R" :    "GZM_Ball025",
-        "hand.ik.L" :       "GZM_HandIK",
-        "hand.ik.R" :       "GZM_HandIK",
-        "elbow.pt.ik.L" :   "GZM_Cube025",
-        "elbow.pt.ik.R" :   "GZM_Cube025",
-
-        # Finger
-
-        "thumb.L" :         "GZM_Knuckle",
-        "index.L" :         "GZM_Knuckle",
-        "middle.L" :        "GZM_Knuckle",
-        "ring.L" :          "GZM_Knuckle",
-        "pinky.L" :         "GZM_Knuckle",
-
-        "thumb.R" :         "GZM_Knuckle",
-        "index.R" :         "GZM_Knuckle",
-        "middle.R" :        "GZM_Knuckle",
-        "ring.R" :          "GZM_Knuckle",
-        "pinky.R" :         "GZM_Knuckle",
-    }
-
-    def makeGizmos(self, gnames, parent, hidden):
-        from .load_json import loadJson
-        folder = os.path.dirname(__file__)
-        filepath = os.path.join(folder, "data", "gizmos.json")
-        struct = loadJson(filepath)
-        gizmos = {}
-        if gnames is None:
-            gnames = struct.keys()
-        for gname in gnames:
-            gizmo = struct[gname]
-            me = bpy.data.meshes.new(gname)
-            me.from_pydata(gizmo["verts"], gizmo["edges"], [])
-            ob = bpy.data.objects.new(gname, me)
-            hidden.objects.link(ob)
-            ob.parent = parent
-            putOnHiddenLayer(ob)
-            if gizmo["subsurf"]:
-                ob.modifiers.new('SUBSURF', 'SUBSURF')
-            gizmos[gname] = ob
-        return gizmos
-
-
     def addGizmos(self, rig, context):
         hidden = createHiddenCollection(context, None)
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -775,7 +655,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         hidden.objects.link(empty)
         empty.parent = rig
         putOnHiddenLayer(empty)
-        gizmos = self.makeGizmos(None, empty, hidden)
+        gizmos = makeGizmos(None, empty, hidden)
         for bname,gname in self.Gizmos.items():
             if (bname in rig.pose.bones.keys() and
                 gname in gizmos.keys()):
@@ -1242,6 +1122,129 @@ def connectToParent(rig):
             eb = rig.data.edit_bones[bname]
             eb.parent.tail = eb.head
             eb.use_connect = True
+
+#-------------------------------------------------------------
+#   Gizmos used by winders
+#-------------------------------------------------------------
+
+Gizmos = {
+    "master" :          "GZM_Master",
+    "back" :            "GZM_Knuckle",
+
+    #Spine
+    "root" :            "GZM_CrownHips",
+    "hips" :            "GZM_CircleHips",
+    "spine" :           "GZM_CircleSpine",
+    "spine-1" :         "GZM_CircleSpine",
+    "chest" :           "GZM_CircleChest",
+    "chest-1" :         "GZM_CircleChest",
+    "neck" :            "GZM_Neck",
+    "neck-1" :          "GZM_Neck",
+    "head" :            "GZM_Head",
+    #"breast.L" :        "GZM_Breast_L",
+    #"breast.R" :        "GZM_Breast_R",
+
+    # Head
+
+    "lowerJaw" :        "GZM_Jaw",
+    "rEye" :            "GZM_Circle025",
+    "lEye" :            "GZM_Circle025",
+    "gaze" :            "GZM_Gaze",
+    "gaze.L" :          "GZM_Circle025",
+    "gaze.R" :          "GZM_Circle025",
+
+    "uplid.L" :         "GZM_UpLid",
+    "uplid.R" :         "GZM_UpLid",
+    "lolid.L" :         "GZM_LoLid",
+    "lolid.R" :         "GZM_LoLid",
+
+    "tongue_base" :     "GZM_Tongue",
+    "tongue_mid" :      "GZM_Tongue",
+    "tongue_tip" :      "GZM_Tongue",
+
+    # Leg
+
+    "thigh.fk.L" :      "GZM_Circle025",
+    "thigh.fk.R" :      "GZM_Circle025",
+    "shin.fk.L" :       "GZM_Circle025",
+    "shin.fk.R" :       "GZM_Circle025",
+    "foot.fk.L" :       "GZM_Foot_L",
+    "foot.fk.R" :       "GZM_Foot_R",
+    "toe.fk.L" :        "GZM_Toe_L",
+    "toe.fk.R" :        "GZM_Toe_R",
+    "leg_socket.L" :    "GZM_Ball025",
+    "leg_socket.R" :    "GZM_Ball025",
+    "foot.rev.L" :      "GZM_RevFoot",
+    "foot.rev.R" :      "GZM_RevFoot",
+    "foot.ik.L" :       "GZM_FootIK",
+    "foot.ik.R" :       "GZM_FootIK",
+    "toe.rev.L" :       "GZM_RevToe",
+    "toe.rev.R" :       "GZM_RevToe",
+    "ankle.L" :         "GZM_Ball025",
+    "ankle.R" :         "GZM_Ball025",
+    "knee.pt.ik.L" :    "GZM_Cube025",
+    "knee.pt.ik.R" :    "GZM_Cube025",
+
+    "toe.marker.L" :     "GZM_Ball025",
+    "ball.marker.L" :    "GZM_Ball025",
+    "heel.marker.L" :    "GZM_Ball025",
+    "toe.marker.R" :     "GZM_Ball025",
+    "ball.marker.R" :    "GZM_Ball025",
+    "heel.marker.R" :    "GZM_Ball025",
+
+
+    # Arm
+
+    "clavicle.L" :      "GZM_Shoulder",
+    "clavicle.R" :      "GZM_Shoulder",
+    "upper_arm.fk.L" :  "GZM_Circle025",
+    "upper_arm.fk.R" :  "GZM_Circle025",
+    "forearm.fk.L" :    "GZM_Circle025",
+    "forearm.fk.R" :    "GZM_Circle025",
+    "hand.fk.L" :       "GZM_Hand",
+    "hand.fk.R" :       "GZM_Hand",
+    "arm_socket.L" :    "GZM_Ball025",
+    "arm_socket.R" :    "GZM_Ball025",
+    "hand.ik.L" :       "GZM_HandIK",
+    "hand.ik.R" :       "GZM_HandIK",
+    "elbow.pt.ik.L" :   "GZM_Cube025",
+    "elbow.pt.ik.R" :   "GZM_Cube025",
+
+    # Finger
+
+    "thumb.L" :         "GZM_Knuckle",
+    "index.L" :         "GZM_Knuckle",
+    "middle.L" :        "GZM_Knuckle",
+    "ring.L" :          "GZM_Knuckle",
+    "pinky.L" :         "GZM_Knuckle",
+
+    "thumb.R" :         "GZM_Knuckle",
+    "index.R" :         "GZM_Knuckle",
+    "middle.R" :        "GZM_Knuckle",
+    "ring.R" :          "GZM_Knuckle",
+    "pinky.R" :         "GZM_Knuckle",
+    }
+
+def makeGizmos(gnames, parent, hidden):
+    from .load_json import loadJson
+    folder = os.path.dirname(__file__)
+    filepath = os.path.join(folder, "data", "gizmos.json")
+    struct = loadJson(filepath)
+    gizmos = {}
+    if gnames is None:
+        gnames = struct.keys()
+    for gname in gnames:
+        gizmo = struct[gname]
+        me = bpy.data.meshes.new(gname)
+        me.from_pydata(gizmo["verts"], gizmo["edges"], [])
+        ob = bpy.data.objects.new(gname, me)
+        hidden.objects.link(ob)
+        ob.parent = parent
+        putOnHiddenLayer(ob)
+        if gizmo["subsurf"]:
+            ob.modifiers.new('SUBSURF', 'SUBSURF')
+        gizmos[gname] = ob
+    return gizmos
 
 #-------------------------------------------------------------
 #   Hard update

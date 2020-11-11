@@ -573,63 +573,6 @@ class DAZ_OT_AddIkGoals(DazOperator, IsArmature):
 #   Add Winder
 #-------------------------------------------------------------
 
-def findChild(oname, rig):
-    for child in rig.children:
-        if child.name == oname:
-            return child
-        ob = findChild(oname, child)
-        if ob:
-            return ob
-    return None
-
-
-def addWinder(context):
-    from .mhx import copyRotation, copyScale, makeGizmos
-    rig = context.object
-    pb = context.active_pose_bone
-    bname = pb.name
-    wname = "Wind"+bname
-    gizmo = findChild("GZM_Knuckle", rig)
-    if gizmo is None:
-        hidden = createHiddenCollection(context, None)
-        gizmos = makeGizmos(["GZM_Knuckle"], rig, hidden)
-        gizmo = gizmos["GZM_Knuckle"]
-
-    bpy.ops.object.mode_set(mode='EDIT')
-    eb = rig.data.edit_bones[bname]
-    tarb = rig.data.edit_bones.new(wname)
-    tarb.head = eb.head
-    tarb.tail = eb.tail
-    tarb.roll = eb.roll
-    tarb.parent = eb.parent
-    n = 1
-    length = eb.length
-    while eb.children and len(eb.children) == 1:
-        eb = eb.children[0]
-        tarb.tail = eb.tail
-        n += 1
-        length += eb.length
-
-    bpy.ops.object.mode_set(mode='POSE')
-    target = rig.pose.bones[wname]
-    target.custom_shape = gizmo
-    target.bone.show_wire = True
-    infl = 2*pb.bone.length/length
-    cns1 = copyRotation(pb, target, (True,True,True), rig)
-    cns1.influence = infl
-    cns2 = copyScale(pb, target, (True,True,True), rig)
-    cns2.influence = infl
-    while pb.children and len(pb.children) == 1:
-        pb = pb.children[0]
-        infl = 2*pb.bone.length/length
-        cns1 = copyRotation(pb, target, (True,True,True), rig)
-        cns1.use_offset = True
-        cns1.influence = infl
-        #cns2 = copyScale(pb, target, (True,True,True), rig)
-        #cns2.use_offset = True
-        #cns2.influence = infl
-
-
 class DAZ_OT_AddWinder(DazOperator, IsArmature):
     bl_idname = "daz.add_winder"
     bl_label = "Add Winder"
@@ -637,7 +580,63 @@ class DAZ_OT_AddWinder(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        addWinder(context)
+        from .mhx import copyRotation, copyScale, makeGizmos
+        bpy.ops.object.mode_set(mode='POSE')
+        rig = context.object
+        pb = bpy.context.active_pose_bone
+        if pb is None:
+            raise DazError("No active posebone")
+        bname = pb.name
+        wname = "Wind"+bname
+        gizmo = self.findChild("GZM_Knuckle", rig)
+        if gizmo is None:
+            hidden = createHiddenCollection(context, None)
+            gizmos = makeGizmos(["GZM_Knuckle"], rig, hidden)
+            gizmo = gizmos["GZM_Knuckle"]
+
+        bpy.ops.object.mode_set(mode='EDIT')
+        eb = rig.data.edit_bones[bname]
+        tarb = rig.data.edit_bones.new(wname)
+        tarb.head = eb.head
+        tarb.tail = eb.tail
+        tarb.roll = eb.roll
+        tarb.parent = eb.parent
+        n = 1
+        length = eb.length
+        while eb.children and len(eb.children) == 1:
+            eb = eb.children[0]
+            tarb.tail = eb.tail
+            n += 1
+            length += eb.length
+
+        bpy.ops.object.mode_set(mode='POSE')
+        target = rig.pose.bones[wname]
+        target.custom_shape = gizmo
+        target.bone.show_wire = True
+        target.rotation_mode = pb.rotation_mode
+        target.matrix_basis = pb.matrix_basis
+
+        infl = 2*pb.bone.length/length
+        cns1 = copyRotation(pb, target, (True,True,True), rig)
+        cns1.influence = infl
+        cns2 = copyScale(pb, target, (True,True,True), rig)
+        cns2.influence = infl
+        while pb.children and len(pb.children) == 1:
+            pb = pb.children[0]
+            infl = 2*pb.bone.length/length
+            cns1 = copyRotation(pb, target, (True,True,True), rig)
+            cns1.use_offset = True
+            cns1.influence = infl
+
+
+    def findChild(self, oname, rig):
+        for child in rig.children:
+            if child.name == oname:
+                return child
+            ob = self.findChild(oname, child)
+            if ob:
+                return ob
+        return None
 
 #-------------------------------------------------------------
 #   Add To Group
