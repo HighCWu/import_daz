@@ -176,7 +176,7 @@ class Material(Asset, Channels):
         return False
 
 
-    def postbuild(self, context):
+    def postbuild(self):
         pass
 
 

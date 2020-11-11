@@ -203,7 +203,7 @@ class InternalMaterial(Material):
             sss = self.getValue("getChannelSSSColor", BLACK)
             if isBlack(sss):
                 return
-            radius = sss * dist
+            radius = Vector(sss) * dist
         elif sssmode == 0:
             sss = self.getValue("getChannelSSSAmount", 0)
             if sss == 0:
