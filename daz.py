@@ -1520,6 +1520,11 @@ def initialize():
         name = "Rotation Limits",
         description = "Use rotation limits")
 
+    bpy.types.Object.DazHasLocLocks = BoolProperty(default=False)
+    bpy.types.Object.DazHasRotLocks = BoolProperty(default=False)
+    bpy.types.Object.DazHasLocLimits = BoolProperty(default=False)
+    bpy.types.Object.DazHasRotLimits = BoolProperty(default=False)
+
     bpy.types.Scene.DazZup = BoolProperty(
         name = "Z Up",
         description = "Convert from DAZ's Y up convention to Blender's Z up convention",

@@ -128,10 +128,10 @@ class FigureInstance(Instance):
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='POSE')
         self.poseArmature(rig)
-        rig.DazRotLocks = GS.useLockRot
-        rig.DazLocLocks = GS.useLockLoc
-        rig.DazRotLimits = GS.useLimitRot
-        rig.DazLocLimits = GS.useLimitLoc
+        rig.DazRotLocks = rig.DazHasRotLocks = GS.useLockRot
+        rig.DazLocLocks = rig.DazHasLocLocks = GS.useLockLoc
+        rig.DazRotLimits = rig.DazHasRotLimits = GS.useLimitRot
+        rig.DazLocLimits = rig.DazHasLocLimits = GS.useLimitLoc
         self.fixDependencyLoops(rig)
         self.addCustomShapes(rig, context)
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -604,7 +604,7 @@ class ToggleLocks:
             setattr(rig, self.attr, True)
 
 
-class DAZ_OT_ToggleRotLocks(DazOperator, ToggleLocks, IsArmature):
+class DAZ_OT_ToggleRotLocks(DazOperator, ToggleLocks):
     bl_idname = "daz.toggle_rot_locks"
     bl_label = "Toggle Rotation Locks"
     bl_description = "Toggle rotation locks"
@@ -613,8 +613,12 @@ class DAZ_OT_ToggleRotLocks(DazOperator, ToggleLocks, IsArmature):
     attr = "DazRotLocks"
     lock = "lock_rotation"
 
+    @classmethod
+    def poll(self, context):
+        return (context.object and context.object.DazHasRotLocks)
 
-class DAZ_OT_ToggleLocLocks(DazOperator, ToggleLocks, IsArmature):
+
+class DAZ_OT_ToggleLocLocks(DazOperator, ToggleLocks):
     bl_idname = "daz.toggle_loc_locks"
     bl_label = "Toggle Location Locks"
     bl_description = "Toggle location locks"
@@ -622,6 +626,10 @@ class DAZ_OT_ToggleLocLocks(DazOperator, ToggleLocks, IsArmature):
 
     attr = "DazLocLocks"
     lock = "lock_location"
+
+    @classmethod
+    def poll(self, context):
+        return (context.object and context.object.DazHasLocLocks)
 
 #----------------------------------------------------------
 #   Toggle Limits
@@ -637,7 +645,7 @@ class ToggleLimits:
         setattr(rig, self.attr, not getattr(rig, self.attr))
 
 
-class DAZ_OT_ToggleRotLimits(DazOperator, ToggleLimits, IsArmature):
+class DAZ_OT_ToggleRotLimits(DazOperator, ToggleLimits):
     bl_idname = "daz.toggle_rot_limits"
     bl_label = "Toggle Limits"
     bl_description = "Toggle rotation limits"
@@ -646,8 +654,12 @@ class DAZ_OT_ToggleRotLimits(DazOperator, ToggleLimits, IsArmature):
     type = "LIMIT_ROTATION"
     attr = "DazRotLimits"
 
+    @classmethod
+    def poll(self, context):
+        return (context.object and context.object.DazHasRotLimits)
 
-class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits, IsArmature):
+
+class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits):
     bl_idname = "daz.toggle_loc_limits"
     bl_label = "Toggle Location Limits"
     bl_description = "Toggle location limits"
@@ -655,6 +667,10 @@ class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits, IsArmature):
 
     type = "LIMIT_LOCATION"
     attr = "DazLocLimits"
+
+    @classmethod
+    def poll(self, context):
+        return (context.object and context.object.DazHasLocLimits)
 
 #-------------------------------------------------------------
 #   Simple IK
