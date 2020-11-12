@@ -81,7 +81,9 @@ class ObjectSelection:
         pgs = context.scene.DazSelector
         pgs.clear()
         for ob in getSceneObjects(context):
-            if ob.type == self.type and ob != context.object:
+            if (ob.type == self.type and
+                ob != context.object and
+                not getHideViewport(ob)):
                 pg = pgs.add()
                 pg.text = ob.name
                 pg.select = True

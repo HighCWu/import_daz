@@ -545,15 +545,13 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, B.AddIkGoals, IsArmature):
             if pb.bone.select and not pb.children:
                 clen = 0
                 par = pb
-                pbones = [pb]
+                pbones = []
                 while par and par.bone.select:
-                    par.ik_stiffness_x = 0.5
-                    par.ik_stiffness_y = 0.5
-                    par.ik_stiffness_z = 0.5
+                    pbones.append(par)
                     clen += 1
                     par = par.parent
-                    pbones.append(par)
                 if clen > 2:
+                    pbones = pbones[:-1]
                     ikgoals.append((pb.name, clen, pbones))
 
         bpy.ops.object.mode_set(mode='EDIT')

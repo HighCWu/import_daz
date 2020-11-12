@@ -656,7 +656,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         empty.parent = rig
         putOnHiddenLayer(empty)
         gizmos = makeGizmos(None, empty, hidden)
-        for bname,gname in self.Gizmos.items():
+        for bname,gname in Gizmos.items():
             if (bname in rig.pose.bones.keys() and
                 gname in gizmos.keys()):
                 gizmo = gizmos[gname]
