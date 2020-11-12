@@ -194,7 +194,6 @@ class Instance(Accessor, Channels):
             else:
                 coll = bpy.data.collections.new(name=self.label)
                 self.collection.children.link(coll)
-            print("PP2", self, self.collection.name, coll.name)
             self.collection = coll
             self.groupChildren(self.collection)
 
@@ -301,7 +300,6 @@ class Instance(Accessor, Channels):
         self.duplicate(empty, refgroup)
         wmat = ob.matrix_world.copy()
         LS.duplis.append((self, ob, empty, wmat, refgroup))
-        refgroup.objects.link(ob)
         return refgroup,empty
 
 
@@ -438,6 +436,8 @@ def transformDuplis():
             putOnHiddenLayer(ob)
         if ob.name in inst.collection.objects:
             inst.collection.objects.unlink(ob)
+        if ob.name in LS.collection.objects:
+            LS.collection.objects.unlink(ob)
         empty.parent = ob.parent
         setWorldMatrix(empty, wmat)
         for child in ob.children:
@@ -445,6 +445,8 @@ def transformDuplis():
         ob.parent = None
         ob.matrix_world = Matrix()
         inst.collection.objects.link(empty)
+        refgroup.objects.link(ob)
+        print("LiiS", refgroup.name, ob.name, ob.type)
 
 
 def addToRefgroup(ob, refgroup, inst):
@@ -676,7 +678,6 @@ class Node(Asset, Formula, Channels):
         ob.DazRotMode = self.rotation_order
         ob.DazMorphPrefixes = False
         inst.collection.objects.link(ob)
-        print("LINK", inst.collection.name, ob.name)
         if bpy.app.version < (2,80,0):
             context.scene.objects.link(ob)
         ob.DazId = self.id
