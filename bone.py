@@ -959,6 +959,10 @@ class Bone(Node):
         pass
 
 
+    def preprocess2(self, context, inst):
+        pass
+
+
     def postprocess(self, context, inst):
         pass
 

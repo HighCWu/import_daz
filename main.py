@@ -58,6 +58,9 @@ def getMainAsset(filepath, context, btn):
     struct = loadJson(filepath)
     showProgress(10, 100)
 
+    grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()
+    LS.collection = makeRootCollection(grpname, context)
+
     print("Parsing data")
     from .files import parseAssetFile
     main = parseAssetFile(struct, toplevel=True)
@@ -71,10 +74,10 @@ def getMainAsset(filepath, context, btn):
     showProgress(30, 100)
 
     print("Preprocessing...")
-    grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()
-    LS.collection = makeRootCollection(grpname, context)
     for asset,inst in main.nodes:
         inst.preprocess(context)
+    for asset,inst in main.nodes:
+        inst.preprocess2(context)
     for asset,inst in main.modifiers:
         asset.preprocess(inst)
 

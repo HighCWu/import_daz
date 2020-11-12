@@ -191,8 +191,8 @@ class GeoNode(Node):
         hdob.parent_type = ob.parent_type
         hdob.parent_bone = ob.parent_bone
         setWorldMatrix(hdob, ob.matrix_world)
-        if hdob.name in LS.collection.objects:
-            LS.collection.objects.unlink(hdob)
+        if hdob.name in inst.collection.objects:
+            inst.collection.objects.unlink(hdob)
 
 
     def finishHair(self, context):

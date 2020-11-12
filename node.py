@@ -106,6 +106,7 @@ class Instance(Accessor, Channels):
         self.geometries = node.geometries
         node.geometries = []
         self.rotation_order = node.rotation_order
+        self.collection = LS.collection
         if "parent" in struct.keys() and node.parent is not None:
             self.parent = node.parent.getInstance(node.caller, struct["parent"])
             if self.parent == self:
@@ -113,6 +114,7 @@ class Instance(Accessor, Channels):
                 self.parent = None
             if self.parent:
                 self.parent.children[self.id] = self
+                self.collection = self.parent.collection
         else:
             self.parent = None
         node.parent = None
@@ -141,7 +143,7 @@ class Instance(Accessor, Channels):
 
     def __repr__(self):
         pname = (self.parent.id if self.parent else None)
-        return "<Instance %s %d N: %s P: %s R: %s, E: %d>" % (self.id, self.index, self.node.name, pname, self.rna, len(self.extra))
+        return "<Instance %s %d N: %s P: %s R: %s>" % (self.label, self.index, self.node.name, pname, self.rna)
 
 
     def getSelfId(self):
@@ -171,15 +173,36 @@ class Instance(Accessor, Channels):
         for extra in self.extra:
             if "type" not in extra.keys():
                 continue
+
             elif extra["type"] == "studio/node/shell":
                 self.shstruct = extra
+
             elif extra["type"] == "studio/node/group_node":
                 self.isGroupNode = True
+
             elif extra["type"] == "studio/node/instance":
                 self.isNodeInstance = True
 
         for geo in self.geometries:
             geo.preprocess(context, self)
+
+
+    def preprocess2(self, context):
+        if self.isGroupNode:
+            if bpy.app.version < (2,80,0):
+                coll = bpy.data.groups.new(name=self.label)
+            else:
+                coll = bpy.data.collections.new(name=self.label)
+                self.collection.children.link(coll)
+            print("PP2", self, self.collection.name, coll.name)
+            self.collection = coll
+            self.groupChildren(self.collection)
+
+
+    def groupChildren(self, coll):
+        for child in self.children.values():
+            child.collection = coll
+            child.groupChildren(coll)
 
 
     def buildChannels(self, context):
@@ -277,7 +300,7 @@ class Instance(Accessor, Channels):
             self.node2.refgroup = refgroup
         self.duplicate(empty, refgroup)
         wmat = ob.matrix_world.copy()
-        LS.duplis.append((ob, empty, wmat, refgroup))
+        LS.duplis.append((self, ob, empty, wmat, refgroup))
         refgroup.objects.link(ob)
         return refgroup,empty
 
@@ -410,23 +433,23 @@ class Instance(Accessor, Channels):
 
 
 def transformDuplis():
-    for ob,empty,wmat,refgroup in LS.duplis:
+    for inst,ob,empty,wmat,refgroup in LS.duplis:
         if bpy.app.version < (2,80,0):
             putOnHiddenLayer(ob)
-        if ob.name in LS.collection.objects:
-            LS.collection.objects.unlink(ob)
+        if ob.name in inst.collection.objects:
+            inst.collection.objects.unlink(ob)
         empty.parent = ob.parent
         setWorldMatrix(empty, wmat)
         for child in ob.children:
-            addToRefgroup(child, refgroup)
+            addToRefgroup(child, refgroup, inst)
         ob.parent = None
         ob.matrix_world = Matrix()
-        LS.collection.objects.link(empty)
+        inst.collection.objects.link(empty)
 
 
-def addToRefgroup(ob, refgroup):
-    if ob.name in LS.collection.objects:
-        LS.collection.objects.unlink(ob)
+def addToRefgroup(ob, refgroup, inst):
+    if ob.name in inst.collection.objects:
+        inst.collection.objects.unlink(ob)
     if ob.name not in refgroup.objects:
         if bpy.app.version < (2,80,0):
             putOnHiddenLayer(ob)
@@ -438,7 +461,7 @@ def addToRefgroup(ob, refgroup):
     if checkDependency(ob, ob):
         refgroup.objects.unlink(ob)
     for child in ob.children:
-        addToRefgroup(child, refgroup)
+        addToRefgroup(child, refgroup, inst)
 
 
 def checkDependency(empty, ob):
@@ -652,11 +675,10 @@ class Node(Asset, Formula, Channels):
         ob.rotation_mode = blenderRotMode[self.rotation_order]
         ob.DazRotMode = self.rotation_order
         ob.DazMorphPrefixes = False
-        LS.collection.objects.link(ob)
+        inst.collection.objects.link(ob)
+        print("LINK", inst.collection.name, ob.name)
         if bpy.app.version < (2,80,0):
             context.scene.objects.link(ob)
-        #setActiveObject(context, ob)
-        #setSelected(ob, True)
         ob.DazId = self.id
         ob.DazUrl = normalizePath(self.url)
         ob.DazScene = LS.scene

@@ -157,7 +157,7 @@ class FigureInstance(Instance):
                     _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
                     if char:
                         if GS.useCustomShapes:
-                            addCustomShapes(rig, context, LS.collection)
+                            addCustomShapes(rig, context, self.collection)
 
 
     def fixDependencyLoops(self, rig):
