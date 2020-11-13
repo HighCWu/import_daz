@@ -478,18 +478,12 @@ class DAZ_OT_EliminateEmpties(DazOperator):
 
 
     def doEliminate(self, ob):
-        if ob.type != 'EMPTY':
+        if ob.type != 'EMPTY' or getHideViewport(ob):
             return False
         if bpy.app.version < (2,80,0):
-            if (ob.hide or
-                ob.dupli_type != 'NONE'):
-                return False
+            return (ob.dupli_type == 'NONE')
         else:
-            if (ob.hide_get() or
-                ob.hide_viewport or
-                ob.instance_type != 'NONE'):
-                return False
-        return True
+            return (ob.instance_type == 'NONE')
 
 #-------------------------------------------------------------
 #   Merge rigs

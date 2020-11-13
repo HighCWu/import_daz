@@ -539,7 +539,8 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
 
         self.restoreBoneChildren(bchildren, context, rig)
         self.checkCorrectives(rig)
-        doHardUpdate(context, rig)
+        updateScene(context)
+        updateDrivers(rig)
 
 
     def fixGenesis2Problems(self, rig):
@@ -1245,22 +1246,6 @@ def makeGizmos(gnames, parent, hidden):
             ob.modifiers.new('SUBSURF', 'SUBSURF')
         gizmos[gname] = ob
     return gizmos
-
-#-------------------------------------------------------------
-#   Hard update
-#-------------------------------------------------------------
-
-def doHardUpdate(context, rig):
-    meshes = [ob for ob in rig.children if ob.type == 'MESH']
-    for ob in meshes:
-        hidden = getHideViewport(ob)
-        setHideViewport(ob, False)
-        if activateObject(context, ob):
-            toggleEditMode()
-        setHideViewport(ob, hidden)
-    updateScene(context)
-    if activateObject(context, rig):
-        updateDrivers(rig)
 
 #-------------------------------------------------------------
 #   Init MHX props. Same as mhx2 importer

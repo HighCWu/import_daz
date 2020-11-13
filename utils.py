@@ -171,6 +171,7 @@ else:
 
     def setHideViewport(ob, value):
         ob.hide_set(value)
+        ob.hide_viewport = value
 
     def getCollection(context):
         return context.collection
@@ -182,7 +183,8 @@ else:
         return bpy.data.collections.new(name=gname)
 
     def getSceneObjects(context):
-        return context.view_layer.objects
+        return context.scene.collection.all_objects
+        #return context.view_layer.objects
 
     def getSelected(ob):
         return ob.select_get()
@@ -202,6 +204,8 @@ else:
 
     def putOnHiddenLayer(ob):
         ob.hide_set(True)
+        ob.hide_viewport = True
+        ob.hide_render = True
 
     def createHiddenCollection(context, parent):
         coll = bpy.data.collections.new(name="Hidden")
@@ -216,7 +220,7 @@ else:
         return me.uv_layers
 
     def inSceneLayer(context, ob):
-        if ob.hide_viewport:
+        if getHideViewport(ob):
             return False
         return inCollection(context.view_layer.layer_collection, ob)
 

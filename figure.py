@@ -1126,7 +1126,11 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        addCustomShapes(context.object, context, context.collection)
+        if bpy.app.version < (2,80,0):
+            coll = None
+        else:
+            coll = context.collection
+        addCustomShapes(context.object, context, coll)
 
 
 def addCustomShapes(rig, context, coll):

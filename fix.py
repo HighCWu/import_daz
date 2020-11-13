@@ -642,6 +642,7 @@ class DAZ_OT_AddWinder(DazOperator, IsArmature):
             hidden = createHiddenCollection(context, None)
             gizmos = makeGizmos(["GZM_Knuckle"], rig, hidden)
             gizmo = gizmos["GZM_Knuckle"]
+            putOnHiddenLayer(gizmo)
 
         bpy.ops.object.mode_set(mode='EDIT')
         eb = rig.data.edit_bones[bname]

@@ -188,12 +188,9 @@ class Instance(Accessor, Channels):
 
 
     def preprocess2(self, context):
-        if self.isGroupNode:
-            if bpy.app.version < (2,80,0):
-                coll = bpy.data.groups.new(name=self.label)
-            else:
-                coll = bpy.data.collections.new(name=self.label)
-                self.collection.children.link(coll)
+        if self.isGroupNode and bpy.app.version >= (2,80,0):
+            coll = bpy.data.collections.new(name=self.label)
+            self.collection.children.link(coll)
             self.collection = coll
             self.groupChildren(self.collection)
 
