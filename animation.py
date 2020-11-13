@@ -441,7 +441,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         if rig.DazRig == "rigify":
             for bname in ["hand.ik.L", "hand.ik.R",
                           "foot.ik.L", "foot.ik.R"]:
-                if self.checkRigifySwitch(bname, rig):
+                if (self.affectBones and self.checkRigifySwitch(bname, rig)):
                     pb = rig.pose.bones[bname]
                     pb["ik_fk_switch"] = 0.0
             if "head.001" in rig.pose.bones.keys():
@@ -450,7 +450,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         elif rig.DazRig == "rigify2":
             for bname in ["upper_arm_parent.L", "upper_arm_parent.R",
                           "thigh_parent.L", "thigh_parent.R"]:
-                if self.checkRigifySwitch(bname, rig):
+                if (self.affectBones and self.checkRigifySwitch(bname, rig)):
                     pb = rig.pose.bones[bname]
                     pb["IK_FK"] = 1.0
             if "torso" in rig.pose.bones.keys():
@@ -459,7 +459,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                 pb["head_follow"] = 1.0
         elif rig.DazRig == "mhx":
             for pname in ["MhaArmIk_L", "MhaArmIk_R", "MhaLegIk_L", "MhaLegIk_R"]:
-                if self.checkSelectedChain(pname, rig):
+                if (self.affectBones and self.checkSelectedChain(pname, rig)):
                     rig[pname] = 0.0
 
 
