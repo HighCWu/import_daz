@@ -729,12 +729,12 @@ def setParent(context, ob, rig, bname=None, update=True):
         setWorldMatrix(ob, wmat)
 
 
-def reParent(context, ob, rig, update=False):
+def reParent(context, ob, rig):
     if ob.parent_type == 'BONE':
         bname = ob.parent_bone
     else:
         bname = None
-    setParent(context, ob, rig, bname, update)
+    setParent(context, ob, rig, bname, False)
 
 
 def clearParent(ob):

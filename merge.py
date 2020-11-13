@@ -554,7 +554,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
 
     def mergeRigs1(self, rig, subrigs, context):
         from .proxy import stripName
-        from .node import clearParent, reParent
+        from .node import clearParent
         scn = context.scene
 
         print("Merge rigs to %s:" % rig.name)
@@ -570,12 +570,11 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
 
         adds, hdadds, removes = self.createNewCollections(rig)
 
-        for ob in rig.children:
-            if ob.type == 'MESH':
+        meshes = self.addMeshes(rig, rig, context, True)
+        for ob,repar in meshes:
+            if repar:
                 self.changeArmatureModifier(ob, rig, context)
-                self.addToCollections(ob, adds, hdadds, removes)
-            elif ob.type == 'EMPTY':
-                reParent(context, ob, rig)
+            self.addToCollections(ob, adds, hdadds, removes)
 
         self.mainBones = [bone.name for bone in rig.data.bones]
         for subrig in subrigs:
@@ -589,32 +588,37 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
 
             if success:
                 storage = self.addExtraBones(subrig, rig, context, scn, parbone)
-
-                meshes = []
-                for ob in subrig.children:
-                    if ob.type == 'MESH':
-                        meshes.append(ob)
-                    elif ob.type == 'EMPTY':
-                        reParent(context, ob, rig)
-                        for child in ob.children:
-                            if child.type == 'MESH':
-                                meshes.append(child)
-
-                for ob in meshes:
-                    self.changeArmatureModifier(ob, rig, context)
-                    self.changeVertexGroupNames(ob, storage)
+                meshes = self.addMeshes(subrig, rig, context, True)
+                for ob,repar in meshes:
+                    if repar:
+                        self.changeArmatureModifier(ob, rig, context)
+                        self.changeVertexGroupNames(ob, storage)
+                        wmat = ob.matrix_world.copy()
+                        ob.parent = rig
+                        setWorldMatrix(ob, wmat)
                     self.addToCollections(ob, adds, hdadds, removes)
                     ob.name = stripName(ob.name)
                     ob.data.name = stripName(ob.data.name)
-                    wmat = ob.matrix_world.copy()
-                    ob.parent = rig
-                    setWorldMatrix(ob, wmat)
-
                 subrig.parent = None
                 deleteObject(context, subrig)
 
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='OBJECT')
+
+
+    def addMeshes(self, ob, rig, context, repar):
+        from .node import reParent
+        meshes = []
+        for child in ob.children:
+            if getHideViewport(child):
+                continue
+            elif child.type == 'MESH':
+                meshes.append((child, repar))
+            elif child.type == 'EMPTY':
+                if repar:
+                    reParent(context, child, rig)
+                meshes += self.addMeshes(child, rig, context, False)
+        return meshes
 
 
     def createNewCollections(self, rig):
