@@ -1056,6 +1056,7 @@ class DAZ_OT_ImportPoseLib(HideOperator, B.PoseLibOptions, AnimatorBase, Standar
     useRotations = True
     useScale = True
     useGeneral = True
+    atFrameOne = False
     firstFrame = -1000
     lastFrame = 1000
 
@@ -1079,6 +1080,7 @@ class DAZ_OT_ImportSinglePose(HideOperator, AnimatorBase, StandardAnimation):
     verbose = False
     useAction = False
     usePoseLib = False
+    atFrameOne = False
     firstFrame = -1000
     lastFrame = 1000
 

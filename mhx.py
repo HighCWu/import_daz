@@ -226,6 +226,7 @@ def makeBone(bname, rig, head, tail, roll, layer, parent):
     eb.head = head
     eb.tail = tail
     eb.roll = normalizeRoll(roll)
+    eb.use_connect = False
     eb.parent = parent
     eb.use_deform = False
     eb.layers = layer*[False] + [True] + (31-layer)*[False]
@@ -511,6 +512,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
 
         self.constrainBendTwists(rig)
         self.addLongFingers(rig)
+        self.addSpineTweaks(rig)
         self.addBack(rig)
         self.setupFkIk(rig)
         self.addLayers(rig)
@@ -695,20 +697,40 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
     #   Spine
     #-------------------------------------------------------------
 
+    BackBones = ["spine", "spine-1", "chest", "chest-1"]
+
     def addBack(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
-        spine = rig.data.edit_bones["spine"]
-        chest = rig.data.edit_bones["chest"]
+        spine = rig.data.edit_bones["spine"+"Drv"]
+        chest = rig.data.edit_bones["chest"+"Drv"]
         makeBone("back", rig, spine.head, chest.tail, 0, L_MAIN, spine.parent)
 
         bpy.ops.object.mode_set(mode='POSE')
         back = rig.pose.bones["back"]
         back.rotation_mode = 'YZX'
-        for bname in ["spine", "spine-1", "chest", "chest-1"]:
+        for bname in self.BackBones:
             if bname in rig.pose.bones.keys():
-                pb = rig.pose.bones[bname]
+                pb = rig.pose.bones[bname+"Drv"]
                 cns = copyRotation(pb, back, (True,True,True), rig)
                 cns.use_offset = True
+
+
+    def addSpineTweaks(self, rig):
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname in self.BackBones:
+            if bname in rig.data.edit_bones.keys():
+                eb = rig.data.edit_bones[bname]
+                conn = eb.use_connect
+                eb.use_connect = False
+                tb = deriveBone(bname+"Drv", eb, rig, L_TWEAK, eb.parent)
+                tb.use_connect = conn
+                eb.parent = tb
+        bpy.ops.object.mode_set(mode='POSE')
+        rpbs = rig.pose.bones
+        for bname in self.BackBones:
+            if bname in rpbs.keys():
+                pb = rpbs[bname]
+                tb = getBoneCopy(bname+"Drv", pb, rpbs)
 
     #-------------------------------------------------------------
     #   Fingers
