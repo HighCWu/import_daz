@@ -42,14 +42,6 @@ IkPoses = {}
 #   Save current pose
 #-------------------------------------------------------------
 
-def saveStringToFile(filepath, string):
-    from .fileutils import safeOpen
-    fp = safeOpen(filepath, "w")
-    fp.write(string)
-    fp.close()
-    print("Saved to %s" % filepath)
-
-
 class DAZ_OT_SaveCurrentPose(DazOperator, B.JsonExportFile, B.SkelPoseBool, IsArmature):
     bl_idname = "daz.save_current_pose"
     bl_label = "Save Current Pose"
@@ -59,44 +51,35 @@ class DAZ_OT_SaveCurrentPose(DazOperator, B.JsonExportFile, B.SkelPoseBool, IsAr
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
-    def run(self, rig):
-        filepath = self.filepath
+    def run(self, context):
+        rig = context.object
         rolls = {}
         bpy.ops.object.mode_set(mode='EDIT')
         for eb in rig.data.edit_bones:
             rolls[eb.name] = eb.roll
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        string = ('{\n' +
-            '\t"character":\t"%s",\n' % rig.name +
-            '\t"scale":\t"1.0",')
+        from collections import OrderedDict
+        struct = OrderedDict()
+        struct["character"] = rig.name
+        struct["scale"] = 1.0
 
         if self.skeleton:
-            string += '\n\n\t"skeleton":\t{'
+            skel = {}
+            struct["skeleton"] = skel
             for pb in rig.pose.bones:
-                string += (
-                    '\n\t\t"%s": [' % pb.name +
-                    '\n\t\t\t"%s",' % pb.rotation_mode +
-                    '\n\t\t\t%.4f' % rolls[pb.name] +
-                    '\n\t\t],')
-            string = string[:-1] + '\n\t},'
+                skel[pb.name]  = [pb.rotation_mode, rolls[pb.name]]
 
         if self.pose:
-            string += '\n\n\t"pose":\t{'
+            pose = {}
+            struct["pose"] = pose
             for pb in rig.pose.bones:
                 if pb.bone.select:
                     euler = pb.matrix.to_3x3().to_euler()
-                    string += (
-                        '\n\t\t"%s": [' % pb.name +
-                        '\n\t\t\t[%.4f, %.4f, %.4f],' % tuple(euler) +
-                        '\n\t\t\t[%.4f, %.4f, %.4f],' % tuple(pb.bone.DazOrient) +
-                        '\n\t\t\t"%s",' % pb.DazRotMode +
-                        '\n\t\t\t%.4f' % rolls[pb.name] +
-                        '\n\t\t],')
-            string = string[:-1] + '\n\t},'
+                    pose[pb.name] = (list(euler), list(pb.bone.DazOrient), pb.DazRotMode)
 
-        string = string[:-1] + '\n}\n'
-        saveStringToFile(filepath, string)
+        from .load_json import saveJson
+        saveJson(struct, self.filepath)
 
 #-------------------------------------------------------------
 #   Load pose
@@ -144,11 +127,23 @@ def getOrientation(character, bname, rig):
         return None, "XYZ"
 
 
+def getParentCharacter(character):
+    from .globvars import theRestPoseFolder
+    global RestPoses
+    loadRestPoseEntry(character, RestPoses, theRestPoseFolder)
+    if "parent" in RestPoses[character].keys():
+        parent = RestPoses[character]["parent"]
+        return parent.lower().replace(" ", "_")
+    else:
+        return character
+
+
 def getParent(character, bname):
     from .globvars import theParentsFolder
     global Parents
-    loadRestPoseEntry(character, Parents, theParentsFolder)
-    parents = Parents[character]["parents"]
+    parent = getParentCharacter(character)
+    loadRestPoseEntry(parent, Parents, theParentsFolder)
+    parents = Parents[parent]["parents"]
     if bname in parents.keys() and parents[bname]:
         return parents[bname]
     else:
