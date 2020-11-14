@@ -111,20 +111,20 @@ class ActionOptions:
         description = "Round all keyframes to intergers",
         default = True)
 
-    useAction = True
-    usePoseLib = False
-    useTranslations = True
-    useRotations = True
-    useScale = True
-    useGeneral = True
+    atFrameOne : BoolProperty(
+        name = "Start At Frame 1",
+        description = "Always start actions at frame 1",
+        default = False)
 
-    def draw(self, context):
-        layout = self.layout
-        layout.separator()
-        layout.prop(self, "makeNewAction")
-        layout.prop(self, "actionName")
-        layout.prop(self, "fps")
-        layout.prop(self, "integerFrames")
+    firstFrame : IntProperty(
+        name = "First Frame",
+        description = "Start import with this frame",
+        default = 1)
+
+    lastFrame : IntProperty(
+        name = "Last Frame",
+        description = "Finish import with this frame",
+        default = 250)
 
 
 class PoseLibOptions:
@@ -137,19 +137,6 @@ class PoseLibOptions:
         name = "Pose Library Name",
         description = "Name of loaded pose library",
         default = "PoseLib")
-
-    useAction = False
-    usePoseLib = True
-    useTranslations = True
-    useRotations = True
-    useScale = True
-    useGeneral = True
-
-    def draw(self, context):
-        layout = self.layout
-        layout.separator()
-        layout.prop(self, "makeNewPoseLib")
-        layout.prop(self, "poseLibName")
 
 #-------------------------------------------------------------
 #   daz.py

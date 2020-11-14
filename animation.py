@@ -38,6 +38,9 @@ from .globvars import theDazExtensions
 from .formula import PoseboneDriver
 from .fileutils import MultiFile
 
+#-------------------------------------------------------------
+#   Convert between frames and vectors
+#-------------------------------------------------------------
 
 def framesToVectors(frames):
     vectors = {}
@@ -55,6 +58,9 @@ def vectorsToFrames(vectors):
         frames[idx] = [[t,vectors[t][idx]] for t in vectors.keys()]
     return frames
 
+#-------------------------------------------------------------
+#   Combine bend and twist. Unused
+#-------------------------------------------------------------
 
 def combineBendTwistAnimations(anim, twists):
     for (bend,twist) in twists:
@@ -108,32 +114,6 @@ def extendFcurves(rig, frame0, frame1):
             print(fcu.data_path, fcu.array_index, value)
             for frame in range(frame0, frame1):
                 fcu.keyframe_points.insert(frame, value, options={'FAST'})
-
-
-def addFrames(bname, channel, nmax, cname, frames, default=None):
-    for comp in range(nmax):
-        if comp not in channel.keys():
-            continue
-        for t,y in channel[comp]:
-            n = t*LS.fps
-            if LS.integerFrames:
-                n = int(round(n))
-            if n not in frames.keys():
-                frame = frames[n] = {}
-            else:
-                frame = frames[n]
-            if bname not in frame.keys():
-                bframe = frame[bname] = {}
-            else:
-                bframe = frame[bname]
-            if cname == "value":
-                bframe[cname] = {0: y}
-            elif nmax == 1:
-                bframe[cname] = y
-            elif nmax == 3:
-                if cname not in bframe.keys():
-                    bframe[cname] = Vector(default)
-                bframe[cname][comp] = y
 
 
 def addTransform(node, channel, bones, key):
@@ -624,14 +604,14 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
             for bname, channels in banim.items():
                 for key,channel in channels.items():
                     if key in ["rotation", "translation"]:
-                        addFrames(bname, channel, 3, key, frames, default=(0,0,0))
+                        self.addFrames(bname, channel, 3, key, frames, default=(0,0,0))
                     elif key == "scale":
-                        addFrames(bname, channel, 3, key, frames, default=(1,1,1))
+                        self.addFrames(bname, channel, 3, key, frames, default=(1,1,1))
                     elif key == "general_scale":
-                        addFrames(bname, channel, 1, key, frames)
+                        self.addFrames(bname, channel, 1, key, frames)
 
             for vname, channels in vanim.items():
-                addFrames(vname, {0: channels}, 1, "value", frames)
+                self.addFrames(vname, {0: channels}, 1, "value", frames)
 
             for n,frame in frames.items():
                 twists = []
@@ -671,7 +651,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                             if key:
                                 setFloatProp(rig, key, value)
                                 if self.insertKeys:
-                                    rig.keyframe_insert('["%s"]' % key, frame=n+offset, group=key)
+                                    rig.keyframe_insert('["%s"]' % key, frame=n+offset, group="Morphs")
 
                 for (bname, tfm, value) in twists:
                     self.transformBone(rig, bname, tfm, value, n, offset, True)
@@ -710,6 +690,36 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
 
             offset += n + 1
         return offset,prop
+
+
+    def addFrames(self, bname, channel, nmax, cname, frames, default=None):
+        for comp in range(nmax):
+            if comp not in channel.keys():
+                continue
+            for t,y in channel[comp]:
+                n = t*LS.fps
+                if LS.integerFrames:
+                    n = int(round(n))
+                if n < self.firstFrame-1:
+                    continue
+                if n >= self.lastFrame:
+                    break
+                if n not in frames.keys():
+                    frame = frames[n] = {}
+                else:
+                    frame = frames[n]
+                if bname not in frame.keys():
+                    bframe = frame[bname] = {}
+                else:
+                    bframe = frame[bname]
+                if cname == "value":
+                    bframe[cname] = {0: y}
+                elif nmax == 1:
+                    bframe[cname] = y
+                elif nmax == 3:
+                    if cname not in bframe.keys():
+                        bframe[cname] = Vector(default)
+                    bframe[cname][comp] = y
 
 
     def fixScale(self, pb, pscale):
@@ -966,6 +976,8 @@ class StandardAnimation:
         self.verbose = (nfiles == 1)
 
         for filepath in dazfiles:
+            if self.atFrameOne and len(dazfiles) == 1:
+                offset = 1
             print("*", os.path.basename(filepath), offset)
             offset,prop = self.getSingleAnimation(filepath, context, offset, missing)
             if prop:
@@ -1008,10 +1020,23 @@ class DAZ_OT_ImportAction(HideOperator, B.ActionOptions, AnimatorBase, StandardA
 
     loadType = 'ANIMATIONS'
     verbose = False
+    useAction = True
+    usePoseLib = False
+    useTranslations = True
+    useRotations = True
+    useScale = True
+    useGeneral = True
 
     def draw(self, context):
         AnimatorBase.draw(self, context)
-        B.ActionOptions.draw(self, context)
+        self.layout.separator()
+        self.layout.prop(self, "makeNewAction")
+        self.layout.prop(self, "actionName")
+        self.layout.prop(self, "fps")
+        self.layout.prop(self, "integerFrames")
+        self.layout.prop(self, "atFrameOne")
+        self.layout.prop(self, "firstFrame")
+        self.layout.prop(self, "lastFrame")
 
     def run(self, context):
         StandardAnimation.run(self, context)
@@ -1025,10 +1050,20 @@ class DAZ_OT_ImportPoseLib(HideOperator, B.PoseLibOptions, AnimatorBase, Standar
 
     loadType = 'POSES'
     verbose = False
+    useAction = False
+    usePoseLib = True
+    useTranslations = True
+    useRotations = True
+    useScale = True
+    useGeneral = True
+    firstFrame = -1000
+    lastFrame = 1000
 
     def draw(self, context):
         AnimatorBase.draw(self, context)
-        B.PoseLibOptions.draw(self, context)
+        self.layout.separator()
+        self.layout.prop(self, "makeNewPoseLib")
+        self.layout.prop(self, "poseLibName")
 
     def run(self, context):
         StandardAnimation.run(self, context)
@@ -1044,6 +1079,8 @@ class DAZ_OT_ImportSinglePose(HideOperator, AnimatorBase, StandardAnimation):
     verbose = False
     useAction = False
     usePoseLib = False
+    firstFrame = -1000
+    lastFrame = 1000
 
     def run(self, context):
         StandardAnimation.run(self, context)
