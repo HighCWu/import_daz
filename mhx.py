@@ -298,7 +298,7 @@ def applyBoneChildren(context, rig):
 
 from .fix import ConstraintStore, BendTwists, Fixer
 
-class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.MHX, IsArmature):
+class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.MHX, IsArmature):
     bl_idname = "daz.convert_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
@@ -1353,12 +1353,58 @@ def makeGizmos(gnames, parent, hidden):
         gizmos[gname] = ob
     return gizmos
 
+# ---------------------------------------------------------------------
+#   Convert MHX actions from legacy to modern
+# ---------------------------------------------------------------------
+
+from .morphing import Selector
+
+class DAZ_OT_ConvertMhxActions(DazOperator, Selector, B.MHXConvertAction):
+    bl_idname = "daz.convert_mhx_actions"
+    bl_label = "Convert MHX Actions"
+    bl_description = "Convert actions between legacy MHX (root/hips) and modern MHX (hip/pelvis)"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "direction")
+        Selector.draw(self, context)
+
+
+    def run(self, context):
+        if self.direction == 'MODERN':
+            replace = {
+                '"root"' : '"hip"',
+                '"hips"' : '"pelvis"',
+            }
+        else:
+            replace = {
+                '"hip"' : '"root"',
+                '"pelvis"' : '"hips"',
+            }
+        for item in self.getSelectedItems(context.scene):
+            act = bpy.data.actions[item.name]
+            for fcu in act.fcurves:
+                for old,new in replace.items():
+                    if old in fcu.data_path:
+                        fcu.data_path = fcu.data_path.replace(old, new)
+
+
+    def invoke(self, context, event):
+        self.selection.clear()
+        for act in bpy.data.actions:
+            item = self.selection.add()
+            item.name = act.name
+            item.text = act.name
+            item.select = False
+        return self.invokeDialog(context)
+
 #-------------------------------------------------------------
 #   Init MHX props. Same as mhx2 importer
 #-------------------------------------------------------------
 
 classes = [
-    DAZ_OT_ConvertMhx,
+    DAZ_OT_ConvertToMhx,
+    DAZ_OT_ConvertMhxActions,
 ]
 
 def initialize():

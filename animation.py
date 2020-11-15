@@ -182,7 +182,7 @@ class FrameConverter:
         return conv, twists, bonemap
 
 
-    def getLocks(self, rig, conv):
+    def getRigifyLocks(self, rig, conv):
         locks = []
         if rig.DazRig[0:6] == "rigify":
             for bname in conv.values():
@@ -198,13 +198,15 @@ class FrameConverter:
         if rig.type != 'ARMATURE':
             return anims, []
         conv,twists,bonemap = self.getConv(anims[0][0], rig)
-        locks = self.getLocks(rig, conv)
+        locks = self.getRigifyLocks(rig, conv)
 
         for banim,vanim in anims:
             bonenames = list(banim.keys())
             bonenames.reverse()
             for bname in bonenames:
-                if bname in conv.keys():
+                if bname in rig.data.bones.keys():
+                    bonemap[bname] = bname
+                elif bname in conv.keys():
                     bonemap[bname] = conv[bname]
                 else:
                     bonemap[bname] = bname

@@ -524,6 +524,16 @@ class MHX:
         default = True
     )
 
+class MHXConvertAction:
+    direction : EnumProperty(
+        items = [
+            ('MODERN', "Legacy => Modern", "Convert from legacy MHX (root/hips) to modern MHX (hip/pelvis)"),
+            ('LEGACY', "Modern => Legacy", "Convert from modern MHX (hip/pelvis) to legacy MHX (root/hips)"),
+        ],
+        name = "Direction",
+        default = 'MODERN'
+    )
+
 #-------------------------------------------------------------
 #   rigify.py
 #-------------------------------------------------------------

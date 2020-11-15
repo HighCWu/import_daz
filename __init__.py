@@ -72,6 +72,7 @@ def importModules():
         anchor = os.path.basename(__file__[0:-12])
         theModules = []
         for modname in modnames:
+            print("IMPO", modname)
             mod = importlib.import_module("." + modname, anchor)
             theModules.append(mod)
 
@@ -112,9 +113,9 @@ def register():
     main.initialize()
     material.initialize()
     merge.initialize()
-    mhx.initialize()
     morphing.initialize()
     matedit.initialize()
+    mhx.initialize()
     objfile.initialize()
     proxy.initialize()
     rigify.initialize()
@@ -147,9 +148,9 @@ def unregister():
     main.uninitialize()
     material.uninitialize()
     merge.uninitialize()
-    mhx.uninitialize()
     morphing.uninitialize()
     matedit.uninitialize()
+    mhx.uninitialize()
     objfile.uninitialize()
     proxy.uninitialize()
     rigify.uninitialize()
