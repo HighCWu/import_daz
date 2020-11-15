@@ -518,7 +518,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.fixHands(rig)
             self.storeAllConstraints(rig)
             self.createBendTwists(rig)
-            self.fixCorrectives(rig)
+            self.fixCorrectives(rig, self.Correctives)
         elif rig.DazRig in ["genesis1", "genesis2"]:
             self.fixPelvis(rig)
             self.fixCarpals(rig)
@@ -530,7 +530,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.fixHands(rig)
             self.storeAllConstraints(rig)
             self.createBendTwists(rig)
-            self.fixCorrectives(rig)
+            self.fixCorrectives(rig, self.Correctives)
         else:
             raise DazError("Cannot convert %s to Mhx" % rig.name)
 
@@ -800,12 +800,18 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         from .figure import copyBoneInfo
         bpy.ops.object.mode_set(mode='POSE')
         rpbs = rig.pose.bones
+        tweakCorrectives = []
         for bname in self.tweakBones:
             if bname and bname in rpbs.keys():
-                tb = rpbs[self.getTweakBoneName(bname)]
+                tname = self.getTweakBoneName(bname)
+                tweakCorrectives.append((bname, tname))
+                tb = rpbs[tname]
                 pb = getBoneCopy(bname, tb, rpbs)
                 copyBoneInfo(tb, pb)
                 tb.lock_location = tb.lock_rotation = tb.lock_scale = (False,False,False)
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+        self.fixCorrectives(rig, tweakCorrectives)
 
 
     def getTweakBoneName(self, bname):

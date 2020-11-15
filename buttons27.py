@@ -518,7 +518,7 @@ class MHX:
     useLegacy : BoolProperty(
         name = "Legacy Bone Names",
         description = "Use root/hips rather than hip/pelvis",
-        default = True
+        default = False
     )
 
 #-------------------------------------------------------------

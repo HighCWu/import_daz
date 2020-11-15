@@ -463,9 +463,9 @@ def changeBoneTarget(fcu, assoc):
 
 
 def newBoneTarget(bname, assoc):
-    for mhx,daz in assoc:
-        if daz == bname:
-            return mhx
+    for new,old in assoc:
+        if old == bname:
+            return new
     return bname
 
 

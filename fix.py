@@ -150,14 +150,14 @@ class Fixer:
             eb2.roll = eb1.roll
 
 
-    def fixCorrectives(self, rig):
+    def fixCorrectives(self, rig, jcms):
         from .driver import getShapekeyDriver, replaceDriverBone
         for ob in rig.children:
             if ob.type == 'MESH' and ob.data.shape_keys:
                 skeys = ob.data.shape_keys
                 for skey in skeys.key_blocks[1:]:
                     if getShapekeyDriver(skeys, skey.name):
-                        replaceDriverBone(self.Correctives, skeys, 'key_blocks["%s"].value' % (skey.name))
+                        replaceDriverBone(jcms, skeys, 'key_blocks["%s"].value' % (skey.name))
 
 
     def checkCorrectives(self, rig):

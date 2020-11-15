@@ -1046,7 +1046,7 @@ class Rigify:
 
         # Fix correctives
         self.Correctives = [("ORG-"+rigi,daz) for (rigi,daz) in assoc]
-        self.fixCorrectives(gen)
+        self.fixCorrectives(gen, self.Correctives)
         self.checkCorrectives(gen)
 
         #Clean up

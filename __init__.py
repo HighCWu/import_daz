@@ -72,7 +72,6 @@ def importModules():
         anchor = os.path.basename(__file__[0:-12])
         theModules = []
         for modname in modnames:
-            print("IMPO", modname)
             mod = importlib.import_module("." + modname, anchor)
             theModules.append(mod)
 
