@@ -658,14 +658,22 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         hidden.objects.link(empty)
         empty.parent = rig
         putOnHiddenLayer(empty)
-        gizmos = makeGizmos(None, empty, hidden)
+        self.gizmos = makeGizmos(None, empty, hidden)
         for bname,gname in Gizmos.items():
             if (bname in rig.pose.bones.keys() and
-                gname in gizmos.keys()):
-                gizmo = gizmos[gname]
+                gname in self.gizmos.keys()):
                 pb = rig.pose.bones[bname]
-                pb.custom_shape = gizmo
-                pb.bone.show_wire = True
+                self.addGizmo(pb, gname)
+        for bname in self.BackBones:
+            if bname in rig.pose.bones.keys():
+                tb = rig.pose.bones[bname+"Twk"]
+                self.addGizmo(tb, "GZM_Ball025")
+
+
+    def addGizmo(self, pb, gname):
+        gizmo = self.gizmos[gname]
+        pb.custom_shape = gizmo
+        pb.bone.show_wire = True
 
     #-------------------------------------------------------------
     #   Bone groups
@@ -694,15 +702,15 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                     pb.bone_group = bgrp
 
     #-------------------------------------------------------------
-    #   Spine
+    #   Backbone
     #-------------------------------------------------------------
 
     BackBones = ["spine", "spine-1", "chest", "chest-1"]
 
     def addBack(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
-        spine = rig.data.edit_bones["spine"+"Drv"]
-        chest = rig.data.edit_bones["chest"+"Drv"]
+        spine = rig.data.edit_bones["spine"]
+        chest = rig.data.edit_bones["chest"]
         makeBone("back", rig, spine.head, chest.tail, 0, L_MAIN, spine.parent)
 
         bpy.ops.object.mode_set(mode='POSE')
@@ -710,27 +718,42 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         back.rotation_mode = 'YZX'
         for bname in self.BackBones:
             if bname in rig.pose.bones.keys():
-                pb = rig.pose.bones[bname+"Drv"]
+                pb = rig.pose.bones[bname]
                 cns = copyRotation(pb, back, (True,True,True), rig)
                 cns.use_offset = True
 
+    #-------------------------------------------------------------
+    #   Spine tweaks
+    #-------------------------------------------------------------
 
     def addSpineTweaks(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
+        sb = None
         for bname in self.BackBones:
             if bname in rig.data.edit_bones.keys():
-                eb = rig.data.edit_bones[bname]
-                conn = eb.use_connect
-                eb.use_connect = False
-                tb = deriveBone(bname+"Drv", eb, rig, L_TWEAK, eb.parent)
-                tb.use_connect = conn
-                eb.parent = tb
+                tb = rig.data.edit_bones[bname]
+                tb.name = bname+"Twk"
+                conn = tb.use_connect
+                tb.use_connect = False
+                tb.layers[L_TWEAK] = True
+                tb.layers[L_SPINE] = False
+                if sb is None:
+                    sb = tb.parent
+                sb = deriveBone(bname, tb, rig, L_SPINE, sb)
+                sb.use_connect = conn
+                tb.parent = sb
+                for eb in tb.children:
+                    eb.parent = sb
+
+        from .figure import copyBoneInfo
         bpy.ops.object.mode_set(mode='POSE')
         rpbs = rig.pose.bones
         for bname in self.BackBones:
             if bname in rpbs.keys():
-                pb = rpbs[bname]
-                tb = getBoneCopy(bname+"Drv", pb, rpbs)
+                tb = rpbs[bname+"Twk"]
+                pb = getBoneCopy(bname, tb, rpbs)
+                copyBoneInfo(tb, pb)
+                tb.lock_location = tb.lock_rotation = tb.lock_scale = (False,False,False)
 
     #-------------------------------------------------------------
     #   Fingers
@@ -824,7 +847,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             hand0.parent = hand
 
             size = 10*rig.DazScale
-            armSocket = makeBone("arm_socket"+suffix, rig, upper_arm.head, upper_arm.head+Vector((0,0,size)), 0, L_TWEAK, upper_arm.parent)
+            armSocket = makeBone("shoulderTwk"+suffix, rig, upper_arm.head, upper_arm.head+Vector((0,0,size)), 0, L_TWEAK, upper_arm.parent)
             armParent = deriveBone("arm_parent"+suffix, armSocket, rig, L_HELP, root)
             upper_arm.parent = armParent
             rig.data.edit_bones["upper_arm-1"+suffix].parent = armParent
@@ -852,7 +875,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             foot.tail = toe.head
 
             size = 10*rig.DazScale
-            legSocket = makeBone("leg_socket"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_TWEAK, thigh.parent)
+            legSocket = makeBone("hipTwk"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_TWEAK, thigh.parent)
             legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, root)
             thigh.parent = legParent
             rig.data.edit_bones["thigh-1"+suffix].parent = legParent
@@ -941,7 +964,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                         pb = rpbs[bname+suffix]
                         pb.rotation_mode = rmode
 
-            armSocket = rpbs["arm_socket"+suffix]
+            armSocket = rpbs["shoulderTwk"+suffix]
             armParent = rpbs["arm_parent"+suffix]
             upper_arm = rpbs["upper_arm"+suffix]
             forearm = rpbs["forearm"+suffix]
@@ -976,7 +999,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             copyRotation(forearm, hand0Ik, yTrue, rig, prop)
             forearmFk.lock_rotation = yTrue
 
-            legSocket = rpbs["leg_socket"+suffix]
+            legSocket = rpbs["hipTwk"+suffix]
             legParent = rpbs["leg_parent"+suffix]
             thigh = rpbs["thigh"+suffix]
             shin = rpbs["shin"+suffix]
@@ -1195,8 +1218,8 @@ Gizmos = {
     "foot.fk.R" :       "GZM_Foot_R",
     "toe.fk.L" :        "GZM_Toe_L",
     "toe.fk.R" :        "GZM_Toe_R",
-    "leg_socket.L" :    "GZM_Ball025",
-    "leg_socket.R" :    "GZM_Ball025",
+    "hipTwk.L" :    "GZM_Ball025",
+    "hipTwk.R" :    "GZM_Ball025",
     "foot.rev.L" :      "GZM_RevFoot",
     "foot.rev.R" :      "GZM_RevFoot",
     "foot.ik.L" :       "GZM_FootIK",
@@ -1226,8 +1249,8 @@ Gizmos = {
     "forearm.fk.R" :    "GZM_Circle025",
     "hand.fk.L" :       "GZM_Hand",
     "hand.fk.R" :       "GZM_Hand",
-    "arm_socket.L" :    "GZM_Ball025",
-    "arm_socket.R" :    "GZM_Ball025",
+    "shoulderTwk.L" :    "GZM_Ball025",
+    "shoulderTwk.R" :    "GZM_Ball025",
     "hand.ik.L" :       "GZM_HandIK",
     "hand.ik.R" :       "GZM_HandIK",
     "elbow.pt.ik.L" :   "GZM_Cube025",
