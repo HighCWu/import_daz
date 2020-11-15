@@ -512,7 +512,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
 
         self.constrainBendTwists(rig)
         self.addLongFingers(rig)
-        self.addSpineTweaks(rig)
+        self.addTweaks(rig)
         self.addBack(rig)
         self.setupFkIk(rig)
         self.addLayers(rig)
@@ -664,16 +664,18 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                 gname in self.gizmos.keys()):
                 pb = rig.pose.bones[bname]
                 self.addGizmo(pb, gname)
-        for bname in self.BackBones:
+        for bname in self.TweakBones:
             if bname in rig.pose.bones.keys():
-                tb = rig.pose.bones[bname+"Twk"]
-                self.addGizmo(tb, "GZM_Ball025")
+                tb = rig.pose.bones[self.getTweakBoneName(bname)]
+                self.addGizmo(tb, "GZM_Ball025", blen=10*rig.DazScale)
 
 
-    def addGizmo(self, pb, gname):
+    def addGizmo(self, pb, gname, blen=None):
         gizmo = self.gizmos[gname]
         pb.custom_shape = gizmo
         pb.bone.show_wire = True
+        if blen:
+            pb.custom_shape_scale = blen/pb.bone.length
 
     #-------------------------------------------------------------
     #   Bone groups
@@ -726,17 +728,25 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
     #   Spine tweaks
     #-------------------------------------------------------------
 
-    def addSpineTweaks(self, rig):
+    TweakBones = [
+        None, "spine", "spine-1", "chest", "chest-1",
+        None, "neck", "neck-1",
+        None, "forearm.L", "hand.L", None, "shin.L", "foot.L",
+        None, "forearm.R", "hand.R", None, "shin.R", "foot.R",
+        ]
+
+    def addTweaks(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
-        sb = None
-        for bname in self.BackBones:
-            if bname in rig.data.edit_bones.keys():
+        tweakLayers = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
+        for bname in self.TweakBones:
+            if bname is None:
+                sb = None
+            elif bname in rig.data.edit_bones.keys():
                 tb = rig.data.edit_bones[bname]
-                tb.name = bname+"Twk"
+                tb.name = self.getTweakBoneName(bname)
                 conn = tb.use_connect
                 tb.use_connect = False
-                tb.layers[L_TWEAK] = True
-                tb.layers[L_SPINE] = False
+                tb.layers = tweakLayers
                 if sb is None:
                     sb = tb.parent
                 sb = deriveBone(bname, tb, rig, L_SPINE, sb)
@@ -748,12 +758,19 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         from .figure import copyBoneInfo
         bpy.ops.object.mode_set(mode='POSE')
         rpbs = rig.pose.bones
-        for bname in self.BackBones:
-            if bname in rpbs.keys():
-                tb = rpbs[bname+"Twk"]
+        for bname in self.TweakBones:
+            if bname and bname in rpbs.keys():
+                tb = rpbs[self.getTweakBoneName(bname)]
                 pb = getBoneCopy(bname, tb, rpbs)
                 copyBoneInfo(tb, pb)
                 tb.lock_location = tb.lock_rotation = tb.lock_scale = (False,False,False)
+
+
+    def getTweakBoneName(self, bname):
+        if bname[-2] == ".":
+            return bname[:-2] + "Twk" + bname[-2:]
+        else:
+            return bname + "Twk"
 
     #-------------------------------------------------------------
     #   Fingers
@@ -1218,8 +1235,8 @@ Gizmos = {
     "foot.fk.R" :       "GZM_Foot_R",
     "toe.fk.L" :        "GZM_Toe_L",
     "toe.fk.R" :        "GZM_Toe_R",
-    "hipTwk.L" :    "GZM_Ball025",
-    "hipTwk.R" :    "GZM_Ball025",
+    "hipTwk.L" :        "GZM_Ball025",
+    "hipTwk.R" :        "GZM_Ball025",
     "foot.rev.L" :      "GZM_RevFoot",
     "foot.rev.R" :      "GZM_RevFoot",
     "foot.ik.L" :       "GZM_FootIK",
@@ -1249,8 +1266,8 @@ Gizmos = {
     "forearm.fk.R" :    "GZM_Circle025",
     "hand.fk.L" :       "GZM_Hand",
     "hand.fk.R" :       "GZM_Hand",
-    "shoulderTwk.L" :    "GZM_Ball025",
-    "shoulderTwk.R" :    "GZM_Ball025",
+    "shoulderTwk.L" :   "GZM_Ball025",
+    "shoulderTwk.R" :   "GZM_Ball025",
     "hand.ik.L" :       "GZM_HandIK",
     "hand.ik.R" :       "GZM_HandIK",
     "elbow.pt.ik.L" :   "GZM_Cube025",
