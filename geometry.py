@@ -85,7 +85,8 @@ class GeoNode(Node):
         elif inst.isStrandHair:
             geo = self.data = Geometry(self.fileref)
             geo.name = inst.name
-            self.pgeonode = inst.parent.geometries[0]
+            if inst.parent and inst.parent.geometries:
+                self.pgeonode = inst.parent.geometries[0]
             geo.preprocess(context, inst)
 
 
@@ -856,7 +857,7 @@ class Geometry(Asset, Channels):
             hmat = self.materials[mname][0]
             return hmat.rna.name, hmat
         else:
-            return None, None
+            #return None, None
             return "Hair", None
 
 

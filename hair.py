@@ -125,7 +125,8 @@ class HairSystem:
         channels = ["PreSim Hairs Density", "PreRender Hairs Per Guide"]
         self.getTexDensity(mod, channels, 10, "child_nbr", pset, ob, "use_map_density", "density_factor", cond=(not rdtex))
 
-        if self.material:
+        if (self.material and
+            self.material in ob.data.materials.keys()):
             pset.material_slot = self.material
 
         rootrad = mod.getValue(["Line Start Width"], 0.1)
