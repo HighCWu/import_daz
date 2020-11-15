@@ -423,7 +423,7 @@ def applyBoneChildren(context, rig):
 
 from .fix import ConstraintStore, BendTwists, Fixer
 
-class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmature):
+class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.MHX, IsArmature):
     bl_idname = "daz.convert_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
@@ -467,6 +467,9 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
         "tongue01Drv" :     "lowerTeeth",
     }
 
+    def draw(self, context):
+        self.layout.prop(self, "addTweakBones")
+
 
     def run(self, context):
         from .merge import reparentToes
@@ -479,7 +482,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                 break
 
         self.skeleton = MhxSkeleton
-        if rig.data.DazExtraDrivenBones:
+        if True or rig.data.DazExtraDrivenBones:
             self.skeleton += self.BreastBones
 
         self.constraints = {}
@@ -665,7 +668,8 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                 pb = rig.pose.bones[bname]
                 self.addGizmo(pb, gname)
         for bname in self.TweakBones:
-            if bname in rig.pose.bones.keys():
+            if (bname in rig.pose.bones.keys() and
+                bname not in ["hips"]):
                 tb = rig.pose.bones[self.getTweakBoneName(bname)]
                 self.addGizmo(tb, "GZM_Ball025", blen=10*rig.DazScale)
 
@@ -731,11 +735,19 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
     TweakBones = [
         None, "spine", "spine-1", "chest", "chest-1",
         None, "neck", "neck-1",
-        None, "forearm.L", "hand.L", None, "shin.L", "foot.L",
-        None, "forearm.R", "hand.R", None, "shin.R", "foot.R",
-        ]
+        None, "hips",
+        None, "forearm.L", None, "shin.L",
+        None, "forearm.R", None, "shin.R"]
+
+    NoTweakParents = [
+        "spine", "spine-1", "chest", "chest-1", "neck", "neck-1", "head",
+        "clavicle.L", "hand.L", "thigh.L", "shin.L", "foot.L",
+        "clavicle.R", "hand.R", "thigh.R", "shin.R", "foot.R",
+    ]
 
     def addTweaks(self, rig):
+        if not self.addTweakBones:
+            return
         bpy.ops.object.mode_set(mode='EDIT')
         tweakLayers = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
         for bname in self.TweakBones:
@@ -753,7 +765,8 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
                 sb.use_connect = conn
                 tb.parent = sb
                 for eb in tb.children:
-                    eb.parent = sb
+                    if eb.name in self.NoTweakParents:
+                        eb.parent = sb
 
         from .figure import copyBoneInfo
         bpy.ops.object.mode_set(mode='POSE')
@@ -892,7 +905,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             foot.tail = toe.head
 
             size = 10*rig.DazScale
-            legSocket = makeBone("hipTwk"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_TWEAK, thigh.parent)
+            legSocket = makeBone("thighTwk"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_TWEAK, thigh.parent)
             legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, root)
             thigh.parent = legParent
             rig.data.edit_bones["thigh-1"+suffix].parent = legParent
@@ -1016,7 +1029,7 @@ class DAZ_OT_ConvertMhx(DazOperator, ConstraintStore, BendTwists, Fixer, IsArmat
             copyRotation(forearm, hand0Ik, yTrue, rig, prop)
             forearmFk.lock_rotation = yTrue
 
-            legSocket = rpbs["hipTwk"+suffix]
+            legSocket = rpbs["thighTwk"+suffix]
             legParent = rpbs["leg_parent"+suffix]
             thigh = rpbs["thigh"+suffix]
             shin = rpbs["shin"+suffix]
@@ -1235,8 +1248,8 @@ Gizmos = {
     "foot.fk.R" :       "GZM_Foot_R",
     "toe.fk.L" :        "GZM_Toe_L",
     "toe.fk.R" :        "GZM_Toe_R",
-    "hipTwk.L" :        "GZM_Ball025",
-    "hipTwk.R" :        "GZM_Ball025",
+    "thighTwk.L" :        "GZM_Ball025",
+    "thighTwk.R" :        "GZM_Ball025",
     "foot.rev.L" :      "GZM_RevFoot",
     "foot.rev.R" :      "GZM_RevFoot",
     "foot.ik.L" :       "GZM_FootIK",
