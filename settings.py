@@ -406,6 +406,7 @@ class LocalSettings:
         self.gammas = {}
         self.customShapes = []
         self.singleUser = False
+        self.strandHairs = []
         self.scene = ""
 
         self.usedFeatures = {

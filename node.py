@@ -173,15 +173,14 @@ class Instance(Accessor, Channels):
         for extra in self.extra:
             if "type" not in extra.keys():
                 continue
-
             elif extra["type"] == "studio/node/shell":
                 self.shstruct = extra
-
             elif extra["type"] == "studio/node/group_node":
                 self.isGroupNode = True
-
             elif extra["type"] == "studio/node/instance":
                 self.isNodeInstance = True
+            elif extra["type"] == "studio/node/strand_hair":
+                LS.strandHairs.append(self.name)
 
         for geo in self.geometries:
             geo.preprocess(context, self)

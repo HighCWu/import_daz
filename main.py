@@ -147,6 +147,10 @@ def getMainAsset(filepath, context, btn):
         msg = ("Could not rebuild subdivisions for the following HD objects:       \n")
         for hdob in LS.hdfailures:
             msg += ("  %s\n" % hdob.name)
+    elif LS.strandHairs:
+        msg = "Strand-based hair is not implemented:\n"
+        for hair in LS.strandHairs:
+            msg += ("  %s\n" % hair)
     if msg:
         clearErrorMessage()
         handleDazError(context, warning=True, dump=True)

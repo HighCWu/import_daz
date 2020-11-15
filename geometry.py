@@ -73,6 +73,12 @@ class GeoNode(Node):
         return ("<GeoNode %s %d %s %s>" % (self.id, self.index, self.center, self.rna))
 
 
+    def isVisibleMaterial(self, dmat):
+        if self.data:
+            return self.data.isVisibleMaterial(dmat)
+        return True
+
+
     def preprocess(self, context, inst):
         if self.data:
             self.data.preprocess(context, inst)
