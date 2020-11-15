@@ -668,10 +668,12 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
                 pb = rig.pose.bones[bname]
                 self.addGizmo(pb, gname)
         for bname in self.TweakBones:
-            if (bname in rig.pose.bones.keys() and
-                bname not in ["hips"]):
+            if bname in rig.pose.bones.keys():
+                gizmo = "GZM_Ball025"
+                if bname == "hips":
+                    gizmo = "GZM_Ball025End"
                 tb = rig.pose.bones[self.getTweakBoneName(bname)]
-                self.addGizmo(tb, "GZM_Ball025", blen=10*rig.DazScale)
+                self.addGizmo(tb, gizmo, blen=10*rig.DazScale)
 
 
     def addGizmo(self, pb, gname, blen=None):
