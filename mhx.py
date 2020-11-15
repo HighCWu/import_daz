@@ -76,131 +76,6 @@ def fkLayers():
             L_RARMFK, L_RLEGFK, L_RHAND, L_RFINGER]
 
 #-------------------------------------------------------------
-#   Rename to MHX
-#   (mhx, genesis, layer)
-#-------------------------------------------------------------
-
-MhxSkeleton = [
-    ("root", "hip", L_MAIN),
-    ("hips", "pelvis", L_SPINE),
-
-    ("thigh.L", "lThigh", L_LLEGFK),
-    ("thighBend.L", "lThighBend", L_LLEGFK),
-    ("thighTwist.L", "lThighTwist", L_LLEGFK),
-    ("shin.L", "lShin", L_LLEGFK),
-    ("foot.L", "lFoot", L_LLEGFK),
-    ("toe.L", "lToe", L_LLEGFK),
-    ("heel.L", "lHeel", L_LTOE),
-    ("tarsal.L", "lMetatarsals", L_HELP),
-
-    ("thigh.R", "rThigh", L_RLEGFK),
-    ("thighBend.R", "rThighBend", L_RLEGFK),
-    ("thighTwist.R", "rThighTwist", L_RLEGFK),
-    ("shin.R", "rShin", L_RLEGFK),
-    ("foot.R", "rFoot", L_RLEGFK),
-    ("toe.R", "rToe", L_RLEGFK),
-    ("heel.R", "rHeel", L_RTOE),
-    ("tarsal.R", "rMetatarsals", L_HELP),
-
-    ("spine", "abdomenLower", L_SPINE),
-    ("spine", "abdomen", L_SPINE),
-    ("spine-1", "abdomenUpper", L_SPINE),
-    ("spine-1", "abdomen2", L_SPINE),
-    ("chest", "chest", L_SPINE),
-    ("chest", "chestLower", L_SPINE),
-    ("chest-1", "chestUpper", L_SPINE),
-    ("neck", "neck", L_SPINE),
-    ("neck", "neckLower", L_SPINE),
-    ("neck-1", "neckUpper", L_SPINE),
-    ("head", "head", L_SPINE),
-
-    ("lEye", "lEye", L_FACE),
-    ("rEye", "rEye", L_FACE),
-    ("upperJaw", "upperJaw", L_FACE),
-    ("lowerJaw", "lowerJaw", L_FACE),
-
-    ("clavicle.L", "lCollar", L_LARMFK),
-    ("upper_arm.L", "lShldr", L_LARMFK),
-    ("upper_armBend.L", "lShldrBend", L_LARMFK),
-    ("upper_armTwist.L", "lShldrTwist", L_LARMFK),
-    ("forearm.L", "lForeArm", L_LARMFK),
-    ("forearmBend.L", "lForearmBend", L_LARMFK),
-    ("forearmTwist.L", "lForearmTwist", L_LARMFK),
-    ("hand.L", "lHand", L_LARMFK),
-    ("palm_index.L", "lCarpal1", L_LFINGER),
-    ("palm_middle.L", "lCarpal2", L_LFINGER),
-    ("palm_ring.L", "lCarpal3", L_LFINGER),
-    ("palm_pinky.L", "lCarpal4", L_LFINGER),
-
-    ("clavicle.R", "rCollar", L_RARMFK),
-    ("upper_arm.R", "rShldr", L_RARMFK),
-    ("upper_armBend.R", "rShldrBend", L_RARMFK),
-    ("upper_armTwist.R", "rShldrTwist", L_RARMFK),
-    ("forearm.R", "rForeArm", L_RARMFK),
-    ("forearmBend.R", "rForearmBend", L_RARMFK),
-    ("forearmTwist.R", "rForearmTwist", L_RARMFK),
-    ("hand.R", "rHand", L_RARMFK),
-    ("palm_index.R", "rCarpal1", L_RFINGER),
-    ("palm_middle.R", "rCarpal2", L_RFINGER),
-    ("palm_ring.R", "rCarpal3", L_RFINGER),
-    ("palm_pinky.R", "rCarpal4", L_RFINGER),
-
-    ("thumb.01.L", "lThumb1", L_LFINGER),
-    ("thumb.02.L", "lThumb2", L_LFINGER),
-    ("thumb.03.L", "lThumb3", L_LFINGER),
-    ("f_index.01.L", "lIndex1", L_LFINGER),
-    ("f_index.02.L", "lIndex2", L_LFINGER),
-    ("f_index.03.L", "lIndex3", L_LFINGER),
-    ("f_middle.01.L", "lMid1", L_LFINGER),
-    ("f_middle.02.L", "lMid2", L_LFINGER),
-    ("f_middle.03.L", "lMid3", L_LFINGER),
-    ("f_ring.01.L", "lRing1", L_LFINGER),
-    ("f_ring.02.L", "lRing2", L_LFINGER),
-    ("f_ring.03.L", "lRing3", L_LFINGER),
-    ("f_pinky.01.L", "lPinky1", L_LFINGER),
-    ("f_pinky.02.L", "lPinky2", L_LFINGER),
-    ("f_pinky.03.L", "lPinky3", L_LFINGER),
-
-    ("thumb.01.R", "rThumb1", L_RFINGER),
-    ("thumb.02.R", "rThumb2", L_RFINGER),
-    ("thumb.03.R", "rThumb3", L_RFINGER),
-    ("f_index.01.R", "rIndex1", L_RFINGER),
-    ("f_index.02.R", "rIndex2", L_RFINGER),
-    ("f_index.03.R", "rIndex3", L_RFINGER),
-    ("f_middle.01.R", "rMid1", L_RFINGER),
-    ("f_middle.02.R", "rMid2", L_RFINGER),
-    ("f_middle.03.R", "rMid3", L_RFINGER),
-    ("f_ring.01.R", "rRing1", L_RFINGER),
-    ("f_ring.02.R", "rRing2", L_RFINGER),
-    ("f_ring.03.R", "rRing3", L_RFINGER),
-    ("f_pinky.01.R", "rPinky1", L_RFINGER),
-    ("f_pinky.02.R", "rPinky2", L_RFINGER),
-    ("f_pinky.03.R", "rPinky3", L_RFINGER),
-
-    ("big_toe.01.L", "lBigToe", L_LTOE),
-    ("small_toe_1.01.L", "lSmallToe1", L_LTOE),
-    ("small_toe_2.01.L", "lSmallToe2", L_LTOE),
-    ("small_toe_3.01.L", "lSmallToe3", L_LTOE),
-    ("small_toe_4.01.L", "lSmallToe4", L_LTOE),
-    ("big_toe.02.L", "lBigToe_2", L_LTOE),
-    ("small_toe_1.02.L", "lSmallToe1_2", L_LTOE),
-    ("small_toe_2.02.L", "lSmallToe2_2", L_LTOE),
-    ("small_toe_3.02.L", "lSmallToe3_2", L_LTOE),
-    ("small_toe_4.02.L", "lSmallToe4_2", L_LTOE),
-
-    ("big_toe.01.R", "rBigToe", L_RTOE),
-    ("small_toe_1.01.R", "rSmallToe1", L_RTOE),
-    ("small_toe_2.01.R", "rSmallToe2", L_RTOE),
-    ("small_toe_3.01.R", "rSmallToe3", L_RTOE),
-    ("small_toe_4.01.R", "rSmallToe4", L_RTOE),
-    ("big_toe.02.R", "rBigToe_2", L_RTOE),
-    ("small_toe_1.02.R", "rSmallToe1_2", L_RTOE),
-    ("small_toe_2.02.R", "rSmallToe2_2", L_RTOE),
-    ("small_toe_3.02.R", "rSmallToe3_2", L_RTOE),
-    ("small_toe_4.02.R", "rSmallToe4_2", L_RTOE),
-]
-
-#-------------------------------------------------------------
 #
 #-------------------------------------------------------------
 
@@ -454,8 +329,6 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
         ("thigh-1.R", "thighBend.R"),
     ]
 
-    Sacred = ["root", "hips", "spine"]
-
     BreastBones = [
         ("breast.L", "lPectoral", L_LEXTRA),
         ("breast.R", "rPectoral", L_REXTRA),
@@ -467,8 +340,14 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
         "tongue01Drv" :     "lowerTeeth",
     }
 
+    LegacyNames = {
+        "hip" : "root",
+        "pelvis" : "hips"
+    }
+
     def draw(self, context):
         self.layout.prop(self, "addTweakBones")
+        self.layout.prop(self, "useLegacy")
 
 
     def run(self, context):
@@ -481,9 +360,151 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
                 gen2 = ob
                 break
 
-        self.skeleton = MhxSkeleton
-        if True or rig.data.DazExtraDrivenBones:
+        #-------------------------------------------------------------
+        #   Legacy bone names
+        #-------------------------------------------------------------
+
+        if self.useLegacy:
+            self.hip = "root"
+            self.pelvis = "hips"
+        else:
+            self.hip = "hip"
+            self.pelvis = "pelvis"
+            rig.DazMhxLegacy = False
+
+        #-------------------------------------------------------------
+        #   MHX skeleton
+        #   (mhx, genesis, layer)
+        #-------------------------------------------------------------
+
+        self.skeleton = [
+            (self.hip, "hip", L_MAIN),
+            (self.pelvis, "pelvis", L_SPINE),
+
+            ("thigh.L", "lThigh", L_LLEGFK),
+            ("thighBend.L", "lThighBend", L_LLEGFK),
+            ("thighTwist.L", "lThighTwist", L_LLEGFK),
+            ("shin.L", "lShin", L_LLEGFK),
+            ("foot.L", "lFoot", L_LLEGFK),
+            ("toe.L", "lToe", L_LLEGFK),
+            ("heel.L", "lHeel", L_LTOE),
+            ("tarsal.L", "lMetatarsals", L_HELP),
+
+            ("thigh.R", "rThigh", L_RLEGFK),
+            ("thighBend.R", "rThighBend", L_RLEGFK),
+            ("thighTwist.R", "rThighTwist", L_RLEGFK),
+            ("shin.R", "rShin", L_RLEGFK),
+            ("foot.R", "rFoot", L_RLEGFK),
+            ("toe.R", "rToe", L_RLEGFK),
+            ("heel.R", "rHeel", L_RTOE),
+            ("tarsal.R", "rMetatarsals", L_HELP),
+
+            ("spine", "abdomenLower", L_SPINE),
+            ("spine", "abdomen", L_SPINE),
+            ("spine-1", "abdomenUpper", L_SPINE),
+            ("spine-1", "abdomen2", L_SPINE),
+            ("chest", "chest", L_SPINE),
+            ("chest", "chestLower", L_SPINE),
+            ("chest-1", "chestUpper", L_SPINE),
+            ("neck", "neck", L_SPINE),
+            ("neck", "neckLower", L_SPINE),
+            ("neck-1", "neckUpper", L_SPINE),
+            ("head", "head", L_SPINE),
+
+            ("lEye", "lEye", L_FACE),
+            ("rEye", "rEye", L_FACE),
+            ("upperJaw", "upperJaw", L_FACE),
+            ("lowerJaw", "lowerJaw", L_FACE),
+
+            ("clavicle.L", "lCollar", L_LARMFK),
+            ("upper_arm.L", "lShldr", L_LARMFK),
+            ("upper_armBend.L", "lShldrBend", L_LARMFK),
+            ("upper_armTwist.L", "lShldrTwist", L_LARMFK),
+            ("forearm.L", "lForeArm", L_LARMFK),
+            ("forearmBend.L", "lForearmBend", L_LARMFK),
+            ("forearmTwist.L", "lForearmTwist", L_LARMFK),
+            ("hand.L", "lHand", L_LARMFK),
+            ("palm_index.L", "lCarpal1", L_LFINGER),
+            ("palm_middle.L", "lCarpal2", L_LFINGER),
+            ("palm_ring.L", "lCarpal3", L_LFINGER),
+            ("palm_pinky.L", "lCarpal4", L_LFINGER),
+
+            ("clavicle.R", "rCollar", L_RARMFK),
+            ("upper_arm.R", "rShldr", L_RARMFK),
+            ("upper_armBend.R", "rShldrBend", L_RARMFK),
+            ("upper_armTwist.R", "rShldrTwist", L_RARMFK),
+            ("forearm.R", "rForeArm", L_RARMFK),
+            ("forearmBend.R", "rForearmBend", L_RARMFK),
+            ("forearmTwist.R", "rForearmTwist", L_RARMFK),
+            ("hand.R", "rHand", L_RARMFK),
+            ("palm_index.R", "rCarpal1", L_RFINGER),
+            ("palm_middle.R", "rCarpal2", L_RFINGER),
+            ("palm_ring.R", "rCarpal3", L_RFINGER),
+            ("palm_pinky.R", "rCarpal4", L_RFINGER),
+
+            ("thumb.01.L", "lThumb1", L_LFINGER),
+            ("thumb.02.L", "lThumb2", L_LFINGER),
+            ("thumb.03.L", "lThumb3", L_LFINGER),
+            ("f_index.01.L", "lIndex1", L_LFINGER),
+            ("f_index.02.L", "lIndex2", L_LFINGER),
+            ("f_index.03.L", "lIndex3", L_LFINGER),
+            ("f_middle.01.L", "lMid1", L_LFINGER),
+            ("f_middle.02.L", "lMid2", L_LFINGER),
+            ("f_middle.03.L", "lMid3", L_LFINGER),
+            ("f_ring.01.L", "lRing1", L_LFINGER),
+            ("f_ring.02.L", "lRing2", L_LFINGER),
+            ("f_ring.03.L", "lRing3", L_LFINGER),
+            ("f_pinky.01.L", "lPinky1", L_LFINGER),
+            ("f_pinky.02.L", "lPinky2", L_LFINGER),
+            ("f_pinky.03.L", "lPinky3", L_LFINGER),
+
+            ("thumb.01.R", "rThumb1", L_RFINGER),
+            ("thumb.02.R", "rThumb2", L_RFINGER),
+            ("thumb.03.R", "rThumb3", L_RFINGER),
+            ("f_index.01.R", "rIndex1", L_RFINGER),
+            ("f_index.02.R", "rIndex2", L_RFINGER),
+            ("f_index.03.R", "rIndex3", L_RFINGER),
+            ("f_middle.01.R", "rMid1", L_RFINGER),
+            ("f_middle.02.R", "rMid2", L_RFINGER),
+            ("f_middle.03.R", "rMid3", L_RFINGER),
+            ("f_ring.01.R", "rRing1", L_RFINGER),
+            ("f_ring.02.R", "rRing2", L_RFINGER),
+            ("f_ring.03.R", "rRing3", L_RFINGER),
+            ("f_pinky.01.R", "rPinky1", L_RFINGER),
+            ("f_pinky.02.R", "rPinky2", L_RFINGER),
+            ("f_pinky.03.R", "rPinky3", L_RFINGER),
+
+            ("big_toe.01.L", "lBigToe", L_LTOE),
+            ("small_toe_1.01.L", "lSmallToe1", L_LTOE),
+            ("small_toe_2.01.L", "lSmallToe2", L_LTOE),
+            ("small_toe_3.01.L", "lSmallToe3", L_LTOE),
+            ("small_toe_4.01.L", "lSmallToe4", L_LTOE),
+            ("big_toe.02.L", "lBigToe_2", L_LTOE),
+            ("small_toe_1.02.L", "lSmallToe1_2", L_LTOE),
+            ("small_toe_2.02.L", "lSmallToe2_2", L_LTOE),
+            ("small_toe_3.02.L", "lSmallToe3_2", L_LTOE),
+            ("small_toe_4.02.L", "lSmallToe4_2", L_LTOE),
+
+            ("big_toe.01.R", "rBigToe", L_RTOE),
+            ("small_toe_1.01.R", "rSmallToe1", L_RTOE),
+            ("small_toe_2.01.R", "rSmallToe2", L_RTOE),
+            ("small_toe_3.01.R", "rSmallToe3", L_RTOE),
+            ("small_toe_4.01.R", "rSmallToe4", L_RTOE),
+            ("big_toe.02.R", "rBigToe_2", L_RTOE),
+            ("small_toe_1.02.R", "rSmallToe1_2", L_RTOE),
+            ("small_toe_2.02.R", "rSmallToe2_2", L_RTOE),
+            ("small_toe_3.02.R", "rSmallToe3_2", L_RTOE),
+            ("small_toe_4.02.R", "rSmallToe4_2", L_RTOE),
+        ]
+
+        if rig.data.DazExtraDrivenBones:
             self.skeleton += self.BreastBones
+
+        self.sacred = ["root", "hips", "spine"]
+
+        #-------------------------------------------------------------
+        #   Fix and rename bones of the genesis rig
+        #-------------------------------------------------------------
 
         self.constraints = {}
         rig.data.layers = 32*[True]
@@ -512,6 +533,10 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
             self.fixCorrectives(rig)
         else:
             raise DazError("Cannot convert %s to Mhx" % rig.name)
+
+        #-------------------------------------------------------------
+        #   Add MHX stuff
+        #-------------------------------------------------------------
 
         self.constrainBendTwists(rig)
         self.addLongFingers(rig)
@@ -584,13 +609,14 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
 
         bpy.ops.object.mode_set(mode='OBJECT')
         for bone in rig.data.bones:
-            if bone.name in self.Sacred:
+            if bone.name in self.sacred:
                 bone.name = bone.name + ".1"
 
         for mname,dname,layer in self.skeleton:
             if dname in rig.data.bones.keys():
                 bone = rig.data.bones[dname]
-                bone.name = mname
+                if dname != mname:
+                    bone.name = mname
                 bone.layers = layer*[False] + [True] + (31-layer)*[False]
                 fixed.append(mname)
 
@@ -667,10 +693,10 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
                 gname in self.gizmos.keys()):
                 pb = rig.pose.bones[bname]
                 self.addGizmo(pb, gname)
-        for bname in self.TweakBones:
+        for bname in self.tweakBones:
             if bname in rig.pose.bones.keys():
                 gizmo = "GZM_Ball025"
-                if bname == "hips":
+                if bname == self.pelvis:
                     gizmo = "GZM_Ball025End"
                 tb = rig.pose.bones[self.getTweakBoneName(bname)]
                 self.addGizmo(tb, gizmo, blen=10*rig.DazScale)
@@ -734,25 +760,26 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
     #   Spine tweaks
     #-------------------------------------------------------------
 
-    TweakBones = [
-        None, "spine", "spine-1", "chest", "chest-1",
-        None, "neck", "neck-1",
-        None, "hips",
-        None, "forearm.L", None, "shin.L",
-        None, "forearm.R", None, "shin.R"]
-
-    NoTweakParents = [
-        "spine", "spine-1", "chest", "chest-1", "neck", "neck-1", "head",
-        "clavicle.L", "hand.L", "thigh.L", "shin.L", "foot.L",
-        "clavicle.R", "hand.R", "thigh.R", "shin.R", "foot.R",
-    ]
-
     def addTweaks(self, rig):
         if not self.addTweakBones:
             return
+
+        self.tweakBones = [
+            None, "spine", "spine-1", "chest", "chest-1",
+            None, "neck", "neck-1",
+            None, self.pelvis,
+            None, "forearm.L", None, "shin.L",
+            None, "forearm.R", None, "shin.R"]
+
+        self.noTweakParents = [
+            "spine", "spine-1", "chest", "chest-1", "neck", "neck-1", "head",
+            "clavicle.L", "hand.L", "thigh.L", "shin.L", "foot.L",
+            "clavicle.R", "hand.R", "thigh.R", "shin.R", "foot.R",
+        ]
+
         bpy.ops.object.mode_set(mode='EDIT')
         tweakLayers = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
-        for bname in self.TweakBones:
+        for bname in self.tweakBones:
             if bname is None:
                 sb = None
             elif bname in rig.data.edit_bones.keys():
@@ -767,13 +794,13 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
                 sb.use_connect = conn
                 tb.parent = sb
                 for eb in tb.children:
-                    if eb.name in self.NoTweakParents:
+                    if eb.name in self.noTweakParents:
                         eb.parent = sb
 
         from .figure import copyBoneInfo
         bpy.ops.object.mode_set(mode='POSE')
         rpbs = rig.pose.bones
-        for bname in self.TweakBones:
+        for bname in self.tweakBones:
             if bname and bname in rpbs.keys():
                 tb = rpbs[self.getTweakBoneName(bname)]
                 pb = getBoneCopy(bname, tb, rpbs)
@@ -861,7 +888,7 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
 
     def setupFkIk(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
-        root = rig.data.edit_bones["root"]
+        root = rig.data.edit_bones[self.hip]
         head = rig.data.edit_bones["head"]
         for suffix,dlayer in [(".L",0), (".R",16)]:
             upper_arm = setLayer("upper_arm"+suffix, rig, L_HELP)
@@ -976,7 +1003,7 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
                 copyBoneInfo(bone, fkbone)
 
         rpbs = rig.pose.bones
-        for bname in ["root", "hips"]:
+        for bname in [self.hip, self.pelvis]:
             pb = rpbs[bname]
             pb.rotation_mode = 'YZX'
 
@@ -1148,7 +1175,7 @@ class DAZ_OT_ConvertMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.
 
     def addMaster(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
-        root = rig.data.edit_bones["root"]
+        root = rig.data.edit_bones[self.hip]
         master = makeBone("master", rig, (0,0,0), (0,root.head[2]/5,0), 0, L_MAIN, None)
         for eb in rig.data.edit_bones:
             if eb.parent is None and eb != master:
@@ -1211,7 +1238,9 @@ Gizmos = {
 
     #Spine
     "root" :            "GZM_CrownHips",
+    "hip" :             "GZM_CrownHips",
     "hips" :            "GZM_CircleHips",
+    "pelvis" :          "GZM_CircleHips",
     "spine" :           "GZM_CircleSpine",
     "spine-1" :         "GZM_CircleSpine",
     "chest" :           "GZM_CircleChest",
@@ -1333,6 +1362,8 @@ classes = [
 ]
 
 def initialize():
+    bpy.types.Object.DazMhxLegacy = BoolProperty(default=True)
+
     # MHX Control properties
     bpy.types.Object.DazHintsOn = BoolProperty(default=True)
     bpy.types.Object.DazGazeFollowsHead = FloatProperty(default=0.0, min=0.0, max=1.0)
