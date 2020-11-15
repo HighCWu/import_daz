@@ -167,9 +167,25 @@ function doMesh (fp, obj, start, node, str1, str2)
         buf += ("            [" + v.x + ", " + v.y + ", " + v.z + "]" + c)
     }   
     fp.writeLine(buf)
-    fp.writeLine(str1)
-    fp.writeLine(str2)
+
+    if (clname == "DzStrandHairNode")
+    {
+    	var np = geom.getNumPolylines();
+        buf = "        ],\n";
+        buf += ("        \"num polylines\": " + np + ",\n");
+        buf += "        \"edges\": [\n";
+        c = ",\n"
+        for (var i = 0; i < ne; i++)
+        {
+            var e = geom.getEdge(i);
+            if (i == ne-1) c = "\n";
+            buf += ("            " + e + c)
+        }   
+        fp.writeLine(buf)
+    }
     
+    fp.writeLine(str1)
+    fp.writeLine(str2)    
     lodctrl.setValue(lodvalue);    
     return true;
 }

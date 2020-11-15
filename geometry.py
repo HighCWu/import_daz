@@ -53,6 +53,7 @@ class GeoNode(Node):
         self.figure = figure
         self.figureInst = None
         self.verts = None
+        self.polylines = None
         self.highdef = None
         self.hdobject = None
         self.pgeonode = None
@@ -65,7 +66,6 @@ class GeoNode(Node):
         self.modifiers = {}
         self.morphsValues = {}
         self.shstruct = {}
-        self.polylines = False
         self.push = 0
 
 
@@ -82,6 +82,12 @@ class GeoNode(Node):
     def preprocess(self, context, inst):
         if self.data:
             self.data.preprocess(context, inst)
+        elif inst.isStrandHair:
+            geo = self.data = Geometry(self.fileref)
+            geo.name = inst.name
+            print("NEW GEO", self)
+            print("  ", geo)
+            geo.preprocess(context, inst)
 
 
     def buildObject(self, context, inst, center):
@@ -413,6 +419,7 @@ class Geometry(Asset, Channels):
 
         self.material_selection_sets = []
         self.type = None
+        self.isStrandHair = False
         self.vertex_count = 0
         self.poly_count = 0
         self.vertex_pairs = []
@@ -431,7 +438,7 @@ class Geometry(Asset, Channels):
 
 
     def __repr__(self):
-        return ("<Geometry %s %s>" % (self.id, self.rna))
+        return ("<Geometry %s %s %s>" % (self.id, self.name, self.rna))
 
 
     def getInstance(self, caller, ref):
@@ -537,6 +544,7 @@ class Geometry(Asset, Channels):
 
     def preprocess(self, context, inst):
         scn = context.scene
+        print("PPF", self, inst.isStrandHair)
         if self.shstruct:
             node = self.getNode(0)
             self.uvs = None
@@ -665,6 +673,9 @@ class Geometry(Asset, Channels):
         if isinstance(node, GeoNode) and node.verts:
             if len(node.verts) == len(verts):
                 verts = node.verts
+            elif node.polylines:
+                verts = node.verts
+                self.polylines = node.polylines
             elif self.polylines:
                 print("HAIR", len(verts), len(node.verts))
                 verts = node.verts

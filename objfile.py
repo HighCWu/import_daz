@@ -111,9 +111,10 @@ class DBZInfo:
 
 
 class DBZObject:
-    def __init__(self, verts, uvs, faces, matgroups, lod, center):
+    def __init__(self, verts, uvs, edges, faces, matgroups, lod, center):
         self.verts = verts
         self.uvs = uvs
+        self.edges = edges
         self.faces = faces
         self.matgroups = matgroups
         self.lod = lod
@@ -149,12 +150,14 @@ def loadDbzFile(filepath):
 
         if "vertices" in figure.keys():
             verts = [d2b(vec) for vec in figure["vertices"]]
-            faces = uvs = []
+            edges = faces = uvs = []
+            if "edges" in figure.keys():
+                edges = figure["edges"]
             if "faces" in figure.keys():
                 faces = figure["faces"]
             if "uvs" in figure.keys():
                 uvs = figure["uvs"]
-            dbz.objects[name].append(DBZObject(verts, uvs, faces, [], 0, center))
+            dbz.objects[name].append(DBZObject(verts, uvs, edges, faces, [], 0, center))
 
         if "hd vertices" in figure.keys():
             LS.useHDObjects = True
@@ -167,7 +170,7 @@ def loadDbzFile(filepath):
             matgroups = []
             if "hd material groups" in figure.keys():
                 matgroups = figure["hd material groups"]
-            dbz.hdobjects[name].append(DBZObject(verts, uvs, faces, matgroups, lod, center))
+            dbz.hdobjects[name].append(DBZObject(verts, uvs, [], faces, matgroups, lod, center))
 
         if "bones" not in figure.keys():
             continue
@@ -235,6 +238,7 @@ def fitToFile(filepath, nodes):
     print("Fitting objects with dbz file...")
     filepath = getFitFile(filepath)
     dbz = loadDbzFile(filepath)
+    print("KEY", dbz.objects.keys())
     subsurfaced = False
 
     taken = dict([(name,0) for name in dbz.objects.keys()])
@@ -299,6 +303,7 @@ def fitToFile(filepath, nodes):
                                    "(OK for hair)")
                             print(msg)
                             geonode.verts = base.verts
+                            geonode.polylines = [(1,0,v1,v2) for v1,v2,f1,f2,m1,m2,e in base.edges]
                             geonode.center = base.center
                     else:
                         geonode.verts = base.verts

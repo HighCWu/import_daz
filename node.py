@@ -129,6 +129,7 @@ class Instance(Accessor, Channels):
         self.center = Vector((0,0,0))
         self.refgroup = None
         self.isGroupNode = False
+        self.isStrandHair = False
         self.isNodeInstance = False
         self.node2 = None
         self.hdobject = None
@@ -180,9 +181,13 @@ class Instance(Accessor, Channels):
             elif extra["type"] == "studio/node/instance":
                 self.isNodeInstance = True
             elif extra["type"] == "studio/node/strand_hair":
+                self.isStrandHair = True
                 LS.strandHairs.append(self.name)
+                print("ADD GEO", self)
 
         for geo in self.geometries:
+            print("GEO", geo, self.isStrandHair)
+            print("  ", geo.data)
             geo.preprocess(context, self)
 
 

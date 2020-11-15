@@ -69,13 +69,14 @@ def getMainAsset(filepath, context, btn):
         raise DazError(msg)
     showProgress(20, 100)
 
+    print("Preprocessing...")
+    for asset,inst in main.nodes:
+        inst.preprocess(context)
+
     if LS.fitFile:
         fitToFile(filepath, main.nodes)
     showProgress(30, 100)
 
-    print("Preprocessing...")
-    for asset,inst in main.nodes:
-        inst.preprocess(context)
     for asset,inst in main.nodes:
         inst.preprocess2(context)
     for asset,inst in main.modifiers:
