@@ -238,7 +238,6 @@ def fitToFile(filepath, nodes):
     print("Fitting objects with dbz file...")
     filepath = getFitFile(filepath)
     dbz = loadDbzFile(filepath)
-    print("KEY", dbz.objects.keys())
     subsurfaced = False
 
     taken = dict([(name,0) for name in dbz.objects.keys()])

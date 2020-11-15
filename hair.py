@@ -199,10 +199,10 @@ class HairSystem:
     def build(self, context, ob):
         import time
         t1 = time.perf_counter()
-        #print("Build hair", self.name)
+        print("Build hair", self.name)
 
         hlen = int(len(self.strands[0]))
-        if hlen < 3:
+        if hlen < 2:
             return
         bpy.ops.object.particle_system_add()
         psys = ob.particle_systems.active

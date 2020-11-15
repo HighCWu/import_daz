@@ -37,7 +37,7 @@ from .error import *
 from .node import Node, Instance
 
 #-------------------------------------------------------------
-#   Geometry
+#   Geonode
 #-------------------------------------------------------------
 
 class GeoNode(Node):
@@ -85,8 +85,7 @@ class GeoNode(Node):
         elif inst.isStrandHair:
             geo = self.data = Geometry(self.fileref)
             geo.name = inst.name
-            print("NEW GEO", self)
-            print("  ", geo)
+            self.pgeonode = inst.parent.geometries[0]
             geo.preprocess(context, inst)
 
 
@@ -210,10 +209,12 @@ class GeoNode(Node):
     def finishHair(self, context):
         if self.pgeonode and GS.strandsAsHair:
             ob = self.rna
-            rig = self.parent.rna
-            print("DELETE", ob, rig)
+            print("DELETE", ob)
             deleteObject(context, ob)
-            deleteObject(context, rig)
+            if self.parent:
+                rig = self.parent.rna
+                print("DELETE", rig)
+                deleteObject(context, rig)
 
 
     def addHairSim(self, mod, extra, pgeonode):
@@ -544,7 +545,6 @@ class Geometry(Asset, Channels):
 
     def preprocess(self, context, inst):
         scn = context.scene
-        print("PPF", self, inst.isStrandHair)
         if self.shstruct:
             node = self.getNode(0)
             self.uvs = None
@@ -856,6 +856,7 @@ class Geometry(Asset, Channels):
             hmat = self.materials[mname][0]
             return hmat.rna.name, hmat
         else:
+            return None, None
             return "Hair", None
 
 

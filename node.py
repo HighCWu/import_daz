@@ -183,11 +183,8 @@ class Instance(Accessor, Channels):
             elif extra["type"] == "studio/node/strand_hair":
                 self.isStrandHair = True
                 LS.strandHairs.append(self.name)
-                print("ADD GEO", self)
 
         for geo in self.geometries:
-            print("GEO", geo, self.isStrandHair)
-            print("  ", geo.data)
             geo.preprocess(context, self)
 
 
