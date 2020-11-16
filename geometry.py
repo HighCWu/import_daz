@@ -53,6 +53,7 @@ class GeoNode(Node):
         self.figure = figure
         self.figureInst = None
         self.verts = None
+        self.edges = None
         self.polylines = None
         self.highdef = None
         self.hdobject = None
@@ -85,8 +86,6 @@ class GeoNode(Node):
         elif inst.isStrandHair:
             geo = self.data = Geometry(self.fileref)
             geo.name = inst.name
-            #if inst.parent and inst.parent.geometries:
-            #    self.pgeonode = inst.parent.geometries[0]
             geo.preprocess(context, inst)
 
 
@@ -100,6 +99,21 @@ class GeoNode(Node):
         if not LS.fitFile:
             ob.location = -center
         inst.center = center
+
+
+    def arrangeObject(self, ob, inst, context, center):
+        Node.arrangeObject(self, ob, inst, context, center)
+        if self.edges:
+            self.unTesselate(context, ob)
+            self.data.findPolyLines(ob)
+
+
+    def unTesselate(self, context, ob):
+        activateObject(context, ob)
+        threshold = 0.1*LS.scale
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.remove_doubles(threshold=threshold)
+        bpy.ops.object.mode_set(mode='OBJECT')
 
 
     def subdivideObject(self, ob, inst, context):
@@ -238,9 +252,8 @@ class GeoNode(Node):
         if hdob and hdob != ob:
             self.buildHighDef(context, inst)
         if GS.strandsAsHair:
-            if inst.fitTo:
-                if inst.fitTo.geometries:
-                    self.pgeonode = inst.fitTo.geometries[0]
+            if inst.fitTo and inst.fitTo.geometries:
+                self.pgeonode = inst.fitTo.geometries[0]
             if self.pgeonode:
                 self.data.buildHair(self, context)
         if self.dforce:
@@ -675,14 +688,16 @@ class Geometry(Asset, Channels):
         me = self.rna = bpy.data.meshes.new(name)
 
         verts = self.verts
+        edges = []
+        faces = self.faces
         if isinstance(node, GeoNode) and node.verts:
-            if len(node.verts) == len(verts):
+            if node.edges:
                 verts = node.verts
-            elif node.polylines:
-                verts = node.verts
-                self.polylines = node.polylines
+                edges = node.edges
             elif self.polylines:
                 print("HAIR", len(verts), len(node.verts))
+                verts = node.verts
+            elif len(node.verts) == len(verts):
                 verts = node.verts
 
         if not verts:
@@ -692,8 +707,6 @@ class Geometry(Asset, Channels):
                     me.materials.append(mat)
             return None
 
-        edges = []
-        faces = self.faces
         if self.polylines:
             faces = []
             for pline in self.polylines:
@@ -779,6 +792,28 @@ class Geometry(Asset, Channels):
                 reportError(msg, trigger=(2,3))
 
 
+    def findPolyLines(self, ob):
+        plines = []
+        v0 = -1
+        pline = None
+        edges = [list(e.vertices) for e in ob.data.edges]
+        edges.sort()
+        for v1,v2 in edges:
+            if v1 == v0:
+                pline.append(v2)
+            else:
+                pline = [v1,v2]
+                plines.append(pline)
+            v0 = v2
+        pnum = 0
+        mnum = 0
+        self.strands = []
+        verts = ob.data.vertices
+        for pline in plines:
+            strand = [verts[vn].co for vn in pline]
+            self.strands.append((pnum,mnum,strand))
+
+
     def buildRigidity(self, ob):
         from .modifier import buildVertexGroup
         if self.rigidity:
@@ -848,7 +883,6 @@ class Geometry(Asset, Channels):
                         vgrp = createSkullGroup(ob, 'TOP')
                     hsys.vertexGroup = vgrp.name
             hsystems[hname].strands.append(strand)
-
         activateObject(context, ob)
         for hsys in hsystems.values():
             hsys.build(context, ob)

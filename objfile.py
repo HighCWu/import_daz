@@ -302,7 +302,7 @@ def fitToFile(filepath, nodes):
                                    "(OK for hair)")
                             print(msg)
                             geonode.verts = base.verts
-                            geonode.polylines = [(1,0,v1,v2) for v1,v2,f1,f2,m1,m2,e in base.edges]
+                            geonode.edges = [(v1,v2) for v1,v2,f1,f2,m1,m2,e in base.edges]
                             geonode.center = base.center
                     else:
                         geonode.verts = base.verts

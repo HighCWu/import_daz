@@ -183,7 +183,6 @@ class Instance(Accessor, Channels):
                 self.isNodeInstance = True
             elif extra["type"] == "studio/node/strand_hair":
                 self.isStrandHair = True
-                LS.strandHairs.append(self.name)
                 if "Fit To" in self.channels.keys():
                     ref = self.channels["Fit To"]["node"]
                     asset = self.getAsset(ref)
