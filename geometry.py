@@ -85,8 +85,8 @@ class GeoNode(Node):
         elif inst.isStrandHair:
             geo = self.data = Geometry(self.fileref)
             geo.name = inst.name
-            if inst.parent and inst.parent.geometries:
-                self.pgeonode = inst.parent.geometries[0]
+            #if inst.parent and inst.parent.geometries:
+            #    self.pgeonode = inst.parent.geometries[0]
             geo.preprocess(context, inst)
 
 
@@ -237,8 +237,12 @@ class GeoNode(Node):
             pruneUvMaps(ob)
         if hdob and hdob != ob:
             self.buildHighDef(context, inst)
-        if self.pgeonode and GS.strandsAsHair:
-            self.data.buildHair(self, context)
+        if GS.strandsAsHair:
+            if inst.fitTo:
+                if inst.fitTo.geometries:
+                    self.pgeonode = inst.fitTo.geometries[0]
+            if self.pgeonode:
+                self.data.buildHair(self, context)
         if self.dforce:
             self.dforce.build(context)
 

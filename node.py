@@ -130,6 +130,7 @@ class Instance(Accessor, Channels):
         self.refgroup = None
         self.isGroupNode = False
         self.isStrandHair = False
+        self.fitTo = None
         self.isNodeInstance = False
         self.node2 = None
         self.hdobject = None
@@ -183,6 +184,12 @@ class Instance(Accessor, Channels):
             elif extra["type"] == "studio/node/strand_hair":
                 self.isStrandHair = True
                 LS.strandHairs.append(self.name)
+                if "Fit To" in self.channels.keys():
+                    ref = self.channels["Fit To"]["node"]
+                    asset = self.getAsset(ref)
+                    iref = instRef(ref)
+                    if asset and iref in asset.instances.keys():
+                        self.fitTo = asset.instances[iref]
 
         for geo in self.geometries:
             geo.preprocess(context, self)
@@ -545,7 +552,7 @@ class Node(Asset, Formula, Channels):
 
     def __repr__(self):
         pid = (self.parent.id if self.parent else None)
-        return ("<Node %s P: %s>" % (self.id, pid))
+        return ("<Node %s %s P: %s>" % (self.id, self.label, pid))
 
 
     def postTransform(self):
