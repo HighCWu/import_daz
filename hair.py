@@ -203,7 +203,7 @@ class HairSystem:
         print("Build hair", self.name)
 
         hlen = int(len(self.strands[0]))
-        if hlen < 2:
+        if hlen < 3:
             return
         bpy.ops.object.particle_system_add()
         psys = ob.particle_systems.active

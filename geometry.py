@@ -109,11 +109,44 @@ class GeoNode(Node):
 
 
     def unTesselate(self, context, ob):
+        from .tables import getVertEdges, otherEnd
+
+        # Move close points to the same point
+        edgeverts,vertedges = getVertEdges(ob)
+        verts = ob.data.vertices
+        nverts = len(verts)
+        for vn in range(nverts):
+            ne = len(vertedges[vn])
+            if ne >  2:
+                v0 = verts[vn]
+                r0 = verts[vn].co
+                dists = []
+                for n,e in enumerate(vertedges[vn]):
+                    v = verts[otherEnd(vn, e)]
+                    dists.append(((v.co-r0).length, n, v))
+                dists.sort()
+                for _,_,v in dists[:2-ne]:
+                    v.co = r0
+
+        # Remove doubles
         activateObject(context, ob)
-        threshold = 0.1*LS.scale
+        threshold = 0.001*LS.scale
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.remove_doubles(threshold=threshold)
+        bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
+
+        # Check that
+        edgeverts,vertedges = getVertEdges(ob)
+        nverts = len(ob.data.vertices)
+        print("Check hair", ob.name, nverts)
+        deletes = []
+        for vn,v in enumerate(ob.data.vertices):
+            ne = len(vertedges[vn])
+            if ne > 2:
+                v.select = True
+                deletes.append(vn)
+        print("Number of vertices to delete", len(deletes))
 
 
     def subdivideObject(self, ob, inst, context):
