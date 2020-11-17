@@ -19,7 +19,7 @@ function exportToBlender()
     
     var date1 = new Date();
     var time1 = date1.getTime(); 
-    fp = new DzFile( filepath );
+    fp = new DzGZFile( filepath );
     debug( fp.baseName() );
     fp.open( fp.WriteOnly );
     
