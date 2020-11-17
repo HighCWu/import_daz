@@ -1,7 +1,7 @@
 // DAZ Studio Script
 
 var appName = "export_to_blender";
-var version = 0.7;
+var version = 0.8;
 
 function exportToBlender()
 {
@@ -19,7 +19,7 @@ function exportToBlender()
     
     var date1 = new Date();
     var time1 = date1.getTime(); 
-    fp = new DzGZFile( filepath );
+    fp = new DzFile( filepath );
     debug( fp.baseName() );
     fp.open( fp.WriteOnly );
     
@@ -146,17 +146,24 @@ function doMesh (fp, obj, start, node, str1, str2)
         return false;
 
     if (start)
-    {
         startObject(fp, node);
+    if (clname == "DzStrandHairNode")    
+    {
+    	doEdges(fp, geom);
+    	// doFaces(fp, geom);
+    	doMaterials(fp, shape);
     }
+    doVerts(fp, geom);
+    fp.writeLine(str1);
+    fp.writeLine(str2);
+    lodctrl.setValue(lodvalue);    
+    return true;
+}
 
+function doVerts(fp, geom)
+{
     var nv = geom.getNumVertices();
-    var ne = geom.getNumEdges();
-    var nf = geom.getNumFacets();
-        
-    var buf = ("        \"num verts\": " + nv + ",\n");
-    buf += ("        \"num edges\": " + ne + ",\n");
-    buf += ("        \"num faces\": " + nf + ",\n");
+    buf = ("        \"num verts\": " + nv + ",\n");
     buf += ("        \"vertices\": [\n" );
     
     var c = ",\n"
@@ -166,28 +173,76 @@ function doMesh (fp, obj, start, node, str1, str2)
         if (i == nv-1) c = "\n";
         buf += ("            [" + v.x + ", " + v.y + ", " + v.z + "]" + c)
     }   
-    fp.writeLine(buf)
+    fp.writeLine(buf);
+}
 
-    if (clname == "DzStrandHairNode")
+function doFaces(fp, geom)
+{
+    var nf = geom.getNumFacets();
+    var buf = ("        \"num faces\": " + nf + ",\n");
+    buf += "        \"faces\": [\n";
+    c = ",\n"
+    for (var i = 0; i < nf; i++)
     {
-    	var np = geom.getNumPolylines();
-        buf = "        ],\n";
-        buf += ("        \"num polylines\": " + np + ",\n");
-        buf += "        \"edges\": [\n";
-        c = ",\n"
-        for (var i = 0; i < ne; i++)
-        {
-            var e = geom.getEdge(i);
-            if (i == ne-1) c = "\n";
-            buf += ("            " + e + c)
-        }   
-        fp.writeLine(buf)
-    }
-    
-    fp.writeLine(str1)
-    fp.writeLine(str2)    
-    lodctrl.setValue(lodvalue);    
-    return true;
+        var f = geom.getFacet(i);
+        if (i == nf-1) c = "\n";
+        buf += ("            " + f + c)
+    }   
+    buf += "        ],";
+    fp.writeLine(buf);
+}
+
+function doEdges(fp, geom)
+{
+    var ne = geom.getNumEdges();
+    var buf = ("        \"num edges\": " + ne + ",\n");
+    buf += "        \"edges\": [\n";
+    c = ",\n"
+    for (var i = 0; i < ne; i++)
+    {
+        var e = geom.getEdge(i);
+        if (i == ne-1) c = "\n";
+        buf += ("            " + e + c)
+    }   
+    buf += "        ],";
+    fp.writeLine(buf);
+}
+
+function doMaterials(fp, shape)
+{
+    var nm = shape.getNumMaterials();
+    fp.writeLine("        \"num materials\": " + nm + ",");
+    fp.writeLine("        \"materials\": [" );
+
+    var c = ","
+    for (var i = 0; i < nm; i++)
+    {
+        var mat = shape.getMaterial(i);
+        if (i == nm-1) c = "";
+        doMaterial(fp, mat, c)
+    }    
+    fp.writeLine("        ],");
+}
+
+function doMaterial(fp, mat, end)
+{
+    fp.writeLine("           {")
+    fp.writeLine("              \"name\": \"" + mat.name + "\",");
+    var np = mat.getNumProperties();
+    var buf = ("              \"num properties\": " + np + ",\n");
+    buf += ("              \"properties\": {\n" );
+
+    for (var i = 0; i < np; i++)
+    {
+        var prop = mat.getProperty(i);
+        var value = prop.getValue();
+        if (prop.isNumeric())
+            buf += ("                \"" + prop.name + "\": " + value + ",\n");
+    }    
+    buf += ("                \"dummy\": 0\n");
+    buf += ("              }\n");
+    buf += ("           }" + end);
+    fp.writeLine(buf);
 }
 
 //==============================================================================
