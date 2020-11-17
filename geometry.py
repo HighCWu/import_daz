@@ -54,6 +54,7 @@ class GeoNode(Node):
         self.figureInst = None
         self.verts = None
         self.edges = None
+        self.dbzMaterials = None
         self.polylines = None
         self.highdef = None
         self.hdobject = None
@@ -106,6 +107,10 @@ class GeoNode(Node):
         if self.edges:
             self.unTesselate(context, ob)
             self.data.findPolyLines(ob)
+            for dmat in self.dbzMaterials:
+                print("MM", dmat["name"])
+                for key,value in dmat["properties"].items():
+                    print("  ", key, value)
 
 
     def unTesselate(self, context, ob):
