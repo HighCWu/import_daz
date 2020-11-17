@@ -107,10 +107,8 @@ class GeoNode(Node):
         if self.edges:
             self.unTesselate(context, ob)
             self.data.findPolyLines(ob)
-            for dmat in self.dbzMaterials:
-                print("MM", dmat["name"])
-                for key,value in dmat["properties"].items():
-                    print("  ", key, value)
+            if len(self.dbzMaterials) > 0:
+                self.data.makeHairMaterial(self.dbzMaterials[0], context)
 
 
     def unTesselate(self, context, ob):
@@ -141,7 +139,7 @@ class GeoNode(Node):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        # Check that
+        # Check that there are only pure lines
         edgeverts,vertedges = getVertEdges(ob)
         nverts = len(ob.data.vertices)
         print("Check hair", ob.name, nverts)
@@ -850,6 +848,20 @@ class Geometry(Asset, Channels):
         for pline in plines:
             strand = [verts[vn].co for vn in pline]
             self.strands.append((pnum,mnum,strand))
+
+
+    def makeHairMaterial(self, dbzmat, context):
+        from .hair import HairMaterial
+        mname = "Hair"
+        hmat = HairMaterial(self.fileref)
+        hmat.name = mname
+        self.polygon_material_groups = [mname]
+        self.materials[mname] = [hmat]
+        props = dbzmat["properties"]
+        for key,value in props.items():
+            hmat.channels[key] = {"id" : key, "current_value" : value}
+        color = props["Diffuse Color"]
+        hmat.build(context, color)
 
 
     def buildRigidity(self, ob):

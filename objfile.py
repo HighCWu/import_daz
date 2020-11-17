@@ -128,7 +128,7 @@ class DBZObject:
                     key.endswith(("Color", "Colour"))):
                     bytes = value.to_bytes(4, byteorder = 'big', signed=True)
                     a,r,g,b = [byte/255 for byte in bytes]
-                    replaces.append((key, (r,g,b,a)))
+                    replaces.append((key, (r,g,b)))
             for key,color in replaces:
                 props[key] = color
         self.materials = materials
