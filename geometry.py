@@ -250,13 +250,12 @@ class GeoNode(Node):
         if ob is None:
             return
         if self.hdobject:
-            self.finishHD(context, self.rna, self.hdobject, None)
+            self.finishHD(context, self.rna, self.hdobject, inst)
         if LS.fitFile and ob.type == 'MESH':
             shiftMesh(ob, inst.worldmat.inverted())
             hdob = self.hdobject
             if hdob and hdob != ob:
                 shiftMesh(hdob, inst.worldmat.inverted())
-
 
 
     def finishHD(self, context, ob, hdob, inst):

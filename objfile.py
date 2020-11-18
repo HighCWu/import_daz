@@ -172,8 +172,12 @@ def loadDbzFile(filepath):
                 faces = figure["faces"]
             if "uvs" in figure.keys():
                 uvs = figure["uvs"]
+            if "material groups" in figure.keys():
+                matgroups = figure["material groups"]
             if "materials" in figure.keys():
                 materials = figure["materials"]
+                if materials and isinstance(materials[0], str):
+                    materials = []
             if "node" in figure.keys():
                 props = figure["node"]["properties"]
             dbz.objects[name].append(DBZObject(verts, uvs, edges, faces, matgroups, materials, props, 0, center))

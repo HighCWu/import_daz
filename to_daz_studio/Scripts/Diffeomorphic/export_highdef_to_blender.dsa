@@ -159,7 +159,8 @@ function doMesh (fp, obj, start, node, str1, str2)
         lodctrl.setValue(lodvalue);    
         return endMesh(fp, str1, str2);
     }
-    writeMaterials(shape);
+    // writeMaterials(shape);
+    writeMaterialGroups(geom, "");
     writeVertices(geom, "");   
     fp.writeLine(str1);
     fp.writeLine(str2);

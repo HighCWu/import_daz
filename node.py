@@ -450,7 +450,7 @@ def transformDuplis():
         ob.matrix_world = Matrix()
         inst.collection.objects.link(empty)
         refgroup.objects.link(ob)
-        print("LiiS", refgroup.name, ob.name, ob.type)
+        #print("LiiS", refgroup.name, ob.name, ob.type)
 
 
 def addToRefgroup(ob, refgroup, inst):
