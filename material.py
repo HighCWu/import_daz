@@ -71,6 +71,7 @@ class Material(Asset, Channels):
         self.textures = OrderedDict()
         self.groups = []
         self.ignore = False
+        self.force = False
         self.shells = {}
         self.geometry = None
         self.geosockets = []
@@ -172,6 +173,8 @@ class Material(Asset, Channels):
     def dontBuild(self):
         if self.ignore:
             return True
+        elif self.force:
+            return False
         elif GS.reuseMaterials and self.name in bpy.data.materials.keys():
             self.rna = bpy.data.materials[self.name]
             return True

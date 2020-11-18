@@ -127,11 +127,9 @@ class HairSystem:
         channels = ["PreSim Hairs Density", "PreRender Hairs Per Guide"]
         self.getTexDensity(mod, channels, self.nViewChildren, "child_nbr", pset, ob, "use_map_density", "density_factor", cond=(not rdtex))
 
-        print("SHB", self.material)
         if (self.material and
             self.material in ob.data.materials.keys()):
             pset.material_slot = self.material
-            print(" SLOT")
 
         rootrad = mod.getValue(["Line Start Width"], 0.1)
         tiprad = mod.getValue(["Line End Width"], 0)
@@ -473,6 +471,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         hsys = HairSystem(None, n, object=hum)
         hsys.nViewChildren=self.nViewChildren
         hsys.nRenderChildren=self.nRenderChildren
+        hsys.material = self.material.name
         return hsys
 
     #-------------------------------------------------------------
@@ -682,7 +681,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         nsys = len(hum.particle_systems)
         for n in range(nsys):
             bpy.ops.object.particle_system_remove()
-        mat = buildHairMaterial("Hair", color, context)
+        mat = buildHairMaterial("Hair", color, context, force=True)
+        self.material = mat
         hum.data.materials.append(mat)
 
 
@@ -872,8 +872,9 @@ class DAZ_OT_ColorHair(DazPropsOperator, IsHair, B.ColorProp):
             pset = psys.settings
             mname = pset.material_slot
             if mname in mats.keys() and mats[mname][1]:
-                mat = buildHairMaterial(mname, self.color, context)
+                mat = buildHairMaterial(mname, self.color, context, force=True)
                 mats[mname] = (mat, False)
+
         for _,keep in mats.values():
             if not keep:
                 hum.data.materials.pop()
@@ -908,17 +909,17 @@ class DAZ_OT_ConnectHair(DazOperator, IsHair):
 #   Materials
 #------------------------------------------------------------------------
 
-def buildHairMaterial(mname, color, context):
+def buildHairMaterial(mname, color, context, force=False):
     if GS.materialMethod == 'INTERNAL':
-        return buildHairMaterialInternal(mname, list(color[0:3]))
+        return buildHairMaterialInternal(mname, list(color[0:3]), force)
     else:
-        return buildHairMaterialCycles(mname, list(color[0:3]), context)
+        return buildHairMaterialCycles(mname, list(color[0:3]), context, force)
 
 # ---------------------------------------------------------------------
 #   Blender Internal
 # ---------------------------------------------------------------------
 
-def buildHairMaterialInternal(mname, rgb):
+def buildHairMaterialInternal(mname, rgb, force):
     mat = bpy.data.materials.new("Hair")
 
     mat.diffuse_color = rgb
@@ -966,8 +967,9 @@ def defaultRamp(ramp, rgb):
 #   Hair material
 #-------------------------------------------------------------
 
-def buildHairMaterialCycles(mname, color, context):
+def buildHairMaterialCycles(mname, color, context, force):
     hmat = HairMaterial("Hair", color)
+    hmat.force = force
     print("Creating CYCLES HAIR material")
     hmat.build(context, color)
     return hmat.rna
