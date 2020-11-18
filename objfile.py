@@ -111,12 +111,13 @@ class DBZInfo:
 
 
 class DBZObject:
-    def __init__(self, verts, uvs, edges, faces, matgroups, materials, lod, center):
+    def __init__(self, verts, uvs, edges, faces, matgroups, materials, props, lod, center):
         self.verts = verts
         self.uvs = uvs
         self.edges = edges
         self.faces = faces
         self.matgroups = matgroups
+        self.properties = props
         self.lod = lod
         self.center = center
 
@@ -164,6 +165,7 @@ def loadDbzFile(filepath):
         if "vertices" in figure.keys():
             verts = [d2b(vec) for vec in figure["vertices"]]
             edges = faces = uvs = matgroups = materials = []
+            props = {}
             if "edges" in figure.keys():
                 edges = figure["edges"]
             if "faces" in figure.keys():
@@ -172,7 +174,9 @@ def loadDbzFile(filepath):
                 uvs = figure["uvs"]
             if "materials" in figure.keys():
                 materials = figure["materials"]
-            dbz.objects[name].append(DBZObject(verts, uvs, edges, faces, matgroups, materials, 0, center))
+            if "node" in figure.keys():
+                props = figure["node"]["properties"]
+            dbz.objects[name].append(DBZObject(verts, uvs, edges, faces, matgroups, materials, props, 0, center))
 
         if "hd vertices" in figure.keys():
             LS.useHDObjects = True
@@ -183,9 +187,10 @@ def loadDbzFile(filepath):
             uvs = figure["hd uvs"]
             faces = figure["hd faces"]
             matgroups = materials = []
+            props = {}
             if "hd material groups" in figure.keys():
                 matgroups = figure["hd material groups"]
-            dbz.hdobjects[name].append(DBZObject(verts, uvs, [], faces, matgroups, materials, lod, center))
+            dbz.hdobjects[name].append(DBZObject(verts, uvs, [], faces, matgroups, materials, props, lod, center))
 
         if "bones" not in figure.keys():
             continue
@@ -319,6 +324,7 @@ def fitToFile(filepath, nodes):
                             geonode.verts = base.verts
                             geonode.edges = [(v1,v2) for v1,v2,f1,f2,m1,m2,e in base.edges]
                             geonode.dbzMaterials = base.materials
+                            geonode.properties = base.properties
                             geonode.center = base.center
                     else:
                         geonode.verts = base.verts

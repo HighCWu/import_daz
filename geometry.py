@@ -54,7 +54,8 @@ class GeoNode(Node):
         self.figureInst = None
         self.verts = None
         self.edges = None
-        self.dbzMaterials = None
+        self.dbzMaterials = []
+        self.properties = {}
         self.polylines = None
         self.highdef = None
         self.hdobject = None
@@ -113,15 +114,31 @@ class GeoNode(Node):
 
 
     def unTesselate(self, context, ob):
-        from .tables import getVertEdges, otherEnd
+        if "Render Line Tessellation Sides" in self.properties.keys():
+            nsides = self.properties["Render Line Tessellation Sides"]
+        else:
+            nsides = 3
 
-        # Move close points to the same point
+        if nsides == 1:
+            pass
+        elif nsides == 2:
+            self.combinePoints(1, ob)
+        elif nsides == 3:
+            self.combinePoints(2, ob)
+        else:
+            raise DazError("Cannot untesselate hair.\nRender Line Tessellation Sides > 3")
+        self.removeDoubles(context, ob)
+        self.checkTesselation(ob)
+
+
+    def combinePoints(self, m, ob):
+        from .tables import getVertEdges, otherEnd
         edgeverts,vertedges = getVertEdges(ob)
         verts = ob.data.vertices
         nverts = len(verts)
         for vn in range(nverts):
             ne = len(vertedges[vn])
-            if ne >  2:
+            if ne >  m:
                 v0 = verts[vn]
                 r0 = verts[vn].co
                 dists = []
@@ -129,10 +146,11 @@ class GeoNode(Node):
                     v = verts[otherEnd(vn, e)]
                     dists.append(((v.co-r0).length, n, v))
                 dists.sort()
-                for _,_,v in dists[:2-ne]:
+                for _,_,v in dists[:m-ne]:
                     v.co = r0
 
-        # Remove doubles
+
+    def removeDoubles(self, context, ob):
         activateObject(context, ob)
         threshold = 0.001*LS.scale
         bpy.ops.object.mode_set(mode='EDIT')
@@ -140,7 +158,10 @@ class GeoNode(Node):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
+
+    def checkTesselation(self, ob):
         # Check that there are only pure lines
+        from .tables import getVertEdges
         edgeverts,vertedges = getVertEdges(ob)
         nverts = len(ob.data.vertices)
         print("Check hair", ob.name, nverts)

@@ -19,7 +19,7 @@ function exportToBlender()
     
     var date1 = new Date();
     var time1 = date1.getTime(); 
-    fp = new DzGZFile( filepath );
+    fp = new DzFile( filepath );
     debug( fp.baseName() );
     fp.open( fp.WriteOnly );
     
@@ -149,9 +149,12 @@ function doMesh (fp, obj, start, node, str1, str2)
         startObject(fp, node);
     if (clname == "DzStrandHairNode")    
     {
+    	fp.writeLine("        \"node\": {");
+    	doProperties(fp, node, "        ");
+    	fp.writeLine("        },");
+    	doMaterials(fp, shape);
     	doEdges(fp, geom);
     	// doFaces(fp, geom);
-    	doMaterials(fp, shape);
     }
     doVerts(fp, geom);
     fp.writeLine(str1);
@@ -219,29 +222,30 @@ function doMaterials(fp, shape)
     {
         var mat = shape.getMaterial(i);
         if (i == nm-1) c = "";
-        doMaterial(fp, mat, c)
+        fp.writeLine("           {")
+        doProperties(fp, mat, "           ")
+    	fp.writeLine("           }" + c);
     }    
     fp.writeLine("        ],");
 }
 
-function doMaterial(fp, mat, end)
+function doProperties(fp, mat, pad)
 {
-    fp.writeLine("           {")
-    fp.writeLine("              \"name\": \"" + mat.name + "\",");
     var np = mat.getNumProperties();
-    var buf = ("              \"num properties\": " + np + ",\n");
-    buf += ("              \"properties\": {\n" );
+    var buf = (pad + "   \"name\": \"" + mat.name + "\",\n");
+    buf += (pad + "   \"num properties\": " + np + ",\n");
+    buf += (pad + "   \"properties\": {\n" );
 
+    var c = ","
     for (var i = 0; i < np; i++)
     {
         var prop = mat.getProperty(i);
         var value = prop.getValue();
+        if (i == np-1) c = "";
         if (prop.isNumeric())
-            buf += ("                \"" + prop.name + "\": " + value + ",\n");
+            buf += (pad + "      \"" + prop.name + "\": " + value + c + "\n");
     }    
-    buf += ("                \"dummy\": 0\n");
-    buf += ("              }\n");
-    buf += ("           }" + end);
+    buf += (pad + "   }");
     fp.writeLine(buf);
 }
 
