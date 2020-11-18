@@ -100,8 +100,8 @@ class GlobalSettings:
         self.useMultires = True
         self.strandsAsHair = True
         self.postponeHair = False
-        self.nViewChildren = 10
-        self.nRenderChildren = 100
+        self.nViewChildren = 0
+        self.nRenderChildren = 0
         self.multipleHairMaterials = True
         self.useSkullGroup = False
         self.useInfluence = True

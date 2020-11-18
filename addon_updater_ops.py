@@ -1297,7 +1297,6 @@ def select_link_function(self, tag):
 # Register, should be run in the register module itself
 # -----------------------------------------------------------------------------
 
-
 classes = (
     addon_updater_install_popup,
     addon_updater_check_now,

@@ -248,7 +248,10 @@ def register():
 
 
 def unregister():
-    addon_updater_ops.register()
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
+
+    addon_updater_ops.unregister()
     animation.uninitialize()
     convert.uninitialize()
     daz.uninitialize()
@@ -279,9 +282,6 @@ def unregister():
         bpy.types.INFO_MT_file_import.remove(menu_func_import)
     else:
         bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
-
-    for cls in reversed(classes):
-        bpy.utils.unregister_class(cls)
 
 
 if __name__ == "__main__":
