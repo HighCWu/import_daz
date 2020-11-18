@@ -1257,6 +1257,8 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Hair")
         box.prop(scn, "DazStrandsAsHair")
         box.prop(scn, "DazPostponeHair")
+        box.prop(scn, "DazViewChildren")
+        box.prop(scn, "DazRenderChildren")
         box.prop(scn, "DazMultipleHairMaterials")
         box.prop(scn, "DazSkullGroup")
 
@@ -1603,6 +1605,16 @@ def initialize():
     bpy.types.Scene.DazPostponeHair = BoolProperty(
         name = "Postpone Hair Creation",
         description = "Postpone creation of particle hair until later")
+
+    bpy.types.Scene.DazViewChildren = IntProperty(
+        name = "Viewport Children",
+        description = "Number of hair chilren displayed in viewport",
+        min = 0)
+
+    bpy.types.Scene.DazRenderChildren = IntProperty(
+        name = "Render Children",
+        description = "Number of hair chilren displayed in renders",
+        min = 0)
 
     bpy.types.Scene.DazMultipleHairMaterials = BoolProperty(
         name = "Multiple Hair Materials",

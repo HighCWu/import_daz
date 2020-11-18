@@ -100,6 +100,8 @@ class GlobalSettings:
         self.useMultires = True
         self.strandsAsHair = True
         self.postponeHair = False
+        self.nViewChildren = 10
+        self.nRenderChildren = 100
         self.multipleHairMaterials = True
         self.useSkullGroup = False
         self.useInfluence = True
@@ -152,6 +154,8 @@ class GlobalSettings:
         "DazMultires" : "useMultires",
         "DazStrandsAsHair" : "strandsAsHair",
         "DazPostponeHair" : "postponeHair",
+        "DazViewChildren" : "nViewChildren",
+        "DazRenderChildren" : "nRenderChildren",
         "DazMultipleHairMaterials" : "multipleHairMaterials",
         "DazSkullGroup" : "useSkullGroup",
         "DazInfluence" : "useInfluence",

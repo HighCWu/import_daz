@@ -659,6 +659,18 @@ class Hair:
         description = "Use top vertex vertex group for density",
         default = True)
 
+    nViewChildren = IntProperty(
+        name = "Viewport Children",
+        description = "Number of hair chilren displayed in viewport",
+        min = 0,
+        default = 10)
+
+    nRenderChildren = IntProperty(
+        name = "Render Children",
+        description = "Number of hair chilren displayed in renders",
+        min = 0,
+        default = 100)
+
 
 class Pinning:
     pinningX0 = FloatProperty(

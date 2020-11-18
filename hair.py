@@ -59,6 +59,8 @@ class HairSystem:
         self.useEmitter = True
         self.vertexGroup = None
         self.material = None
+        self.nViewChildren = GS.nViewChildren
+        self.nRenderChildren = GS.nRenderChildren
 
 
     def getModifier(self, geonode):
@@ -120,10 +122,10 @@ class HairSystem:
             ccset = pset
 
         channels = ["PreRender Hairs Density", "PreSim Hairs Per Guide"]
-        val,rdtex = self.getTexDensity(mod, channels, 100, "rendered_child_count", pset, ob, "use_map_density", "density_factor")
+        val,rdtex = self.getTexDensity(mod, channels, self.nRenderChildren, "rendered_child_count", pset, ob, "use_map_density", "density_factor")
 
         channels = ["PreSim Hairs Density", "PreRender Hairs Per Guide"]
-        self.getTexDensity(mod, channels, 10, "child_nbr", pset, ob, "use_map_density", "density_factor", cond=(not rdtex))
+        self.getTexDensity(mod, channels, self.nViewChildren, "child_nbr", pset, ob, "use_map_density", "density_factor", cond=(not rdtex))
 
         if (self.material and
             self.material in ob.data.materials.keys()):
@@ -345,6 +347,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
     def draw(self, context):
         self.layout.prop(self, "color")
         self.layout.prop(self, "useVertexGroup")
+        self.layout.prop(self, "nViewChildren")
+        self.layout.prop(self, "nRenderChildren")
         self.layout.separator()
         self.layout.prop(self, "resizeHair")
         self.layout.prop(self, "size")
@@ -423,7 +427,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
                         continue
                     n = len(strand)
                     if n not in hsystems.keys():
-                        hsystems[n] = HairSystem(None, n, object=hum)
+                        hsystems[n] = self.makeHairSystem(n, hum)
                     hsystems[n].strands.append(strand)
 
         print("Total number of strands: %d" % (haircount+1))
@@ -434,13 +438,13 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             for hsys in hsystems.values():
                 n,nstrands = hsys.resizeBlock()
                 if n not in nsystems.keys():
-                    nsystems[n] = HairSystem(None, n, object=hum)
+                    nsystems[n] = self.makeHairSystem(n, hum)
                 nsystems[n].strands += nstrands
             hsystems = nsystems
 
         elif self.resizeHair:
             print("Resize hair")
-            nsystem = HairSystem(None, self.size, object=hum)
+            nsystem = self.makeHairSystem(self.size, hum)
             for hsys in hsystems.values():
                 nstrands = hsys.resize(self.size)
                 nsystem.strands += nstrands
@@ -461,6 +465,13 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
         if self.nonquads:
             print("Ignored %d non-quad faces out of %d faces" % (len(self.nonquads), len(hair.data.polygons)))
+
+
+    def makeHairSystem(self, n, hum):
+        hsys = HairSystem(None, n, object=hum)
+        hsys.nViewChildren=self.nViewChildren
+        hsys.nRenderChildren=self.nRenderChildren
+        return hsys
 
     #-------------------------------------------------------------
     #   Collect rectangles
