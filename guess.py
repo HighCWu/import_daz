@@ -108,63 +108,46 @@ def castsShadow(mat):
     return (not isinstance(mattype, int))
 
 
-def getMeshFromObject(ob):
-    if isinstance(ob, bpy.types.Mesh):
-        return ob
-    elif (isinstance(ob, bpy.types.Object) and
-          ob.type == 'MESH'):
-        return ob.data
-    else:
-        return None
-
-
 def setDiffuse(mat, color):
     mat.diffuse_color = color[0:len(mat.diffuse_color)]
 
 
-def guessColor(ob, scn, flag, skinColor, clothesColor, enforce):
+def guessMaterialColor(mat, method, choose, enforce):
     from random import random
-    if flag == 'WHITE':
-        return
-    me = getMeshFromObject(ob)
-    if me is None:
+    if (mat is None or
+        not hasDiffuseTexture(mat, method, enforce)):
         return
 
-    for mat in me.materials:
-        if (mat is None or
-            not hasDiffuseTexture(mat, scn, enforce)):
-            continue
+    elif choose == 'RANDOM':
+        color = (random(), random(), random(), 1)
+        setDiffuse(mat, color)
 
-        elif flag == 'RANDOM':
-            color = (random(), random(), random(), 1)
-            setDiffuse(mat, color)
-
-        elif flag in ['GUESS', 'GUESSRANDOM']:
-            color = getSkinMaterial(mat)
-            if color is not None:
-                if isinstance(color, int):
-                    setDiffuse(mat, (color,color,color,1))
-                else:
-                    if color == "Skin":
-                        setDiffuse(mat, skinColor)
-                    elif color == "Red":
-                        setDiffuse(mat, (1.0,0,0,1))
-                    elif color == "Blue":
-                        setDiffuse(mat, (0,0,1,1))
-                    elif color == "Teeth":
-                        setDiffuse(mat, (1,1,1,1))
-                    elif color == "White":
-                        setDiffuse(mat, (1,1,1,1))
-                    elif color == "Black":
-                        setDiffuse(mat, (0,0,0,1))
+    elif choose in ['GUESS', 'GUESSRANDOM']:
+        color = getSkinMaterial(mat)
+        if color is not None:
+            if isinstance(color, int):
+                setDiffuse(mat, (color,color,color,1))
             else:
-                if flag == 'GUESS':
-                    setDiffuse(mat, clothesColor)
-                else:
-                    setDiffuse(mat, (random(), random(), random(), 1))
+                if color == "Skin":
+                    setDiffuse(mat, LS.skinColor)
+                elif color == "Red":
+                    setDiffuse(mat, (1.0,0,0,1))
+                elif color == "Blue":
+                    setDiffuse(mat, (0,0,1,1))
+                elif color == "Teeth":
+                    setDiffuse(mat, (1,1,1,1))
+                elif color == "White":
+                    setDiffuse(mat, (1,1,1,1))
+                elif color == "Black":
+                    setDiffuse(mat, (0,0,0,1))
+        else:
+            if choose == 'GUESS':
+                setDiffuse(mat, LS.clothesColor)
+            else:
+                setDiffuse(mat, (random(), random(), random(), 1))
 
 
-def hasDiffuseTexture(mat, scn, enforce):
+def hasDiffuseTexture(mat, method, enforce):
     from .material import isWhite
     if mat.node_tree:
         color = (1,1,1,1)
@@ -183,7 +166,7 @@ def hasDiffuseTexture(mat, scn, enforce):
         color = node.inputs[name].default_value
         if (not isWhite(color) and
             not enforce and
-            scn.render.engine in ['BLENDER_RENDER', 'BLENDER_GAME']):
+            method == 'INTERNAL'):
             setDiffuse(mat, color)
             return False
         for link in mat.node_tree.links:
@@ -245,7 +228,13 @@ class DAZ_OT_ChangeSkinColor(DazPropsOperator, ColorChanger, IsMesh):
     bl_options = {'UNDO'}
 
     def changeMeshColor(self, ob, scn):
-        guessColor(ob, scn, 'GUESS', self.color, self.color, True)
+        LS.skinColor = self.color
+        LS.clothesColor = self.color
+        method = 'CYCLES'
+        if scn.render.engine in ['BLENDER_RENDER', 'BLENDER_GAME']:
+            method == 'INTERNAL'
+        for mat in ob.data.materials:
+            guessMaterialColor(mat, method, 'GUESS', True)
 
 #----------------------------------------------------------
 #   Initialize

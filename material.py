@@ -138,6 +138,10 @@ class Material(Asset, Channels):
             self.shader = 'DAZ'
 
 
+    def guessColor(self):
+        return
+
+
     def build(self, context):
         from .asset import normalizePath
         from .geometry import Geometry
@@ -1483,10 +1487,10 @@ def checkRenderSettings(context, force):
         "Bounces" : getMinLightSettings(),
     }
 
-    scn = context.scene
-    if scn.render.engine in ["BLENDER_RENDER", "BLENDER_GAME"]:
+    if GS.materialMethod == 'INTERNAL':
         return
 
+    scn = context.scene
     handle = GS.handleRenderSettings
     if force:
         handle = "UPDATE"

@@ -134,8 +134,8 @@ def getMainAsset(filepath, context, btn):
 
     if (LS.useMaterials and
         GS.chooseColors != 'WHITE'):
-        for asset,inst in main.nodes:
-            asset.guessColor(scn, GS.chooseColors, inst)
+        for asset in main.materials:
+            asset.guessColor()
 
     finishMain("File", filepath, t1)
 

@@ -135,7 +135,7 @@ class Light(Node):
             lamp.shadow_soft_size = height/2
             self.twosided = False
 
-        if context.scene.render.engine in ["BLENDER_RENDER", "BLENDER_GAME"]:
+        if GS.materialMethod == 'INTERNAL':
             self.setInternalProps(lamp)
         else:
             self.setCyclesProps(lamp)
@@ -271,6 +271,9 @@ class CyclesLightMaterial(CyclesMaterial):
         self.name = inst.name
         self.channels = inst.channels
         self.instance = inst
+
+    def guessColor(self):
+        return
 
     def build(self, context):
         if self.dontBuild():

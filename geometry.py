@@ -87,6 +87,7 @@ class GeoNode(Node):
         elif inst.isStrandHair:
             geo = self.data = Geometry(self.fileref)
             geo.name = inst.name
+            geo.isStrandHair = True
             geo.preprocess(context, inst)
 
 
@@ -731,16 +732,12 @@ class Geometry(Asset, Channels):
                 verts = node.verts
                 edges = node.edges
             elif self.polylines:
-                print("HAIR", len(verts), len(node.verts))
                 verts = node.verts
             elif len(node.verts) == len(verts):
                 verts = node.verts
 
         if not verts:
-            for dmats in self.materials.values():
-                mat = dmats[0].rna
-                if mat:
-                    me.materials.append(mat)
+            self.addAllMaterials(me)
             return None
 
         if self.polylines:
@@ -819,6 +816,13 @@ class Geometry(Asset, Channels):
         return ob
 
 
+    def addAllMaterials(self, me):
+        for dmats in self.materials.values():
+            mat = dmats[0].rna
+            if mat:
+                me.materials.append(mat)
+
+
     def buildUVSet(self, context, uv_set, me, setActive):
         if uv_set:
             if uv_set.checkSize(me):
@@ -853,15 +857,18 @@ class Geometry(Asset, Channels):
     def makeHairMaterial(self, dbzmat, context):
         from .hair import HairMaterial
         mname = "Hair"
-        hmat = HairMaterial(self.fileref)
-        hmat.name = mname
+        props = dbzmat["properties"]
+        if "Hair Root Color" in props.keys():
+            color = props["Hair Root Color"]
+        else:
+            color = (1,1,1)
+        hmat = HairMaterial(mname, color)
         self.polygon_material_groups = [mname]
         self.materials[mname] = [hmat]
-        props = dbzmat["properties"]
         for key,value in props.items():
             hmat.channels[key] = {"id" : key, "current_value" : value}
-        color = props["Diffuse Color"]
         hmat.build(context, color)
+        self.addAllMaterials(self.rna)
 
 
     def buildRigidity(self, ob):

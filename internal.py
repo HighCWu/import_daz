@@ -38,6 +38,11 @@ class InternalMaterial(Material):
         return ("<Internal %s r: %s>" % (self.id, self.rna))
 
 
+    def guessColor(self):
+        from .guess import guessMaterialColor
+        guessMaterialColor(self.rna, 'INTERNAL', GS.chooseColors, False)
+
+
     def build(self, context):
         from .guess import castsShadow
         if self.dontBuild():

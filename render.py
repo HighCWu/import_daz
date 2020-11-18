@@ -98,6 +98,10 @@ class WorldMaterial(CyclesMaterial):
         self.envmap = None
 
 
+    def guessColor(self):
+        return
+
+
     def build(self, context):
         if self.dontBuild():
             return

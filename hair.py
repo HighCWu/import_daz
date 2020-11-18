@@ -896,8 +896,7 @@ class DAZ_OT_ConnectHair(DazOperator, IsHair):
 #------------------------------------------------------------------------
 
 def buildHairMaterial(mname, color, context):
-    scn = context.scene
-    if scn.render.engine in ['BLENDER_RENDER', 'BLENDER_GAME']:
+    if GS.materialMethod == 'INTERNAL':
         return buildHairMaterialInternal(mname, list(color[0:3]))
     else:
         return buildHairMaterialCycles(mname, list(color[0:3]), context)
@@ -955,14 +954,25 @@ def defaultRamp(ramp, rgb):
 #-------------------------------------------------------------
 
 def buildHairMaterialCycles(mname, color, context):
-    hmat = HairMaterial("Hair")
-    hmat.name = mname
+    hmat = HairMaterial("Hair", color)
     print("Creating CYCLES HAIR material")
     hmat.build(context, color)
     return hmat.rna
 
 
 class HairMaterial(CyclesMaterial):
+
+    def __init__(self, name, color):
+        CyclesMaterial.__init__(self, name)
+        self.name = name
+        self.color = color
+
+
+    def guessColor(self):
+        if self.rna:
+            self.rna.diffuse_color = self.color
+
+
     def build(self, context, color):
         from .material import Material
         if self.dontBuild():
@@ -972,6 +982,7 @@ class HairMaterial(CyclesMaterial):
         self.tree.color = color
         self.tree.dark = Vector(color)*GREY
         self.tree.build()
+        self.rna.diffuse_color[0:3] = self.color
 
 #-------------------------------------------------------------
 #   Hair tree base

@@ -700,13 +700,6 @@ class Node(Asset, Formula, Channels):
     def subdivideObject(self, ob, inst, context):
         pass
 
-
-    def guessColor(self, scn, flag, inst):
-        from .guess import guessColor
-        for node in inst.geometries:
-            if node.rna:
-                guessColor(node.rna, scn, flag, LS.skinColor, LS.clothesColor, False)
-
 #-------------------------------------------------------------
 #   Transform matrix
 #

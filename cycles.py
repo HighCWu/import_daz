@@ -54,6 +54,11 @@ class CyclesMaterial(Material):
         return ("<%sMaterial %s r:%s g:%s i:%s t:%s>" % (type, self.id, self.rna, self.geometry, self.ignore, self.hasAnyTexture()))
 
 
+    def guessColor(self):
+        from .guess import guessMaterialColor
+        guessMaterialColor(self.rna, 'CYCLES', GS.chooseColors, False)
+
+
     def build(self, context):
         if self.dontBuild():
             return
