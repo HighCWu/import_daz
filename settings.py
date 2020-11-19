@@ -63,7 +63,6 @@ class GlobalSettings:
         self.materialMethod = 'BSDF'
         self.chooseColors = 'GUESS'
         self.orientMethod = 'DAZ STUDIO'
-        self.useCustomShapes = True
         self.useQuaternions = False
         self.useLegacyLocks = False
         self.caseSensitivePaths = (platform != 'win32')
@@ -140,7 +139,6 @@ class GlobalSettings:
         "DazUsePropDefault" : "useDazPropDefault",
 
         "DazOrientMethod" : "orientMethod",
-        "DazUseCustomShapes" : "useCustomShapes",
         "DazUseLegacyLocks" : "useLegacyLocks",
         "DazUseQuaternions" : "useQuaternions",
         "DazConnectClose" : "useConnectClose",

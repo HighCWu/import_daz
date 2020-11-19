@@ -133,7 +133,6 @@ class FigureInstance(Instance):
         rig.DazRotLimits = rig.DazHasRotLimits = GS.useLimitRot
         rig.DazLocLimits = rig.DazHasLocLimits = GS.useLimitLoc
         self.fixDependencyLoops(rig)
-        self.addCustomShapes(rig, context)
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
@@ -147,17 +146,6 @@ class FigureInstance(Instance):
         if missing and GS.verbosity > 2:
             print("Missing bones when posing %s" % self.name)
             print("  %s" % [inst.node.name for inst in missing])
-
-
-    def addCustomShapes(self, rig, context):
-        from .finger import getFingeredCharacter
-        if self.node.rigtype and GS.useCustomShapes:
-            for geo in self.geometries:
-                if geo.rna:
-                    _rig,_mesh,char = getFingeredCharacter(geo.rna, verbose=False)
-                    if char:
-                        if GS.useCustomShapes:
-                            addCustomShapes(rig, context, self.collection)
 
 
     def fixDependencyLoops(self, rig):
@@ -1126,160 +1114,157 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
+        rig = context.object
+        LS.customShapes = []
+        IK = SimpleIK()
         if bpy.app.version < (2,80,0):
             coll = None
         else:
             coll = context.collection
-        addCustomShapes(context.object, context, coll)
+
+        csCollar = makeCustomShape("CS_Collar", "CircleX", (0,1,0), (0,0.5,0.1))
+        csHand = makeCustomShape("CS_Hand", "CircleX", (0,1,0), (0,0.6,0.5))
+        csCarpal = makeCustomShape("CS_Carpal", "CircleZ", (0,1,0), (0.1,0.5,0))
+        csTongue = makeCustomShape("CS_Tongue", "CircleZ", (0,1,0), (1.5,0.5,0))
+        circleY2 = makeCustomShape("CS_CircleY2", "CircleY", scale=1/3)
+        csLimb = makeCustomShape("CS_Limb", "CircleY", (0,2,0), scale=1/4)
+        csBend = makeCustomShape("CS_Bend", "CircleY", (0,1,0), scale=1/2)
+        csFace = makeCustomShape("CS_Face", "CircleY", scale=1/5)
+        csCube = makeCustomShape("CS_Cube", "Cube", scale=1/2)
+
+        spineWidth = 1
+        if "lCollar" in rig.data.bones.keys() and "rCollar" in rig.data.bones.keys():
+            lCollar = rig.data.bones["lCollar"]
+            rCollar = rig.data.bones["rCollar"]
+            spineWidth = 0.5*(lCollar.tail_local[0] - rCollar.tail_local[0])
+
+        csFoot = None
+        csToe = None
+        if "lFoot" in rig.data.bones.keys() and "lToe" in rig.data.bones.keys():
+            lFoot = rig.data.bones["lFoot"]
+            lToe = rig.data.bones["lToe"]
+            footFactor = (lToe.head_local[1] - lFoot.head_local[1])/(lFoot.tail_local[1] - lFoot.head_local[1])
+            csFoot = makeCustomShape("CS_Foot", "CircleZ", (0,1,0), (0.8,0.5*footFactor,0))
+            csToe = makeCustomShape("CS_Toe", "CircleZ", (0,1,0), (1,0.5,0))
+
+        for bname in ["upperFaceRig", "lowerFaceRig", "lMetatarsals", "rMetatarsals", "upperTeeth", "lowerTeeth"]:
+            if bname in rig.data.bones.keys():
+                bone = rig.data.bones[bname]
+                bone.layers = [False] + [True] + 30*[False]
+
+        bgrp = IK.makeBoneGroup(rig)
+        for pb in rig.pose.bones:
+            if not pb.bone.layers[0]:
+                pass
+            elif pb.parent and pb.parent.name in ["lowerFaceRig", "upperFaceRig"]:
+                pb.custom_shape = csFace
+                addToLayer(pb, "Face")
+            elif pb.name == "lowerJaw":
+                pb.custom_shape = csCollar
+                addToLayer(pb, "Spine")
+            elif pb.name.startswith("tongue"):
+                pb.custom_shape = csTongue
+                addToLayer(pb, "Face")
+            elif pb.name.endswith("Hand"):
+                pb.custom_shape = csHand
+                addToLayer(pb, "FK Arm")
+            elif pb.name.endswith("HandIK"):
+                pb.custom_shape = csHand
+                pb.custom_shape_scale = 1.8
+                pb.bone_group = bgrp
+                addToLayer(pb, "IK Arm")
+            elif pb.name[1:7] == "Carpal":
+                pb.custom_shape = csCarpal
+                addToLayer(pb, "Hand")
+            elif pb.name.endswith("Collar"):
+                pb.custom_shape = csCollar
+                addToLayer(pb, "Spine")
+            elif pb.name.endswith("Foot"):
+                pb.custom_shape = csFoot
+                addToLayer(pb, "FK Leg")
+            elif pb.name.endswith("FootIK"):
+                pb.custom_shape = csFoot
+                pb.custom_shape_scale = 1.8
+                pb.bone_group = bgrp
+                addToLayer(pb, "IK Leg")
+            elif pb.name[1:4] == "Toe":
+                pb.custom_shape = csToe
+                addToLayer(pb, "FK Leg")
+                addToLayer(pb, "IK Leg")
+                addToLayer(pb, "Foot")
+            elif pb.name[1:] in IK.G12Arm:
+                pb.custom_shape = csLimb
+                addToLayer(pb, "FK Arm")
+            elif pb.name[1:] in IK.G12Leg:
+                pb.custom_shape = csLimb
+                addToLayer(pb, "FK Leg")
+            elif pb.name[1:] in IK.G38Arm:
+                pb.custom_shape = csBend
+                addToLayer(pb, "FK Arm")
+            elif pb.name[1:] in IK.G38Leg:
+                pb.custom_shape = csBend
+                addToLayer(pb, "FK Leg")
+            elif pb.name[1:] in ["Thumb1", "Index1", "Mid1", "Ring1", "Pinky1"]:
+                pb.custom_shape = csLimb
+                addToLayer(pb, "Hand")
+            elif pb.name == "hip":
+                self.makeSpine(pb, 2*spineWidth)
+                pb.bone_group = bgrp
+                addToLayer(pb, "Spine")
+            elif pb.name == "pelvis":
+                self.makeSpine(pb, 1.5*spineWidth, 0.5)
+                addToLayer(pb, "Spine")
+            elif pb.name in IK.G38Spine + IK.G12Spine:
+                self.makeSpine(pb, spineWidth)
+                addToLayer(pb, "Spine")
+            elif pb.name in IK.G38Neck + IK.G12Neck:
+                self.makeSpine(pb, 0.5*spineWidth)
+                addToLayer(pb, "Spine")
+            elif pb.name == "head":
+                self.makeSpine(pb, 0.7*spineWidth, 1)
+                addToLayer(pb, "Spine")
+                addToLayer(pb, "Face")
+            elif "Toe" in pb.name:
+                pb.custom_shape = circleY2
+                addToLayer(pb, "Foot")
+            elif pb.name[1:4] in ["Thu", "Ind", "Mid", "Rin", "Pin"]:
+                pb.custom_shape = circleY2
+                addToLayer(pb, "Hand")
+            elif pb.name[1:4] in ["Eye", "Ear"]:
+                pb.custom_shape = circleY2
+                addToLayer(pb, "Face")
+            elif "Elbow" in pb.name:
+                if not pb.name.endswith("STR"):
+                    pb.custom_shape = csCube
+                addToLayer(pb, "IK Arm")
+            elif "Knee" in pb.name:
+                if not pb.name.endswith("STR"):
+                    pb.custom_shape = csCube
+                addToLayer(pb, "IK Leg")
+            else:
+                pb.custom_shape = circleY2
+                print("Unknown bone:", pb.name)
+
+        self.hideCustomShapes(rig, context, coll)
 
 
-def addCustomShapes(rig, context, coll):
-    LS.customShapes = []
-    IK = SimpleIK()
-
-    csCollar = makeCustomShape("CS_Collar", "CircleX", (0,1,0), (0,0.5,0.1))
-    csHand = makeCustomShape("CS_Hand", "CircleX", (0,1,0), (0,0.6,0.5))
-    csCarpal = makeCustomShape("CS_Carpal", "CircleZ", (0,1,0), (0.1,0.5,0))
-    csTongue = makeCustomShape("CS_Tongue", "CircleZ", (0,1,0), (1.5,0.5,0))
-    circleY2 = makeCustomShape("CS_CircleY2", "CircleY", scale=1/3)
-    csLimb = makeCustomShape("CS_Limb", "CircleY", (0,2,0), scale=1/4)
-    csBend = makeCustomShape("CS_Bend", "CircleY", (0,1,0), scale=1/2)
-    csFace = makeCustomShape("CS_Face", "CircleY", scale=1/5)
-    csCube = makeCustomShape("CS_Cube", "Cube", scale=1/2)
-
-    spineWidth = 1
-    if "lCollar" in rig.data.bones.keys() and "rCollar" in rig.data.bones.keys():
-        lCollar = rig.data.bones["lCollar"]
-        rCollar = rig.data.bones["rCollar"]
-        spineWidth = 0.5*(lCollar.tail_local[0] - rCollar.tail_local[0])
-
-    csFoot = None
-    csToe = None
-    if "lFoot" in rig.data.bones.keys() and "lToe" in rig.data.bones.keys():
-        lFoot = rig.data.bones["lFoot"]
-        lToe = rig.data.bones["lToe"]
-        footFactor = (lToe.head_local[1] - lFoot.head_local[1])/(lFoot.tail_local[1] - lFoot.head_local[1])
-        csFoot = makeCustomShape("CS_Foot", "CircleZ", (0,1,0), (0.8,0.5*footFactor,0))
-        csToe = makeCustomShape("CS_Toe", "CircleZ", (0,1,0), (1,0.5,0))
-
-    for bname in ["upperFaceRig", "lowerFaceRig", "lMetatarsals", "rMetatarsals", "upperTeeth", "lowerTeeth"]:
-        if bname in rig.data.bones.keys():
-            bone = rig.data.bones[bname]
-            bone.layers = [False] + [True] + 30*[False]
-
-    bgrp = IK.makeBoneGroup(rig)
-    for pb in rig.pose.bones:
-        if not pb.bone.layers[0]:
-            pass
-        elif pb.parent and pb.parent.name in ["lowerFaceRig", "upperFaceRig"]:
-            pb.custom_shape = csFace
-            addToLayer(pb, "Face")
-        elif pb.name == "lowerJaw":
-            pb.custom_shape = csCollar
-            addToLayer(pb, "Spine")
-        elif pb.name.startswith("tongue"):
-            pb.custom_shape = csTongue
-            addToLayer(pb, "Face")
-        elif pb.name.endswith("Hand"):
-            pb.custom_shape = csHand
-            addToLayer(pb, "FK Arm")
-        elif pb.name.endswith("HandIK"):
-            pb.custom_shape = csHand
-            pb.custom_shape_scale = 1.8
-            pb.bone_group = bgrp
-            addToLayer(pb, "IK Arm")
-        elif pb.name[1:7] == "Carpal":
-            pb.custom_shape = csCarpal
-            addToLayer(pb, "Hand")
-        elif pb.name.endswith("Collar"):
-            pb.custom_shape = csCollar
-            addToLayer(pb, "Spine")
-        elif pb.name.endswith("Foot"):
-            pb.custom_shape = csFoot
-            addToLayer(pb, "FK Leg")
-        elif pb.name.endswith("FootIK"):
-            pb.custom_shape = csFoot
-            pb.custom_shape_scale = 1.8
-            pb.bone_group = bgrp
-            addToLayer(pb, "IK Leg")
-        elif pb.name[1:4] == "Toe":
-            pb.custom_shape = csToe
-            addToLayer(pb, "FK Leg")
-            addToLayer(pb, "IK Leg")
-            addToLayer(pb, "Foot")
-        elif pb.name[1:] in IK.G12Arm:
-            pb.custom_shape = csLimb
-            addToLayer(pb, "FK Arm")
-        elif pb.name[1:] in IK.G12Leg:
-            pb.custom_shape = csLimb
-            addToLayer(pb, "FK Leg")
-        elif pb.name[1:] in IK.G38Arm:
-            pb.custom_shape = csBend
-            addToLayer(pb, "FK Arm")
-        elif pb.name[1:] in IK.G38Leg:
-            pb.custom_shape = csBend
-            addToLayer(pb, "FK Leg")
-        elif pb.name[1:] in ["Thumb1", "Index1", "Mid1", "Ring1", "Pinky1"]:
-            pb.custom_shape = csLimb
-            addToLayer(pb, "Hand")
-        elif pb.name == "hip":
-            makeSpine(pb, 2*spineWidth)
-            pb.bone_group = bgrp
-            addToLayer(pb, "Spine")
-        elif pb.name == "pelvis":
-            makeSpine(pb, 1.5*spineWidth, 0.5)
-            addToLayer(pb, "Spine")
-        elif pb.name in IK.G38Spine + IK.G12Spine:
-            makeSpine(pb, spineWidth)
-            addToLayer(pb, "Spine")
-        elif pb.name in IK.G38Neck + IK.G12Neck:
-            makeSpine(pb, 0.5*spineWidth)
-            addToLayer(pb, "Spine")
-        elif pb.name == "head":
-            makeSpine(pb, 0.7*spineWidth, 1)
-            addToLayer(pb, "Spine")
-            addToLayer(pb, "Face")
-        elif "Toe" in pb.name:
-            pb.custom_shape = circleY2
-            addToLayer(pb, "Foot")
-        elif pb.name[1:4] in ["Thu", "Ind", "Mid", "Rin", "Pin"]:
-            pb.custom_shape = circleY2
-            addToLayer(pb, "Hand")
-        elif pb.name[1:4] in ["Eye", "Ear"]:
-            pb.custom_shape = circleY2
-            addToLayer(pb, "Face")
-        elif "Elbow" in pb.name:
-            if not pb.name.endswith("STR"):
-                pb.custom_shape = csCube
-            addToLayer(pb, "IK Arm")
-        elif "Knee" in pb.name:
-            if not pb.name.endswith("STR"):
-                pb.custom_shape = csCube
-            addToLayer(pb, "IK Leg")
-        else:
-            pb.custom_shape = circleY2
-            print("Unknown bone:", pb.name)
-
-    hideCustomShapes(rig, context, coll)
+    def hideCustomShapes(self, rig, context, coll):
+        hidden = createHiddenCollection(context, coll)
+        empty = bpy.data.objects.new("Custom Shapes", None)
+        hidden.objects.link(empty)
+        empty.parent = rig
+        putOnHiddenLayer(empty)
+        for ob in LS.customShapes:
+            hidden.objects.link(ob)
+            ob.parent = empty
+            putOnHiddenLayer(ob)
 
 
-def hideCustomShapes(rig, context, coll):
-    hidden = createHiddenCollection(context, coll)
-    empty = bpy.data.objects.new("Custom Shapes", None)
-    hidden.objects.link(empty)
-    empty.parent = rig
-    putOnHiddenLayer(empty)
-    for ob in LS.customShapes:
-        hidden.objects.link(ob)
-        ob.parent = empty
-        putOnHiddenLayer(ob)
-
-
-def makeSpine(pb, width, tail=0.5):
-    s = width/pb.bone.length
-    circle = makeCustomShape("CS_" + pb.name, "CircleY", (0,tail/s,0))
-    pb.custom_shape = circle
-    pb.custom_shape_scale = s
+    def makeSpine(self, pb, width, tail=0.5):
+        s = width/pb.bone.length
+        circle = makeCustomShape("CS_" + pb.name, "CircleY", (0,tail/s,0))
+        pb.custom_shape = circle
+        pb.custom_shape_scale = s
 
 
 class DAZ_OT_RemoveCustomShapes(DazOperator, IsArmature):

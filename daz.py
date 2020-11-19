@@ -271,11 +271,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.eliminate_empties")
             box.operator("daz.merge_toes")
             box.operator("daz.add_extra_face_bones")
-            box.separator()
-            box.operator("daz.add_custom_shapes")
-            box.operator("daz.optimize_pose")
-            box.operator("daz.connect_ik_chains")
-            box.operator("daz.add_simple_ik")
 
         layout.separator()
         box = layout.box()
@@ -349,9 +344,18 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.merge_uv_layers")
             box.operator("daz.restore_strand_hair")
 
+        layout.separator()
+        box = layout.box()
+        if showBox(scn, "DazShowRigging", box):
+            box.operator("daz.make_all_bones_posable")
+            box.operator("daz.optimize_pose")
+            box.operator("daz.apply_rest_pose")
+            box.operator("daz.connect_ik_chains")
+            box.separator()
+            box.operator("daz.add_custom_shapes")
+            box.operator("daz.add_simple_ik")
             box.separator()
             box.operator("daz.convert_mhx")
-            box.operator("daz.make_all_bones_posable")
             box.separator()
             box.operator("daz.rigify_daz")
             box.operator("daz.create_meta")
@@ -434,7 +438,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if showBox(scn, "DazShowRigging", box):
+        if showBox(scn, "DazShowRigging2", box):
             box.operator("daz.remove_custom_shapes")
             box.separator()
             box.operator("daz.convert_rig")
@@ -459,7 +463,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if showBox(scn, "DazShowAdvancedMorph", box):
+        if showBox(scn, "DazShowMorphs2", box):
             box.operator("daz.remove_standard_morphs")
             box.operator("daz.remove_custom_morphs")
             box.operator("daz.remove_jcms")
@@ -1218,7 +1222,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box = col.box()
         box.label(text = "Rigging")
         box.prop(scn, "DazOrientMethod")
-        box.prop(scn, "DazUseCustomShapes")
         box.prop(scn, "DazUseQuaternions")
         #box.prop(scn, "DazConnectClose")
         box.separator()
@@ -1465,12 +1468,13 @@ def initialize():
     bpy.types.Scene.DazShowMaterialSettings = BoolProperty(name = "Materials", default = False)
     bpy.types.Scene.DazShowMorphs = BoolProperty(name = "Morphs", default = False)
     bpy.types.Scene.DazShowFinish = BoolProperty(name = "Finishing", default = False)
+    bpy.types.Scene.DazShowRigging = BoolProperty(name = "Rigging", default = False)
     bpy.types.Scene.DazShowLowpoly = BoolProperty(name = "Low-poly Versions", default = False)
     bpy.types.Scene.DazShowVisibility = BoolProperty(name = "Visibility", default = False)
-    bpy.types.Scene.DazShowRigging = BoolProperty(name = "Rigging", default = False)
+    bpy.types.Scene.DazShowRigging2 = BoolProperty(name = "Rigging", default = False)
     bpy.types.Scene.DazShowRiggingSettings = BoolProperty(name = "Rigging", default = False)
     bpy.types.Scene.DazShowMesh = BoolProperty(name = "Mesh", default = False)
-    bpy.types.Scene.DazShowAdvancedMorph = BoolProperty(name = "Morphs", default = False)
+    bpy.types.Scene.DazShowMorphs2 = BoolProperty(name = "Morphs", default = False)
     bpy.types.Scene.DazShowHair = BoolProperty(name = "Hair", default = False)
     bpy.types.Scene.DazShowGeneral = BoolProperty(name = "General", default = False)
     bpy.types.Scene.DazShowPaths = BoolProperty(name = "Paths To DAZ Library", default = False)
@@ -1554,11 +1558,6 @@ def initialize():
         name = "Orientation Method",
         description = "Bone orientation method",
         default = 'DAZ STUDIO')
-
-    bpy.types.Scene.DazUseCustomShapes = BoolProperty(
-        name = "Custom Shapes",
-        description = "Add custom shapes to character bones",
-        default = True)
 
     bpy.types.Scene.DazUseQuaternions = BoolProperty(
         name = "Quaternions",
