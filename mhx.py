@@ -696,6 +696,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                               "big_toe", "small_toe"]:
                     if pname in pb.name.lower():
                         self.addGizmo(pb, "GZM_Circle025", blen=3*rig.DazScale)
+                if pb.name[0:4] == "palm":
+                    self.addGizmo(pb, "GZM_Ellipse")
             if pb.name in self.tweakBones:
                 gizmo = "GZM_Ball025"
                 if pb.name == self.pelvis:
