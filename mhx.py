@@ -387,7 +387,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ("shin.L", "lShin", L_LLEGFK),
             ("foot.L", "lFoot", L_LLEGFK),
             ("toe.L", "lToe", L_LLEGFK),
-            ("heel.L", "lHeel", L_LTOE),
+            ("heel.L", "lHeel", L_HELP),
             ("tarsal.L", "lMetatarsals", L_HELP),
 
             ("thigh.R", "rThigh", L_RLEGFK),
@@ -396,7 +396,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ("shin.R", "rShin", L_RLEGFK),
             ("foot.R", "rFoot", L_RLEGFK),
             ("toe.R", "rToe", L_RLEGFK),
-            ("heel.R", "rHeel", L_RTOE),
+            ("heel.R", "rHeel", L_HELP),
             ("tarsal.R", "rMetatarsals", L_HELP),
 
             ("spine", "abdomenLower", L_SPINE),
@@ -688,17 +688,19 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         empty.parent = rig
         putOnHiddenLayer(empty)
         self.gizmos = makeGizmos(None, empty, hidden)
-        for bname,gname in Gizmos.items():
-            if (bname in rig.pose.bones.keys() and
-                gname in self.gizmos.keys()):
-                pb = rig.pose.bones[bname]
-                self.addGizmo(pb, gname)
-        for bname in self.tweakBones:
-            if bname in rig.pose.bones.keys():
+        for pb in rig.pose.bones:
+            if pb.name in Gizmos.keys():
+                self.addGizmo(pb, Gizmos[pb.name])
+            else:
+                for pname in ["thumb", "f_index", "f_ring", "f_middle", "f_pinky",
+                              "big_toe", "small_toe"]:
+                    if pname in pb.name.lower():
+                        self.addGizmo(pb, "GZM_Circle025", blen=3*rig.DazScale)
+            if pb.name in self.tweakBones:
                 gizmo = "GZM_Ball025"
-                if bname == self.pelvis:
+                if pb.name == self.pelvis:
                     gizmo = "GZM_Ball025End"
-                tb = rig.pose.bones[self.getTweakBoneName(bname)]
+                tb = rig.pose.bones[self.getTweakBoneName(pb.name)]
                 self.addGizmo(tb, gizmo, blen=10*rig.DazScale)
 
 
@@ -963,7 +965,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             footIk = makeBone("foot.ik"+suffix, rig, locFootIk, toe.tail, 0, L_LLEGIK+dlayer, None)
             toeRev = makeBone("toe.rev"+suffix, rig, toe.tail, toe.head, 0, L_LLEGIK+dlayer, footIk)
             footRev = makeBone("foot.rev"+suffix, rig, toe.head, foot.head, 0, L_LLEGIK+dlayer, toeRev)
-            locAnkle = foot.head + Vector((0,3*size,0))
+            locAnkle = foot.head + Vector((0,size,0))
             ankle = makeBone("ankle"+suffix, rig, foot.head, locAnkle, 0, L_LEXTRA+dlayer, None)
             ankleIk = makeBone("ankle.ik"+suffix, rig, foot.head, locAnkle, 0, L_HELP2, footRev)
 
@@ -1099,8 +1101,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             copyTransform(thigh, thighFk, thighIk, rig, prop1)
             copyTransform(shin, shinFk, shinIk, rig, prop1)
-            copyTransform(foot, footFk, footInv, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
-            copyTransform(toe, toeFk, toeInv, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
+            copyTransform(foot, footFk, footInv, rig, (prop1,prop2), "x1*(1-x2)")
+            copyTransform(toe, toeFk, toeInv, rig, (prop1,prop2), "x1*(1-x2)")
             hintRotation(shinIk)
             ikConstraint(shinIk, ankleIk, kneePt, -90, 2, rig)
             stretchTo(kneeLink, kneePt, rig)
@@ -1154,7 +1156,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #-------------------------------------------------------------
 
     def addMarkers(self, rig):
-        for suffix in [".L", ".R"]:
+        for suffix,dlayer in [(".L",0), (".R",16)]:
             bpy.ops.object.mode_set(mode='EDIT')
             foot = rig.data.edit_bones["foot"+suffix]
             toe = rig.data.edit_bones["toe"+suffix]
@@ -1165,10 +1167,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 heelTail = Vector((foot.head[0], foot.head[1], toe.head[2]))
 
             ballLoc = Vector((toe.head[0], toe.head[1], heelTail[2]))
-            mBall = makeBone("ball.marker"+suffix, rig, ballLoc, ballLoc+offs, 0, L_TWEAK, foot)
+            mBall = makeBone("ball.marker"+suffix, rig, ballLoc, ballLoc+offs, 0, L_LEXTRA+dlayer, foot)
             toeLoc = Vector((toe.tail[0], toe.tail[1], heelTail[2]))
-            mToe = makeBone("toe.marker"+suffix, rig, toeLoc, toeLoc+offs, 0, L_TWEAK, toe)
-            mHeel = makeBone("heel.marker"+suffix, rig, heelTail, heelTail+offs, 0, L_TWEAK, foot)
+            mToe = makeBone("toe.marker"+suffix, rig, toeLoc, toeLoc+offs, 0, L_LEXTRA+dlayer, toe)
+            mHeel = makeBone("heel.marker"+suffix, rig, heelTail, heelTail+offs, 0, L_LEXTRA+dlayer, foot)
 
     #-------------------------------------------------------------
     #   Master bone
@@ -1280,8 +1282,8 @@ Gizmos = {
     "foot.fk.R" :       "GZM_Foot_R",
     "toe.fk.L" :        "GZM_Toe_L",
     "toe.fk.R" :        "GZM_Toe_R",
-    "thighTwk.L" :        "GZM_Ball025",
-    "thighTwk.R" :        "GZM_Ball025",
+    "thighTwk.L" :      "GZM_Ball025",
+    "thighTwk.R" :      "GZM_Ball025",
     "foot.rev.L" :      "GZM_RevFoot",
     "foot.rev.R" :      "GZM_RevFoot",
     "foot.ik.L" :       "GZM_FootIK",
