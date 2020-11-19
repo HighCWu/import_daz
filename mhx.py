@@ -116,11 +116,6 @@ def normalizeRoll(roll):
     else:
         return roll
 
-
-def lockLocations(bones):
-    for pb in bones:
-        pb.lock_location = (True,True,True)
-
 #-------------------------------------------------------------
 #   Constraints
 #-------------------------------------------------------------
@@ -913,6 +908,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             if abs(roll - hand0.roll) > 180*D:
                 roll = normalizeRoll(roll + 180*D)
             hand = makeBone("hand"+suffix, rig, hand0.head, tail, roll, L_HELP, forearm)
+            handconn = hand0.use_connect
             hand0.use_connect = False
             hand0.parent = hand
 
@@ -924,9 +920,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             upper_armFk = deriveBone("upper_arm.fk"+suffix, upper_arm, rig, L_LARMFK+dlayer, armParent)
             forearmFk = deriveBone("forearm.fk"+suffix, forearm, rig, L_LARMFK+dlayer, upper_armFk)
+            forearmFk.use_connect = forearm.use_connect
             handFk = deriveBone("hand.fk"+suffix, hand, rig, L_LARMFK+dlayer, forearmFk)
+            handFk.use_connect = handconn
             upper_armIk = deriveBone("upper_arm.ik"+suffix, upper_arm, rig, L_HELP2, armParent)
             forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
+            forearmIk.use_connect = forearm.use_connect
             handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
             hand0Ik = deriveBone("hand0.ik"+suffix, hand, rig, L_HELP2, forearmIk)
 
@@ -952,12 +951,15 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             thighFk = deriveBone("thigh.fk"+suffix, thigh, rig, L_LLEGFK+dlayer, thigh.parent)
             shinFk = deriveBone("shin.fk"+suffix, shin, rig, L_LLEGFK+dlayer, thighFk)
-            footFk = makeBone("foot.fk"+suffix, rig, foot.head, foot.tail, foot.roll, L_LLEGFK+dlayer, shinFk)
+            shinFk.use_connect = shin.use_connect
+            footFk = deriveBone("foot.fk"+suffix, foot, rig, L_LLEGFK+dlayer, shinFk)
+            footFk.use_connect = foot.use_connect
             footFk.layers[L_LEXTRA+dlayer] = True
             toeFk = deriveBone("toe.fk"+suffix, toe, rig, L_LLEGFK+dlayer, footFk)
             toeFk.layers[L_LEXTRA+dlayer] = True
             thighIk = deriveBone("thigh.ik"+suffix, thigh, rig, L_HELP2, thigh.parent)
             shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
+            shinIk.use_connect = shin.use_connect
 
             if "heel"+suffix in rig.data.edit_bones.keys():
                 heel = rig.data.edit_bones["heel"+suffix]
@@ -980,10 +982,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             kneeLink.layers[L_LEXTRA+dlayer] = True
             kneeLink.hide_select = True
 
-            footInv = makeBone("foot.inv.ik"+suffix, rig, foot.head, foot.tail, foot.roll, L_HELP2, footRev)
-            #footInv.use_connect = True
-            toeInv = makeBone("toe.inv.ik"+suffix, rig, toe.head, toe.tail, toe.roll, L_HELP2, toeRev)
-            #toeInv.use_connect = True
+            footInv = deriveBone("foot.inv.ik"+suffix, foot, rig, L_HELP2, footRev)
+            toeInv = deriveBone("toe.inv.ik"+suffix, toe, rig, L_HELP2, toeRev)
 
             prefix = suffix[1].lower()
             eye = rig.data.edit_bones[prefix + "Eye"]
@@ -1120,17 +1120,25 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             gaze = rpbs["gaze"+suffix]
             trackTo(eye, gaze, rig, prop)
 
-            lockLocations([upper_armFk, forearmFk, handFk,
-                           upper_armIk, forearmIk, elbowLink,
-                           thighFk, shinFk, footFk, toeFk,
-                           thighIk, shinIk, kneeLink, footRev, toeRev,
-                           ])
+            self.lockLocations([
+                upper_armFk, forearmFk, handFk,
+                upper_armIk, forearmIk, elbowLink,
+                thighFk, shinFk, footFk, toeFk,
+                thighIk, shinIk, kneeLink, footRev, toeRev,
+            ])
 
         prop = "DazGazeFollowsHead"
         setattr(rig, prop, 0.0)
         gaze0 = rpbs["gaze0"]
         gaze1 = rpbs["gaze1"]
         copyTransform(gaze1, None, gaze0, rig, prop)
+
+
+    def lockLocations(self, bones):
+        for pb in bones:
+            lock = (not pb.bone.use_connect)
+            pb.lock_location = (lock,lock,lock)
+
 
     #-------------------------------------------------------------
     #   Fix hand constraints -

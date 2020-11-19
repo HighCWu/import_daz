@@ -302,6 +302,7 @@ class BendTwists:
             eb.roll = bend.roll
             eb.parent = bend.parent
             eb.use_deform = False
+            eb.use_connect = bend.use_connect
             children = [eb for eb in bend.children if eb != twist] + list(twist.children)
             for child in children:
                 child.parent = eb
