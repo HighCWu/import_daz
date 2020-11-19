@@ -849,7 +849,9 @@ NewParent = {
 
 
 def reparentToes(rig, context):
+    from .driver import removeBoneDrivers
     setActiveObject(context, rig)
+    toenames = []
     bpy.ops.object.mode_set(mode='EDIT')
     for parname in ["lToe", "rToe"]:
         if parname in rig.data.edit_bones.keys():
@@ -860,7 +862,9 @@ def reparentToes(rig, context):
                 if bname in rig.data.edit_bones.keys():
                     eb = rig.data.edit_bones[bname]
                     eb.parent = parb
+                    toenames.append(eb.name)
     bpy.ops.object.mode_set(mode='OBJECT')
+    removeBoneDrivers(rig, toenames)
 
 
 class DAZ_OT_ReparentToes(DazOperator, IsArmature):

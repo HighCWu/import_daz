@@ -145,7 +145,7 @@ def copyTransform(bone, boneFk, boneIk, rig, prop=None, expr="x"):
 
 def copyLocation(bone, target, rig, prop=None, expr="x"):
     cns = bone.constraints.new('COPY_LOCATION')
-    cns.name = target.name
+    #cns.name = target.name
     cns.target = rig
     cns.subtarget = target.name
     if prop is not None:
@@ -155,7 +155,7 @@ def copyLocation(bone, target, rig, prop=None, expr="x"):
 
 def copyRotation(bone, target, use, rig, prop=None, expr="x", space='LOCAL'):
     cns = bone.constraints.new('COPY_ROTATION')
-    cns.name = target.name
+    #cns.name = target.name
     cns.target = rig
     cns.subtarget = target.name
     cns.use_x,cns.use_y,cns.use_z = use
@@ -168,7 +168,7 @@ def copyRotation(bone, target, use, rig, prop=None, expr="x", space='LOCAL'):
 
 def copyScale(bone, target, use, rig, prop=None, expr="x"):
     cns = bone.constraints.new('COPY_SCALE')
-    cns.name = target.name
+    #cns.name = target.name
     cns.target = rig
     cns.subtarget = target.name
     cns.use_x,cns.use_y,cns.use_z = use
@@ -220,7 +220,7 @@ def ikConstraint(last, target, pole, angle, count, rig, prop=None, expr="x"):
 
 def stretchTo(pb, target, rig):
     cns = pb.constraints.new('STRETCH_TO')
-    cns.name = target.name
+    #cns.name = target.name
     cns.target = rig
     cns.subtarget = target.name
     #pb.bone.hide_select = True
@@ -229,7 +229,7 @@ def stretchTo(pb, target, rig):
 
 def trackTo(pb, target, rig, prop=None, expr="x"):
     cns = pb.constraints.new('TRACK_TO')
-    cns.name = target.name
+    #cns.name = target.name
     cns.target = rig
     cns.subtarget = target.name
     cns.track_axis = 'TRACK_Y'
@@ -242,7 +242,7 @@ def trackTo(pb, target, rig, prop=None, expr="x"):
 
 def childOf(pb, target, rig, prop=None, expr="x"):
     cns = pb.constraints.new('CHILD_OF')
-    cns.name = target.name
+    #cns.name = target.name
     cns.target = rig
     cns.subtarget = target.name
     if prop is not None:
@@ -762,6 +762,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def addTweaks(self, rig):
         if not self.addTweakBones:
+            self.tweakBones = []
             return
 
         self.tweakBones = [
@@ -975,12 +976,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             kneeLink.layers[L_LEXTRA+dlayer] = True
             kneeLink.hide_select = True
 
-            for bname,parent in [
-                    ("foot",footRev),
-                    ("toe", toeRev)]:
-                eb = rig.data.edit_bones[bname+suffix]
-                locPt = eb.tail + size*eb.matrix.to_3x3().col[2]
-                pt = makeBone("%s.pt.ik%s"%(bname,suffix), rig, locPt, locPt+Vector((0,0,size)), 0, L_HELP2, parent)
+            footInv = makeBone("foot.inv.ik"+suffix, rig, foot.head, foot.tail, foot.roll, L_HELP2, footRev)
+            #footInv.use_connect = True
+            toeInv = makeBone("toe.inv.ik"+suffix, rig, toe.head, toe.tail, toe.roll, L_HELP2, toeRev)
+            #toeInv.use_connect = True
 
             prefix = suffix[1].lower()
             eye = rig.data.edit_bones[prefix + "Eye"]
@@ -1083,8 +1082,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             footIk = rpbs["foot.ik"+suffix]
             toeRev = rpbs["toe.rev"+suffix]
             footRev = rpbs["foot.rev"+suffix]
-            footPt = rpbs["foot.pt.ik"+suffix]
-            toePt = rpbs["toe.pt.ik"+suffix]
+            footInv = rpbs["foot.inv.ik"+suffix]
+            toeInv = rpbs["toe.inv.ik"+suffix]
 
             prop = "MhaLegHinge_" + suffix[1]
             setattr(rig, prop, 0.0)
@@ -1100,17 +1099,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             copyTransform(thigh, thighFk, thighIk, rig, prop1)
             copyTransform(shin, shinFk, shinIk, rig, prop1)
-            copyTransform(foot, footFk, None, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
-            copyTransform(toe, toeFk, None, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
+            copyTransform(foot, footFk, footInv, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
+            copyTransform(toe, toeFk, toeInv, rig, (prop1,prop2), "1-(1-x1)*(1-x2)")
             hintRotation(shinIk)
             ikConstraint(shinIk, ankleIk, kneePt, -90, 2, rig)
             stretchTo(kneeLink, kneePt, rig)
             cns = copyLocation(footFk, ankleIk, rig, (prop1,prop2), "x1*x2")
             cns.influence = 0
-            ikConstraint(foot, footRev, footPt, 90, 1, rig, (prop1,prop2), "x1*(1-x2)")
-            cns = copyLocation(toe, footRev, rig, (prop1,prop2), "x1*(1-x2)")
-            cns.influence = 0
-            ikConstraint(toe, toeRev, toePt, 90, 1, rig, (prop1,prop2), "x1*(1-x2)")
             cns = copyLocation(ankleIk, ankle, rig, prop2)
             cns.influence = 0
 
@@ -1226,8 +1221,8 @@ def connectToParent(rig):
         "rMid1", "rMid2", "rMid3",
         "rRing1", "rRing2", "rRing3",
         "rPinky1", "rPinky2", "rPinky3",
-        "lThighTwist", "lShin", "lFoot",
-        "rThighTwist", "rShin", "rFoot",
+        "lThighTwist", "lShin", "lFoot", "lToe",
+        "rThighTwist", "rShin", "rFoot", "rToe",
         ]:
         if bname in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[bname]
