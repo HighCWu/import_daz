@@ -77,6 +77,7 @@ class GlobalSettings:
         self.useEmission = True
         self.useReflection = True
         self.useEnvironment = True
+        self.useToneMapping = True
         self.reuseMaterials = False
         self.diffuseShader = 'OREN_NAYAR'
         self.specularShader = 'BLINN'
@@ -121,6 +122,7 @@ class GlobalSettings:
         "DazMergeShells" : "mergeShells",
         "DazBrightenEyes" : "brightenEyes",
         "DazUseEnvironment" : "useEnvironment",
+        "DazUseToneMapping" : "useToneMapping",
         "DazReuseMaterials" : "reuseMaterials",
         "DazLimitBump" : "limitBump",
         "DazMaxBump" : "maxBump",
@@ -411,6 +413,8 @@ class LocalSettings:
         self.customShapes = []
         self.singleUser = False
         self.scene = ""
+        self.usedEnvironment = False
+        self.usedToneMapping = False
 
         self.usedFeatures = {
             "Bounces" : True,

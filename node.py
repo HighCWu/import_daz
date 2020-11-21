@@ -249,7 +249,21 @@ class Instance(Accessor, Channels):
 
 
     def buildExtra(self, context):
-        pass
+        for extra in self.extra:
+            if "type" not in extra.keys():
+                continue
+            elif extra["type"] == "studio/node/environment":
+                if GS.useEnvironment:
+                    from .render import RenderOptions
+                    render = RenderOptions(self.fileref)
+                    render.channels = self.channels
+                    render.build(context)
+            elif extra["type"] == "studio/node/tone_mapper":
+                if GS.useToneMapping:
+                    from .render import ToneMappingOptions
+                    tone = ToneMappingOptions(self.fileref)
+                    tone.channels = self.channels
+                    tone.build(context)
 
 
     def postbuild(self, context):

@@ -1238,6 +1238,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazMergeShells")
         box.prop(scn, "DazBrightenEyes")
         box.prop(scn, "DazUseEnvironment")
+        box.prop(scn, "DazUseToneMapping")
         box.prop(scn, "DazReuseMaterials")
         box.prop(scn, "DazLimitBump")
         if scn.DazLimitBump:
@@ -1516,6 +1517,10 @@ def initialize():
     bpy.types.Scene.DazUseEnvironment = BoolProperty(
         name = "Environment",
         description = "Load environment")
+
+    bpy.types.Scene.DazUseToneMapping = BoolProperty(
+        name = "Tone Mapping",
+        description = "Load tone mapping options")
 
     bpy.types.Scene.DazReuseMaterials = BoolProperty(
         name = "Reuse Materials",
