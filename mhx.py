@@ -382,7 +382,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ("shin.L", "lShin", L_LLEGFK),
             ("foot.L", "lFoot", L_LLEGFK),
             ("toe.L", "lToe", L_LLEGFK),
-            ("heel.L", "lHeel", L_HELP),
+            ("heel.L", "lHeel", L_TWEAK),
             ("tarsal.L", "lMetatarsals", L_HELP),
 
             ("thigh.R", "rThigh", L_RLEGFK),
@@ -391,7 +391,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ("shin.R", "rShin", L_RLEGFK),
             ("foot.R", "rFoot", L_RLEGFK),
             ("toe.R", "rToe", L_RLEGFK),
-            ("heel.R", "rHeel", L_HELP),
+            ("heel.R", "rHeel", L_TWEAK),
             ("tarsal.R", "rMetatarsals", L_HELP),
 
             ("spine", "abdomenLower", L_SPINE),
@@ -401,6 +401,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ("chest", "chest", L_SPINE),
             ("chest", "chestLower", L_SPINE),
             ("chest-1", "chestUpper", L_SPINE),
+            ("pectoral.L", "lPectoral", L_TWEAK),
+            ("pectoral.R", "rPectoral", L_TWEAK),
             ("neck", "neck", L_SPINE),
             ("neck", "neckLower", L_SPINE),
             ("neck-1", "neckUpper", L_SPINE),
@@ -491,9 +493,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ("small_toe_3.02.R", "rSmallToe3_2", L_RTOE),
             ("small_toe_4.02.R", "rSmallToe4_2", L_RTOE),
         ]
-
-        if rig.data.DazExtraDrivenBones:
-            self.skeleton += self.BreastBones
 
         self.sacred = ["root", "hips", "spine"]
 
@@ -676,6 +675,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #-------------------------------------------------------------
 
     def addGizmos(self, rig, context):
+        from .driver import isBoneDriven
         hidden = createHiddenCollection(context, None)
         bpy.ops.object.mode_set(mode='OBJECT')
         empty = bpy.data.objects.new("Gizmos", None)
@@ -686,17 +686,26 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         for pb in rig.pose.bones:
             if pb.name in Gizmos.keys():
                 self.addGizmo(pb, Gizmos[pb.name])
+            elif pb.name[0:4] == "palm":
+                self.addGizmo(pb, "GZM_Ellipse")
             else:
-                for pname in ["thumb", "f_index", "f_ring", "f_middle", "f_pinky",
-                              "big_toe", "small_toe"]:
-                    if pname in pb.name.lower():
+                for pname in self.FingerNames + ["big_toe", "small_toe"]:
+                    if pb.name.startswith(pname):
                         self.addGizmo(pb, "GZM_Circle025", blen=3*rig.DazScale)
-                if pb.name[0:4] == "palm":
-                    self.addGizmo(pb, "GZM_Ellipse")
+                for (pname,shape) in [
+                        ("pectoral","GZM_Ball010End") ,
+                        ("heel","GZM_Ball025End")]:
+                    if pb.name.startswith(pname):
+                        if isBoneDriven(rig, pb):
+                            pb.bone.layers[L_HELP] = True
+                            pb.bone.layers[L_TWEAK] = False
+                        else:
+                            self.addGizmo(pb, shape)
             if pb.name in self.tweakBones:
-                gizmo = "GZM_Ball025"
-                if pb.name == self.pelvis:
+                if pb.name.startswith((self.pelvis, "chest")):
                     gizmo = "GZM_Ball025End"
+                else:
+                    gizmo = "GZM_Ball025"
                 tb = rig.pose.bones[self.getTweakBoneName(pb.name)]
                 self.addGizmo(tb, gizmo, blen=10*rig.DazScale)
 
@@ -824,23 +833,19 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #   Fingers
     #-------------------------------------------------------------
 
-    FingerNames = ["thumb", "index", "middle", "ring", "pinky"]
-    PalmNames = ["thumb", "index", "index", "middle", "middle"]
+    FingerNames = ["thumb", "f_index", "f_middle", "f_ring", "f_pinky"]
+    PalmNames = ["palm_thumb", "palm_index", "palm_index", "palm_middle", "palm_middle"]
 
     def linkName(self, m, n, suffix):
-        if m == 0:
-            fname = "thumb"
-        else:
-            fname = "f_" + self.FingerNames[m]
-        return ("%s.0%d%s" % (fname, n+1, suffix))
+        return ("%s.0%d%s" % (self.FingerNames[m], n+1, suffix))
 
 
     def longName(self, m, suffix):
-        return ("%s%s" % (self.FingerNames[m], suffix))
+        return (self.FingerNames[m][2:] + suffix)
 
 
     def palmName(self, m, suffix):
-        return ("palm_%s%s" % (self.PalmNames[m], suffix))
+        return (self.PalmNames[m] + suffix)
 
 
     def addLongFingers(self, rig):
@@ -1261,8 +1266,8 @@ Gizmos = {
     "neck" :            "GZM_Neck",
     "neck-1" :          "GZM_Neck",
     "head" :            "GZM_Head",
-    #"breast.L" :        "GZM_Breast_L",
-    #"breast.R" :        "GZM_Breast_R",
+    "clavicle.L" :      "GZM_Ball025End",
+    "clavicle.R" :      "GZM_Ball025End",
 
     # Head
 
