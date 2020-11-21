@@ -1262,6 +1262,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazPostponeHair")
         box.prop(scn, "DazViewChildren")
         box.prop(scn, "DazRenderChildren")
+        box.prop(scn, "DazRootTransparency")
         box.prop(scn, "DazMultipleHairMaterials")
         box.prop(scn, "DazSkullGroup")
 
@@ -1614,6 +1615,10 @@ def initialize():
         name = "Render Children",
         description = "Number of hair chilren displayed in renders",
         min = 0)
+
+    bpy.types.Scene.DazRootTransparency = BoolProperty(
+        name = "Root Transparency",
+        description = "Add randomized transparency at the root of the strands")
 
     bpy.types.Scene.DazMultipleHairMaterials = BoolProperty(
         name = "Multiple Hair Materials",

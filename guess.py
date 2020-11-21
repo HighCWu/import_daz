@@ -156,17 +156,15 @@ def hasDiffuseTexture(mat, method, enforce):
             if node1.type == "BSDF_DIFFUSE":
                 node = node1
                 name = "Color"
-                break
             elif node1.type == "BSDF_PRINCIPLED":
                 node = node1
                 name = "Base Color"
-                break
+            elif node1.type == "BSDF_HAIR":
+                return False
         if node is None:
             return True
         color = node.inputs[name].default_value
-        if (not isWhite(color) and
-            not enforce and
-            method == 'INTERNAL'):
+        if (False and not isWhite(color) and not enforce):
             setDiffuse(mat, color)
             return False
         for link in mat.node_tree.links:

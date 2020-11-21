@@ -1009,12 +1009,13 @@ class HairTree(CyclesTree):
         self.type = 'HAIR'
         self.color = GREY
         self.dark = BLACK
+        self.rootTransparency = GS.rootTransparency
 
 
     def build(self):
         self.makeTree()
         self.buildLayer()
-        #self.prune()
+        self.prune()
 
 
     def initLayer(self):
@@ -1022,6 +1023,10 @@ class HairTree(CyclesTree):
         self.active = None
         self.info = self.addNode('ShaderNodeHairInfo', col=1)
         self.buildBump()
+
+
+    def linkVector(self, texco, node, slot="Vector"):
+        self.links.new(self.info.outputs["Intercept"], node.inputs[slot])
 
 
     def buildOutput(self):
@@ -1048,25 +1053,35 @@ class HairTree(CyclesTree):
         self.links.new(self.info.outputs["Tangent Normal"], node.inputs["Normal"])
 
 
-    def addRamp(self, node, label, root, tip):
+    def addRamp(self, node, label, root, tip, endpos=1):
         ramp = self.addNode('ShaderNodeValToRGB', col=self.column-2)
         ramp.label = label
-        self.links.new(self.info.outputs['Intercept'], ramp.inputs['Fac'])
+        self.links.new(self.info.outputs["Intercept"], ramp.inputs['Fac'])
         ramp.color_ramp.interpolation = 'LINEAR'
         colramp = ramp.color_ramp
         elt = colramp.elements[0]
         elt.position = 0
-        elt.color = list(root) + [1]
+        if len(root) == 3:
+            elt.color = list(root) + [1]
+        else:
+            elt.color = root
         elt = colramp.elements[1]
-        elt.position = 1
-        elt.color = list(tip) + [0]
-        node.inputs["Color"].default_value[0:3] == root
+        elt.position = endpos
+        if len(tip) == 3:
+            elt.color = list(tip) + [0]
+        else:
+            elt.color = tip
+        if node:
+            node.inputs["Color"].default_value[0:3] == root
         return ramp
 
 
     def buildDiffuse(self, diffuse):
         # Color => diffuse
         color,colortex = self.getColorTex("getChannelDiffuse", "COLOR", self.color)
+        if not isBlack(color):
+            self.color = color
+            self.dark = color * GREY
         root,roottex = self.getColorTex(["Hair Root Color"], "COLOR", self.dark)
         tip,tiptex = self.getColorTex(["Hair Tip Color"], "COLOR", self.color)
         rough = self.getValue(["base_roughness"], 0.2)
@@ -1076,7 +1091,6 @@ class HairTree(CyclesTree):
         self.colorramp = self.linkRamp(ramp, [roottex, tiptex], diffuse, "Color")
         #self.linkNormal(diffuse)
         self.material.rna.diffuse_color[0:3] = color
-        self.column += 1
 
 
     def linkRamp(self, ramp, texs, node, slot):
@@ -1112,7 +1126,6 @@ class HairTree(CyclesTree):
         self.links.new(node2.outputs[0], add.inputs[1])
         return add
 
-
 #-------------------------------------------------------------
 #   Hair tree BSDF
 #-------------------------------------------------------------
@@ -1121,32 +1134,38 @@ class HairBSDFTree(HairTree):
 
     def buildLayer(self):
         self.initLayer()
-        trans = self.buildTransmission()
-        refl = self.buildHighlight()
         diffuse = self.addNode('ShaderNodeBsdfDiffuse')
         self.buildDiffuse(diffuse)
+        trans = self.buildTransmission()
+        refl = self.buildHighlight()
+        self.column += 1
         self.mixBasic(trans, refl, diffuse)
         self.buildAnisotropic()
+        if self.rootTransparency:
+            self.buildRootTransparency()
         self.buildCutout()
         self.buildOutput()
 
 
     def buildTransmission(self):
         # Transmission => Transmission
-        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", self.dark)
-        tip,tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", self.color)
+        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", BLACK)
+        tip,tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", BLACK)
         if isBlack(root) and isBlack(tip):
-            trans = None
-        else:
-            trans = self.addNode('ShaderNodeBsdfHair')
-            trans.component = 'Transmission'
-            trans.inputs['Offset'].default_value = 0
-            trans.inputs["RoughnessU"].default_value = 0
-            trans.inputs["RoughnessV"].default_value = 0
-            ramp = self.addRamp(trans, "Transmission", root, tip)
-            self.linkRamp(ramp, [roottex, tiptex], trans, "Color")
-            self.linkTangent(trans)
-            self.active = trans
+            color,tex = self.getColorTex(["Translucency Color"], "COLOR", BLACK)
+            weight = self.getValue(["Translucency Weight"], 0)
+            #root = tip = color
+            if isBlack(root):
+                return None
+        trans = self.addNode('ShaderNodeBsdfHair')
+        trans.component = 'Transmission'
+        trans.inputs['Offset'].default_value = 0
+        trans.inputs["RoughnessU"].default_value = 0
+        trans.inputs["RoughnessV"].default_value = 0
+        ramp = self.addRamp(trans, "Transmission", root, tip)
+        self.linkRamp(ramp, [roottex, tiptex], trans, "Color")
+        self.linkTangent(trans)
+        self.active = trans
         return trans
 
 
@@ -1184,8 +1203,10 @@ class HairBSDFTree(HairTree):
 
     def buildAnisotropic(self):
         # Anisotropic
-        aniso = self.getValue(["Anisotropy"], 1)
+        aniso = self.getValue(["Anisotropy"], 0)
         if aniso:
+            if aniso > 0.2:
+                aniso = 0.2
             node = self.addNode('ShaderNodeBsdfAnisotropic')
             self.links.new(self.colorramp.outputs[0], node.inputs["Color"])
             node.inputs["Anisotropy"].default_value = aniso
@@ -1195,6 +1216,31 @@ class HairBSDFTree(HairTree):
             self.linkNormal(node)
             self.column += 1
             self.active = self.addShaders(self.active, node)
+
+
+    def buildRootTransparency(self):
+        ramp = self.addRamp(None, "Root Transparency", (1,1,1,0), (1,1,1,1), endpos=0.15)
+        maprange = self.addNode('ShaderNodeMapRange', col=self.column-1)
+        maprange.inputs["From Min"].default_value = 0
+        maprange.inputs["From Max"].default_value = 1
+        maprange.inputs["To Min"].default_value = -0.1
+        maprange.inputs["To Max"].default_value = 0.4
+        self.links.new(self.info.outputs["Random"], maprange.inputs["Value"])
+        add = self.addSockets(ramp.outputs["Alpha"], maprange.outputs["Result"])
+        transp = self.addNode('ShaderNodeBsdfTransparent')
+        transp.inputs["Color"].default_value[0:3] = WHITE
+        self.column += 1
+        mix = self.mixShaders(transp, self.active, 1)
+        self.links.new(add.outputs[0], mix.inputs[0])
+        self.active = mix
+
+
+    def addSockets(self, socket1, socket2):
+        node = self.addNode("ShaderNodeMath")
+        math.operation = 'ADD'
+        self.links.new(socket1, node.inputs[0])
+        self.links.new(socket2, node.inputs[1])
+        return node
 
 
     def buildCutout(self):

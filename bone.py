@@ -426,7 +426,8 @@ class BoneInstance(Instance):
                     rmat = wsmat.to_4x4()
                     if GS.zup:
                         rmat = Mult3(self.RX, rmat, self.RX.inverted())
-                    omat = Mult2(rmat.inverted(), omat)
+                    if rmat.determinant() > 1e-4:
+                        omat = Mult2(rmat.inverted(), omat)
 
                 if GS.orientMethod == 'DAZ UNFLIPPED':
                     omat.col[3][0:3] = head
