@@ -130,6 +130,7 @@ class Instance(Accessor, Channels):
         self.refgroup = None
         self.isGroupNode = False
         self.isStrandHair = False
+        self.ignore = False
         self.fitTo = None
         self.isNodeInstance = False
         self.node2 = None
@@ -189,6 +190,10 @@ class Instance(Accessor, Channels):
                     iref = instRef(ref)
                     if asset and iref in asset.instances.keys():
                         self.fitTo = asset.instances[iref]
+            elif extra["type"] == "studio/node/environment":
+                self.ignore = True
+            elif extra["type"] == "studio/node/tone_mapper":
+                self.ignore = True
 
         for geo in self.geometries:
             geo.preprocess(context, self)
@@ -258,12 +263,6 @@ class Instance(Accessor, Channels):
                     render = RenderOptions(self.fileref)
                     render.channels = self.channels
                     render.build(context)
-            elif extra["type"] == "studio/node/tone_mapper":
-                if GS.useToneMapping:
-                    from .render import ToneMappingOptions
-                    tone = ToneMappingOptions(self.fileref)
-                    tone.channels = self.channels
-                    tone.build(context)
 
 
     def postbuild(self, context):
@@ -657,7 +656,9 @@ class Node(Asset, Formula, Channels):
 
     def build(self, context, inst):
         center = d2b(inst.attributes["center_point"])
-        if inst.geometries:
+        if inst.ignore:
+            print("Ignore", inst)
+        elif inst.geometries:
             for geonode in inst.geometries:
                 geonode.buildObject(context, inst, center)
                 inst.rna = geonode.rna

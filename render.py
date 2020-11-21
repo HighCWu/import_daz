@@ -244,37 +244,6 @@ class WorldTree(CyclesTree):
         return tex
 
 #-------------------------------------------------------------
-#   Tone Mapping Options
-#-------------------------------------------------------------
-
-class ToneMappingOptions(Asset, Channels):
-    def __init__(self, fileref):
-        Asset.__init__(self, fileref)
-        Channels.__init__(self)
-
-
-    def __repr__(self):
-        return ("<ToneMappingOptions %s>" % (self.fileref))
-
-
-    def parse(self, struct):
-        Asset.parse(self, struct)
-        Channels.parse(self, struct)
-
-
-    def update(self, struct):
-        Asset.update(self, struct)
-        Channels.update(self, struct)
-
-
-    def build(self, context):
-        if GS.useToneMapping and not LS.usedToneMapping:
-            print("BUILD", self)
-            for key in self.channels.keys():
-                print("  ", key, self.getValue([key], "FOO"))
-            LS.usedToneMapping = True
-
-#-------------------------------------------------------------
 #
 #-------------------------------------------------------------
 
