@@ -107,71 +107,19 @@ class GeoNode(Node):
     def arrangeObject(self, ob, inst, context, center):
         Node.arrangeObject(self, ob, inst, context, center)
         if self.edges:
-            self.unTesselate(context, ob)
-            self.data.findPolyLines(ob)
+            from .hair import Tesselator
+            tess = Tesselator()
+            if "Render Line Tessellation Sides" in self.properties.keys():
+                nsides = self.properties["Render Line Tessellation Sides"]
+            else:
+                nsides = 3
+            tess.unTesselate(context, ob, nsides)
+            strands = tess.findStrands(ob)
+            pnum = 0
+            mnum = 0
+            self.strands = [(pnum,mnum,strand) for strand in strands]
             if len(self.dbzMaterials) > 0:
                 self.data.makeHairMaterial(self.dbzMaterials[0], context)
-
-
-    def unTesselate(self, context, ob):
-        if "Render Line Tessellation Sides" in self.properties.keys():
-            nsides = self.properties["Render Line Tessellation Sides"]
-        else:
-            nsides = 3
-
-        if nsides == 1:
-            pass
-        elif nsides == 2:
-            self.combinePoints(1, ob)
-        elif nsides == 3:
-            self.combinePoints(2, ob)
-        else:
-            raise DazError("Cannot untesselate hair.\nRender Line Tessellation Sides > 3")
-        self.removeDoubles(context, ob)
-        self.checkTesselation(ob)
-
-
-    def combinePoints(self, m, ob):
-        from .tables import getVertEdges, otherEnd
-        edgeverts,vertedges = getVertEdges(ob)
-        verts = ob.data.vertices
-        nverts = len(verts)
-        for vn in range(nverts):
-            ne = len(vertedges[vn])
-            if ne >  m:
-                v0 = verts[vn]
-                r0 = verts[vn].co
-                dists = []
-                for n,e in enumerate(vertedges[vn]):
-                    v = verts[otherEnd(vn, e)]
-                    dists.append(((v.co-r0).length, n, v))
-                dists.sort()
-                for _,_,v in dists[:m-ne]:
-                    v.co = r0
-
-
-    def removeDoubles(self, context, ob):
-        activateObject(context, ob)
-        threshold = 0.001*LS.scale
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.remove_doubles(threshold=threshold)
-        bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
-
-
-    def checkTesselation(self, ob):
-        # Check that there are only pure lines
-        from .tables import getVertEdges
-        edgeverts,vertedges = getVertEdges(ob)
-        nverts = len(ob.data.vertices)
-        print("Check hair", ob.name, nverts)
-        deletes = []
-        for vn,v in enumerate(ob.data.vertices):
-            ne = len(vertedges[vn])
-            if ne > 2:
-                v.select = True
-                deletes.append(vn)
-        print("Number of vertices to delete", len(deletes))
 
 
     def subdivideObject(self, ob, inst, context):
@@ -850,28 +798,6 @@ class Geometry(Asset, Channels):
             else:
                 msg = ("Incompatible UV set\n  %s\n  %s" % (me, uv_set))
                 reportError(msg, trigger=(2,3))
-
-
-    def findPolyLines(self, ob):
-        plines = []
-        v0 = -1
-        pline = None
-        edges = [list(e.vertices) for e in ob.data.edges]
-        edges.sort()
-        for v1,v2 in edges:
-            if v1 == v0:
-                pline.append(v2)
-            else:
-                pline = [v1,v2]
-                plines.append(pline)
-            v0 = v2
-        pnum = 0
-        mnum = 0
-        self.strands = []
-        verts = ob.data.vertices
-        for pline in plines:
-            strand = [verts[vn].co for vn in pline]
-            self.strands.append((pnum,mnum,strand))
 
 
     def makeHairMaterial(self, dbzmat, context):

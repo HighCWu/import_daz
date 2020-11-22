@@ -643,6 +643,14 @@ class Hair:
         default = (0.5, 0.05, 0.1, 1)
     )
 
+    hairType : EnumProperty(
+        items = [('SHEET', "Sheet", "Sheets"),
+                 ('STRIP', "Strip", "Strips"),
+                 ('TUBE', "Tube", "Tubes")],
+        name = "Hair Type",
+        description = "Mesh hair type",
+        default = 'SHEET')
+
     sparsity : IntProperty(
         name = "Sparsity",
         min = 1,

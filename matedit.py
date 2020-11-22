@@ -167,6 +167,10 @@ class ChannelSetter:
                 fromnode,fromsocket = self.getFromNode(mat, node, socket)
                 if fromnode:
                     if fromnode.type == "MIX_RGB":
+                        if ncomps == 1:
+                            ncomps = 4
+                            num = item.number
+                            item.color = (num,num,num,1)
                         self.setSocket(fromnode.inputs[1], ncomps, item)
                     elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY':
                         self.setSocket(fromnode.inputs[0], 1, item)

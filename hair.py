@@ -287,6 +287,99 @@ class HairSystem:
         deflector = findDeflector(hum)
 
 #-------------------------------------------------------------
+#   Tesselator class
+#-------------------------------------------------------------
+
+class Tesselator:
+    def unTesselate(self, context, hair, nsides):
+        if nsides == 1:
+            pass
+        elif nsides == 2:
+            self.combinePoints(1, hair)
+        elif nsides == 3:
+            self.combinePoints(2, hair)
+        else:
+            raise DazError("Cannot untesselate hair.\nRender Line Tessellation Sides > 3")
+        self.removeDoubles(context, hair)
+        deletes = self.checkTesselation(hair)
+        self.deleteVerts(hair)
+
+
+    def combinePoints(self, m, hair):
+        from .tables import getVertEdges, otherEnd
+        edgeverts,vertedges = getVertEdges(hair)
+        verts = hair.data.vertices
+        nverts = len(verts)
+        for vn in range(nverts):
+            ne = len(vertedges[vn])
+            if ne >  m:
+                v0 = verts[vn]
+                r0 = verts[vn].co
+                dists = []
+                for n,e in enumerate(vertedges[vn]):
+                    v = verts[otherEnd(vn, e)]
+                    dists.append(((v.co-r0).length, n, v))
+                dists.sort()
+                for _,_,v in dists[:m-ne]:
+                    v.co = r0
+
+
+    def removeDoubles(self, context, hair):
+        activateObject(context, hair)
+        threshold = 0.001*LS.scale
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.mesh.remove_doubles(threshold=threshold)
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+
+    def checkTesselation(self, hair):
+        # Check that there are only pure lines
+        from .tables import getVertEdges
+        edgeverts,vertedges = getVertEdges(hair)
+        nverts = len(hair.data.vertices)
+        print("Check hair", hair.name, nverts)
+        deletes = []
+        for vn,v in enumerate(hair.data.vertices):
+            ne = len(vertedges[vn])
+            if ne > 2:
+                #v.select = True
+                deletes.append(vn)
+        print("Number of vertices to delete", len(deletes))
+        return deletes
+
+
+    def deleteVerts(self, hair):
+        for f in hair.data.polygons:
+            for vn in f.vertices:
+                hair.data.vertices[vn].select = True
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.delete(type='VERT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+
+    def findStrands(self, hair):
+        plines = []
+        v0 = -1
+        pline = None
+        edges = [list(e.vertices) for e in hair.data.edges]
+        edges.sort()
+        for v1,v2 in edges:
+            if v1 == v0:
+                pline.append(v2)
+            else:
+                pline = [v1,v2]
+                plines.append(pline)
+            v0 = v2
+        strands = []
+        verts = hair.data.vertices
+        for pline in plines:
+            strand = [verts[vn].co for vn in pline]
+            strands.append(strand)
+        return strands
+
+#-------------------------------------------------------------
 #   Make Strand Hair
 #-------------------------------------------------------------
 
@@ -348,6 +441,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def draw(self, context):
         self.layout.prop(self, "color")
+        self.layout.prop(self, "hairType", expand=True)
         self.layout.prop(self, "useVertexGroup")
         self.layout.prop(self, "nViewChildren")
         self.layout.prop(self, "nRenderChildren")
@@ -364,6 +458,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         hair,hum = getHairAndHuman(context, True)
         setActiveObject(context, hum)
         self.clearHair(hum, hair, self.color, context)
+        LS.scale = hair.DazScale
 
         setActiveObject(context, hair)
         bpy.ops.object.mode_set(mode='EDIT')
@@ -371,9 +466,25 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        mrects = self.findMeshRects(hair)
-        trects = self.findTexRects(hair, mrects)
-        hsystems = self.makeHairSystems(context, hum, hair, trects)
+        if self.hairType == 'SHEET':
+            mrects = self.findMeshRects(hair)
+            trects = self.findTexRects(hair, mrects)
+            hsystems,haircount = self.makeHairSystems(context, hum, hair, trects)
+        else:
+            if self.hairType == 'STRIP':
+                nsides = 2
+            elif self.hairType == 'TUBE':
+                nsides = 3
+            tess = Tesselator()
+            tess.unTesselate(context, hair, nsides)
+            strands = tess.findStrands(hair)
+            hsystems = {}
+            haircount = self.addStrands(hum, strands, hsystems, -1)
+        haircount += 1
+        print("\nTotal number of strands: %d" % haircount)
+        if haircount == 0:
+            raise DazError("Conversion failed.\nNo hair strands created")
+
         if self.resizeInBlocks:
             hsystems = self.blockResize(hsystems, hum)
         elif self.resizeHair:
@@ -449,7 +560,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             if not self.quadsOnly(hair, faces):
                 continue
             _,vertfaces = getVertFaces(None, verts, faces, self.faceverts)
-            neighbors = findNeighbors(faces, self.faceverts, self.vertfaces)
+            neighbors = findNeighbors(faces, self.faceverts, vertfaces)
             if neighbors is None:
                 continue
             first, corner, boundary, bulk = self.findStartingPoint(hair, neighbors, self.uvcenters)
@@ -459,16 +570,20 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             columns = self.sortColumns(first, corner, boundary, bulk, neighbors, self.uvcenters)
             if columns:
                 strands = self.getColumnCoords(columns, self.centers)
-                for strand in strands:
-                    haircount += 1
-                    if haircount % self.sparsity != 0:
-                        continue
-                    n = len(strand)
-                    if n not in hsystems.keys():
-                        hsystems[n] = self.makeHairSystem(n, hum)
-                    hsystems[n].strands.append(strand)
-        print("\nTotal number of strands: %d" % (haircount+1))
-        return hsystems
+                haircount = self.addStrands(hum, strands, hsystems, haircount)
+        return hsystems, haircount
+
+
+    def addStrands(self, hum, strands, hsystems, haircount):
+        for strand in strands:
+            haircount += 1
+            if haircount % self.sparsity != 0:
+                continue
+            n = len(strand)
+            if n not in hsystems.keys():
+                hsystems[n] = self.makeHairSystem(n, hum)
+            hsystems[n].strands.append(strand)
+        return haircount
 
 
     def blockResize(self, hsystems, hum):
