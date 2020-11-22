@@ -53,7 +53,8 @@ class GeoNode(Node):
         self.figure = figure
         self.figureInst = None
         self.verts = None
-        self.edges = None
+        self.edges = []
+        self.faces = []
         self.dbzMaterials = []
         self.properties = {}
         self.polylines = None
@@ -106,14 +107,17 @@ class GeoNode(Node):
 
     def arrangeObject(self, ob, inst, context, center):
         Node.arrangeObject(self, ob, inst, context, center)
-        if self.edges:
+        print("ARR", ob.name, len(self.edges), len(self.faces))
+        if self.edges or self.faces:
             from .hair import Tesselator
             tess = Tesselator()
-            if "Render Line Tessellation Sides" in self.properties.keys():
-                nsides = self.properties["Render Line Tessellation Sides"]
-            else:
+            if self.edges:
                 nsides = 3
-            tess.unTesselate(context, ob, nsides)
+                if "Render Line Tessellation Sides" in self.properties.keys():
+                    nsides = self.properties["Render Line Tessellation Sides"]
+                tess.unTesselateEdges(context, ob, nsides)
+            elif self.faces:
+                tess.unTesselateFaces(context, ob)
             strands = tess.findStrands(ob)
             pnum = 0
             mnum = 0
@@ -699,6 +703,9 @@ class Geometry(Asset, Channels):
             if node.edges:
                 verts = node.verts
                 edges = node.edges
+            elif node.faces:
+                verts = node.verts
+                faces = node.faces
             elif self.polylines:
                 verts = node.verts
             elif len(node.verts) == len(verts):

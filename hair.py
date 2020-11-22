@@ -291,7 +291,7 @@ class HairSystem:
 #-------------------------------------------------------------
 
 class Tesselator:
-    def unTesselate(self, context, hair, nsides):
+    def unTesselateEdges(self, context, hair, nsides):
         if nsides == 1:
             pass
         elif nsides == 2:
@@ -300,6 +300,15 @@ class Tesselator:
             self.combinePoints(2, hair)
         else:
             raise DazError("Cannot untesselate hair.\nRender Line Tessellation Sides > 3")
+        self.removeDoubles(context, hair)
+        deletes = self.checkTesselation(hair)
+        if deletes:
+            self.mergeRemainingFaces(hair)
+
+
+    def unTesselateFaces(self, context, hair):
+        print("UFF", hair)
+        self.squashFaces(hair)
         self.removeDoubles(context, hair)
         deletes = self.checkTesselation(hair)
         if deletes:
@@ -323,6 +332,20 @@ class Tesselator:
                 dists.sort()
                 for _,_,v in dists[:m-ne]:
                     v.co = r0
+
+
+    def squashFaces(self, hair):
+        verts = hair.data.vertices
+        for f in hair.data.polygons:
+            fverts = [verts[vn] for vn in f.vertices]
+            if len(fverts) == 4:
+                v1,v2,v3,v4 = fverts
+                if (v1.co-v2.co).length < (v2.co-v3.co).length:
+                    v2.co = v1.co
+                    v4.co = v3.co
+                else:
+                    v3.co = v2.co
+                    v4.co = v1.co
 
 
     def removeDoubles(self, context, hair):
@@ -476,12 +499,11 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             trects = self.findTexRects(hair, mrects)
             hsystems,haircount = self.makeHairSystems(context, hum, hair, trects)
         else:
-            if self.hairType == 'STRIP':
-                nsides = 2
-            elif self.hairType == 'TUBE':
-                nsides = 3
             tess = Tesselator()
-            tess.unTesselate(context, hair, nsides)
+            if self.hairType == 'LINE':
+                pass
+            elif self.hairType == 'TUBE':
+                tess.unTesselateFaces(context, hair, nsides)
             strands = tess.findStrands(hair)
             hsystems = {}
             haircount = self.addStrands(hum, strands, hsystems, -1)

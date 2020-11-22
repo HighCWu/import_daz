@@ -153,8 +153,8 @@ function doMesh (fp, obj, start, node, str1, str2)
     	doProperties(fp, node, "        ");
     	fp.writeLine("        },");
     	doMaterials(fp, shape);
-    	doEdges(fp, geom);
-    	// doFaces(fp, geom);
+    	// doEdges(fp, geom);
+    	doFaces(fp, geom);
     }
     doVerts(fp, geom);
     fp.writeLine(str1);
