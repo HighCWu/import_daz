@@ -301,8 +301,8 @@ class Tesselator:
         else:
             raise DazError("Cannot untesselate hair.\nRender Line Tessellation Sides > 3")
         self.removeDoubles(context, hair)
-        deletes = self.checkTesselation(hair)
-        self.deleteVerts(hair)
+        self.checkTesselation(hair)
+        self.mergeRemainingFaces(hair)
 
 
     def combinePoints(self, m, hair):
@@ -350,12 +350,16 @@ class Tesselator:
         return deletes
 
 
-    def deleteVerts(self, hair):
+    def mergeRemainingFaces(self, hair):
         for f in hair.data.polygons:
-            for vn in f.vertices:
-                hair.data.vertices[vn].select = True
+            fverts = [hair.data.vertices[vn] for vn in f.vertices]
+            r0 = fverts[0].co
+            for v in fverts:
+                v.co = r0
+                v.select = True
+        threshold = 0.001*LS.scale
         bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.delete(type='VERT')
+        bpy.ops.mesh.remove_doubles(threshold=threshold)
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
