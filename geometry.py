@@ -117,7 +117,7 @@ class GeoNode(Node):
             strands = tess.findStrands(ob)
             pnum = 0
             mnum = 0
-            self.strands = [(pnum,mnum,strand) for strand in strands]
+            self.data.strands = [(pnum,mnum,strand) for strand in strands]
             if len(self.dbzMaterials) > 0:
                 self.data.makeHairMaterial(self.dbzMaterials[0], context)
 

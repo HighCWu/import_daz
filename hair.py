@@ -301,8 +301,9 @@ class Tesselator:
         else:
             raise DazError("Cannot untesselate hair.\nRender Line Tessellation Sides > 3")
         self.removeDoubles(context, hair)
-        self.checkTesselation(hair)
-        self.mergeRemainingFaces(hair)
+        deletes = self.checkTesselation(hair)
+        if deletes:
+            self.mergeRemainingFaces(hair)
 
 
     def combinePoints(self, m, hair):
