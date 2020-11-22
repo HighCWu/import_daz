@@ -307,7 +307,6 @@ class Tesselator:
 
 
     def unTesselateFaces(self, context, hair):
-        print("UFF", hair)
         self.squashFaces(hair)
         self.removeDoubles(context, hair)
         deletes = self.checkTesselation(hair)
@@ -469,7 +468,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def draw(self, context):
         self.layout.prop(self, "color")
-        self.layout.prop(self, "hairType", expand=True)
+        self.layout.prop(self, "strandType", expand=True)
         self.layout.prop(self, "useVertexGroup")
         self.layout.prop(self, "nViewChildren")
         self.layout.prop(self, "nRenderChildren")
@@ -494,16 +493,16 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        if self.hairType == 'SHEET':
+        if self.strandType == 'SHEET':
             mrects = self.findMeshRects(hair)
             trects = self.findTexRects(hair, mrects)
             hsystems,haircount = self.makeHairSystems(context, hum, hair, trects)
         else:
             tess = Tesselator()
-            if self.hairType == 'LINE':
+            if self.strandType == 'LINE':
                 pass
-            elif self.hairType == 'TUBE':
-                tess.unTesselateFaces(context, hair, nsides)
+            elif self.strandType == 'TUBE':
+                tess.unTesselateFaces(context, hair)
             strands = tess.findStrands(hair)
             hsystems = {}
             haircount = self.addStrands(hum, strands, hsystems, -1)
@@ -542,6 +541,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         print("Find neighbors")
         self.faceverts, self.vertfaces = getVertFaces(hair)
         self.nfaces = len(hair.data.polygons)
+        if not self.nfaces:
+            raise DazError("Hair has no faces")
         mneighbors = findNeighbors(range(self.nfaces), self.faceverts, self.vertfaces)
         self.centers, self.uvcenters = self.findCenters(hair)
 

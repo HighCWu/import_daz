@@ -97,7 +97,7 @@ class GlobalSettings:
         self.useInstancing = True
         self.buildHighdef = True
         self.useMultires = True
-        self.strandsAsHair = True
+        self.strandType = 'HAIR'
         self.postponeHair = False
         self.nViewChildren = 0
         self.nRenderChildren = 0
@@ -151,7 +151,7 @@ class GlobalSettings:
         "DazUseInstancing" : "useInstancing",
         "DazBuildHighdef" : "buildHighdef",
         "DazMultires" : "useMultires",
-        "DazStrandsAsHair" : "strandsAsHair",
+        "DazStrandType" : "strandType",
         "DazPostponeHair" : "postponeHair",
         "DazViewChildren" : "nViewChildren",
         "DazRenderChildren" : "nRenderChildren",

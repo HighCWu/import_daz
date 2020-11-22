@@ -1258,7 +1258,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         col = split.column()
         box = col.box()
         box.label(text = "Hair")
-        box.prop(scn, "DazStrandsAsHair")
+        box.prop(scn, "DazStrandType", expand=True)
         box.prop(scn, "DazPostponeHair")
         box.prop(scn, "DazViewChildren")
         box.prop(scn, "DazRenderChildren")
@@ -1598,9 +1598,13 @@ def initialize():
         name = "Deflectors",
         description = "Add deflection surface")
 
-    bpy.types.Scene.DazStrandsAsHair = BoolProperty(
-        name = "Strands As Hair",
-        description = "Convert polylines to particle hair")
+    bpy.types.Scene.DazStrandType = EnumProperty(
+        items = [('MESH', "Mesh", "Mesh with faces"),
+                 ('LINE', "Line", "Polyline mesh"),
+                 ('HAIR', "Hair", "Particle hair")],
+        name = "Strand Type",
+        description = "Convert hair meshes to polylines or particle hair",
+        default = 'HAIR')
 
     bpy.types.Scene.DazPostponeHair = BoolProperty(
         name = "Postpone Hair Creation",

@@ -107,8 +107,7 @@ class GeoNode(Node):
 
     def arrangeObject(self, ob, inst, context, center):
         Node.arrangeObject(self, ob, inst, context, center)
-        print("ARR", ob.name, len(self.edges), len(self.faces))
-        if self.edges or self.faces:
+        if GS.strandType != 'MESH' and (self.edges or self.faces):
             from .hair import Tesselator
             tess = Tesselator()
             if self.edges:
@@ -118,12 +117,13 @@ class GeoNode(Node):
                 tess.unTesselateEdges(context, ob, nsides)
             elif self.faces:
                 tess.unTesselateFaces(context, ob)
-            strands = tess.findStrands(ob)
-            pnum = 0
-            mnum = 0
-            self.data.strands = [(pnum,mnum,strand) for strand in strands]
-            if len(self.dbzMaterials) > 0:
-                self.data.makeHairMaterial(self.dbzMaterials[0], context)
+            if GS.strandType == 'HAIR':
+                strands = tess.findStrands(ob)
+                pnum = 0
+                mnum = 0
+                self.data.strands = [(pnum,mnum,strand) for strand in strands]
+                if len(self.dbzMaterials) > 0:
+                    self.data.makeHairMaterial(self.dbzMaterials[0], context)
 
 
     def subdivideObject(self, ob, inst, context):
@@ -231,7 +231,7 @@ class GeoNode(Node):
 
 
     def finishHair(self, context):
-        if self.pgeonode and GS.strandsAsHair:
+        if self.pgeonode and GS.strandType == 'HAIR':
             ob = self.rna
             print("DELETE", ob)
             deleteObject(context, ob)
@@ -260,7 +260,7 @@ class GeoNode(Node):
             pruneUvMaps(ob)
         if hdob and hdob != ob:
             self.buildHighDef(context, inst)
-        if GS.strandsAsHair:
+        if GS.strandType == 'HAIR':
             if inst.fitTo and inst.fitTo.geometries:
                 self.pgeonode = inst.fitTo.geometries[0]
             if self.pgeonode:

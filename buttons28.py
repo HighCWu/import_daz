@@ -688,13 +688,13 @@ class Hair:
         name = "Viewport Children",
         description = "Number of hair chilren displayed in viewport",
         min = 0,
-        default = 10)
+        default = 0)
 
     nRenderChildren : IntProperty(
         name = "Render Children",
         description = "Number of hair chilren displayed in renders",
         min = 0,
-        default = 100)
+        default = 10)
 
 
 class Pinning:
