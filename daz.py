@@ -342,7 +342,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.make_udim_materials")
             box.operator("daz.merge_uv_layers")
-            box.operator("daz.restore_strand_hair")
+            #box.operator("daz.restore_strand_hair")
 
         layout.separator()
         box = layout.box()
@@ -1231,6 +1231,12 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseLimitRot")
         box.prop(scn, "DazUseLegacyLocks")
 
+        box = col.box()
+        box.label(text = "Simulation")
+        box.prop(scn, "DazInfluence")
+        box.prop(scn, "DazSimulation")
+        box.prop(scn, "DazDeflectors")
+
         box = split.box()
         box.label(text = "Materials")
         box.prop(scn, "DazMaterialMethod")
@@ -1254,23 +1260,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
             box.prop(scn, "DazSpecularShader")
             box.prop(scn, "DazDiffuseRoughness")
             box.prop(scn, "DazSpecularRoughness")
-
-        col = split.column()
-        box = col.box()
-        box.label(text = "Hair")
-        box.prop(scn, "DazStrandType", expand=True)
-        box.prop(scn, "DazPostponeHair")
-        box.prop(scn, "DazViewChildren")
-        box.prop(scn, "DazRenderChildren")
-        box.prop(scn, "DazRootTransparency")
-        box.prop(scn, "DazMultipleHairMaterials")
-        box.prop(scn, "DazSkullGroup")
-
-        box = col.box()
-        box.label(text = "Simulation")
-        box.prop(scn, "DazInfluence")
-        box.prop(scn, "DazSimulation")
-        box.prop(scn, "DazDeflectors")
 
         row = self.layout.row()
         row.operator("daz.load_root_paths")

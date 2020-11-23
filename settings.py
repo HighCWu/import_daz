@@ -97,13 +97,15 @@ class GlobalSettings:
         self.useInstancing = True
         self.buildHighdef = True
         self.useMultires = True
-        self.strandType = 'HAIR'
+
+        self.strandType = 'MESH'
         self.postponeHair = False
         self.nViewChildren = 0
         self.nRenderChildren = 0
         self.rootTransparency = False
         self.multipleHairMaterials = True
         self.useSkullGroup = False
+
         self.useInfluence = True
         self.useSimulation = False
         self.useDeflectors = True

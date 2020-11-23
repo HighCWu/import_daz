@@ -1193,8 +1193,8 @@ class HairTree(CyclesTree):
         self.buildBump()
 
 
-    def linkVector(self, texco, node, slot="Vector"):
-        self.links.new(self.info.outputs["Intercept"], node.inputs[slot])
+    #def linkVector(self, texco, node, slot="Vector"):
+    #    self.links.new(self.info.outputs["Intercept"], node.inputs[slot])
 
 
     def buildOutput(self):
