@@ -634,6 +634,8 @@ class Offset:
 #-------------------------------------------------------------
 
 class Hair:
+    # Create
+
     strandType : EnumProperty(
         items = [('SHEET', "Sheet", "Sheets"),
                  ('LINE', "Line", "Polylines"),
@@ -652,7 +654,7 @@ class Hair:
 
     size : IntProperty(
         name = "Hair Length",
-        min = 5,
+        min = 3,
         max = 100,
         default = 20,
         description = "Hair length"
@@ -670,6 +672,8 @@ class Hair:
         description = "Resize hair in blocks of ten afterwards"
     )
 
+    # Settings
+
     useVertexGroup : BoolProperty(
         name = "Use Vertex Group",
         description = "Use top vertex vertex group for density",
@@ -685,12 +689,14 @@ class Hair:
         name = "Render Children",
         description = "Number of hair chilren displayed in renders",
         min = 0,
-        default = 10)
+        default = 0)
+
+    # Materials
 
     keepMaterial : BoolProperty(
         name = "Keep Material",
         description = "Use existing material",
-        default = False)
+        default = True)
 
     activeMaterial : EnumProperty(
         items = G.getActiveMaterial,
@@ -703,10 +709,10 @@ class Hair:
         size = 4,
         min = 0.0,
         max = 1.0,
-        default = (0.5, 0.05, 0.1, 1)
+        default = (0.2, 0.02, 0.01, 1)
     )
 
-    rootTransparency : BoolProperty(
+    useRootTransparency : BoolProperty(
         name = "Root Transparency",
         description = "Add randomized transparency at the root of the strands",
         default = False)

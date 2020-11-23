@@ -78,6 +78,7 @@ class GlobalSettings:
         self.useReflection = True
         self.useEnvironment = True
         self.reuseMaterials = False
+        self.useRootTransparency = False
         self.diffuseShader = 'OREN_NAYAR'
         self.specularShader = 'BLINN'
         self.diffuseRoughness = 0.3
@@ -120,6 +121,7 @@ class GlobalSettings:
         "DazMaxBump" : "maxBump",
         "DazHandleRenderSettings" : "handleRenderSettings",
         "DazHandleLightSettings" : "handleLightSettings",
+        "DazRootTransparency" : "useRootTransparency",
         "DazUseDisplacement" : "useDisplacement",
         "DazUseEmission" : "useEmission",
         "DazUseReflection" : "useReflection",
@@ -403,7 +405,7 @@ class LocalSettings:
 
         self.nViewChildren = 0
         self.nRenderChildren = 0
-        self.rootTransparency = False
+        self.useRootTransparency = GS.useRootTransparency
         self.useSkullGroup = False
 
         self.usedFeatures = {

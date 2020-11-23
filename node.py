@@ -131,7 +131,6 @@ class Instance(Accessor, Channels):
         self.isGroupNode = False
         self.isStrandHair = False
         self.ignore = False
-        self.fitTo = None
         self.isNodeInstance = False
         self.node2 = None
         self.hdobject = None
@@ -184,12 +183,6 @@ class Instance(Accessor, Channels):
                 self.isNodeInstance = True
             elif extra["type"] == "studio/node/strand_hair":
                 self.isStrandHair = True
-                if "Fit To" in self.channels.keys():
-                    ref = self.channels["Fit To"]["node"]
-                    asset = self.getAsset(ref)
-                    iref = instRef(ref)
-                    if asset and iref in asset.instances.keys():
-                        self.fitTo = asset.instances[iref]
             elif extra["type"] == "studio/node/environment":
                 self.ignore = True
             elif extra["type"] == "studio/node/tone_mapper":

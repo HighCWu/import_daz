@@ -225,13 +225,18 @@ class HairSystem:
         elif hasattr(ob, "show_instancer_for_render"):
             ob.show_instancer_for_render = self.useEmitter
         pset.render_type = 'PATH'
-        pset.child_type = 'SIMPLE'
+        if LS.nViewChildren or LS.nRenderChildren:
+            pset.child_type = 'SIMPLE'
+        else:
+            pset.child_type = 'NONE'
 
         #pset.material = len(ob.data.materials)
         pset.path_start = 0
         pset.path_end = 1
         pset.count = int(len(self.strands))
         pset.hair_step = hlen-1
+        pset.use_hair_bspline = True
+        pset.display_step = 3
         self.setHairSettings(psys, ob)
 
         psys.use_hair_dynamics = False
@@ -426,45 +431,57 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
     bl_description = "Make particle hair from mesh hair"
     bl_options = {'UNDO'}
 
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "strandType", expand=True)
+    dialogWidth = 600
 
-        layout.separator()
-        box = layout.box()
+    def draw(self, context):
+        row = self.layout.row()
+        col = row.column()
+        box = col.box()
+        box.label(text="Create")
+        box.prop(self, "strandType", expand=True)
+        box.separator()
         box.prop(self, "resizeHair")
         box.prop(self, "size")
         box.prop(self, "resizeInBlocks")
         box.prop(self, "sparsity")
 
-        layout.separator()
-        box = layout.box()
+        col = row.column()
+        box = col.box()
+        box.label(text="Material")
         box.prop(self, "keepMaterial")
         if self.keepMaterial:
             box.prop(self, "activeMaterial")
         else:
             box.prop(self, "color")
-            box.prop(self, "rootTransparency")
+            box.prop(self, "useRootTransparency")
 
-        layout.separator()
-        box = layout.box()
+        col = row.column()
+        box = col.box()
+        box.label(text="Settings")
         box.prop(self, "useVertexGroup")
         box.prop(self, "nViewChildren")
         box.prop(self, "nRenderChildren")
 
 
     def run(self, context):
-        self.nonquads = []
-        scn = context.scene
-        mname = self.activeMaterial
         hair,hum = getHairAndHuman(context, True)
-        setActiveObject(context, hum)
-        self.clearHair(hum, hair, mname, self.color, context)
+        if self.strandType == 'SHEET':
+            if not hair.data.uv_layers.active:
+                raise DazError("Hair object has no active UV layer.\nConsider using Line or Tube strand types instead")
+        elif self.strandType == 'LINE':
+            if hair.data.polygons:
+                raise DazError("Cannot use Line strand type for hair mesh with faces")
 
         LS.scale = hair.DazScale
         LS.nViewChildren = self.nViewChildren
         LS.nRenderChildren = self.nRenderChildren
-        LS.rootTransparency = self.rootTransparency
+        LS.useRootTransparency = self.useRootTransparency
+
+        self.nonquads = []
+        scn = context.scene
+        mname = self.activeMaterial
+        setActiveObject(context, hum)
+        self.clearHair(hum, hair, mname, self.color, context)
 
         setActiveObject(context, hair)
         bpy.ops.object.mode_set(mode='EDIT')
@@ -473,8 +490,6 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         if self.strandType == 'SHEET':
-            if not hair.data.uv_layers.active:
-                raise DazError("Hair object has no active UV layer.\nConsider using Line or Tube strand types instead")
             mrects = self.findMeshRects(hair)
             trects = self.findTexRects(hair, mrects)
             hsystems,haircount = self.makeHairSystems(context, hum, hair, trects)
@@ -828,9 +843,11 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         nsys = len(hum.particle_systems)
         for n in range(nsys):
             bpy.ops.object.particle_system_remove()
+        print("CLR", hair, self.keepMaterial)
         if self.keepMaterial:
             mat = hair.data.materials[mname]
         else:
+            print("CLRNEW")
             mat = buildHairMaterial("Hair", color, context, force=True)
         self.material = mat
         hum.data.materials.append(mat)
@@ -1288,9 +1305,10 @@ class HairBSDFTree(HairTree):
         trans = self.buildTransmission()
         refl = self.buildHighlight()
         self.column += 1
+        print("BLL", diffuse, trans, refl)
         self.mixBasic(trans, refl, diffuse)
         self.buildAnisotropic()
-        if LS.rootTransparency:
+        if LS.useRootTransparency:
             self.buildRootTransparency()
         self.buildCutout()
         self.buildOutput()
@@ -1298,10 +1316,10 @@ class HairBSDFTree(HairTree):
 
     def buildTransmission(self):
         # Transmission => Transmission
-        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", BLACK)
-        tip,tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", BLACK)
+        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", self.dark)
+        tip,tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", self.color)
         if isBlack(root) and isBlack(tip):
-            color,tex = self.getColorTex(["Translucency Color"], "COLOR", BLACK)
+            color,tex = self.getColorTex(["Translucency Color"], "COLOR", self.color)
             weight = self.getValue(["Translucency Weight"], 0)
             #root = tip = color
             if isBlack(root):
