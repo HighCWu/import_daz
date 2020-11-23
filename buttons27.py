@@ -615,17 +615,11 @@ class Offset:
 #-------------------------------------------------------------
 #   hair.py
 #-------------------------------------------------------------
+#-------------------------------------------------------------
+#   hair.py
+#-------------------------------------------------------------
 
 class Hair:
-    color = FloatVectorProperty(
-        name = "Hair Color",
-        subtype = "COLOR",
-        size = 4,
-        min = 0.0,
-        max = 1.0,
-        default = (0.5, 0.05, 0.1, 1)
-    )
-
     strandType = EnumProperty(
         items = [('SHEET', "Sheet", "Sheets"),
                  ('LINE', "Line", "Polylines"),
@@ -665,7 +659,7 @@ class Hair:
     useVertexGroup = BoolProperty(
         name = "Use Vertex Group",
         description = "Use top vertex vertex group for density",
-        default = True)
+        default = False)
 
     nViewChildren = IntProperty(
         name = "Viewport Children",
@@ -678,6 +672,30 @@ class Hair:
         description = "Number of hair chilren displayed in renders",
         min = 0,
         default = 10)
+
+    keepMaterial = BoolProperty(
+        name = "Keep Material",
+        description = "Use existing material",
+        default = False)
+
+    activeMaterial = EnumProperty(
+        items = G.getActiveMaterial,
+        name = "Material",
+        description = "Material to use as hair material")
+
+    color = FloatVectorProperty(
+        name = "Hair Color",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.5, 0.05, 0.1, 1)
+    )
+
+    rootTransparency = BoolProperty(
+        name = "Root Transparency",
+        description = "Add randomized transparency at the root of the strands",
+        default = False)
 
 
 class Pinning:

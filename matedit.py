@@ -552,11 +552,6 @@ def getTweakMaterials(scn, context):
                 ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
                 ]
 
-
-def getActiveMaterial(scn, context):
-    ob = context.object
-    return [(mat.name, mat.name, mat.name) for mat in ob.data.materials]
-
 # ---------------------------------------------------------------------
 #   Set Shell Visibility
 # ---------------------------------------------------------------------
@@ -774,6 +769,7 @@ def initialize():
     bpy.types.Object.DazSlots = CollectionProperty(type = B.EditSlotGroup)
     bpy.types.Object.DazAffectedMaterials = CollectionProperty(type = B.DazActiveGroup)
 
+    from .globvars import getActiveMaterial
     bpy.types.Object.DazActiveMaterial = EnumProperty(
         items = getActiveMaterial,
         name = "Active Material",

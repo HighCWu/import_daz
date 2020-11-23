@@ -55,6 +55,14 @@ for file in os.listdir(theRestPoseFolder):
     theRestPoseItems.append((fname, name, name))
 
 #-------------------------------------------------------------
+#   hair.py
+#-------------------------------------------------------------
+
+def getActiveMaterial(scn, context):
+    ob = context.object
+    return [(mat.name, mat.name, mat.name) for mat in ob.data.materials]
+
+#-------------------------------------------------------------
 #   hide.py
 #-------------------------------------------------------------
 

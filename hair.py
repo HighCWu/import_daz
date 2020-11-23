@@ -409,13 +409,13 @@ class Tesselator:
 #-------------------------------------------------------------
 
 def getHairAndHuman(context, strict):
-    hum = context.object
-    hair = None
+    hair = context.object
+    hum = None
     for ob in getSceneObjects(context):
-        if getSelected(ob) and ob.type == 'MESH' and ob != hum:
-            hair = ob
+        if getSelected(ob) and ob.type == 'MESH' and ob != hair:
+            hum = ob
             break
-    if strict and hair is None:
+    if strict and hum is None:
         raise DazError("Select hair and human")
     return hair,hum
 
@@ -427,26 +427,39 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
     bl_options = {'UNDO'}
 
     def draw(self, context):
-        self.layout.prop(self, "strandType", expand=True)
-        self.layout.prop(self, "useVertexGroup")
-        self.layout.prop(self, "nViewChildren")
-        self.layout.prop(self, "nRenderChildren")
-        self.layout.separator()
-        self.layout.prop(self, "resizeHair")
-        self.layout.prop(self, "size")
-        self.layout.prop(self, "resizeInBlocks")
-        self.layout.prop(self, "sparsity")
-        self.layout.separator()
-        self.layout.prop(self, "color")
-        self.layout.prop(self, "rootTransparency")
+        layout = self.layout
+        layout.prop(self, "strandType", expand=True)
+
+        layout.separator()
+        box = layout.box()
+        box.prop(self, "resizeHair")
+        box.prop(self, "size")
+        box.prop(self, "resizeInBlocks")
+        box.prop(self, "sparsity")
+
+        layout.separator()
+        box = layout.box()
+        box.prop(self, "keepMaterial")
+        if self.keepMaterial:
+            box.prop(self, "activeMaterial")
+        else:
+            box.prop(self, "color")
+            box.prop(self, "rootTransparency")
+
+        layout.separator()
+        box = layout.box()
+        box.prop(self, "useVertexGroup")
+        box.prop(self, "nViewChildren")
+        box.prop(self, "nRenderChildren")
 
 
     def run(self, context):
         self.nonquads = []
         scn = context.scene
+        mname = self.activeMaterial
         hair,hum = getHairAndHuman(context, True)
         setActiveObject(context, hum)
-        self.clearHair(hum, hair, self.color, context)
+        self.clearHair(hum, hair, mname, self.color, context)
 
         LS.scale = hair.DazScale
         LS.nViewChildren = self.nViewChildren
@@ -811,11 +824,14 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
     #   Clear hair
     #-------------------------------------------------------------
 
-    def clearHair(self, hum, hair, color, context):
+    def clearHair(self, hum, hair, mname, color, context):
         nsys = len(hum.particle_systems)
         for n in range(nsys):
             bpy.ops.object.particle_system_remove()
-        mat = buildHairMaterial("Hair", color, context, force=True)
+        if self.keepMaterial:
+            mat = hair.data.materials[mname]
+        else:
+            mat = buildHairMaterial("Hair", color, context, force=True)
         self.material = mat
         hum.data.materials.append(mat)
 
