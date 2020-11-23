@@ -696,6 +696,17 @@ class Hair:
         min = 0,
         default = 10)
 
+    rootTransparency : BoolProperty(
+        name = "Root Transparency",
+        description = "Add randomized transparency at the root of the strands",
+        default = False)
+
+    skullGroup = BoolProperty(
+        name = "Skull Group",
+        description = "Use top of skull as density vertex group.\nMakes hair posing more stable.",
+        default = False)
+
+
 
 class Pinning:
     pinningX0 : FloatProperty(

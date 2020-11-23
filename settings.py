@@ -98,14 +98,6 @@ class GlobalSettings:
         self.buildHighdef = True
         self.useMultires = True
 
-        self.strandType = 'MESH'
-        self.postponeHair = False
-        self.nViewChildren = 0
-        self.nRenderChildren = 0
-        self.rootTransparency = False
-        self.multipleHairMaterials = True
-        self.useSkullGroup = False
-
         self.useInfluence = True
         self.useSimulation = False
         self.useDeflectors = True
@@ -153,13 +145,6 @@ class GlobalSettings:
         "DazUseInstancing" : "useInstancing",
         "DazBuildHighdef" : "buildHighdef",
         "DazMultires" : "useMultires",
-        "DazStrandType" : "strandType",
-        "DazPostponeHair" : "postponeHair",
-        "DazViewChildren" : "nViewChildren",
-        "DazRenderChildren" : "nRenderChildren",
-        "DazRootTransparency" : "rootTransparency",
-        "DazMultipleHairMaterials" : "multipleHairMaterials",
-        "DazSkullGroup" : "useSkullGroup",
         "DazInfluence" : "useInfluence",
         "DazSimulation" : "useSimulation",
         "DazDeflectors" : "useDeflectors",
@@ -398,6 +383,7 @@ class LocalSettings:
         self.applyMorphs = False
         self.useAnimations = False
         self.useUV = False
+
         self.collection = None
         self.hdcollection = None
         self.refGroups = None
@@ -414,6 +400,11 @@ class LocalSettings:
         self.singleUser = False
         self.scene = ""
         self.usedEnvironment = False
+
+        self.nViewChildren = 0
+        self.nRenderChildren = 0
+        self.rootTransparency = False
+        self.useSkullGroup = False
 
         self.usedFeatures = {
             "Bounces" : True,

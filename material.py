@@ -947,9 +947,6 @@ class MaterialMerger:
                 ob.data.materials.pop()
             for pset,matslot in phairs:
                 pset.material_slot = self.newname[matslot]
-            for strand in ob.DazStrands:
-                if strand.name in self.newname.keys():
-                    strand.name = self.newname[strand.name]
 
 
 class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):

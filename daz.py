@@ -1587,40 +1587,6 @@ def initialize():
         name = "Deflectors",
         description = "Add deflection surface")
 
-    bpy.types.Scene.DazStrandType = EnumProperty(
-        items = [('MESH', "Mesh", "Mesh with faces"),
-                 ('LINE', "Line", "Polyline mesh"),
-                 ('HAIR', "Hair", "Particle hair")],
-        name = "Strand Type",
-        description = "Convert hair meshes to polylines or particle hair",
-        default = 'HAIR')
-
-    bpy.types.Scene.DazPostponeHair = BoolProperty(
-        name = "Postpone Hair Creation",
-        description = "Postpone creation of particle hair until later")
-
-    bpy.types.Scene.DazViewChildren = IntProperty(
-        name = "Viewport Children",
-        description = "Number of hair chilren displayed in viewport",
-        min = 0)
-
-    bpy.types.Scene.DazRenderChildren = IntProperty(
-        name = "Render Children",
-        description = "Number of hair chilren displayed in renders",
-        min = 0)
-
-    bpy.types.Scene.DazRootTransparency = BoolProperty(
-        name = "Root Transparency",
-        description = "Add randomized transparency at the root of the strands")
-
-    bpy.types.Scene.DazMultipleHairMaterials = BoolProperty(
-        name = "Multiple Hair Materials",
-        description = "Create a separate particle system for each hair material")
-
-    bpy.types.Scene.DazSkullGroup = BoolProperty(
-        name = "Skull Group",
-        description = "Use top of skull as density vertex group.\nMakes hair posing more stable.")
-
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shells",
         description = "Merge shell materials with object materials")

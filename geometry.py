@@ -105,27 +105,6 @@ class GeoNode(Node):
         inst.center = center
 
 
-    def arrangeObject(self, ob, inst, context, center):
-        Node.arrangeObject(self, ob, inst, context, center)
-        if GS.strandType != 'MESH' and (self.edges or self.faces):
-            from .hair import Tesselator
-            tess = Tesselator()
-            if self.edges:
-                nsides = 3
-                if "Render Line Tessellation Sides" in self.properties.keys():
-                    nsides = self.properties["Render Line Tessellation Sides"]
-                tess.unTesselateEdges(context, ob, nsides)
-            elif self.faces:
-                tess.unTesselateFaces(context, ob)
-            if GS.strandType == 'HAIR':
-                strands = tess.findStrands(ob)
-                pnum = 0
-                mnum = 0
-                self.data.strands = [(pnum,mnum,strand) for strand in strands]
-                if len(self.dbzMaterials) > 0:
-                    self.data.makeHairMaterial(self.dbzMaterials[0], context)
-
-
     def subdivideObject(self, ob, inst, context):
         if self.highdef:
             me = self.buildHDMesh(ob)
@@ -196,8 +175,6 @@ class GeoNode(Node):
 
 
     def finalize(self, context, inst):
-        if self.finishHair(context):
-            return
         ob = self.rna
         if ob is None:
             return
@@ -230,17 +207,6 @@ class GeoNode(Node):
             inst.collection.objects.unlink(hdob)
 
 
-    def finishHair(self, context):
-        if self.pgeonode and GS.strandType == 'HAIR':
-            ob = self.rna
-            print("DELETE", ob)
-            deleteObject(context, ob)
-            if self.parent:
-                rig = self.parent.rna
-                print("DELETE", rig)
-                deleteObject(context, rig)
-
-
     def addHairSim(self, mod, extra, pgeonode):
         from .dforce import HairGenerator
         if self.hairgen is None:
@@ -260,11 +226,6 @@ class GeoNode(Node):
             pruneUvMaps(ob)
         if hdob and hdob != ob:
             self.buildHighDef(context, inst)
-        if GS.strandType == 'HAIR':
-            if inst.fitTo and inst.fitTo.geometries:
-                self.pgeonode = inst.fitTo.geometries[0]
-            if self.pgeonode:
-                self.data.buildHair(self, context)
         if self.dforce:
             self.dforce.build(context)
 
@@ -807,23 +768,6 @@ class Geometry(Asset, Channels):
                 reportError(msg, trigger=(2,3))
 
 
-    def makeHairMaterial(self, dbzmat, context):
-        from .hair import HairMaterial
-        mname = "Hair"
-        props = dbzmat["properties"]
-        if "Hair Root Color" in props.keys():
-            color = props["Hair Root Color"]
-        else:
-            color = (1,1,1)
-        hmat = HairMaterial(mname, color)
-        self.polygon_material_groups = [mname]
-        self.materials[mname] = [hmat]
-        for key,value in props.items():
-            hmat.channels[key] = {"id" : key, "current_value" : value}
-        hmat.build(context, color)
-        self.addAllMaterials(self.rna)
-
-
     def buildRigidity(self, ob):
         from .modifier import buildVertexGroup
         if self.rigidity:
@@ -842,71 +786,6 @@ class Geometry(Asset, Channels):
                 for vn in group["mask_vertices"]["values"]:
                     vert = rgroup.mask_vertices.add()
                     vert.a = vn
-
-
-    def buildHair(self, geonode, context):
-        ob = geonode.pgeonode.rna
-        if not self.strands:
-            print("No strands", ob)
-            return
-
-        if not self.polygon_material_groups:
-            pass
-        elif GS.multipleHairMaterials:
-            for mname in self.polygon_material_groups:
-                hmat = self.materials[mname][0]
-                ob.data.materials.append(hmat.rna)
-        else:
-            mname = self.polygon_material_groups[0]
-            hmat = self.materials[mname][0]
-            ob.data.materials.append(hmat.rna)
-
-        if GS.postponeHair:
-            self.storeHairSystems(ob)
-        else:
-            self.buildHairSystems(ob, geonode, context)
-
-
-    def storeHairSystems(self, ob):
-        for pnum,mnum,strand in self.strands:
-            matname,hmat = self.getHairMaterial(mnum)
-            pgs = ob.DazStrands.add()
-            pgs.name = matname
-            for vn in strand:
-                pg = pgs.strand.add()
-                pg.a = vn
-
-
-    def buildHairSystems(self, ob, geonode, context):
-        from .hair import HairSystem, createSkullGroup
-        hsystems = {}
-        vgrp = None
-        for pnum,mnum,strand in self.strands:
-            n = len(strand)
-            matname,hmat = self.getHairMaterial(mnum)
-            hname = ("%s-%02d" % (matname, n))
-            if hname not in hsystems.keys():
-                hsys = hsystems[hname] = HairSystem(hname, n, geonode=geonode)
-                hsys.material = matname
-                if GS.useSkullGroup:
-                    if vgrp is None:
-                        vgrp = createSkullGroup(ob, 'TOP')
-                    hsys.vertexGroup = vgrp.name
-            hsystems[hname].strands.append(strand)
-        activateObject(context, ob)
-        for hsys in hsystems.values():
-            hsys.build(context, ob)
-
-
-    def getHairMaterial(self, mnum):
-        if self.polygon_material_groups:
-            idx = (mnum if GS.multipleHairMaterials else 0)
-            mname = self.polygon_material_groups[idx]
-            hmat = self.materials[mname][0]
-            return hmat.rna.name, hmat
-        else:
-            #return None, None
-            return "Hair", None
 
 
     def addShell(self, shname, shmat, uv):
@@ -1307,7 +1186,6 @@ def initialize():
     bpy.types.Mesh.DazVertexCount = IntProperty(default=0)
     bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = B.DazStringStringGroup)
     bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = B.DazTextGroup)
-    bpy.types.Object.DazStrands = CollectionProperty(type = B.DazStrandGroup)
     bpy.types.Object.DazMultires = BoolProperty(default=False)
 
 

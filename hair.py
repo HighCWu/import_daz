@@ -59,8 +59,6 @@ class HairSystem:
         self.useEmitter = True
         self.vertexGroup = None
         self.material = None
-        self.nViewChildren = GS.nViewChildren
-        self.nRenderChildren = GS.nRenderChildren
 
 
     def getModifier(self, geonode):
@@ -122,10 +120,10 @@ class HairSystem:
             ccset = pset
 
         channels = ["PreRender Hairs Density", "PreSim Hairs Per Guide"]
-        val,rdtex = self.getTexDensity(mod, channels, self.nRenderChildren, "rendered_child_count", pset, ob, "use_map_density", "density_factor")
+        val,rdtex = self.getTexDensity(mod, channels, LS.nRenderChildren, "rendered_child_count", pset, ob, "use_map_density", "density_factor")
 
         channels = ["PreSim Hairs Density", "PreRender Hairs Per Guide"]
-        self.getTexDensity(mod, channels, self.nViewChildren, "child_nbr", pset, ob, "use_map_density", "density_factor", cond=(not rdtex))
+        self.getTexDensity(mod, channels, LS.nViewChildren, "child_nbr", pset, ob, "use_map_density", "density_factor", cond=(not rdtex))
 
         if (self.material and
             self.material in ob.data.materials.keys()):
@@ -407,44 +405,6 @@ class Tesselator:
         return strands
 
 #-------------------------------------------------------------
-#   Make Strand Hair
-#-------------------------------------------------------------
-
-class DAZ_OT_RestoreStrandHair(DazOperator):
-    bl_idname = "daz.restore_strand_hair"
-    bl_label = "Restore Strand Hair"
-    bl_description = "Restore particle hair from stored strand-based hair"
-    bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH' and ob.DazStrands)
-
-    def run(self, context):
-        hsystems = {}
-        vgrp = None
-        ob = context.object
-        for pgs in ob.DazStrands:
-            matname = pgs.name
-            strand = [pg.a for pg in pgs.strand]
-            n = len(strand)
-            hname = ("%s-%02d" % (matname, n))
-            if hname not in hsystems.keys():
-                hsys = hsystems[hname] = HairSystem(hname, n, object=ob)
-                hsys.material = matname
-                if GS.useSkullGroup:
-                    if vgrp is None:
-                        vgrp = createSkullGroup(ob, 'TOP')
-                    hsys.vertexGroup = vgrp.name
-            hsystems[hname].strands.append(strand)
-
-        activateObject(context, ob)
-        for hsys in hsystems.values():
-            hsys.build(context, ob)
-        ob.DazStrands.clear()
-
-#-------------------------------------------------------------
 #   Make Hair
 #-------------------------------------------------------------
 
@@ -467,7 +427,6 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
     bl_options = {'UNDO'}
 
     def draw(self, context):
-        self.layout.prop(self, "color")
         self.layout.prop(self, "strandType", expand=True)
         self.layout.prop(self, "useVertexGroup")
         self.layout.prop(self, "nViewChildren")
@@ -477,6 +436,9 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         self.layout.prop(self, "size")
         self.layout.prop(self, "resizeInBlocks")
         self.layout.prop(self, "sparsity")
+        self.layout.separator()
+        self.layout.prop(self, "color")
+        self.layout.prop(self, "rootTransparency")
 
 
     def run(self, context):
@@ -485,7 +447,11 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         hair,hum = getHairAndHuman(context, True)
         setActiveObject(context, hum)
         self.clearHair(hum, hair, self.color, context)
+
         LS.scale = hair.DazScale
+        LS.nViewChildren = self.nViewChildren
+        LS.nRenderChildren = self.nRenderChildren
+        LS.rootTransparency = self.rootTransparency
 
         setActiveObject(context, hair)
         bpy.ops.object.mode_set(mode='EDIT')
@@ -494,6 +460,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         if self.strandType == 'SHEET':
+            if not hair.data.uv_layers.active:
+                raise DazError("Hair object has no active UV layer.\nConsider using Line or Tube strand types instead")
             mrects = self.findMeshRects(hair)
             trects = self.findTexRects(hair, mrects)
             hsystems,haircount = self.makeHairSystems(context, hum, hair, trects)
@@ -637,8 +605,6 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def makeHairSystem(self, n, hum):
         hsys = HairSystem(None, n, object=hum)
-        hsys.nViewChildren=self.nViewChildren
-        hsys.nRenderChildren=self.nRenderChildren
         hsys.material = self.material.name
         return hsys
 
@@ -1177,7 +1143,6 @@ class HairTree(CyclesTree):
         self.type = 'HAIR'
         self.color = GREY
         self.dark = BLACK
-        self.rootTransparency = GS.rootTransparency
 
 
     def build(self):
@@ -1309,7 +1274,7 @@ class HairBSDFTree(HairTree):
         self.column += 1
         self.mixBasic(trans, refl, diffuse)
         self.buildAnisotropic()
-        if self.rootTransparency:
+        if LS.rootTransparency:
             self.buildRootTransparency()
         self.buildCutout()
         self.buildOutput()
