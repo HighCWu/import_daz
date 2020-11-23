@@ -1466,7 +1466,6 @@ class DAZ_OT_HairAddPinning(DazPropsOperator, IsMesh, Pinning):
 
 classes = [
     DAZ_OT_MakeHair,
-    DAZ_OT_RestoreStrandHair,
     DAZ_OT_UpdateHair,
     DAZ_OT_ColorHair,
     DAZ_OT_ConnectHair,
