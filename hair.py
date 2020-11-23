@@ -236,7 +236,10 @@ class HairSystem:
         pset.count = int(len(self.strands))
         pset.hair_step = hlen-1
         pset.use_hair_bspline = True
-        pset.display_step = 3
+        if hasattr(pset, "display_step"):
+            pset.display_step = 3
+        else:
+            pset.draw_step = 3
         self.setHairSettings(psys, ob)
 
         psys.use_hair_dynamics = False
@@ -452,6 +455,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         if self.keepMaterial:
             box.prop(self, "activeMaterial")
         else:
+            box.prop(self, "hairMaterialMethod")
             box.prop(self, "color")
             box.prop(self, "useRootTransparency")
 
@@ -476,6 +480,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         LS.nViewChildren = self.nViewChildren
         LS.nRenderChildren = self.nRenderChildren
         LS.useRootTransparency = self.useRootTransparency
+        LS.hairMaterialMethod = self.hairMaterialMethod
 
         self.nonquads = []
         scn = context.scene
@@ -843,11 +848,9 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         nsys = len(hum.particle_systems)
         for n in range(nsys):
             bpy.ops.object.particle_system_remove()
-        print("CLR", hair, self.keepMaterial)
         if self.keepMaterial:
             mat = hair.data.materials[mname]
         else:
-            print("CLRNEW")
             mat = buildHairMaterial("Hair", color, context, force=True)
         self.material = mat
         hum.data.materials.append(mat)
@@ -1077,7 +1080,7 @@ class DAZ_OT_ConnectHair(DazOperator, IsHair):
 #------------------------------------------------------------------------
 
 def buildHairMaterial(mname, color, context, force=False):
-    if GS.materialMethod == 'INTERNAL':
+    if LS.hairMaterialMethod == 'INTERNAL':
         return buildHairMaterialInternal(mname, list(color[0:3]), force)
     else:
         return buildHairMaterialCycles(mname, list(color[0:3]), context, force)
@@ -1160,7 +1163,10 @@ class HairMaterial(CyclesMaterial):
         if self.dontBuild():
             return
         Material.build(self, context)
-        self.tree = HairBSDFTree(self)
+        if LS.hairMaterialMethod == 'BSDF':
+            self.tree = HairBSDFTree(self)
+        elif LS.hairMaterialMethod == 'PRINCIPLED':
+            self.tree = HairPBRTree(self)
         self.tree.color = color
         self.tree.dark = Vector(color)*GREY
         self.tree.build()
@@ -1187,12 +1193,12 @@ class HairTree(CyclesTree):
     def initLayer(self):
         self.column = 4
         self.active = None
-        self.info = self.addNode('ShaderNodeHairInfo', col=1)
         self.buildBump()
 
 
-    #def linkVector(self, texco, node, slot="Vector"):
-    #    self.links.new(self.info.outputs["Intercept"], node.inputs[slot])
+    def addTexco(self, slot):
+        self.info = self.addNode('ShaderNodeHairInfo', col=1)
+        self.texco = self.info.outputs["Intercept"]
 
 
     def buildOutput(self):
@@ -1305,7 +1311,6 @@ class HairBSDFTree(HairTree):
         trans = self.buildTransmission()
         refl = self.buildHighlight()
         self.column += 1
-        print("BLL", diffuse, trans, refl)
         self.mixBasic(trans, refl, diffuse)
         self.buildAnisotropic()
         if LS.useRootTransparency:

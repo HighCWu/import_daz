@@ -515,10 +515,20 @@ class MHX:
         default = True
     )
 
-    useLegacy : BoolProperty(
+    useLegacy = BoolProperty(
         name = "Legacy Bone Names",
         description = "Use root/hips rather than hip/pelvis",
         default = False
+    )
+
+class MHXConvertAction:
+    direction = EnumProperty(
+        items = [
+            ('MODERN', "Legacy => Modern", "Convert from legacy MHX (root/hips) to modern MHX (hip/pelvis)"),
+            ('LEGACY', "Modern => Legacy", "Convert from modern MHX (hip/pelvis) to legacy MHX (root/hips)"),
+        ],
+        name = "Direction",
+        default = 'MODERN'
     )
 
 #-------------------------------------------------------------
@@ -615,9 +625,6 @@ class Offset:
 #-------------------------------------------------------------
 #   hair.py
 #-------------------------------------------------------------
-#-------------------------------------------------------------
-#   hair.py
-#-------------------------------------------------------------
 
 class Hair:
     # Create
@@ -695,8 +702,15 @@ class Hair:
         size = 4,
         min = 0.0,
         max = 1.0,
-        default = (0.5, 0.05, 0.1, 1)
+        default = (0.2, 0.02, 0.01, 1)
     )
+
+    hairMaterialMethod = EnumProperty(
+        items = [('BSDF', "BSDF", "BSDF "),
+                 ('INTERNAL', "Internal", "Internal")],
+        name = "Hair Material Method",
+        description = "Type of hair material node tree",
+        default = 'BSDF')
 
     useRootTransparency = BoolProperty(
         name = "Root Transparency",

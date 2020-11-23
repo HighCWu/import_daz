@@ -712,6 +712,13 @@ class Hair:
         default = (0.2, 0.02, 0.01, 1)
     )
 
+    hairMaterialMethod : EnumProperty(
+        items = [('BSDF', "BSDF", "BSDF "),
+                 ('PRINCIPLED', "Principled", "Principled")],
+        name = "Hair Material Method",
+        description = "Type of hair material node tree",
+        default = 'BSDF')
+
     useRootTransparency : BoolProperty(
         name = "Root Transparency",
         description = "Add randomized transparency at the root of the strands",

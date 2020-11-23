@@ -1250,10 +1250,12 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazHandleRenderSettings")
         box.prop(scn, "DazHandleLightSettings")
         box.separator()
-        box.prop(scn, "DazRootTransparency")
         box.prop(scn, "DazUseDisplacement")
         box.prop(scn, "DazUseEmission")
         box.prop(scn, "DazUseReflection")
+        box.separator()
+        box.prop(scn, "DazHairMaterialMethod")
+        box.prop(scn, "DazRootTransparency")
         if bpy.app.version < (2,80,0):
             box.separator()
             box.prop(scn, "DazDiffuseShader")
@@ -1492,6 +1494,12 @@ def initialize():
         items = enums,
         name = "Material Method",
         description = "Type of material node tree",
+        default = 'BSDF')
+
+    bpy.types.Scene.DazHairMaterialMethod = EnumProperty(
+        items = enums,
+        name = "Hair Material Method",
+        description = "Type of hair material node tree",
         default = 'BSDF')
 
     bpy.types.Scene.DazChooseColors = EnumProperty(

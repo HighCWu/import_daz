@@ -79,6 +79,7 @@ class GlobalSettings:
         self.useEnvironment = True
         self.reuseMaterials = False
         self.useRootTransparency = False
+        self.hairMaterialMethod = 'BSDF'
         self.diffuseShader = 'OREN_NAYAR'
         self.specularShader = 'BLINN'
         self.diffuseRoughness = 0.3
@@ -112,6 +113,7 @@ class GlobalSettings:
         "DazCaseSensitivePaths" : "caseSensitivePaths",
 
         "DazMaterialMethod" : "materialMethod",
+        "DazHairMaterialMethod" : "hairMaterialMethod",
         "DazChooseColors" : "chooseColors",
         "DazMergeShells" : "mergeShells",
         "DazBrightenEyes" : "brightenEyes",
@@ -405,6 +407,7 @@ class LocalSettings:
 
         self.nViewChildren = 0
         self.nRenderChildren = 0
+        self.hairMaterialMethod = GS.hairMaterialMethod
         self.useRootTransparency = GS.useRootTransparency
         self.useSkullGroup = False
 

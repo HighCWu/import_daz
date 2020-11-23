@@ -72,7 +72,7 @@ class CyclesMaterial(Material):
         if bpy.app.version >= (2, 78, 0):
             if self.geometry and self.geometry.polylines:
                 from .hair import HairPBRTree, HairBSDFTree
-                if False and GS.materialMethod == 'PRINCIPLED':
+                if LS.hairMaterialMethod == 'PRINCIPLED':
                     return HairPBRTree(self)
                 else:
                     return HairBSDFTree(self)
@@ -1109,7 +1109,8 @@ class CyclesTree:
 
 
     def linkVector(self, texco, node, slot="Vector"):
-        if isinstance(texco, bpy.types.NodeSocketVector):
+        if (isinstance(texco, bpy.types.NodeSocketVector) or
+            isinstance(texco, bpy.types.NodeSocketFloat)):
             self.links.new(texco, node.inputs[slot])
             return
         if "Vector" in texco.outputs.keys():
