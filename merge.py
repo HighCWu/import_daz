@@ -782,19 +782,13 @@ def applyRestPoses(context, rig, subrigs):
                         constraints.append((cns,cns.mute))
                         cns.mute = True
                         applyLimitComp("min_x", "max_x", "use_limit_x", 0, cns, pb)
+                        applyLimitComp("min_y", "max_y", "use_limit_y", 1, cns, pb)
+                        applyLimitComp("min_z", "max_z", "use_limit_z", 2, cns, pb)
         return constraints
 
     def applyLimitComp(min, max, use, idx, cns, pb):
         x = pb.rotation_euler[idx]
         if getattr(cns, use):
-            xmin = getattr(cns, min)
-            if x < xmin:
-                x = pb.rotation_euler[idx] = xmin
-            xmin -= x
-            if abs(xmin) < 1e-4:
-                xmin = 0
-            setattr(cns, min, xmin)
-
             xmax = getattr(cns, max)
             if x > xmax:
                 x = pb.rotation_euler[idx] = xmax
@@ -802,6 +796,14 @@ def applyRestPoses(context, rig, subrigs):
             if abs(xmax) < 1e-4:
                 xmax = 0
             setattr(cns, max, xmax)
+
+            xmin = getattr(cns, min)
+            if x < xmin:
+                x = pb.rotation_euler[idx] = xmin
+            xmin -= x
+            if abs(xmin) < 1e-4:
+                xmin = 0
+            setattr(cns, min, xmin)
 
     LS.forAnimation(None, rig, context.scene)
     rigs = [rig] + subrigs
