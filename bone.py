@@ -387,7 +387,6 @@ class BoneInstance(Instance):
 
         return head,tail,orient,xyz,wsmat
 
-
     RX = Matrix.Rotation(pi/2, 4, 'X')
     FX = Matrix.Rotation(pi, 4, 'X')
     FZ = Matrix.Rotation(pi, 4, 'Z')
@@ -413,7 +412,9 @@ class BoneInstance(Instance):
                 head = d2b(head)
                 tail = d2b(tail)
                 length = (head-tail).length
-                omat = orient.to_matrix().to_4x4()
+                omat = orient.to_matrix()
+                self.lsmat = self.getLocalMatrix(wsmat, omat)
+                omat = omat.to_4x4()
                 if GS.zup:
                     omat = Mult2(self.RX, omat)
                 flip = self.FX
@@ -581,7 +582,7 @@ class BoneInstance(Instance):
         bone.DazOrient = self.attributes["orientation"]
 
         head,tail,orient,xyz,wsmat = self.getHeadTail(center)
-        head0,tail0,orient0,xyz0,wsmat = self.getHeadTail(center, False)
+        head0,tail0,orient0,xyz0,wsmat0 = self.getHeadTail(center, False)
         bone.DazHead = head
         bone.DazTail = tail
         bone.DazAngle = 0
@@ -822,22 +823,32 @@ class BoneInstance(Instance):
                 idx = self.axes[n]
                 pb.lock_rotation[idx] = lock
         if GS.useLimitRot and useLimits:
+            if self.lsmat:
+                restrot = -Vector(self.lsmat.to_euler(pb.DazRotMode))
+            else:
+                restrot = [0,0,0]
             cns = pb.constraints.new('LIMIT_ROTATION')
             cns.owner_space = 'LOCAL'
             for n,limit in enumerate(limits):
                 idx = self.axes[n]
                 if limit is not None:
                     mind, maxd = limit
+                    minr = mind*D - restrot[n]
+                    if abs(minr) < 1e-4:
+                        minr = 0
+                    maxr = maxd*D - restrot[n]
+                    if abs(maxr) < 1e-4:
+                        maxr = 0
                     if self.flipped[n]:
-                        tmp = mind
-                        mind = -maxd
-                        maxd = -tmp
+                        tmp = minr
+                        minr = -maxr
+                        maxr = -tmp
                     xyz = self.IndexComp[idx]
                     if self.test:
-                        print("LLL", pb.name, n, limit, self.flipped[n], mind, maxd)
+                        print("LLL", pb.name, n, limit, self.flipped[n], minr, maxr)
                     setattr(cns, "use_limit_%s" % xyz, True)
-                    setattr(cns, "min_%s" % xyz, mind*D)
-                    setattr(cns, "max_%s" % xyz, maxd*D)
+                    setattr(cns, "min_%s" % xyz, minr)
+                    setattr(cns, "max_%s" % xyz, maxr)
 
 
     def setLocationLockDaz(self, pb):

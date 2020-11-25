@@ -93,6 +93,8 @@ def getChannelIndex(key):
 
 class Instance(Accessor, Channels):
 
+    U3 = Matrix().to_3x3()
+
     def __init__(self, fileref, node, struct):
         from .asset import normalizeRef
 
@@ -140,6 +142,8 @@ class Instance(Accessor, Channels):
         node.materials = {}
         self.attributes = copyElements(node.attributes)
         self.restdata = None
+        self.wsmat = self.U3
+        self.lsmat = None
         node.clearTransforms()
 
 
@@ -438,6 +442,17 @@ class Instance(Accessor, Channels):
 
         setWorldMatrix(ob, self.worldmat)
         self.node.postTransform()
+
+
+    def getLocalMatrix(self, wsmat, orient):
+        # global_rotation = parent.global_rotation * orientation * rotation * (orientation)-1
+        if wsmat:
+            self.wsmat = wsmat
+            if self.parent:
+                lsmat = Mult2(self.parent.wsmat.inverted(), self.wsmat)
+            else:
+                lsmat = self.wsmat
+            return Mult3(orient.inverted(), lsmat, orient)
 
 
 def transformDuplis():
@@ -777,7 +792,7 @@ def getBoneMatrix(tfm, pb, test=False):
     wmat = Mult4(dmat, tfm.getRotMat(pb), tfm.getScaleMat(), dmat.inverted())
     wmat = Mult4(rmat.inverted(), tfm.getTransMat(), rmat, wmat)
     mat = Mult3(bmat.inverted(), wmat, bmat)
-    roundMatrix(mat)
+    roundMatrix(mat, 1e-4)
 
     if test:
         print("GGT", pb.name)
@@ -788,13 +803,6 @@ def getBoneMatrix(tfm, pb, test=False):
         print("W", wmat)
         print("M", mat)
     return mat
-
-
-def roundMatrix(mat):
-    for i in range(3):
-        for j in range(3):
-            if abs(mat[i][j]) < 1e-6:
-                mat[i][j] = 0
 
 
 def setBoneTransform(tfm, pb):
