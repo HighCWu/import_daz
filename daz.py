@@ -267,6 +267,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowCorrections", box):
+            box.operator("daz.apply_rest_pose")
             box.operator("daz.merge_rigs")
             box.operator("daz.eliminate_empties")
             box.operator("daz.merge_toes")
