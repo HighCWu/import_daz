@@ -777,6 +777,7 @@ def getBoneMatrix(tfm, pb, test=False):
     wmat = Mult4(dmat, tfm.getRotMat(pb), tfm.getScaleMat(), dmat.inverted())
     wmat = Mult4(rmat.inverted(), tfm.getTransMat(), rmat, wmat)
     mat = Mult3(bmat.inverted(), wmat, bmat)
+    roundMatrix(mat)
 
     if test:
         print("GGT", pb.name)
@@ -787,6 +788,13 @@ def getBoneMatrix(tfm, pb, test=False):
         print("W", wmat)
         print("M", mat)
     return mat
+
+
+def roundMatrix(mat):
+    for i in range(3):
+        for j in range(3):
+            if abs(mat[i][j]) < 1e-6:
+                mat[i][j] = 0
 
 
 def setBoneTransform(tfm, pb):
