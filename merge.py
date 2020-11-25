@@ -771,6 +771,38 @@ class DAZ_OT_ApplyRestPoses(DazOperator, IsArmature):
 
 
 def applyRestPoses(context, rig, subrigs):
+
+    def applyLimitConstraints(rig):
+        constraints = []
+        for pb in rig.pose.bones:
+            if pb.rotation_mode != 'QUATERNION':
+                x,y,z = pb.rotation_euler
+                for cns in pb.constraints:
+                    if cns.type == 'LIMIT_ROTATION':
+                        constraints.append((cns,cns.mute))
+                        cns.mute = True
+                        applyLimitComp("min_x", "max_x", "use_limit_x", 0, cns, pb)
+        return constraints
+
+    def applyLimitComp(min, max, use, idx, cns, pb):
+        x = pb.rotation_euler[idx]
+        if getattr(cns, use):
+            xmin = getattr(cns, min)
+            if x < xmin:
+                x = pb.rotation_euler[idx] = xmin
+            xmin -= x
+            if abs(xmin) < 1e-4:
+                xmin = 0
+            setattr(cns, min, xmin)
+
+            xmax = getattr(cns, max)
+            if x > xmax:
+                x = pb.rotation_euler[idx] = xmax
+            xmax -= x
+            if abs(xmax) < 1e-4:
+                xmax = 0
+            setattr(cns, max, xmax)
+
     LS.forAnimation(None, rig, context.scene)
     rigs = [rig] + subrigs
     for subrig in rigs:
@@ -779,10 +811,12 @@ def applyRestPoses(context, rig, subrigs):
                 setRestPose(ob, subrig, context)
         if not setActiveObject(context, subrig):
             continue
+        constraints = applyLimitConstraints(subrig)
         bpy.ops.object.mode_set(mode='POSE')
         bpy.ops.pose.armature_apply()
+        for cns,mute in constraints:
+            cns.mute = mute
     setActiveObject(context, rig)
-    bpy.ops.object.mode_set(mode='OBJECT')
 
 
 def setRestPose(ob, rig, context):
