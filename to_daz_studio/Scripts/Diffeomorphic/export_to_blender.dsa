@@ -19,8 +19,8 @@ function exportToBlender()
     
     var date1 = new Date();
     var time1 = date1.getTime(); 
-    fp = new DzGZFile( filepath );
-    debug( fp.baseName() );
+    var filepath0 = filepath + "0"
+    var fp = new DzFile( filepath0 );
     fp.open( fp.WriteOnly );
     
     fp.writeLine("{");
@@ -54,12 +54,25 @@ function exportToBlender()
     
     fp.writeLine("    ]");
     fp.writeLine("}" );
-
     fp.close();
+    
+    var fp1 = new DzGZFile( filepath );
+    var ok = fp1.zip(filepath0);
+    fp1.close();
+    if (ok) {
+    	fp.remove()
+    }
+    else {
+    	var oDir = fp.dir();
+    	oDir.move(filepath0, filepath)
+    }    	
+    
     var date2 = new Date();
     var time2 = date2.getTime(); 
-
-    msg = "File \"" + filepath + "\"\nsaved in " + (time2-time1)/1000 + " seconds.";
+    if (ok) 
+    	msg = "GZipped file \"" + filepath + "\"\nsaved in " + (time2-time1)/1000 + " seconds.";
+    else    	
+    	msg = "Text file \"" + filepath + "\"\nsaved in " + (time2-time1)/1000 + " seconds.";    	
     MessageBox.information( msg, appName, "&OK" );
 }
 
@@ -153,7 +166,6 @@ function doMesh (fp, obj, start, node, str1, str2)
     	doProperties(fp, node, "        ");
     	fp.writeLine("        },");
     	doMaterials(fp, shape);
-    	// doEdges(fp, geom);
     	doFaces(fp, geom);
     }
     doVerts(fp, geom);

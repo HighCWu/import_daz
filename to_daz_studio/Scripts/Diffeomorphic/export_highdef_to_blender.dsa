@@ -1,7 +1,7 @@
 // DAZ Studio Script
 
 var appName = "export_highdef_to_blender";
-var version = 0.7;
+var version = 0.8;
 
 function exportHighdefToBlender()
 {
@@ -19,8 +19,8 @@ function exportHighdefToBlender()
     
     var date1 = new Date();
     var time1 = date1.getTime(); 
-    fp = new DzGZFile( filepath );
-    debug( fp.baseName() );
+    var filepath0 = filepath + "0"
+    fp = new DzFile( filepath0 );
     fp.open( fp.WriteOnly );
     
     fp.writeLine("{");
@@ -54,12 +54,25 @@ function exportHighdefToBlender()
     
     fp.writeLine("    ]");
     fp.writeLine("}" );
-
     fp.close();
+
+    var fp1 = new DzGZFile( filepath );
+    var ok = fp1.zip(filepath0);
+    fp1.close();
+    if (ok) {
+    	fp.remove()
+    }
+    else {
+    	var oDir = fp.dir();
+    	var xx = oDir.move(filepath0, filepath)
+    }    	
+
     var date2 = new Date();
     var time2 = date2.getTime(); 
-
-    msg = "File \"" + filepath + "\"\nsaved in " + (time2-time1)/1000 + " seconds.";
+    if (ok) 
+    	msg = "GZipped file \"" + filepath + "\"\nsaved in " + (time2-time1)/1000 + " seconds.";
+    else    	
+    	msg = "Text file \"" + filepath + "\"\nsaved in " + (time2-time1)/1000 + " seconds.";
     MessageBox.information( msg, appName, "&OK" );
 }
 
@@ -132,9 +145,7 @@ function doMesh (fp, obj, start, node, str1, str2)
     var level = shape.getSubDDrawLevel();    
 
     if (start)
-    {
         startObject(fp, node);
-    }
 
     // Write HD data
     //obj.forceCacheUpdate(node,false);   
@@ -143,25 +154,33 @@ function doMesh (fp, obj, start, node, str1, str2)
     if (lodvalue > 0) 
     {
     	fp.writeLine("        \"subd level\": " + level + ",");
-    	writeVertices(geom, "hd ");
+    	doVertices(fp, geom, "hd ");
     	fp.writeLine("        ],");
-    	writeUVs(geom, "hd ");
-    	writeFaces(geom, "hd ");
-    	writeMaterialGroups(geom, "hd ");
+    	doUVs(fp, geom, "hd ");
+    	doFaces(fp, geom, "hd ");
+    	doMaterialGroups(fp, geom, "hd ");
     }
 
     // Turn off high resolution
     lodctrl.setValue(0);
     obj.forceCacheUpdate(node,false);   
-        
     var geom = obj.getCachedGeom();
     if (geom == null) {
         lodctrl.setValue(lodvalue);    
         return endMesh(fp, str1, str2);
     }
-    // writeMaterials(shape);
-    writeMaterialGroups(geom, "");
-    writeVertices(geom, "");   
+
+    if (clname == "DzStrandHairNode")    
+    {
+    	fp.writeLine("        \"node\": {");
+    	doProperties(fp, node, "        ");
+    	fp.writeLine("        },");
+    	doMaterials(fp, shape);
+    	doFaces(fp, geom, "");
+    }
+        
+    doMaterialGroups(fp, geom, "");
+    doVertices(fp, geom, "");   
     fp.writeLine(str1);
     fp.writeLine(str2);
     lodctrl.setValue(lodvalue);    
@@ -175,7 +194,7 @@ function endMesh(fp, str1, str2)
     return false;
 }
 
-function writeMaterials(shape)
+function doMaterials(fp, shape)
 {
     var nm = shape.getNumMaterials();
     fp.writeLine("        \"num materials\": " + nm + ",");
@@ -186,12 +205,34 @@ function writeMaterials(shape)
     {
         var mat = shape.getMaterial(i);
         if (i == nm-1) c = "";
-        fp.writeLine("            \"" + mat.name + "\"" + c);
+        fp.writeLine("           {")
+        doProperties(fp, mat, "           ")
+    	fp.writeLine("           }" + c);
     }    
     fp.writeLine("        ],");
 }
 
-function writeMaterialGroups(geom, hd)
+function doProperties(fp, mat, pad)
+{
+    var np = mat.getNumProperties();
+    var buf = (pad + "   \"name\": \"" + mat.name + "\",\n");
+    buf += (pad + "   \"num properties\": " + np + ",\n");
+    buf += (pad + "   \"properties\": {\n" );
+
+    var c = ","
+    for (var i = 0; i < np; i++)
+    {
+        var prop = mat.getProperty(i);
+        var value = prop.getValue();
+        if (i == np-1) c = "";
+        if (prop.isNumeric())
+            buf += (pad + "      \"" + prop.name + "\": " + value + c + "\n");
+    }    
+    buf += (pad + "   }");
+    fp.writeLine(buf);
+}
+
+function doMaterialGroups(fp, geom, hd)
 {
     var nm = geom.getNumMaterialGroups();
     fp.writeLine("        \"num " + hd + "material groups\": " + nm + ",");
@@ -207,7 +248,7 @@ function writeMaterialGroups(geom, hd)
     fp.writeLine("        ],");
 }
 
-function writeVertices(geom, hd)
+function doVertices(fp, geom, hd)
 {    
     var nv = geom.getNumVertices();
     var ne = geom.getNumEdges();
@@ -227,7 +268,7 @@ function writeVertices(geom, hd)
     fp.writeLine(buf);
 }
 
-function writeUVs(geom, hd)
+function doUVs(fp, geom, hd)
 {    
     var uvs = geom.getUVs();
     var nuv = uvs.getNumValues();
@@ -246,7 +287,7 @@ function writeUVs(geom, hd)
     fp.writeLine(buf);
 }
 
-function writeFaces(geom, hd)
+function doFaces(fp, geom, hd)
 {    
     var nf = geom.getNumFacets();
     var buf = ("        \"" + hd + "faces\": [\n" );    
