@@ -156,7 +156,7 @@ class Formula:
                 return False
             pb = None
         else:
-            bname1 = getTargetName(bname, rig.pose.bones)
+            bname1 = getTargetName(bname, rig)
             if bname1 is None:
                 reportError("Missing bone (evalFormula): %s" % bname, trigger=(2,3))
                 return False
@@ -651,7 +651,7 @@ class PropFormulas(PoseboneDriver):
     def getOthers(self, exprs, asset):
         from .bone import getTargetName
         for prop,expr in exprs.items():
-            bname = getTargetName(prop, self.rig.pose.bones)
+            bname = getTargetName(prop, self.rig)
             if bname is None:
                 if prop in self.built.keys() and self.built[prop]:
                     continue
@@ -671,7 +671,7 @@ class PropFormulas(PoseboneDriver):
         if level > 5:
             raise DazError("Recursion too deep")
         for prop,expr in exprs.items():
-            bname = getTargetName(prop, self.rig.pose.bones)
+            bname = getTargetName(prop, self.rig)
             if bname is None:
                 struct = expr["value"]
                 key = struct["prop"]
@@ -709,7 +709,7 @@ class PropFormulas(PoseboneDriver):
                     self.combineExpressions(sublist, prop, exprs, value1)
             else:
                 for bname,subexpr in subexprs.items():
-                    bname1 = getTargetName(bname, self.rig.pose.bones)
+                    bname1 = getTargetName(bname, self.rig)
                     if bname1 is not None:
                         self.addValue("translation", bname1, prop, exprs, subexpr, value1)
                         self.addValue("rotation", bname1, prop, exprs, subexpr, value1)
@@ -905,7 +905,7 @@ class PropFormulas(PoseboneDriver):
                 if dname in self.rig.pose.bones.keys():
                     bname = dname
 
-            bname = getTargetName(bname, self.rig.pose.bones)
+            bname = getTargetName(bname, self.rig)
             if bname is None:
                 continue
             self.taken[prop] = self.built[prop] = True

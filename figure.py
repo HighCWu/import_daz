@@ -412,6 +412,7 @@ def copyBoneInfo(srcpb, trgpb):
     trgpb.bone.DazAngle = srcpb.bone.DazAngle
     trgpb.bone.DazNormal = Vector(srcpb.bone.DazNormal)
     trgpb.DazRotMode = srcpb.DazRotMode
+    trgpb.DazAltName = srcpb.DazAltName
 
 
 class ExtraBones:

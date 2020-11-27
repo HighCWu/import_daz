@@ -299,14 +299,19 @@ Planes = {
 }
 
 
-def getTargetName(bname, targets):
+def getTargetName(bname, rig):
     bname = unquote(bname)
-    if bname in targets.keys():
+    if bname in rig.pose.bones.keys():
         return bname
+    altnames = dict([(pb.DazAltName, pb.name) for pb in rig.pose.bones])
+    if bname in altnames.keys():
+        return altnames[bname]
     elif (bname in BoneAlternatives.keys() and
-          BoneAlternatives[bname] in targets.keys()):
+          BoneAlternatives[bname] in rig.pose.bones.keys()):
         return BoneAlternatives[bname]
     else:
+        print("ALT", bname)
+        print("  ", altnames.keys())
         return None
 
 #-------------------------------------------------------------
@@ -328,7 +333,7 @@ class BoneInstance(Instance):
         node.translation = []
         node.rotation = []
         node.scale = []
-        self.name = self.node.getName()
+        self.name = self.node.name
         self.roll = 0.0
         self.useRoll = False
         self.axes = [0,1,2]
@@ -720,6 +725,8 @@ class BoneInstance(Instance):
             return
         pb = rig.pose.bones[node.name]
         self.rna = pb
+        if self.name != node.getName():
+            pb.DazAltName = node.getName()
         if isBoneDriven(rig, pb):
             pb.rotation_mode = self.getRotationMode(pb, True)
             pb.bone.layers = [False,True] + 30*[False]
@@ -727,7 +734,7 @@ class BoneInstance(Instance):
             pb.rotation_mode = self.getRotationMode(pb, False)
         pb.DazRotMode = self.rotation_order
 
-        tchildren = self.targetTransform(pb, node, targets)
+        tchildren = self.targetTransform(pb, node, targets, rig)
         if GS.orientMethod == 'BLENDER LEGACY' or GS.useLegacyLocks:
             self.setRotationLockLegacy(pb)
         else:
@@ -742,12 +749,12 @@ class BoneInstance(Instance):
                 child.buildPose(figure, inFace, tchildren, missing)
 
 
-    def targetTransform(self, pb, node, targets):
+    def targetTransform(self, pb, node, targets, rig):
         from .node import setBoneTransform
         if LS.fitFile:
             return {}
-        tname = getTargetName(node.name, targets)
-        if tname:
+        tname = getTargetName(node.name, rig)
+        if tname and tname in targets.keys():
             tinst = targets[tname]
             tfm = Transform(
                 trans = tinst.attributes["translation"],
