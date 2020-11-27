@@ -310,8 +310,6 @@ def getTargetName(bname, rig):
           BoneAlternatives[bname] in rig.pose.bones.keys()):
         return BoneAlternatives[bname]
     else:
-        print("ALT", bname)
-        print("  ", altnames.keys())
         return None
 
 #-------------------------------------------------------------
