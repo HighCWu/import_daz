@@ -64,7 +64,7 @@ function exportHighdefToBlender()
     }
     else {
     	var oDir = fp.dir();
-    	var xx = oDir.move(filepath0, filepath)
+    	oDir.move(filepath0, filepath)
     }    	
 
     var date2 = new Date();

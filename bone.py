@@ -300,7 +300,7 @@ Planes = {
 
 
 def getTargetName(bname, targets):
-    bname = bname.replace("%20", " ")
+    bname = unquote(bname)
     if bname in targets.keys():
         return bname
     elif (bname in BoneAlternatives.keys() and
@@ -328,7 +328,7 @@ class BoneInstance(Instance):
         node.translation = []
         node.rotation = []
         node.scale = []
-        self.name = self.node.name
+        self.name = self.node.getName()
         self.roll = 0.0
         self.useRoll = False
         self.axes = [0,1,2]
@@ -714,7 +714,6 @@ class BoneInstance(Instance):
 
     def buildPose(self, figure, inFace, targets, missing):
         from .driver import isBoneDriven
-
         node = self.node
         rig = figure.rna
         if node.name not in rig.pose.bones.keys():

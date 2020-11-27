@@ -29,6 +29,7 @@ import bpy
 import math
 from mathutils import Vector
 from .settings import GS, LS
+from urllib.parse import unquote
 
 #-------------------------------------------------------------
 #   Blender 2.8 compatibility
@@ -362,11 +363,6 @@ def updateDrivers(ob):
         for fcu in ob.animation_data.drivers:
             string = str(fcu.driver.expression)
             fcu.driver.expression = string
-
-
-def getName(string):
-    from .asset import normalizePath
-    return normalizePath(string.split("#")[-1])
 
 
 def instRef(ref):

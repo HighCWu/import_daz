@@ -257,10 +257,9 @@ class ChannelAsset(Modifier):
 
 
     def setupProp(self, morphset, rig, usePropDrivers):
-        from .asset import normalizePath
         self.morphset = morphset
         self.rig = rig
-        self.prop = normalizePath(self.id.rsplit("#",2)[-1])
+        self.prop = unquote(self.id.rsplit("#",2)[-1])
         lname = self.name.lower()
         if lname in rig.DazPropNames.keys():
             pg = rig.DazPropNames[lname]
@@ -734,7 +733,7 @@ class Morph(FormulaAsset):
             basic = ob.shape_key_add(name="Basic")
         else:
             basic = ob.data.shape_keys.key_blocks[0]
-        sname = getName(self.id)
+        sname = self.getName()
         addToMorphSet(ob.parent, ob, morphset, sname, usePropDrivers, self)
         if sname in ob.data.shape_keys.key_blocks.keys():
             skey = ob.data.shape_keys.key_blocks[sname]

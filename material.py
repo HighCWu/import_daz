@@ -49,8 +49,7 @@ BLACK = Vector((0.0,0.0,0.0))
 #-------------------------------------------------------------
 
 def getMatKey(id):
-    from .asset import normalizePath
-    id = normalizePath(id)
+    id = unquote(id)
     key = id.split("#")[-1]
     words = key.rsplit("-",1)
     if (len(words) == 2 and
@@ -144,7 +143,6 @@ class Material(Asset, Channels):
 
 
     def build(self, context):
-        from .asset import normalizePath
         from .geometry import Geometry
         if self.dontBuild():
             return

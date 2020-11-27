@@ -765,6 +765,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
 
 
     def getRigKey(self, key, rig, missing):
+        key = unquote(key)
         if key in rig.keys():
             return key
         elif rig.DazPropNames:

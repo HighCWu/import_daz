@@ -27,7 +27,6 @@
 
 
 import os
-#from urllib.parse import quote, unquote
 import json
 import gzip
 import copy
@@ -119,7 +118,7 @@ class Accessor:
             except KeyError:
                 pass
         else:
-            msg = ("Cannot open file:\n '%s'            " % normalizePath(fileref))
+            msg = ("Cannot open file:\n '%s'            " % unquote(fileref))
             reportError(msg, warnPaths=True, trigger=(3,4))
             return None
 
@@ -265,17 +264,8 @@ class Asset(Accessor):
     def getName(self):
         if self.id is None:
             return "None"
-        words = os.path.splitext(os.path.basename(self.id))
-        if len(words) == 2:
-            base,ext = words
         else:
-            base,ext = words[0],None
-        string = base
-        if ext:
-            words = ext.split("#")
-            if len(words) > 1:
-                string = words[-1]
-        return getName(string)
+            return unquote(self.id.rsplit("#",1)[-1])
 
 
     def copySource(self, asset):
@@ -539,15 +529,10 @@ def fixBrokenPath(path):
     return check
 
 
-def normalizePath(ref):
-    from urllib.parse import unquote
-    return unquote(ref)
-
-
 def getRelativeRef(ref):
     global theDazPaths
 
-    path = normalizePath(ref)
+    path = unquote(ref)
     for dazpath in theDazPaths:
         n = len(dazpath)
         if path[0:n].lower() == dazpath.lower():
@@ -559,7 +544,7 @@ def getRelativeRef(ref):
 def getDazPath(ref):
     global theDazPaths
 
-    path = normalizePath(ref)
+    path = unquote(ref)
     filepath = path
     if path[2] == ":":
         filepath = path[1:]

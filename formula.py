@@ -190,7 +190,7 @@ class Formula:
         if "url" not in struct.keys():
             return False
         prop,type = struct["url"].split("#")[-1].split("?")
-        prop = prop.replace("%20", " ")
+        prop = unquote(prop)
         path,comp,default = parseChannel(type)
         if type == "value":
             if props is None:

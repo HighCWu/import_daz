@@ -756,7 +756,7 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
     @classmethod
     def poll(self, context):
         ob = context.object
-        if ob and ob.DazMesh:
+        if ob:
             if ob.type == 'MESH' and ob.parent:
                 ob = ob.parent
             return ob.DazCustomMorphs

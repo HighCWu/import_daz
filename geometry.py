@@ -630,18 +630,18 @@ class Geometry(Asset, Channels):
 
 
     def findUvSet(self, uv, url):
-        from .asset import getDazPath, normalizePath, getRelativeRef
+        from .asset import getDazPath, unquote, getRelativeRef
         from .transfer import findFileRecursive
         folder = getDazPath(os.path.dirname(url) + "/UV Sets")
         file = ("%s.dsf" % uv)
         if folder:
             file = findFileRecursive(folder, file)
             if file:
-                url = normalizePath("%s#%s" % (file, uv))
+                url = unquote("%s#%s" % (file, uv))
                 url = getRelativeRef(url)
                 asset = self.getAsset(url)
                 if asset:
-                    print("Found UV set '%s' in '%s'" % (uv, normalizePath(url)))
+                    print("Found UV set '%s' in '%s'" % (uv, unquote(url)))
                     self.uv_sets[uv] = asset
                 return asset
         return None

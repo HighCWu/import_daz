@@ -692,7 +692,6 @@ class Node(Asset, Formula, Channels):
 
 
     def arrangeObject(self, ob, inst, context, center):
-        from .asset import normalizePath
         blenderRotMode = {
             'XYZ' : 'XZY',
             'XZY' : 'XYZ',
@@ -708,7 +707,7 @@ class Node(Asset, Formula, Channels):
         if bpy.app.version < (2,80,0):
             context.scene.objects.link(ob)
         ob.DazId = self.id
-        ob.DazUrl = normalizePath(self.url)
+        ob.DazUrl = unquote(self.url)
         ob.DazScene = LS.scene
         ob.DazScale = LS.scale
         ob.DazOrient = inst.attributes["orientation"]
