@@ -504,6 +504,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         box = layout.box()
         if showBox(scn, "DazShowHair", box):
             from .hair import getHairAndHuman
+            box.operator("daz.print_statistics")
+            box.operator("daz.select_strands_by_size")
             box.operator("daz.select_random_strands")
             box.separator()
             box.operator("daz.make_hair")
@@ -611,7 +613,7 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.separator()
         layout.operator("daz.rotate_bones")
 
-        return
+        #return
 
         layout.separator()
         layout.operator("daz.save_current_pose")

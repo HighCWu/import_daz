@@ -89,7 +89,8 @@ def getBoneCopy(bname, model, rpbs):
     pb = rpbs[bname]
     pb.DazRotMode = model.DazRotMode
     pb.rotation_mode = model.rotation_mode
-    pb.DazAltName = model.DazAltName
+    if "DazAltName" in model.keys():
+        pb.DazAltName = model.DazAltName
     return pb
 
 

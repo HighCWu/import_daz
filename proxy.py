@@ -32,6 +32,7 @@ from mathutils import Vector
 from .error import *
 from .tables import *
 from .utils import *
+from .morphing import Selector
 
 #-------------------------------------------------------------
 #   Make proxy
@@ -256,6 +257,21 @@ class Proxifier:
         for cn1 in cnums:
             self.refs[cn1] = cn
         return cn
+
+
+    def getComponents(self, ob, context):
+        deselectEverything(ob, context)
+        self.faceverts, self.vertfaces = getVertFaces(ob)
+        self.neighbors = findNeighbors(range(self.nfaces), self.faceverts, self.vertfaces)
+        comps,taken = self.getConnectedComponents()
+        return comps
+
+
+    def selectComp(self, comp, ob):
+        for fn in comp:
+            f = ob.data.polygons[fn]
+            if not f.hide:
+                f.select = True
 
 
     def getNodes(self):
@@ -643,23 +659,6 @@ class Proxifier:
                     n += 1
                     mat.diffuse_color[0:3] = (r/2, g/2, b/2)
                     me.materials.append(mat)
-
-
-    def selectRandomComponents(self, context, fraction):
-        import random
-        ob = context.object
-        scn = context.scene
-        deselectEverything(ob, context)
-        self.faceverts, self.vertfaces = getVertFaces(ob)
-        self.neighbors = findNeighbors(range(self.nfaces), self.faceverts, self.vertfaces)
-        comps,taken = self.getConnectedComponents()
-        for comp in comps.values():
-            if random.random() > fraction:
-                for fn in comp:
-                    f = ob.data.polygons[fn]
-                    if not f.hide:
-                        f.select = True
-        bpy.ops.object.mode_set(mode='EDIT')
 
 
 def getUvData(ob):
@@ -1067,9 +1066,61 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
     def draw(self, context):
         self.layout.prop(self, "fraction")
 
+
     def run(self, context):
+        import random
         ob = context.object
-        Proxifier(ob).selectRandomComponents(context, self.fraction)
+        prox = Proxifier(ob)
+        comps = prox.getComponents(ob, context)
+        for comp in comps.values():
+            if random.random() > self.fraction:
+                prox.selectComp(comp, ob)
+
+
+    def sequel(self, context):
+        DazPropsOperator.sequel(self, context)
+        if context.object:
+            bpy.ops.object.mode_set(mode='EDIT')
+
+#-------------------------------------------------------------
+#   Select largest strands
+#-------------------------------------------------------------
+
+class DAZ_OT_SelectStrandsBySize(DazOperator, IsMesh, Selector):
+    bl_idname = "daz.select_strands_by_size"
+    bl_label = "Select Strands By Size"
+    bl_description = ("Select strands based on the number of faces.\n" +
+                      "Useful for reducing the number of strands before making particle hair")
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        Selector.draw(self, context)
+
+    def run(self, context):
+        scn = context.scene
+        ob = context.object
+        prox = Proxifier(ob)
+        for item in self.getSelectedItems(scn):
+            for comp in self.groups[int(item.name)]:
+                prox.selectComp(comp, ob)
+
+
+    def getKeys(self, rig, ob):
+        prox = Proxifier(ob)
+        comps = prox.getComponents(ob, bpy.context)
+        self.groups = dict([(len(comp),[]) for comp in comps.values()])
+        for comp in comps.values():
+            self.groups[len(comp)].append(comp)
+        sizes = list(self.groups.keys())
+        sizes.sort()
+        keys = [(str(size), str(size), "All") for size in sizes]
+        return keys
+
+
+    def invoke(self, context, event):
+        ob = context.object
+        return Selector.invoke(self, context, event)
+
 
     def sequel(self, context):
         DazPropsOperator.sequel(self, context)
@@ -1512,6 +1563,7 @@ classes = [
     DAZ_OT_SplitNgons,
     DAZ_OT_FindSeams,
     DAZ_OT_SelectRandomStrands,
+    DAZ_OT_SelectStrandsBySize,
     DAZ_OT_ApplyMorphs,
     DAZ_OT_ApplySubsurf,
     DAZ_OT_PrintStatistics,
