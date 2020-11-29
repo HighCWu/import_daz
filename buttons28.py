@@ -644,10 +644,14 @@ class Hair:
         description = "Mesh hair strand type",
         default = 'SHEET')
 
-    invertUVs : BoolProperty(
-        name = "Invert UV coordinates",
-        default = False,
-        description = "Use if strands are oriented bottom-up instead of top-down in UV space"
+    strandOrientation : EnumProperty(
+        items = [('TOP', "Top-Down", "Top-Down"),
+                 ('BOTTOM', "Bottom-Up", "Bottom-Up"),
+                 ('LEFT', "Left-Right", "Left-Right"),
+                 ('RIGHT', "Right-Left", "Right-Left")],
+        name = "Strand Orientation",
+        default = 'TOP',
+        description = "How the strands are oriented in UV space"
     )
 
     sparsity : IntProperty(
