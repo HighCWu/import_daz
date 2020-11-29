@@ -591,8 +591,8 @@ class UseCollectionsBool:
 
 class FractionFloat:
     fraction : FloatProperty(
-        name = "Keep Fraction",
-        description = "Fraction of strands to keep",
+        name = "Fraction",
+        description = "Fraction of strands to select",
         min = 0.0, max = 1.0,
         default = 0.5)
 
@@ -643,6 +643,12 @@ class Hair:
         name = "Strand Type",
         description = "Mesh hair strand type",
         default = 'SHEET')
+
+    invertUVs : BoolProperty(
+        name = "Invert UV coordinates",
+        default = False,
+        description = "Use if strands are oriented bottom-up instead of top-down in UV space"
+    )
 
     sparsity : IntProperty(
         name = "Sparsity",

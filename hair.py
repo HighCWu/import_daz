@@ -442,6 +442,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         box = col.box()
         box.label(text="Create")
         box.prop(self, "strandType", expand=True)
+        box.prop(self, "invertUVs")
         box.separator()
         box.prop(self, "resizeHair")
         box.prop(self, "size")
@@ -723,6 +724,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
                 uvcenters[fn] = (uvs[m].uv+uvs[m+1].uv+uvs[m+2].uv)/4
                 m += 3
             f.select = False
+        if self.invertUVs:
+            uvcenters = dict([(fn,-uvc) for fn,uvc in uvcenters.items()])
         return centers, uvcenters
 
     #-------------------------------------------------------------

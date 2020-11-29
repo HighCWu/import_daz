@@ -1073,7 +1073,7 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
         prox = Proxifier(ob)
         comps = prox.getComponents(ob, context)
         for comp in comps.values():
-            if random.random() > self.fraction:
+            if random.random() < self.fraction:
                 prox.selectComp(comp, ob)
 
 
