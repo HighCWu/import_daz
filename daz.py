@@ -350,15 +350,15 @@ class DAZ_PT_Setup(bpy.types.Panel):
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.make_udim_materials")
             box.operator("daz.merge_uv_layers")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowRigging", box):
+            box.separator()
             box.operator("daz.make_all_bones_posable")
             box.operator("daz.optimize_pose")
             box.operator("daz.apply_rest_pose")
             box.operator("daz.connect_ik_chains")
-            box.separator()
+
+        layout.separator()
+        box = layout.box()
+        if showBox(scn, "DazShowRigging", box):
             box.operator("daz.add_custom_shapes")
             box.operator("daz.add_simple_ik")
             box.separator()
