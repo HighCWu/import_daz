@@ -116,20 +116,6 @@ def extendFcurves(rig, frame0, frame1):
                 fcu.keyframe_points.insert(frame, value, options={'FAST'})
 
 
-def addTransform(node, channel, bones, key):
-    if channel in node.keys():
-        if key not in bones.keys():
-            bone = bones[key] = {}
-        else:
-            bone = bones[key]
-        if channel not in bone.keys():
-            bone[channel] = {}
-        for struct in node[channel]:
-            comp = struct["id"]
-            value = struct["current_value"]
-            bone[channel][getIndex(comp)] = [[0, value]]
-
-
 def getChannel(url):
     words = url.split(":")
     if len(words) == 2:
@@ -401,7 +387,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
             raise DazError("Wrong type of file: %s" % filepath)
         if "scene" not in struct.keys():
             return offset
-        animations = self.parseAnimation(struct["scene"])
+        animations = self.parseScene(struct["scene"])
         rig = context.object
         if rig.type == 'ARMATURE':
             bpy.ops.object.mode_set(mode='POSE')
@@ -475,60 +461,55 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
             return True
 
 
-    def parseAnimation(self, struct):
+    def parseScene(self, struct):
         animations = []
         bones = {}
         values = {}
         animations.append((bones, values))
-
-        if self.loadType == 'NODES':
-            if "nodes" in struct.keys():
-                for node in struct["nodes"]:
-                    key = node["id"]
-                    addTransform(node, "translation", bones, key)
-                    addTransform(node, "rotation", bones, key)
-            elif self.verbose:
-                print("No nodes in this file")
-
-        elif self.loadType in ['POSES', 'ANIMATIONS']:
-            if "animations" in struct.keys():
-                for anim in struct["animations"]:
-                    if "url" in anim.keys():
-                        key,channel,comp = getChannel(anim["url"])
-                        if channel is None:
-                            continue
-                        elif channel == "value":
-                            if self.affectMorphs:
-                                values[key] = getAnimKeys(anim)
-                        elif channel in ["translation", "rotation", "scale"]:
-                            if key not in bones.keys():
-                                bone = bones[key] = {
-                                    "translation" : {},
-                                    "rotation" : {},
-                                    "scale" : {},
-                                    "general_scale" : {},
-                                    }
-                            idx = getIndex(comp)
-                            if idx >= 0:
-                                bones[key][channel][idx] = getAnimKeys(anim)
-                            else:
-                                bones[key]["general_scale"][0] = getAnimKeys(anim)
-                        else:
-                            print("Unknown channel:", channel)
-
-            elif "extra" in struct.keys():
-                for extra in struct["extra"]:
-                    if extra["type"] == "studio/scene_data/aniMate":
-                        msg = ("Animation with aniblocks.\n" +
-                               "In aniMate Lite tab, right-click         \n" +
-                               "and Bake To Studio Keyframes.")
-                        print(msg)
-                        raise DazError(msg)
-
-            elif self.verbose:
-                print("No animations in this file")
-
+        self.parseNodes(struct, bones)
+        self.parseAnimations(struct, bones, values)
         return animations
+
+
+    def parseNodes(self, struct, bones):
+        pass
+
+
+    def parseAnimations(self, struct, bones, values):
+        if "animations" in struct.keys():
+            for anim in struct["animations"]:
+                if "url" in anim.keys():
+                    key,channel,comp = getChannel(anim["url"])
+                    if channel is None:
+                        continue
+                    elif channel == "value":
+                        if self.affectMorphs:
+                            values[key] = getAnimKeys(anim)
+                    elif channel in ["translation", "rotation", "scale"]:
+                        if key not in bones.keys():
+                            bone = bones[key] = {
+                                "translation" : {},
+                                "rotation" : {},
+                                "scale" : {},
+                                "general_scale" : {},
+                                }
+                        idx = getIndex(comp)
+                        if idx >= 0:
+                            bones[key][channel][idx] = getAnimKeys(anim)
+                        else:
+                            bones[key]["general_scale"][0] = getAnimKeys(anim)
+                    else:
+                        print("Unknown channel:", channel)
+        elif "extra" in struct.keys():
+            for extra in struct["extra"]:
+                if extra["type"] == "studio/scene_data/aniMate":
+                    msg = ("Animation with aniblocks.\n" +
+                           "In aniMate Lite tab, right-click         \n" +
+                           "and Bake To Studio Keyframes.")
+                    print(msg)
+                    raise DazError(msg)
+        elif self.verbose:
+            print("No animations in this file")
 
 
     def isAvailable(self, pb, rig):
@@ -1124,6 +1105,36 @@ class DAZ_OT_ImportNodePose(HideOperator, AnimatorBase, StandardAnimation):
 
     def run(self, context):
         StandardAnimation.run(self, context)
+
+
+    def parseNodes(self, struct, bones):
+        if "nodes" in struct.keys():
+            for node in struct["nodes"]:
+                key = node["id"]
+                self.addTransform(node, "translation", bones, key)
+                self.addTransform(node, "rotation", bones, key)
+                self.addTransform(node, "scale", bones, key)
+                self.addTransform(node, "general_scale", bones, key)
+        elif self.verbose:
+            print("No nodes in this file")
+
+
+    def parseAnimations(self, struct, bones, values):
+        pass
+
+
+    def addTransform(self, node, channel, bones, key):
+        if channel in node.keys():
+            if key not in bones.keys():
+                bone = bones[key] = {}
+            else:
+                bone = bones[key]
+            if channel not in bone.keys():
+                bone[channel] = {}
+            for struct in node[channel]:
+                comp = struct["id"]
+                value = struct["current_value"]
+                bone[channel][getIndex(comp)] = [[0, value]]
 
 #-------------------------------------------------------------
 #   Save current frame
