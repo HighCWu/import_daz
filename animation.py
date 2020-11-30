@@ -371,6 +371,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         layout.prop(self, "affectBones")
         if self.affectBones:
             layout.prop(self, "affectSelectedOnly")
+            layout.prop(self, "affectDrivenBones")
         layout.label(text="Object Transformations Affect:")
         layout.prop(self, "affectObject", expand=True)
         layout.prop(self, "affectMorphs")
@@ -533,8 +534,12 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
     def isAvailable(self, pb, rig):
         if self.affectSelectedOnly:
             return pb.bone.select
-        if (pb.name == self.getMasterBone(rig) and
-            self.affectObject != 'MASTER'):
+        elif (pb.parent and
+              pb.parent.name[-3:] == "Drv" and
+              not self.affectDrivenBones):
+            return False
+        elif (pb.name == self.getMasterBone(rig) and
+              self.affectObject != 'MASTER'):
             return False
         else:
             return True
