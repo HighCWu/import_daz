@@ -367,6 +367,8 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.rigify_daz")
             box.operator("daz.create_meta")
             box.operator("daz.rigify_meta")
+            box.separator()
+            box.operator("daz.add_mannequin")
 
 
     def showBox(self, layout, scn, ob, type):
@@ -456,8 +458,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.copy_bones")
             box.operator("daz.copy_poses")
             #box.operator("daz.reparent_toes")
-            box.separator()
-            box.operator("daz.add_mannequin")
             box.separator()
             box.operator("daz.add_ik_goals")
             box.operator("daz.add_winder")
