@@ -106,12 +106,14 @@ class WorldMaterial(CyclesMaterial):
     def build(self, context):
         if self.dontBuild():
             return
+        mode = self.getValue(["Environment Mode"], None)
+        # [Dome and Scene, Dome Only, Sun-Skies Only, Scene Only]
+        if mode is None:
+            return
+
         self.refractive = False
         Material.build(self, context)
         self.tree = WorldTree(self)
-
-        mode = self.getValue(["Environment Mode"], 0)
-        # [Dome and Scene, Dome Only, Sun-Skies Only, Scene Only]
 
         self.envmap = self.getChannel(["Environment Map"])
         fixray = False
