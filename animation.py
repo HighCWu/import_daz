@@ -1014,6 +1014,9 @@ class StandardAnimation:
                 bone.select = (bone.name in select)
         return selected
 
+#-------------------------------------------------------------
+#   Import Action
+#-------------------------------------------------------------
 
 class DAZ_OT_ImportAction(HideOperator, B.ActionOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_action"
@@ -1044,6 +1047,9 @@ class DAZ_OT_ImportAction(HideOperator, B.ActionOptions, AnimatorBase, StandardA
     def run(self, context):
         StandardAnimation.run(self, context)
 
+#-------------------------------------------------------------
+#   Import Poselib
+#-------------------------------------------------------------
 
 class DAZ_OT_ImportPoseLib(HideOperator, B.PoseLibOptions, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_poselib"
@@ -1072,6 +1078,9 @@ class DAZ_OT_ImportPoseLib(HideOperator, B.PoseLibOptions, AnimatorBase, Standar
     def run(self, context):
         StandardAnimation.run(self, context)
 
+#-------------------------------------------------------------
+#   Import Single Pose
+#-------------------------------------------------------------
 
 class DAZ_OT_ImportSinglePose(HideOperator, AnimatorBase, StandardAnimation):
     bl_idname = "daz.import_single_pose"
@@ -1090,18 +1099,26 @@ class DAZ_OT_ImportSinglePose(HideOperator, AnimatorBase, StandardAnimation):
     def run(self, context):
         StandardAnimation.run(self, context)
 
+#-------------------------------------------------------------
+#   Import Node Pose
+#-------------------------------------------------------------
 
-def getCommonStart(seq):
-    if not seq:
-        return ""
-    s1, s2 = min(seq), max(seq)
-    l = min(len(s1), len(s2))
-    if l == 0 :
-        return ""
-    for i in range(l) :
-        if s1[i] != s2[i] :
-            return s1[0:i]
-    return s1[0:l]
+class DAZ_OT_ImportNodePose(HideOperator, AnimatorBase, StandardAnimation):
+    bl_idname = "daz.import_node_pose"
+    bl_label = "Import Node Pose"
+    bl_description = "Import a node pose from native DAZ file(s) (*.duf, *.dsf)"
+    bl_options = {'UNDO'}
+
+    loadType = 'NODES'
+    verbose = False
+    useAction = False
+    usePoseLib = False
+    atFrameOne = False
+    firstFrame = -1000
+    lastFrame = 1000
+
+    def run(self, context):
+        StandardAnimation.run(self, context)
 
 #-------------------------------------------------------------
 #   Save current frame
@@ -1271,6 +1288,7 @@ classes = [
     DAZ_OT_ImportAction,
     DAZ_OT_ImportPoseLib,
     DAZ_OT_ImportSinglePose,
+    DAZ_OT_ImportNodePose,
     DAZ_OT_SaveCurrentFrame,
     DAZ_OT_RestoreCurrentFrame,
     DAZ_OT_ClearPose,

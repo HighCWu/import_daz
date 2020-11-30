@@ -86,7 +86,7 @@ class ObjectSelection:
                 not getHideViewport(ob)):
                 pg = pgs.add()
                 pg.text = ob.name
-                pg.select = True
+                pg.select = False
         return DazPropsOperator.invoke(self, context, event)
 
 #------------------------------------------------------------------------

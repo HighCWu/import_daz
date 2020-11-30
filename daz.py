@@ -595,6 +595,7 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.import_single_pose")
         layout.operator("daz.import_poselib")
         layout.operator("daz.import_action")
+        layout.operator("daz.import_node_pose")
         layout.separator()
         layout.operator("daz.clear_pose")
         layout.separator()
