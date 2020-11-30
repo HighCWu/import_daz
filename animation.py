@@ -466,13 +466,8 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         bones = {}
         values = {}
         animations.append((bones, values))
-        self.parseNodes(struct, bones)
         self.parseAnimations(struct, bones, values)
         return animations
-
-
-    def parseNodes(self, struct, bones):
-        pass
 
 
     def parseAnimations(self, struct, bones, values):
@@ -1001,113 +996,11 @@ class StandardAnimation:
         return selected
 
 #-------------------------------------------------------------
-#   Import Action
-#-------------------------------------------------------------
-
-class DAZ_OT_ImportAction(HideOperator, B.ActionOptions, AnimatorBase, StandardAnimation):
-    bl_idname = "daz.import_action"
-    bl_label = "Import Action"
-    bl_description = "Import poses from native DAZ file(s) (*.duf, *.dsf) to action"
-    bl_options = {'UNDO'}
-
-    loadType = 'ANIMATIONS'
-    verbose = False
-    useAction = True
-    usePoseLib = False
-    useTranslations = True
-    useRotations = True
-    useScale = True
-    useGeneral = True
-
-    def draw(self, context):
-        AnimatorBase.draw(self, context)
-        self.layout.separator()
-        self.layout.prop(self, "makeNewAction")
-        self.layout.prop(self, "actionName")
-        self.layout.prop(self, "fps")
-        self.layout.prop(self, "integerFrames")
-        self.layout.prop(self, "atFrameOne")
-        self.layout.prop(self, "firstFrame")
-        self.layout.prop(self, "lastFrame")
-
-    def run(self, context):
-        StandardAnimation.run(self, context)
-
-#-------------------------------------------------------------
-#   Import Poselib
-#-------------------------------------------------------------
-
-class DAZ_OT_ImportPoseLib(HideOperator, B.PoseLibOptions, AnimatorBase, StandardAnimation):
-    bl_idname = "daz.import_poselib"
-    bl_label = "Import Pose Library"
-    bl_description = "Import poses from native DAZ file(s) (*.duf, *.dsf) to pose library"
-    bl_options = {'UNDO'}
-
-    loadType = 'POSES'
-    verbose = False
-    useAction = False
-    usePoseLib = True
-    useTranslations = True
-    useRotations = True
-    useScale = True
-    useGeneral = True
-    atFrameOne = False
-    firstFrame = -1000
-    lastFrame = 1000
-
-    def draw(self, context):
-        AnimatorBase.draw(self, context)
-        self.layout.separator()
-        self.layout.prop(self, "makeNewPoseLib")
-        self.layout.prop(self, "poseLibName")
-
-    def run(self, context):
-        StandardAnimation.run(self, context)
-
-#-------------------------------------------------------------
-#   Import Single Pose
-#-------------------------------------------------------------
-
-class DAZ_OT_ImportSinglePose(HideOperator, AnimatorBase, StandardAnimation):
-    bl_idname = "daz.import_single_pose"
-    bl_label = "Import Pose"
-    bl_description = "Import a pose from native DAZ file(s) (*.duf, *.dsf)"
-    bl_options = {'UNDO'}
-
-    loadType = 'POSES'
-    verbose = False
-    useAction = False
-    usePoseLib = False
-    atFrameOne = False
-    firstFrame = -1000
-    lastFrame = 1000
-
-    def run(self, context):
-        StandardAnimation.run(self, context)
-
-#-------------------------------------------------------------
 #   Import Node Pose
 #-------------------------------------------------------------
 
-class DAZ_OT_ImportNodePose(HideOperator, AnimatorBase, StandardAnimation):
-    bl_idname = "daz.import_node_pose"
-    bl_label = "Import Node Pose"
-    bl_description = "Import a node pose from native DAZ file(s) (*.duf, *.dsf)"
-    bl_options = {'UNDO'}
-
-    loadType = 'NODES'
-    verbose = False
-    useAction = False
-    usePoseLib = False
-    atFrameOne = False
-    firstFrame = -1000
-    lastFrame = 1000
-
-    def run(self, context):
-        StandardAnimation.run(self, context)
-
-
-    def parseNodes(self, struct, bones):
+class NodePose:
+    def parseAnimations(self, struct, bones, values):
         if "nodes" in struct.keys():
             for node in struct["nodes"]:
                 key = node["id"]
@@ -1117,10 +1010,6 @@ class DAZ_OT_ImportNodePose(HideOperator, AnimatorBase, StandardAnimation):
                 self.addTransform(node, "general_scale", bones, key)
         elif self.verbose:
             print("No nodes in this file")
-
-
-    def parseAnimations(self, struct, bones, values):
-        pass
 
 
     def addTransform(self, node, channel, bones, key):
@@ -1135,6 +1024,125 @@ class DAZ_OT_ImportNodePose(HideOperator, AnimatorBase, StandardAnimation):
                 comp = struct["id"]
                 value = struct["current_value"]
                 bone[channel][getIndex(comp)] = [[0, value]]
+
+#-------------------------------------------------------------
+#   Import Action
+#-------------------------------------------------------------
+
+class ActionBase(B.ActionOptions, AnimatorBase):
+    verbose = False
+    useAction = True
+    usePoseLib = False
+
+    def draw(self, context):
+        AnimatorBase.draw(self, context)
+        self.layout.separator()
+        self.layout.prop(self, "makeNewAction")
+        self.layout.prop(self, "actionName")
+        self.layout.prop(self, "fps")
+        self.layout.prop(self, "integerFrames")
+        self.layout.prop(self, "atFrameOne")
+        self.layout.prop(self, "firstFrame")
+        self.layout.prop(self, "lastFrame")
+
+
+class DAZ_OT_ImportAction(HideOperator, ActionBase, StandardAnimation):
+    bl_idname = "daz.import_action"
+    bl_label = "Import Action"
+    bl_description = "Import poses from DAZ pose preset file(s) to action"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        StandardAnimation.run(self, context)
+
+
+class DAZ_OT_ImportNodeAction(HideOperator, NodePose, ActionBase, StandardAnimation):
+    bl_idname = "daz.import_node_action"
+    bl_label = "Import Action From Scene"
+    bl_description = "Import poses from DAZ scene file(s) (not pose preset files) to action"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        StandardAnimation.run(self, context)
+
+    def parseAnimations(self, struct, bones, values):
+        NodePose.parseAnimations(self, struct, bones, values)
+
+#-------------------------------------------------------------
+#   Import Poselib
+#-------------------------------------------------------------
+
+class PoselibBase(B.PoseLibOptions, AnimatorBase):
+    verbose = False
+    useAction = False
+    usePoseLib = True
+    atFrameOne = False
+    firstFrame = -1000
+    lastFrame = 1000
+
+    def draw(self, context):
+        AnimatorBase.draw(self, context)
+        self.layout.separator()
+        self.layout.prop(self, "makeNewPoseLib")
+        self.layout.prop(self, "poseLibName")
+
+
+class DAZ_OT_ImportPoseLib(HideOperator, PoselibBase, StandardAnimation):
+    bl_idname = "daz.import_poselib"
+    bl_label = "Import Pose Library"
+    bl_description = "Import poses from DAZ pose preset file(s) to pose library"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        StandardAnimation.run(self, context)
+
+
+class DAZ_OT_ImportNodePoseLib(HideOperator, NodePose, PoselibBase, StandardAnimation):
+    bl_idname = "daz.import_node_poselib"
+    bl_label = "Import Pose Library From Scene"
+    bl_description = "Import a poses from DAZ scene file(s) (not pose preset files) to pose library"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        StandardAnimation.run(self, context)
+
+    def parseAnimations(self, struct, bones, values):
+        NodePose.parseAnimations(self, struct, bones, values)
+
+#-------------------------------------------------------------
+#   Import Single Pose
+#-------------------------------------------------------------
+
+class PoseBase(AnimatorBase):
+    verbose = False
+    useAction = False
+    usePoseLib = False
+    atFrameOne = False
+    firstFrame = -1000
+    lastFrame = 1000
+
+
+class DAZ_OT_ImportPose(HideOperator, PoseBase, StandardAnimation):
+    bl_idname = "daz.import_pose"
+    bl_label = "Import Pose"
+    bl_description = "Import a pose from DAZ pose preset file(s)"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        StandardAnimation.run(self, context)
+
+
+class DAZ_OT_ImportNodePose(HideOperator, NodePose, PoseBase, StandardAnimation):
+    bl_idname = "daz.import_node_pose"
+    bl_label = "Import Pose From Scene"
+    bl_description = "Import a pose from DAZ scene file(s) (not pose preset files)"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        StandardAnimation.run(self, context)
+
+    def parseAnimations(self, struct, bones, values):
+        NodePose.parseAnimations(self, struct, bones, values)
 
 #-------------------------------------------------------------
 #   Save current frame
@@ -1302,8 +1310,10 @@ class DAZ_OT_PruneAction(DazOperator):
 
 classes = [
     DAZ_OT_ImportAction,
+    DAZ_OT_ImportNodeAction,
     DAZ_OT_ImportPoseLib,
-    DAZ_OT_ImportSinglePose,
+    DAZ_OT_ImportNodePoseLib,
+    DAZ_OT_ImportPose,
     DAZ_OT_ImportNodePose,
     DAZ_OT_SaveCurrentFrame,
     DAZ_OT_RestoreCurrentFrame,

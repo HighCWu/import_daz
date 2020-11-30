@@ -592,10 +592,13 @@ class DAZ_PT_Posing(bpy.types.Panel):
         scn = context.scene
         layout = self.layout
 
-        layout.operator("daz.import_single_pose")
+        layout.operator("daz.import_pose")
         layout.operator("daz.import_poselib")
         layout.operator("daz.import_action")
+        layout.separator()
         layout.operator("daz.import_node_pose")
+        layout.operator("daz.import_node_poselib")
+        layout.operator("daz.import_node_action")
         layout.separator()
         layout.operator("daz.clear_pose")
         layout.separator()
