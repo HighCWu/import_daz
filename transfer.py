@@ -267,6 +267,9 @@ def correctForRigidity(ob, skey):
         scalemodes = rgroup.scale_modes.split(" ")
         maskverts = [elt.a for elt in rgroup.mask_vertices]
         refverts = [elt.a for elt in rgroup.reference_vertices]
+        nrefverts = len(refverts)
+        if nrefverts == 0:
+            continue
 
         if rotmode != "none":
             raise RuntimeError("Not yet implemented: Rigidity rotmode = %s" % rotmode)
@@ -279,8 +282,8 @@ def correctForRigidity(ob, skey):
             xsum += co
         for co in ycoords:
             ysum += co
-        xcenter = xsum/len(refverts)
-        ycenter = ysum/len(refverts)
+        xcenter = xsum/nrefverts
+        ycenter = ysum/nrefverts
 
         xdim = ydim = 0
         for n in range(3):
