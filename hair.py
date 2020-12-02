@@ -469,6 +469,9 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
 
     def run(self, context):
+        import time
+        t1 = time.perf_counter()
+        self.clocks = []
         hair,hum = getHairAndHuman(context, True)
         if self.strandType == 'SHEET':
             if not hair.data.uv_layers.active:
@@ -495,10 +498,18 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
+        t2 = time.perf_counter()
+        self.clocks.append(("Initialize", t2-t1))
         if self.strandType == 'SHEET':
             mrects = self.findMeshRects(hair)
+            t3 = time.perf_counter()
+            self.clocks.append(("Find mesh rects", t3-t2))
             trects = self.findTexRects(hair, mrects)
+            t4 = time.perf_counter()
+            self.clocks.append(("Find texture rects", t4-t3))
             hsystems,haircount = self.makeHairSystems(context, hum, hair, trects)
+            t5 = time.perf_counter()
+            self.clocks.append(("Make hair systems", t5-t4))
         else:
             tess = Tesselator()
             if self.strandType == 'LINE':
@@ -506,8 +517,12 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             elif self.strandType == 'TUBE':
                 tess.unTesselateFaces(context, hair)
             strands = tess.findStrands(hair)
+            t4 = time.perf_counter()
+            self.clocks.append(("Find strands", t4-t3))
             hsystems = {}
             haircount = self.addStrands(hum, strands, hsystems, -1)
+            t5 = time.perf_counter()
+            self.clocks.append(("Make hair systems", t5-t4))
         haircount += 1
         print("\nTotal number of strands: %d" % haircount)
         if haircount == 0:
@@ -517,10 +532,16 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             hsystems = self.blockResize(hsystems, hum)
         elif self.resizeHair:
             hsystems = self.hairResize(hsystems, hum)
+        t6 = time.perf_counter()
+        self.clocks.append(("Resize", t6-t5))
         self.makeHairs(context, hsystems, hum)
-
+        t7 = time.perf_counter()
+        self.clocks.append(("Make Hair", t7-t6))
         if self.nonquads:
             print("Ignored %d non-quad faces out of %d faces" % (len(self.nonquads), len(hair.data.polygons)))
+        print("Hair converted in %.2f seconds" % (t7-t1))
+        for hdr,t in self.clocks:
+            print("  %s: %2f s" % (hdr, t))
 
 
     def makeHairs(self, context, hsystems, hum):
