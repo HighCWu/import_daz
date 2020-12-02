@@ -775,6 +775,14 @@ class Pinning:
 #-------------------------------------------------------------
 
 class TransferOptions:
+    transferMethod = EnumProperty(
+        items = [('SLOW', "Slow", "Transfer using Blender's data transfer modifier.\nVery slow but works in general"),
+                 ('EXACT', "Exact", "Only transfer vertices as long as they match exactly.\nFastest, use to transfer shapekeys to mesh with merged geografts"),
+                 ('NEAREST_TRG', "Nearest Target Vertex", "Transfer morphs to nearest target vertex.\nFast but may be inaccurate"),
+                 ('NEAREST_SRC', "Nearest Source Vertex", "Transfer morphs from nearest source vertex.\nFast but may be inaccurate")],
+        name = "Transfer Method",
+        description = "Method used to transfer morphs",
+        default = 'NEAREST_SRC')
 
     useDriver = BoolProperty(
         name = "Use Driver",

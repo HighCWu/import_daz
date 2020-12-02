@@ -27,6 +27,7 @@
 
 import os
 import bpy
+import numpy as np
 from .error import *
 from .utils import *
 from .morphing import Selector
@@ -40,6 +41,7 @@ class MorphTransferer(Selector, B.TransferOptions):
 
 
     def draw(self, context):
+        self.layout.prop(self, "transferMethod", expand=True)
         self.layout.prop(self, "useDriver")
         self.layout.prop(self, "useOverwrite")
         self.layout.prop(self, "useSelectedOnly")
@@ -103,7 +105,7 @@ class MorphTransferer(Selector, B.TransferOptions):
                     clo.shape_key_remove(cskey)
 
             cskey = None
-            path = self.getMorphPath(sname, clo, scn)
+            path = getMorphPath(sname, clo, scn)
             if path is not None:
                 from .morphing import LoadShapekey
                 loader = LoadShapekey(mesh=clo, verbose=False)
@@ -213,47 +215,28 @@ class MorphTransferer(Selector, B.TransferOptions):
         return objects
 
 
-    def getMorphPath(self, sname, ob, scn):
-        from .fileutils import getFolder
-        file = sname + ".dsf"
-        folder = getFolder(ob, scn, ["Morphs/"])
-        if folder:
-            return findFileRecursive(folder, file)
-        else:
-            return None
-
-
-def findFileRecursive(folder, tfile):
-    for file in os.listdir(folder):
-        path = os.path.join(folder, file)
-        if file == tfile:
-            return path
-        elif os.path.isdir(path):
-            tpath = findFileRecursive(path, tfile)
-            if tpath:
-                return tpath
-    return None
-
-
-def findVertsInGroup(ob, vgrp):
-    idx = vgrp.index
-    verts = []
-    for v in ob.data.vertices:
-        for g in v.groups:
-            if g.group == idx:
-                verts.append(v.index)
-    return verts
-
-#----------------------------------------------------------
-#   Slow transfer
-#----------------------------------------------------------
-
-class SlowTransfer:
     def findMatch(self, hum, clo):
-        pass
+        if self.transferMethod == 'SLOW':
+            pass
+        elif self.transferMethod == 'EXACT':
+            self.findMatchExact(hum, clo)
+        elif self.transferMethod in ['NEAREST_TRG', 'NEAREST_SRC']:
+            self.findMatchNearest(hum, clo)
 
 
     def autoTransfer(self, hum, clo, hskey):
+        if self.transferMethod == 'SLOW':
+            return self.autoTransferSlow(hum, clo, hskey)
+        elif self.transferMethod == 'EXACT':
+            return self.autoTransferExact(hum, clo, hskey)
+        elif self.transferMethod in ['NEAREST_TRG', 'NEAREST_SRC']:
+            return self.autoTransferExact(hum, clo, hskey)
+
+    #----------------------------------------------------------
+    #   Slow transfer
+    #----------------------------------------------------------
+
+    def autoTransferSlow(self, hum, clo, hskey):
         hverts = hum.data.vertices
         cverts = clo.data.vertices
         eps = 1e-4
@@ -320,19 +303,17 @@ class SlowTransfer:
 
         return True
 
-#----------------------------------------------------------
-#   Subset transfer
-#----------------------------------------------------------
+    #----------------------------------------------------------
+    #   Exact
+    #----------------------------------------------------------
 
-class SubsetTransfer:
-    def findMatch(self, hum, clo):
+    def findMatchExact(self, hum, clo):
         hverts = hum.data.vertices
-        cverts = clo.data.vertices
         eps = 0.01*hum.DazScale
         self.match = []
         nhverts = len(hverts)
         hvn = 0
-        for cvn,cv in enumerate(cverts):
+        for cvn,cv in enumerate(clo.data.vertices):
             hv = hverts[hvn]
             while (hv.co - cv.co).length > eps:
                 hvn += 1
@@ -341,26 +322,76 @@ class SubsetTransfer:
                 else:
                     print("Matched %d vertices" % cvn)
                     return
-            self.match.append((cvn,hvn))
+            self.match.append((cvn, hvn, cv.co - hv.co))
 
 
-    def autoTransfer(self, hum, clo, hskey):
+    def autoTransferExact(self, hum, clo, hskey):
         cverts = clo.data.vertices
+        hverts = hum.data.vertices
         cskey = clo.shape_key_add(name=hskey.name)
         if self.useSelectedOnly:
-            for cvn,hvn in self.match:
+            for cvn,hvn,offset in self.match:
                 if cverts[cvn].select:
-                    cskey.data[cvn].co = hskey.data[hvn].co
+                    cskey.data[cvn].co = hskey.data[hvn].co + offset
         else:
-            for cvn,hvn in self.match:
-                cskey.data[cvn].co = hskey.data[hvn].co
+            for cvn,hvn,offset in self.match:
+                cskey.data[cvn].co = hskey.data[hvn].co + offset
         return True
+
+    #----------------------------------------------------------
+    #   Nearest vertex
+    #----------------------------------------------------------
+
+    def findMatchNearest(self, hum, clo):
+        hverts = np.array([list(v.co) for v in hum.data.vertices])
+        cverts = np.array([list(v.co) for v in clo.data.vertices])
+        nhverts = len(hverts)
+        ncverts = len(cverts)
+        diff = hverts[:,None] - cverts[None,:]
+        dists = np.sum(np.abs(diff), axis=2)
+        if self.transferMethod == 'NEAREST_TRG':
+            match = np.argmin(dists, axis=1)
+            self.match = [(match[hvn], hvn, Vector(cverts[match[hvn]]-hverts[hvn])) for hvn in range(nhverts)]
+        elif self.transferMethod == 'NEAREST_SRC':
+            match = np.argmin(dists, axis=0)
+            self.match = [(cvn, match[cvn], Vector(cverts[cvn]-hverts[match[cvn]])) for cvn in range(ncverts)]
+        print("Matching table created", nhverts, ncverts)
+
+#----------------------------------------------------------
+#   Utilities
+#----------------------------------------------------------
+
+def getMorphPath(sname, ob, scn):
+    from .fileutils import getFolder
+    file = sname + ".dsf"
+    folder = getFolder(ob, scn, ["Morphs/"])
+    if folder:
+        return findFileRecursive(folder, file)
+    else:
+        return None
+
+
+def findFileRecursive(folder, tfile):
+    for file in os.listdir(folder):
+        path = os.path.join(folder, file)
+        if file == tfile:
+            return path
+        elif os.path.isdir(path):
+            tpath = findFileRecursive(path, tfile)
+            if tpath:
+                return tpath
+    return None
 
 #----------------------------------------------------------
 #   Transfer buttons
 #----------------------------------------------------------
 
-class OtherTransferer(MorphTransferer):
+class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
+    bl_idname = "daz.transfer_other_morphs"
+    bl_label = "Transfer Other Morphs"
+    bl_description = "Transfer all shapekeys except JCMs (bone driven) with drivers from active to selected"
+    bl_options = {'UNDO'}
+
     useBoneDriver = False
     usePropDriver = True
     useCorrectives = False
@@ -376,7 +407,12 @@ class OtherTransferer(MorphTransferer):
         return keys
 
 
-class JCMTransferer(OtherTransferer):
+class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
+    bl_idname = "daz.transfer_jcms"
+    bl_label = "Transfer JCMs"
+    bl_description = "Transfer JCMs (joint corrective shapekeys) and drivers from active to selected"
+    bl_options = {'UNDO'}
+
     useBoneDriver = True
     usePropDriver = False
     useCorrectives = True
@@ -390,36 +426,6 @@ class JCMTransferer(OtherTransferer):
             if skey.name in jcms:
                 keys.append((skey.name, skey.name, "All"))
         return keys
-
-
-class DAZ_OT_TransferOtherMorphs(DazOperator, OtherTransferer, SlowTransfer):
-    bl_idname = "daz.transfer_other_morphs"
-    bl_label = "Transfer Other Morphs"
-    bl_description = "Transfer all shapekeys except JCMs (bone driven) with drivers from active to selected"
-    bl_options = {'UNDO'}
-
-
-class DAZ_OT_TransferCorrectives(DazOperator, JCMTransferer, SlowTransfer):
-    bl_idname = "daz.transfer_jcms"
-    bl_label = "Transfer JCMs"
-    bl_description = "Transfer JCMs (joint corrective shapekeys) and drivers from active to selected"
-    bl_options = {'UNDO'}
-
-
-class DAZ_OT_TransferOtherMorphsSubset(DazOperator, OtherTransferer, SubsetTransfer):
-    bl_idname = "daz.transfer_other_morphs_subset"
-    bl_label = "Transfer Other Morphs To Subset"
-    bl_description = ("Transfer all shapekeys except JCMs (bone driven) with drivers from active to selected.\n" +
-                      "Only transfer to the subset of matching vertices")
-    bl_options = {'UNDO'}
-
-
-class DAZ_OT_TransferCorrectivesSubset(DazOperator, JCMTransferer, SubsetTransfer):
-    bl_idname = "daz.transfer_jcms_subset"
-    bl_label = "Transfer JCMs To Subset"
-    bl_description = ("Transfer JCMs (joint corrective shapekeys) and drivers from active to selected.\n" +
-                      "Only transfer to the subset of matching vertices")
-    bl_options = {'UNDO'}
 
 #----------------------------------------------------------
 #   Mix Shapekeys
@@ -543,8 +549,6 @@ class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
 classes = [
     DAZ_OT_TransferCorrectives,
     DAZ_OT_TransferOtherMorphs,
-    DAZ_OT_TransferCorrectivesSubset,
-    DAZ_OT_TransferOtherMorphsSubset,
     DAZ_OT_MixShapekeys,
 ]
 
