@@ -1103,7 +1103,7 @@ def removeDrivingProps(rig, props):
 class Activator(B.MorphsetString):
     def run(self, context):
         rig = getRigFromObject(context.object)
-        keys = getRelevantMorphs(rig, self.morphset)
+        keys = getRelevantMorphs(rig, self.morphset, self.category)
         if self.morphset == "Custom":
             for key in keys:
                 setActivated(rig, key.name, self.activate)
@@ -1209,13 +1209,19 @@ class DAZ_OT_ForceUpdate(DazOperator):
 #   Clear morphs
 #------------------------------------------------------------------
 
-def getRelevantMorphs(rig, morphset):
+def getRelevantMorphs(rig, morphset, category):
     morphs = []
     if rig is None:
         return morphs
     if morphset == "Custom":
-        for cat in rig.DazMorphCats:
-            morphs += cat.morphs
+        if category:
+            for cat in rig.DazMorphCats:
+                if cat.name == category:
+                    morphs = cat.morphs
+                    break
+        else:
+            for cat in rig.DazMorphCats:
+                morphs += cat.morphs
     elif rig.DazMorphPrefixes:
         for key in rig.keys():
             if key[0:2] == "Dz":
@@ -1227,8 +1233,8 @@ def getRelevantMorphs(rig, morphset):
     return morphs
 
 
-def clearMorphs(rig, morphset, scn, frame, force):
-    morphs = getRelevantMorphs(rig, morphset)
+def clearMorphs(rig, morphset, category, scn, frame, force):
+    morphs = getRelevantMorphs(rig, morphset, category)
 
     if morphset == "Custom":
         for morph in morphs:
@@ -1252,7 +1258,7 @@ class DAZ_OT_ClearMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            clearMorphs(rig, self.morphset, scn, scn.frame_current, False)
+            clearMorphs(rig, self.morphset, self.category, scn, scn.frame_current, False)
             updateRig(rig, context)
             if scn.tool_settings.use_keyframe_insert_auto:
                 updateScene(context)
@@ -1385,21 +1391,25 @@ class DAZ_OT_KeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            self.keyMorphs(rig, self.morphset, scn, scn.frame_current)
+            self.keyMorphs(rig, scn, scn.frame_current)
             updateScene(context)
             updateRig(rig, context)
 
 
-    def keyMorphs(self, rig, morphset, scn, frame):
+    def keyMorphs(self, rig, scn, frame):
         if rig is None:
             return
-        if morphset == "Custom":
-            for cat in rig.DazMorphCats:
+        if self.morphset == "Custom":
+            if self.category:
+                cats = [rig.DazMorphCats[self.category]]
+            else:
+                cats = rig.DazMorphCats
+            for cat in cats:
                 for morph in cat.morphs:
                     if getActivated(rig, morph.name):
                         keyProp(rig, morph.name, frame)
         else:
-            pg = getattr(rig, "Daz"+morphset)
+            pg = getattr(rig, "Daz" + self.morphset)
             for key in pg.keys():
                 if getActivated(rig, key):
                     keyProp(rig, key, frame)
@@ -1418,21 +1428,25 @@ class DAZ_OT_UnkeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig and rig.animation_data and rig.animation_data.action:
             scn = context.scene
-            self.unkeyMorphs(rig, self.morphset, scn, scn.frame_current)
+            self.unkeyMorphs(rig, scn, scn.frame_current)
             updateScene(context)
             updateRig(rig, context)
 
 
-    def unkeyMorphs(self, rig, morphset, scn, frame):
+    def unkeyMorphs(self, rig, scn, frame):
         if rig is None:
             return
-        if morphset == "Custom":
-            for cat in rig.DazMorphCats:
+        if self.morphset == "Custom":
+            if self.category:
+                cats = [rig.DazMorphCats[self.category]]
+            else:
+                cats = rig.DazMorphCats
+            for cat in cats:
                 for morph in cat.morphs:
                     if getActivated(rig, morph.name):
                         unkeyProp(rig, morph.name, frame)
         else:
-            pg = getattr(rig, "Daz"+morphset)
+            pg = getattr(rig, "Daz" + self.morphset)
             for key in pg.keys():
                 if getActivated(rig, key):
                     unkeyProp(rig, key, frame)
@@ -1821,9 +1835,9 @@ def autoKeyProp(rig, key, scn, frame, force):
             keyProp(rig, key, frame)
 
 
-def pinProp(rig, scn, key, morphset, frame):
+def pinProp(rig, scn, key, morphset, category, frame):
     if rig:
-        clearMorphs(rig, morphset, scn, frame, True)
+        clearMorphs(rig, morphset, category, scn, frame, True)
         rig[key] = 1.0
         autoKeyProp(rig, key, scn, frame, True)
 
@@ -1838,7 +1852,7 @@ class DAZ_OT_PinProp(DazOperator, B.KeyString, B.MorphsetString, IsMeshArmature)
         rig = getRigFromObject(context.object)
         scn = context.scene
         setupMorphPaths(scn, False)
-        pinProp(rig, scn, self.key, self.morphset, scn.frame_current)
+        pinProp(rig, scn, self.key, self.morphset, self.category, scn.frame_current)
         updateScene(context)
         updateRig(rig, context)
 
@@ -1877,12 +1891,12 @@ class DAZ_OT_LoadMoho(DazOperator, B.DatFile, B.SingleFile):
                 moho = words[1]
                 frame = int(words[0]) + 1
                 if moho == "rest":
-                    clearMorphs(rig, "Visemes", scn, frame, True)
+                    clearMorphs(rig, "Visemes", "", scn, frame, True)
                 else:
                     key = self.getMohoKey(moho, rig)
                     if key not in rig.keys():
                         raise DazError("Missing viseme: %s => %s" % (moho, key))
-                    pinProp(rig, scn, key, "Visemes", frame)
+                    pinProp(rig, scn, key, "Visemes", "", frame)
         fp.close()
         #setInterpolation(rig)
         updateScene(context)

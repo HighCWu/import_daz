@@ -624,29 +624,29 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.load_pose")
 
 
-def activateLayout(layout, rig, self):
-    split = splitLayout(layout, 0.25)
-    split.operator("daz.prettify")
-    op = split.operator("daz.activate_all")
+def activateLayout(layout, category, rig, self):
+    op = layout.operator("daz.activate_all")
     op.morphset = self.morphset
-    op = split.operator("daz.deactivate_all")
+    op.category = category
+    op = layout.operator("daz.deactivate_all")
     op.morphset = self.morphset
-    if rig.DazDriversDisabled:
-        split.operator("daz.enable_drivers")
-    else:
-        split.operator("daz.disable_drivers")
+    op.category = category
 
 
-def keyLayout(layout, self):
+def keyLayout(layout, self, category):
     split = splitLayout(layout, 0.25)
     op = split.operator("daz.add_keyset", text="", icon='KEYINGSET')
     op.morphset = self.morphset
+    op.category = category
     op = split.operator("daz.key_morphs", text="", icon='KEY_HLT')
     op.morphset = self.morphset
+    op.category = category
     op = split.operator("daz.unkey_morphs", text="", icon='KEY_DEHLT')
     op.morphset = self.morphset
+    op.category = category
     op = split.operator("daz.clear_morphs", text="", icon='X')
     op.morphset = self.morphset
+    op.category = category
 
 
 class DAZ_PT_Morphs:
@@ -677,8 +677,11 @@ class DAZ_PT_Morphs:
             return
 
         scn = context.scene
-        activateLayout(layout, rig, self)
-        keyLayout(layout, self)
+        split = splitLayout(layout, 0.25)
+        split.operator("daz.prettify")
+        activateLayout(split, "", rig, self)
+        split.operator("daz.disable_drivers")
+        keyLayout(layout, self, "")
         layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
         self.drawItems(scn, rig)
 
@@ -689,10 +692,10 @@ class DAZ_PT_Morphs:
         pg = getattr(rig, "Daz"+self.morphset)
         for item in pg.values():
             if filter in item.text.lower():
-                self.displayProp(item.text, item.name, rig, self.layout, scn)
+                self.displayProp(item.text, item.name, "", rig, self.layout, scn)
 
 
-    def displayProp(self, name, key, rig, layout, scn):
+    def displayProp(self, name, key, category, rig, layout, scn):
         if key not in rig.keys():
             return
         row = splitLayout(layout, 0.8)
@@ -701,6 +704,7 @@ class DAZ_PT_Morphs:
         op = row.operator("daz.pin_prop", icon='UNPINNED')
         op.key = key
         op.morphset = self.morphset
+        op.category = category
 
 
 def showBool(layout, ob, key, text=""):
@@ -790,10 +794,13 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
                 box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
                 continue
             box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
+            split = splitLayout(box, 0.5)
+            activateLayout(split, cat.name, rig, self)
+            keyLayout(box, self, cat.name)
             for morph in cat.morphs:
                 if (morph.name in rig.keys() and
                     filter in morph.text.lower()):
-                    self.displayProp(morph.text, morph.name, rig, box, scn)
+                    self.displayProp(morph.text, morph.name, cat.name, rig, box, scn)
 
 #------------------------------------------------------------------------
 #    Simple IK Panel

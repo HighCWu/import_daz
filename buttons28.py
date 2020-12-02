@@ -886,6 +886,7 @@ class ActionString:
 
 class MorphsetString:
     morphset : StringProperty(default = "")
+    category : StringProperty(default = "")
     prefix : StringProperty(default = "")
 
 class UseOpenBool:
