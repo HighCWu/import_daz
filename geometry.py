@@ -1190,8 +1190,6 @@ classes = [
     B.DazRigidityGroup,
     B.DazStringStringGroup,
     B.DazTextGroup,
-    B.DazVectorGroup,
-    B.DazStrandGroup,
 ]
 
 def initialize():
