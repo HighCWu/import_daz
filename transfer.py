@@ -72,6 +72,7 @@ class MorphTransferer(Selector, B.TransferOptions):
         scn = context.scene
         setDazPaths(scn)
         setActiveObject(context, clo)
+        self.findMatch(hum, clo)
         if not clo.data.shape_keys:
             basic = clo.shape_key_add(name="Basic")
         else:
@@ -105,7 +106,7 @@ class MorphTransferer(Selector, B.TransferOptions):
             path = self.getMorphPath(sname, clo, scn)
             if path is not None:
                 from .morphing import LoadShapekey
-                loader = LoadShapekey(mesh=clo)
+                loader = LoadShapekey(mesh=clo, verbose=False)
                 LS.forMorphLoad(clo, scn)
                 loader.errors = {}
                 loader.getSingleMorph(sname, path, scn)
@@ -118,7 +119,7 @@ class MorphTransferer(Selector, B.TransferOptions):
                 cskey = clo.data.shape_keys.key_blocks[sname]
                 print(" +", sname)
                 if cskey and not self.ignoreRigidity:
-                    correctForRigidity(clo, cskey)
+                    self.correctForRigidity(clo, cskey)
 
             if cskey:
                 cskey.slider_min = hskey.slider_min
@@ -134,6 +135,122 @@ class MorphTransferer(Selector, B.TransferOptions):
             clo.data.shape_keys.key_blocks[0] == basic):
             print("No shapekeys transferred to %s" % clo.name)
             clo.shape_key_remove(basic)
+
+
+    def correctForRigidity(self, ob, skey):
+        from mathutils import Matrix
+
+        if "Rigidity" in ob.vertex_groups.keys():
+            idx = ob.vertex_groups["Rigidity"].index
+            for v in ob.data.vertices:
+                for g in v.groups:
+                    if g.group == idx:
+                        x = skey.data[v.index]
+                        x.co = v.co + (1 - g.weight)*(x.co - v.co)
+
+        for rgroup in ob.data.DazRigidityGroups:
+            rotmode = rgroup.rotation_mode
+            scalemodes = rgroup.scale_modes.split(" ")
+            maskverts = [elt.a for elt in rgroup.mask_vertices]
+            refverts = [elt.a for elt in rgroup.reference_vertices]
+            nrefverts = len(refverts)
+            if nrefverts == 0:
+                continue
+
+            if rotmode != "none":
+                raise RuntimeError("Not yet implemented: Rigidity rotmode = %s" % rotmode)
+
+            xcoords = [ob.data.vertices[vn].co for vn in refverts]
+            ycoords = [skey.data[vn].co for vn in refverts]
+            xsum = Vector((0,0,0))
+            ysum = Vector((0,0,0))
+            for co in xcoords:
+                xsum += co
+            for co in ycoords:
+                ysum += co
+            xcenter = xsum/nrefverts
+            ycenter = ysum/nrefverts
+
+            xdim = ydim = 0
+            for n in range(3):
+                xs = [abs(co[n]-xcenter[n]) for co in xcoords]
+                ys = [abs(co[n]-ycenter[n]) for co in ycoords]
+                xdim += sum(xs)
+                ydim += sum(ys)
+
+            scale = ydim/xdim
+            smat = Matrix.Identity(3)
+            for n,smode in enumerate(scalemodes):
+                if smode == "primary":
+                    smat[n][n] = scale
+
+            for n,vn in enumerate(maskverts):
+                skey.data[vn].co = Mult2(smat, (ob.data.vertices[vn].co - xcenter)) + ycenter
+
+
+    def ignoreMorph(self, hum, clo, hskey):
+        eps = 0.01 * hum.DazScale   # 0.1 mm
+        hverts = [v.index for v in hum.data.vertices if (hskey.data[v.index].co - v.co).length > eps]
+        for j in range(3):
+            xclo = [v.co[j] for v in clo.data.vertices]
+            # xkey = [hskey.data[vn].co[j] for vn in hverts]
+            xkey = [hum.data.vertices[vn].co[j] for vn in hverts]
+            if xclo and xkey:
+                minclo = min(xclo)
+                maxclo = max(xclo)
+                minkey = min(xkey)
+                maxkey = max(xkey)
+                if minclo > maxkey or maxclo < minkey:
+                    return True
+        return False
+
+
+    def getClothes(self, hum, context):
+        objects = []
+        for ob in getSceneObjects(context):
+            if getSelected(ob) and ob != hum and ob.type == 'MESH':
+                objects.append(ob)
+        return objects
+
+
+    def getMorphPath(self, sname, ob, scn):
+        from .fileutils import getFolder
+        file = sname + ".dsf"
+        folder = getFolder(ob, scn, ["Morphs/"])
+        if folder:
+            return findFileRecursive(folder, file)
+        else:
+            return None
+
+
+def findFileRecursive(folder, tfile):
+    for file in os.listdir(folder):
+        path = os.path.join(folder, file)
+        if file == tfile:
+            return path
+        elif os.path.isdir(path):
+            tpath = findFileRecursive(path, tfile)
+            if tpath:
+                return tpath
+    return None
+
+
+def findVertsInGroup(ob, vgrp):
+    idx = vgrp.index
+    verts = []
+    for v in ob.data.vertices:
+        for g in v.groups:
+            if g.group == idx:
+                verts.append(v.index)
+    return verts
+
+#----------------------------------------------------------
+#   Slow transfer
+#----------------------------------------------------------
+
+class SlowTransfer:
+    def findMatch(self, hum, clo):
+        pass
 
 
     def autoTransfer(self, hum, clo, hskey):
@@ -203,121 +320,47 @@ class MorphTransferer(Selector, B.TransferOptions):
 
         return True
 
+#----------------------------------------------------------
+#   Subset transfer
+#----------------------------------------------------------
 
-    def ignoreMorph(self, hum, clo, hskey):
-        eps = 0.01 * hum.DazScale   # 0.1 mm
-        hverts = [v.index for v in hum.data.vertices if (hskey.data[v.index].co - v.co).length > eps]
-        for j in range(3):
-            xclo = [v.co[j] for v in clo.data.vertices]
-            # xkey = [hskey.data[vn].co[j] for vn in hverts]
-            xkey = [hum.data.vertices[vn].co[j] for vn in hverts]
-            if xclo and xkey:
-                minclo = min(xclo)
-                maxclo = max(xclo)
-                minkey = min(xkey)
-                maxkey = max(xkey)
-                if minclo > maxkey or maxclo < minkey:
-                    return True
-        return False
-
-
-    def getClothes(self, hum, context):
-        objects = []
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob != hum and ob.type == 'MESH':
-                objects.append(ob)
-        return objects
+class SubsetTransfer:
+    def findMatch(self, hum, clo):
+        hverts = hum.data.vertices
+        cverts = clo.data.vertices
+        eps = 0.01*hum.DazScale
+        self.match = []
+        nhverts = len(hverts)
+        hvn = 0
+        for cvn,cv in enumerate(cverts):
+            hv = hverts[hvn]
+            while (hv.co - cv.co).length > eps:
+                hvn += 1
+                if hvn < nhverts:
+                    hv = hverts[hvn]
+                else:
+                    print("Matched %d vertices" % cvn)
+                    return
+            self.match.append((cvn,hvn))
 
 
-    def getMorphPath(self, sname, ob, scn):
-        from .fileutils import getFolder
-        file = sname + ".dsf"
-        folder = getFolder(ob, scn, ["Morphs/"])
-        if folder:
-            return findFileRecursive(folder, file)
+    def autoTransfer(self, hum, clo, hskey):
+        cverts = clo.data.vertices
+        cskey = clo.shape_key_add(name=hskey.name)
+        if self.useSelectedOnly:
+            for cvn,hvn in self.match:
+                if cverts[cvn].select:
+                    cskey.data[cvn].co = hskey.data[hvn].co
         else:
-            return None
+            for cvn,hvn in self.match:
+                cskey.data[cvn].co = hskey.data[hvn].co
+        return True
 
+#----------------------------------------------------------
+#   Transfer buttons
+#----------------------------------------------------------
 
-def findFileRecursive(folder, tfile):
-    for file in os.listdir(folder):
-        path = os.path.join(folder, file)
-        if file == tfile:
-            return path
-        elif os.path.isdir(path):
-            tpath = findFileRecursive(path, tfile)
-            if tpath:
-                return tpath
-    return None
-
-
-def correctForRigidity(ob, skey):
-    from mathutils import Matrix
-
-    if "Rigidity" in ob.vertex_groups.keys():
-        idx = ob.vertex_groups["Rigidity"].index
-        for v in ob.data.vertices:
-            for g in v.groups:
-                if g.group == idx:
-                    x = skey.data[v.index]
-                    x.co = v.co + (1 - g.weight)*(x.co - v.co)
-
-    for rgroup in ob.data.DazRigidityGroups:
-        rotmode = rgroup.rotation_mode
-        scalemodes = rgroup.scale_modes.split(" ")
-        maskverts = [elt.a for elt in rgroup.mask_vertices]
-        refverts = [elt.a for elt in rgroup.reference_vertices]
-        nrefverts = len(refverts)
-        if nrefverts == 0:
-            continue
-
-        if rotmode != "none":
-            raise RuntimeError("Not yet implemented: Rigidity rotmode = %s" % rotmode)
-
-        xcoords = [ob.data.vertices[vn].co for vn in refverts]
-        ycoords = [skey.data[vn].co for vn in refverts]
-        xsum = Vector((0,0,0))
-        ysum = Vector((0,0,0))
-        for co in xcoords:
-            xsum += co
-        for co in ycoords:
-            ysum += co
-        xcenter = xsum/nrefverts
-        ycenter = ysum/nrefverts
-
-        xdim = ydim = 0
-        for n in range(3):
-            xs = [abs(co[n]-xcenter[n]) for co in xcoords]
-            ys = [abs(co[n]-ycenter[n]) for co in ycoords]
-            xdim += sum(xs)
-            ydim += sum(ys)
-
-        scale = ydim/xdim
-        smat = Matrix.Identity(3)
-        for n,smode in enumerate(scalemodes):
-            if smode == "primary":
-                smat[n][n] = scale
-
-        for n,vn in enumerate(maskverts):
-            skey.data[vn].co = Mult2(smat, (ob.data.vertices[vn].co - xcenter)) + ycenter
-
-
-def findVertsInGroup(ob, vgrp):
-    idx = vgrp.index
-    verts = []
-    for v in ob.data.vertices:
-        for g in v.groups:
-            if g.group == idx:
-                verts.append(v.index)
-    return verts
-
-
-class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
-    bl_idname = "daz.transfer_other_morphs"
-    bl_label = "Transfer Other Morphs"
-    bl_description = "Transfer all shapekeys except JCMs (bone driven) with drivers from active to selected"
-    bl_options = {'UNDO'}
-
+class OtherTransferer(MorphTransferer):
     useBoneDriver = False
     usePropDriver = True
     useCorrectives = False
@@ -333,12 +376,7 @@ class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
         return keys
 
 
-class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
-    bl_idname = "daz.transfer_jcms"
-    bl_label = "Transfer JCMs"
-    bl_description = "Transfer JCMs (joint corrective shapekeys) and drivers from active to selected"
-    bl_options = {'UNDO'}
-
+class JCMTransferer(OtherTransferer):
     useBoneDriver = True
     usePropDriver = False
     useCorrectives = True
@@ -352,6 +390,36 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
             if skey.name in jcms:
                 keys.append((skey.name, skey.name, "All"))
         return keys
+
+
+class DAZ_OT_TransferOtherMorphs(DazOperator, OtherTransferer, SlowTransfer):
+    bl_idname = "daz.transfer_other_morphs"
+    bl_label = "Transfer Other Morphs"
+    bl_description = "Transfer all shapekeys except JCMs (bone driven) with drivers from active to selected"
+    bl_options = {'UNDO'}
+
+
+class DAZ_OT_TransferCorrectives(DazOperator, JCMTransferer, SlowTransfer):
+    bl_idname = "daz.transfer_jcms"
+    bl_label = "Transfer JCMs"
+    bl_description = "Transfer JCMs (joint corrective shapekeys) and drivers from active to selected"
+    bl_options = {'UNDO'}
+
+
+class DAZ_OT_TransferOtherMorphsSubset(DazOperator, OtherTransferer, SubsetTransfer):
+    bl_idname = "daz.transfer_other_morphs_subset"
+    bl_label = "Transfer Other Morphs To Subset"
+    bl_description = ("Transfer all shapekeys except JCMs (bone driven) with drivers from active to selected.\n" +
+                      "Only transfer to the subset of matching vertices")
+    bl_options = {'UNDO'}
+
+
+class DAZ_OT_TransferCorrectivesSubset(DazOperator, JCMTransferer, SubsetTransfer):
+    bl_idname = "daz.transfer_jcms_subset"
+    bl_label = "Transfer JCMs To Subset"
+    bl_description = ("Transfer JCMs (joint corrective shapekeys) and drivers from active to selected.\n" +
+                      "Only transfer to the subset of matching vertices")
+    bl_options = {'UNDO'}
 
 #----------------------------------------------------------
 #   Mix Shapekeys
@@ -475,6 +543,8 @@ class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
 classes = [
     DAZ_OT_TransferCorrectives,
     DAZ_OT_TransferOtherMorphs,
+    DAZ_OT_TransferCorrectivesSubset,
+    DAZ_OT_TransferOtherMorphsSubset,
     DAZ_OT_MixShapekeys,
 ]
 
