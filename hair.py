@@ -40,37 +40,20 @@ from .cycles import CyclesMaterial, CyclesTree
 #-------------------------------------------------------------
 
 class HairSystem:
-    def __init__(self, name, n, geonode=None, object=None):
+    def __init__(self, name, n, hum, btn):
+        from .channels import Channels
         if name is None:
             self.name = ("Hair%02d" % n)
         else:
             self.name = name
-        if object:
-            self.scale = object.DazScale
-        else:
-            self.scale = LS.scale
-        self.geonode = geonode
-        self.hairgen = None
-        if geonode:
-            self.hairgen = geonode.hairgen
-        self.modifier = self.getModifier(geonode)
+        self.scale = hum.DazScale
+        self.button = btn
+        self.modifier = Channels()
         self.npoints = n
         self.strands = []
         self.useEmitter = True
         self.vertexGroup = None
         self.material = None
-
-
-    def getModifier(self, geonode):
-        from .channels import Channels
-        if geonode is None:
-            return Channels()
-        for key in geonode.modifiers.keys():
-            if (key[0:8] == "DZ__SPS_" and
-                self.name.startswith(key[8:])):
-                return geonode.modifiers[key]
-        print("No modifier found")
-        return geonode
 
 
     def getDensity(self, mod, channels, default):
@@ -110,6 +93,7 @@ class HairSystem:
 
 
     def setHairSettings(self, psys, ob):
+        btn = self.button
         mod = self.modifier
         pset = psys.settings
         if hasattr(pset, "cycles_curve_settings"):
@@ -120,17 +104,17 @@ class HairSystem:
             ccset = pset
 
         channels = ["PreRender Hairs Density", "PreSim Hairs Per Guide"]
-        val,rdtex = self.getTexDensity(mod, channels, LS.nRenderChildren, "rendered_child_count", pset, ob, "use_map_density", "density_factor")
+        val,rdtex = self.getTexDensity(mod, channels, btn.nRenderChildren, "rendered_child_count", pset, ob, "use_map_density", "density_factor")
 
         channels = ["PreSim Hairs Density", "PreRender Hairs Per Guide"]
-        self.getTexDensity(mod, channels, LS.nViewChildren, "child_nbr", pset, ob, "use_map_density", "density_factor", cond=(not rdtex))
+        self.getTexDensity(mod, channels, btn.nViewChildren, "child_nbr", pset, ob, "use_map_density", "density_factor", cond=(not rdtex))
 
         if (self.material and
             self.material in ob.data.materials.keys()):
             pset.material_slot = self.material
 
-        rootrad = mod.getValue(["Line Start Width"], 0.1)
-        tiprad = mod.getValue(["Line End Width"], 0)
+        rootrad = mod.getValue(["Line Start Width"], 0.1*btn.rootRadius)
+        tiprad = mod.getValue(["Line End Width"], 0.1*btn.tipRadius)
         if hasattr(ccset, "root_width"):
             ccset.root_width = rootrad
             ccset.tip_width = tiprad
@@ -200,9 +184,9 @@ class HairSystem:
     def build(self, context, ob):
         import time
         t1 = time.perf_counter()
-        #print("Build hair", self.name)
         if len(self.strands) == 0:
             raise DazError("No strands found")
+        btn = self.button
 
         hlen = int(len(self.strands[0]))
         if hlen < 3:
@@ -225,7 +209,7 @@ class HairSystem:
         elif hasattr(ob, "show_instancer_for_render"):
             ob.show_instancer_for_render = self.useEmitter
         pset.render_type = 'PATH'
-        if LS.nViewChildren or LS.nRenderChildren:
+        if btn.nViewChildren or btn.nRenderChildren:
             pset.child_type = 'SIMPLE'
         else:
             pset.child_type = 'NONE'
@@ -297,24 +281,9 @@ class HairSystem:
 #-------------------------------------------------------------
 
 class Tesselator:
-    def unTesselateEdges(self, context, hair, nsides):
-        if nsides == 1:
-            pass
-        elif nsides == 2:
-            self.combinePoints(1, hair)
-        elif nsides == 3:
-            self.combinePoints(2, hair)
-        else:
-            raise DazError("Cannot untesselate hair.\nRender Line Tessellation Sides > 3")
-        self.removeDoubles(context, hair)
-        deletes = self.checkTesselation(hair)
-        if deletes:
-            self.mergeRemainingFaces(hair)
-
-
-    def unTesselateFaces(self, context, hair):
+    def unTesselateFaces(self, context, hair, btn):
         self.squashFaces(hair)
-        self.removeDoubles(context, hair)
+        self.removeDoubles(context, hair, btn)
         deletes = self.checkTesselation(hair)
         if deletes:
             self.mergeRemainingFaces(hair)
@@ -353,9 +322,9 @@ class Tesselator:
                     v4.co = v1.co
 
 
-    def removeDoubles(self, context, hair):
+    def removeDoubles(self, context, hair, btn):
         activateObject(context, hair)
-        threshold = 0.001*LS.scale
+        threshold = 0.001*btn.scale
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='SELECT')
         bpy.ops.mesh.remove_doubles(threshold=threshold)
@@ -386,7 +355,7 @@ class Tesselator:
             for v in fverts:
                 v.co = r0
                 v.select = True
-        threshold = 0.001*LS.scale
+        threshold = 0.001*self.scale
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.remove_doubles(threshold=threshold)
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -466,6 +435,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         box.prop(self, "useVertexGroup")
         box.prop(self, "nViewChildren")
         box.prop(self, "nRenderChildren")
+        box.prop(self, "rootRadius")
+        box.prop(self, "tipRadius")
 
 
     def run(self, context):
@@ -480,9 +451,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             if hair.data.polygons:
                 raise DazError("Cannot use Line strand type for hair mesh with faces")
 
-        LS.scale = hair.DazScale
-        LS.nViewChildren = self.nViewChildren
-        LS.nRenderChildren = self.nRenderChildren
+        self.scale = hair.DazScale
         LS.useRootTransparency = self.useRootTransparency
         LS.hairMaterialMethod = self.hairMaterialMethod
 
@@ -512,10 +481,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
                 count += 1
                 if count % self.sparsity != 0:
                     continue
-                t3 = time.perf_counter()
                 hsyss,hcount = self.makeHairSystems(context, hum, hair)
                 haircount += hcount
-                t4 = time.perf_counter()
                 self.combineHairSystems(hsystems, hsyss)
                 if count % 10 == 0:
                     sys.stdout.write(".")
@@ -528,13 +495,11 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             if self.strandType == 'LINE':
                 pass
             elif self.strandType == 'TUBE':
-                tess.unTesselateFaces(context, hair)
+                tess.unTesselateFaces(context, hair, self)
             strands = tess.findStrands(hair)
-            t4 = time.perf_counter()
-            self.clocks.append(("Find strands", t4-t3))
             haircount = self.addStrands(hum, strands, hsystems, -1)
             t5 = time.perf_counter()
-            self.clocks.append(("Make hair systems", t5-t4))
+            self.clocks.append(("Make hair systems", t5-t2))
         haircount += 1
         print("\nTotal number of strands: %d" % haircount)
         if haircount == 0:
@@ -676,7 +641,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
 
     def makeHairSystem(self, n, hum):
-        hsys = HairSystem(None, n, object=hum)
+        hsys = HairSystem(None, n, hum, self)
         hsys.material = self.material.name
         return hsys
 

@@ -706,6 +706,18 @@ class Hair:
         min = 0,
         default = 0)
 
+    rootRadius : FloatProperty(
+        name = "Root radius (mm)",
+        description = "Strand diameter at the root",
+        min = 0,
+        default = 0.3)
+
+    tipRadius : FloatProperty(
+        name = "Tip radius (mm)",
+        description = "Strand diameter at the tip",
+        min = 0,
+        default = 0)
+
     # Materials
 
     keepMaterial : BoolProperty(
