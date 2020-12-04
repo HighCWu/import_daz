@@ -776,13 +776,13 @@ class Pinning:
 
 class TransferOptions:
     transferMethod = EnumProperty(
-        items = [('SLOW', "Slow", "Transfer using Blender's data transfer modifier.\nVery slow but works in general"),
-                 ('EXACT', "Exact", "Only transfer vertices as long as they match exactly.\nFastest, use to transfer shapekeys to mesh with merged geografts"),
-                 ('NEAREST_TRG', "Nearest Target Vertex", "Transfer morphs to nearest target vertex.\nFast but may be inaccurate"),
-                 ('NEAREST_SRC', "Nearest Source Vertex", "Transfer morphs from nearest source vertex.\nFast but may be inaccurate")],
+        items = [('GENERAL', "General", "Transfer using Blender's data transfer modifier.\nVery slow but works in general"),
+                 ('NEAREST', "Nearest Vertex", "Transfer morphs from nearest source vertex.\nUse to transfer shapekeys to clothes"),
+                 ('BODY', "Body", "Only transfer vertices as long as they match exactly.\nUse to transfer shapekeys from body to merged mesh"),
+                 ('GEOGRAFT', "Geograft", "Transfer morphs to nearest target vertex.\nUse to transfer shapekeys from geograft to merged mesh")],
         name = "Transfer Method",
         description = "Method used to transfer morphs",
-        default = 'NEAREST_SRC')
+        default = 'NEAREST')
 
     useDriver = BoolProperty(
         name = "Use Driver",
@@ -802,7 +802,7 @@ class TransferOptions:
     ignoreRigidity = BoolProperty(
         name = "Ignore Rigidity Groups",
         description = "Ignore rigidity groups when auto-transfer morphs.\nMorphs may differ from DAZ Studio.",
-        default = False)
+        default = True)
 
 
 class MixShapekeysOptions:

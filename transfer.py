@@ -216,20 +216,20 @@ class MorphTransferer(Selector, B.TransferOptions):
 
 
     def findMatch(self, hum, clo):
-        if self.transferMethod == 'SLOW':
+        if self.transferMethod == 'GENERAL':
             pass
-        elif self.transferMethod == 'EXACT':
+        elif self.transferMethod == 'BODY':
             self.findMatchExact(hum, clo)
-        elif self.transferMethod in ['NEAREST_TRG', 'NEAREST_SRC']:
+        elif self.transferMethod in ['GEOGRAFT', 'NEAREST']:
             self.findMatchNearest(hum, clo)
 
 
     def autoTransfer(self, hum, clo, hskey):
-        if self.transferMethod == 'SLOW':
+        if self.transferMethod == 'GENERAL':
             return self.autoTransferSlow(hum, clo, hskey)
-        elif self.transferMethod == 'EXACT':
+        elif self.transferMethod == 'BODY':
             return self.autoTransferExact(hum, clo, hskey)
-        elif self.transferMethod in ['NEAREST_TRG', 'NEAREST_SRC']:
+        elif self.transferMethod in ['GEOGRAFT', 'NEAREST']:
             return self.autoTransferExact(hum, clo, hskey)
 
     #----------------------------------------------------------
@@ -349,10 +349,10 @@ class MorphTransferer(Selector, B.TransferOptions):
         ncverts = len(cverts)
         diff = hverts[:,None] - cverts[None,:]
         dists = np.sum(np.abs(diff), axis=2)
-        if self.transferMethod == 'NEAREST_TRG':
+        if self.transferMethod == 'GEOGRAFT':
             match = np.argmin(dists, axis=1)
             self.match = [(match[hvn], hvn, Vector(cverts[match[hvn]]-hverts[hvn])) for hvn in range(nhverts)]
-        elif self.transferMethod == 'NEAREST_SRC':
+        elif self.transferMethod == 'NEAREST':
             match = np.argmin(dists, axis=0)
             self.match = [(cvn, match[cvn], Vector(cverts[cvn]-hverts[match[cvn]])) for cvn in range(ncverts)]
         print("Matching table created", nhverts, ncverts)
