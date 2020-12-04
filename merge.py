@@ -474,7 +474,7 @@ class DAZ_OT_EliminateEmpties(DazOperator):
                 else:
                     raise DazError("Unknown parent type: %s %s" % (child.name, ob.parent_type))
         for empty in deletes:
-            deleteObject(context, empty)
+            deleteObjects(context, [empty])
 
 
     def doEliminate(self, ob):
@@ -594,7 +594,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                     ob.name = stripName(ob.name)
                     ob.data.name = stripName(ob.data.name)
                 subrig.parent = None
-                deleteObject(context, subrig)
+                deleteObjects(context, [subrig])
 
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='OBJECT')

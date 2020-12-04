@@ -119,7 +119,7 @@ class GeoNode(Node):
             if not multi and len(hdob.data.vertices) == len(ob.data.vertices):
                 print("HD mesh same as base mesh:", ob.name)
                 self.hdobject = inst.hdobject = ob
-                deleteObject(context, hdob)
+                deleteObjects(context, [hdob])
         elif LS.useHDObjects:
             self.hdobject = inst.hdobject = ob
 

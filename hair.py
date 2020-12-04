@@ -200,7 +200,7 @@ class HairSystem:
     def build(self, context, ob):
         import time
         t1 = time.perf_counter()
-        print("Build hair", self.name)
+        #print("Build hair", self.name)
         if len(self.strands) == 0:
             raise DazError("No strands found")
 
@@ -256,7 +256,7 @@ class HairSystem:
         self.buildFinish(context, psys, ob)
         t6 = time.perf_counter()
         bpy.ops.object.mode_set(mode='OBJECT')
-        print("Hair %s: %.3f %.3f %.3f %.3f %.3f" % (self.name, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5))
+        #print("Hair %s: %.3f %.3f %.3f %.3f %.3f" % (self.name, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5))
 
 
     def buildStrands(self, psys):
@@ -496,21 +496,34 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_mode(type='FACE')
         bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
 
         t2 = time.perf_counter()
         self.clocks.append(("Initialize", t2-t1))
+        hsystems = {}
+        hairs = []
         if self.strandType == 'SHEET':
-            mrects = self.findMeshRects(hair)
-            t3 = time.perf_counter()
-            self.clocks.append(("Find mesh rects", t3-t2))
-            trects = self.findTexRects(hair, mrects)
-            t4 = time.perf_counter()
-            self.clocks.append(("Find texture rects", t4-t3))
-            hsystems,haircount = self.makeHairSystems(context, hum, hair, trects)
+            bpy.ops.mesh.separate(type='LOOSE')
+            bpy.ops.object.mode_set(mode='OBJECT')
+            hname = hair.name
+            haircount = 0
+            hairs = [hair for hair in getSceneObjects(context) if (getSelected(hair) and hair.name.startswith(hname))]
+            count = 0
+            for hair in hairs:
+                count += 1
+                if count % self.sparsity != 0:
+                    continue
+                t3 = time.perf_counter()
+                hsyss,hcount = self.makeHairSystems(context, hum, hair)
+                haircount += hcount
+                t4 = time.perf_counter()
+                self.combineHairSystems(hsystems, hsyss)
+                if count % 10 == 0:
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
             t5 = time.perf_counter()
-            self.clocks.append(("Make hair systems", t5-t4))
+            self.clocks.append(("Make hair systems", t5-t2))
         else:
+            bpy.ops.object.mode_set(mode='OBJECT')
             tess = Tesselator()
             if self.strandType == 'LINE':
                 pass
@@ -519,7 +532,6 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             strands = tess.findStrands(hair)
             t4 = time.perf_counter()
             self.clocks.append(("Find strands", t4-t3))
-            hsystems = {}
             haircount = self.addStrands(hum, strands, hsystems, -1)
             t5 = time.perf_counter()
             self.clocks.append(("Make hair systems", t5-t4))
@@ -537,9 +549,12 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         self.makeHairs(context, hsystems, hum)
         t7 = time.perf_counter()
         self.clocks.append(("Make Hair", t7-t6))
+        deleteObjects(context, hairs)
+        t8 = time.perf_counter()
+        self.clocks.append(("Deleted mesh hairs", t8-t7))
         if self.nonquads:
             print("Ignored %d non-quad faces out of %d faces" % (len(self.nonquads), len(hair.data.polygons)))
-        print("Hair converted in %.2f seconds" % (t7-t1))
+        print("Hair converted in %.2f seconds" % (t8-t1))
         for hdr,t in self.clocks:
             print("  %s: %2f s" % (hdr, t))
 
@@ -561,7 +576,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def findMeshRects(self, hair):
         from .tables import getVertFaces, findNeighbors
-        print("Find neighbors")
+        #print("Find neighbors")
         self.faceverts, self.vertfaces = getVertFaces(hair)
         self.nfaces = len(hair.data.polygons)
         if not self.nfaces:
@@ -569,7 +584,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         mneighbors = findNeighbors(range(self.nfaces), self.faceverts, self.vertfaces)
         self.centers, self.uvcenters = self.findCenters(hair)
 
-        print("Collect rects")
+        #print("Collect rects")
         mfaces = [(f.index,f.vertices) for f in hair.data.polygons]
         mrects,_,_ = self.collectRects(mfaces, mneighbors)
         return mrects
@@ -577,15 +592,15 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def findTexRects(self, hair, mrects):
         from .tables import getVertFaces, findNeighbors, findTexVerts
-        print("Find texverts")
+        #print("Find texverts")
         self.texverts, self.texfaces = findTexVerts(hair, self.vertfaces)
-        print("Find tex neighbors", len(self.texverts), self.nfaces, len(self.texfaces))
+        #print("Find tex neighbors", len(self.texverts), self.nfaces, len(self.texfaces))
         # Improve
         _,self.texvertfaces = getVertFaces(hair, self.texverts, None, self.texfaces)
         tneighbors = findNeighbors(range(self.nfaces), self.texfaces, self.texvertfaces)
 
         rects = []
-        print("Collect texrects")
+        #print("Collect texrects")
         for mverts,mfaces in mrects:
             texfaces = [(fn,self.texfaces[fn]) for fn in mfaces]
             nn = [(fn,tneighbors[fn]) for fn in mfaces]
@@ -595,29 +610,26 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         return rects
 
 
-    def makeHairSystems(self, context, hum, hair, rects):
+    def makeHairSystems(self, context, hum, hair):
         from .tables import getVertFaces, findNeighbors
-        print("Sort columns")
+        mrects = self.findMeshRects(hair)
+        trects = self.findTexRects(hair, mrects)
+        #print("Sort columns")
         haircount = -1
         setActiveObject(context, hair)
         hsystems = {}
         verts = range(len(hair.data.vertices))
-        count = 0
-        for _,faces in rects:
-            if count % 10 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
-            count += 1
-            if not self.quadsOnly(hair, faces):
+        for _,tfaces in trects:
+            if not self.quadsOnly(hair, tfaces):
                 continue
-            _,vertfaces = getVertFaces(None, verts, faces, self.faceverts)
-            neighbors = findNeighbors(faces, self.faceverts, vertfaces)
+            _,vertfaces = getVertFaces(None, verts, tfaces, self.faceverts)
+            neighbors = findNeighbors(tfaces, self.faceverts, vertfaces)
             if neighbors is None:
                 continue
             first, corner, boundary, bulk = self.findStartingPoint(hair, neighbors, self.uvcenters)
             if first is None:
                 continue
-            self.selectFaces(hair, faces)
+            self.selectFaces(hair, tfaces)
             columns = self.sortColumns(first, corner, boundary, bulk, neighbors, self.uvcenters)
             if columns:
                 strands = self.getColumnCoords(columns, self.centers)
@@ -627,14 +639,19 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def addStrands(self, hum, strands, hsystems, haircount):
         for strand in strands:
-            haircount += 1
-            if haircount % self.sparsity != 0:
-                continue
             n = len(strand)
             if n not in hsystems.keys():
                 hsystems[n] = self.makeHairSystem(n, hum)
             hsystems[n].strands.append(strand)
-        return haircount
+        return len(strands)
+
+
+    def combineHairSystems(self, hsystems, hsyss):
+        for key,hsys in hsyss.items():
+            if key in hsystems.keys():
+                hsystems[key].strands += hsys.strands
+            else:
+                hsystems[key] = hsys
 
 
     def blockResize(self, hsystems, hum):

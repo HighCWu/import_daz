@@ -751,7 +751,7 @@ class Rigify:
             self.renameBones(rig, Genesis3Renames)
         else:
             activateObject(context, meta)
-            deleteObject(context, meta)
+            deleteObjects(context, [meta])
             raise DazError("Cannot rigify %s %s" % (meta.DazRigifyType, rig.name))
 
         connectToParent(rig)
@@ -1055,10 +1055,10 @@ class Rigify:
         gen.DazRig = meta.DazRigType
         name = rig.name
         activateObject(context, rig)
-        deleteObject(context, rig)
+        deleteObjects(context, [rig])
         if deleteMeta:
             activateObject(context, meta)
-            deleteObject(context, meta)
+            deleteObjects(context, [meta])
         activateObject(context, gen)
         gen.name = name
         bpy.ops.object.mode_set(mode='POSE')

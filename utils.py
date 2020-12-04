@@ -82,7 +82,7 @@ if bpy.app.version < (2,80,0):
         ob.layers = 19*[False] + [True]
         ob.hide = True
 
-    def createHiddenCollection(context, parent):
+    def createHiddenCollection(context, parent, cname="Hidden"):
         return context.scene
 
     def getUvTextures(me):
@@ -130,16 +130,20 @@ if bpy.app.version < (2,80,0):
     def splitLayout(layout, factor):
         return layout.split(factor)
 
-    def deleteObject(context, ob):
-        if ob is None:
-            return
+
+    def deleteObjects(context, objects):
         if context.object:
             bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
-        ob.select = True
-        unlinkAll(ob)
+        for ob in objects:
+            if ob:
+                ob.select = True
+                unlinkAll(ob)
         bpy.ops.object.delete(use_global=False)
-        del ob
+        for ob in objects:
+            if ob:
+                del ob
+
 
     def unlinkAll(ob):
         for scn in bpy.data.scenes:
@@ -208,8 +212,8 @@ else:
         ob.hide_viewport = True
         ob.hide_render = True
 
-    def createHiddenCollection(context, parent):
-        coll = bpy.data.collections.new(name="Hidden")
+    def createHiddenCollection(context, parent, cname="Hidden"):
+        coll = bpy.data.collections.new(name=cname)
         if parent is None:
             parent = context.collection
         parent.children.link(coll)
@@ -271,17 +275,20 @@ else:
     def splitLayout(layout, factor):
         return layout.split(factor=factor)
 
-    def deleteObject(context, ob):
+    def deleteObjects(context, objects):
         if context.object:
             bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
-        unlinkAll(ob)
-        try:
-            ob.select_set(True)
-            bpy.ops.object.delete(use_global=False)
-        except RuntimeError:
-            pass
-        del ob
+        for ob in objects:
+            unlinkAll(ob)
+            try:
+                ob.select_set(True)
+            except RuntimeError:
+                pass
+        bpy.ops.object.delete(use_global=False)
+        for ob in objects:
+            if ob:
+                del ob
 
     def unlinkAll(ob):
         for coll in bpy.data.collections:
