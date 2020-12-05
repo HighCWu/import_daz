@@ -696,6 +696,13 @@ class DAZ_PT_Morphs:
                 self.displayProp(item.text, item.name, "", rig, self.layout, scn)
 
 
+    def showBool(layout, ob, key, text=""):
+        from .morphing import getExistingActivateGroup
+        pg = getExistingActivateGroup(ob, key)
+        if pg is not None:
+            layout.prop(pg, "active", text=text)
+
+
     def displayProp(self, name, key, category, rig, layout, scn):
         if key not in rig.keys():
             return
@@ -706,13 +713,6 @@ class DAZ_PT_Morphs:
         op.key = key
         op.morphset = self.morphset
         op.category = category
-
-
-def showBool(layout, ob, key, text=""):
-    from .morphing import getExistingActivateGroup
-    pg = getExistingActivateGroup(ob, key)
-    if pg is not None:
-        layout.prop(pg, "active", text=text)
 
 
 class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):

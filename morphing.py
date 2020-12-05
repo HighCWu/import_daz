@@ -104,8 +104,8 @@ def getMorphList(ob, morphset, sets=None):
     return mlist
 
 
-def getMorphs(ob, morphset, category=None):
-    """getMorphs(ob, type, category=None)
+def getMorphs(ob, morphset, category=None, activeOnly=False):
+    """getMorphs(ob, type, category=None, activeOnly=False)
     Get all morph names and values of the specified type from the object.
 
     Returns:
@@ -118,7 +118,15 @@ def getMorphs(ob, morphset, category=None):
         or a list of such strings, or the keyword "All" signifying all morphset in the list.
 
     ?category (optional): The category name for Custom morphs.
+
+    ?activeOnly (optional): Active morphs only (default False).
     """
+
+    def isActiveKey(key, rig):
+        if rig:
+            return (key in rig.DazActivated.keys() and rig.DazActivated[key].active)
+        else:
+            return True
 
     if not isinstance(ob, bpy.types.Object):
         raise DazError("getMorphs: First argument must be a Blender object, but got '%s'" % ob)
@@ -129,14 +137,19 @@ def getMorphs(ob, morphset, category=None):
         raise DazError("getMorphs: Morphset must be 'All' or one of %s, not '%s'" % (theMorphSets, morphset))
     pgs = getMorphs0(ob, morphset, None, category)
     mdict = {}
+    rig = None
     if ob.type == 'ARMATURE':
+        if activeOnly:
+            rig = ob
         #if morphset in theJCMMorphSets:
         #    raise DazError("JCM morphs are stored in the mesh object")
         for pg in pgs:
             for key in pg.keys():
-                if key in ob.keys():
+                if key in ob.keys() and isActiveKey(key, rig):
                     mdict[key] = ob[key]
     elif ob.type == 'MESH':
+        if activeOnly:
+            rig = ob.parent
         #if morphset not in theJCMMorphSets:
         #    raise DazError("Only JCM morphs are stored in the mesh object")
         skeys = ob.data.shape_keys
@@ -144,7 +157,7 @@ def getMorphs(ob, morphset, category=None):
             return mdict
         for pg in pgs:
             for key in pg.keys():
-                if key in skeys.key_blocks.keys():
+                if key in skeys.key_blocks.keys() and isActiveKey(key, rig):
                     mdict[key] = skeys.key_blocks[key].value
     return mdict
 
