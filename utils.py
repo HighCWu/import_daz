@@ -131,19 +131,13 @@ if bpy.app.version < (2,80,0):
         return layout.split(factor)
 
 
-    def deleteObjects(context, objects):
+    def selectObjects(context, objects):
         if context.object:
             bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
         for ob in objects:
             if ob:
                 ob.select = True
-                unlinkAll(ob)
-        bpy.ops.object.delete(use_global=False)
-        for ob in objects:
-            if ob:
-                del ob
-
 
     def unlinkAll(ob):
         for scn in bpy.data.scenes:
@@ -275,20 +269,15 @@ else:
     def splitLayout(layout, factor):
         return layout.split(factor=factor)
 
-    def deleteObjects(context, objects):
+    def selectObjects(context, objects):
         if context.object:
             bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
         for ob in objects:
-            unlinkAll(ob)
             try:
                 ob.select_set(True)
             except RuntimeError:
                 pass
-        bpy.ops.object.delete(use_global=False)
-        for ob in objects:
-            if ob:
-                del ob
 
     def unlinkAll(ob):
         for coll in bpy.data.collections:
@@ -306,6 +295,15 @@ else:
 #-------------------------------------------------------------
 #
 #-------------------------------------------------------------
+
+def deleteObjects(context, objects):
+    selectObjects(context, objects)
+    bpy.ops.object.delete(use_global=False)
+    for ob in objects:
+        unlinkAll(ob)
+        if ob:
+            del ob
+
 
 def setWorldMatrix(ob, wmat):
     if ob.parent:

@@ -411,7 +411,9 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         box = col.box()
         box.label(text="Create")
         box.prop(self, "strandType", expand=True)
-        box.prop(self, "strandOrientation")
+        if self.strandType == 'SHEET':
+            box.prop(self, "strandOrientation")
+            box.prop(self, "keepMesh")
         box.separator()
         box.prop(self, "resizeHair")
         box.prop(self, "size")
@@ -474,6 +476,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             bpy.ops.mesh.separate(type='LOOSE')
             bpy.ops.object.mode_set(mode='OBJECT')
             hname = hair.name
+            if (len(hname) >= 4 and hname[-4] == "." and hname[-3:].isdigit()):
+                hname = hname[:-4]
             haircount = 0
             hairs = [hair for hair in getSceneObjects(context)
                      if (getSelected(hair) and
@@ -517,9 +521,19 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         self.makeHairs(context, hsystems, hum)
         t7 = time.perf_counter()
         self.clocks.append(("Make Hair", t7-t6))
-        deleteObjects(context, hairs)
-        t8 = time.perf_counter()
-        self.clocks.append(("Deleted mesh hairs", t8-t7))
+        if self.strandType != 'SHEET':
+            t8 = t7
+        elif self.keepMesh:
+            activateObject(context, hair)
+            selectObjects(context, hairs)
+            bpy.ops.object.join()
+            activateObject(context, hum)
+            t8 = time.perf_counter()
+            self.clocks.append(("Rejoined mesh hairs", t8-t7))
+        else:
+            deleteObjects(context, hairs)
+            t8 = time.perf_counter()
+            self.clocks.append(("Deleted mesh hairs", t8-t7))
         if self.nonquads:
             print("Ignored %d non-quad faces out of %d faces" % (len(self.nonquads), len(hair.data.polygons)))
         print("Hair converted in %.2f seconds" % (t8-t1))

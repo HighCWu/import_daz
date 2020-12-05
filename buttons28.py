@@ -659,6 +659,12 @@ class Hair:
         description = "How the strands are oriented in UV space"
     )
 
+    keepMesh : BoolProperty(
+        name = "Keep Mesh Hair",
+        default = False,
+        description = "Keep (reconstruct) mesh hair after making particle hair"
+    )
+
     sparsity : IntProperty(
         name = "Sparsity",
         min = 1,
