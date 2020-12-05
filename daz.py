@@ -1264,6 +1264,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazChooseColors")
         box.prop(scn, "DazMergeShells")
         box.prop(scn, "DazBrightenEyes")
+        box.prop(scn, "DazPruneNodes")
         box.prop(scn, "DazUseEnvironment")
         box.prop(scn, "DazReuseMaterials")
         box.prop(scn, "DazLimitBump")
@@ -1621,6 +1622,10 @@ def initialize():
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shells",
         description = "Merge shell materials with object materials")
+
+    bpy.types.Scene.DazPruneNodes = BoolProperty(
+        name = "Prune Node Tree",
+        description = "Prune material node-tree")
 
     bpy.types.Scene.DazBrightenEyes = FloatProperty(
         name = "Brighten Eyes",

@@ -68,6 +68,7 @@ class GlobalSettings:
         self.caseSensitivePaths = (platform != 'win32')
         self.mergeShells = True
         self.brightenEyes = 1.0
+        self.pruneNodes = True
 
         self.limitBump = False
         self.maxBump = 10
@@ -117,6 +118,7 @@ class GlobalSettings:
         "DazChooseColors" : "chooseColors",
         "DazMergeShells" : "mergeShells",
         "DazBrightenEyes" : "brightenEyes",
+        "DazPruneNodes" : "pruneNodes",
         "DazUseEnvironment" : "useEnvironment",
         "DazReuseMaterials" : "reuseMaterials",
         "DazLimitBump" : "limitBump",

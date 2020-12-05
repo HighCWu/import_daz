@@ -394,6 +394,8 @@ class CyclesTree:
 
 
     def prune(self):
+        if not GS.pruneNodes:
+            return
         marked = {}
         output = False
         for node in self.nodes:
