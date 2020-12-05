@@ -783,6 +783,54 @@ class DisplacementGroup(CyclesGroup):
         self.links.new(mult2.outputs[0], self.outputs.inputs["Displacement"])
 
 # ---------------------------------------------------------------------
+#   Decal Group
+# ---------------------------------------------------------------------
+
+class DecalGroup(CyclesGroup):
+
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["Color", "Influence"]
+        self.outsockets += ["Color"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 5)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "Influence")
+        self.group.outputs.new("NodeSocketColor", "Color")
+
+
+    def addNodes(self, args):
+        empty,img = args
+
+        texco = self.addNode("ShaderNodeTexCoord", 0)
+        texco.object = empty
+
+        mapping = self.addNode("ShaderNodeMapping", 1)
+        mapping.vector_type = 'POINT'
+        mapping.inputs["Location"].default_value = (0.5, 0.5, 0)
+        self.links.new(texco.outputs["Object"], mapping.inputs["Vector"])
+
+        tex = self.addNode("ShaderNodeTexImage", 2)
+        tex.image = img
+        print("TE", tex, tex.image, img)
+        self.links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
+
+        mult = self.addNode("ShaderNodeMath", 3)
+        mult.operation = 'MULTIPLY'
+        self.links.new(self.inputs.outputs["Influence"], mult.inputs[0])
+        self.links.new(tex.outputs["Alpha"], mult.inputs[1])
+
+        mix = self.addNode("ShaderNodeMixRGB", 4)
+        mix.blend_type = 'MULTIPLY'
+        self.links.new(mult.outputs[0], mix.inputs[0])
+        self.links.new(self.inputs.outputs["Color"], mix.inputs[1])
+        self.links.new(tex.outputs["Color"], mix.inputs[2])
+
+        self.links.new(mix.outputs[0], self.outputs.inputs["Color"])
+
+# ---------------------------------------------------------------------
 #   LIE Group
 # ---------------------------------------------------------------------
 

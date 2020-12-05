@@ -310,7 +310,9 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.separator()
             box.operator("daz.remove_shells")
             box.operator("daz.replace_shells")
-            #box.operator("daz.remove_shell_duplicates")
+
+            box.separator()
+            box.operator("daz.make_decal")
 
             box.separator()
             box.operator("daz.launch_editor")

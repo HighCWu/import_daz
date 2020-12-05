@@ -27,6 +27,7 @@
 
 
 import bpy
+import os
 from bpy.props import *
 from .error import *
 from .utils import *
@@ -244,7 +245,6 @@ class ChannelSetter:
 
 
     def getChannelCycles(self, mat, nodeType, slot, ncomps, fromType):
-        from .cgroup import DualLobeGroup
         for node in mat.node_tree.nodes.values():
             if self.matchingNode(node, nodeType, mat, fromType):
                 socket = node.inputs[slot]
@@ -494,6 +494,56 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
             tree.links.new(fromsocket, mult.inputs[1])
             tree.links.new(mult.outputs[0], tosocket)
             return mult
+
+# ---------------------------------------------------------------------
+#   Make Decal
+# ---------------------------------------------------------------------
+
+class DAZ_OT_MakeDecal(DazOperator, B.ImageFile, B.SingleFile, IsMesh):
+    bl_idname = "daz.make_decal"
+    bl_label = "Make Decal"
+    bl_description = "Add a decal to the active material"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        ob = context.object
+
+    def run(self, context):
+        from .cycles import CyclesTree
+        from .cgroup import DecalGroup
+
+        img = bpy.data.images.load(self.filepath)
+        if img is None:
+            raise DazError("Unable to load file %s" % self.filepath)
+        if hasattr(img, "colorspace_settings"):
+            img.colorspace_settings.name = "Non-Color"
+            img.colorspace_settings.name = "sRGB"
+
+        fname = os.path.splitext(os.path.basename(self.filepath))[0]
+        ob = context.object
+        mat = ob.data.materials[ob.active_material_index]
+        tree = CyclesTree(None)
+        tree.nodes = mat.node_tree.nodes
+        tree.links = mat.node_tree.links
+
+        coll = getCollection(context)
+        empty = bpy.data.objects.new(fname, None)
+        coll.objects.link(empty)
+
+        fromSocket, toSocket = self.getFromToSockets(tree, "Principled Base Color")
+        node = tree.addGroup(DecalGroup, fname, col=3, args=[empty, img])
+        tree.links.new(fromSocket, node.inputs["Color"])
+        node.inputs["Influence"].default_value = 1.0
+        tree.links.new(node.outputs["Color"], toSocket)
+
+
+    def getFromToSockets(self, tree, key):
+        nodeType, slot, useAttr, factorAttr, ncomps, fromType = getTweakableChannel(key)
+        for link in tree.links.values():
+            if link.to_node and link.to_node.type == nodeType:
+                if link.to_socket == link.to_node.inputs[slot]:
+                    return link.from_socket, link.to_socket
+        return None, None
 
 
 # ---------------------------------------------------------------------
@@ -754,6 +804,7 @@ classes = [
     DAZ_OT_LaunchEditor,
     DAZ_OT_ChangeTweakType,
     DAZ_OT_ResetMaterial,
+    DAZ_OT_MakeDecal,
     DAZ_OT_SetShellVisibility,
     DAZ_OT_CreateShellVisibilityDrivers,
     DAZ_OT_RemoveShells,
