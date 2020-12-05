@@ -556,7 +556,9 @@ class LoadMorph(PropFormulas, ShapeFormulas, B.MorphStrength):
         skey = None
         prop = None
         if self.useShapekeys and isinstance(asset, Morph) and self.mesh and self.mesh.type == 'MESH':
-            if asset.vertex_count != len(self.mesh.data.vertices):
+            if asset.vertex_count < 0:
+                print("Vertex count == %d" % asset.vertex_count)
+            elif asset.vertex_count != len(self.mesh.data.vertices):
                 if GS.verbosity > 2:
                     msg = ("Vertex count mismatch:\n  %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
                     if self.suppressError:
