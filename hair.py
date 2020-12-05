@@ -475,7 +475,10 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             bpy.ops.object.mode_set(mode='OBJECT')
             hname = hair.name
             haircount = 0
-            hairs = [hair for hair in getSceneObjects(context) if (getSelected(hair) and hair.name.startswith(hname))]
+            hairs = [hair for hair in getSceneObjects(context)
+                     if (getSelected(hair) and
+                         hair.name.startswith(hname) and
+                         hair != hum)]
             count = 0
             for hair in hairs:
                 count += 1
