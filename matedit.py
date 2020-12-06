@@ -524,11 +524,11 @@ class DAZ_OT_MakeDecal(DazOperator, B.ImageFile, B.SingleFile, B.LaunchEditor, I
 
 
     def invoke(self, context, event):
-        self.shows.clear()
-        for key in self.channels.keys():
-            item = self.shows.add()
-            item.name = key
-            item.show = False
+        if len(self.shows) == 0:
+            for key in self.channels.keys():
+                item = self.shows.add()
+                item.name = key
+                item.show = False
         return B.SingleFile.invoke(self, context, event)
 
 
@@ -558,14 +558,17 @@ class DAZ_OT_MakeDecal(DazOperator, B.ImageFile, B.SingleFile, B.LaunchEditor, I
             if item.show:
                 nodeType,slot,cname = self.channels[item.name]
                 fromSocket, toSocket = self.getFromToSockets(tree, nodeType, slot)
-                if fromSocket is None or toSocket is None:
+                if toSocket is None:
                     print("Channel %s not found" % item.name)
                     continue
                 nname = fname + "_" + cname
                 node = tree.addGroup(DecalGroup, nname, col=3, args=[empty, img], force=True)
-                tree.links.new(fromSocket, node.inputs["Color"])
                 node.inputs["Influence"].default_value = 1.0
-                tree.links.new(node.outputs["Color"], toSocket)
+                if fromSocket:
+                    tree.links.new(fromSocket, node.inputs["Color"])
+                    tree.links.new(node.outputs["Combined"], toSocket)
+                else:
+                    tree.links.new(node.outputs["Color"], toSocket)
 
 
     def getFromToSockets(self, tree, nodeType, slot):
@@ -573,6 +576,9 @@ class DAZ_OT_MakeDecal(DazOperator, B.ImageFile, B.SingleFile, B.LaunchEditor, I
             if link.to_node and link.to_node.type == nodeType:
                 if link.to_socket == link.to_node.inputs[slot]:
                     return link.from_socket, link.to_socket
+        for node in tree.nodes.values():
+            if node.type == nodeType:
+                return None, node.inputs[slot]
         return None, None
 
 # ---------------------------------------------------------------------

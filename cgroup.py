@@ -791,7 +791,7 @@ class DecalGroup(CyclesGroup):
     def __init__(self):
         CyclesGroup.__init__(self)
         self.insockets += ["Color", "Influence"]
-        self.outsockets += ["Color"]
+        self.outsockets += ["Color", "Alpha", "Combined"]
 
 
     def create(self, node, name, parent):
@@ -799,6 +799,8 @@ class DecalGroup(CyclesGroup):
         self.group.inputs.new("NodeSocketColor", "Color")
         self.group.inputs.new("NodeSocketFloat", "Influence")
         self.group.outputs.new("NodeSocketColor", "Color")
+        self.group.outputs.new("NodeSocketFloat", "Alpha")
+        self.group.outputs.new("NodeSocketColor", "Combined")
 
 
     def addNodes(self, args):
@@ -828,7 +830,9 @@ class DecalGroup(CyclesGroup):
         self.links.new(self.inputs.outputs["Color"], mix.inputs[1])
         self.links.new(tex.outputs["Color"], mix.inputs[2])
 
-        self.links.new(mix.outputs[0], self.outputs.inputs["Color"])
+        self.links.new(tex.outputs["Color"], self.outputs.inputs["Color"])
+        self.links.new(mult.outputs[0], self.outputs.inputs["Alpha"])
+        self.links.new(mix.outputs[0], self.outputs.inputs["Combined"])
 
 # ---------------------------------------------------------------------
 #   LIE Group
