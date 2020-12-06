@@ -157,10 +157,9 @@ class GeoNode(Node):
 
 
     def addHDMaterials(self, mats, prefix):
-        from .material import getMatKey
         for mat in mats:
             pg = self.hdobject.data.DazHDMaterials.add()
-            pg.name = prefix + getMatKey(mat.name)
+            pg.name = prefix + mat.name
             pg.text = mat.name
         if self.data and self.data.vertex_pairs:
             # Geograft
@@ -233,7 +232,6 @@ class GeoNode(Node):
 
 
     def buildHighDef(self, context, inst):
-        from .material import getMatKey
         me = self.hdobject.data
         matgroups = [(mname,mn) for mn,mname in enumerate(self.highdef.matgroups)]
         matnames = [(pg.name,pg.text) for pg in me.DazHDMaterials]
@@ -508,6 +506,10 @@ class Geometry(Asset, Channels):
     def update(self, struct):
         Asset.update(self, struct)
         Channels.update(self, struct)
+        if "polygon_groups" in struct.keys():
+            self.polygon_groups = struct["polygon_groups"]["values"]
+        if "polygon_material_groups" in struct.keys():
+            self.polygon_material_groups = struct["polygon_material_groups"]["values"]
         if "SubDIALevel" in self.channels.keys():
             self.SubDIALevel = getCurrentValue(self.channels["SubDIALevel"], 0)
         if "SubDRenderLevel" in self.channels.keys():
@@ -652,9 +654,9 @@ class Geometry(Asset, Channels):
             return
 
         if self.sourcing:
-            # This does not seem to be good for anything
-            # asset = self.sourcing
-            pass
+            asset = self.sourcing
+            self.polygon_groups = asset.polygon_groups
+            self.polygon_material_groups = asset.polygon_material_groups
 
         name = self.getName()
         me = self.rna = bpy.data.meshes.new(name)

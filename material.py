@@ -48,17 +48,6 @@ BLACK = Vector((0.0,0.0,0.0))
 #   Materials
 #-------------------------------------------------------------
 
-def getMatKey(id):
-    id = unquote(id)
-    key = id.split("#")[-1]
-    words = key.rsplit("-",1)
-    if (len(words) == 2 and
-        words[1].isdigit()):
-        return words[0]
-    else:
-        return key
-
-
 class Material(Asset, Channels):
 
     def __init__(self, fileref):
@@ -96,6 +85,24 @@ class Material(Asset, Channels):
         Channels.parse(self, struct)
 
 
+    def getMatName(self, id):
+        id = unquote(id)
+        key = id.split("#")[-1]
+        words = key.rsplit("-",1)
+        if (len(words) == 2 and
+            words[1].isdigit()):
+            return words[0]
+        else:
+            return key
+
+
+    def addToGeo(self, geo, key):
+        if key not in geo.materials.keys():
+            geo.materials[key] = []
+        geo.materials[key].append(self)
+        self.geometry = geo
+
+
     def update(self, struct):
         Asset.update(self, struct)
         Channels.update(self, struct)
@@ -106,13 +113,9 @@ class Material(Asset, Channels):
                 self.uv_set.material = self
         if "geometry" in struct.keys():
             geo = self.getAsset(struct["geometry"], True)
-            key = getMatKey(self.id)
             if geo is not None:
-                if key not in geo.materials.keys():
-                    geo.materials[key] = []
-                geo.materials[key].append(self)
-                self.geometry = geo
-
+                key = self.getMatName(self.id)
+                self.addToGeo(geo, key)
         self.basemix = self.getValue(["Base Mixing"], 0)
         if self.basemix == 2:
             self.basemix = 0
