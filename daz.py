@@ -698,7 +698,7 @@ class DAZ_PT_Morphs:
                 self.displayProp(item.text, item.name, "", rig, self.layout, scn)
 
 
-    def showBool(layout, ob, key, text=""):
+    def showBool(self, layout, ob, key, text=""):
         from .morphing import getExistingActivateGroup
         pg = getExistingActivateGroup(ob, key)
         if pg is not None:
@@ -710,7 +710,7 @@ class DAZ_PT_Morphs:
             return
         row = splitLayout(layout, 0.8)
         row.prop(rig, '["%s"]' % key, text=name)
-        showBool(row, rig, key)
+        self.showBool(row, rig, key)
         op = row.operator("daz.pin_prop", icon='UNPINNED')
         op.key = key
         op.morphset = self.morphset
