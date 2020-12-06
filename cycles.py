@@ -229,14 +229,14 @@ class CyclesTree:
             return self.eevee.outputs[0]
 
 
-    def addGroup(self, classdef, name, col=None, size=0, args=[]):
+    def addGroup(self, classdef, name, col=None, size=0, args=[], force=False):
         if col is None:
             col = self.column
         node = self.addNode("ShaderNodeGroup", col)
         if size:
             self.ycoords[col] -= size
         group = classdef()
-        if name in bpy.data.node_groups.keys():
+        if name in bpy.data.node_groups.keys() and not force:
             tree = bpy.data.node_groups[name]
             if group.checkSockets(tree):
                 node.node_tree = tree

@@ -814,7 +814,7 @@ class DecalGroup(CyclesGroup):
 
         tex = self.addNode("ShaderNodeTexImage", 2)
         tex.image = img
-        print("TE", tex, tex.image, img)
+        tex.extension = 'CLIP'
         self.links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
 
         mult = self.addNode("ShaderNodeMath", 3)

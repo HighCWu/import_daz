@@ -371,7 +371,7 @@ class DAZ_OT_ChangeTweakType(bpy.types.Operator, ChannelSetter):
 #   Launch button
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
+class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, B.LaunchEditor, IsMesh):
     bl_idname = "daz.launch_editor"
     bl_label = "Launch Material Editor"
     bl_description = "Edit materials of selected meshes"
@@ -427,9 +427,7 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
                 continue
         self.getAffectedMaterials(context)
         self.addSlots(context)
-        wm = context.window_manager
-        wm.invoke_props_dialog(self)
-        return {'RUNNING_MODAL'}
+        return DazPropsOperator.invoke(self, context, event)
 
 
     def run(self, context):
@@ -499,14 +497,40 @@ class DAZ_OT_LaunchEditor(DazOperator, ChannelSetter, B.LaunchEditor, IsMesh):
 #   Make Decal
 # ---------------------------------------------------------------------
 
-class DAZ_OT_MakeDecal(DazOperator, B.ImageFile, B.SingleFile, IsMesh):
+class DAZ_OT_MakeDecal(DazOperator, B.ImageFile, B.SingleFile, B.LaunchEditor, IsMesh):
     bl_idname = "daz.make_decal"
     bl_label = "Make Decal"
     bl_description = "Add a decal to the active material"
     bl_options = {'UNDO'}
 
+    channels = {
+        "Diffuse Color" : ("DIFFUSE", "Color", "Diffuse"),
+        "Glossy Color" : ("DAZ Glossy", "Color", "Glossy"),
+        "Translucency Color" : ("DAZ Translucent", "Color", "Translucency"),
+        "Subsurface Color" : ("DAZ SSS", "Color", "SSS"),
+        "Principled Base Color" : ("BSDF_PRINCIPLED", "Base Color", "Base"),
+        "Principled Subsurface Color" : ("BSDF_PRINCIPLED", "Subsurface Color", "SSS"),
+        "Bump" : ("BUMP", "Height", "Bump"),
+    }
+
     def draw(self, context):
         ob = context.object
+        mat = ob.data.materials[ob.active_material_index]
+        self.layout.label(text="Material: %s" % mat.name)
+        for item in self.shows:
+            row = self.layout.row()
+            row.prop(item, "show", text="")
+            row.label(text=item.name)
+
+
+    def invoke(self, context, event):
+        self.shows.clear()
+        for key in self.channels.keys():
+            item = self.shows.add()
+            item.name = key
+            item.show = False
+        return B.SingleFile.invoke(self, context, event)
+
 
     def run(self, context):
         from .cycles import CyclesTree
@@ -530,21 +554,26 @@ class DAZ_OT_MakeDecal(DazOperator, B.ImageFile, B.SingleFile, IsMesh):
         empty = bpy.data.objects.new(fname, None)
         coll.objects.link(empty)
 
-        fromSocket, toSocket = self.getFromToSockets(tree, "Principled Base Color")
-        node = tree.addGroup(DecalGroup, fname, col=3, args=[empty, img])
-        tree.links.new(fromSocket, node.inputs["Color"])
-        node.inputs["Influence"].default_value = 1.0
-        tree.links.new(node.outputs["Color"], toSocket)
+        for item in self.shows:
+            if item.show:
+                nodeType,slot,cname = self.channels[item.name]
+                fromSocket, toSocket = self.getFromToSockets(tree, nodeType, slot)
+                if fromSocket is None or toSocket is None:
+                    print("Channel %s not found" % item.name)
+                    continue
+                nname = fname + "_" + cname
+                node = tree.addGroup(DecalGroup, nname, col=3, args=[empty, img], force=True)
+                tree.links.new(fromSocket, node.inputs["Color"])
+                node.inputs["Influence"].default_value = 1.0
+                tree.links.new(node.outputs["Color"], toSocket)
 
 
-    def getFromToSockets(self, tree, key):
-        nodeType, slot, useAttr, factorAttr, ncomps, fromType = getTweakableChannel(key)
+    def getFromToSockets(self, tree, nodeType, slot):
         for link in tree.links.values():
             if link.to_node and link.to_node.type == nodeType:
                 if link.to_socket == link.to_node.inputs[slot]:
                     return link.from_socket, link.to_socket
         return None, None
-
 
 # ---------------------------------------------------------------------
 #   Reset button
