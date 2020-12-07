@@ -423,12 +423,20 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         col = row.column()
         box = col.box()
         box.label(text="Material")
+        box.prop(self, "multiMaterials")
         box.prop(self, "keepMaterial")
         if self.keepMaterial:
-            box.prop(self, "activeMaterial")
+            if not self.multiMaterials:
+                box.prop(self, "activeMaterial")
         else:
             box.prop(self, "hairMaterialMethod")
-            box.prop(self, "color")
+            if self.multiMaterials:
+                for item in self.colors:
+                    row2 = box.row()
+                    row2.label(text=item.name)
+                    row2.prop(item, "color", text="")
+            else:
+                box.prop(self, "color")
             box.prop(self, "useRootTransparency")
 
         col = row.column()
@@ -439,6 +447,16 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         box.prop(self, "nRenderChildren")
         box.prop(self, "rootRadius")
         box.prop(self, "tipRadius")
+
+
+    def invoke(self, context, event):
+        ob = context.object
+        self.colors.clear()
+        for mat in ob.data.materials:
+            item = self.colors.add()
+            item.name = mat.name
+            item.color = mat.diffuse_color
+        return DazPropsOperator.invoke(self, context, event)
 
 
     def run(self, context):
@@ -1533,6 +1551,8 @@ class DAZ_OT_HairAddPinning(DazPropsOperator, IsMesh, Pinning):
 # ---------------------------------------------------------------------
 
 classes = [
+    B.ColorGroup,
+
     DAZ_OT_MakeHair,
     DAZ_OT_UpdateHair,
     DAZ_OT_ColorHair,

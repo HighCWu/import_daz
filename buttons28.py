@@ -638,6 +638,16 @@ class Offset:
 #   hair.py
 #-------------------------------------------------------------
 
+class ColorGroup(bpy.types.PropertyGroup):
+    color : FloatVectorProperty(
+        name = "Hair Color",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.2, 0.02, 0.01, 1)
+    )
+
 class Hair:
     # Create
 
@@ -726,6 +736,11 @@ class Hair:
 
     # Materials
 
+    multiMaterials : BoolProperty(
+        name = "Multi Materials",
+        description = "Create separate particle systems for each material",
+        default = True)
+
     keepMaterial : BoolProperty(
         name = "Keep Material",
         description = "Use existing material",
@@ -744,6 +759,8 @@ class Hair:
         max = 1.0,
         default = (0.2, 0.02, 0.01, 1)
     )
+
+    colors : CollectionProperty(type = ColorGroup)
 
     hairMaterialMethod : EnumProperty(
         items = [('BSDF', "BSDF", "BSDF "),
