@@ -146,7 +146,7 @@ class HairSystem:
 
 
     def addStrand(self, strand):
-        self.strands.append(strand)
+        self.strands.append(strand[0])
 
 
     def resize(self, size):
@@ -360,23 +360,26 @@ class Tesselator:
 
 
     def findStrands(self, hair):
+        pgs = hair.data.DazMatNums
+        if len(pgs) >= len(hair.data.edges):
+            edges = [list(e.vertices)+[pgs[e.index].a] for e in hair.data.edges]
+        else:
+            edges = [list(e.vertices)+[0] for e in hair.data.edges]
+        edges.sort()
         plines = []
         v0 = -1
-        pline = None
-        edges = [list(e.vertices) for e in hair.data.edges]
-        edges.sort()
-        for v1,v2 in edges:
+        for v1,v2,mnum in edges:
             if v1 == v0:
                 pline.append(v2)
             else:
                 pline = [v1,v2]
-                plines.append(pline)
+                plines.append((mnum,pline))
             v0 = v2
         strands = []
         verts = hair.data.vertices
-        for pline in plines:
+        for mnum,pline in plines:
             strand = [verts[vn].co for vn in pline]
-            strands.append(strand)
+            strands.append((mnum,strand))
         return strands
 
 #-------------------------------------------------------------
@@ -610,6 +613,10 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def makeHairSystems(self, context, hum, hair):
         from .tables import getVertFaces, findNeighbors
+        if len(hair.data.polygons) > 0:
+            mnum = hair.data.polygons[0].material_index
+        else:
+            mnum = 0
         mrects = self.findMeshRects(hair)
         trects = self.findTexRects(hair, mrects)
         #print("Sort columns")
@@ -630,26 +637,28 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             self.selectFaces(hair, tfaces)
             columns = self.sortColumns(first, corner, boundary, bulk, neighbors, self.uvcenters)
             if columns:
-                strands = self.getColumnCoords(columns, self.centers)
+                coords = self.getColumnCoords(columns, self.centers)
+                strands = [(mnum,strand) for strand in coords]
                 haircount = self.addStrands(hum, hair, strands, hsystems, haircount)
         return hsystems, haircount
+
+
+    def getStrand(self, strand):
+        return strand[0], len(strand[1]), strand[1]
 
 
     def getKey(self, n, mnum):
         if self.multiMaterials:
             mat = self.materials[mnum]
-            return ("%d_%s" % (n, mat.name)), n, mnum
+            return ("%d_%s" % (n, mat.name)), mnum
         else:
-            return str(n),n,0
+            return str(n),0
 
 
     def addStrands(self, hum, hair, strands, hsystems, haircount):
         for strand in strands:
-            if len(hair.data.polygons) > 0:
-                mnum = hair.data.polygons[0].material_index
-            else:
-                mnum = 0
-            key,n,mnum = self.getKey(len(strand), mnum)
+            mnum,n,strand = self.getStrand(strand)
+            key,mnum = self.getKey(n, mnum)
             if key not in hsystems.keys():
                 hsystems[key] = HairSystem(key, n, hum, mnum, self)
             hsystems[key].strands.append(strand)
@@ -669,7 +678,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         nsystems = {}
         for hsys in hsystems.values():
             n,nstrands = hsys.resizeBlock()
-            key,n,mnum = self.getKey(n, hsys.mnum)
+            key,mnum = self.getKey(n, hsys.mnum)
             if key not in nsystems.keys():
                 nsystems[key] = HairSystem(key, n, hum, hsys.mnum, self)
             nsystems[key].strands += nstrands
@@ -680,9 +689,9 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         print("Resize hair")
         nsystems = {}
         for hsys in hsystems.values():
-            key,n,mnum = self.getKey(self.size, hsys.mnum)
+            key,mnum = self.getKey(self.size, hsys.mnum)
             if key not in nsystems.keys():
-                nsystems[key] = HairSystem(key, n, hum, hsys.mnum, self)
+                nsystems[key] = HairSystem(key, self.size, hum, hsys.mnum, self)
             nstrands = hsys.resize(self.size)
             nsystems[key].strands += nstrands
         return nsystems
@@ -1217,7 +1226,7 @@ def defaultRamp(ramp, rgb):
 def buildHairMaterialCycles(mname, color, context, force):
     hmat = HairMaterial(mname, color)
     hmat.force = force
-    print("Creating CYCLES HAIR material")
+    print("Creating Cycles hair material")
     hmat.build(context, color)
     return hmat.rna
 

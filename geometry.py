@@ -706,6 +706,14 @@ class Geometry(Asset, Channels):
             f.material_index = mn
             f.use_smooth = True
 
+        if self.polylines:
+            me.DazMatNums.clear()
+            for pline in self.polylines:
+                mnum = pline[1]
+                for n in range(len(pline)-3):
+                    item = me.DazMatNums.add()
+                    item.a = mnum
+
         hasShells = False
         for mn,mname in enumerate(self.polygon_material_groups):
             if mname in self.materials.keys():
@@ -1202,6 +1210,7 @@ def initialize():
     bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = B.DazRigidityGroup)
     bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = B.DazPairGroup)
     bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)
+    bpy.types.Mesh.DazMatNums = CollectionProperty(type = B.DazIntGroup)
     bpy.types.Mesh.DazVertexCount = IntProperty(default=0)
     bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = B.DazStringStringGroup)
     bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = B.DazTextGroup)
