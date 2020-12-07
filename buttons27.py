@@ -768,6 +768,13 @@ class Hair:
         default = False)
 
 
+class AffectMaterial:
+    affectMaterial = BoolProperty(
+        name = "Affect Material",
+        description = "Also change materials",
+        default = False)
+
+
 class Pinning:
     pinningX0 = FloatProperty(
         name = "Pin X0",

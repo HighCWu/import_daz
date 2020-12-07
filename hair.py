@@ -40,20 +40,18 @@ from .cycles import CyclesMaterial, CyclesTree
 #-------------------------------------------------------------
 
 class HairSystem:
-    def __init__(self, name, n, hum, btn):
+    def __init__(self, key, n, hum, mnum, btn):
         from .channels import Channels
-        if name is None:
-            self.name = ("Hair%02d" % n)
-        else:
-            self.name = name
+        self.name = ("Hair_%s" % key)
         self.scale = hum.DazScale
         self.button = btn
         self.modifier = Channels()
         self.npoints = n
+        self.mnum = mnum
         self.strands = []
         self.useEmitter = True
         self.vertexGroup = None
-        self.material = None
+        self.material = btn.materials[mnum].name
 
 
     def getDensity(self, mod, channels, default):
@@ -477,9 +475,9 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
         self.nonquads = []
         scn = context.scene
-        mname = self.activeMaterial
         setActiveObject(context, hum)
-        self.clearHair(hum, hair, mname, self.color, context)
+        self.clearHair(hum)
+        self.buildHairMaterials(hum, hair, context)
 
         setActiveObject(context, hair)
         bpy.ops.object.mode_set(mode='EDIT')
@@ -522,7 +520,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             elif self.strandType == 'TUBE':
                 tess.unTesselateFaces(context, hair, self)
             strands = tess.findStrands(hair)
-            haircount = self.addStrands(hum, strands, hsystems, -1)
+            haircount = self.addStrands(hum, hair, strands, hsystems, -1)
             t5 = time.perf_counter()
             self.clocks.append(("Make hair systems", t5-t2))
         haircount += 1
@@ -633,16 +631,28 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             columns = self.sortColumns(first, corner, boundary, bulk, neighbors, self.uvcenters)
             if columns:
                 strands = self.getColumnCoords(columns, self.centers)
-                haircount = self.addStrands(hum, strands, hsystems, haircount)
+                haircount = self.addStrands(hum, hair, strands, hsystems, haircount)
         return hsystems, haircount
 
 
-    def addStrands(self, hum, strands, hsystems, haircount):
+    def getKey(self, n, mnum):
+        if self.multiMaterials:
+            mat = self.materials[mnum]
+            return ("%d_%s" % (n, mat.name)), n, mnum
+        else:
+            return str(n),n,0
+
+
+    def addStrands(self, hum, hair, strands, hsystems, haircount):
         for strand in strands:
-            n = len(strand)
-            if n not in hsystems.keys():
-                hsystems[n] = self.makeHairSystem(n, hum)
-            hsystems[n].strands.append(strand)
+            if len(hair.data.polygons) > 0:
+                mnum = hair.data.polygons[0].material_index
+            else:
+                mnum = 0
+            key,n,mnum = self.getKey(len(strand), mnum)
+            if key not in hsystems.keys():
+                hsystems[key] = HairSystem(key, n, hum, mnum, self)
+            hsystems[key].strands.append(strand)
         return len(strands)
 
 
@@ -659,26 +669,23 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         nsystems = {}
         for hsys in hsystems.values():
             n,nstrands = hsys.resizeBlock()
-            if n not in nsystems.keys():
-                nsystems[n] = self.makeHairSystem(n, hum)
-            nsystems[n].strands += nstrands
+            key,n,mnum = self.getKey(n, hsys.mnum)
+            if key not in nsystems.keys():
+                nsystems[key] = HairSystem(key, n, hum, hsys.mnum, self)
+            nsystems[key].strands += nstrands
         return nsystems
 
 
     def hairResize(self, hsystems, hum):
         print("Resize hair")
-        nsystem = self.makeHairSystem(self.size, hum)
+        nsystems = {}
         for hsys in hsystems.values():
+            key,n,mnum = self.getKey(self.size, hsys.mnum)
+            if key not in nsystems.keys():
+                nsystems[key] = HairSystem(key, n, hum, hsys.mnum, self)
             nstrands = hsys.resize(self.size)
-            nsystem.strands += nstrands
-        hsystems = {self.size: nsystem}
-        return hsystems
-
-
-    def makeHairSystem(self, n, hum):
-        hsys = HairSystem(None, n, hum, self)
-        hsys.material = self.material.name
-        return hsys
+            nsystems[key].strands += nstrands
+        return nsystems
 
     #-------------------------------------------------------------
     #   Collect rectangles
@@ -891,16 +898,33 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
     #   Clear hair
     #-------------------------------------------------------------
 
-    def clearHair(self, hum, hair, mname, color, context):
+    def clearHair(self, hum):
         nsys = len(hum.particle_systems)
         for n in range(nsys):
             bpy.ops.object.particle_system_remove()
-        if self.keepMaterial:
-            mat = hair.data.materials[mname]
+
+
+    def buildHairMaterials(self, hum, hair, context):
+        self.materials = []
+        if self.multiMaterials:
+            if self.keepMaterial:
+                mats = hair.data.materials
+            else:
+                mats = []
+                for item in self.colors:
+                    mat = buildHairMaterial("H" + item.name, item.color, context, force=True)
+                    mats.append(mat)
+            for mat in mats:
+                hum.data.materials.append(mat)
+                self.materials.append(mat)
         else:
-            mat = buildHairMaterial("Hair", color, context, force=True)
-        self.material = mat
-        hum.data.materials.append(mat)
+            mname = self.activeMaterial
+            if self.keepMaterial:
+                mat = hair.data.materials[mname]
+            else:
+                mat = buildHairMaterial("Hair", self.color, context, force=True)
+            hum.data.materials.append(mat)
+            self.materials = [mat]
 
 
     def quadsOnly(self, ob, faces):
@@ -1023,11 +1047,15 @@ class IsHair:
         return (ob and ob.type == 'MESH' and ob.particle_systems.active)
 
 
-class DAZ_OT_UpdateHair(DazOperator, IsHair):
+class DAZ_OT_UpdateHair(DazPropsOperator, B.AffectMaterial, IsHair):
     bl_idname = "daz.update_hair"
     bl_label = "Update Hair"
     bl_description = "Change settings for particle hair"
     bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "affectMaterial")
+
 
     def run(self, context):
         hum = context.object
@@ -1051,7 +1079,9 @@ class DAZ_OT_UpdateHair(DazOperator, IsHair):
         for key in dir(pset):
             attr = getattr(pset, key)
             if (key[0] == "_" or
-                key in ["count"]):
+                key in ["count"] or
+                (key in ["material", "material_slot"] and
+                 not self.affectMaterial)):
                 continue
             if (
                 isinstance(attr, int) or
@@ -1137,7 +1167,7 @@ def buildHairMaterial(mname, color, context, force=False):
 # ---------------------------------------------------------------------
 
 def buildHairMaterialInternal(mname, rgb, force):
-    mat = bpy.data.materials.new("Hair")
+    mat = bpy.data.materials.new(mname)
 
     mat.diffuse_color = rgb
     mat.diffuse_intensity = 0.1
@@ -1185,7 +1215,7 @@ def defaultRamp(ramp, rgb):
 #-------------------------------------------------------------
 
 def buildHairMaterialCycles(mname, color, context, force):
-    hmat = HairMaterial("Hair", color)
+    hmat = HairMaterial(mname, color)
     hmat.force = force
     print("Creating CYCLES HAIR material")
     hmat.build(context, color)
