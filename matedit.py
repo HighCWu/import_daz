@@ -814,21 +814,6 @@ class DAZ_OT_ReplaceShells(DazPropsOperator, ShellRemover, IsMesh):
         self.getShells(context)
         return DazPropsOperator.invoke(self, context, event)
 
-
-class DAZ_OT_RemoveShellDuplicates(DazOperator, ShellRemover, IsMesh):
-    bl_idname = "daz.remove_shell_duplicates"
-    bl_label = "Remove Shell Duplicates"
-    bl_description = "Remove duplicated shells from active object"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        self.getShells(context)
-        for struct in self.shells.values():
-            for data in struct.values():
-                for mat,node in data[1:]:
-                    #print("  ", mat.name,node.name)
-                    self.deleteNodes(mat, node)
-
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------

@@ -287,25 +287,6 @@ class Tesselator:
             self.mergeRemainingFaces(hair)
 
 
-    def combinePoints(self, m, hair):
-        from .tables import getVertEdges, otherEnd
-        edgeverts,vertedges = getVertEdges(hair)
-        verts = hair.data.vertices
-        nverts = len(verts)
-        for vn in range(nverts):
-            ne = len(vertedges[vn])
-            if ne >  m:
-                v0 = verts[vn]
-                r0 = verts[vn].co
-                dists = []
-                for n,e in enumerate(vertedges[vn]):
-                    v = verts[otherEnd(vn, e)]
-                    dists.append(((v.co-r0).length, n, v))
-                dists.sort()
-                for _,_,v in dists[:m-ne]:
-                    v.co = r0
-
-
     def squashFaces(self, hair):
         verts = hair.data.vertices
         for f in hair.data.polygons:
@@ -333,7 +314,7 @@ class Tesselator:
     def checkTesselation(self, hair):
         # Check that there are only pure lines
         from .tables import getVertEdges
-        edgeverts,vertedges = getVertEdges(hair)
+        vertedges = getVertEdges(hair)
         nverts = len(hair.data.vertices)
         print("Check hair", hair.name, nverts)
         deletes = []

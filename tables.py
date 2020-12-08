@@ -41,16 +41,15 @@ def getVertFaces(ob, verts=None, faces=None, faceverts=None):
     return faceverts, vertfaces
 
 
-def getVertEdges(ob, edgeverts=None):
+def getVertEdges(ob):
     nverts = len(ob.data.vertices)
     nedges = len(ob.data.edges)
-    if edgeverts is None:
-        edgeverts = dict([(e.index, e.vertices) for e in ob.data.edges])
+    edgeverts = dict([(e.index, e.vertices) for e in ob.data.edges])
     vertedges = dict([(vn,[]) for vn in range(nverts)])
     for e in ob.data.edges:
         for vn in edgeverts[e.index]:
             vertedges[vn].append(e)
-    return edgeverts, vertedges
+    return vertedges
 
 
 def otherEnd(vn, e):
@@ -61,22 +60,16 @@ def otherEnd(vn, e):
         return vn1
 
 
-def getEdgeFaces(ob, vertedges=None):
-    if vertedges is None:
-        _,vertedges = getVertEdges(ob)
+def getEdgeFaces(ob, vertedges):
     nedges = len(ob.data.edges)
-    nfaces = len(ob.data.polygons)
-    faceedges = dict([(fn,[]) for fn in range(nfaces)])
     edgefaces = dict([(en,[]) for en in range(nedges)])
     for f in ob.data.polygons:
         for vn1,vn2 in f.edge_keys:
             for e in vertedges[vn1]:
                 if vn2 in e.vertices:
                     en = e.index
-                    if en not in faceedges[f.index]:
-                        faceedges[f.index].append(en)
                     edgefaces[en].append(f.index)
-    return faceedges,edgefaces
+    return edgefaces
 
 
 def getConnectedVerts(ob):
@@ -87,18 +80,6 @@ def getConnectedVerts(ob):
         connected[vn1].append(vn2)
         connected[vn2].append(vn1)
     return connected
-
-
-def getSharedPolys(ob):
-    nverts = len(ob.data.vertices)
-    shared = dict([(vn,[]) for vn in range(nverts)])
-    for f in ob.data.polygons:
-        for vn1 in f.vertices:
-            for vn2 in f.vertices:
-                if (vn1 != vn2 and vn2 not in shared[vn1]):
-                    shared[vn1].append(vn2)
-                    shared[vn2].append(vn1)
-    return shared
 
 
 def findNeighbors(faces, faceverts, vertfaces):
@@ -118,27 +99,6 @@ def findNeighbors(faces, faceverts, vertfaces):
                             neighbors[fn2].append(fn1)
 
     return neighbors
-
-
-def removeDuplicates(face):
-    vn1 = face[0]
-    nface = [vn1]
-    for vn2 in face[1:]:
-        if vn1 != vn2:
-            nface.append(vn2)
-        vn1 = vn2
-    return nface
-
-
-def duplicates(face):
-    face = face.copy()
-    face.sort()
-    vn1 = face[0]
-    for vn2 in face[1:]:
-        if vn1 == vn2:
-            return True
-        vn1 = vn2
-    return False
 
 #-------------------------------------------------------------
 #

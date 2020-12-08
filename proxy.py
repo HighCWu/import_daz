@@ -676,7 +676,7 @@ def getUvData(ob):
 
 
 def deleteMidpoints(ob):
-    edgeverts, vertedges = getVertEdges(ob)
+    vertedges = getVertEdges(ob)
     faceverts, vertfaces = getVertFaces(ob)
     uvtex,uvloop,uvdata = getUvData(ob)
 
@@ -1028,8 +1028,8 @@ def findSeams(ob):
                     if fn2 in seams[fn1]:
                         e.select = True
 
-    _,vertedges = getVertEdges(ob)
-    _,edgefaces = getEdgeFaces(ob, vertedges)
+    vertedges = getVertEdges(ob)
+    edgefaces = getEdgeFaces(ob, vertedges)
     for e in ob.data.edges:
         if len(edgefaces[e.index]) != 2:
             e.select = True
