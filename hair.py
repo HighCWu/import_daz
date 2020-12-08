@@ -393,9 +393,12 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         box = col.box()
         box.label(text="Create")
         box.prop(self, "strandType", expand=True)
+        multimat = True
         if self.strandType == 'SHEET':
             box.prop(self, "strandOrientation")
             box.prop(self, "keepMesh")
+        elif self.strandType == 'TUBE':
+            multimat = False
         box.separator()
         box.prop(self, "resizeHair")
         box.prop(self, "size")
@@ -405,14 +408,15 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         col = row.column()
         box = col.box()
         box.label(text="Material")
-        box.prop(self, "multiMaterials")
+        if multimat:
+            box.prop(self, "multiMaterials")
         box.prop(self, "keepMaterial")
         if self.keepMaterial:
-            if not self.multiMaterials:
+            if not (multimat and self.multiMaterials):
                 box.prop(self, "activeMaterial")
         else:
             box.prop(self, "hairMaterialMethod")
-            if self.multiMaterials:
+            if (multimat and self.multiMaterials):
                 for item in self.colors:
                     row2 = box.row()
                     row2.label(text=item.name)
@@ -452,6 +456,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         elif self.strandType == 'LINE':
             if hair.data.polygons:
                 raise DazError("Cannot use Line strand type for hair mesh with faces")
+        elif self.strandType == 'TUBE':
+            self.multiMaterials = False
 
         self.scale = hair.DazScale
         LS.useRootTransparency = self.useRootTransparency
