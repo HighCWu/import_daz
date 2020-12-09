@@ -675,6 +675,12 @@ class Hair:
         description = "Keep (reconstruct) mesh hair after making particle hair"
     )
 
+    removeOldHairs : BoolProperty(
+        name = "Remove Old Hairs",
+        default = False,
+        description = "Remove existing particle systems from this mesn"
+    )
+
     sparsity : IntProperty(
         name = "Sparsity",
         min = 1,

@@ -284,7 +284,7 @@ class Tesselator:
         self.removeDoubles(context, hair, btn)
         deletes = self.checkTesselation(hair)
         if deletes:
-            self.mergeRemainingFaces(hair)
+            self.mergeRemainingFaces(hair, btn)
 
 
     def squashFaces(self, hair):
@@ -327,14 +327,14 @@ class Tesselator:
         return deletes
 
 
-    def mergeRemainingFaces(self, hair):
+    def mergeRemainingFaces(self, hair, btn):
         for f in hair.data.polygons:
             fverts = [hair.data.vertices[vn] for vn in f.vertices]
             r0 = fverts[0].co
             for v in fverts:
                 v.co = r0
                 v.select = True
-        threshold = 0.001*self.scale
+        threshold = 0.001*btn.scale
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.remove_doubles(threshold=threshold)
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -399,6 +399,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             box.prop(self, "keepMesh")
         elif self.strandType == 'TUBE':
             multimat = False
+        box.prop(self, "removeOldHairs")
         box.separator()
         box.prop(self, "resizeHair")
         box.prop(self, "size")
@@ -450,6 +451,11 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         t1 = time.perf_counter()
         self.clocks = []
         hair,hum = getHairAndHuman(context, True)
+        if hasObjectTransforms(hair):
+            raise DazError("Apply object transformations to %s first" % hair.name)
+        if hasObjectTransforms(hum):
+            raise DazError("Apply object transformations to %s first" % hum.name)
+
         if self.strandType == 'SHEET':
             if not hair.data.uv_layers.active:
                 raise DazError("Hair object has no active UV layer.\nConsider using Line or Tube strand types instead")
@@ -468,7 +474,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         # Build hair material while hair is still active
         self.buildHairMaterials(hum, hair, context)
         setActiveObject(context, hum)
-        self.clearHair(hum)
+        if self.removeOldHairs:
+            self.clearHair(hum)
 
         setActiveObject(context, hair)
         bpy.ops.object.mode_set(mode='EDIT')

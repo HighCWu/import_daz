@@ -103,6 +103,7 @@ class DBZInfo:
 
 
     def getAlternatives(self, nname):
+        return []
         alts = []
         for oname,data in self.objects.items():
             if nname == oname[:-2]:

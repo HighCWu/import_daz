@@ -662,7 +662,13 @@ class Hair:
         description = "How the strands are oriented in UV space"
     )
 
-    keepMesh : BoolProperty(
+    removeOldHairs = BoolProperty(
+        name = "Remove Old Hairs",
+        default = False,
+        description = "Remove existing particle systems from this mesn"
+    )
+
+    keepMesh = BoolProperty(
         name = "Keep Mesh Hair",
         default = False,
         description = "Keep (reconstruct) mesh hair after making particle hair"
