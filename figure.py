@@ -277,7 +277,7 @@ class Figure(Node):
         Asset.build(self, context, inst)
         for geo in inst.geometries:
             geo.buildObject(context, inst, center)
-            geo.rna.location = Vector((0,0,0))
+            geo.rna.location = Zero
         amt = self.data = bpy.data.armatures.new(inst.name)
         self.buildObject(context, inst, center)
         rig = self.rna

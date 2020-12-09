@@ -111,7 +111,7 @@ class GeoNode(Node):
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
             self.hdobject = inst.hdobject = hdob
             self.addHDMaterials(ob.data.materials, "")
-            center = Vector((0,0,0))
+            center = Zero
             self.arrangeObject(hdob, inst, context, center)
             multi = False
             if GS.useMultires:

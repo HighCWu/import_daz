@@ -310,11 +310,11 @@ def setWorldMatrix(ob, wmat):
         ob.matrix_parent_inverse = ob.parent.matrix_world.inverted()
     ob.matrix_world = wmat
     if Vector(ob.location).length < 1e-6:
-        ob.location = (0,0,0)
+        ob.location = Zero
     if Vector(ob.rotation_euler).length < 1e-6:
-        ob.rotation_euler = (0,0,0)
-    if (Vector(ob.scale) - Vector((1,1,1))).length < 1e-6:
-        ob.scale = (1,1,1)
+        ob.rotation_euler = Zero
+    if (Vector(ob.scale) - One).length < 1e-6:
+        ob.scale = One
 
 
 def toggleEditMode():
@@ -397,6 +397,15 @@ def averageColor(value):
         return value
 
 
+Zero = Vector((0,0,0))
+One = Vector((1,1,1))
+
+def hasObjectTransforms(ob):
+    return (ob.location != Zero or
+            Vector(ob.rotation_euler) != Zero or
+            ob.scale != One)
+
+
 def match(tests, string):
     for test in tests:
         if test in string:
@@ -471,7 +480,7 @@ def getIndex(id):
 
 
 def getCoord(p):
-    co = Vector((0,0,0))
+    co = Zero
     for c in p:
         co[getIndex(c["id"])] = c["value"]
     return d2b(co)

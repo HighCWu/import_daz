@@ -387,7 +387,7 @@ def getSplinePoints(expr, pb):
         points.reverse()
 
     diff = points[n-1][0] - points[0][0]
-    vec = Vector((0,0,0))
+    vec = Zero
     vec[j] = 1/(diff*D)
     uvec = convertDualVector(vec, pb, False)
     xys = []
@@ -409,7 +409,7 @@ def convertDualVector(uvec, pb, invert):
     smat = getTransformMatrix(pb)
     if invert:
         smat.invert()
-    nvec = Vector((0,0,0))
+    nvec = Zero
     for i in range(3):
         mat = Mult3(smat, Units[i], smat.inverted())
         euler = mat.to_euler(pb.DazRotMode)
@@ -448,7 +448,7 @@ class PoseboneDriver:
         from .node import getBoneMatrix
         mat = getBoneMatrix(tfm, pb)
         loc,quat,scale = mat.decompose()
-        scale -= Vector((1,1,1))
+        scale -= One
         success = False
         if (tfm.transProp and loc.length > 0.01*self.rig.DazScale):
             self.setFcurves(pb, "", loc, tfm.transProp, "location")
@@ -945,7 +945,7 @@ def parseChannel(channel):
     attr,comp = channel.split("/")
     idx = getIndex(comp)
     if attr in ["rotation", "translation", "scale", "center_point", "end_point"]:
-        default = Vector((0,0,0))
+        default = Zero
     elif attr in ["orientation"]:
         return None, 0, Vector()
     else:

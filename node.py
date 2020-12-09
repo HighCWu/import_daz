@@ -128,7 +128,7 @@ class Instance(Accessor, Channels):
         self.channels = node.channels
         node.channels = {}
         self.shstruct = {}
-        self.center = Vector((0,0,0))
+        self.center = Zero
         self.refgroup = None
         self.isGroupNode = False
         self.isStrandHair = False
@@ -554,12 +554,12 @@ class Node(Asset, Formula, Channels):
 
     def defaultAttributes(self):
         return {
-            "center_point": Vector((0,0,0)),
-            "end_point": Vector((0,0,0)),
-            "orientation": Vector((0,0,0)),
-            "translation": Vector((0,0,0)),
-            "rotation": Vector((0,0,0)),
-            "scale": Vector((1,1,1)),
+            "center_point": Zero,
+            "end_point": Zero,
+            "orientation": Zero,
+            "translation": Zero,
+            "rotation": Zero,
+            "scale": One,
             "general_scale": 1
         }
 

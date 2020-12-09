@@ -68,7 +68,7 @@ class Transform:
 
     def setScale(self, scale, addUnit, prop=None):
         if addUnit:
-            self.scale = Vector(scale) + Vector((1,1,1))
+            self.scale = Vector(scale) + One
         else:
             self.scale = Vector(scale)
         self.scaleProp = prop
@@ -87,19 +87,19 @@ class Transform:
 
     def evalTrans(self):
         if self.trans is None:
-            return Vector((0,0,0))
+            return Zero
         else:
             return self.trans
 
     def evalRot(self):
         if self.rot is None:
-            return Vector((0,0,0))
+            return Zero
         else:
             return self.rot*D
 
     def evalScale(self):
         if self.scale is None:
-            scale = Vector((1,1,1))
+            scale = One
         else:
             scale = self.scale
         if self.general is not None:
