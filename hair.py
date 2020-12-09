@@ -465,9 +465,10 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
         self.nonquads = []
         scn = context.scene
+        # Build hair material while hair is still active
+        self.buildHairMaterials(hum, hair, context)
         setActiveObject(context, hum)
         self.clearHair(hum)
-        self.buildHairMaterials(hum, hair, context)
 
         setActiveObject(context, hair)
         bpy.ops.object.mode_set(mode='EDIT')
