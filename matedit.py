@@ -829,7 +829,6 @@ classes = [
     DAZ_OT_CreateShellVisibilityDrivers,
     DAZ_OT_RemoveShells,
     DAZ_OT_ReplaceShells,
-    DAZ_OT_RemoveShellDuplicates,
 ]
 
 def initialize():
