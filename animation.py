@@ -47,7 +47,7 @@ def framesToVectors(frames):
     for idx in frames.keys():
         for t,y in frames[idx]:
             if t not in vectors.keys():
-                vectors[t] = Zero
+                vectors[t] = Vector((0,0,0))
             vectors[t][idx] = y
     return vectors
 

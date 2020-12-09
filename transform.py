@@ -87,19 +87,19 @@ class Transform:
 
     def evalTrans(self):
         if self.trans is None:
-            return Zero
+            return Vector((0,0,0))
         else:
             return self.trans
 
     def evalRot(self):
         if self.rot is None:
-            return Zero
+            return Vector((0,0,0))
         else:
             return self.rot*D
 
     def evalScale(self):
         if self.scale is None:
-            scale = One
+            scale = Vector((1,1,1))
         else:
             scale = self.scale
         if self.general is not None:

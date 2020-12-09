@@ -164,8 +164,8 @@ class MorphTransferer(Selector, B.TransferOptions):
 
             xcoords = [ob.data.vertices[vn].co for vn in refverts]
             ycoords = [skey.data[vn].co for vn in refverts]
-            xsum = Zero
-            ysum = Zero
+            xsum = Vector((0,0,0))
+            ysum = Vector((0,0,0))
             for co in xcoords:
                 xsum += co
             for co in ycoords:

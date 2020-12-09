@@ -387,7 +387,7 @@ def getSplinePoints(expr, pb):
         points.reverse()
 
     diff = points[n-1][0] - points[0][0]
-    vec = Zero
+    vec = Vector((0,0,0))
     vec[j] = 1/(diff*D)
     uvec = convertDualVector(vec, pb, False)
     xys = []
@@ -409,7 +409,7 @@ def convertDualVector(uvec, pb, invert):
     smat = getTransformMatrix(pb)
     if invert:
         smat.invert()
-    nvec = Zero
+    nvec = Vector((0,0,0))
     for i in range(3):
         mat = Mult3(smat, Units[i], smat.inverted())
         euler = mat.to_euler(pb.DazRotMode)
@@ -945,7 +945,7 @@ def parseChannel(channel):
     attr,comp = channel.split("/")
     idx = getIndex(comp)
     if attr in ["rotation", "translation", "scale", "center_point", "end_point"]:
-        default = Zero
+        default = Vector((0,0,0))
     elif attr in ["orientation"]:
         return None, 0, Vector()
     else:
