@@ -712,11 +712,14 @@ class Geometry(Asset, Channels):
 
         if self.polylines:
             me.DazMatNums.clear()
+            me.DazHairType = 'LINE'
             for pline in self.polylines:
                 mnum = pline[1]
                 for n in range(len(pline)-3):
                     item = me.DazMatNums.add()
                     item.a = mnum
+        elif self.isStrandHair:
+            me.DazHairType = 'TUBE'
 
         hasShells = False
         for mn,mname in enumerate(self.polygon_material_groups):
@@ -1193,7 +1196,7 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    from bpy.props import CollectionProperty, IntProperty, BoolProperty
+    from bpy.props import CollectionProperty, IntProperty, BoolProperty, StringProperty
     bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = B.DazRigidityGroup)
     bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = B.DazPairGroup)
     bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)
@@ -1202,6 +1205,7 @@ def initialize():
     bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = B.DazStringStringGroup)
     bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = B.DazTextGroup)
     bpy.types.Object.DazMultires = BoolProperty(default=False)
+    bpy.types.Mesh.DazHairType = StringProperty(default = 'SHEET')
 
 
 def uninitialize():

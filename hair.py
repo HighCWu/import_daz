@@ -396,9 +396,9 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         multimat = True
         if self.strandType == 'SHEET':
             box.prop(self, "strandOrientation")
-            box.prop(self, "keepMesh")
         elif self.strandType == 'TUBE':
             multimat = False
+        box.prop(self, "keepMesh")
         box.prop(self, "removeOldHairs")
         box.separator()
         box.prop(self, "resizeHair")
@@ -438,6 +438,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def invoke(self, context, event):
         ob = context.object
+        self.strandType = ob.data.DazHairType
         self.colors.clear()
         for mat in ob.data.materials:
             item = self.colors.add()
@@ -485,8 +486,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         t2 = time.perf_counter()
         self.clocks.append(("Initialize", t2-t1))
         hsystems = {}
-        hairs = []
         if self.strandType == 'SHEET':
+            hairs = []
             bpy.ops.mesh.separate(type='LOOSE')
             bpy.ops.object.mode_set(mode='OBJECT')
             hname = hair.name
@@ -511,6 +512,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             t5 = time.perf_counter()
             self.clocks.append(("Make hair systems", t5-t2))
         else:
+            hairs = [hair]
             bpy.ops.object.mode_set(mode='OBJECT')
             tess = Tesselator()
             if self.strandType == 'LINE':
@@ -535,15 +537,16 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         self.makeHairs(context, hsystems, hum)
         t7 = time.perf_counter()
         self.clocks.append(("Make Hair", t7-t6))
-        if self.strandType != 'SHEET':
-            t8 = t7
-        elif self.keepMesh:
-            activateObject(context, hair)
-            selectObjects(context, hairs)
-            bpy.ops.object.join()
-            activateObject(context, hum)
-            t8 = time.perf_counter()
-            self.clocks.append(("Rejoined mesh hairs", t8-t7))
+        if self.keepMesh:
+            if self.strandType == 'SHEET':
+                activateObject(context, hair)
+                selectObjects(context, hairs)
+                bpy.ops.object.join()
+                activateObject(context, hum)
+                t8 = time.perf_counter()
+                self.clocks.append(("Rejoined mesh hairs", t8-t7))
+            else:
+                t8 = t7
         else:
             deleteObjects(context, hairs)
             t8 = time.perf_counter()
