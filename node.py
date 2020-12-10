@@ -187,6 +187,8 @@ class Instance(Accessor, Channels):
                 self.isNodeInstance = True
             elif extra["type"] == "studio/node/strand_hair":
                 self.isStrandHair = True
+                for geonode in self.geometries:
+                    geonode.isStrandHair = True
             elif extra["type"] == "studio/node/environment":
                 self.ignore = True
             elif extra["type"] == "studio/node/tone_mapper":

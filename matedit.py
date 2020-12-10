@@ -708,7 +708,6 @@ class DAZ_OT_CreateShellVisibilityDrivers(DazOperator, ShellGetter, IsMeshArmatu
                         if tree.animation_data:
                             for fcu in tree.animation_data.drivers:
                                 fcu.driver.expression = "x"
-                                print("MM", fcu.data_path, fcu.array_index)
         activateObject(context, rig)
 
 # ---------------------------------------------------------------------

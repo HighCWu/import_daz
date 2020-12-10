@@ -70,8 +70,11 @@ class CyclesMaterial(Material):
     def setupTree(self):
         from .pbr import PbrTree
         if bpy.app.version >= (2, 78, 0):
-            if self.geometry and self.geometry.polylines:
+            geo = self.geometry
+            if geo and (geo.isStrandHair or geo.polylines):
                 from .hair import HairPBRTree, HairBSDFTree
+                if geo.isStrandHair:
+                    geo.hairMaterials.append(self)
                 if LS.hairMaterialMethod == 'PRINCIPLED':
                     return HairPBRTree(self)
                 else:

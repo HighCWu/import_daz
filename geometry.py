@@ -55,7 +55,8 @@ class GeoNode(Node):
         self.verts = None
         self.edges = []
         self.faces = []
-        self.dbzMaterials = []
+        self.hairMaterials = []
+        self.isStrandHair = False
         self.properties = {}
         self.polylines = None
         self.highdef = None
@@ -174,11 +175,14 @@ class GeoNode(Node):
 
 
     def finalize(self, context, inst):
+        geo = self.data
         ob = self.rna
         if ob is None:
             return
-        if self.dbzMaterials:
-            self.data.makeDbzMaterial(self.dbzMaterials[0], context)
+        if self.hairMaterials:
+            for dmat in self.hairMaterials:
+                if dmat.rna:
+                    ob.data.materials.append(dmat.rna)
         if self.hdobject:
             self.finishHD(context, self.rna, self.hdobject, inst)
         if LS.fitFile and ob.type == 'MESH':
@@ -762,23 +766,6 @@ class Geometry(Asset, Channels):
         if hasShells:
             ob.DazVisibilityDrivers = True
         return ob
-
-
-    def makeDbzMaterial(self, dbzmat, context):
-        from .hair import HairMaterial
-        mname = "Hair"
-        props = dbzmat["properties"]
-        if "Hair Root Color" in props.keys():
-            color = props["Hair Root Color"]
-        else:
-            color = (1,1,1)
-        hmat = HairMaterial(mname, color)
-        self.polygon_material_groups = [mname]
-        self.materials[mname] = [hmat]
-        for key,value in props.items():
-            hmat.channels[key] = {"id" : key, "current_value" : value}
-        hmat.build(context, color)
-        self.addAllMaterials(self.rna)
 
 
     def addAllMaterials(self, me):

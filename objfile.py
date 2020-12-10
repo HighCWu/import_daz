@@ -329,7 +329,6 @@ def fitToFile(filepath, nodes):
                             geonode.verts = base.verts
                             geonode.edges = [e[0:2] for e in base.edges]
                             geonode.faces = [f[0] for f in base.faces]
-                            geonode.dbzMaterials = base.materials
                             geonode.properties = base.properties
                             geonode.center = base.center
                     else:
