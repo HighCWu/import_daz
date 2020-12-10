@@ -663,7 +663,7 @@ class Hair:
     )
 
     removeOldHairs = BoolProperty(
-        name = "Remove Old Hairs",
+        name = "Remove Particle Hair",
         default = False,
         description = "Remove existing particle systems from this mesn"
     )
