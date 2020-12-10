@@ -1278,8 +1278,9 @@ class HairTree(CyclesTree):
 
 
     def addTexco(self, slot):
+        CyclesTree.addTexco(self, slot)
         self.info = self.addNode('ShaderNodeHairInfo', col=1)
-        self.texco = self.info.outputs["Intercept"]
+        #self.texco = self.info.outputs["Intercept"]
 
 
     def buildOutput(self):
@@ -1331,12 +1332,12 @@ class HairTree(CyclesTree):
 
     def buildDiffuse(self, diffuse):
         # Color => diffuse
-        color,colortex = self.getColorTex("getChannelDiffuse", "COLOR", self.color)
+        color,colortex = self.getColorTex("getChannelDiffuse", "COLOR", self.color, useFactor=False)
         if not isBlack(color):
             self.color = color
             self.dark = self.compProd(color, GREY)
-        root,roottex = self.getColorTex(["Hair Root Color"], "COLOR", self.dark)
-        tip,tiptex = self.getColorTex(["Hair Tip Color"], "COLOR", self.color)
+        root,roottex = self.getColorTex(["Hair Root Color"], "COLOR", self.dark, useFactor=False)
+        tip,tiptex = self.getColorTex(["Hair Tip Color"], "COLOR", self.color, useFactor=False)
         rough = self.getValue(["base_roughness"], 0.2)
         self.setRoughness(diffuse, rough)
         diffuse.inputs["Color"].default_value[0:3] = color
@@ -1402,10 +1403,10 @@ class HairBSDFTree(HairTree):
 
     def buildTransmission(self):
         # Transmission => Transmission
-        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", self.dark)
-        tip,tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", self.color)
+        root,roottex = self.getColorTex(["Root Transmission Color"], "COLOR", self.dark, useFactor=False)
+        tip,tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", self.color, useFactor=False)
         if isBlack(root) and isBlack(tip):
-            color,tex = self.getColorTex(["Translucency Color"], "COLOR", self.color)
+            color,tex = self.getColorTex(["Translucency Color"], "COLOR", self.color, useFactor=False)
             weight = self.getValue(["Translucency Weight"], 0)
             #root = tip = color
             if isBlack(root):
@@ -1424,8 +1425,8 @@ class HairBSDFTree(HairTree):
 
     def buildHighlight(self):
         # Highlight => Reflection
-        root,roottex = self.getColorTex(["Highlight Root Color"], "COLOR", WHITE)
-        tip,tiptex = self.getColorTex(["Tip Highlight Color"], "COLOR", WHITE)
+        root,roottex = self.getColorTex(["Highlight Root Color"], "COLOR", WHITE, useFactor=False)
+        tip,tiptex = self.getColorTex(["Tip Highlight Color"], "COLOR", WHITE, useFactor=False)
         rough = self.getValue(["highlight_roughness"], 0.5)
         if isBlack(root) and isBlack(tip):
             refl = None

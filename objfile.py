@@ -112,7 +112,7 @@ class DBZInfo:
 
 
 class DBZObject:
-    def __init__(self, verts, uvs, edges, faces, matgroups, materials, props, lod, center):
+    def __init__(self, verts, uvs, edges, faces, matgroups, props, lod, center):
         self.verts = verts
         self.uvs = uvs
         self.edges = edges
@@ -121,19 +121,6 @@ class DBZObject:
         self.properties = props
         self.lod = lod
         self.center = center
-
-        for dmat in materials:
-            replaces = []
-            props = dmat["properties"]
-            for key,value in props.items():
-                if (isinstance(value, int) and
-                    key.endswith(("Color", "Colour"))):
-                    bytes = value.to_bytes(4, byteorder = 'big', signed=True)
-                    a,r,g,b = [byte/255 for byte in bytes]
-                    replaces.append((key, (r,g,b)))
-            for key,color in replaces:
-                props[key] = color
-        self.materials = materials
 
 #------------------------------------------------------------------
 #   Load DBZ file
@@ -165,7 +152,7 @@ def loadDbzFile(filepath):
 
         if "vertices" in figure.keys():
             verts = [d2b(vec) for vec in figure["vertices"]]
-            edges = faces = uvs = matgroups = materials = []
+            edges = faces = uvs = matgroups = []
             props = {}
             if "edges" in figure.keys():
                 edges = figure["edges"]
@@ -175,13 +162,9 @@ def loadDbzFile(filepath):
                 uvs = figure["uvs"]
             if "material groups" in figure.keys():
                 matgroups = figure["material groups"]
-            if "materials" in figure.keys():
-                materials = figure["materials"]
-                if materials and isinstance(materials[0], str):
-                    materials = []
             if "node" in figure.keys():
                 props = figure["node"]["properties"]
-            dbz.objects[name].append(DBZObject(verts, uvs, edges, faces, matgroups, materials, props, 0, center))
+            dbz.objects[name].append(DBZObject(verts, uvs, edges, faces, matgroups, props, 0, center))
 
         if "hd vertices" in figure.keys():
             LS.useHDObjects = True
@@ -191,11 +174,11 @@ def loadDbzFile(filepath):
             lod = figure["subd level"]
             uvs = figure["hd uvs"]
             faces = figure["hd faces"]
-            matgroups = materials = []
+            matgroups = []
             props = {}
             if "hd material groups" in figure.keys():
                 matgroups = figure["hd material groups"]
-            dbz.hdobjects[name].append(DBZObject(verts, uvs, [], faces, matgroups, materials, props, lod, center))
+            dbz.hdobjects[name].append(DBZObject(verts, uvs, [], faces, matgroups, props, lod, center))
 
         if "bones" not in figure.keys():
             continue
