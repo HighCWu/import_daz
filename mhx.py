@@ -63,7 +63,7 @@ L_RTOE = 29
 L_FACE =   8
 L_TWEAK =   9
 L_HEAD =    10
-L_CLOTHES = 16
+L_CUSTOM = 16
 
 L_HELP =    14
 L_HELP2 =   15
@@ -410,11 +410,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ("neck-1", "neckUpper", L_SPINE),
             ("head", "head", L_SPINE),
 
-            ("lEye", "lEye", L_FACE),
-            ("rEye", "rEye", L_FACE),
-            ("upperJaw", "upperJaw", L_FACE),
-            ("lowerJaw", "lowerJaw", L_FACE),
-
             ("clavicle.L", "lCollar", L_LARMFK),
             ("upper_arm.L", "lShldr", L_LARMFK),
             ("upper_armBend.L", "lShldrBend", L_LARMFK),
@@ -586,10 +581,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #-------------------------------------------------------------
 
     def rename2Mhx(self, rig):
-        from .driver import isBoneDriven
         fixed = []
-        faceLayer = L_FACE*[False] + [True] + (31-L_FACE)*[False]
-        clothesLayer = L_CLOTHES*[False] + [True] + (31-L_CLOTHES)*[False]
         helpLayer = L_HELP*[False] + [True] + (31-L_HELP)*[False]
         deformLayer = 31*[False] + [True]
 
@@ -620,26 +612,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             bname = pb.name
             lname = bname.lower()
             if bname in fixed:
-                pass
-            elif bname[-3:] == "Drv" or isBoneDriven(rig, pb):
-                pb.bone.layers = helpLayer
-            elif (pb.parent and
-                  pb.parent.name[-3:] == "Drv"):
-                pb.bone.layers = faceLayer
-                pb.lock_location = (False,False,False)
-            elif ("tongue" in lname):
-                pb.bone.layers = faceLayer
-            elif not (pb.bone.layers[L_LEXTRA] or pb.bone.layers[L_REXTRA]):
-                mname = bname[0].lower() + bname[1:]
-                if len(bname) > 1 and bname[1].isupper():
-                    if bname[0] == "l":
-                        mname = bname[1].lower() + bname[2:] + ".L"
-                    elif bname[0] == "r":
-                        mname = bname[1].lower() + bname[2:] + ".R"
-                if pb.bone.layers[NewFaceLayer-1]:
-                    pb.bone.layers = faceLayer
-                else:
-                    pb.bone.layers = clothesLayer
+                continue
+            layer,unlock = getBoneLayer(pb, rig)
+            pb.bone.layers = layer*[False] + [True] + (31-layer)*[False]
+            if unlock:
                 pb.lock_location = (False,False,False)
 
 
@@ -1221,8 +1197,31 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
 #-------------------------------------------------------------
-#   connectToParent used by Rigify
+#   getBoneLayer, connectToParent used by Rigify
 #-------------------------------------------------------------
+
+def getBoneLayer(pb, rig):
+    from .driver import isBoneDriven
+    lname = pb.name.lower()
+    facerigs = ["upperFaceRig", "lowerFaceRig"]
+    if pb.name in ["lEye", "rEye", "lEar", "rEar", "upperJaw", "lowerJaw", "upperTeeth", "lowerTeeth"]:
+        return L_HEAD, False
+    elif "tongue" in lname:
+        return L_HEAD, False
+    elif (pb.name[-3:] == "Drv" or
+        isBoneDriven(rig, pb) or
+        pb.name in facerigs):
+        return L_HELP, False
+    elif pb.parent:
+        par = pb.parent
+        if par.name in facerigs:
+            return L_FACE, True
+        elif (par.name[-3:] == "Drv" and
+              par.parent and
+              par.parent.name in facerigs):
+            return L_FACE, True
+    return L_CUSTOM, True
+
 
 def connectToParent(rig):
     bpy.ops.object.mode_set(mode='EDIT')

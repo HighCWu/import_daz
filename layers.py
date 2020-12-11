@@ -36,7 +36,7 @@ MhxLayers = [
     ((L_HEAD,       'Head', 'MhxHead'),
      (L_FACE,       'Face', 'MhxFace')),
     ((L_TWEAK,      'Tweak', 'MhxTweak'),
-     (L_CLOTHES,     'Clothes', 'MhxClothes')),
+     (L_CUSTOM,     'Custom', 'MhxCustom')),
     ('Left', 'Right'),
     ((L_LARMIK,     'IK Arm', 'MhxIKArm'),
      (L_RARMIK,     'IK Arm', 'MhxIKArm')),

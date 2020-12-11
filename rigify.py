@@ -50,13 +50,20 @@ R_CUSTOM = 19
 R_DEFORM = 29
 R_HELP = 30
 
-
 def setupTables(meta):
     global MetaBones, MetaParents, MetaDisconnect, RigifyParams
     global RigifySkeleton, GenesisCarpals, GenesisSpine
     global Genesis3Spine, Genesis3Mergers, Genesis3Parents
     global Genesis3Toes, Genesis3Renames
-    global DeformBones
+    global DeformBones, MhxRigifyLayer
+
+    from .mhx import L_HELP, L_FACE, L_HEAD, L_CUSTOM
+    MhxRigifyLayer = {
+        L_HELP : R_HELP,
+        L_FACE : R_DETAIL,
+        L_HEAD : R_FACE,
+        L_CUSTOM : R_CUSTOM
+    }
 
     if meta.DazPre278:
         hips = "hips"
@@ -829,7 +836,7 @@ class Rigify:
         from .driver import getBoneDrivers, copyDriver, changeBoneTarget, changeDriverTarget
         from .node import setParent, clearParent
         from .daz import copyPropGroups
-        from .mhx import unhideAllObjects
+        from .mhx import unhideAllObjects, getBoneLayer
         from .figure import copyBoneInfo
 
         print("Rigify metarig")
@@ -945,6 +952,11 @@ class Rigify:
             if rname in gen.pose.bones.keys():
                 pb = gen.pose.bones[rname]
                 dazBones[dname].setPose(pb)
+                mhxlayer,unlock = getBoneLayer(pb, gen)
+                layer = MhxRigifyLayer[mhxlayer]
+                pb.bone.layers = layer*[False] + [True] + (31-layer)*[False]
+                if unlock:
+                    pb.lock_location = (False, False, False)
 
         # Remove breast custom shapes, because they are placed differently in Daz
         for rname in ["breast.L", "breast.R"]:
