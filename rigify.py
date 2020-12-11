@@ -554,7 +554,8 @@ class Rigify:
                     "limbs.simple_tentacle"]:
                     pass
                 else:
-                    print("RIGIFYTYPE %s: %s" % (pb.name, pb["rigify_type"]))
+                    pass
+                    #print("RIGIFYTYPE %s: %s" % (pb.name, pb["rigify_type"]))
         for rname,prop,value in RigifyParams:
             if rname in meta.pose.bones:
                 pb = meta.pose.bones[rname]
@@ -810,7 +811,8 @@ class Rigify:
 
         self.fixHands(meta)
         self.fitLimbs(meta, hip)
-        self.addGroupBones(meta, rig)
+        if self.useCustomLayers:
+            self.addGroupBones(meta, rig)
 
         for eb in meta.data.edit_bones:
             if (eb.parent and
@@ -821,7 +823,8 @@ class Rigify:
         self.fitSpine(meta, spineBones, dazBones)
         self.reparentBones(meta, MetaParents)
         connect,disconnect = self.addRigifyProps(meta)
-        self.setupGroupBones(meta)
+        if self.useCustomLayers:
+            self.setupGroupBones(meta)
 
         bpy.ops.object.mode_set(mode='EDIT')
         self.setConnected(meta, connect, disconnect)
@@ -913,9 +916,10 @@ class Rigify:
                 eb.layers = helpLayers
 
         # Group bones
-        for data in self.GroupBones:
-            eb = gen.data.edit_bones[data[0]]
-            eb.layers = helpLayers
+        if self.useCustomLayers:
+            for data in self.GroupBones:
+                eb = gen.data.edit_bones[data[0]]
+                eb.layers = helpLayers
 
         # Add parents to extra bones
         for dname,rname in extras.items():
@@ -1182,6 +1186,7 @@ class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, B.Rigify, B.
 
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
+        self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "deleteMeta")
 
     def run(self, context):
@@ -1209,6 +1214,7 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists, B.Meta):
 
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
+        self.layout.prop(self, "useCustomLayers")
 
     def run(self, context):
         self.createMeta(context)
