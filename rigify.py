@@ -45,6 +45,8 @@ from .utils import *
 from .fix import Fixer, BendTwists
 
 R_FACE = 1
+R_DETAIL = 2
+R_CUSTOM = 19
 R_DEFORM = 29
 R_HELP = 30
 
@@ -371,6 +373,10 @@ def addDicts(structs):
 
 
 class Rigify:
+    GroupBones = [("Face ", R_FACE, 2, 6),
+                  ("Face (detail) ", R_DETAIL, 2, 3),
+                  ("Custom ", R_CUSTOM, 13, 6)]
+
     def setupDazSkeleton(self, meta):
         rigifySkel = RigifySkeleton
         if meta.DazRigifyType in ["genesis1", "genesis2"]:
@@ -547,6 +553,31 @@ class Rigify:
                 pb = meta.pose.bones[rname]
                 setattr(pb.rigify_parameters, prop, value)
         return connect, disconnect
+
+
+    def addGroupBones(self, meta, rig):
+        tail = (0,0,10*rig.DazScale)
+        for bname,layer,row,group in self.GroupBones:
+            eb = meta.data.edit_bones.new(bname)
+            eb.head = (0,0,0)
+            eb.tail = tail
+            eb.layers = layer*[False] + [True] + (31-layer)*[False]
+            print("GB", eb.name, eb.head, eb.tail)
+
+
+    def setupGroupBones(self, meta):
+        for bname,layer,row,group in self.GroupBones:
+            pb = meta.pose.bones[bname]
+            pb["rigify_type"] = "basic.pivot"
+            meta.data.layers[layer] = True
+            rlayer = meta.data.rigify_layers[layer]
+            rlayer.name = bname
+            rlayer.row = row
+            rlayer.group = group
+        meta.data.layers[0] = False
+        rlayer = meta.data.rigify_layers[0]
+        rlayer.name = ""
+        rlayer.group = 6
 
 
     def setConnected(self, meta, connect, disconnect):
@@ -772,6 +803,7 @@ class Rigify:
 
         self.fixHands(meta)
         self.fitLimbs(meta, hip)
+        self.addGroupBones(meta, rig)
 
         for eb in meta.data.edit_bones:
             if (eb.parent and
@@ -782,6 +814,7 @@ class Rigify:
         self.fitSpine(meta, spineBones, dazBones)
         self.reparentBones(meta, MetaParents)
         connect,disconnect = self.addRigifyProps(meta)
+        self.setupGroupBones(meta)
 
         bpy.ops.object.mode_set(mode='EDIT')
         self.setConnected(meta, connect, disconnect)
@@ -872,6 +905,11 @@ class Rigify:
             if dname in driven.keys():
                 eb.layers = helpLayers
 
+        # Group bones
+        for data in self.GroupBones:
+            eb = gen.data.edit_bones[data[0]]
+            eb.layers = helpLayers
+
         # Add parents to extra bones
         for dname,rname in extras.items():
             if dname not in dazBones.keys():
@@ -925,28 +963,6 @@ class Rigify:
             self.copyProp(key, rig, gen)
         for key in rig.data.keys():
             self.copyProp(key, rig.data, gen.data)
-
-        # Probably dont need this anymore
-        '''
-        for bname,dname in rigifySkel.items():
-            if dname in rig.pose.bones.keys():
-                bone = rig.pose.bones[dname]
-                if bname in gen.pose.bones.keys():
-                    rbone = gen.pose.bones[bname]
-                    copyBoneInfo(bone, rbone)
-                else:
-                    words = bname.split(".")
-                    if len(words) == 2:
-                        gname,suffix = words
-                        if gname+"_fk."+suffix in gen.pose.bones.keys():
-                            fkbone = gen.pose.bones[gname+"_fk."+suffix]
-                        elif gname+".fk."+suffix in gen.pose.bones.keys():
-                            fkbone = gen.pose.bones[gname+".fk."+suffix]
-                        else:
-                            fkbone = None
-                        if fkbone:
-                            copyBoneInfo(bone, fkbone)
-        '''
 
         # Some more bones
         from .convert import getConverterEntry
