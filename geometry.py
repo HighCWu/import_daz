@@ -135,6 +135,8 @@ class GeoNode(Node):
             mod = ob.modifiers.new(name='SUBSURF', type='SUBSURF')
             mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
             mod.levels = self.data.SubDIALevel
+            if hasattr(mod, "use_limit_surface"):
+                mod.use_limit_surface = False
 
 
     def buildHDMesh(self, ob):

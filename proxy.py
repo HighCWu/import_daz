@@ -1471,23 +1471,6 @@ class DAZ_OT_AddPush(DazOperator, IsMesh):
             raise DazError(msg, True)
 
 #-------------------------------------------------------------
-#   Add subsurf
-#-------------------------------------------------------------
-
-class DAZ_OT_AddSubsurf(DazOperator, IsMesh):
-    bl_idname = "daz.add_subsurf"
-    bl_label = "Add Subsurf"
-    bl_description = "Add a subsurf modifier"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'MESH':
-                mod = ob.modifiers.new('SUBSURF', 'SUBSURF')
-                mod.levels = 0
-                mod.render_levels = 1
-
-#-------------------------------------------------------------
 #   Make deflection
 #-------------------------------------------------------------
 
@@ -1569,7 +1552,6 @@ classes = [
     DAZ_OT_PrintStatistics,
     DAZ_OT_AddMannequin,
     DAZ_OT_AddPush,
-    DAZ_OT_AddSubsurf,
     DAZ_OT_MakeDeflection,
 ]
 
