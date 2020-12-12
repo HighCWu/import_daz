@@ -570,7 +570,6 @@ class Rigify:
             eb.head = (0,0,0)
             eb.tail = tail
             eb.layers = layer*[False] + [True] + (31-layer)*[False]
-            print("GB", eb.name, eb.head, eb.tail)
 
 
     def setupGroupBones(self, meta):
@@ -840,7 +839,6 @@ class Rigify:
         from .node import setParent, clearParent
         from .daz import copyPropGroups
         from .mhx import unhideAllObjects, getBoneLayer
-        from .figure import copyBoneInfo
 
         print("Rigify metarig")
         meta = context.object
@@ -961,6 +959,7 @@ class Rigify:
                 pb.bone.layers = layer*[False] + [True] + (31-layer)*[False]
                 if unlock:
                     pb.lock_location = (False, False, False)
+                self.copyBoneInfo(dname, rname, rig, gen)
 
         # Remove breast custom shapes, because they are placed differently in Daz
         for rname in ["breast.L", "breast.R"]:
@@ -984,11 +983,7 @@ class Rigify:
         from .convert import getConverterEntry
         conv = getConverterEntry("genesis-" + meta.DazRigType)
         for srcname,trgname in conv.items():
-            if (srcname in rig.pose.bones.keys() and
-                trgname in gen.pose.bones.keys()):
-                srcpb = rig.pose.bones[srcname]
-                trgpb = gen.pose.bones[trgname]
-                copyBoneInfo(srcpb, trgpb)
+            self.copyBoneInfo(srcname, trgname, rig, gen)
 
         # Handle bone parents
         boneParents = []
@@ -1096,6 +1091,15 @@ class Rigify:
         bpy.ops.object.mode_set(mode='POSE')
         print("Rigify created")
         return gen
+
+
+    def copyBoneInfo(self, srcname, trgname, rig, gen):
+        from .figure import copyBoneInfo
+        if (srcname in rig.pose.bones.keys() and
+            trgname in gen.pose.bones.keys()):
+            srcpb = rig.pose.bones[srcname]
+            trgpb = gen.pose.bones[trgname]
+            copyBoneInfo(srcpb, trgpb)
 
 
     def copyProp(self, prop, src, trg):
