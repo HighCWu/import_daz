@@ -351,8 +351,8 @@ def makePropDriver(prop, rna, channel, rig, expr, idx=-1):
     rna.driver_remove(channel, idx)
     fcu = rna.driver_add(channel, idx)
     fcu.driver.type = 'SCRIPTED'
-    addDriverVar(fcu, "x", prop, rig)
     fcu.driver.expression = expr
+    addDriverVar(fcu, "x", prop, rig)
 
 
 def makeShapekeyDriver(ob, sname, value, rig, prop, min=None, max=None):
@@ -392,6 +392,11 @@ def truncateProp(prop):
         return prop
 
 
+def setOverridable(ob, prop):
+    if hasattr(ob, "property_overridable_library_set"):
+        ob.property_overridable_library_set('["%s"]' % prop, True)
+
+
 def setFloatProp(ob, prop, value, min=None, max=None):
     value = float(value)
     min = float(min) if min is not None and GS.useDazPropLimits else GS.propMin
@@ -402,8 +407,7 @@ def setFloatProp(ob, prop, value, min=None, max=None):
     if rna_ui is None:
         rna_ui = ob['_RNA_UI'] = {}
     rna_ui[prop] = { "min": min, "max": max, "soft_min": min, "soft_max": max}
-    if hasattr(ob, "property_overridable_library_set"):
-        ob.property_overridable_library_set('["%s"]' % prop, True)
+    setOverridable(ob, prop)
 
 
 def setBoolProp(ob, prop, value, desc=""):
@@ -417,21 +421,20 @@ def setBoolProp(ob, prop, value, desc=""):
         BoolProperty(default=value, description=desc))
     setattr(ob, prop, value)
     ob[prop] = value
-    if hasattr(ob, "property_overridable_library_set"):
-        ob.property_overridable_library_set('["%s"]' % prop, True)
+    setOverridable(ob, prop)
 
 #-------------------------------------------------------------
 #
 #-------------------------------------------------------------
 
-def addDriverVar(fcu, vname, dname, rig):
+def addDriverVar(fcu, vname, prop, rig):
     var = fcu.driver.variables.new()
     var.name = vname
     var.type = 'SINGLE_PROP'
     trg = var.targets[0]
     trg.id_type = 'OBJECT'
     trg.id = rig
-    trg.data_path = '["%s"]' % dname
+    trg.data_path = '["%s"]' % prop
     return trg
 
 

@@ -1099,10 +1099,10 @@ class Rigify:
 
 
     def copyProp(self, prop, src, trg):
+        from .driver import setOverridable
         trg[prop] = src[prop]
-        if (hasattr(trg, "property_overridable_library_set") and
-            prop[0:3] not in ["Daz", "_RN"]):
-            trg.property_overridable_library_set('["%s"]' % prop, True)
+        if prop[0:3] not in ["Daz", "_RN"]:
+            setOverridable(trg, prop)
 
 
     def getChildren(self, pb):
