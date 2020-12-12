@@ -123,7 +123,7 @@ class Material(Asset, Channels):
             raise DazError("Unknown Base Mixing: %s             " % self.material.basemix)
 
         self.thinWalled = self.getValue(["Thin Walled"], False)
-        self.refractive = (self.getValue("getChannelRefractionStrength", 0) > 0.01 or
+        self.refractive = (self.getValue("getChannelRefractionWeight", 0) > 0.01 or
                            self.getValue("getChannelOpacity", 1) < 0.99)
         self.thinGlass = (self.thinWalled and self.refractive)
         self.shareGlossy = self.getValue(["Share Glossy Inputs"], False)
@@ -303,8 +303,8 @@ class Material(Asset, Channels):
     def getChannelRefractionColor(self):
         return self.getChannel(["refraction", "Refraction Color"])
 
-    def getChannelRefractionStrength(self):
-        return self.getChannel(["refraction_strength", "Refraction Weight"])
+    def getChannelRefractionWeight(self):
+        return self.getChannel(["Refraction Weight", "refraction_strength"])
 
     def getChannelIOR(self):
         return self.getChannel(["ior", "Refraction Index"])

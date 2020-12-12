@@ -340,14 +340,14 @@ class InternalMaterial(Material):
 
 
     def hasTransparency(self):
-        return (self.getChannelRefractionStrength() or
+        return (self.getChannelRefractionWeight() or
                 self.getChannelOpacity() or
                 self.getChannelCutoutOpacity())
 
 
     def getAlphaChannel(self, mat):
         from .guess import castsShadow
-        refractChannel = self.getChannelRefractionStrength()
+        refractChannel = self.getChannelRefractionWeight()
         opacityChannel = self.getChannelOpacity()
         cutoutChannel = self.getChannelCutoutOpacity()
         alpha = 1

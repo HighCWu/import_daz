@@ -616,11 +616,11 @@ class CyclesTree:
         #   glossy bsdf color = iray glossy color * iray glossy layered weight
         strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
         color,tex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, False)
-        color = strength*color
         if tex and strtex:
-            tex = self.mixTexs('MULTIPLY', tex, strtex)
+            tex = self.mixTexs('MULTIPLY', color, tex, strength, strtex)
         elif strtex:
             tex = strtex
+        color = strength*color
         if tex:
             tex = self.multiplyVectorTex(color, tex)
         return color,tex
@@ -789,20 +789,20 @@ class CyclesTree:
 #-------------------------------------------------------------
 
     def sumColors(self, color, tex, color2, tex2):
-        color = Vector(color) + Vector(color2)
         if tex and tex2:
-            tex = self.mixTexs('ADD', tex, tex2)
+            tex = self.mixTexs('ADD', color, tex, color2, tex2)
         elif tex2:
             tex = tex2
+        color = Vector(color) + Vector(color2)
         return color,tex
 
 
     def multiplyColors(self, color, tex, color2, tex2):
-        color = self.compProd(color, color2)
         if tex and tex2:
-            tex = self.mixTexs('MULTIPLY', tex, tex2)
+            tex = self.mixTexs('MULTIPLY', color, tex, color2, tex2)
         elif tex2:
             tex = tex2
+        color = self.compProd(color, color2)
         return color,tex
 
 
@@ -838,7 +838,7 @@ class CyclesTree:
 
 
     def buildRefraction(self):
-        ref = self.getValue("getChannelRefractionStrength", 0.0)
+        ref = self.getValue("getChannelRefractionWeight", 0.0)
         if ref > 0:
             self.column += 1
             from .cgroup import RefractionGroup
@@ -864,7 +864,7 @@ class CyclesTree:
                 self.linkScalar(iortex, node, ior, "Refraction IOR")
 
             self.linkNormal(node)
-            ref,reftex = self.getColorTex("getChannelRefractionStrength", "NONE", 0.0)
+            ref,reftex = self.getColorTex("getChannelRefractionWeight", "NONE", 0.0)
             self.material.alphaBlend(1-ref, reftex)
             self.mixWithActive(ref, reftex, node)
             LS.usedFeatures["Transparent"] = True
@@ -1155,17 +1155,25 @@ class CyclesTree:
         return node
 
 
-    def mixTexs(self, op, tex1, tex2, slot1=0, slot2=0):
-        if tex1 is None:
+    def mixTexs(self, op, color1, tex1, color2, tex2, slot0=0, slot1=0, slot2=0, fac=1, factex=None):
+        if fac != 1 or factex:
+            pass
+        elif tex1 is None:
             return tex2
         elif tex2 is None:
             return tex1
         mix = self.addNode("ShaderNodeMixRGB", self.column-1)
         mix.blend_type = op
         mix.use_alpha = False
-        mix.inputs[0].default_value = 1.0
-        self.links.new(tex1.outputs[slot1], mix.inputs[1])
-        self.links.new(tex2.outputs[slot2], mix.inputs[2])
+        mix.inputs[0].default_value = fac
+        mix.inputs[1].default_value[0:3] = color1
+        mix.inputs[2].default_value[0:3] = color2
+        if factex:
+            self.links.new(factex.outputs[slot0], mix.inputs[0])
+        if tex1:
+            self.links.new(tex1.outputs[slot1], mix.inputs[1])
+        if tex2:
+            self.links.new(tex2.outputs[slot2], mix.inputs[2])
         return mix
 
 
