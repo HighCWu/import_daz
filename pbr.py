@@ -232,19 +232,13 @@ class PbrTree(CyclesTree):
         weight,wttex = self.getColorTex("getChannelRefractionWeight", "NONE", 0.0)
         if weight == 0:
             return
-        elif GS.limitRefractionMaps:
-            pass
-        elif weight < 1 or wttex:
+        elif (weight < 1 or wttex) and GS.useRefractionNode:
             node = self.buildRefractionNode()
             self.mixWithActive(weight, wttex, node)
             return
 
         if wttex:
-            math = self.addNode("ShaderNodeMath", col=3)
-            math.operation = 'GREATER_THAN'
-            self.links.new(wttex.outputs[0], math.inputs[0])
-            math.inputs[1].default_value = 0.5
-            wttex = math
+            wttex = self.limitNode(wttex, 'GREATER_THAN', 0.5)
         self.linkScalar(wttex, self.pbr, weight, "Transmission")
         color,coltex,roughness,roughtex = self.getRefractionColor()
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
@@ -295,6 +289,14 @@ class PbrTree(CyclesTree):
         self.removeLink(self.pbr, "Subsurface Color")
         if self.material.shareGlossy:
             self.pbr.inputs["Specular Tint"].default_value = 1.0
+
+
+    def limitNode(self, tex, op, threshold):
+        math = self.addNode("ShaderNodeMath", col = self.column-1)
+        math.operation = op
+        self.links.new(tex.outputs[0], math.inputs[0])
+        math.inputs[1].default_value = threshold
+        return math
 
 
     def getGlossyRoughness(self):

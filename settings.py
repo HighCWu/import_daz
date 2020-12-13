@@ -79,7 +79,7 @@ class GlobalSettings:
         self.useReflection = True
         self.useEnvironment = True
         self.reuseMaterials = False
-        self.limitRefractionMaps = False
+        self.useRefractionNode = False
         self.useRootTransparency = False
         self.hairMaterialMethod = 'BSDF'
         self.diffuseShader = 'OREN_NAYAR'
@@ -126,7 +126,7 @@ class GlobalSettings:
         "DazMaxBump" : "maxBump",
         "DazHandleRenderSettings" : "handleRenderSettings",
         "DazHandleLightSettings" : "handleLightSettings",
-        "DazLimitRefractionMaps" : "limitRefractionMaps",
+        "DazRefractionNode" : "useRefractionNode",
         "DazRootTransparency" : "useRootTransparency",
         "DazUseDisplacement" : "useDisplacement",
         "DazUseEmission" : "useEmission",
