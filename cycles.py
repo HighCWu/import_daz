@@ -131,7 +131,6 @@ class CyclesMaterial(Material):
                 return
             mat = self.rna
             mat.blend_method = 'HASHED'
-            mat.use_screen_refraction = True
             if hasattr(mat, "transparent_shadow_method"):
                 mat.transparent_shadow_method = 'HASHED'
             else:
@@ -617,7 +616,7 @@ class CyclesTree:
         strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
         color,tex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, False)
         if tex and strtex:
-            tex = self.mixTexs('MULTIPLY', color, tex, strength, strtex)
+            tex = self.mixTexs('MULTIPLY', tex, strtex)
         elif strtex:
             tex = strtex
         color = strength*color
@@ -662,7 +661,7 @@ class CyclesTree:
         self.linkScalar(roughtex, fresnel, fnroughness, "Roughness")
 
         LS.usedFeatures["Glossy"] = True
-        self.mixWithActive(1.0, self.fresnel, glossy, useAlpha=False)
+        self.mixWithActive(1.0, self.fresnel, glossy)
 
 
     def getFresnelIOR(self):
@@ -790,7 +789,7 @@ class CyclesTree:
 
     def sumColors(self, color, tex, color2, tex2):
         if tex and tex2:
-            tex = self.mixTexs('ADD', color, tex, color2, tex2)
+            tex = self.mixTexs('ADD', tex, tex2)
         elif tex2:
             tex = tex2
         color = Vector(color) + Vector(color2)
@@ -799,7 +798,7 @@ class CyclesTree:
 
     def multiplyColors(self, color, tex, color2, tex2):
         if tex and tex2:
-            tex = self.mixTexs('MULTIPLY', color, tex, color2, tex2)
+            tex = self.mixTexs('MULTIPLY', tex, tex2)
         elif tex2:
             tex = tex2
         color = self.compProd(color, color2)
@@ -838,36 +837,47 @@ class CyclesTree:
 
 
     def buildRefraction(self):
-        ref = self.getValue("getChannelRefractionWeight", 0.0)
-        if ref > 0:
-            self.column += 1
-            from .cgroup import RefractionGroup
-            node = self.addGroup(RefractionGroup, "DAZ Refraction", size=150)
-            node.width = 240
+        weight,wttex = self.getColorTex("getChannelRefractionWeight", "NONE", 0.0)
+        if weight == 0:
+            return
+        node = self.buildRefractionNode()
+        self.mixWithActive(weight, wttex, node)
 
-            color,tex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE)
-            roughness, roughtex = self.getColorTex("getChannelGlossyRoughness", "NONE", 0, False, maxval=1)
-            roughness = roughness**2
-            self.linkColor(tex, node, color, "Glossy Color")
-            self.linkScalar(roughtex, node, roughness, "Glossy Roughness")
 
-            color,tex,roughness,roughtex = self.getRefractionColor()
-            roughness = roughness**2
-            self.linkColor(tex, node, color, "Refraction Color")
-            ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
-            self.linkScalar(iortex, node, ior, "Fresnel IOR")
-            if self.material.thinWalled:
-                node.inputs["Refraction IOR"].default_value = 1.0
-                node.inputs["Refraction Roughness"].default_value = 0.0
-            else:
-                self.linkScalar(roughtex, node, roughness, "Refraction Roughness")
-                self.linkScalar(iortex, node, ior, "Refraction IOR")
+    def buildRefractionNode(self):
+        from .cgroup import RefractionGroup
+        self.column += 1
+        node = self.addGroup(RefractionGroup, "DAZ Refraction", size=150)
+        node.width = 240
 
-            self.linkNormal(node)
-            ref,reftex = self.getColorTex("getChannelRefractionWeight", "NONE", 0.0)
-            self.material.alphaBlend(1-ref, reftex)
-            self.mixWithActive(ref, reftex, node)
-            LS.usedFeatures["Transparent"] = True
+        color,tex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE)
+        roughness, roughtex = self.getColorTex("getChannelGlossyRoughness", "NONE", 0, False, maxval=1)
+        roughness = roughness**2
+        self.linkColor(tex, node, color, "Glossy Color")
+        self.linkScalar(roughtex, node, roughness, "Glossy Roughness")
+
+        color,coltex,roughness,roughtex = self.getRefractionColor()
+        ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
+        roughness = roughness**2
+        self.linkColor(coltex, node, color, "Refraction Color")
+        self.linkScalar(iortex, node, ior, "Fresnel IOR")
+        if self.material.thinWalled:
+            node.inputs["Refraction IOR"].default_value = 1.0
+            node.inputs["Refraction Roughness"].default_value = 0.0
+        else:
+            self.linkScalar(roughtex, node, roughness, "Refraction Roughness")
+            self.linkScalar(iortex, node, ior, "Refraction IOR")
+        self.linkNormal(node)
+        self.setRefractiveMaterial()
+        return node
+
+
+    def setRefractiveMaterial(self):
+        if bpy.app.version > (2,80,0):
+            mat = self.material.rna
+            mat.use_screen_refraction = True
+            self.material.alphaBlend(0, None)
+        LS.usedFeatures["Transparent"] = True
 
 
     def buildCutout(self):
@@ -883,7 +893,7 @@ class CyclesTree:
             else:
                 from .cgroup import TransparentGroup
                 node = self.addGroup(TransparentGroup, "DAZ Transparent")
-                self.mixWithActive(1-alpha, tex, node, useAlpha=False, flip=True)
+                self.mixWithActive(1-alpha, tex, node, flip=True)
             node.inputs["Color"].default_value[0:3] = WHITE
             self.material.alphaBlend(alpha, tex)
             LS.usedFeatures["Transparent"] = True
@@ -1155,29 +1165,21 @@ class CyclesTree:
         return node
 
 
-    def mixTexs(self, op, color1, tex1, color2, tex2, slot0=0, slot1=0, slot2=0, fac=1, factex=None):
-        if fac != 1 or factex:
-            pass
-        elif tex1 is None:
+    def mixTexs(self, op, tex1, tex2, slot1=0, slot2=0):
+        if tex1 is None:
             return tex2
         elif tex2 is None:
             return tex1
         mix = self.addNode("ShaderNodeMixRGB", self.column-1)
         mix.blend_type = op
         mix.use_alpha = False
-        mix.inputs[0].default_value = fac
-        mix.inputs[1].default_value[0:3] = color1
-        mix.inputs[2].default_value[0:3] = color2
-        if factex:
-            self.links.new(factex.outputs[slot0], mix.inputs[0])
-        if tex1:
-            self.links.new(tex1.outputs[slot1], mix.inputs[1])
-        if tex2:
-            self.links.new(tex2.outputs[slot2], mix.inputs[2])
+        mix.inputs[0].default_value = 1.0
+        self.links.new(tex1.outputs[slot1], mix.inputs[1])
+        self.links.new(tex2.outputs[slot2], mix.inputs[2])
         return mix
 
 
-    def mixWithActive(self, fac, tex, shader, useAlpha=True, flip=False):
+    def mixWithActive(self, fac, tex, shader, useAlpha=False, flip=False):
         if shader.type != 'GROUP':
             raise RuntimeError("BUG: mixWithActive")
         if fac == 0 and tex is None:

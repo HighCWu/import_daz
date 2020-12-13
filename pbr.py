@@ -71,7 +71,7 @@ class PbrTree(CyclesTree):
             self.removeLink(self.pbr, "Specular")
             self.postPBR = True
         if self.material.refractive:
-            LS.usedFeatures["Transparent"] = True
+            # Must be last, changes active node
             self.buildRefraction()
         else:
             self.buildEmission()
@@ -142,21 +142,21 @@ class PbrTree(CyclesTree):
                 refl,reftex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0.5, False, useTex)
                 color,coltex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, True, useTex)
                 if reftex and coltex:
-                    reftex = self.mixTexs('MULTIPLY', color, coltex, refl, reftex)
+                    reftex = self.mixTexs('MULTIPLY', coltex, reftex)
                 elif coltex:
                     reftex = coltex
-                tex = self.mixTexs('MULTIPLY', strength, strtex, refl, reftex)
+                tex = self.mixTexs('MULTIPLY', strtex, reftex)
                 factor = 1.25 * refl * strength
                 value = factor * averageColor(color)
             elif self.material.basemix == 1:  # Specular/Glossiness
                 # principled specular = iray glossy specular * iray glossy layered weight * 16
                 color,reftex = self.getColorTex("getChannelGlossySpecular", "COLOR", WHITE, True, useTex)
-                tex = self.mixTexs('MULTIPLY', strength, strtex, refl, reftex)
+                tex = self.mixTexs('MULTIPLY', strtex, reftex)
                 factor = 16 * strength
                 value = factor * averageColor(color)
         else:
             color,coltex = self.getColorTex("getChannelGlossyColor", "COLOR", WHITE, True, useTex)
-            tex = self.mixTexs('MULTIPLY', strength, strtex, color, coltex)
+            tex = self.mixTexs('MULTIPLY', strtex, coltex)
             value = factor = strength * averageColor(color)
 
         self.pbr.inputs["Specular"].default_value = clamp(value)
@@ -170,7 +170,7 @@ class PbrTree(CyclesTree):
         if self.material.shader == 'IRAY':
             if self.material.basemix == 0:    # Metallic/Roughness
                 refl,reftex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0.5, False, useTex)
-                tex = self.mixTexs('MULTIPLY', top, toptex, refl, reftex)
+                tex = self.mixTexs('MULTIPLY', toptex, reftex)
                 value = 1.25 * refl * top
             else:
                 tex = toptex
@@ -230,13 +230,19 @@ class PbrTree(CyclesTree):
 
     def buildRefraction(self):
         weight,wttex = self.getColorTex("getChannelRefractionWeight", "NONE", 0.0)
-        self.linkScalar(wttex, self.pbr, weight, "Transmission")
-        self.material.alphaBlend(1-weight, wttex)
+        if weight == 0:
+            return
+        elif GS.ignoreRefractionMaps:
+            pass
+        elif weight < 1 or wttex:
+            node = self.buildRefractionNode()
+            self.mixWithActive(weight, wttex, node)
+            return
+
+        self.setPbrSlot("Transmission", 1.0)
         color,coltex,roughness,roughtex = self.getRefractionColor()
-        if wttex:
-            coltex = self.mixTexs('MIX', self.diffuseColor, self.diffuseTex, color, coltex, fac=weight, factex=wttex)
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
-        strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
+        self.setRefractiveMaterial()
 
         if self.material.thinWalled:
             # if thin walled is on then there's no volume
@@ -245,30 +251,28 @@ class PbrTree(CyclesTree):
             #  principled roughness = 0
             #  principled clearcoat = (iray refraction index - 1) * 10 * iray glossy layered weight
             #  principled clearcoat roughness = 0
-
             self.setPbrSlot("IOR", 1.0)
             self.setPbrSlot("Roughness", 0.0)
+            strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
             clearcoat = (ior-1)*10*strength
             self.linkScalar(strtex, self.pbr, clearcoat, "Clearcoat")
             self.setPbrSlot("Clearcoat Roughness", 0)
+
         else:
             # principled transmission = 1
             # principled metallic = 0
             # principled specular = 0.5
             # principled ior = iray refraction index
             # principled roughness = iray glossy roughness
-
+            transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
+            dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
+            if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
+                coltex = self.mixTexs('MULTIPLY', coltex, transtex)
+                color = self.compProd(color, transcolor)
             self.linkScalar(wttex, self.pbr, ior, "IOR")
             self.setPbrSlot("Metallic", 0)
             self.setPbrSlot("Specular", 0.5)
             self.setPbrSlot("IOR", ior)
-
-            transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
-            dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
-            if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
-                coltex = self.mixTexs('MULTIPLY', color, coltex, transcolor, transtex)
-                color = self.compProd(color, transcolor)
-
             self.setRoughness(self.pbr, "Roughness", roughness, roughtex, square=False)
             if not roughtex:
                 self.removeLink(self.pbr, "Roughness")
@@ -276,14 +280,9 @@ class PbrTree(CyclesTree):
         self.linkColor(coltex, self.pbr, color, slot="Base Color")
         if not coltex:
             self.removeLink(self.pbr, "Base Color")
-
         self.pbr.inputs["Subsurface"].default_value = 0
         self.removeLink(self.pbr, "Subsurface")
         self.removeLink(self.pbr, "Subsurface Color")
-        self.tintSpecular()
-
-
-    def tintSpecular(self):
         if self.material.shareGlossy:
             self.pbr.inputs["Specular Tint"].default_value = 1.0
 
