@@ -232,19 +232,25 @@ class PbrTree(CyclesTree):
         weight,wttex = self.getColorTex("getChannelRefractionWeight", "NONE", 0.0)
         if weight == 0:
             return
-        elif GS.ignoreRefractionMaps:
+        elif GS.limitRefractionMaps:
             pass
         elif weight < 1 or wttex:
             node = self.buildRefractionNode()
             self.mixWithActive(weight, wttex, node)
             return
 
-        self.setPbrSlot("Transmission", 1.0)
+        if wttex:
+            math = self.addNode("ShaderNodeMath", col=3)
+            math.operation = 'GREATER_THAN'
+            self.links.new(wttex.outputs[0], math.inputs[0])
+            math.inputs[1].default_value = 0.5
+            wttex = math
+        self.linkScalar(wttex, self.pbr, weight, "Transmission")
         color,coltex,roughness,roughtex = self.getRefractionColor()
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
         self.setRefractiveMaterial()
 
-        if self.material.thinWalled:
+        if self.material.thinWalled and not wttex:
             # if thin walled is on then there's no volume
             # and we use the clearcoat channel for reflections
             #  principled ior = 1
@@ -277,9 +283,13 @@ class PbrTree(CyclesTree):
             if not roughtex:
                 self.removeLink(self.pbr, "Roughness")
 
-        self.linkColor(coltex, self.pbr, color, slot="Base Color")
-        if not coltex:
-            self.removeLink(self.pbr, "Base Color")
+        if weight < 1 or wttex:
+            mix = self.mixTexs('MIX', self.diffuseTex, coltex, color1=self.diffuseColor, color2=color, fac=weight, factex=wttex)
+            self.links.new(mix.outputs[0], self.pbr.inputs["Base Color"])
+        else:
+            self.linkColor(coltex, self.pbr, color, slot="Base Color")
+            if not coltex:
+                self.removeLink(self.pbr, "Base Color")
         self.pbr.inputs["Subsurface"].default_value = 0
         self.removeLink(self.pbr, "Subsurface")
         self.removeLink(self.pbr, "Subsurface Color")

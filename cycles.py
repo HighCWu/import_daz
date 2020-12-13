@@ -1165,17 +1165,27 @@ class CyclesTree:
         return node
 
 
-    def mixTexs(self, op, tex1, tex2, slot1=0, slot2=0):
-        if tex1 is None:
+    def mixTexs(self, op, tex1, tex2, slot1=0, slot2=0, color1=None, color2=None, fac=1, factex=None):
+        if fac < 1 or factex:
+            pass
+        elif tex1 is None:
             return tex2
         elif tex2 is None:
             return tex1
         mix = self.addNode("ShaderNodeMixRGB", self.column-1)
         mix.blend_type = op
         mix.use_alpha = False
-        mix.inputs[0].default_value = 1.0
-        self.links.new(tex1.outputs[slot1], mix.inputs[1])
-        self.links.new(tex2.outputs[slot2], mix.inputs[2])
+        mix.inputs[0].default_value = fac
+        if factex:
+            self.links.new(factex.outputs[0], mix.inputs[0])
+        if color1:
+            mix.inputs[1].default_value[0:3] = color1
+        if tex1:
+            self.links.new(tex1.outputs[slot1], mix.inputs[1])
+        if color2:
+            mix.inputs[2].default_value[0:3] = color2
+        if tex2:
+            self.links.new(tex2.outputs[slot2], mix.inputs[2])
         return mix
 
 

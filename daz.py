@@ -1269,7 +1269,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazPruneNodes")
         box.prop(scn, "DazUseEnvironment")
         box.prop(scn, "DazReuseMaterials")
-        box.prop(scn, "DazIgnoreRefractionMaps")
+        box.prop(scn, "DazLimitRefractionMaps")
         box.prop(scn, "DazLimitBump")
         if scn.DazLimitBump:
             box.prop(scn, "DazMaxBump")
@@ -1649,9 +1649,9 @@ def initialize():
         name = "Displacement",
         description = "Use displacement maps. Affects internal renderer only")
 
-    bpy.types.Scene.DazIgnoreRefractionMaps = BoolProperty(
-        name = "Ignore Refraction Maps",
-        description = "Ignore refraction maps for refractive materials\nfor principled material method")
+    bpy.types.Scene.DazLimitRefractionMaps = BoolProperty(
+        name = "Limit Refraction Maps",
+        description = "Limit refraction maps > 0.5.\nFor refractive materials and principled material method")
 
     bpy.types.Scene.DazRootTransparency = BoolProperty(
         name = "Root Transparency",
