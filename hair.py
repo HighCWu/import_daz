@@ -474,11 +474,11 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         scn = context.scene
         # Build hair material while hair is still active
         self.buildHairMaterials(hum, hair, context)
-        setActiveObject(context, hum)
+        activateObject(context, hum)
         if self.removeOldHairs:
             self.clearHair(hum)
 
-        setActiveObject(context, hair)
+        activateObject(context, hair)
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_mode(type='FACE')
         bpy.ops.mesh.select_all(action='DESELECT')
