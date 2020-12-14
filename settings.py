@@ -61,6 +61,7 @@ class GlobalSettings:
         self.verbosity = 2
         self.zup = True
         self.materialMethod = 'BSDF'
+        self.useRefractionNode = True
         self.chooseColors = 'GUESS'
         self.orientMethod = 'DAZ STUDIO'
         self.useQuaternions = False
@@ -79,7 +80,6 @@ class GlobalSettings:
         self.useReflection = True
         self.useEnvironment = True
         self.reuseMaterials = False
-        self.useRefractionNode = False
         self.useRootTransparency = False
         self.hairMaterialMethod = 'BSDF'
         self.diffuseShader = 'OREN_NAYAR'

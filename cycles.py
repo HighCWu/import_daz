@@ -1191,7 +1191,7 @@ class CyclesTree:
 
     def mixWithActive(self, fac, tex, shader, useAlpha=False, flip=False):
         if shader.type != 'GROUP':
-            raise RuntimeError("BUG: mixWithActive")
+            raise RuntimeError("BUG: mixWithActive", shader.type)
         if fac == 0 and tex is None:
             return
         elif fac == 1 and tex is None:

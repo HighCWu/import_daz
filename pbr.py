@@ -59,9 +59,7 @@ class PbrTree(CyclesTree):
         self.cycles = self.eevee = self.pbr
         self.buildBumpNodes()
         self.buildPBRNode()
-        if self.normal:
-            self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Normal"])
-            self.links.new(self.normal.outputs["Normal"], self.pbr.inputs["Clearcoat Normal"])
+        self.linkPBRNormal(self.pbr)
         self.postPBR = False
         if self.buildOverlay():
             self.postPBR = True
@@ -75,6 +73,12 @@ class PbrTree(CyclesTree):
             self.buildRefraction()
         else:
             self.buildEmission()
+
+
+    def linkPBRNormal(self, pbr):
+        if self.normal:
+            self.links.new(self.normal.outputs["Normal"], pbr.inputs["Normal"])
+            self.links.new(self.normal.outputs["Normal"], pbr.inputs["Clearcoat Normal"])
 
 
     def buildCutout(self):
@@ -211,9 +215,9 @@ class PbrTree(CyclesTree):
         self.endSSS()
 
 
-    def setPbrSlot(self, slot, value):
-        self.pbr.inputs[slot].default_value = value
-        self.removeLink(self.pbr, slot)
+    def setPbrSlot(self, pbr, slot, value):
+        pbr.inputs[slot].default_value = value
+        self.removeLink(pbr, slot)
 
 
     def getRefractionWeight(self):
@@ -232,31 +236,39 @@ class PbrTree(CyclesTree):
         weight,wttex = self.getColorTex("getChannelRefractionWeight", "NONE", 0.0)
         if weight == 0:
             return
-        elif (weight < 1 or wttex) and GS.useRefractionNode:
-            node = self.buildRefractionNode()
-            self.mixWithActive(weight, wttex, node)
-            return
-
-        if wttex:
-            wttex = self.limitNode(wttex, 'GREATER_THAN', 0.5)
-        self.linkScalar(wttex, self.pbr, weight, "Transmission")
         color,coltex,roughness,roughtex = self.getRefractionColor()
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
         self.setRefractiveMaterial()
 
-        if self.material.thinWalled and not wttex:
+        if (weight < 1 or wttex) and GS.useRefractionNode:
+            self.column += 1
+            pbr = pbr2 = self.addNode("ShaderNodeBsdfPrincipled")
+            self.ycoords[self.column] -= 500
+            self.linkPBRNormal(pbr2)
+            self.setPbrSlot(pbr2, "Transmission", 1.0)
+            self.column += 1
+            mix = self.mixShaders(weight, wttex, self.pbr, pbr2)
+            self.cycles = self.eevee = mix
+            self.postPBR = True
+        else:
+            pbr = self.pbr
+            if wttex:
+                wttex = self.limitNode(wttex, 'GREATER_THAN', 0.5)
+            self.linkScalar(wttex, pbr, weight, "Transmission")
+
+        if self.material.thinWalled:
             # if thin walled is on then there's no volume
             # and we use the clearcoat channel for reflections
             #  principled ior = 1
             #  principled roughness = 0
             #  principled clearcoat = (iray refraction index - 1) * 10 * iray glossy layered weight
             #  principled clearcoat roughness = 0
-            self.setPbrSlot("IOR", 1.0)
-            self.setPbrSlot("Roughness", 0.0)
+            self.setPbrSlot(pbr, "IOR", 1.0)
+            self.setPbrSlot(pbr, "Roughness", 0.0)
             strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
             clearcoat = (ior-1)*10*strength
-            self.linkScalar(strtex, self.pbr, clearcoat, "Clearcoat")
-            self.setPbrSlot("Clearcoat Roughness", 0)
+            self.linkScalar(strtex, pbr, clearcoat, "Clearcoat")
+            self.setPbrSlot(pbr, "Clearcoat Roughness", 0)
 
         else:
             # principled transmission = 1
@@ -269,26 +281,36 @@ class PbrTree(CyclesTree):
             if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
                 coltex = self.mixTexs('MULTIPLY', coltex, transtex)
                 color = self.compProd(color, transcolor)
-            self.linkScalar(wttex, self.pbr, ior, "IOR")
-            self.setPbrSlot("Metallic", 0)
-            self.setPbrSlot("Specular", 0.5)
-            self.setPbrSlot("IOR", ior)
-            self.setRoughness(self.pbr, "Roughness", roughness, roughtex, square=False)
+            self.linkScalar(wttex, pbr, ior, "IOR")
+            self.setPbrSlot(pbr, "Metallic", 0)
+            self.setPbrSlot(pbr, "Specular", 0.5)
+            self.setPbrSlot(pbr, "IOR", ior)
+            self.setRoughness(pbr, "Roughness", roughness, roughtex, square=False)
             if not roughtex:
-                self.removeLink(self.pbr, "Roughness")
+                self.removeLink(pbr, "Roughness")
 
-        if weight < 1 or wttex:
+        if (weight < 1 or wttex) and not GS.useRefractionNode:
             mix = self.mixTexs('MIX', self.diffuseTex, coltex, color1=self.diffuseColor, color2=color, fac=weight, factex=wttex)
-            self.links.new(mix.outputs[0], self.pbr.inputs["Base Color"])
+            self.links.new(mix.outputs[0], pbr.inputs["Base Color"])
         else:
-            self.linkColor(coltex, self.pbr, color, slot="Base Color")
+            self.linkColor(coltex, pbr, color, slot="Base Color")
             if not coltex:
-                self.removeLink(self.pbr, "Base Color")
-        self.pbr.inputs["Subsurface"].default_value = 0
-        self.removeLink(self.pbr, "Subsurface")
-        self.removeLink(self.pbr, "Subsurface Color")
+                self.removeLink(pbr, "Base Color")
+        pbr.inputs["Subsurface"].default_value = 0
+        self.removeLink(pbr, "Subsurface")
+        self.removeLink(pbr, "Subsurface Color")
         if self.material.shareGlossy:
-            self.pbr.inputs["Specular Tint"].default_value = 1.0
+            pbr.inputs["Specular Tint"].default_value = 1.0
+
+
+    def mixShaders(self, weight, wttex, node1, node2):
+        mix = self.addNode("ShaderNodeMixShader")
+        mix.inputs[0].default_value = weight
+        if wttex:
+            self.links.new(wttex.outputs[0], mix.inputs[0])
+        self.links.new(node1.outputs[0], mix.inputs[1])
+        self.links.new(node2.outputs[0], mix.inputs[2])
+        return mix
 
 
     def limitNode(self, tex, op, threshold):
