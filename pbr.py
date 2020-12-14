@@ -240,7 +240,7 @@ class PbrTree(CyclesTree):
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
         self.setRefractiveMaterial()
 
-        if (weight < 1 or wttex) and GS.useRefractionNode:
+        if weight < 1 or wttex:
             self.column += 1
             pbr = pbr2 = self.addNode("ShaderNodeBsdfPrincipled")
             self.ycoords[self.column] -= 500
@@ -289,13 +289,9 @@ class PbrTree(CyclesTree):
             if not roughtex:
                 self.removeLink(pbr, "Roughness")
 
-        if (weight < 1 or wttex) and not GS.useRefractionNode:
-            mix = self.mixTexs('MIX', self.diffuseTex, coltex, color1=self.diffuseColor, color2=color, fac=weight, factex=wttex)
-            self.links.new(mix.outputs[0], pbr.inputs["Base Color"])
-        else:
-            self.linkColor(coltex, pbr, color, slot="Base Color")
-            if not coltex:
-                self.removeLink(pbr, "Base Color")
+        self.linkColor(coltex, pbr, color, slot="Base Color")
+        if not coltex:
+            self.removeLink(pbr, "Base Color")
         pbr.inputs["Subsurface"].default_value = 0
         self.removeLink(pbr, "Subsurface")
         self.removeLink(pbr, "Subsurface Color")

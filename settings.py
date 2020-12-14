@@ -61,7 +61,6 @@ class GlobalSettings:
         self.verbosity = 2
         self.zup = True
         self.materialMethod = 'BSDF'
-        self.useRefractionNode = True
         self.chooseColors = 'GUESS'
         self.orientMethod = 'DAZ STUDIO'
         self.useQuaternions = False
@@ -126,7 +125,6 @@ class GlobalSettings:
         "DazMaxBump" : "maxBump",
         "DazHandleRenderSettings" : "handleRenderSettings",
         "DazHandleLightSettings" : "handleLightSettings",
-        "DazRefractionNode" : "useRefractionNode",
         "DazRootTransparency" : "useRootTransparency",
         "DazUseDisplacement" : "useDisplacement",
         "DazUseEmission" : "useEmission",
