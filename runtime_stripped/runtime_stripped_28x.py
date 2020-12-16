@@ -123,12 +123,28 @@ def evalMorphs2(pb, idx, key):
     pgs = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
     return sum([pg.eval(rig) for pg in pgs if pg.index == idx])
 
+# Perhaps faster morph evaluation
+def evalMorphsLoc(pb, idx):
+    rig = pb.id_data
+    return sum([pg.eval(rig) for pg in pb.DazLocProps if pg.index == idx])
+
+def evalMorphsRot(pb, idx):
+    rig = pb.id_data
+    return sum([pg.eval(rig) for pg in pb.DazRotProps if pg.index == idx])
+
+def evalMorphsSca(pb, idx):
+    rig = pb.id_data
+    return sum([pg.eval(rig) for pg in pb.DazScaleProps if pg.index == idx])
+
 
 @persistent
 def updateHandler(scn):
-    global evalMorphs, evalMorphs2
+    global evalMorphs, evalMorphs2, evalMorphsLoc, evalMorphsRot, evalMorphsSca
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
     bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
+    bpy.app.driver_namespace["evalMorphsLoc"] = evalMorphsLoc
+    bpy.app.driver_namespace["evalMorphsRot"] = evalMorphsRot
+    bpy.app.driver_namespace["evalMorphsSca"] = evalMorphsSca
 
 
 def register():
@@ -139,6 +155,9 @@ def register():
 
     bpy.app.driver_namespace["evalMorphs"] = evalMorphs
     bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
+    bpy.app.driver_namespace["evalMorphsLoc"] = evalMorphsLoc
+    bpy.app.driver_namespace["evalMorphsRot"] = evalMorphsRot
+    bpy.app.driver_namespace["evalMorphsSca"] = evalMorphsSca
     bpy.app.handlers.load_post.append(updateHandler)
 
     # Update drivers
@@ -154,4 +173,4 @@ def unregister():
 
 if __name__ == "__main__":
     register()
-    
+
