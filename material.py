@@ -1513,17 +1513,15 @@ def checkRenderSettings(context, force):
         msg += checkSettings(scn.eevee, renderSettingsEevee, handle, "Eevee Settings", force)
 
     if bpy.app.version < (2,80,0):
-        bpydatalamps = bpy.data.lamps
-        lamptype = "Lamp"
+        lamps = [ob for ob in scn.objects if ob.type == "LAMP"]
     else:
-        bpydatalamps = bpy.data.lights
-        lamptype = "Light"
+        lamps = [ob for ob in scn.collection.all_objects if ob.type == "LIGHT"]
     handle = GS.handleLightSettings
     if force:
         handle = "UPDATE"
-    for lamp in bpydatalamps:
-        header = '%s "%s" settings' % (lamptype, lamp.name)
-        msg += checkSettings(lamp, lightSettings, handle, header, force)
+    for lamp in lamps:
+        header = ('Light "%s" settings' % lamp.name)
+        msg += checkSettings(lamp.data, lightSettings, handle, header, force)
 
     if msg:
         msg += "See http://diffeomorphic.blogspot.com/2020/04/render-settings.html for details."

@@ -294,7 +294,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.merge_materials")
             box.operator("daz.copy_materials")
 
-            if bpy.app.version >= (2,80,0):
+            if bpy.app.version >= (2,82,0):
                 box.separator()
                 box.operator("daz.bake_normal_maps")
                 box.operator("daz.load_normal_maps")
