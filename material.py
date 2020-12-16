@@ -165,6 +165,8 @@ class Material(Asset, Channels):
             for uv,uvset in geo.uv_sets.items():
                 if uvset:
                     self.uv_sets[uv] = self.uv_sets[uvset.name] = uvset
+            if self.name not in geo.materials.keys():
+                geo.materials[self.name] = [self]
         for shell in self.shells.values():
             shell.material.shader = self.shader
         if self.thinGlass:

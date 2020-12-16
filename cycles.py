@@ -108,7 +108,7 @@ class CyclesMaterial(Material):
         ob = nodes[0].rna
         ob.data = me2 = me.copy()
         wmat = ob.matrix_world.copy()
-        me2.transform(mat)
+        me2.transform(wmat)
         setWorldMatrix(ob, Matrix())
         area = sum([f.area for f in me2.polygons if f.material_index == mnum])
         ob.data = me

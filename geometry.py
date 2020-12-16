@@ -736,8 +736,12 @@ class Geometry(Asset, Channels):
                     dmat = dmats[0]
             else:
                 dmat = None
-                print("\nMaterial \"%s\" not found in %s" % (mname, self))
-                print("Existing materials:\n  %s" % self.materials.keys())
+                if GS.verbosity > 2:
+                    mats = list(self.materials.keys())
+                    mats.sort()
+                    print("Existing materials:\n  %s" % mats)
+                    print("GEO", self)
+                reportError("\nMaterial \"%s\" not found in geometry %s" % (mname, self.name), trigger=(2,3))
             if dmat:
                 if dmat.rna is None:
                     msg = ("Material without rna:\n  %s" % self)
