@@ -740,7 +740,6 @@ class Geometry(Asset, Channels):
                     mats = list(self.materials.keys())
                     mats.sort()
                     print("Existing materials:\n  %s" % mats)
-                    print("GEO", self)
                 reportError("\nMaterial \"%s\" not found in geometry %s" % (mname, self.name), trigger=(2,3))
             if dmat:
                 if dmat.rna is None:

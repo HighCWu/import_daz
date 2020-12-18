@@ -768,8 +768,10 @@ class Hair:
     colors = CollectionProperty(type = ColorGroup)
 
     hairMaterialMethod = EnumProperty(
-        items = [('BSDF', "BSDF", "BSDF "),
-                 ('INTERNAL', "Internal", "Internal")],
+        items = [('BSDF', "BSDF", "Hair BSDF (Cycles)"),
+                 ('PRINCIPLED', "Principled", "Hair Principled (Cycles)"),
+                 ('EEVEE', "Eevee", "Principled (Eevee)"),
+                 ('INTERNAL', "Internal", "Blender Internal and Game")],
         name = "Hair Material Method",
         description = "Type of hair material node tree",
         default = 'BSDF')

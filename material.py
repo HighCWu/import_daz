@@ -1498,6 +1498,10 @@ def checkRenderSettings(context, force):
                 ],
     }
 
+    renderSettingsRender = {
+        "Bounces" : [("hair_type", "=", 'STRIP')],
+    }
+
     lightSettings = {
         "Bounces" : getMinLightSettings(),
     }
@@ -1513,6 +1517,7 @@ def checkRenderSettings(context, force):
     msg += checkSettings(scn.cycles, renderSettingsCycles, handle, "Cycles Settings", force)
     if bpy.app.version >= (2,80,0):
         msg += checkSettings(scn.eevee, renderSettingsEevee, handle, "Eevee Settings", force)
+        msg += checkSettings(scn.render, renderSettingsRender, handle, "Render Settings", force)
 
     if bpy.app.version < (2,80,0):
         lamps = [ob for ob in scn.objects if ob.type == "LAMP"]

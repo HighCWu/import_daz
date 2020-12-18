@@ -775,8 +775,9 @@ class Hair:
     colors : CollectionProperty(type = ColorGroup)
 
     hairMaterialMethod : EnumProperty(
-        items = [('BSDF', "BSDF", "BSDF "),
-                 ('PRINCIPLED', "Principled", "Principled")],
+        items = [('BSDF', "BSDF", "Hair BSDF (Cycles)"),
+                 ('PRINCIPLED', "Principled", "Hair Principled (Cycles)"),
+                 ('EEVEE', "Eevee", "Principled (Eevee)")],
         name = "Hair Material Method",
         description = "Type of hair material node tree",
         default = 'BSDF')
