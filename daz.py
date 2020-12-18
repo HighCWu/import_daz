@@ -1518,7 +1518,7 @@ def initialize():
         items = B.enumsHair,
         name = "Hair Material Method",
         description = "Type of hair material node tree",
-        default = 'BSDF')
+        default = 'HAIR_BSDF')
 
     bpy.types.Scene.DazChooseColors = EnumProperty(
         items = [('WHITE', "White", "Default diffuse color"),

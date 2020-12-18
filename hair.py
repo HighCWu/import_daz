@@ -1252,12 +1252,12 @@ class HairMaterial(CyclesMaterial):
 
 
 def getHairTree(dmat, color=BLACK):
-    print("Creating Cycles hair material: %s" % LS.hairMaterialMethod)
-    if LS.hairMaterialMethod == 'BSDF':
+    print("Creating %s hair material" % LS.hairMaterialMethod)
+    if LS.hairMaterialMethod == 'HAIR_BSDF':
         return HairBSDFTree(dmat, color)
-    elif LS.hairMaterialMethod == 'PRINCIPLED':
+    elif LS.hairMaterialMethod == 'HAIR_PRINCIPLED':
         return HairPBRTree(dmat, color)
-    elif LS.hairMaterialMethod == 'EEVEE':
+    elif LS.hairMaterialMethod == 'PRINCIPLED':
         return HairEeveeTree(dmat, color)
 
 #-------------------------------------------------------------
@@ -1268,6 +1268,7 @@ class HairTree(CyclesTree):
     def __init__(self, hmat, color):
         CyclesTree.__init__(self, hmat)
         self.type = 'HAIR'
+        self.color = color
         self.root = Vector(color)
         self.tip = Vector(color)
         self.roottex = None
@@ -1340,8 +1341,8 @@ class HairTree(CyclesTree):
 
 
     def readColor(self, factor):
-        root, self.roottex = self.getColorTex(["Hair Root Color"], "COLOR", self.tip, useFactor=False)
-        tip, self.tiptex = self.getColorTex(["Hair Tip Color"], "COLOR", self.root, useFactor=False)
+        root, self.roottex = self.getColorTex(["Hair Root Color"], "COLOR", self.color, useFactor=False)
+        tip, self.tiptex = self.getColorTex(["Hair Tip Color"], "COLOR", self.color, useFactor=False)
         self.material.rna.diffuse_color[0:3] = root
         self.root = factor * Vector(root)
         self.tip = factor * Vector(tip)

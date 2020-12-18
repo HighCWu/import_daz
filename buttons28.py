@@ -647,9 +647,9 @@ class Offset:
 enumsMaterials = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
                   ('PRINCIPLED', "Principled", "Principled (Cycles)")]
 
-enumsHair = [('BSDF', "BSDF", "Hair BSDF (Cycles)"),
-             ('PRINCIPLED', "Principled", "Hair Principled (Cycles)"),
-             ('EEVEE', "Eevee", "Principled (Eevee)")]
+enumsHair = [('HAIR_BSDF', "Hair BSDF", "Hair BSDF (Cycles)"),
+             ('HAIR_PRINCIPLED', "Hair Principled", "Hair Principled (Cycles)"),
+             ('PRINCIPLED', "Principled", "Principled (Eevee and Cycles)")]
 
 
 class ColorGroup(bpy.types.PropertyGroup):
@@ -786,7 +786,7 @@ class Hair:
         items = enumsHair,
         name = "Hair Material Method",
         description = "Type of hair material node tree",
-        default = 'BSDF')
+        default = 'HAIR_BSDF')
 
     useRootTransparency : BoolProperty(
         name = "Root Transparency",
