@@ -644,6 +644,14 @@ class Offset:
 #   hair.py
 #-------------------------------------------------------------
 
+enumsMaterials = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
+                  ('PRINCIPLED', "Principled", "Principled (Cycles)")]
+
+enumsHair = [('BSDF', "BSDF", "Hair BSDF (Cycles)"),
+             ('PRINCIPLED', "Principled", "Hair Principled (Cycles)"),
+             ('EEVEE', "Eevee", "Principled (Eevee)")]
+
+
 class ColorGroup(bpy.types.PropertyGroup):
     color : FloatVectorProperty(
         name = "Hair Color",
@@ -775,9 +783,7 @@ class Hair:
     colors : CollectionProperty(type = ColorGroup)
 
     hairMaterialMethod : EnumProperty(
-        items = [('BSDF', "BSDF", "Hair BSDF (Cycles)"),
-                 ('PRINCIPLED', "Principled", "Hair Principled (Cycles)"),
-                 ('EEVEE', "Eevee", "Principled (Eevee)")],
+        items = enumsHair,
         name = "Hair Material Method",
         description = "Type of hair material node tree",
         default = 'BSDF')

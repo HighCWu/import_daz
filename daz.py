@@ -1508,33 +1508,14 @@ def initialize():
         default = ""
     )
 
-    if bpy.app.version < (2,80,0):
-        enums = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
-                 ('PRINCIPLED', "Principled", "Principled (Cycles)"),
-                 ('INTERNAL', "Internal", "Blender Internal and Game")]
-
-        enumsHair = [('BSDF', "BSDF", "Hair BSDF (Cycles)"),
-                 ('PRINCIPLED', "Principled", "Hair Principled (Cycles)"),
-                 ('EEVEE', "Eevee", "Principled (Eevee)"),
-                 ('INTERNAL', "Internal", "Blender Internal and Game")]
-    else:
-        enums = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
-                 ('PRINCIPLED', "Principled", "Principled (Cycles)"),
-                 ]
-
-        enumsHair = [('BSDF', "BSDF", "Hair BSDF (Cycles)"),
-                 ('PRINCIPLED', "Principled", "Hair Principled (Cycles)"),
-                 ('EEVEE', "Eevee", "Principled (Eevee)"),
-                 ]
-
     bpy.types.Scene.DazMaterialMethod = EnumProperty(
-        items = enums,
+        items = B.enumsMaterials,
         name = "Material Method",
         description = "Type of material node tree",
         default = 'BSDF')
 
     bpy.types.Scene.DazHairMaterialMethod = EnumProperty(
-        items = enumsHair,
+        items = B.enumsHair,
         name = "Hair Material Method",
         description = "Type of hair material node tree",
         default = 'BSDF')
