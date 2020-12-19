@@ -524,15 +524,9 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
             self.linkNormal(tree, normal)
 
 
-    def findNode(self, tree, type):
-        for node in tree.nodes:
-            if node.type == type:
-                return node
-        return None
-
-
     def findTexco(self, tree):
-        node = self.findNode(tree, 'TEX_COORD')
+        from .cycles import findNode
+        node = findNode(tree, 'TEX_COORD')
         if node:
             return node
         node = tree.nodes.new(type="ShaderNodeTexCoord")
@@ -541,7 +535,8 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
 
 
     def findNormal(self, tree):
-        node = self.findNode(tree, 'NORMAL_MAP')
+        from .cycles import findNode
+        node = findNode(tree, 'NORMAL_MAP')
         if node:
             return node,False
         node = tree.nodes.new(type="ShaderNodeNormalMap")

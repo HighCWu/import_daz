@@ -116,11 +116,15 @@ class HairSystem:
         if hasattr(ccset, "root_width"):
             ccset.root_width = rootrad
             ccset.tip_width = tiprad
-            ccset.shape = btn.strandShape
+            ccset.shape = 0
+        elif btn.strandShape == 'SHRINK':
+            ccset.root_radius = tiprad
+            ccset.tip_radius = rootrad
+            pset.shape = 0.99
         else:
             ccset.root_radius = rootrad
             ccset.tip_radius = tiprad
-            pset.shape = btn.strandShape
+            pset.shape = 0
         ccset.radius_scale = self.scale * mod.getValue(["PreRender Hair Distribution Radius"], 1)
 
         channels = ["PreRender Generated Hair Scale", "PreSim Generated Hair Scale"]
@@ -426,7 +430,6 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
                     row2.prop(item, "color", text="")
             else:
                 box.prop(self, "color")
-            box.prop(self, "useRootTransparency")
 
         col = row.column()
         box = col.box()
@@ -470,7 +473,6 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             self.multiMaterials = False
 
         self.scale = hair.DazScale
-        LS.useRootTransparency = self.useRootTransparency
         LS.hairMaterialMethod = self.hairMaterialMethod
 
         self.nonquads = []
@@ -916,13 +918,17 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
 
     def buildHairMaterials(self, hum, hair, context):
         self.materials = []
+        fade = (self.strandShape == 'ROOTS')
         if self.multiMaterials:
             if self.keepMaterial:
                 mats = hair.data.materials
             else:
                 mats = []
                 for item in self.colors:
-                    mat = buildHairMaterial("H" + item.name, item.color, context, force=True)
+                    mname = "H" + item.name
+                    mat = buildHairMaterial(mname, item.color, context, force=True)
+                    if fade:
+                        addFade(mat)
                     mats.append(mat)
             for mat in mats:
                 hum.data.materials.append(mat)
@@ -933,6 +939,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
                 mat = hair.data.materials[mname]
             else:
                 mat = buildHairMaterial("Hair", self.color, context, force=True)
+            if fade:
+                addFade(mat)
             hum.data.materials.append(mat)
             self.materials = [mat]
 
@@ -1122,6 +1130,7 @@ class DAZ_OT_ColorHair(DazPropsOperator, IsHair, B.ColorProp):
     def run(self, context):
         scn = context.scene
         hum = context.object
+        fade = False
         mats = {}
         for mat in hum.data.materials:
             mats[mat.name] = (mat, True)
@@ -1130,6 +1139,8 @@ class DAZ_OT_ColorHair(DazPropsOperator, IsHair, B.ColorProp):
             mname = pset.material_slot
             if mname in mats.keys() and mats[mname][1]:
                 mat = buildHairMaterial(mname, self.color, context, force=True)
+                if fade:
+                    addFade(mat)
                 mats[mname] = (mat, False)
 
         for _,keep in mats.values():
@@ -1392,7 +1403,7 @@ class HairBSDFTree(HairTree):
 
     def buildLayer(self):
         self.initLayer()
-        self.readColor(1)
+        self.readColor(0.5)
         trans = self.buildTransmission()
         refl = self.buildHighlight()
         self.column += 1
@@ -1401,8 +1412,6 @@ class HairBSDFTree(HairTree):
             weight = self.getValue(["Glossy Layer Weight"], 0.5)
             self.active = self.mixShaders(trans, refl, weight)
         #self.buildAnisotropic()
-        if LS.useRootTransparency:
-            self.buildRootTransparency()
         self.buildCutout()
         self.buildOutput()
 
@@ -1428,7 +1437,7 @@ class HairBSDFTree(HairTree):
         refl.inputs['Offset'].default_value = 0
         refl.inputs["RoughnessU"].default_value = 0.02
         refl.inputs["RoughnessV"].default_value = 1.0
-        ramp = self.addRamp(refl, "Highlight", self.root, self.tip)
+        ramp = self.addRamp(refl, "Reflection", self.root, self.tip)
         self.linkRamp(ramp, [self.roottex, self.tiptex], refl, "Color")
         self.active = refl
         return refl
@@ -1451,7 +1460,57 @@ class HairBSDFTree(HairTree):
             self.active = self.addShaders(self.active, node)
 
 
-    def buildRootTransparency(self):
+    def buildCutout(self):
+        # Cutout
+        alpha = self.getValue(["Cutout Opacity"], 1)
+        if alpha < 1:
+            transp = self.addNode("ShaderNodeBsdfTransparent")
+            transp.inputs["Color"].default_value[0:3] = WHITE
+            self.column += 1
+            self.active = self.mixShaders(transp, self.active, weight)
+            self.material.alphaBlend(alpha, None)
+            LS.usedFeatures["Transparent"] = True
+
+#-------------------------------------------------------------
+#   Hair tree for adding root transparency to existing material
+#-------------------------------------------------------------
+
+def addFade(mat):
+    tree = FadeHairTree(mat, mat.diffuse_color[0:3])
+    tree.build(mat)
+
+
+class FadeHairTree(HairTree):
+
+    def build(self, mat):
+        from .cycles import findNode, findLinksTo
+        if mat.node_tree is None:
+            print("Material %s has no nodes" % mat.name)
+            return
+        elif findNode(mat.node_tree, "TRANSPARENCY"):
+            print("Hair material %s already has fading roots" % mat.name)
+            return
+        self.recoverTree(mat)
+        self.column = 4
+        links = findLinksTo(self.tree, "OUTPUT_MATERIAL")
+        if links:
+            link = links[0]
+            mix = self.buildRootTransparency(link.from_node)
+            for link in links:
+                self.links.new(mix.outputs[0], link.to_socket)
+
+
+    def recoverTree(self, mat):
+        from .cycles import findNode, YSIZE, NCOLUMNS
+        self.tree = mat.node_tree
+        self.nodes = mat.node_tree.nodes
+        self.links = mat.node_tree.links
+        self.info = findNode(self.tree, "HAIR_INFO")
+        for col in range(NCOLUMNS):
+            self.ycoords[col] -= 2*YSIZE
+
+
+    def buildRootTransparency(self, node):
         ramp = self.addRamp(None, "Root Transparency", (1,1,1,0), (1,1,1,1), endpos=0.15)
         maprange = self.addNode('ShaderNodeMapRange', col=self.column-1)
         maprange.inputs["From Min"].default_value = 0
@@ -1463,9 +1522,9 @@ class HairBSDFTree(HairTree):
         transp = self.addNode('ShaderNodeBsdfTransparent')
         transp.inputs["Color"].default_value[0:3] = WHITE
         self.column += 1
-        mix = self.mixShaders(transp, self.active, 1)
+        mix = self.mixShaders(transp, node, 1)
         self.links.new(add.outputs[0], mix.inputs[0])
-        self.active = mix
+        return mix
 
 
     def addSockets(self, socket1, socket2):
@@ -1474,18 +1533,6 @@ class HairBSDFTree(HairTree):
         self.links.new(socket1, node.inputs[0])
         self.links.new(socket2, node.inputs[1])
         return node
-
-
-    def buildCutout(self):
-        # Cutout
-        alpha = self.getValue(["Cutout Opacity"], 1)
-        if alpha < 1:
-            transp = self.addNode("ShaderNodeBsdfTransparent")
-            transp.inputs["Color"].default_value[0:3] = WHITE
-            self.column += 1
-            self.active = self.mixShaders(transp, self.active, weight)
-            self.material.alphaBlend(alpha, None)
-            LS.usedFeatures["Transparent"] = True
 
 #-------------------------------------------------------------
 #   Hair tree Principled

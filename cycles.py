@@ -1325,6 +1325,24 @@ class CyclesTree:
             self.links.new(mult.outputs[slot], add.inputs[0])
             return add
 
+#-------------------------------------------------------------
+#   Utilities
+#-------------------------------------------------------------
+
+def findNode(tree, ntype):
+    for node in tree.nodes:
+        if node.type == ntype:
+            return node
+    return None
+
+
+def findLinksTo(tree, ntype):
+    links = []
+    for link in tree.links:
+        if link.to_node.type == ntype:
+            links.append(link)
+    return links
+
 
 def isEyeMaterial(mat):
     mname = mat.name.lower()

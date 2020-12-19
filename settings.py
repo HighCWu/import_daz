@@ -79,7 +79,6 @@ class GlobalSettings:
         self.useReflection = True
         self.useEnvironment = True
         self.reuseMaterials = False
-        self.useRootTransparency = False
         self.hairMaterialMethod = 'BSDF'
         self.diffuseShader = 'OREN_NAYAR'
         self.specularShader = 'BLINN'
@@ -125,7 +124,6 @@ class GlobalSettings:
         "DazMaxBump" : "maxBump",
         "DazHandleRenderSettings" : "handleRenderSettings",
         "DazHandleLightSettings" : "handleLightSettings",
-        "DazRootTransparency" : "useRootTransparency",
         "DazUseDisplacement" : "useDisplacement",
         "DazUseEmission" : "useEmission",
         "DazUseReflection" : "useReflection",
@@ -411,7 +409,6 @@ class LocalSettings:
         self.nViewChildren = 0
         self.nRenderChildren = 0
         self.hairMaterialMethod = GS.hairMaterialMethod
-        self.useRootTransparency = GS.useRootTransparency
         self.useSkullGroup = False
 
         self.usedFeatures = {

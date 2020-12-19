@@ -742,23 +742,25 @@ class Hair:
         min = 0,
         default = 0)
 
-    strandShape : FloatProperty(
+    strandShape : EnumProperty(
+        items = [('STANDARD', "Standard", "Standard strand shape"),
+                 ('ROOTS', "Fading Roots", "Root transparency (standard shape with fading roots)"),
+                 ('SHRINK', "Root And Tip Shrink", "Root and tip shrink.\n(Root and tip radii interchanged)")],
         name = "Strand Shape",
-        description = "Strand shape parameter",
-        min = -1, max = 1,
-        default = 0.9)
+        description = "Strand shape",
+        default = 'STANDARD')
 
     rootRadius : FloatProperty(
         name = "Root radius (mm)",
         description = "Strand diameter at the root",
         min = 0,
-        default = 0)
+        default = 0.3)
 
     tipRadius : FloatProperty(
         name = "Tip radius (mm)",
         description = "Strand diameter at the tip",
         min = 0,
-        default = 0.3)
+        default = 0)
 
     # Materials
 
@@ -793,11 +795,6 @@ class Hair:
         name = "Hair Material Method",
         description = "Type of hair material node tree",
         default = 'HAIR_BSDF')
-
-    useRootTransparency : BoolProperty(
-        name = "Root Transparency",
-        description = "Add randomized transparency at the root of the strands",
-        default = False)
 
 
 class AffectMaterial:

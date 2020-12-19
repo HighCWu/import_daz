@@ -1262,7 +1262,9 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
         box = split.box()
         box.label(text = "Materials")
-        box.prop(scn, "DazMaterialMethod")
+        box.prop(scn, "DazMaterialMethod", expand=True)
+        box.prop(scn, "DazHairMaterialMethod", expand=True)
+        box.separator()
         box.prop(scn, "DazChooseColors")
         box.prop(scn, "DazMergeShells")
         box.prop(scn, "DazBrightenEyes")
@@ -1278,9 +1280,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseDisplacement")
         box.prop(scn, "DazUseEmission")
         box.prop(scn, "DazUseReflection")
-        box.separator()
-        box.prop(scn, "DazHairMaterialMethod")
-        box.prop(scn, "DazRootTransparency")
         if bpy.app.version < (2,80,0):
             box.separator()
             box.prop(scn, "DazDiffuseShader")
@@ -1639,10 +1638,6 @@ def initialize():
     bpy.types.Scene.DazUseDisplacement = BoolProperty(
         name = "Displacement",
         description = "Use displacement maps. Affects internal renderer only")
-
-    bpy.types.Scene.DazRootTransparency = BoolProperty(
-        name = "Root Transparency",
-        description = "Add randomized transparency at the root of the strands.\nFor hair materials only")
 
     bpy.types.Scene.DazUseEmission = BoolProperty(
         name = "Emission",
