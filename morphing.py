@@ -936,6 +936,28 @@ class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMesh):
         namepaths = self.getNamePaths()
         self.getAllMorphs(namepaths, context)
 
+
+class DAZ_OT_ImportCustomFlexions(DazOperator, LoadMorph, ImportCustom, IsMesh):
+    bl_idname = "daz.import_custom_flexions"
+    bl_label = "Import Custom Flexions"
+    bl_description = "Import selected flexion morphs from native DAZ files (*.duf, *.dsf)"
+    bl_options = {'UNDO'}
+
+    morphset = "Flexions"
+
+    useShapekeysOnly = True
+    useSoftLimits = False
+    usePropDrivers = False
+    useBoneDrivers = True
+    useStages = False
+
+    def draw(self, context):
+        LoadMorph.draw(self, context)
+
+    def run(self, context):
+        namepaths = self.getNamePaths()
+        self.getAllMorphs(namepaths, context)
+
 #------------------------------------------------------------------------
 #   Categories
 #------------------------------------------------------------------------
@@ -2043,6 +2065,7 @@ classes = [
     DAZ_OT_ImportCustomMorphs,
     DAZ_OT_ImportStandardJCMs,
     DAZ_OT_ImportCustomJCMs,
+    DAZ_OT_ImportCustomFlexions,
     DAZ_OT_RenameCategory,
     DAZ_OT_RemoveCategories,
     DAZ_OT_Prettify,

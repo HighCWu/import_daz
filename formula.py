@@ -237,7 +237,10 @@ class Formula:
             for asset,bone,channel in stages:
                 exprs1 = {}
                 props1 = {}
-                asset.evalFormulas(exprs1, props1, rig, mesh, useBone)
+                if isinstance(asset, Formula):
+                    asset.evalFormulas(exprs1, props1, rig, mesh, useBone)
+                else:
+                    raise DazError("Error when evaluating stage formula.\nWhere you trying to import flexions?")
                 if exprs1:
                     expr1 = list(exprs1.values())[0]
                     exprlist.append(expr1)
