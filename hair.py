@@ -116,14 +116,12 @@ class HairSystem:
         if hasattr(ccset, "root_width"):
             ccset.root_width = rootrad
             ccset.tip_width = tiprad
-            ccset.shape = 0
-        elif btn.strandShape == 'SHRINK':
-            ccset.root_radius = tiprad
-            ccset.tip_radius = rootrad
-            pset.shape = 0.99
         else:
             ccset.root_radius = rootrad
             ccset.tip_radius = tiprad
+        if btn.strandShape == 'SHRINK':
+            pset.shape = 0.99
+        else:
             pset.shape = 0
         ccset.radius_scale = self.scale * mod.getValue(["PreRender Hair Distribution Radius"], 1)
 
@@ -131,7 +129,7 @@ class HairSystem:
         self.getTexDensity(mod, channels, 1, "child_length", pset, ob, "use_map_length", "length_factor")
 
         psys.child_seed = mod.getValue(["PreRender Hair Seed"], 0)
-        pset.child_radius = mod.getValue(["PreRender Hair Distribution Radius"], 1) * self.scale
+        pset.child_radius = mod.getValue(["PreRender Hair Distribution Radius"], 10*btn.childRadius) * self.scale
 
         channels = ["PreRender Clumping 1 Curves Density"]
         self.getTexDensity(mod, channels, 0, "clump_factor", pset, ob, "use_map_clump", "clump_factor")
@@ -437,6 +435,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         box.prop(self, "useVertexGroup")
         box.prop(self, "nViewChildren")
         box.prop(self, "nRenderChildren")
+        box.prop(self, "childRadius")
         box.prop(self, "strandShape")
         box.prop(self, "rootRadius")
         box.prop(self, "tipRadius")

@@ -753,7 +753,13 @@ class Hair:
         name = "Tip radius (mm)",
         description = "Strand diameter at the tip",
         min = 0,
-        default = 0)
+        default = 0.3)
+
+    childRadius = FloatProperty(
+        name = "Child radius (mm)",
+        description = "Radius of children around parent",
+        min = 0,
+        default = 0.2)
 
     # Materials
 
