@@ -116,19 +116,21 @@ class WorldMaterial(CyclesMaterial):
 
         self.envmap = self.getChannel(["Environment Map"])
         fixray = False
+        foundenv = False
         if mode in [0,1] and self.envmap:
             print("Draw environment", mode)
             if not self.getValue(["Draw Dome"], False):
                 print("Don't draw environment. Draw Dome turned off")
-                return
-            if self.getImageFile(self.envmap) is None:
+            elif self.getImageFile(self.envmap) is None:
                 print("Don't draw environment. Image file not found")
-                return
-        elif mode in [0,3] and self.background:
+            else:
+                foundenv = True
+        if not foundenv and mode in [0,3] and self.background:
             print("Draw backdrop", mode)
             self.envmap = None
             fixray = True
-        else:
+            foundenv = True
+        if not foundenv:
             print("Dont draw environment. Environment mode == %d" % mode)
             return
 
