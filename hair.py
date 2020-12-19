@@ -116,9 +116,11 @@ class HairSystem:
         if hasattr(ccset, "root_width"):
             ccset.root_width = rootrad
             ccset.tip_width = tiprad
+            ccset.shape = btn.strandShape
         else:
             ccset.root_radius = rootrad
             ccset.tip_radius = tiprad
+            pset.shape = btn.strandShape
         ccset.radius_scale = self.scale * mod.getValue(["PreRender Hair Distribution Radius"], 1)
 
         channels = ["PreRender Generated Hair Scale", "PreSim Generated Hair Scale"]
@@ -432,6 +434,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         box.prop(self, "useVertexGroup")
         box.prop(self, "nViewChildren")
         box.prop(self, "nRenderChildren")
+        box.prop(self, "strandShape")
         box.prop(self, "rootRadius")
         box.prop(self, "tipRadius")
 
@@ -1348,9 +1351,9 @@ class HairTree(CyclesTree):
         self.tip = factor * Vector(tip)
 
 
-    def linkRamp(self, ramp, node, slot):
+    def linkRamp(self, ramp, texs, node, slot):
         src = ramp
-        for tex in [self.roottex, self.tiptex]:
+        for tex in texs:
             if tex:
                 mix = self.addNode("ShaderNodeMixRGB", col=self.column-1)
                 mix.blend_type = 'MULTIPLY'
@@ -1389,7 +1392,7 @@ class HairBSDFTree(HairTree):
 
     def buildLayer(self):
         self.initLayer()
-        self.readColor(0.5)
+        self.readColor(1)
         trans = self.buildTransmission()
         refl = self.buildHighlight()
         self.column += 1
@@ -1405,14 +1408,16 @@ class HairBSDFTree(HairTree):
 
 
     def buildTransmission(self):
+        root, roottex = self.getColorTex(["Root Transmission Color"], "COLOR", self.color, useFactor=False)
+        tip, tiptex = self.getColorTex(["Tip Transmission Color"], "COLOR", self.color, useFactor=False)
         trans = self.addNode('ShaderNodeBsdfHair')
         trans.component = 'Transmission'
         trans.inputs['Offset'].default_value = 0
-        trans.inputs["RoughnessU"].default_value = 0.02
-        trans.inputs["RoughnessV"].default_value = 1.0
-        ramp = self.addRamp(trans, "Transmission", self.root, self.tip)
-        self.linkRamp(ramp, trans, "Color")
-        self.linkTangent(trans)
+        trans.inputs["RoughnessU"].default_value = 1
+        trans.inputs["RoughnessV"].default_value = 1
+        ramp = self.addRamp(trans, "Transmission", root, tip)
+        self.linkRamp(ramp, [roottex, tiptex], trans, "Color")
+        #self.linkTangent(trans)
         self.active = trans
         return trans
 
@@ -1424,7 +1429,7 @@ class HairBSDFTree(HairTree):
         refl.inputs["RoughnessU"].default_value = 0.02
         refl.inputs["RoughnessV"].default_value = 1.0
         ramp = self.addRamp(refl, "Highlight", self.root, self.tip)
-        self.linkRamp(ramp, refl, "Color")
+        self.linkRamp(ramp, [self.roottex, self.tiptex], refl, "Color")
         self.active = refl
         return refl
 
@@ -1493,7 +1498,7 @@ class HairPBRTree(HairTree):
         self.readColor(0.216)
         pbr = self.active = self.addNode("ShaderNodeBsdfHairPrincipled")
         ramp = self.addRamp(pbr, "Color", self.root, self.tip)
-        self.linkRamp(ramp, pbr, "Color")
+        self.linkRamp(ramp, [self.roottex, self.tiptex], pbr, "Color")
         pbr.inputs["Roughness"].default_value = 0.2
         pbr.inputs["Radial Roughness"].default_value = 0.8
         pbr.inputs["IOR"].default_value = 1.1
@@ -1511,7 +1516,7 @@ class HairEeveeTree(HairTree):
         pbr = self.active = self.addNode("ShaderNodeBsdfPrincipled")
         self.ycoords[self.column] -= 500
         ramp = self.addRamp(pbr, "Color", self.root, self.tip, slot="Base Color")
-        self.linkRamp(ramp, pbr, "Base Color")
+        self.linkRamp(ramp, [self.roottex, self.tiptex], pbr, "Base Color")
         pbr.inputs["Metallic"].default_value = 0.9
         pbr.inputs["Roughness"].default_value = 0.2
         self.buildOutput()

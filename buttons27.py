@@ -735,17 +735,23 @@ class Hair:
         min = 0,
         default = 0)
 
+    strandShape = FloatProperty(
+        name = "Strand Shape",
+        description = "Strand shape parameter",
+        min = -1, max = 1,
+        default = 0.9)
+
     rootRadius = FloatProperty(
         name = "Root radius (mm)",
         description = "Strand diameter at the root",
         min = 0,
-        default = 0.3)
+        default = 0)
 
     tipRadius = FloatProperty(
         name = "Tip radius (mm)",
         description = "Strand diameter at the tip",
         min = 0,
-        default = 0)
+        default = 0.3)
 
     # Materials
 

@@ -29,7 +29,7 @@ import bpy
 import os
 from .asset import Asset
 from .channels import Channels
-from .material import Material, WHITE
+from .material import Material, WHITE, isBlack
 from .cycles import CyclesMaterial, CyclesTree
 from .utils import *
 
@@ -125,8 +125,8 @@ class WorldMaterial(CyclesMaterial):
                 print("Don't draw environment. Image file not found")
             else:
                 foundenv = True
-        if not foundenv and mode in [0,3] and self.background:
-            print("Draw backdrop", mode)
+        if not foundenv and mode in [0,3] and not isBlack(self.background):
+            print("Draw backdrop", mode, self.background)
             self.envmap = None
             fixray = True
             foundenv = True
