@@ -725,11 +725,6 @@ class Hair:
 
     # Settings
 
-    useVertexGroup : BoolProperty(
-        name = "Use Vertex Group",
-        description = "Use top vertex vertex group for density",
-        default = False)
-
     nViewChildren : IntProperty(
         name = "Viewport Children",
         description = "Number of hair chilren displayed in viewport",

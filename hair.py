@@ -121,8 +121,6 @@ class HairSystem:
             ccset.tip_radius = tiprad
         if btn.strandShape == 'SHRINK':
             pset.shape = 0.99
-        else:
-            pset.shape = 0
         ccset.radius_scale = self.scale * mod.getValue(["PreRender Hair Distribution Radius"], 1)
 
         channels = ["PreRender Generated Hair Scale", "PreSim Generated Hair Scale"]
@@ -432,11 +430,11 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         col = row.column()
         box = col.box()
         box.label(text="Settings")
-        box.prop(self, "useVertexGroup")
         box.prop(self, "nViewChildren")
         box.prop(self, "nRenderChildren")
         box.prop(self, "childRadius")
-        box.prop(self, "strandShape")
+        if bpy.app.version >= (2,80,0):
+            box.prop(self, "strandShape")
         box.prop(self, "rootRadius")
         box.prop(self, "tipRadius")
 
@@ -448,7 +446,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         for mat in ob.data.materials:
             item = self.colors.add()
             item.name = mat.name
-            item.color = mat.diffuse_color
+            item.color = colorToVector(mat.diffuse_color)
         return DazPropsOperator.invoke(self, context, event)
 
 
@@ -565,7 +563,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
     def makeHairs(self, context, hsystems, hum):
         print("Make particle hair")
         vgname = None
-        if self.useVertexGroup:
+        if False:
             vgrp = createSkullGroup(hum, 'TOP')
             vgname = vgrp.name
 
@@ -1266,12 +1264,12 @@ class HairMaterial(CyclesMaterial):
 
 def getHairTree(dmat, color=BLACK):
     print("Creating %s hair material" % LS.hairMaterialMethod)
-    if LS.hairMaterialMethod == 'HAIR_BSDF':
-        return HairBSDFTree(dmat, color)
-    elif LS.hairMaterialMethod == 'HAIR_PRINCIPLED':
+    if LS.hairMaterialMethod == 'HAIR_PRINCIPLED':
         return HairPBRTree(dmat, color)
     elif LS.hairMaterialMethod == 'PRINCIPLED':
         return HairEeveeTree(dmat, color)
+    else:
+        return HairBSDFTree(dmat, color)
 
 #-------------------------------------------------------------
 #   Hair tree base

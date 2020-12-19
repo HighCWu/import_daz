@@ -79,7 +79,7 @@ class GlobalSettings:
         self.useReflection = True
         self.useEnvironment = True
         self.reuseMaterials = False
-        self.hairMaterialMethod = 'BSDF'
+        self.hairMaterialMethod = 'HAIR_BSDF'
         self.diffuseShader = 'OREN_NAYAR'
         self.specularShader = 'BLINN'
         self.diffuseRoughness = 0.3

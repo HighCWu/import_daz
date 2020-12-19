@@ -156,6 +156,10 @@ if bpy.app.version < (2,80,0):
         updateScene(context)
         return ob
 
+    def colorToVector(color):
+        r,g,b = color
+        return Vector((r,g,b,1))
+
 else:
 
     from . import buttons28 as B
@@ -291,6 +295,9 @@ else:
     def updateObject(context, ob):
         dg = context.evaluated_depsgraph_get()
         return ob.evaluated_get(dg)
+
+    def colorToVector(color):
+        return color
 
 #-------------------------------------------------------------
 #

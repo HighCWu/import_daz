@@ -718,11 +718,6 @@ class Hair:
 
     # Settings
 
-    useVertexGroup = BoolProperty(
-        name = "Use Vertex Group",
-        description = "Use top vertex vertex group for density",
-        default = False)
-
     nViewChildren = IntProperty(
         name = "Viewport Children",
         description = "Number of hair chilren displayed in viewport",
@@ -735,13 +730,7 @@ class Hair:
         min = 0,
         default = 0)
 
-    strandShape = EnumProperty(
-        items = [('STANDARD', "Standard", "Standard strand shape"),
-                 ('ROOTS', "Fading Roots", "Root transparency (standard shape with fading roots)"),
-                 ('SHRINK', "Root And Tip Shrink", "Root and tip shrink.\n(Root and tip radii interchanged)")],
-        name = "Strand Shape",
-        description = "Strand shape",
-        default = 'STANDARD')
+    strandShape = 'STANDARD'
 
     rootRadius = FloatProperty(
         name = "Root radius (mm)",
