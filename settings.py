@@ -389,6 +389,7 @@ class LocalSettings:
         self.applyMorphs = False
         self.useAnimations = False
         self.useUV = False
+        self.useEnvironment = False
 
         self.collection = None
         self.hdcollection = None
@@ -405,7 +406,7 @@ class LocalSettings:
         self.customShapes = []
         self.singleUser = False
         self.scene = ""
-        self.usedEnvironment = False
+        self.render = None
 
         self.nViewChildren = 0
         self.nRenderChildren = 0
@@ -452,6 +453,7 @@ class LocalSettings:
         self.useMaterials = True
         self.useModifiers = True
         self.useUV = True
+        self.useEnvironment = GS.useEnvironment
 
         self.skinColor = btn.skinColor
         self.clothesColor = btn.clothesColor

@@ -125,9 +125,8 @@ def getMainAsset(filepath, context, btn):
     for _,inst in main.nodes:
         inst.finalize(context)
 
-    for extra in main.extras:
-        if extra:
-            extra.build(context)
+    if LS.render:
+        LS.render.build(context)
 
     from .node import transformDuplis
     transformDuplis()

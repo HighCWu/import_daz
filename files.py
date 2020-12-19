@@ -166,8 +166,7 @@ class FileAsset(Asset):
                     renderSettings = extra
             if renderSettings:
                 from .render import parseRenderOptions
-                options = parseRenderOptions(renderSettings, sceneSettings, backdrop, self.fileref)
-                self.extras.append(options)
+                parseRenderOptions(renderSettings, sceneSettings, backdrop, self.fileref)
 
 
     def getModifierType(self, name):

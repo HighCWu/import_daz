@@ -58,7 +58,7 @@ class RenderOptions(Asset, Channels):
 
 
     def __repr__(self):
-        return ("<RenderOptions %s>" % (self.fileref))
+        return ("<RenderOptions %s %s>" % (self.background, self.backdrop))
 
 
     def parse(self, struct):
@@ -77,10 +77,9 @@ class RenderOptions(Asset, Channels):
 
 
     def build(self, context):
-        if GS.useEnvironment and not LS.usedEnvironment:
+        if LS.useEnvironment:
             self.world = WorldMaterial(self, self.fileref)
             self.world.build(context)
-            LS.usedEnvironment = True
 
 #-------------------------------------------------------------
 #   World Material
@@ -106,7 +105,7 @@ class WorldMaterial(CyclesMaterial):
     def build(self, context):
         if self.dontBuild():
             return
-        mode = self.getValue(["Environment Mode"], None)
+        mode = self.getValue(["Environment Mode"], 3)
         # [Dome and Scene, Dome Only, Sun-Skies Only, Scene Only]
         if mode is None:
             return
@@ -250,15 +249,15 @@ class WorldTree(CyclesTree):
 #-------------------------------------------------------------
 
 def parseRenderOptions(renderSettings, sceneSettings, backdrop, fileref):
-    if GS.materialMethod == 'INTERNAL':
-        return None
+    if not LS.useEnvironment:
+        return
+    elif GS.materialMethod == 'INTERNAL':
+        pass
     else:
         renderOptions = renderSettings["render_options"]
         if "render_elements" in renderOptions.keys():
-            asset = RenderOptions(fileref)
-            asset.initSettings(sceneSettings, backdrop)
+            if not LS.render:
+                LS.render = RenderOptions(fileref)
+            LS.render.initSettings(sceneSettings, backdrop)
             for element in renderOptions["render_elements"]:
-                asset.parse(element)
-            return asset
-    return None
-
+                LS.render.parse(element)

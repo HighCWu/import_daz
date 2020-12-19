@@ -257,11 +257,13 @@ class Instance(Accessor, Channels):
             if "type" not in extra.keys():
                 continue
             elif extra["type"] == "studio/node/environment":
-                if GS.useEnvironment:
-                    from .render import RenderOptions
-                    render = RenderOptions(self.fileref)
-                    render.channels = self.channels
-                    render.build(context)
+                if LS.useEnvironment:
+                    if not LS.render:
+                        from .render import RenderOptions
+                        LS.render = RenderOptions(self.fileref)
+                        LS.render.channels = self.channels
+                    else:
+                        LS.render.copyChannels(self.channels)
 
 
     def postbuild(self, context):

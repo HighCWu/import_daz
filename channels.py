@@ -121,6 +121,11 @@ class Channels:
         return True
 
 
+    def copyChannels(self, channels):
+        for key,value in channels.items():
+            self.channels[key] = value
+
+
     def getValue(self, attr, default):
         return self.getChannelValue(self.getChannel(attr), default)
 
