@@ -45,7 +45,6 @@ class HairSystem:
         self.name = ("Hair_%s" % key)
         self.scale = hum.DazScale
         self.button = btn
-        self.modifier = Channels()
         self.npoints = n
         self.mnum = mnum
         self.strands = []
@@ -54,45 +53,8 @@ class HairSystem:
         self.material = btn.materials[mnum].name
 
 
-    def getDensity(self, mod, channels, default):
-        from .material import Map
-        for channel in channels:
-            val,url = mod.getValueImage([channel], 0)
-            if val:
-                if url:
-                    map = Map({}, False)
-                    map.url = url
-                    map.build()
-                    tex = map.getTexture()
-                    tex.buildInternal()
-                    return val,tex.rna
-                else:
-                    return val,None
-        return default,None
-
-
-    def addTexture(self, tex, pset, ob, use, factor):
-        ptex = pset.texture_slots.add()
-        ptex.texture = tex
-        setattr(ptex, use, True)
-        setattr(ptex, factor, 1)
-        ptex.use_map_time = False
-        ptex.texture_coords = 'UV'
-        if ob and ob.data.uv_layers.active:
-            ptex.uv_layer = ob.data.uv_layers.active.name
-
-
-    def getTexDensity(self, mod, channels, default, attr, pset, ob, use, factor, cond=True):
-        val,tex = self.getDensity(mod, channels, default)
-        setattr(pset, attr, val)
-        if tex and cond:
-            self.addTexture(tex, pset, ob, use, factor)
-        return val,tex
-
-
     def setHairSettings(self, psys, ob):
         btn = self.button
-        mod = self.modifier
         pset = psys.settings
         if hasattr(pset, "cycles_curve_settings"):
             ccset = pset.cycles_curve_settings
@@ -101,50 +63,25 @@ class HairSystem:
         else:
             ccset = pset
 
-        channels = ["PreRender Hairs Density", "PreSim Hairs Per Guide"]
-        val,rdtex = self.getTexDensity(mod, channels, btn.nRenderChildren, "rendered_child_count", pset, ob, "use_map_density", "density_factor")
-
-        channels = ["PreSim Hairs Density", "PreRender Hairs Per Guide"]
-        self.getTexDensity(mod, channels, btn.nViewChildren, "child_nbr", pset, ob, "use_map_density", "density_factor", cond=(not rdtex))
-
         if (self.material and
             self.material in ob.data.materials.keys()):
             pset.material_slot = self.material
 
-        rootrad = mod.getValue(["Line Start Width"], 0.1*btn.rootRadius)
-        tiprad = mod.getValue(["Line End Width"], 0.1*btn.tipRadius)
+        pset.rendered_child_count = btn.nRenderChildren
+        pset.child_nbr = btn.nViewChildren
+        pset.child_length = 1
+        psys.child_seed = 0
+        pset.child_radius = 0.1*btn.childRadius*self.scale
+
         if hasattr(ccset, "root_width"):
-            ccset.root_width = rootrad
-            ccset.tip_width = tiprad
+            ccset.root_width = 0.1*btn.rootRadius
+            ccset.tip_width = 0.1*btn.tipRadius
         else:
-            ccset.root_radius = rootrad
-            ccset.tip_radius = tiprad
+            ccset.root_radius = 0.1*btn.rootRadius
+            ccset.tip_radius = 0.1*btn.tipRadius
         if btn.strandShape == 'SHRINK':
             pset.shape = 0.99
-        ccset.radius_scale = self.scale * mod.getValue(["PreRender Hair Distribution Radius"], 1)
-
-        channels = ["PreRender Generated Hair Scale", "PreSim Generated Hair Scale"]
-        self.getTexDensity(mod, channels, 1, "child_length", pset, ob, "use_map_length", "length_factor")
-
-        psys.child_seed = mod.getValue(["PreRender Hair Seed"], 0)
-        pset.child_radius = mod.getValue(["PreRender Hair Distribution Radius"], 0.1*btn.childRadius) * self.scale
-
-        channels = ["PreRender Clumping 1 Curves Density"]
-        self.getTexDensity(mod, channels, 0, "clump_factor", pset, ob, "use_map_clump", "clump_factor")
-
-        pset.clump_shape = mod.getValue(["PreRender Clumpiness 1"], 0)
-
-        channels = ["PreRender Scraggliness 1"]
-        val,tex = self.getTexDensity(mod, channels, 0, "kink_amplitude", pset, ob, "use_map_kink_amp", "kink_amp_factor")
-        if val:
-            pset.kink = 'CURL'
-
-        channels = ["PreRender Scraggle 1 Frequency "]
-        self.getTexDensity(mod, channels, 0, "kink_frequency", pset, ob, "use_map_kink_freq", "kink_freq_factor")
-
-        if hasattr(pset, "twist"):
-            channels = ["PreRender Frizz Tip Amount", "PreRender Frizz Base Amount"]
-            self.getTexDensity(mod, channels, 0, "twist", pset, ob, "use_map_twist", "twist_factor")
+        ccset.radius_scale = self.scale
 
 
     def addStrand(self, strand):
