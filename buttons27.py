@@ -748,7 +748,7 @@ class Hair:
         name = "Child radius (mm)",
         description = "Radius of children around parent",
         min = 0,
-        default = 0.2)
+        default = 10)
 
     # Materials
 

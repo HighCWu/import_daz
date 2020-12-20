@@ -127,7 +127,7 @@ class HairSystem:
         self.getTexDensity(mod, channels, 1, "child_length", pset, ob, "use_map_length", "length_factor")
 
         psys.child_seed = mod.getValue(["PreRender Hair Seed"], 0)
-        pset.child_radius = mod.getValue(["PreRender Hair Distribution Radius"], 10*btn.childRadius) * self.scale
+        pset.child_radius = mod.getValue(["PreRender Hair Distribution Radius"], 0.1*btn.childRadius) * self.scale
 
         channels = ["PreRender Clumping 1 Curves Density"]
         self.getTexDensity(mod, channels, 0, "clump_factor", pset, ob, "use_map_clump", "clump_factor")
