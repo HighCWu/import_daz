@@ -66,8 +66,7 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions, B.PoleT
         row.prop(self, "clothesColor")
         layout.separator()
         box = layout.box()
-        box.label(text = "Unit Scale and Material Method")
-        box.label(text = "have moved to Global Settings.")
+        box.label(text = "For more options, see Global Settings.")
 
 #-------------------------------------------------------------
 #   Silent mode
@@ -274,8 +273,8 @@ class DAZ_PT_Setup(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowCorrections", box):
-            box.operator("daz.apply_rest_pose")
             box.operator("daz.merge_rigs")
+            box.operator("daz.apply_rest_pose")
             box.operator("daz.eliminate_empties")
             box.operator("daz.merge_toes")
             box.operator("daz.add_extra_face_bones")
@@ -1263,8 +1262,8 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
         box = split.box()
         box.label(text = "Materials")
-        box.prop(scn, "DazMaterialMethod", expand=True)
-        box.prop(scn, "DazHairMaterialMethod", expand=True)
+        box.prop(scn, "DazMaterialMethod")
+        box.prop(scn, "DazHairMaterialMethod")
         box.separator()
         box.prop(scn, "DazChooseColors")
         box.prop(scn, "DazMergeShells")
@@ -1510,14 +1509,14 @@ def initialize():
 
     bpy.types.Scene.DazMaterialMethod = EnumProperty(
         items = B.enumsMaterials,
-        name = "Material Method",
-        description = "Type of material node tree",
+        name = "Method",
+        description = "Method for ordinary materials",
         default = 'BSDF')
 
     bpy.types.Scene.DazHairMaterialMethod = EnumProperty(
         items = B.enumsHair,
-        name = "Hair Material Method",
-        description = "Type of hair material node tree",
+        name = "Hair Method",
+        description = "Method for hair materials",
         default = 'HAIR_BSDF')
 
     bpy.types.Scene.DazChooseColors = EnumProperty(
@@ -1563,11 +1562,11 @@ def initialize():
 
     bpy.types.Scene.DazZup = BoolProperty(
         name = "Z Up",
-        description = "Convert from DAZ's Y up convention to Blender's Z up convention",
+        description = "Convert from DAZ's Y up convention to Blender's Z up convention.\nDisable for debugging only",
         default = True)
 
     bpy.types.Scene.DazOrientMethod = EnumProperty(
-        items = [("BLENDER LEGACY", "Blender Legacy", "Bone orientation optimized for Blender"),
+        items = [("BLENDER LEGACY", "Blender Legacy", "Legacy bone orientation used in version 1.5.0 and before"),
                  ("DAZ UNFLIPPED", "DAZ Unflipped", "DAZ Studio original bone orientation (for debugging only)"),
                  ("DAZ STUDIO", "DAZ Studio", "DAZ Studio bone orientation with flipped axes"),
                  ],
@@ -1614,12 +1613,12 @@ def initialize():
         description = "Add deflection surface")
 
     bpy.types.Scene.DazMergeShells = BoolProperty(
-        name = "Merge Shells",
-        description = "Merge shell materials with object materials")
+        name = "Merge Shell Materials",
+        description = "Merge shell materials with object materials.\nDisable for debugging only")
 
     bpy.types.Scene.DazPruneNodes = BoolProperty(
         name = "Prune Node Tree",
-        description = "Prune material node-tree")
+        description = "Prune material node-tree.\nDisable for debugging only")
 
     bpy.types.Scene.DazBrightenEyes = FloatProperty(
         name = "Brighten Eyes",
