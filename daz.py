@@ -605,7 +605,6 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.separator()
         layout.operator("daz.clear_pose")
         layout.separator()
-        layout.operator("daz.unwind_action")
         layout.operator("daz.prune_action")
 
         layout.separator()
