@@ -1302,7 +1302,7 @@ def pruneAction(act, cm):
         act.fcurves.remove(fcu)
 
 
-class DAZ_OT_PruneAction(DazOperator, Pruner):
+class DAZ_OT_PruneAction(DazOperator):
     bl_idname = "daz.prune_action"
     bl_label = "Prune Action"
     bl_description = "Remove F-curves with a single zero key"
