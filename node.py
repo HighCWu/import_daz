@@ -791,6 +791,7 @@ def getTransformMatrix(pb):
 
 
 def getBoneMatrix(tfm, pb, test=False):
+    from .transform import roundMatrix
     dmat,bmat,rmat = getTransformMatrices(pb)
     wmat = Mult4(dmat, tfm.getRotMat(pb), tfm.getScaleMat(), dmat.inverted())
     wmat = Mult4(rmat.inverted(), tfm.getTransMat(), rmat, wmat)

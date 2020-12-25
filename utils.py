@@ -553,13 +553,6 @@ def vector(comp, value):
         return LS.scale*Vector((0,0,value))
 
 
-def roundMatrix(mat, eps):
-    for i in range(3):
-        for j in range(3):
-            if abs(mat[i][j]) < eps:
-                mat[i][j] = 0
-
-
 D2R = "%.6f*" % (math.pi/180)
 D = math.pi/180
 

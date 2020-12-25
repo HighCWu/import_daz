@@ -198,4 +198,36 @@ class Transform:
             pb.lock_scale[2] == False):
             pb.keyframe_insert("scale", frame=frame, group=group)
 
+#-------------------------------------------------------------
+#   Rounding
+#-------------------------------------------------------------
+
+def roundMatrix(mat, eps):
+    for i in range(3):
+        for j in range(3):
+            if abs(mat[i][j]) < eps:
+                mat[i][j] = 0
+
+
+def roundVector(vec, eps = 1e-4):
+    for i in range(3):
+        if abs(vec[i]) < eps:
+            vec[i] = 0
+    return vec
+
+
+def roundQuat(quat, eps = 1e-4):
+    if abs(quat[0]-1) < eps:
+        quat[0] = 1
+    for i in range(1,4):
+        if abs(quat[i]) < eps:
+            quat[i] = 0
+    return quat
+
+
+def roundScale(scale, eps = 1e-4):
+    for i in range(3):
+        if abs(scale[i]-1) < eps:
+            scale[i] = 1
+    return scale
 

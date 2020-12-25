@@ -1266,7 +1266,45 @@ class DAZ_OT_ClearPose(DazOperator, IsArmature):
 #   Clear action
 #----------------------------------------------------------
 
-class DAZ_OT_PruneAction(DazOperator):
+class Pruner:
+    def pruneAction(self, act, cm):
+        deletes = []
+        for fcu in act.fcurves:
+            kpts = fcu.keyframe_points
+            channel = fcu.data_path.rsplit(".", 1)[-1]
+            if len(kpts) == 0:
+                deletes.append(fcu)
+            else:
+                default = 0
+                eps = 0
+                if channel == "scale":
+                    default = 1
+                    eps = 0.001
+                elif (channel == "rotation_quaternion" and
+                    fcu.array_index == 0):
+                    default = 1
+                    eps = 1e-4
+                elif channel == "rotation_quaternion":
+                    eps = 1e-4
+                elif channel == "rotation_euler":
+                    eps = 0.01
+                elif channel == "location":
+                    eps = 0.001*cm
+                if self.matchAll(kpts, default, eps):
+                    deletes.append(fcu)
+
+        for fcu in deletes:
+            act.fcurves.remove(fcu)
+
+
+    def matchAll(self, kpts, default, eps):
+        for kp in kpts:
+            if abs(kp.co[1] - default) > eps:
+                return False
+        return True
+
+
+class DAZ_OT_PruneAction(DazOperator, Pruner):
     bl_idname = "daz.prune_action"
     bl_label = "Prune Action"
     bl_description = "Remove F-curves with a single zero key"
@@ -1278,31 +1316,98 @@ class DAZ_OT_PruneAction(DazOperator):
         return (ob and ob.animation_data and ob.animation_data.action)
 
     def run(self, context):
-        act = context.object.animation_data.action
-        deletes = []
+        ob = context.object
+        self.pruneAction(ob.animation_data.action, ob.DazScale)
+
+#----------------------------------------------------------
+#   Unwind action
+#----------------------------------------------------------
+
+class DAZ_OT_UnwindAction(HideOperator, Pruner):
+    bl_idname = "daz.unwind_action"
+    bl_label = "Unwind Action"
+    bl_description = "Create a new action for bones and shapekeys only."
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'ARMATURE' and ob.animation_data and ob.animation_data.action)
+
+    def run(self, context):
+        rig = context.object
+        scn = context.scene
+        act0 = rig.animation_data.action
+        tmin,tmax = self.getRange(act0)
+        act = self.unwindRig(rig, scn, act0, tmin, tmax)
+        self.pruneAction(act, rig.DazScale)
+
+
+    def unwindRig(self, rig, scn, act0, tmin, tmax):
+        from .transform import roundVector, roundQuat, roundScale
+        act = bpy.data.actions.new("U_" + act0.name)
+        fcurves = {}
+        quat = Quaternion()
+        for pb in rig.pose.bones:
+            fcus = fcurves[pb.name] = {}
+            fcus["loc"] = self.makeFcurves(act, pb.name, "location", 3)
+            if pb.rotation_mode == 'QUATERNION':
+                fcus["rot"] = self.makeFcurves(act, pb.name, "rotation_quaternion", 4)
+            else:
+                fcus["rot"] = self.makeFcurves(act, pb.name, "rotation_euler", 3)
+            fcus["sca"] = self.makeFcurves(act, pb.name, "scale", 3)
+
+        for t in range(tmin, tmax+1):
+            scn.frame_set(t)
+            for pb in rig.pose.bones:
+                mat = self.getLocalMatrix(pb, rig)
+                loc,quat,scale = mat.decompose()
+                fcus = fcurves[pb.name]
+                self.addFcurves(fcus["loc"], t, roundVector(loc))
+                if pb.rotation_mode == 'QUATERNION':
+                    rot = roundQuat(quat)
+                else:
+                    rot = roundVector(quat.to_euler(pb.rotation_mode))
+                self.addFcurves(fcus["rot"], t, rot)
+                self.addFcurves(fcus["sca"], t, roundScale(scale))
+        return act
+
+
+    def getLocalMatrix(self, pb, rig):
+        R = pb.bone.matrix_local
+        M = pb.matrix
+        if pb.parent:
+            Rpar = pb.parent.bone.matrix_local
+            Mpar = pb.parent.matrix
+            return Mult4(R.inverted(), Rpar, Mpar.inverted(), M)
+        else:
+            W = rig.matrix_world
+            return Mult3(R.inverted(), W.inverted(), M)
+
+
+    def getRange(self, act):
+        tmin = 1e6
+        tmax = -1e6
         for fcu in act.fcurves:
-            kpts = fcu.keyframe_points
-            channel = fcu.data_path.rsplit(".", 1)[-1]
-            if len(kpts) == 0:
-                deletes.append(fcu)
-            elif len(kpts) == 1:
-                default = 0
-                eps = 0
-                if channel == "scale":
-                    default = 1
-                    eps = 0.001
-                elif (channel == "rotation_quaternion" and
-                    fcu.array_index == 0):
-                    default = 1
-                    eps = 0.001
-                elif channel == "rotation_quaternion":
-                    eps = 0.001
-                elif channel == "rotation_euler":
-                    eps = 0.001
-                if abs(kpts[0].co[1] - default) <= eps:
-                    deletes.append(fcu)
-        for fcu in deletes:
-            act.fcurves.remove(fcu)
+            times = [kp.co[0] for kp in fcu.keyframe_points]
+            times.sort()
+            if times[0] < tmin:
+                tmin = times[0]
+            if times[-1] > tmax:
+                tmax = times[-1]
+        return int(round(tmin)), int(round(tmax))
+
+
+    def makeFcurves(self, act, bname, channel, ncomps):
+        fcus = []
+        for n in range(ncomps):
+            fcus.append(act.fcurves.new('pose.bones["%s"].%s' % (bname, channel), index = n, action_group = bname))
+        return fcus
+
+
+    def addFcurves(self, fcus, t, vec):
+        for n,fcu in enumerate(fcus):
+            fcu.keyframe_points.insert(t, vec[n], options = {'FAST'})
 
 #----------------------------------------------------------
 #   Initialize
@@ -1319,6 +1424,7 @@ classes = [
     DAZ_OT_RestoreCurrentFrame,
     DAZ_OT_ClearPose,
     DAZ_OT_PruneAction,
+    DAZ_OT_UnwindAction,
 ]
 
 def initialize():

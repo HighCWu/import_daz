@@ -62,10 +62,10 @@ def importModules():
             modnames.append("buttons28")
         modnames += ["daz", "fileutils", "load_json", "driver", "asset", "channels", "formula",
                     "transform", "node", "figure", "bone", "geometry", "objfile",
-                    "fix", "modifier", "convert", "material", "internal",
+                    "fix", "modifier", "morphing", "convert", "material", "internal",
                     "cycles", "cgroup", "pbr", "render", "camera", "light",
                     "guess", "animation", "files", "main", "finger",
-                    "morphing", "matedit", "tables", "proxy", "rigify", "merge", "hide",
+                    "matedit", "tables", "proxy", "rigify", "merge", "hide",
                     "mhx", "layers", "fkik", "hair", "transfer", "dforce"]
         if bpy.app.version >= (2,82,0):
             modnames.append("udim")
@@ -168,7 +168,6 @@ classes = (
 
 def register():
     addon_updater_ops.register(bl_info)
-    animation.initialize()
     convert.initialize()
     daz.initialize()
     driver.initialize()
@@ -185,6 +184,7 @@ def register():
     material.initialize()
     merge.initialize()
     morphing.initialize()
+    animation.initialize()
     matedit.initialize()
     mhx.initialize()
     objfile.initialize()
