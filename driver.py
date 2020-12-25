@@ -336,12 +336,19 @@ def changeDriverTarget(fcu, id):
         targ.id = id
 
 
-def removeDriverBoneSuffix(fcu, suffix):
-    n = len(suffix)
+def combineDrvBones(fcu):
     for var in fcu.driver.variables:
         for trg in var.targets:
-            if trg.bone_target[-n:] == suffix:
-                trg.bone_target = trg.bone_target[:-n]
+            if trg.bone_target[-3:] == "Drv":
+                var2 = fcu.driver.variables.new()
+                var2.name = var.name+"2"
+                var2.type = var.type
+                target2 = Target(trg)
+                trg2 = var2.targets[0]
+                target2.create(trg2)
+                trg2.bone_target = trg.bone_target[:-3]
+                expr = fcu.driver.expression.replace("*%s" % var.name, "*(%s+%s)" % (var.name, var2.name))
+                fcu.driver.expression = expr
 
 #-------------------------------------------------------------
 #   Prop drivers

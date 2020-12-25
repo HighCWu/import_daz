@@ -430,7 +430,7 @@ class ExtraBones:
 
 
     def addExtraBones(self, rig):
-        from .driver import getBoneDrivers, removeDriverBoneSuffix, storeBoneDrivers, restoreBoneDrivers
+        from .driver import getBoneDrivers, combineDrvBones, storeBoneDrivers, restoreBoneDrivers
         from .fix import ConstraintStore
         if getattr(rig.data, self.attr):
             msg = "Rig %s already has extra %s bones" % (rig.name, self.type)
@@ -498,7 +498,7 @@ class ExtraBones:
             fcus = getBoneDrivers(rig, pb)
             if fcus:
                 for fcu in fcus:
-                    removeDriverBoneSuffix(fcu, "Drv")
+                    combineDrvBones(fcu)
 
         setattr(rig.data, self.attr, True)
         updateDrivers(rig)
