@@ -337,11 +337,15 @@ def changeDriverTarget(fcu, id):
 
 
 def combineDrvBones(fcu):
+    varnames = dict([(var.name,True) for var in fcu.driver.variables])
     for var in fcu.driver.variables:
+        vname2 = var.name+"2"
+        if vname2 in varnames.keys():
+            continue
         for trg in var.targets:
             if trg.bone_target[-3:] == "Drv":
                 var2 = fcu.driver.variables.new()
-                var2.name = var.name+"2"
+                var2.name = vname2
                 var2.type = var.type
                 target2 = Target(trg)
                 trg2 = var2.targets[0]

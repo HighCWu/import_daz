@@ -430,7 +430,7 @@ class ExtraBones:
 
 
     def addExtraBones(self, rig):
-        from .driver import getBoneDrivers, combineDrvBones, storeBoneDrivers, restoreBoneDrivers
+        from .driver import getBoneDrivers, getShapekeyDriver, combineDrvBones, storeBoneDrivers, restoreBoneDrivers
         from .fix import ConstraintStore
         if getattr(rig.data, self.attr):
             msg = "Rig %s already has extra %s bones" % (rig.name, self.type)
@@ -510,6 +510,16 @@ class ExtraBones:
                     if (vgrp.name[-3:] == "Drv" and
                         vgrp.name[:-3] in bones):
                         vgrp.name = vgrp.name[:-3]
+
+        for ob in rig.children:
+            if ob.type == 'MESH':
+                skeys = ob.data.shape_keys
+                if skeys:
+                    for skey in skeys.key_blocks[1:]:
+                        fcu = getShapekeyDriver(skeys, skey.name)
+                        if fcu:
+                            combineDrvBones(fcu)
+            updateDrivers(ob)
 
 
 class DAZ_OT_SetAddExtraFaceBones(DazOperator, ExtraBones, IsArmature):
