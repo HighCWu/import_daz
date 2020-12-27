@@ -403,13 +403,6 @@ class MergeUVLayers:
 #   morphing.py
 #-------------------------------------------------------------
 
-class MorphStrength:
-    strength = FloatProperty(
-        name = "Strength",
-        description = "Strength of the morphs.\nOnly applies to shapekeys",
-        default = 1.0
-    )
-
 class MorphStrings:
     catname = StringProperty(
         name = "Category",

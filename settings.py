@@ -476,10 +476,10 @@ class LocalSettings:
             self.integerFrames = btn.integerFrames
 
 
-    def forMorphLoad(self, ob, scn, strength=1):
+    def forMorphLoad(self, ob, scn):
         self.__init__()
         self.reset(scn)
-        self.scale = ob.DazScale * strength
+        self.scale = ob.DazScale
         self.useMorph = True
         self.useFormulas = True
         self.applyMorphs = False
