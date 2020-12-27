@@ -177,7 +177,7 @@ function doMesh (fp, obj, start, node, str1, str2)
 function doVerts(fp, geom)
 {
     var nv = geom.getNumVertices();
-    buf = ("        \"num verts\": " + nv + ",\n");
+    var buf = ("        \"num verts\": " + nv + ",\n");
     buf += ("        \"vertices\": [\n" );
     
     var c = ",\n"
@@ -193,8 +193,7 @@ function doVerts(fp, geom)
 function doFaces(fp, geom)
 {
     var nf = geom.getNumFacets();
-    var buf = ("        \"num faces\": " + nf + ",\n");
-    buf += "        \"faces\": [\n";
+    var buf = "        \"faces\": [\n";
     c = ",\n"
     for (var i = 0; i < nf; i++)
     {
@@ -209,8 +208,7 @@ function doFaces(fp, geom)
 function doEdges(fp, geom)
 {
     var ne = geom.getNumEdges();
-    var buf = ("        \"num edges\": " + ne + ",\n");
-    buf += "        \"edges\": [\n";
+    var buf = "        \"edges\": [\n";
     c = ",\n"
     for (var i = 0; i < ne; i++)
     {
@@ -222,29 +220,10 @@ function doEdges(fp, geom)
     fp.writeLine(buf);
 }
 
-function doMaterials(fp, shape)
-{
-    var nm = shape.getNumMaterials();
-    fp.writeLine("        \"num materials\": " + nm + ",");
-    fp.writeLine("        \"materials\": [" );
-
-    var c = ","
-    for (var i = 0; i < nm; i++)
-    {
-        var mat = shape.getMaterial(i);
-        if (i == nm-1) c = "";
-        fp.writeLine("           {")
-        doProperties(fp, mat, "           ")
-    	fp.writeLine("           }" + c);
-    }    
-    fp.writeLine("        ],");
-}
-
 function doProperties(fp, mat, pad)
 {
     var np = mat.getNumProperties();
     var buf = (pad + "   \"name\": \"" + mat.name + "\",\n");
-    buf += (pad + "   \"num properties\": " + np + ",\n");
     buf += (pad + "   \"properties\": {\n" );
 
     var c = ","

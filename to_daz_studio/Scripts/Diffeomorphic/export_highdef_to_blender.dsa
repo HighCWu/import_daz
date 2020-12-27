@@ -193,29 +193,10 @@ function endMesh(fp, str1, str2)
     return false;
 }
 
-function doMaterials(fp, shape)
-{
-    var nm = shape.getNumMaterials();
-    fp.writeLine("        \"num materials\": " + nm + ",");
-    fp.writeLine("        \"materials\": [" );
-
-    var c = ","
-    for (var i = 0; i < nm; i++)
-    {
-        var mat = shape.getMaterial(i);
-        if (i == nm-1) c = "";
-        fp.writeLine("           {")
-        doProperties(fp, mat, "           ")
-    	fp.writeLine("           }" + c);
-    }    
-    fp.writeLine("        ],");
-}
-
 function doProperties(fp, mat, pad)
 {
     var np = mat.getNumProperties();
     var buf = (pad + "   \"name\": \"" + mat.name + "\",\n");
-    buf += (pad + "   \"num properties\": " + np + ",\n");
     buf += (pad + "   \"properties\": {\n" );
 
     var c = ","
@@ -234,7 +215,6 @@ function doProperties(fp, mat, pad)
 function doMaterialGroups(fp, geom, hd)
 {
     var nm = geom.getNumMaterialGroups();
-    fp.writeLine("        \"num " + hd + "material groups\": " + nm + ",");
     fp.writeLine("        \"" + hd + "material groups\": [" );
 
     var c = ","
@@ -253,8 +233,6 @@ function doVertices(fp, geom, hd)
     var ne = geom.getNumEdges();
     var nf = geom.getNumFacets();
     var buf = ("        \"num " + hd + "verts\": " + nv + ",\n");
-    buf += ("        \"num " + hd + "edges\": " + ne + ",\n");
-    buf += ("        \"num " + hd + "faces\": " + nf + ",\n");
     buf += ("        \"" + hd + "vertices\": [\n" );
     
     var c = ",\n"
@@ -273,7 +251,6 @@ function doUVs(fp, geom, hd)
     var nuv = uvs.getNumValues();
     var label = uvs.getLabel();
     var buf = ("        \"" + hd + "uvset\": \"" + label + "\",\n");    
-    buf += ("        \"num " + hd + "uvs\": " + nuv + ",\n");
     buf += ("        \"" + hd + "uvs\": [\n" );    
     var c = ",\n"
     for (var i = 0; i < nuv; i++)
