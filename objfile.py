@@ -366,15 +366,25 @@ class DAZ_OT_ImportDBZ(DazOperator, B.DbzFile, MultiFile, IsMesh):
         if sname in ob.data.shape_keys.key_blocks.keys():
             skey = ob.data.shape_keys.key_blocks[sname]
             ob.shape_key_remove(skey)
-        skey = ob.shape_key_add(name=sname)
-        for name in dbz.objects.keys():
-            verts = dbz.objects[name][0].verts
+        if self.makeShape(ob, sname, dbz.objects):
+            return
+        elif self.makeShape(ob, sname, dbz.hdobjects):
+            return
+        else:
+            print("No matching morph found")
+
+
+    def makeShape(self, ob, sname, objects):
+        for name in objects.keys():
+            verts = objects[name][0].verts
+            print("Try %s (%d verts)" % (name, len(verts))
             if len(verts) == len(ob.data.vertices):
+                skey = ob.shape_key_add(name=sname)
                 for vn,co in enumerate(verts):
                     skey.data[vn].co = co
                 print("Morph %s created" % sname)
-                return
-        print("No matching morph found")
+                return True
+        return False
 
 #----------------------------------------------------------
 #   Initialize
