@@ -377,7 +377,7 @@ class DAZ_OT_ImportDBZ(DazOperator, B.DbzFile, MultiFile, IsMesh):
     def makeShape(self, ob, sname, objects):
         for name in objects.keys():
             verts = objects[name][0].verts
-            print("Try %s (%d verts)" % (name, len(verts))
+            print("Try %s (%d verts)" % (name, len(verts)))
             if len(verts) == len(ob.data.vertices):
                 skey = ob.shape_key_add(name=sname)
                 for vn,co in enumerate(verts):
