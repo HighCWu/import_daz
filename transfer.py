@@ -221,7 +221,10 @@ class MorphTransferer(Selector, B.TransferOptions):
         elif self.transferMethod == 'BODY':
             self.findMatchExact(hum, clo)
         elif self.transferMethod in ['GEOGRAFT', 'NEAREST']:
-            self.findMatchNearest(hum, clo)
+            try:
+                self.findMatchNearest(hum, clo)
+            except MemoryError:
+                raise DazError("Out of memory!\nTry another transfer method")
 
 
     def autoTransfer(self, hum, clo, hskey):
