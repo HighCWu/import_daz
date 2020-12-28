@@ -55,10 +55,19 @@ class MorphTransferer(Selector, B.TransferOptions):
         hum = context.object
         if not hum.data.shape_keys:
             raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (hum.name))
+        failed = []
         for clo in self.getClothes(hum, context):
-            self.transferMorphs(hum, clo, context)
+            if not self.transferMorphs(hum, clo, context):
+                failed.append(clo)
         t2 = time.perf_counter()
         print("Morphs transferred in %.1f seconds" % (t2-t1))
+        if failed:
+            msg = ("Morph transfer to the following meshes\nfailed due to insufficient memory:")
+            for clo in failed:
+                msg += ("\n    %s" % clo.name)
+            msg += "\nTry the General transfer method instead.       "
+            raise DazError(msg)
+
 
 
     def transferMorphs(self, hum, clo, context):
@@ -74,7 +83,8 @@ class MorphTransferer(Selector, B.TransferOptions):
         scn = context.scene
         setDazPaths(scn)
         setActiveObject(context, clo)
-        self.findMatch(hum, clo)
+        if not self.findMatch(hum, clo):
+            return False
         if not clo.data.shape_keys:
             basic = clo.shape_key_add(name="Basic")
         else:
@@ -137,6 +147,7 @@ class MorphTransferer(Selector, B.TransferOptions):
             clo.data.shape_keys.key_blocks[0] == basic):
             print("No shapekeys transferred to %s" % clo.name)
             clo.shape_key_remove(basic)
+        return True
 
 
     def correctForRigidity(self, ob, skey):
@@ -217,14 +228,16 @@ class MorphTransferer(Selector, B.TransferOptions):
 
     def findMatch(self, hum, clo):
         if self.transferMethod == 'GENERAL':
-            pass
+            return True
         elif self.transferMethod == 'BODY':
             self.findMatchExact(hum, clo)
+            return True
         elif self.transferMethod in ['GEOGRAFT', 'NEAREST']:
             try:
                 self.findMatchNearest(hum, clo)
+                return True
             except MemoryError:
-                raise DazError("Out of memory!\nTry another transfer method")
+                return False
 
 
     def autoTransfer(self, hum, clo, hskey):
