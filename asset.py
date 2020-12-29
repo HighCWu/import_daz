@@ -413,9 +413,12 @@ def storeAsset(asset, fileref):
     theAssets[fileref] = asset
 
 
-def getId(id, fileref):
-    id = normalizeRef(id)
-    if id[0] == "/":
+def getId(id0, fileref):
+    id = normalizeRef(id0)
+    if len(id) == 0:
+        print("Asset with no id in %s" % fileref)
+        return fileref + "#"
+    elif id[0] == "/":
         return id
     else:
         return fileref + "#" + id
