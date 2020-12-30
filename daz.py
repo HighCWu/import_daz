@@ -598,12 +598,10 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.import_action")
         layout.separator()
         layout.operator("daz.import_node_pose")
-        layout.operator("daz.import_node_poselib")
-        layout.operator("daz.import_node_action")
         layout.separator()
         layout.operator("daz.clear_pose")
-        layout.separator()
         layout.operator("daz.prune_action")
+        layout.operator("daz.rotate_bones")
 
         layout.separator()
         split = splitLayout(layout, 0.6)
@@ -612,14 +610,10 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.toggle_loc_limits", text = "Location Limits Are " + ("ON" if ob.DazLocLimits else "OFF"))
         layout.operator("daz.toggle_rot_limits", text = "Rotation Limits Are " + ("ON" if ob.DazRotLimits else "OFF"))
 
+        return
         layout.separator()
         layout.operator("daz.save_current_frame")
         layout.operator("daz.restore_current_frame")
-        layout.separator()
-        layout.operator("daz.rotate_bones")
-
-        #return
-
         layout.separator()
         layout.operator("daz.save_current_pose")
         layout.operator("daz.load_pose")

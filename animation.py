@@ -1038,7 +1038,8 @@ class ActionBase(B.ActionOptions, AnimatorBase):
         AnimatorBase.draw(self, context)
         self.layout.separator()
         self.layout.prop(self, "makeNewAction")
-        self.layout.prop(self, "actionName")
+        if self.makeNewAction:
+            self.layout.prop(self, "actionName")
         self.layout.prop(self, "fps")
         self.layout.prop(self, "integerFrames")
         self.layout.prop(self, "atFrameOne")
@@ -1084,7 +1085,8 @@ class PoselibBase(B.PoseLibOptions, AnimatorBase):
         AnimatorBase.draw(self, context)
         self.layout.separator()
         self.layout.prop(self, "makeNewPoseLib")
-        self.layout.prop(self, "poseLibName")
+        if self.makeNewPoseLib:
+            self.layout.prop(self, "poseLibName")
 
 
 class DAZ_OT_ImportPoseLib(HideOperator, PoselibBase, StandardAnimation):
@@ -1305,7 +1307,7 @@ def pruneAction(act, cm):
 class DAZ_OT_PruneAction(DazOperator):
     bl_idname = "daz.prune_action"
     bl_label = "Prune Action"
-    bl_description = "Remove F-curves with a single zero key"
+    bl_description = "Remove F-curves with zero keys only"
     bl_options = {'UNDO'}
 
     @classmethod
