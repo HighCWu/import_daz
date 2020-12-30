@@ -162,7 +162,7 @@ class GeoNode(Node):
     def addHDMaterials(self, mats, prefix):
         for mat in mats:
             pg = self.hdobject.data.DazHDMaterials.add()
-            pg.name = prefix + mat.name
+            pg.name = prefix + mat.name.rsplit("-",1)[0]
             pg.text = mat.name
         if self.data and self.data.vertex_pairs:
             # Geograft
