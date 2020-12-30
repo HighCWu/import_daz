@@ -1315,12 +1315,16 @@ class HairTree(CyclesTree):
         diffuse.inputs["Roughness"].default_value = rough
 
 
-    def mixShaders(self, node1, node2, weight):
+    def mixSockets(self, socket1, socket2, weight):
         mix = self.addNode('ShaderNodeMixShader')
         mix.inputs[0].default_value = weight
-        self.links.new(node1.outputs[0], mix.inputs[1])
-        self.links.new(node2.outputs[0], mix.inputs[2])
+        self.links.new(socket1, mix.inputs[1])
+        self.links.new(socket2, mix.inputs[2])
         return mix
+
+
+    def mixShaders(self, node1, node2, weight):
+        return self.mixSockets(node1.outputs[0], node2.outputs[0], weight)
 
 
     def addShaders(self, node1, node2):
@@ -1409,6 +1413,50 @@ class HairBSDFTree(HairTree):
 #   Hair tree for adding root transparency to existing material
 #-------------------------------------------------------------
 
+from .cgroup import MaterialGroup
+
+class FadeGroup(MaterialGroup, HairTree):
+    def __init__(self):
+        MaterialGroup.__init__(self)
+        self.insockets += ["Shader", "Intercept", "Random"]
+        self.outsockets += ["Shader"]
+
+
+    def create(self, node, name, parent):
+        HairTree.__init__(self, parent.material, BLACK)
+        MaterialGroup.create(self, node, name, parent, 4)
+        self.group.inputs.new("NodeSocketShader", "Shader")
+        self.group.inputs.new("NodeSocketFloat", "Intercept")
+        self.group.inputs.new("NodeSocketFloat", "Random")
+        self.group.outputs.new("NodeSocketShader", "Shader")
+
+
+    def addNodes(self, args=None):
+        self.column = 3
+        self.info = self.inputs
+        ramp = self.addRamp(None, "Root Transparency", (1,1,1,0), (1,1,1,1), endpos=0.15)
+        maprange = self.addNode('ShaderNodeMapRange', col=1)
+        maprange.inputs["From Min"].default_value = 0
+        maprange.inputs["From Max"].default_value = 1
+        maprange.inputs["To Min"].default_value = -0.1
+        maprange.inputs["To Max"].default_value = 0.4
+        self.links.new(self.inputs.outputs["Random"], maprange.inputs["Value"])
+        add = self.addSockets(ramp.outputs["Alpha"], maprange.outputs["Result"], col=2)
+        transp = self.addNode('ShaderNodeBsdfTransparent', col=2)
+        transp.inputs["Color"].default_value[0:3] = WHITE
+        mix = self.mixSockets(transp.outputs[0], self.inputs.outputs["Shader"], 1)
+        self.links.new(add.outputs[0], mix.inputs[0])
+        self.links.new(mix.outputs[0], self.outputs.inputs["Shader"])
+
+
+    def addSockets(self, socket1, socket2, col=None):
+        node = self.addNode("ShaderNodeMath", col=col)
+        math.operation = 'ADD'
+        self.links.new(socket1, node.inputs[0])
+        self.links.new(socket2, node.inputs[1])
+        return node
+
+
 def addFade(mat):
     tree = FadeHairTree(mat, mat.diffuse_color[0:3])
     tree.build(mat)
@@ -1425,13 +1473,15 @@ class FadeHairTree(HairTree):
             print("Hair material %s already has fading roots" % mat.name)
             return
         self.recoverTree(mat)
-        self.column = 4
         links = findLinksTo(self.tree, "OUTPUT_MATERIAL")
         if links:
             link = links[0]
-            mix = self.buildRootTransparency(link.from_node)
+            fade = self.addGroup(FadeGroup, "DAZ Fade Roots", col=5)
+            self.links.new(link.from_node.outputs[0], fade.inputs["Shader"])
+            self.links.new(self.info.outputs["Intercept"], fade.inputs["Intercept"])
+            self.links.new(self.info.outputs["Random"], fade.inputs["Random"])
             for link in links:
-                self.links.new(mix.outputs[0], link.to_socket)
+                self.links.new(fade.outputs["Shader"], link.to_socket)
 
 
     def recoverTree(self, mat):
@@ -1441,32 +1491,7 @@ class FadeHairTree(HairTree):
         self.links = mat.node_tree.links
         self.info = findNode(self.tree, "HAIR_INFO")
         for col in range(NCOLUMNS):
-            self.ycoords[col] -= 2*YSIZE
-
-
-    def buildRootTransparency(self, node):
-        ramp = self.addRamp(None, "Root Transparency", (1,1,1,0), (1,1,1,1), endpos=0.15)
-        maprange = self.addNode('ShaderNodeMapRange', col=self.column-1)
-        maprange.inputs["From Min"].default_value = 0
-        maprange.inputs["From Max"].default_value = 1
-        maprange.inputs["To Min"].default_value = -0.1
-        maprange.inputs["To Max"].default_value = 0.4
-        self.links.new(self.info.outputs["Random"], maprange.inputs["Value"])
-        add = self.addSockets(ramp.outputs["Alpha"], maprange.outputs["Result"])
-        transp = self.addNode('ShaderNodeBsdfTransparent')
-        transp.inputs["Color"].default_value[0:3] = WHITE
-        self.column += 1
-        mix = self.mixShaders(transp, node, 1)
-        self.links.new(add.outputs[0], mix.inputs[0])
-        return mix
-
-
-    def addSockets(self, socket1, socket2):
-        node = self.addNode("ShaderNodeMath")
-        math.operation = 'ADD'
-        self.links.new(socket1, node.inputs[0])
-        self.links.new(socket2, node.inputs[1])
-        return node
+            self.ycoords[col] -= YSIZE
 
 #-------------------------------------------------------------
 #   Hair tree Principled

@@ -685,7 +685,7 @@ class Hair:
     removeOldHairs : BoolProperty(
         name = "Remove Particle Hair",
         default = False,
-        description = "Remove existing particle systems from this mesn"
+        description = "Remove existing particle systems from this mesh"
     )
 
     sparsity : IntProperty(
@@ -720,13 +720,13 @@ class Hair:
 
     nViewChildren : IntProperty(
         name = "Viewport Children",
-        description = "Number of hair chilren displayed in viewport",
+        description = "Number of hair children displayed in viewport",
         min = 0,
         default = 0)
 
     nRenderChildren : IntProperty(
         name = "Render Children",
-        description = "Number of hair chilren displayed in renders",
+        description = "Number of hair children displayed in renders",
         min = 0,
         default = 0)
 
