@@ -792,11 +792,15 @@ class SimpleIK:
 #   Add Simple IK
 #-------------------------------------------------------------
 
-class DAZ_OT_AddSimpleIK(DazPropsOperator, B.PoleTargets, IsArmature):
+class DAZ_OT_AddSimpleIK(DazPropsOperator, B.PoleTargets):
     bl_idname = "daz.add_simple_ik"
     bl_label = "Add Simple IK"
     bl_description = "Add Simple IK constraints to the active rig"
     bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        return (context.object and context.object.DazCustomShapes)
 
     def draw(self, context):
         self.layout.prop(self, "usePoleTargets")
@@ -1258,6 +1262,7 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
                 print("Unknown bone:", pb.name)
 
         self.hideCustomShapes(rig, context, coll)
+        rig.DazCustomShapes = True
 
 
     def hideCustomShapes(self, rig, context, coll):
@@ -1426,6 +1431,7 @@ classes = [
 ]
 
 def initialize():
+    bpy.types.Object.DazCustomShapes = BoolProperty(default=False)
     bpy.types.Object.DazSimpleIK = BoolProperty(default=False)
     bpy.types.Object.DazArmIK_L = FloatProperty(name="Left Arm IK", default=0.0, precision=3, min=0.0, max=1.0)
     bpy.types.Object.DazArmIK_R = FloatProperty(name="Right Arm IK", default=0.0, precision=3, min=0.0, max=1.0)

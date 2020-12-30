@@ -807,8 +807,8 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
 #    Simple IK Panel
 #------------------------------------------------------------------------
 
-class DAZ_PT_Rig(bpy.types.Panel):
-    bl_label = "Rig"
+class DAZ_PT_SimpleRig(bpy.types.Panel):
+    bl_label = "Simple Rig"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ Importer"
@@ -816,7 +816,7 @@ class DAZ_PT_Rig(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return (context.object and context.object.DazRig[0:7] == "genesis")
+        return (context.object and context.object.DazCustomShapes)
 
     def draw(self, context):
         rig = context.object
@@ -1345,7 +1345,7 @@ classes = [
     DAZ_PT_Visemes,
     DAZ_PT_BodyMorphs,
     DAZ_PT_CustomMorphs,
-    DAZ_PT_Rig,
+    DAZ_PT_SimpleRig,
     DAZ_PT_MhxLayers,
     DAZ_PT_MhxFKIK,
     DAZ_PT_MhxProperties,
