@@ -600,6 +600,10 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.import_node_pose")
         layout.separator()
         layout.operator("daz.clear_pose")
+        op = layout.operator("daz.clear_morphs")
+        op.morphset = "All"
+        op.category = ""
+        layout.separator()
         layout.operator("daz.prune_action")
         layout.operator("daz.rotate_bones")
 

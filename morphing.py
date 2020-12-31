@@ -1105,13 +1105,9 @@ def removeDrivingProps(rig, props):
 class Activator(B.MorphsetString):
     def run(self, context):
         rig = getRigFromObject(context.object)
-        keys = getRelevantMorphs(rig, self.morphset, self.category)
-        if self.morphset == "Custom":
-            for key in keys:
-                setActivated(rig, key.name, self.activate)
-        else:
-            for key in keys:
-                setActivated(rig, key, self.activate)
+        morphs = getRelevantMorphs(rig, self.morphset, self.category)
+        for morph in morphs:
+           setActivated(rig, morph, self.activate)
 
 
 def setActivated(rig, key, value):
@@ -1219,15 +1215,22 @@ def getRelevantMorphs(rig, morphset, category):
         if category:
             for cat in rig.DazMorphCats:
                 if cat.name == category:
-                    morphs = cat.morphs
+                    morphs = [morph.name for morph in cat.morphs]
                     break
         else:
             for cat in rig.DazMorphCats:
-                morphs += cat.morphs
+                morphs += [morph.name for morph in cat.morphs]
     elif rig.DazMorphPrefixes:
         for key in rig.keys():
             if key[0:2] == "Dz":
                 raise DazError("OLD morphs", rig, key)
+    elif morphset == "All":
+        for mset in theStandardMorphSets:
+            pg = getattr(rig, "Daz"+mset)
+            for key in pg.keys():
+                morphs.append(key)
+        for cat in rig.DazMorphCats:
+            morphs += [morph.name for morph in cat.morphs]
     else:
         pg = getattr(rig, "Daz"+morphset)
         for key in pg.keys():
@@ -1237,22 +1240,15 @@ def getRelevantMorphs(rig, morphset, category):
 
 def clearMorphs(rig, morphset, category, scn, frame, force):
     morphs = getRelevantMorphs(rig, morphset, category)
-
-    if morphset == "Custom":
-        for morph in morphs:
-            if getActivated(rig, morph.name, force):
-                rig[morph.name] = 0.0
-                autoKeyProp(rig, morph.name, scn, frame, force)
-    else:
-        for morph in morphs:
-            if getActivated(rig, morph, force):
-                rig[morph] = 0.0
-                autoKeyProp(rig, morph, scn, frame, force)
+    for morph in morphs:
+        if getActivated(rig, morph, force):
+            rig[morph] = 0.0
+            autoKeyProp(rig, morph, scn, frame, force)
 
 
 class DAZ_OT_ClearMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
     bl_idname = "daz.clear_morphs"
-    bl_label = "Clear"
+    bl_label = "Clear Morphs"
     bl_description = "Set all morphs of specified type to zero"
     bl_options = {'UNDO'}
 
