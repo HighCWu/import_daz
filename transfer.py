@@ -358,20 +358,39 @@ class MorphTransferer(Selector, B.TransferOptions):
     #   Nearest vertex
     #----------------------------------------------------------
 
+    def nearestNeighbor(self, hvn, hverts, cverts):
+        diff = cverts - hverts[hvn]
+        dists = np.sum(np.abs(diff), axis=1)
+        cvn = np.argmin(dists, axis=0)
+        return cvn, hvn, Vector(cverts[cvn]-hverts[hvn])
+
+
     def findMatchNearest(self, hum, clo):
+        import time
+        t1 = time.perf_counter()
         hverts = np.array([list(v.co) for v in hum.data.vertices])
         cverts = np.array([list(v.co) for v in clo.data.vertices])
         nhverts = len(hverts)
         ncverts = len(cverts)
-        diff = hverts[:,None] - cverts[None,:]
-        dists = np.sum(np.abs(diff), axis=2)
-        if self.transferMethod == 'GEOGRAFT':
-            match = np.argmin(dists, axis=1)
-            self.match = [(match[hvn], hvn, Vector(cverts[match[hvn]]-hverts[hvn])) for hvn in range(nhverts)]
-        elif self.transferMethod == 'NEAREST':
-            match = np.argmin(dists, axis=0)
-            self.match = [(cvn, match[cvn], Vector(cverts[cvn]-hverts[match[cvn]])) for cvn in range(ncverts)]
-        print("Matching table created", nhverts, ncverts)
+        if True:
+            if self.transferMethod == 'GEOGRAFT':
+                self.match = [self.nearestNeighbor(hvn, hverts, cverts) for hvn in range(nhverts)]
+            elif self.transferMethod == 'NEAREST':
+                match1 = [self.nearestNeighbor(cvn, cverts, hverts) for cvn in range(ncverts)]
+                self.match = [(cvn, hvn, -offset) for (hvn, cvn, offset) in match1]
+        else:
+            diff = hverts[:,None] - cverts[None,:]
+            dists = np.sum(np.abs(diff), axis=2)
+            if self.transferMethod == 'GEOGRAFT':
+                match = np.argmin(dists, axis=1)
+                self.match = [(match[hvn], hvn, Vector(cverts[match[hvn]]-hverts[hvn])) for hvn in range(nhverts)]
+            elif self.transferMethod == 'NEAREST':
+                match = np.argmin(dists, axis=0)
+                self.match = [(cvn, match[cvn], Vector(cverts[cvn]-hverts[match[cvn]])) for cvn in range(ncverts)]
+        t2 = time.perf_counter()
+        #for n in range(20):
+        #    print(self.match[n])
+        print("Matching table created", nhverts, ncverts, t2-t1)
 
 #----------------------------------------------------------
 #   Utilities

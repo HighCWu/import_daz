@@ -834,7 +834,7 @@ class TransferOptions:
                  ('GEOGRAFT', "Geograft", "Transfer morphs to nearest target vertex.\nUse to transfer shapekeys from geograft to merged mesh")],
         name = "Transfer Method",
         description = "Method used to transfer morphs",
-        default = 'NEAREST')
+        default = 'GENERAL')
 
     useDriver = BoolProperty(
         name = "Use Driver",
