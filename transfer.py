@@ -55,6 +55,8 @@ class MorphTransferer(Selector, B.TransferOptions):
         hum = context.object
         if not hum.data.shape_keys:
             raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (hum.name))
+        if self.transferMethod == 'NEAREST':
+            self.findTriangles(hum)
         failed = []
         for clo in self.getClothes(hum, context):
             if not self.transferMorphs(hum, clo, context):
@@ -245,6 +247,8 @@ class MorphTransferer(Selector, B.TransferOptions):
             return self.autoTransferSlow(hum, clo, hskey)
         elif self.transferMethod == 'BODY':
             return self.autoTransferExact(hum, clo, hskey)
+        elif self.transferMethod == 'NEAREST':
+            return self.autoTransferFace(hum, clo, hskey)
         elif self.transferMethod in ['GEOGRAFT', 'NEAREST']:
             return self.autoTransferExact(hum, clo, hskey)
 
@@ -358,39 +362,82 @@ class MorphTransferer(Selector, B.TransferOptions):
     #   Nearest vertex
     #----------------------------------------------------------
 
-    def nearestNeighbor(self, hvn, hverts, cverts):
-        diff = cverts - hverts[hvn]
+    def nearestNeighbor(self, cvn, cverts, hverts):
+        diff = hverts - cverts[cvn]
         dists = np.sum(np.abs(diff), axis=1)
-        cvn = np.argmin(dists, axis=0)
+        hvn = np.argmin(dists, axis=0)
         return cvn, hvn, Vector(cverts[cvn]-hverts[hvn])
 
 
+    def findTriangles(self, ob):
+        self.verts = np.array([list(v.co) for v in ob.data.vertices])
+        self.tris = [f.vertices[0:3] for f in ob.data.polygons]
+        self.tris += [(f.vertices[0], f.vertices[2], f.vertices[3]) for f in ob.data.polygons if len(f.vertices) == 4]
+        self.triverts = self.verts[self.tris]
+        print("TTT", self.triverts.shape, len(ob.data.polygons))
+
+
+    def nearestFace(self, vn, verts):
+        diff = self.triverts - verts[vn]
+        dists = np.sum(diff*diff, axis=2)
+        tn = np.argmin(np.max(dists, axis=1), axis=0)
+        if vn % 1000 == 0:
+            print(" -", vn, tn, self.tris[tn])
+        return self.tris[tn]
+
+
     def findMatchNearest(self, hum, clo):
+        def normalize(arr):
+            norm = np.sqrt( arr[:,0]**2 + arr[:,1]**2 + arr[:,2]**2 )
+            arr[:,0] /= norm
+            arr[:,1] /= norm
+            arr[:,2] /= norm
+
         import time
         t1 = time.perf_counter()
-        hverts = np.array([list(v.co) for v in hum.data.vertices])
-        cverts = np.array([list(v.co) for v in clo.data.vertices])
-        nhverts = len(hverts)
-        ncverts = len(cverts)
         if True:
             if self.transferMethod == 'GEOGRAFT':
-                self.match = [self.nearestNeighbor(hvn, hverts, cverts) for hvn in range(nhverts)]
-            elif self.transferMethod == 'NEAREST':
-                match1 = [self.nearestNeighbor(cvn, cverts, hverts) for cvn in range(ncverts)]
+                self.findTriangles(clo)
+                nhverts = len(hverts)
+                match1 = [self.nearestNeighbor(hvn, hverts, cverts) for hvn in range(nhverts)]
                 self.match = [(cvn, hvn, -offset) for (hvn, cvn, offset) in match1]
-        else:
-            diff = hverts[:,None] - cverts[None,:]
-            dists = np.sum(np.abs(diff), axis=2)
-            if self.transferMethod == 'GEOGRAFT':
-                match = np.argmin(dists, axis=1)
-                self.match = [(match[hvn], hvn, Vector(cverts[match[hvn]]-hverts[hvn])) for hvn in range(nhverts)]
             elif self.transferMethod == 'NEAREST':
-                match = np.argmin(dists, axis=0)
-                self.match = [(cvn, match[cvn], Vector(cverts[cvn]-hverts[match[cvn]])) for cvn in range(ncverts)]
+                cverts = np.array([list(v.co) for v in clo.data.vertices])
+                ncverts = len(cverts)
+                tris = np.array([self.nearestFace(cvn, cverts) for cvn in range(ncverts)])
+                tverts = self.verts[tris]
+                tnormals = np.cross( tverts[:,1 ] - tverts[:,0], tverts[:,2 ] - tverts[:,0] )
+                normalize(tnormals)
+                D = np.sum((cverts - tverts[:,2,:]) * tnormals, axis=1)
+                offsets = tnormals*D[:,None]
+                A = np.transpose(tverts, axes=(0,2,1))
+                B = cverts - offsets
+                w = np.linalg.solve(A, B)
+                self.match = (tris, w, offsets)
+        else:
+            if self.transferMethod == 'GEOGRAFT':
+                match1 = [self.nearestNeighbor(hvn, hverts, cverts) for hvn in range(nhverts)]
+                self.match = [(cvn, hvn, -offset) for (hvn, cvn, offset) in match1]
+            elif self.transferMethod == 'NEAREST':
+                self.match = [self.nearestNeighbor(cvn, cverts, hverts) for cvn in range(ncverts)]
         t2 = time.perf_counter()
-        #for n in range(20):
-        #    print(self.match[n])
-        print("Matching table created", nhverts, ncverts, t2-t1)
+        print("Matching table created", t2-t1)
+
+
+    def autoTransferFace(self, hum, clo, hskey):
+        cskey = clo.shape_key_add(name=hskey.name)
+        hcos = np.array([list(data.co) for data in hskey.data])
+        tris, w, offsets = self.match
+        tcos = hcos[tris]
+        ccos = np.sum(tcos * w[:,:,None], axis=1) + offsets
+        if self.useSelectedOnly:
+            for cvn,co in enumerate(ccos):
+                if cverts[cvn].select:
+                    cskey.data[cvn].co = co
+        else:
+            for cvn,co in enumerate(ccos):
+                cskey.data[cvn].co = co
+        return True
 
 #----------------------------------------------------------
 #   Utilities
