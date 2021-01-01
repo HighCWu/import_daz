@@ -842,7 +842,7 @@ class Pinning:
 class TransferOptions:
     transferMethod : EnumProperty(
         items = [('GENERAL', "General", "Transfer using Blender's data transfer modifier.\nVery slow but works in general"),
-                 ('NEAREST', "Nearest Vertex", "Transfer morphs from nearest source vertex.\nUse to transfer shapekeys to clothes"),
+                 ('NEAREST', "Nearest Face", "Transfer morphs from nearest source face.\nUse to transfer shapekeys to clothes"),
                  ('BODY', "Body", "Only transfer vertices as long as they match exactly.\nUse to transfer shapekeys from body to merged mesh"),
                  ('GEOGRAFT', "Geograft", "Transfer morphs to nearest target vertex.\nUse to transfer shapekeys from geograft to merged mesh")],
         name = "Transfer Method",
