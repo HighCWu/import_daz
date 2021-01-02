@@ -29,7 +29,6 @@ import os
 import sys
 import bpy
 import numpy as np
-import bmesh
 from .error import *
 from .utils import *
 from .morphing import Selector
@@ -89,9 +88,9 @@ class MorphTransferer(Selector, B.TransferOptions):
             self.checkTransforms(rig)
             rig.data.pose_position = 'REST'
 
-        self.trihuman = None
+        ob = self.trihuman = None
         if self.transferMethod == 'NEAREST':
-            ob = bpy.data.objects.new("_HUMAN", hum.data.copy())
+            ob = bpy.data.objects.new("_TRIHUMAN", hum.data.copy())
             linkObject(context, ob)
             activateObject(context, ob)
             bpy.ops.object.mode_set(mode='EDIT')
