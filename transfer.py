@@ -29,6 +29,7 @@ import os
 import sys
 import bpy
 import numpy as np
+import bmesh
 from .error import *
 from .utils import *
 from .morphing import Selector
@@ -56,12 +57,13 @@ class MorphTransferer(Selector, B.TransferOptions):
         hum = context.object
         if not hum.data.shape_keys:
             raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (hum.name))
-        if self.transferMethod == 'NEAREST':
-            self.findTriangles(hum)
-        failed = []
-        for clo in self.getClothes(hum, context):
-            if not self.transferMorphs(hum, clo, context):
-                failed.append(clo)
+        self.checkTransforms(hum)
+        clothes = self.getClothes(hum, context)
+        data = self.prepare(context, hum)
+        try:
+            failed = self.transferAllMorphs(context, hum, clothes)
+        finally:
+            self.restore(context, data)
         t2 = time.perf_counter()
         print("Morphs transferred in %.1f seconds" % (t2-t1))
         if failed:
@@ -72,22 +74,63 @@ class MorphTransferer(Selector, B.TransferOptions):
             raise DazError(msg)
 
 
+    def checkTransforms(self, ob):
+        if hasObjectTransforms(ob):
+            raise DazError("Apply object transformations to %s first" % ob.name)
+
+
+    def prepare(self, context, hum):
+        rig = None
+        for mod in hum.modifiers:
+            if mod.type == 'ARMATURE':
+                rig = mod.object
+                break
+        if rig:
+            self.checkTransforms(rig)
+            rig.data.pose_position = 'REST'
+
+        self.trihuman = None
+        if self.transferMethod == 'NEAREST':
+            ob = bpy.data.objects.new("_HUMAN", hum.data.copy())
+            linkObject(context, ob)
+            activateObject(context, ob)
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
+            bpy.ops.object.mode_set(mode='OBJECT')
+            self.trihuman = ob
+        return (ob, rig)
+
+
+    def restore(self, context, data):
+        ob,rig = data
+        if rig:
+            rig.data.pose_position = 'POSE'
+        if ob:
+            deleteObjects(context, [ob])
+
+
+    def transferAllMorphs(self, context, hum, clothes):
+        if self.transferMethod == 'NEAREST':
+            self.findTriangles()
+        failed = []
+        for clo in clothes:
+            if not self.transferMorphs(hum, clo, context):
+                failed.append(clo)
+        return failed
+
 
     def transferMorphs(self, hum, clo, context):
         from .driver import getShapekeyDriver, copyDriver
         from .asset import setDazPaths
 
-        if (hum.location != clo.location or
-            hum.rotation_euler != clo.rotation_euler or
-            hum.scale != clo.scale):
-            msg = "Cannot transfer morphs between meshes       \nwith different object transformations."
-            raise DazError(msg)
         startProgress("Transfer morphs %s => %s" %(hum.name, clo.name))
         scn = context.scene
         setDazPaths(scn)
-        setActiveObject(context, clo)
+        activateObject(context, hum)
         if not self.findMatch(hum, clo):
             return False
+        setActiveObject(context, clo)
         if not clo.data.shape_keys:
             basic = clo.shape_key_add(name="Basic")
         else:
@@ -226,6 +269,7 @@ class MorphTransferer(Selector, B.TransferOptions):
         for ob in getSceneObjects(context):
             if getSelected(ob) and ob != hum and ob.type == 'MESH':
                 objects.append(ob)
+                self.checkTransforms(ob)
         return objects
 
 
@@ -237,7 +281,7 @@ class MorphTransferer(Selector, B.TransferOptions):
         elif self.transferMethod == 'BODY':
             self.findMatchExact(hum, clo)
         elif self.transferMethod == 'NEAREST':
-            self.findMatchNearest(clo)
+            self.findMatchNearest(self.trihuman, clo)
         elif self.transferMethod == 'GEOGRAFT':
             self.findMatchGeograft(hum, clo)
         t2 = time.perf_counter()
@@ -379,38 +423,21 @@ class MorphTransferer(Selector, B.TransferOptions):
         self.match = [self.nearestNeighbor(hvn, hverts, cverts) for hvn in range(nhverts)]
 
 
-    def findTriangles(self, ob):
+    def findTriangles(self):
+        ob = self.trihuman
         self.verts = np.array([list(v.co) for v in ob.data.vertices])
-        self.tris = [f.vertices[0:3] for f in ob.data.polygons]
-        self.tris += [(f.vertices[0], f.vertices[2], f.vertices[3]) for f in ob.data.polygons if len(f.vertices) == 4]
-        self.triverts = self.verts[self.tris]
+        tris = [f.vertices for f in ob.data.polygons]
+        self.tris = np.array(tris)
 
 
-    def nearestFace(self, vn, verts):
-        diff = self.triverts - verts[vn]
-        dists = np.sum(diff*diff, axis=2)
-        tn = np.argmin(np.max(dists, axis=1), axis=0)
-        if vn % 200 == 0:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-        return self.tris[tn]
-
-
-    def findMatchNearest(self, clo):
-        def normalize(arr):
-            norm = np.sqrt( arr[:,0]**2 + arr[:,1]**2 + arr[:,2]**2 )
-            arr[:,0] /= norm
-            arr[:,1] /= norm
-            arr[:,2] /= norm
-
-        cverts = np.array([list(v.co) for v in clo.data.vertices])
-        ncverts = len(cverts)
-        tris = np.array([self.nearestFace(cvn, cverts) for cvn in range(ncverts)])
+    def findMatchNearest(self, hum, clo):
+        closest = [(v.co, hum.closest_point_on_mesh(v.co)) for v in clo.data.vertices]
+        # (result, location, normal, index)
+        cverts = np.array([list(x) for x,data in closest if data[0]])
+        offsets = np.array([list(x-data[1]) for x,data in closest if data[0]])
+        fnums = [data[3] for x,data in closest if data[0]]
+        tris = self.tris[fnums]
         tverts = self.verts[tris]
-        tnormals = np.cross( tverts[:,1 ] - tverts[:,0], tverts[:,2 ] - tverts[:,0] )
-        normalize(tnormals)
-        D = np.sum((cverts - tverts[:,2,:]) * tnormals, axis=1)
-        offsets = tnormals*D[:,None]
         A = np.transpose(tverts, axes=(0,2,1))
         B = cverts - offsets
         w = np.linalg.solve(A, B)

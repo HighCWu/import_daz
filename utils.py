@@ -62,6 +62,9 @@ if bpy.app.version < (2,80,0):
     def getSceneObjects(context):
         return context.scene.objects
 
+    def linkObject(context, ob):
+        context.scene.objects.link(ob)
+
     def getSelected(ob):
         return ob.select
 
@@ -188,6 +191,9 @@ else:
     def getSceneObjects(context):
         return context.scene.collection.all_objects
         #return context.view_layer.objects
+
+    def linkObject(context, ob):
+        context.scene.collection.objects.link(ob)
 
     def getSelected(ob):
         return ob.select_get()
