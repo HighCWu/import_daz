@@ -26,7 +26,6 @@
 # either expressed or implied, of the FreeBSD Project.
 
 import os
-import sys
 import bpy
 import numpy as np
 from .error import *
@@ -275,7 +274,7 @@ class MorphTransferer(Selector, B.TransferOptions):
     def findMatch(self, hum, clo):
         import time
         t1 = time.perf_counter()
-        if self.transferMethod == 'GENERAL':
+        if self.transferMethod == 'LEGACY':
             return True
         elif self.transferMethod == 'BODY':
             self.findMatchExact(hum, clo)
@@ -289,7 +288,7 @@ class MorphTransferer(Selector, B.TransferOptions):
 
 
     def autoTransfer(self, hum, clo, hskey):
-        if self.transferMethod == 'GENERAL':
+        if self.transferMethod == 'LEGACY':
             return self.autoTransferSlow(hum, clo, hskey)
         elif self.transferMethod == 'BODY':
             return self.autoTransferExact(hum, clo, hskey)
