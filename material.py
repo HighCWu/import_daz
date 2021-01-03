@@ -1469,6 +1469,51 @@ class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolutio
         self.replaceTextures(context)
 
 #----------------------------------------------------------
+#   Prune node tree
+#----------------------------------------------------------
+
+class DAZ_OT_PruneNodeTrees(DazOperator, IsMesh):
+    bl_idname = "daz.prune_node_trees"
+    bl_label = "Prune Node Trees"
+    bl_description = "Prune all material node trees for selected meshes"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        for ob in getSceneObjects(context):
+            if ob.type == 'MESH' and getSelected(ob) and not getHideViewport(ob):
+                for mat in ob.data.materials:
+                    if mat.node_tree:
+                        pruneNodeTree(mat.node_tree)
+
+
+def pruneNodeTree(tree):
+    marked = {}
+    output = False
+    for node in tree.nodes:
+        marked[node.name] = False
+        if "Output" in node.name:
+            marked[node.name] = True
+            output = True
+    if not output:
+        print("No output node")
+        return marked
+    nmarked = 0
+    n = 1
+    while n > nmarked:
+        nmarked = n
+        n = 1
+        for link in tree.links:
+            if marked[link.to_node.name]:
+                marked[link.from_node.name] = True
+                n += 1
+
+    for node in tree.nodes:
+        node.select = False
+        if not marked[node.name]:
+            tree.nodes.remove(node)
+    return marked
+
+#----------------------------------------------------------
 #   Render settings
 #----------------------------------------------------------
 
@@ -1608,6 +1653,7 @@ classes = [
     DAZ_OT_SaveLocalTextures,
     DAZ_OT_MergeMaterials,
     DAZ_OT_CopyMaterials,
+    DAZ_OT_PruneNodeTrees,
     DAZ_OT_ChangeResolution,
     DAZ_OT_ResizeTextures,
     DAZ_OT_UpdateSettings,

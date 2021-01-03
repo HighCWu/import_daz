@@ -393,36 +393,12 @@ class CyclesTree:
 
 
     def prune(self):
-        if not GS.pruneNodes:
-            return
-        marked = {}
-        output = False
-        for node in self.nodes:
-            marked[node.name] = False
-            if "Output" in node.name:
-                marked[node.name] = True
-                output = True
-        if not output:
-            print("No output node")
-            return
-        nmarked = 0
-        n = 1
-        while n > nmarked:
-            nmarked = n
-            n = 1
-            for link in self.links:
-                if marked[link.to_node.name]:
-                    marked[link.from_node.name] = True
-                    n += 1
-
-        for node in self.nodes:
-            node.select = False
-            if not marked[node.name]:
-                self.nodes.remove(node)
-
-        if self.diffuseTex and marked[self.diffuseTex.name]:
-            self.diffuseTex.select = True
-            self.nodes.active = self.diffuseTex
+        if GS.pruneNodes:
+            from .material import pruneNodeTree
+            marked = pruneNodeTree(self)
+            if self.diffuseTex and marked[self.diffuseTex.name]:
+                self.diffuseTex.select = True
+                self.nodes.active = self.diffuseTex
 
 #-------------------------------------------------------------
 #   Bump

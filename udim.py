@@ -319,8 +319,8 @@ def getMultires(ob):
 
 
 class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
-    bl_idname = "daz.bake_maps"
-    bl_label = "Bake Maps"
+    bl_idname = "daz.bake_normal_disp_maps"
+    bl_label = "Bake Normal/Disp Maps"
     bl_description = "Bake normal/displacement maps for the selected HD meshes"
     bl_options = {'UNDO'}
 
@@ -469,8 +469,8 @@ class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
 
 
 class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap):
-    bl_idname = "daz.load_maps"
-    bl_label = "Load Maps"
+    bl_idname = "daz.load_normal_disp_maps"
+    bl_label = "Load Normal/Disp Maps"
     bl_description = "Load normal/displacement maps for the selected meshes"
     bl_options = {'UNDO'}
 
@@ -486,10 +486,16 @@ class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap):
         min = 0.001, max = 10,
         default = 0.01)
 
+    usePrune : BoolProperty(
+        name = "Prune Node Tree",
+        description = "Prune the node tree",
+        default = True)
+
     def draw(self, context):
         NormalMap.draw(self, context)
         if self.bakeType == 'DISPLACEMENT':
             self.layout.prop(self, "dispScale")
+        self.layout.prop(self, "usePrune")
 
 
     def run(self, context):
@@ -544,26 +550,25 @@ class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap):
         texco = self.findTexco(tree)
         tex = self.addTexture(tree, img)
         tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
-        normal = findNode(tree, 'NORMAL_MAP')
-        isnew = False
         if self.bakeType == 'NORMALS':
-            if not normal:
-                normal = tree.nodes.new(type="ShaderNodeNormalMap")
-                normal.location = (-300,-250)
-                isnew = True
+            normal = tree.nodes.new(type="ShaderNodeNormalMap")
+            normal.location = (-300,-250)
             normal.inputs["Strength"].default_value = 1
             tree.links.new(tex.outputs["Color"], normal.inputs["Color"])
-            if isnew:
-                self.linkSlot(tree, normal, "Normal")
+            self.linkSlot(tree, normal, "Normal")
         elif self.bakeType == 'DISPLACEMENT':
             disp = tree.nodes.new(type="ShaderNodeDisplacement")
             disp.location = (-300,-250)
             tree.links.new(tex.outputs["Color"], disp.inputs["Height"])
             disp.inputs["Midlevel"].default_value = 0.5
             disp.inputs["Scale"].default_value = self.dispScale
+            normal = findNode(tree, 'NORMAL_MAP')
             if normal:
                 tree.links.new(normal.outputs["Normal"], disp.inputs["Normal"])
             self.linkSlot(tree, disp, "Displacement")
+        if self.usePrune:
+            from .material import pruneNodeTree
+            pruneNodeTree(tree)
 
 
     def findTexco(self, tree):

@@ -292,11 +292,12 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.change_skin_color")
             box.operator("daz.merge_materials")
             box.operator("daz.copy_materials")
+            box.operator("daz.prune_node_trees")
 
             if bpy.app.version >= (2,82,0):
                 box.separator()
-                box.operator("daz.bake_maps")
-                box.operator("daz.load_maps")
+                box.operator("daz.bake_normal_disp_maps")
+                box.operator("daz.load_normal_disp_maps")
 
             box.separator()
             box.operator("daz.load_uv")
