@@ -252,6 +252,18 @@ class NormalMap:
         default = "512"
     )
 
+    bakeType : EnumProperty(
+        items = [('NORMALS', "Normals", "Bake normals"),
+                 ('DISPLACEMENT', "Displacement", "Bake displacement")],
+        name = "Bake Type",
+        description = "Bake Type",
+        default = 'NORMALS')
+
+
+    def draw(self, context):
+        self.layout.prop(self, "imageSize")
+        self.layout.prop(self, "bakeType")
+
 
     def getBaseName(self, ob):
         if ob.name[-3:] == "_HD":
@@ -264,12 +276,15 @@ class NormalMap:
 
 
     def getImageName(self, basename, tile):
-        return ("%s_NM_%d_%s.png" % (basename, tile, self.imageSize))
+        if self.bakeType == 'NORMALS':
+            return ("%s_NM_%d_%s.png" % (basename, tile, self.imageSize))
+        elif self.bakeType == 'DISPLACEMENT':
+            return ("%s_DISP_%d_%s.png" % (basename, tile, self.imageSize))
 
 
     def getImagePath(self, basename, imgname, create):
         folder = os.path.dirname(bpy.data.filepath)
-        dirpath = os.path.join(folder, "textures", "normals", basename)
+        dirpath = os.path.join(folder, "textures", self.bakeType.lower(), basename)
         if not os.path.exists(dirpath):
             if create:
                 os.makedirs(dirpath)
@@ -303,20 +318,16 @@ def getMultires(ob):
     return None
 
 
-class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
-    bl_idname = "daz.bake_normal_maps"
-    bl_label = "Bake Normal Maps"
-    bl_description = "Bake normal maps for the selected HD meshes"
+class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
+    bl_idname = "daz.bake_maps"
+    bl_label = "Bake Maps"
+    bl_description = "Bake normal/displacement maps for the selected HD meshes"
     bl_options = {'UNDO'}
 
     @classmethod
     def poll(self, context):
         ob = context.object
         return (bpy.data.filepath and ob and getMultires(ob))
-
-
-    def draw(self, context):
-        self.layout.prop(self, "imageSize")
 
 
     def prequel(self, context):
@@ -326,7 +337,7 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
         self.bake_type = scn.render.bake_type
         self.use_bake_multires = scn.render.use_bake_multires
         self.samples = scn.cycles.samples
-        scn.render.bake_type = 'NORMALS'
+        scn.render.bake_type = self.bakeType
         scn.render.use_bake_multires = True
         scn.render.bake_margin = 2
         scn.cycles.samples = 512
@@ -454,10 +465,10 @@ class DAZ_OT_BakeNormalMaps(DazPropsOperator, NormalMap):
                 uvloop.data[n].uv[1] += dy
 
 
-class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
-    bl_idname = "daz.load_normal_maps"
-    bl_label = "Load Normal Maps"
-    bl_description = "Load normal maps for the selected meshes"
+class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap):
+    bl_idname = "daz.load_maps"
+    bl_label = "Load Maps"
+    bl_description = "Load normal/displacement maps for the selected meshes"
     bl_options = {'UNDO'}
 
     @classmethod
@@ -466,8 +477,16 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
         return (bpy.data.filepath and ob)
 
 
+    dispScale : FloatProperty(
+        name = "Displacement Scale",
+        description = "Displacement scale",
+        min = 0.001, max = 10,
+        default = 0.01)
+
     def draw(self, context):
-        self.layout.prop(self, "imageSize")
+        NormalMap.draw(self, context)
+        if self.bakeType == 'DISPLACEMENT':
+            self.layout.prop(self, "dispScale")
 
 
     def run(self, context):
@@ -493,7 +512,7 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
         for mn,mat in enumerate(ob.data.materials):
             tile = mattiles[mn]
             if tile:
-                self.loadNormalMap(mat, nmaps[tile])
+                self.loadMap(mat, nmaps[tile])
             else:
                 print("No matching tile for material %s" % mat.name)
 
@@ -512,16 +531,32 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
         return img
 
 
-    def loadNormalMap(self, mat, img):
+    def loadMap(self, mat, img):
+        from .cycles import findNode
         tree = mat.node_tree
         texco = self.findTexco(tree)
         tex = self.addTexture(tree, img)
         tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
-        normal,isnew = self.findNormal(tree)
-        normal.inputs["Strength"].default_value = 1
-        tree.links.new(tex.outputs["Color"], normal.inputs["Color"])
-        if isnew:
-            self.linkNormal(tree, normal)
+        normal = findNode(tree, 'NORMAL_MAP')
+        isnew = False
+        if self.bakeType == 'NORMALS':
+            if not normal:
+                normal = tree.nodes.new(type="ShaderNodeNormalMap")
+                normal.location = (-300,-250)
+                isnew = True
+            normal.inputs["Strength"].default_value = 1
+            tree.links.new(tex.outputs["Color"], normal.inputs["Color"])
+            if isnew:
+                self.linkSlot(tree, normal, "Normal")
+        elif self.bakeType == 'DISPLACEMENT':
+            disp = tree.nodes.new(type="ShaderNodeDisplacement")
+            disp.location = (-300,-250)
+            tree.links.new(tex.outputs["Color"], disp.inputs["Height"])
+            disp.inputs["Midlevel"].default_value = 0.5
+            disp.inputs["Scale"].default_value = self.dispScale
+            if normal:
+                tree.links.new(normal.outputs["Normal"], disp.inputs["Normal"])
+            self.linkSlot(tree, disp, "Displacement")
 
 
     def findTexco(self, tree):
@@ -530,29 +565,19 @@ class DAZ_OT_LoadNormalMaps(DazPropsOperator, NormalMap):
         if node:
             return node
         node = tree.nodes.new(type="ShaderNodeTexCoord")
-        node.location = (-300,0)
+        node.location = (-300,250)
         return node
 
 
-    def findNormal(self, tree):
-        from .cycles import findNode
-        node = findNode(tree, 'NORMAL_MAP')
-        if node:
-            return node,False
-        node = tree.nodes.new(type="ShaderNodeNormalMap")
-        node.location = (-300,500)
-        return node,True
-
-
-    def linkNormal(self, tree, normal):
+    def linkSlot(self, tree, normal, slot):
         for node in tree.nodes:
-            if "Normal" in node.inputs.keys():
-                tree.links.new(normal.outputs["Normal"], node.inputs["Normal"])
+            if slot in node.inputs.keys():
+                tree.links.new(normal.outputs[slot], node.inputs[slot])
 
 
     def addTexture(self, tree, img):
         node = tree.nodes.new(type="ShaderNodeTexImage")
-        node.location = (-300,250)
+        node.location = (-300,0)
         node.label = img.name
         node.image = img
         if hasattr(node, "image_user"):
@@ -568,8 +593,8 @@ classes = [
     DazUdimGroup,
     DAZ_OT_UdimizeMaterials,
     DAZ_OT_SetUDims,
-    DAZ_OT_BakeNormalMaps,
-    DAZ_OT_LoadNormalMaps,
+    DAZ_OT_BakeMaps,
+    DAZ_OT_LoadMaps,
 ]
 
 def initialize():

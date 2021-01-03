@@ -295,8 +295,8 @@ class DAZ_PT_Setup(bpy.types.Panel):
 
             if bpy.app.version >= (2,82,0):
                 box.separator()
-                box.operator("daz.bake_normal_maps")
-                box.operator("daz.load_normal_maps")
+                box.operator("daz.bake_maps")
+                box.operator("daz.load_maps")
 
             box.separator()
             box.operator("daz.load_uv")
