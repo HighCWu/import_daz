@@ -354,14 +354,18 @@ class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
 
 
     def run(self, context):
-        for ob in context.view_layer.objects:
-            if ob.type == 'MESH' and ob.select_get() and getMultires(ob):
-                try:
-                    self.storeMaterials(ob)
-                    self.bakeObject(context, ob)
-                finally:
-                    pass
-                    self.restoreMaterials(ob)
+        objects = [ob for ob in getSceneObjects(context)
+                   if (ob.type == 'MESH' and
+                       ob.select_get() and
+                       not getHideViewport(ob) and
+                       getMultires(ob))]
+        for ob in objects:
+            activateObject(context, ob)
+            try:
+                self.storeMaterials(ob)
+                self.bakeObject(context, ob)
+            finally:
+                self.restoreMaterials(ob)
 
 
     def storeMaterials(self, ob):
@@ -383,7 +387,6 @@ class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
 
     def bakeObject(self, context, ob):
         bpy.ops.object.mode_set(mode='OBJECT')
-        context.view_layer.objects.active = ob
         mod = getMultires(ob)
         if mod is None:
             print("Object %s has no multires modifier" % ob.name)
@@ -490,9 +493,13 @@ class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap):
 
 
     def run(self, context):
-        for ob in context.view_layer.objects:
-            if ob.type == 'MESH' and ob.select_get():
-                self.loadObjectNormals(ob)
+        objects = [ob for ob in getSceneObjects(context)
+                   if (ob.type == 'MESH' and
+                       ob.select_get() and
+                       not getHideViewport(ob))]
+        for ob in objects:
+            activateObject(context, ob)
+            self.loadObjectNormals(ob)
 
 
     def loadObjectNormals(self, ob):
