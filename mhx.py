@@ -345,17 +345,16 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     def draw(self, context):
         self.layout.prop(self, "addTweakBones")
         self.layout.prop(self, "useLegacy")
+        if bpy.app.version >= (2,80,0):
+            self.layout.prop(self, "useKeepRig")
 
 
     def run(self, context):
         from .merge import reparentToes
         rig = context.object
         scn = context.scene
-        gen2 = None
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'ARMATURE' and ob != rig:
-                gen2 = ob
-                break
+        if self.useKeepRig:
+            saveExistingRig(context)
 
         #-------------------------------------------------------------
         #   Legacy bone names
@@ -1195,9 +1194,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             clavicle.layers[L_SPINE] = True
             clavicle.layers[L_LARMIK+dlayer] = True
 
-
 #-------------------------------------------------------------
-#   getBoneLayer, connectToParent used by Rigify
+#   getBoneLayer, connectToParent, saveExistingRig used by Rigify
 #-------------------------------------------------------------
 
 def getBoneLayer(pb, rig):
@@ -1246,6 +1244,77 @@ def connectToParent(rig):
             eb = rig.data.edit_bones[bname]
             eb.parent.tail = eb.head
             eb.use_connect = True
+
+
+def saveExistingRig(context):
+    def dazName(string):
+        return (string + "_DAZ")
+
+    def dazifyName(ob):
+        if ob.name[-4] == "." and ob.name[-3:].isdigit():
+            return dazName(ob.name[:-4])
+        else:
+            return dazName(ob.name)
+
+    rig = context.object
+    scn = context.scene
+    activateObject(context, rig)
+    objects = []
+    findChildrenRecursive(rig, objects)
+    for ob in objects:
+        ob.select_set(True)
+    bpy.ops.object.duplicate()
+    coll = bpy.data.collections.new(name=dazName(rig.name))
+    mcoll = bpy.data.collections.new(name=dazName(rig.name) + " Meshes")
+    scn.collection.children.link(coll)
+    coll.children.link(mcoll)
+
+    newObjects = []
+    findAllSelected(scn, newObjects)
+    nrig = None
+    for ob in newObjects:
+        ob.name = dazifyName(ob)
+        if ob.name == dazifyName(rig):
+            nrig = ob
+        unlinkAll(ob)
+        if ob.type == 'MESH':
+            mcoll.objects.link(ob)
+        else:
+            coll.objects.link(ob)
+    if nrig:
+        for ob in newObjects:
+            changeAllTargets(ob, rig, nrig)
+    activateObject(context, rig)
+
+
+def findChildrenRecursive(ob, objects):
+    objects.append(ob)
+    for child in ob.children:
+        if not getHideViewport(child):
+            findChildrenRecursive(child, objects)
+
+
+def findAllSelected(scn, objects):
+    for ob in scn.collection.all_objects:
+        if ob.select_get() and not getHideViewport(ob):
+            objects.append(ob)
+
+
+def changeAllTargets(ob, rig, newrig):
+    from .driver import changeDriverTarget
+    if ob.animation_data:
+        for fcu in ob.animation_data.drivers:
+            changeDriverTarget(fcu, rig, newrig)
+    if ob.data.animation_data:
+        for fcu in ob.data.animation_data.drivers:
+            changeDriverTarget(fcu, rig, newrig)
+    if ob.type == 'MESH':
+        if ob.data.shape_keys and ob.data.shape_keys.animation_data:
+            for fcu in ob.data.shape_keys.animation_data.drivers:
+                changeDriverTarget(fcu, rig, newrig)
+        for mod in ob.modifiers:
+            if mod.type == 'ARMATURE' and mod.object == rig:
+                mod.object = newrig
 
 #-------------------------------------------------------------
 #   Gizmos used by winders

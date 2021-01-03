@@ -519,6 +519,9 @@ class MHX:
         default = False
     )
 
+    useKeepRig = False
+
+
 class MHXConvertAction:
     direction = EnumProperty(
         items = [
@@ -552,6 +555,8 @@ class Meta:
         description = "Display layers for face and custom bones.\nNot for Rigify legacy",
         default = True
     )
+
+    useKeepRig = False
 
 #-------------------------------------------------------------
 #   convert.py

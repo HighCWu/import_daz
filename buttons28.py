@@ -522,6 +522,13 @@ class MHX:
         default = False
     )
 
+    useKeepRig : BoolProperty(
+        name = "Keep DAZ Rig",
+        description = "Keep existing armature and meshes in a new collection",
+        default = False
+    )
+
+
 class MHXConvertAction:
     direction : EnumProperty(
         items = [
@@ -543,6 +550,7 @@ class Rigify:
         default = False
     )
 
+
 class Meta:
     useAutoAlign : BoolProperty(
         name = "Auto Align Hand/Foot",
@@ -554,6 +562,12 @@ class Meta:
         name = "Custom Layers",
         description = "Display layers for face and custom bones.\nNot for Rigify legacy",
         default = True
+    )
+
+    useKeepRig : BoolProperty(
+        name = "Keep DAZ Rig",
+        description = "Keep existing armature and meshes in a new collection",
+        default = False
     )
 
 #-------------------------------------------------------------

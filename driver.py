@@ -330,10 +330,11 @@ def copyDriver(fcu1, rna2, id=None):
     return fcu2
 
 
-def changeDriverTarget(fcu, id):
+def changeDriverTarget(fcu, oldtarg, newtarg):
     for var in fcu.driver.variables:
-        targ = var.targets[0]
-        targ.id = id
+        for targ in var.targets:
+            if targ.id == oldtarg:
+                targ.id = newtarg
 
 
 def combineDrvBones(fcu):

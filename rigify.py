@@ -835,10 +835,10 @@ class Rigify:
 
 
     def rigifyMeta(self, context, deleteMeta):
-        from .driver import getBoneDrivers, copyDriver, changeBoneTarget, changeDriverTarget
+        from .driver import getBoneDrivers, copyDriver, changeBoneTarget
         from .node import setParent, clearParent
         from .daz import copyPropGroups
-        from .mhx import unhideAllObjects, getBoneLayer
+        from .mhx import unhideAllObjects, getBoneLayer, changeAllTargets
 
         print("Rigify metarig")
         meta = context.object
@@ -1031,21 +1031,7 @@ class Rigify:
                         vgrp = ob.vertex_groups[dname]
                         vgrp.name = rname
 
-                if ob.animation_data:
-                    for fcu in ob.animation_data.drivers:
-                        changeDriverTarget(fcu, gen)
-
-                if ob.data.animation_data:
-                    for fcu in ob.data.animation_data.drivers:
-                        changeDriverTarget(fcu, gen)
-
-                if ob.data.shape_keys and ob.data.shape_keys.animation_data:
-                    for fcu in ob.data.shape_keys.animation_data.drivers:
-                        changeDriverTarget(fcu, gen)
-
-                for mod in ob.modifiers:
-                    if mod.type == 'ARMATURE' and mod.object == rig:
-                        mod.object = gen
+                changeAllTargets(ob, rig, gen)
 
         # Add generated rig to group
         group = None
@@ -1192,6 +1178,8 @@ class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, B.Rigify, B.
         self.layout.prop(self, "useAutoAlign")
         self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "deleteMeta")
+        if bpy.app.version >= (2,80,0):
+            self.layout.prop(self, "useKeepRig")
 
     def run(self, context):
         import time
@@ -1199,6 +1187,9 @@ class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, B.Rigify, B.
         print("Modifying DAZ rig to Rigify")
         rig = context.object
         rname = rig.name
+        if self.useKeepRig:
+            from .mhx import saveExistingRig
+            saveExistingRig(context)
         self.createMeta(context)
         gen = self.rigifyMeta(context, self.deleteMeta)
         t2 = time.perf_counter()
@@ -1219,8 +1210,13 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists, B.Meta):
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
         self.layout.prop(self, "useCustomLayers")
+        if bpy.app.version >= (2,80,0):
+            self.layout.prop(self, "useKeepRig")
 
     def run(self, context):
+        if self.useKeepRig:
+            from .mhx import saveExistingRig
+            saveExistingRig(context)
         self.createMeta(context)
 
 
