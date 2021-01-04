@@ -442,6 +442,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         if showBox(scn, "DazShowMesh", box):
             box.operator("daz.limit_vertex_groups")
             box.operator("daz.prune_vertex_groups")
+            box.operator("daz.transfer_vertex_groups")
             box.operator("daz.apply_subsurf")
             box.operator("daz.find_seams")
             box.operator("daz.get_finger_print")

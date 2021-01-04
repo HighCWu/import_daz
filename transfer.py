@@ -33,53 +33,15 @@ from .utils import *
 from .morphing import Selector
 
 
-class MorphTransferer(Selector, B.TransferOptions):
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH' and ob.data.shape_keys)
-
-
-    def draw(self, context):
-        self.layout.prop(self, "transferMethod", expand=True)
-        self.layout.prop(self, "useDriver")
-        self.layout.prop(self, "useOverwrite")
-        self.layout.prop(self, "useSelectedOnly")
-        self.layout.prop(self, "ignoreRigidity")
-        Selector.draw(self, context)
-
-
-    def run(self, context):
-        import time
-        t1 = time.perf_counter()
-        hum = context.object
-        if not hum.data.shape_keys:
-            raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (hum.name))
-        self.checkTransforms(hum)
-        clothes = self.getClothes(hum, context)
-        data = self.prepare(context, hum)
-        try:
-            failed = self.transferAllMorphs(context, hum, clothes)
-        finally:
-            self.restore(context, data)
-        t2 = time.perf_counter()
-        print("Morphs transferred in %.1f seconds" % (t2-t1))
-        if failed:
-            msg = ("Morph transfer to the following meshes\nfailed due to insufficient memory:")
-            for clo in failed:
-                msg += ("\n    %s" % clo.name)
-            msg += "\nTry the General transfer method instead.       "
-            raise DazError(msg)
-
-
+class FastMatcher:
     def checkTransforms(self, ob):
         if hasObjectTransforms(ob):
             raise DazError("Apply object transformations to %s first" % ob.name)
 
 
-    def prepare(self, context, hum):
+    def prepare(self, context, src, triangulate):
         rig = None
-        for mod in hum.modifiers:
+        for mod in src.modifiers:
             if mod.type == 'ARMATURE':
                 rig = mod.object
                 break
@@ -88,8 +50,8 @@ class MorphTransferer(Selector, B.TransferOptions):
             rig.data.pose_position = 'REST'
 
         ob = self.trihuman = None
-        if self.transferMethod == 'NEAREST':
-            ob = bpy.data.objects.new("_TRIHUMAN", hum.data.copy())
+        if triangulate:
+            ob = bpy.data.objects.new("_TRIHUMAN", src.data.copy())
             linkObject(context, ob)
             activateObject(context, ob)
             bpy.ops.object.mode_set(mode='EDIT')
@@ -108,35 +70,166 @@ class MorphTransferer(Selector, B.TransferOptions):
             deleteObjects(context, [ob])
 
 
-    def transferAllMorphs(self, context, hum, clothes):
+    def getTargets(self, src, context):
+        self.checkTransforms(src)
+        objects = []
+        for ob in getSelectedMeshes(context):
+            if ob != src:
+                objects.append(ob)
+                self.checkTransforms(ob)
+        if not objects:
+            raise DazError("No target meshes selected")
+        return objects
+
+
+    def findTriangles(self, ob):
+        self.verts = np.array([list(v.co) for v in ob.data.vertices])
+        tris = [f.vertices for f in ob.data.polygons]
+        self.tris = np.array(tris)
+
+
+    def findMatchNearest(self, src, trg):
+        closest = [(v.co, src.closest_point_on_mesh(v.co)) for v in trg.data.vertices]
+        # (result, location, normal, index)
+        cverts = np.array([list(x) for x,data in closest if data[0]])
+        offsets = np.array([list(x-data[1]) for x,data in closest if data[0]])
+        fnums = [data[3] for x,data in closest if data[0]]
+        tris = self.tris[fnums]
+        tverts = self.verts[tris]
+        A = np.transpose(tverts, axes=(0,2,1))
+        B = cverts - offsets
+        w = np.linalg.solve(A, B)
+        self.match = (tris, w, offsets)
+
+#----------------------------------------------------------
+#   Vertex group transfer
+#----------------------------------------------------------
+
+class DAZ_OT_TransferVertexGroups(DazPropsOperator, FastMatcher, IsMesh, B.ThresholdFloat):
+    bl_idname = "daz.transfer_vertex_groups"
+    bl_label = "Transfer Vertex Groups"
+    bl_description = "Transfer vertex groups from active to selected"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "threshold")
+
+
+    def run(self, context):
+        src = context.object
+        if not src.vertex_groups:
+            raise DazError("Source mesh %s         \nhas no vertex groups" % src.name)
+        import time
+        t1 = time.perf_counter()
+        targets = self.getTargets(src, context)
+        data = self.prepare(context, src, True)
+        trisrc,rig = data
+        try:
+            self.findVertexGroups(src)
+            self.findTriangles(trisrc)
+            for trg in targets:
+                print("Copy vertex groups from %s to %s" % (src.name, trg.name))
+                self.copyVertexGroups(src, trisrc, trg)
+        finally:
+            self.restore(context, data)
+        t2 = time.perf_counter()
+        print("Vertex groups transferred in %.1f seconds" % (t2-t1))
+
+
+    def findVertexGroups(self, src):
+        nverts = len(src.data.vertices)
+        nvgrps = len(src.vertex_groups)
+        self.weights = dict([(gn, np.zeros(nverts, dtype=np.float)) for gn in range(nvgrps)])
+        for v in src.data.vertices:
+            for g in v.groups:
+                self.weights[g.group][v.index] = g.weight
+
+
+    def copyVertexGroups(self, src, trisrc, trg):
+        self.findMatchNearest(trisrc, trg)
+        tris, wmat, offsets = self.match
+        for vgrp in src.vertex_groups:
+            tweights = self.weights[vgrp.index][tris]
+            cweights = np.sum(tweights * wmat, axis=1)
+            cweights[cweights > 1] = 1
+            cweights[cweights < self.threshold] = 0
+            tvgrp = trg.vertex_groups.new(name=vgrp.name)
+            nonzero = np.nonzero(cweights)[0].astype(int)
+            for vn in nonzero:
+                tvgrp.add([int(vn)], cweights[vn], 'REPLACE')
+            print("  * %s" % vgrp.name)
+
+#----------------------------------------------------------
+#   Morphs transfer
+#----------------------------------------------------------
+
+class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'MESH' and ob.data.shape_keys)
+
+
+    def draw(self, context):
+        self.layout.prop(self, "transferMethod", expand=True)
+        self.layout.prop(self, "useDriver")
+        self.layout.prop(self, "useOverwrite")
+        self.layout.prop(self, "useSelectedOnly")
+        self.layout.prop(self, "ignoreRigidity")
+        Selector.draw(self, context)
+
+
+    def run(self, context):
+        import time
+        t1 = time.perf_counter()
+        src = context.object
+        if not src.data.shape_keys:
+            raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (src.name))
+        targets = self.getTargets(src, context)
+        data = self.prepare(context, src, (self.transferMethod == 'NEAREST'))
+        try:
+            failed = self.transferAllMorphs(context, src, targets)
+        finally:
+            self.restore(context, data)
+        t2 = time.perf_counter()
+        print("Morphs transferred in %.1f seconds" % (t2-t1))
+        if failed:
+            msg = ("Morph transfer to the following meshes\nfailed due to insufficient memory:")
+            for trg in failed:
+                msg += ("\n    %s" % trg.name)
+            msg += "\nTry the General transfer method instead.       "
+            raise DazError(msg)
+
+
+    def transferAllMorphs(self, context, src, targets):
         if self.transferMethod == 'NEAREST':
-            self.findTriangles()
+            self.findTriangles(self.trihuman)
         failed = []
-        for clo in clothes:
-            if not self.transferMorphs(hum, clo, context):
-                failed.append(clo)
+        for trg in targets:
+            if not self.transferMorphs(src, trg, context):
+                failed.append(trg)
         return failed
 
 
-    def transferMorphs(self, hum, clo, context):
+    def transferMorphs(self, src, trg, context):
         from .driver import getShapekeyDriver, copyDriver
         from .asset import setDazPaths
 
-        startProgress("Transfer morphs %s => %s" %(hum.name, clo.name))
+        startProgress("Transfer morphs %s => %s" %(src.name, trg.name))
         scn = context.scene
         setDazPaths(scn)
-        activateObject(context, hum)
-        if not self.findMatch(hum, clo):
+        activateObject(context, src)
+        if not self.findMatch(src, trg):
             return False
-        setActiveObject(context, clo)
-        if not clo.data.shape_keys:
-            basic = clo.shape_key_add(name="Basic")
+        setActiveObject(context, trg)
+        if not trg.data.shape_keys:
+            basic = trg.shape_key_add(name="Basic")
         else:
             basic = None
-        hskeys = hum.data.shape_keys
-        if hum.active_shape_key_index < 0:
-            hum.active_shape_key_index = 0
-        clo.active_shape_key_index = 0
+        hskeys = src.data.shape_keys
+        if src.active_shape_key_index < 0:
+            src.active_shape_key_index = 0
+        trg.active_shape_key_index = 0
 
         snames = self.getSelectedProps(scn)
         nskeys = len(snames)
@@ -149,33 +242,33 @@ class MorphTransferer(Selector, B.TransferOptions):
             else:
                 fcu = None
 
-            if self.ignoreMorph(hum, clo, hskey):
+            if self.ignoreMorph(src, trg, hskey):
                 print(" 0", sname)
                 continue
 
-            if sname in clo.data.shape_keys.key_blocks.keys():
+            if sname in trg.data.shape_keys.key_blocks.keys():
                 if self.useOverwrite:
-                    cskey = clo.data.shape_keys.key_blocks[sname]
-                    clo.shape_key_remove(cskey)
+                    cskey = trg.data.shape_keys.key_blocks[sname]
+                    trg.shape_key_remove(cskey)
 
             cskey = None
-            path = getMorphPath(sname, clo, scn)
+            path = getMorphPath(sname, trg, scn)
             if path is not None:
                 from .morphing import LoadShapekey
-                loader = LoadShapekey(mesh=clo, verbose=False)
-                LS.forMorphLoad(clo, scn)
+                loader = LoadShapekey(mesh=trg, verbose=False)
+                LS.forMorphLoad(trg, scn)
                 loader.errors = {}
                 loader.getSingleMorph(sname, path, scn)
-                if sname in clo.data.shape_keys.key_blocks.keys():
-                    cskey = clo.data.shape_keys.key_blocks[sname]
+                if sname in trg.data.shape_keys.key_blocks.keys():
+                    cskey = trg.data.shape_keys.key_blocks[sname]
 
             if cskey:
                 print(" *", sname)
-            elif self.autoTransfer(hum, clo, hskey):
-                cskey = clo.data.shape_keys.key_blocks[sname]
+            elif self.autoTransfer(src, trg, hskey):
+                cskey = trg.data.shape_keys.key_blocks[sname]
                 print(" +", sname)
                 if cskey and not self.ignoreRigidity:
-                    self.correctForRigidity(clo, cskey)
+                    self.correctForRigidity(trg, cskey)
 
             if cskey:
                 cskey.slider_min = hskey.slider_min
@@ -187,10 +280,10 @@ class MorphTransferer(Selector, B.TransferOptions):
                 print(" -", sname)
 
         if (basic and
-            len(clo.data.shape_keys.key_blocks) == 1 and
-            clo.data.shape_keys.key_blocks[0] == basic):
-            print("No shapekeys transferred to %s" % clo.name)
-            clo.shape_key_remove(basic)
+            len(trg.data.shape_keys.key_blocks) == 1 and
+            trg.data.shape_keys.key_blocks[0] == basic):
+            print("No shapekeys transferred to %s" % trg.name)
+            trg.shape_key_remove(basic)
         return True
 
 
@@ -245,13 +338,13 @@ class MorphTransferer(Selector, B.TransferOptions):
                 skey.data[vn].co = Mult2(smat, (ob.data.vertices[vn].co - xcenter)) + ycenter
 
 
-    def ignoreMorph(self, hum, clo, hskey):
-        eps = 0.01 * hum.DazScale   # 0.1 mm
-        hverts = [v.index for v in hum.data.vertices if (hskey.data[v.index].co - v.co).length > eps]
+    def ignoreMorph(self, src, trg, hskey):
+        eps = 0.01 * src.DazScale   # 0.1 mm
+        hverts = [v.index for v in src.data.vertices if (hskey.data[v.index].co - v.co).length > eps]
         for j in range(3):
-            xclo = [v.co[j] for v in clo.data.vertices]
+            xclo = [v.co[j] for v in trg.data.vertices]
             # xkey = [hskey.data[vn].co[j] for vn in hverts]
-            xkey = [hum.data.vertices[vn].co[j] for vn in hverts]
+            xkey = [src.data.vertices[vn].co[j] for vn in hverts]
             if xclo and xkey:
                 minclo = min(xclo)
                 maxclo = max(xclo)
@@ -262,48 +355,39 @@ class MorphTransferer(Selector, B.TransferOptions):
         return False
 
 
-    def getClothes(self, hum, context):
-        objects = []
-        for ob in getSelectedMeshes(context):
-            if ob != hum:
-                objects.append(ob)
-                self.checkTransforms(ob)
-        return objects
-
-
-    def findMatch(self, hum, clo):
+    def findMatch(self, src, trg):
         import time
         t1 = time.perf_counter()
         if self.transferMethod == 'LEGACY':
             return True
         elif self.transferMethod == 'BODY':
-            self.findMatchExact(hum, clo)
+            self.findMatchExact(src, trg)
         elif self.transferMethod == 'NEAREST':
-            self.findMatchNearest(self.trihuman, clo)
+            self.findMatchNearest(self.trihuman, trg)
         elif self.transferMethod == 'GEOGRAFT':
-            self.findMatchGeograft(hum, clo)
+            self.findMatchGeograft(src, trg)
         t2 = time.perf_counter()
         print("Matching table created in %.1f seconds" % (t2-t1))
         return True
 
 
-    def autoTransfer(self, hum, clo, hskey):
+    def autoTransfer(self, src, trg, hskey):
         if self.transferMethod == 'LEGACY':
-            return self.autoTransferSlow(hum, clo, hskey)
+            return self.autoTransferSlow(src, trg, hskey)
         elif self.transferMethod == 'BODY':
-            return self.autoTransferExact(hum, clo, hskey)
+            return self.autoTransferExact(src, trg, hskey)
         elif self.transferMethod == 'NEAREST':
-            return self.autoTransferFace(hum, clo, hskey)
+            return self.autoTransferFace(src, trg, hskey)
         elif self.transferMethod == 'GEOGRAFT':
-            return self.autoTransferExact(hum, clo, hskey)
+            return self.autoTransferExact(src, trg, hskey)
 
     #----------------------------------------------------------
     #   Slow transfer
     #----------------------------------------------------------
 
-    def autoTransferSlow(self, hum, clo, hskey):
-        hverts = hum.data.vertices
-        cverts = clo.data.vertices
+    def autoTransferSlow(self, src, trg, hskey):
+        hverts = src.data.vertices
+        cverts = trg.data.vertices
         eps = 1e-4
         facs = {0:1.0, 1:1.0, 2:1.0}
         offsets = {0:0.0, 1:0.0, 2:0.0}
@@ -317,14 +401,14 @@ class MorphTransferer(Selector, B.TransferOptions):
             offs = offsets[n] = min(coord)
             weights = [fac*(co-offs) for co in coord]
 
-            vgrp = hum.vertex_groups.new(name=vgname)
+            vgrp = src.vertex_groups.new(name=vgname)
             for vn,w in enumerate(weights):
                 vgrp.add([vn], w, 'REPLACE')
 
-            mod = clo.modifiers.new(vgname, 'DATA_TRANSFER')
-            for i in range(len(clo.modifiers)-1):
+            mod = trg.modifiers.new(vgname, 'DATA_TRANSFER')
+            for i in range(len(trg.modifiers)-1):
                 bpy.ops.object.modifier_move_up(modifier=mod.name)
-            mod.object = hum
+            mod.object = src
             mod.use_vert_data = True
             #'TOPOLOGY', 'NEAREST', 'EDGE_NEAREST', 'EDGEINTERP_NEAREST',
             # 'POLY_NEAREST', 'POLYINTERP_NEAREST', 'POLYINTERP_VNORPROJ'
@@ -334,13 +418,13 @@ class MorphTransferer(Selector, B.TransferOptions):
             mod.mix_mode = 'REPLACE'
             bpy.ops.object.datalayout_transfer(modifier=mod.name)
             bpy.ops.object.modifier_apply(modifier=mod.name)
-            hum.vertex_groups.remove(vgrp)
+            src.vertex_groups.remove(vgrp)
 
         coords = []
         isZero = True
         for n,vgname in enumerate(["_trx", "_try", "_trz"]):
-            vgrp = clo.vertex_groups[vgname]
-            weights = [[g.weight for g in v.groups if g.group == vgrp.index][0] for v in clo.data.vertices]
+            vgrp = trg.vertex_groups[vgname]
+            weights = [[g.weight for g in v.groups if g.group == vgrp.index][0] for v in trg.data.vertices]
             fac = facs[n]
             offs = offsets[n]
             coord = [cverts[j].co[n] + w/fac + offs for j,w in enumerate(weights)]
@@ -349,14 +433,14 @@ class MorphTransferer(Selector, B.TransferOptions):
             wmin = min(weights)/fac + offs
             if abs(wmax) > eps or abs(wmin) > eps:
                 isZero = False
-            clo.vertex_groups.remove(vgrp)
+            trg.vertex_groups.remove(vgrp)
 
         if isZero:
             return False
 
-        cskey = clo.shape_key_add(name=hskey.name)
+        cskey = trg.shape_key_add(name=hskey.name)
         if self.useSelectedOnly:
-            verts = clo.data.vertices
+            verts = trg.data.vertices
             for n in range(3):
                 for j,x in enumerate(coords[n]):
                     if verts[j].select:
@@ -372,13 +456,13 @@ class MorphTransferer(Selector, B.TransferOptions):
     #   Exact
     #----------------------------------------------------------
 
-    def findMatchExact(self, hum, clo):
-        hverts = hum.data.vertices
-        eps = 0.01*hum.DazScale
+    def findMatchExact(self, src, trg):
+        hverts = src.data.vertices
+        eps = 0.01*src.DazScale
         self.match = []
         nhverts = len(hverts)
         hvn = 0
-        for cvn,cv in enumerate(clo.data.vertices):
+        for cvn,cv in enumerate(trg.data.vertices):
             hv = hverts[hvn]
             while (hv.co - cv.co).length > eps:
                 hvn += 1
@@ -390,10 +474,10 @@ class MorphTransferer(Selector, B.TransferOptions):
             self.match.append((cvn, hvn, cv.co - hv.co))
 
 
-    def autoTransferExact(self, hum, clo, hskey):
-        cverts = clo.data.vertices
-        hverts = hum.data.vertices
-        cskey = clo.shape_key_add(name=hskey.name)
+    def autoTransferExact(self, src, trg, hskey):
+        cverts = trg.data.vertices
+        hverts = src.data.vertices
+        cskey = trg.shape_key_add(name=hskey.name)
         if self.useSelectedOnly:
             for cvn,hvn,offset in self.match:
                 if cverts[cvn].select:
@@ -414,36 +498,15 @@ class MorphTransferer(Selector, B.TransferOptions):
         return cvn, hvn, Vector(cverts[cvn]-hverts[hvn])
 
 
-    def findMatchGeograft(self, hum, clo):
-        hverts = np.array([list(v.co) for v in hum.data.vertices])
-        cverts = np.array([list(v.co) for v in clo.data.vertices])
+    def findMatchGeograft(self, src, trg):
+        hverts = np.array([list(v.co) for v in src.data.vertices])
+        cverts = np.array([list(v.co) for v in trg.data.vertices])
         nhverts = len(hverts)
         self.match = [self.nearestNeighbor(hvn, hverts, cverts) for hvn in range(nhverts)]
 
 
-    def findTriangles(self):
-        ob = self.trihuman
-        self.verts = np.array([list(v.co) for v in ob.data.vertices])
-        tris = [f.vertices for f in ob.data.polygons]
-        self.tris = np.array(tris)
-
-
-    def findMatchNearest(self, hum, clo):
-        closest = [(v.co, hum.closest_point_on_mesh(v.co)) for v in clo.data.vertices]
-        # (result, location, normal, index)
-        cverts = np.array([list(x) for x,data in closest if data[0]])
-        offsets = np.array([list(x-data[1]) for x,data in closest if data[0]])
-        fnums = [data[3] for x,data in closest if data[0]]
-        tris = self.tris[fnums]
-        tverts = self.verts[tris]
-        A = np.transpose(tverts, axes=(0,2,1))
-        B = cverts - offsets
-        w = np.linalg.solve(A, B)
-        self.match = (tris, w, offsets)
-
-
-    def autoTransferFace(self, hum, clo, hskey):
-        cskey = clo.shape_key_add(name=hskey.name)
+    def autoTransferFace(self, src, trg, hskey):
+        cskey = trg.shape_key_add(name=hskey.name)
         hcos = np.array([list(data.co) for data in hskey.data])
         tris, w, offsets = self.match
         tcos = hcos[tris]
@@ -647,6 +710,7 @@ class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
 #----------------------------------------------------------
 
 classes = [
+    DAZ_OT_TransferVertexGroups,
     DAZ_OT_TransferCorrectives,
     DAZ_OT_TransferOtherMorphs,
     DAZ_OT_MixShapekeys,
