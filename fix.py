@@ -483,44 +483,6 @@ class BendTwists:
             cns2.owner_space = 'WORLD'
 
 #-------------------------------------------------------------
-#   Prune vertex groups
-#-------------------------------------------------------------
-
-class DAZ_OT_PruneVertexGroups(DazPropsOperator, B.ThresholdFloat, IsMesh):
-    bl_idname = "daz.prune_vertex_groups"
-    bl_label = "Prune Vertex Groups"
-    bl_description = "Remove vertices and groups with weights below threshold"
-    bl_options = {'UNDO'}
-
-    def draw(self, context):
-        self.layout.prop(self, "threshold")
-
-    def run(self, context):
-        for ob in getSelectedMeshes(context):
-            self.pruneVertexGroups(ob)
-
-    def pruneVertexGroups(self, ob):
-        keep = {}
-        removes = {}
-        vgroups = {}
-        for vgrp in ob.vertex_groups:
-            keep[vgrp.index] = False
-            removes[vgrp.index] = []
-            vgroups[vgrp.index] = vgrp
-        for v in ob.data.vertices:
-            for g in v.groups:
-                if g.weight > self.threshold:
-                    keep[g.group] = True
-                else:
-                    removes[g.group].append(v.index)
-        for gn,vgrp in vgroups.items():
-            if not keep[gn]:
-                ob.vertex_groups.remove(vgrp)
-            else:
-                for vn in removes[gn]:
-                    vgrp.remove([vn])
-
-#-------------------------------------------------------------
 #   Add IK goals
 #-------------------------------------------------------------
 
@@ -740,7 +702,6 @@ class DAZ_OT_RemoveFromGroups(DazPropsOperator, B.NameString):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_PruneVertexGroups,
     DAZ_OT_AddIkGoals,
     DAZ_OT_AddWinder,
     DAZ_OT_AddToGroup,

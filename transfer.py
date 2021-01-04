@@ -125,39 +125,30 @@ class DAZ_OT_TransferVertexGroups(DazPropsOperator, FastMatcher, IsMesh, B.Thres
         data = self.prepare(context, src, True)
         trisrc,rig = data
         try:
-            self.findVertexGroups(src)
+            vnames,weights = findVertexGroups(src)
             self.findTriangles(trisrc)
             for trg in targets:
                 print("Copy vertex groups from %s to %s" % (src.name, trg.name))
-                self.copyVertexGroups(src, trisrc, trg)
+                self.copyVertexGroups(src, trisrc, vnames, weights, trg)
         finally:
             self.restore(context, data)
         t2 = time.perf_counter()
         print("Vertex groups transferred in %.1f seconds" % (t2-t1))
 
 
-    def findVertexGroups(self, src):
-        nverts = len(src.data.vertices)
-        nvgrps = len(src.vertex_groups)
-        self.weights = dict([(gn, np.zeros(nverts, dtype=np.float)) for gn in range(nvgrps)])
-        for v in src.data.vertices:
-            for g in v.groups:
-                self.weights[g.group][v.index] = g.weight
-
-
-    def copyVertexGroups(self, src, trisrc, trg):
+    def copyVertexGroups(self, src, trisrc, vnames, weights, trg):
         self.findMatchNearest(trisrc, trg)
         tris, wmat, offsets = self.match
-        for vgrp in src.vertex_groups:
-            tweights = self.weights[vgrp.index][tris]
+        for gn,vname in enumerate(vnames):
+            tweights = weights[gn][tris]
             cweights = np.sum(tweights * wmat, axis=1)
             cweights[cweights > 1] = 1
             cweights[cweights < self.threshold] = 0
-            tvgrp = trg.vertex_groups.new(name=vgrp.name)
+            tvgrp = trg.vertex_groups.new(name=vname)
             nonzero = np.nonzero(cweights)[0].astype(int)
             for vn in nonzero:
                 tvgrp.add([int(vn)], cweights[vn], 'REPLACE')
-            print("  * %s" % vgrp.name)
+            print("  * %s" % vname)
 
 #----------------------------------------------------------
 #   Morphs transfer
@@ -705,6 +696,49 @@ class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
         ob.active_shape_key_index = idx
         bpy.ops.object.shape_key_remove()
 
+#-------------------------------------------------------------
+#   Prune vertex groups
+#-------------------------------------------------------------
+
+def findVertexGroups(ob):
+    nverts = len(ob.data.vertices)
+    nvgrps = len(ob.vertex_groups)
+    vnames = [vgrp.name for vgrp in ob.vertex_groups]
+    weights = dict([(gn, np.zeros(nverts, dtype=np.float)) for gn in range(nvgrps)])
+    for v in ob.data.vertices:
+        for g in v.groups:
+            weights[g.group][v.index] = g.weight
+    return vnames,weights
+
+
+class DAZ_OT_PruneVertexGroups(DazPropsOperator, B.ThresholdFloat, IsMesh):
+    bl_idname = "daz.prune_vertex_groups"
+    bl_label = "Prune Vertex Groups"
+    bl_description = "Remove vertices and groups with weights below threshold"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "threshold")
+
+    def run(self, context):
+        for ob in getSelectedMeshes(context):
+            self.pruneVertexGroups(ob)
+
+    def pruneVertexGroups(self, ob):
+        vnames,weights = findVertexGroups(ob)
+        for vgrp in list(ob.vertex_groups):
+            ob.vertex_groups.remove(vgrp)
+        print("VN", vnames)
+        for gn,vname in enumerate(vnames):
+            cweights = weights[gn]
+            cweights[cweights > 1] = 1
+            cweights[cweights < self.threshold] = 0
+            vgrp = ob.vertex_groups.new(name=vname)
+            nonzero = np.nonzero(cweights)[0].astype(int)
+            for vn in nonzero:
+                vgrp.add([int(vn)], cweights[vn], 'REPLACE')
+            print("  * %s" % vname)
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -713,6 +747,7 @@ classes = [
     DAZ_OT_TransferVertexGroups,
     DAZ_OT_TransferCorrectives,
     DAZ_OT_TransferOtherMorphs,
+    DAZ_OT_PruneVertexGroups,
     DAZ_OT_MixShapekeys,
 ]
 
