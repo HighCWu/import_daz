@@ -555,12 +555,7 @@ class Meta:
         default = False
     )
 
-    useCustomLayers = BoolProperty(
-        name = "Custom Layers",
-        description = "Display layers for face and custom bones.\nNot for Rigify legacy",
-        default = True
-    )
-
+    useCustomLayers = False
     useKeepRig = False
 
 #-------------------------------------------------------------

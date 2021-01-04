@@ -866,16 +866,17 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator, B.KeepDirsBool):
             os.makedirs(texpath)
 
         self.images = []
-        for ob in getSelectedMeshes(context):
-            for mat in ob.data.materials:
-                if mat:
-                    if mat.use_nodes:
-                        self.saveNodesInTree(mat.node_tree)
-                    elif bpy.app.version < (2,80,0):
-                        self.saveTextureSlots(mat)
-            for psys in ob.particle_systems:
-                self.saveTextureSlots(psys.settings)
-            ob.DazLocalTextures = True
+        for ob in getSceneObjects(context):
+            if ob.type == 'MESH':
+                for mat in ob.data.materials:
+                    if mat:
+                        if mat.use_nodes:
+                            self.saveNodesInTree(mat.node_tree)
+                        elif bpy.app.version < (2,80,0):
+                            self.saveTextureSlots(mat)
+                for psys in ob.particle_systems:
+                    self.saveTextureSlots(psys.settings)
+                ob.DazLocalTextures = True
 
         for img in self.images:
             src = bpy.path.abspath(img.filepath)

@@ -1176,9 +1176,9 @@ class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, B.Rigify, B.
 
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
-        self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "deleteMeta")
         if bpy.app.version >= (2,80,0):
+            self.layout.prop(self, "useCustomLayers")
             self.layout.prop(self, "useKeepRig")
 
     def run(self, context):

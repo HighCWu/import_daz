@@ -246,7 +246,8 @@ class ChannelSetter:
 
     def getChannelCycles(self, mat, nodeType, slot, ncomps, fromType):
         for node in mat.node_tree.nodes.values():
-            if self.matchingNode(node, nodeType, mat, fromType):
+            if (self.matchingNode(node, nodeType, mat, fromType) and
+                slot in node.inputs.keys()):
                 socket = node.inputs[slot]
                 fromnode,fromsocket = self.getFromNode(mat, node, socket)
                 if fromnode:
