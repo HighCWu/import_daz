@@ -728,16 +728,16 @@ class DAZ_OT_PruneVertexGroups(DazPropsOperator, B.ThresholdFloat, IsMesh):
         vnames,weights = findVertexGroups(ob)
         for vgrp in list(ob.vertex_groups):
             ob.vertex_groups.remove(vgrp)
-        print("VN", vnames)
         for gn,vname in enumerate(vnames):
             cweights = weights[gn]
             cweights[cweights > 1] = 1
             cweights[cweights < self.threshold] = 0
-            vgrp = ob.vertex_groups.new(name=vname)
             nonzero = np.nonzero(cweights)[0].astype(int)
-            for vn in nonzero:
-                vgrp.add([int(vn)], cweights[vn], 'REPLACE')
-            print("  * %s" % vname)
+            if len(nonzero) > 0:
+                vgrp = ob.vertex_groups.new(name=vname)
+                for vn in nonzero:
+                    vgrp.add([int(vn)], cweights[vn], 'REPLACE')
+                print("  * %s" % vname)
 
 #----------------------------------------------------------
 #   Initialize
