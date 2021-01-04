@@ -375,6 +375,11 @@ class MergeRigs:
         description = "Apply current pose as rest pose for all armatures",
         default = False)
 
+    useCreateDuplicates : BoolProperty(
+        name = "Create Duplicate Bones",
+        description = "Create separate bones if several bones with the same name are found",
+        default = False)
+
     createMeshCollection : BoolProperty(
         name = "Create Mesh Collection",
         description = "Create a new collection and move all meshes to it",

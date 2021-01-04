@@ -495,6 +495,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         self.layout.prop(self, "clothesLayer")
         self.layout.prop(self, "separateCharacters")
         self.layout.prop(self, "useApplyRestPose")
+        self.layout.prop(self, "useCreateDuplicates")
         self.layout.prop(self, "createMeshCollection")
 
 
@@ -679,22 +680,22 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                 mod.use_deform_preserve_volume = True
 
 
-    def addExtraBones(self, ob, rig, context, scn, parbone):
+    def addExtraBones(self, subrig, rig, context, scn, parbone):
         from .figure import copyBoneInfo
         extras = []
-        for bone in ob.data.bones:
+        for bone in subrig.data.bones:
             if (bone.name not in self.mainBones or
                 bone.name not in rig.data.bones.keys()):
                 extras.append(bone.name)
 
         if extras:
             storage = {}
-            if activateObject(context, ob):
+            if activateObject(context, subrig):
                 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
             bpy.ops.object.mode_set(mode='EDIT')
             for bname in extras:
-                eb = ob.data.edit_bones[bname]
+                eb = subrig.data.edit_bones[bname]
                 storage[bname] = EditBoneStorage(eb, None)
             bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -702,13 +703,14 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
             layers = (self.clothesLayer-1)*[False] + [True] + (32-self.clothesLayer)*[False]
             bpy.ops.object.mode_set(mode='EDIT')
             for bname in extras:
-                eb = storage[bname].createBone(rig, storage, parbone)
-                eb.layers = layers
-                storage[bname].realname = eb.name
+                if self.useCreateDuplicates or bname not in rig.data.bones.keys():
+                    eb = storage[bname].createBone(rig, storage, parbone)
+                    eb.layers = layers
+                    storage[bname].realname = eb.name
             bpy.ops.object.mode_set(mode='OBJECT')
             for bname in extras:
                 pb = rig.pose.bones[bname]
-                copyBoneInfo(ob.pose.bones[bname], pb)
+                copyBoneInfo(subrig.pose.bones[bname], pb)
                 pb.bone.layers[self.clothesLayer-1] = True
             return storage
         else:
@@ -736,12 +738,12 @@ class DAZ_OT_CopyBones(DazOperator, IsArmature):
 def copyBones(context, rig, subrigs):
     print("Copy bones to %s:" % rig.name)
     ebones = []
-    for ob in subrigs:
-        print("  ", ob.name)
-        if not setActiveObject(context, ob):
+    for subrig in subrigs:
+        print("  ", subrig.name)
+        if not setActiveObject(context, subrig):
             continue
         bpy.ops.object.mode_set(mode='EDIT')
-        for eb in ob.data.edit_bones:
+        for eb in subrig.data.edit_bones:
             ebones.append(EditBoneStorage(eb))
         bpy.ops.object.mode_set(mode='OBJECT')
 
