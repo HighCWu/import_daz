@@ -866,17 +866,16 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator, B.KeepDirsBool):
             os.makedirs(texpath)
 
         self.images = []
-        for ob in getSceneObjects(context):
-            if ob.type == 'MESH':
-                for mat in ob.data.materials:
-                    if mat:
-                        if mat.use_nodes:
-                            self.saveNodesInTree(mat.node_tree)
-                        elif bpy.app.version < (2,80,0):
-                            self.saveTextureSlots(mat)
-                for psys in ob.particle_systems:
-                    self.saveTextureSlots(psys.settings)
-                ob.DazLocalTextures = True
+        for ob in getSelectedMeshes(context):
+            for mat in ob.data.materials:
+                if mat:
+                    if mat.use_nodes:
+                        self.saveNodesInTree(mat.node_tree)
+                    elif bpy.app.version < (2,80,0):
+                        self.saveTextureSlots(mat)
+            for psys in ob.particle_systems:
+                self.saveTextureSlots(psys.settings)
+            ob.DazLocalTextures = True
 
         for img in self.images:
             src = bpy.path.abspath(img.filepath)
@@ -959,9 +958,8 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        for ob in getSceneObjects(context):
-           if getSelected(ob):
-               self.mergeMaterials(ob)
+        for ob in getSelectedMeshes(context):
+           self.mergeMaterials(ob)
 
 
     def keepMaterial(self, mn, mat, ob):
@@ -1191,8 +1189,8 @@ class DAZ_OT_CopyMaterials(DazPropsOperator, IsMesh, B.CopyMaterials):
         src = context.object
         self.mismatch = ""
         found = False
-        for trg in getSceneObjects(context):
-           if getSelected(trg) and trg != src and trg.type == 'MESH':
+        for trg in getSelectedMeshes(context):
+           if trg != src:
                self.copyMaterials(src, trg)
                found = True
         if not found:
@@ -1259,15 +1257,14 @@ class ChangeResolution(B.ResizeOptions):
 
     def getAllTextures(self, context):
         paths = {}
-        for ob in getSceneObjects(context):
-            if ob.type == 'MESH' and getSelected(ob):
-                for mat in ob.data.materials:
-                    if mat.node_tree:
-                        self.getTreeTextures(mat.node_tree, paths)
-                    else:
-                        self.getSlotTextures(mat, paths)
-                for psys in ob.particle_systems:
-                    self.getSlotTextures(psys.settings, paths)
+        for ob in getSelectedMeshes(context):
+            for mat in ob.data.materials:
+                if mat.node_tree:
+                    self.getTreeTextures(mat.node_tree, paths)
+                else:
+                    self.getSlotTextures(mat, paths)
+            for psys in ob.particle_systems:
+                self.getSlotTextures(psys.settings, paths)
         return paths
 
 
@@ -1286,15 +1283,14 @@ class ChangeResolution(B.ResizeOptions):
 
 
     def replaceTextures(self, context):
-        for ob in getSceneObjects(context):
-            if ob.type == 'MESH' and getSelected(ob):
-                for mat in ob.data.materials:
-                    if mat.node_tree:
-                        self.resizeTree(mat.node_tree)
-                    else:
-                        self.resizeSlots(mat)
-                for psys in ob.particle_systems:
-                    self.resizeSlots(psys.settings)
+        for ob in getSelectedMeshes(context):
+            for mat in ob.data.materials:
+                if mat.node_tree:
+                    self.resizeTree(mat.node_tree)
+                else:
+                    self.resizeSlots(mat)
+            for psys in ob.particle_systems:
+                self.resizeSlots(psys.settings)
 
 
     def resizeSlots(self, mat):
@@ -1479,11 +1475,10 @@ class DAZ_OT_PruneNodeTrees(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        for ob in getSceneObjects(context):
-            if ob.type == 'MESH' and getSelected(ob) and not getHideViewport(ob):
-                for mat in ob.data.materials:
-                    if mat.node_tree:
-                        pruneNodeTree(mat.node_tree)
+        for ob in getSelectedMeshes(context):
+            for mat in ob.data.materials:
+                if mat.node_tree:
+                    pruneNodeTree(mat.node_tree)
 
 
 def pruneNodeTree(tree):

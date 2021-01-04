@@ -309,8 +309,8 @@ class Tesselator:
 def getHairAndHuman(context, strict):
     hair = context.object
     hum = None
-    for ob in getSceneObjects(context):
-        if getSelected(ob) and ob.type == 'MESH' and ob != hair:
+    for ob in getSelectedMeshes(context):
+        if ob != hair:
             hum = ob
             break
     if strict and hum is None:
@@ -433,9 +433,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             if (len(hname) >= 4 and hname[-4] == "." and hname[-3:].isdigit()):
                 hname = hname[:-4]
             haircount = 0
-            hairs = [hair for hair in getSceneObjects(context)
-                     if (getSelected(hair) and
-                         hair.name.startswith(hname) and
+            hairs = [hair for hair in getSelectedMeshes(context)
+                     if (hair.name.startswith(hname) and
                          hair != hum)]
             count = 0
             for hair in hairs:

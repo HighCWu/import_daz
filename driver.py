@@ -636,7 +636,7 @@ def matchesPaths(var, paths, rig):
 
 def updateAll(context):
     updateScene(context)
-    for ob in getSceneObjects(context):
+    for ob in getSelectedObjects(context):
         if ob.type == 'ARMATURE':
             updateRig(ob, context)
             #drivers = storeBoneDrivers(ob, list(ob.pose.bones.keys()))
@@ -695,15 +695,14 @@ class DAZ_OT_RemoveUnusedDrivers(DazOperator, IsObject):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        for ob in getSceneObjects(context):
-            if getSelected(ob):
-                self.removeUnused(ob)
-                if ob.data:
-                    self.removeUnused(ob.data)
-                if ob.type == 'MESH' and ob.data.shape_keys:
-                    self.removeUnused(ob.data.shape_keys)
-                    self.removeShapekeys(ob.data.shape_keys)
-                updateDrivers(ob)
+        for ob in getSelectedObjects(context):
+            self.removeUnused(ob)
+            if ob.data:
+                self.removeUnused(ob.data)
+            if ob.type == 'MESH' and ob.data.shape_keys:
+                self.removeUnused(ob.data.shape_keys)
+                self.removeShapekeys(ob.data.shape_keys)
+            updateDrivers(ob)
         updateScene(context)
 
 
@@ -744,13 +743,12 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
 
     def run(self, context):
         rig = context.object
-        for ob in getSceneObjects(context):
-            if getSelected(ob):
-                self.retargetRna(ob, rig)
-                if ob.data:
-                    self.retargetRna(ob.data, rig)
-                if ob.type == 'MESH' and ob.data.shape_keys:
-                    self.retargetRna(ob.data.shape_keys, rig)
+        for ob in getSelectedObjects(context):
+            self.retargetRna(ob, rig)
+            if ob.data:
+                self.retargetRna(ob.data, rig)
+            if ob.type == 'MESH' and ob.data.shape_keys:
+                self.retargetRna(ob.data.shape_keys, rig)
 
 
     def retargetRna(self, rna, rig):
@@ -786,8 +784,8 @@ class DAZ_OT_CopyProps(DazOperator, IsObject):
 
     def run(self, context):
         rig = context.object
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob != rig:
+        for ob in getSelectedObjects(context):
+            if ob != rig:
                 for key in ob.keys():
                     if key not in rig.keys():
                         rig[key] = ob[key]
@@ -825,8 +823,8 @@ class DAZ_OT_CopyBoneDrivers(DazOperator, IsArmature):
 
     def run(self, context):
         rig = context.object
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob != rig and ob.type == 'ARMATURE':
+        for ob in getSelectedObjects(context):
+            if ob != rig and ob.type == 'ARMATURE':
                 copyBoneDrivers(ob, rig)
                 return
         raise DazError("Need two selected armatures")

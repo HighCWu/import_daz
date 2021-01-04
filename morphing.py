@@ -1166,7 +1166,7 @@ class DAZ_OT_DeactivateAll(DazOperator, Activator):
 
 def prettifyAll(context):
     scn = context.scene
-    for ob in getSceneObjects(context):
+    for ob in getSelectedObjects(context):
         if ob.type == 'ARMATURE':
             for prop in ob.keys():
                 if prop[0:7] == "DazShow":

@@ -52,10 +52,8 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
 
         # Find anatomies and move graft verts into position
         anatomies = []
-        for aob in getSceneObjects(context):
-            if (aob.type == 'MESH' and
-                getSelected(aob) and
-                aob != cob and
+        for aob in getSelectedMeshes(context):
+            if (aob != cob and
                 aob.data.DazGraftGroup):
                 anatomies.append(aob)
                 self.removeMultires(aob)
@@ -321,10 +319,8 @@ class DAZ_OT_CreateGraftGroups(DazOperator):
     def run(self, context):
         aob = context.object
         objects = []
-        for ob in getSceneObjects(context):
-            if (ob.type == 'MESH' and
-                getSelected(ob) and
-                ob != aob):
+        for ob in getSelectedMeshes(context):
+            if ob != aob:
                 objects.append(ob)
         if len(objects) != 1:
             raise DazError("Exactly two meshes must be selected.    ")
@@ -399,8 +395,8 @@ def getSelectedRigs(context):
     if rig:
         bpy.ops.object.mode_set(mode='OBJECT')
     subrigs = []
-    for ob in getSceneObjects(context):
-        if getSelected(ob) and ob.type == 'ARMATURE' and ob != rig:
+    for ob in getSelectedObjects(context):
+        if ob.type == 'ARMATURE' and ob != rig:
             subrigs.append(ob)
     return rig, subrigs
 
@@ -447,7 +443,7 @@ class DAZ_OT_EliminateEmpties(DazOperator):
 
     def run(self, context):
         roots = []
-        for ob in getSceneObjects(context):
+        for ob in getSelectedObjects(context):
             if ob.parent is None:
                 roots.append(ob)
         for root in roots:
@@ -508,8 +504,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
             self.mergeRigs(context, rig, subrigs)
         else:
             rigs = []
-            for ob in getSceneObjects(context):
-                if ob.type == 'ARMATURE' and getSelected(ob) and ob.parent is None:
+            for ob in getSelectedObjects(context):
+                if ob.type == 'ARMATURE' and ob.parent is None:
                     rigs.append(ob)
             pairs = []
             for rig in rigs:

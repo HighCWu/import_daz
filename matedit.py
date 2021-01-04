@@ -431,10 +431,9 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, B.LaunchEditor, IsMes
 
 
     def run(self, context):
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'MESH':
-                for item in ob.DazSlots:
-                    self.setChannel(ob, item)
+        for ob in getSelectedMeshes(context):
+            for item in ob.DazSlots:
+                self.setChannel(ob, item)
 
 
     def setChannel(self, ob, item):
@@ -592,9 +591,8 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'MESH':
-                self.resetObject(ob)
+        for ob in getSelectedMeshes(context):
+            self.resetObject(ob)
 
 
     def resetObject(self, ob):

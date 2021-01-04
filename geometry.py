@@ -372,8 +372,8 @@ class DAZ_OT_MakeMultires(DazOperator, IsMesh):
         from .modifier import makeArmatureModifier, copyVertexGroups
         hdob = context.object
         baseob = None
-        for ob in getSceneObjects(context):
-            if ob.type == 'MESH' and getSelected(ob) and ob != hdob:
+        for ob in getSelectedMeshes(context):
+            if ob != hdob:
                 if len(hdob.data.vertices) > len(ob.data.vertices):
                     baseob = ob
                 else:
@@ -1010,9 +1010,8 @@ class DAZ_OT_PruneUvMaps(DazOperator, IsMesh):
 
     def run(self, context):
         bpy.ops.object.mode_set(mode='OBJECT')
-        for ob in getSceneObjects(context):
-            if ob.type == 'MESH' and getSelected(ob):
-                pruneUvMaps(ob)
+        for ob in getSelectedMeshes(context):
+            pruneUvMaps(ob)
 
 #-------------------------------------------------------------
 #   Collaps UDims
@@ -1074,9 +1073,8 @@ class DAZ_OT_CollapseUDims(DazOperator):
         return (ob and ob.type == 'MESH' and not ob.DazUDimsCollapsed)
 
     def run(self, context):
-        for ob in getSceneObjects(context):
-            if ob.type == 'MESH' and getSelected(ob):
-                collapseUDims(ob)
+        for ob in getSelectedMeshes(context):
+            collapseUDims(ob)
 
 
 class DAZ_OT_RestoreUDims(DazOperator):
@@ -1091,9 +1089,8 @@ class DAZ_OT_RestoreUDims(DazOperator):
         return (ob and ob.type == 'MESH' and ob.DazUDimsCollapsed)
 
     def run(self, context):
-        for ob in getSceneObjects(context):
-            if ob.type == 'MESH' and getSelected(ob):
-                restoreUDims(ob)
+        for ob in getSelectedMeshes(context):
+            restoreUDims(ob)
 
 #-------------------------------------------------------------
 #   Load UVs
@@ -1155,9 +1152,8 @@ class DAZ_OT_LimitVertexGroups(DazPropsOperator, IsMesh, B.LimitInt):
         self.layout.prop(self, "limit")
 
     def run(self, context):
-        for ob in getSceneObjects(context):
-            if ob.type == 'MESH' and getSelected(ob):
-                self.limitVertexGroups(ob)
+        for ob in getSelectedMeshes(context):
+            self.limitVertexGroups(ob)
 
     def limitVertexGroups(self, ob):
         deletes = dict([(vgrp.index, []) for vgrp in ob.vertex_groups])

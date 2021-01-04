@@ -191,14 +191,13 @@ class ColorChanger(B.ColorProp):
 
     def run(self, context):
         scn = context.scene
-        for ob in getSceneObjects(context):
-            if getSelected(ob):
-                if ob.type == 'ARMATURE':
-                    for child in ob.children:
-                        if child.type == 'MESH':
-                            self.changeMeshColor(child, scn)
-                elif ob.type == 'MESH':
-                    self.changeMeshColor(ob, scn)
+        for ob in getSelectedObjects(context):
+            if ob.type == 'ARMATURE':
+                for child in ob.children:
+                    if child.type == 'MESH':
+                        self.changeMeshColor(child, scn)
+            elif ob.type == 'MESH':
+                self.changeMeshColor(ob, scn)
 
 
 class DAZ_OT_ChangeColors(DazPropsOperator, ColorChanger, IsMesh):

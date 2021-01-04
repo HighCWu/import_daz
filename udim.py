@@ -217,9 +217,8 @@ class DAZ_OT_SetUDims(DazOperator):
 
     def run(self, context):
         bpy.ops.object.mode_set(mode='OBJECT')
-        for ob in context.view_layer.objects:
-            if ob.type == 'MESH' and ob.select_get():
-                self.setUDims(ob)
+        for ob in getSelectedMeshes(context):
+            self.setUDims(ob)
 
     def invoke(self, context, event):
         context.window_manager.invoke_props_dialog(self)
@@ -354,11 +353,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
 
 
     def run(self, context):
-        objects = [ob for ob in getSceneObjects(context)
-                   if (ob.type == 'MESH' and
-                       ob.select_get() and
-                       not getHideViewport(ob) and
-                       getMultires(ob))]
+        objects = [ob for ob in getSelectedMeshes(context) if getMultires(ob)]
         for ob in objects:
             activateObject(context, ob)
             try:
@@ -499,11 +494,7 @@ class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap):
 
 
     def run(self, context):
-        objects = [ob for ob in getSceneObjects(context)
-                   if (ob.type == 'MESH' and
-                       ob.select_get() and
-                       not getHideViewport(ob))]
-        for ob in objects:
+        for ob in getSelectedMeshes(context):
             activateObject(context, ob)
             self.loadObjectNormals(ob)
 

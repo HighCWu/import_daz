@@ -62,6 +62,14 @@ if bpy.app.version < (2,80,0):
     def getSceneObjects(context):
         return context.scene.objects
 
+    def getSelectedObjects(context):
+        return [ob for ob in context.scene.objects
+                if ob.select and not ob.hide]
+
+    def getSelectedMeshes(context):
+        return [ob for ob in context.scene.objects
+                if ob.select and ob.type == 'MESH' and not ob.hide]
+
     def linkObject(context, ob):
         context.scene.objects.link(ob)
 
@@ -190,7 +198,14 @@ else:
 
     def getSceneObjects(context):
         return context.scene.collection.all_objects
-        #return context.view_layer.objects
+
+    def getSelectedObjects(context):
+        return [ob for ob in context.scene.collection.all_objects
+                if ob.select_get() and not (ob.hide_get() or ob.hide_viewport)]
+
+    def getSelectedMeshes(context):
+        return [ob for ob in context.scene.collection.all_objects
+                if ob.select_get() and ob.type == 'MESH' and not (ob.hide_get() or ob.hide_viewport)]
 
     def linkObject(context, ob):
         context.scene.collection.objects.link(ob)

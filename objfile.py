@@ -345,8 +345,7 @@ class DAZ_OT_ImportDBZ(DazOperator, B.DbzFile, MultiFile, IsMesh):
 
     def run(self, context):
         from .fileutils import getMultiFiles
-        objects = [ob for ob in getSceneObjects(context)
-                   if getSelected(ob) and ob.type == 'MESH']
+        objects = getSelectedMeshes(context)
         if not objects:
             return
         LS.scale = objects[0].DazScale

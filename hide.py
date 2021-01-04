@@ -49,7 +49,7 @@ def getMannequinName(string):
 #   Object selection
 #------------------------------------------------------------------------
 
-class ObjectSelection:
+class MeshSelection:
     def draw(self, context):
         row = self.layout.row()
         row.operator("daz.select_all")
@@ -67,7 +67,7 @@ class ObjectSelection:
         for pg in context.scene.DazSelector:
             pg.select = False
 
-    def getSelectedMeshes(self, context):
+    def getSelection(self, context):
         selected = []
         for pg in context.scene.DazSelector:
             if pg.select:
@@ -81,9 +81,8 @@ class ObjectSelection:
         pgs = context.scene.DazSelector
         pgs.clear()
         for ob in getSceneObjects(context):
-            if (ob.type == self.type and
-                ob != context.object and
-                not getHideViewport(ob)):
+            if (ob.type == 'MESH' and
+                ob != context.object):
                 pg = pgs.add()
                 pg.text = ob.name
                 pg.select = False
@@ -93,13 +92,11 @@ class ObjectSelection:
 #    Setup: Add and remove hide drivers
 #------------------------------------------------------------------------
 
-class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.SingleGroup, B.UseCollectionsBool, IsArmature):
+class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, B.SingleGroup, B.UseCollectionsBool, IsArmature):
     bl_idname = "daz.add_visibility_drivers"
     bl_label = "Add Visibility Drivers"
     bl_description = "Control visibility with rig property. For file linking."
     bl_options = {'UNDO'}
-
-    type = 'MESH'
 
     def draw(self, context):
         self.layout.prop(self, "singleGroup")
@@ -107,13 +104,13 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.SingleGroup, B.U
             self.layout.prop(self, "groupName")
         if bpy.app.version >= (2,80,0):
             self.layout.prop(self, "useCollections")
-        ObjectSelection.draw(self, context)
+        MeshSelection.draw(self, context)
 
 
     def run(self, context):
         rig = context.object
         print("Create visibility drivers for %s:" % rig.name)
-        selected = self.getSelectedMeshes(context)
+        selected = self.getSelection(context)
         if self.singleGroup:
             obnames = [self.groupName]
             for ob in selected:
@@ -200,7 +197,7 @@ class DAZ_OT_AddVisibility(DazPropsOperator, ObjectSelection, B.SingleGroup, B.U
 
 
     def invoke(self, context, event):
-        return ObjectSelection.invoke(self, context, event)
+        return MeshSelection.invoke(self, context, event)
 
 
 class DAZ_OT_RemoveVisibility(DazOperator):
@@ -311,20 +308,18 @@ class DAZ_OT_HideAllVis(DazOperator, SetAllVisibility, B.PrefixString):
 #   Mask modifiers
 #------------------------------------------------------------------------
 
-class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection, B.SingleGroup):
+class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, MeshSelection, B.SingleGroup):
     bl_idname = "daz.create_masks"
     bl_label = "Create Masks"
     bl_description = "Create vertex groups and mask modifiers in active mesh for selected meshes"
     bl_options = {'UNDO'}
-
-    type = 'MESH'
 
     def draw(self, context):
         self.layout.prop(self, "singleGroup")
         if self.singleGroup:
             self.layout.prop(self, "groupName")
         else:
-            ObjectSelection.draw(self, context)
+            MeshSelection.draw(self, context)
 
 
     def run(self, context):
@@ -334,7 +329,7 @@ class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection, B.SingleGrou
             print("  ", modname)
             self.createMask(context.object, modname)
         else:
-            for ob in self.getSelectedMeshes(context):
+            for ob in self.getSelection(context):
                 modname = getMaskName(ob.name)
                 print("  ", ob.name, modname)
                 self.createMask(context.object, modname)
@@ -357,28 +352,26 @@ class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, ObjectSelection, B.SingleGrou
 
 
     def invoke(self, context, event):
-        return ObjectSelection.invoke(self, context, event)
+        return MeshSelection.invoke(self, context, event)
 
 #------------------------------------------------------------------------
 #   Shrinkwrap
 #------------------------------------------------------------------------
 
-class DAZ_OT_AddShrinkwrap(DazPropsOperator, ObjectSelection, IsMesh, B.Offset):
+class DAZ_OT_AddShrinkwrap(DazPropsOperator, MeshSelection, IsMesh, B.Offset):
     bl_idname = "daz.add_shrinkwrap"
     bl_label = "Add Shrinkwrap"
     bl_description = "Add a shrinkwrap modifier covering the active mesh"
     bl_options = {'UNDO'}
 
-    type = 'MESH'
-
     def draw(self, context):
         self.layout.prop(self, "offset")
-        ObjectSelection.draw(self, context)
+        MeshSelection.draw(self, context)
 
 
     def run(self, context):
         hum = context.object
-        for ob in self.getSelectedMeshes(context):
+        for ob in self.getSelection(context):
             self.createShrinkwrap(ob, hum)
 
 
@@ -398,7 +391,7 @@ class DAZ_OT_AddShrinkwrap(DazPropsOperator, ObjectSelection, IsMesh, B.Offset):
 
 
     def invoke(self, context, event):
-        return ObjectSelection.invoke(self, context, event)
+        return MeshSelection.invoke(self, context, event)
 
 #----------------------------------------------------------
 #   Initialize

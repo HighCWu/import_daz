@@ -54,12 +54,11 @@ def stripName(string):
 
 def findHumanAndProxy(context):
     hum = pxy = None
-    for ob in getSceneObjects(context):
-        if ob.type == 'MESH':
-            if hum is None:
-                hum = ob
-            else:
-                pxy = ob
+    for ob in getSelectedMeshes(context):
+        if hum is None:
+            hum = ob
+        else:
+            pxy = ob
     if len(pxy.data.vertices) > len(hum.data.vertices):
         ob = pxy
         pxy = hum
@@ -863,7 +862,8 @@ def deselectEverything(ob, context):
 class MakeProxy(IsMesh):
 
     def run(self, context):
-        meshes,active = getSelectedObjects(context, 'MESH')
+        active = context.object
+        meshes = getSelectedMeshes(context)
         print("-----")
         errors = []
         for ob in meshes:
@@ -920,7 +920,8 @@ class DAZ_OT_Quadify(MakeProxy, DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        meshes,active = getSelectedObjects(context, 'MESH')
+        active = context.object
+        meshes = getSelectedMeshes(context)
         print("-----")
         errors = []
         for ob in meshes:
@@ -934,16 +935,6 @@ class DAZ_OT_Quadify(MakeProxy, DazOperator, IsMesh):
                 bpy.ops.object.mode_set(mode='OBJECT')
                 printStatistics(ob)
         restoreSelectedObjects(context, meshes, active)
-
-
-def getSelectedObjects(context, type):
-    objects = []
-    for ob in getSceneObjects(context):
-        if (getSelected(ob) and
-            ob.type == type and
-            inSceneLayer(context, ob)):
-            objects.append(ob)
-    return objects, context.object
 
 
 def restoreSelectedObjects(context, meshes, active):
@@ -980,7 +971,8 @@ class DAZ_OT_SplitNgons(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        meshes,active = getSelectedObjects(context, 'MESH')
+        active = context.object
+        meshes = getSelectedMeshes(context)
         for ob in meshes:
             print("\nSplit n-gons of %s" % ob.name)
             splitNgons(ob, context)
@@ -1153,9 +1145,8 @@ class DAZ_OT_ApplyMorphs(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        for ob in getSceneObjects(context):
-            if getSelected(ob):
-                applyShapeKeys(ob)
+        for ob in getSelectedMeshes(context):
+            applyShapeKeys(ob)
 
 #-------------------------------------------------------------
 #   Apply subsurf modifier
@@ -1251,10 +1242,9 @@ class DAZ_OT_PrintStatistics(bpy.types.Operator, IsMesh):
 
     def invoke(self, context, event):
         self.lines = []
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'MESH':
-                self.lines.append("Object: %s" % ob.name)
-                self.lines.append("  " + getStatistics(ob))
+        for ob in getSelectedMeshes(context):
+            self.lines.append("Object: %s" % ob.name)
+            self.lines.append("  " + getStatistics(ob))
         print("\n--------- Statistics ------------\n")
         for line in self.lines:
             print(line)
@@ -1285,8 +1275,8 @@ def remapBones(bone, headType, vgrps, majors, remap):
 
 
 def addMannequins(self, context):
-    objects = getSceneObjects(context)
-    selected = [ob for ob in objects if getSelected(ob)]
+    selected = getSelectedObjects(context)
+    meshes = getSelectedMeshes(context)
     ob = context.object
     rig = ob.parent
     if not (rig and rig.type == 'ARMATURE'):
@@ -1324,11 +1314,10 @@ def addMannequins(self, context):
             coll.objects.link(rig)
 
     # Add mannequin objects for selected meshes
-    meshes = [ob for ob in objects if (getSelected(ob) and ob.type == 'MESH')]
     for ob in meshes:
         addMannequin(ob, context, rig, coll, mangrp, self.headType)
 
-    for ob in getSceneObjects(context):
+    for ob in getSelectedObjects(context):
         if ob in selected:
             setSelected(ob, True)
         else:
@@ -1455,17 +1444,16 @@ class DAZ_OT_AddPush(DazOperator, IsMesh):
 
     def run(self, context):
         hasShapeKeys = []
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'MESH':
-                #applyShapeKeys(ob)
-                if ob.data.shape_keys:
-                    hasShapeKeys.append(ob)
-                else:
-                    basic = ob.shape_key_add(name="Basic")
-                skey = ob.shape_key_add(name="Push")
-                scale = ob.DazScale
-                for n,v in enumerate(ob.data.vertices):
-                    skey.data[n].co += v.normal*scale
+        for ob in getSelectedMeshes(context):
+            #applyShapeKeys(ob)
+            if ob.data.shape_keys:
+                hasShapeKeys.append(ob)
+            else:
+                basic = ob.shape_key_add(name="Basic")
+            skey = ob.shape_key_add(name="Push")
+            scale = ob.DazScale
+            for n,v in enumerate(ob.data.vertices):
+                skey.data[n].co += v.normal*scale
         if hasShapeKeys:
             msg = ("Push added to meshes with shapekeys:\n  " + "\n  ".join([ob.name for ob in hasShapeKeys]))
             raise DazError(msg, True)

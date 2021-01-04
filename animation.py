@@ -1170,9 +1170,7 @@ class DAZ_OT_SaveCurrentFrame(DazOperator):
     def run(self, context):
         scn = context.scene
         frame = scn.frame_current
-        for ob in getSceneObjects(context):
-            if ob.hide_select:
-                continue
+        for ob in getSelectedObjects(context):
             aname = actionFrameName(ob, frame)
             act = findAction(aname)
             if act:
@@ -1229,9 +1227,7 @@ class DAZ_OT_RestoreCurrentFrame(DazOperator):
     def run(self, context):
         scn = context.scene
         frame = scn.frame_current
-        for ob in getSceneObjects(context):
-            if ob.hide_select:
-                continue
+        for ob in getSelectedObjects(context):
             aname = actionFrameName(ob, frame)
             act = findAction(aname)
             if act:
@@ -1243,7 +1239,7 @@ class DAZ_OT_RestoreCurrentFrame(DazOperator):
         updateScene(context)
         scn.frame_current += 1
         scn.frame_current -= 1
-        for ob in getSceneObjects(context):
+        for ob in getSelectedObjects(context):
             if ob.animation_data:
                 ob.animation_data.action = None
 

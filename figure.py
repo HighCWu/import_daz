@@ -1385,8 +1385,8 @@ class DAZ_OT_CopyDazProps(DazOperator, IsObject):
 
     def run(self, context):
         src = context.object
-        for trg in getSceneObjects(context):
-            if getSelected(trg) and trg.type == src.type and trg != src:
+        for trg in getSelectedObjects(context):
+            if trg.type == src.type and trg != src:
                 self.copyObjectProps(src, trg)
                 print("DAZ properties copied from %s to %s" % (src.name, trg.name))
 

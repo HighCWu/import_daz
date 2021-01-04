@@ -496,9 +496,8 @@ class DAZ_OT_PruneVertexGroups(DazPropsOperator, B.ThresholdFloat, IsMesh):
         self.layout.prop(self, "threshold")
 
     def run(self, context):
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob.type == 'MESH':
-                self.pruneVertexGroups(ob)
+        for ob in getSelectedMeshes(context):
+            self.pruneVertexGroups(ob)
 
     def pruneVertexGroups(self, ob):
         keep = {}
@@ -707,9 +706,8 @@ class DAZ_OT_AddToGroup(DazPropsOperator, B.NameString):
             group = bpy.data.groups[self.name]
         else:
             group = bpy.data.groups.new(self.name)
-        for ob in getSceneObjects(context):
-            if (getSelected(ob) and
-                ob.name not in group.objects.keys()):
+        for ob in getSelectedObjects(context):
+            if ob.name not in group.objects.keys():
                 group.objects.link(ob)
 
 #-------------------------------------------------------------
@@ -733,9 +731,8 @@ class DAZ_OT_RemoveFromGroups(DazPropsOperator, B.NameString):
         else:
             groups = []
         for group in groups:
-            for ob in getSceneObjects(context):
-                if (getSelected(ob) and
-                    ob.name in group.objects.keys()):
+            for ob in getSelectedObjects(context):
+                if ob.name in group.objects.keys():
                     group.objects.unlink(ob)
 
 #----------------------------------------------------------

@@ -161,14 +161,13 @@ def getRigMeshes(context):
         return None, [ob]
 
     rig = None
-    for ob in getSceneObjects(context):
-        if getSelected(ob):
-            if ob.type == 'ARMATURE':
-                rig = ob
-                break
-            elif ob.type == 'MESH' and ob.parent and ob.parent.type == 'ARMATURE':
-                rig = ob.parent
-                break
+    for ob in getSelectedObjects(context):
+        if ob.type == 'ARMATURE':
+            rig = ob
+            break
+        elif ob.type == 'MESH' and ob.parent and ob.parent.type == 'ARMATURE':
+            rig = ob.parent
+            break
     meshes = []
     if rig:
         for ob in rig.children:

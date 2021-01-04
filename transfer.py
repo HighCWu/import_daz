@@ -264,8 +264,8 @@ class MorphTransferer(Selector, B.TransferOptions):
 
     def getClothes(self, hum, context):
         objects = []
-        for ob in getSceneObjects(context):
-            if getSelected(ob) and ob != hum and ob.type == 'MESH':
+        for ob in getSelectedMeshes(context):
+            if ob != hum:
                 objects.append(ob)
                 self.checkTransforms(ob)
         return objects
