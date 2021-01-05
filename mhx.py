@@ -679,7 +679,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                         else:
                             self.addGizmo(pb, shape)
             if pb.name in self.tweakBones:
-                if pb.name.startswith((self.pelvis, "chest")):
+                if pb.name.startswith((self.pelvis, "chest", "clavicle")):
                     gizmo = "GZM_Ball025End"
                 else:
                     gizmo = "GZM_Ball025"
@@ -754,13 +754,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             None, "spine", "spine-1", "chest", "chest-1",
             None, "neck", "neck-1",
             None, self.pelvis,
-            None, "forearm.L", None, "shin.L",
-            None, "forearm.R", None, "shin.R"]
+            None, "clavicle.L", None, "forearm.L", None, "shin.L",
+            None, "clavicle.R", None, "forearm.R", None, "shin.R"]
 
         self.noTweakParents = [
             "spine", "spine-1", "chest", "chest-1", "neck", "neck-1", "head",
-            "clavicle.L", "hand.L", "thigh.L", "shin.L", "foot.L",
-            "clavicle.R", "hand.R", "thigh.R", "shin.R", "foot.R",
+            "clavicle.L", "upper_arm.L", "hand.L", "thigh.L", "shin.L", "foot.L",
+            "clavicle.R", "upper_arm.R", "hand.R", "thigh.R", "shin.R", "foot.R",
         ]
 
         bpy.ops.object.mode_set(mode='EDIT')
@@ -895,7 +895,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             hand0.parent = hand
 
             size = 10*rig.DazScale
-            armSocket = makeBone("shoulderTwk"+suffix, rig, upper_arm.head, upper_arm.head+Vector((0,0,size)), 0, L_TWEAK, upper_arm.parent)
+            armSocket = makeBone("armSocket"+suffix, rig, upper_arm.head, upper_arm.head+Vector((0,0,size)), 0, L_LEXTRA+dlayer, upper_arm.parent)
             armParent = deriveBone("arm_parent"+suffix, armSocket, rig, L_HELP, root)
             upper_arm.parent = armParent
             rig.data.edit_bones["upper_arm-1"+suffix].parent = armParent
@@ -926,7 +926,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             foot.tail = toe.head
 
             size = 10*rig.DazScale
-            legSocket = makeBone("thighTwk"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_TWEAK, thigh.parent)
+            legSocket = makeBone("legSocket"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_LEXTRA+dlayer, thigh.parent)
             legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, root)
             thigh.parent = legParent
             rig.data.edit_bones["thigh-1"+suffix].parent = legParent
@@ -1014,7 +1014,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                         pb = rpbs[bname+suffix]
                         pb.rotation_mode = rmode
 
-            armSocket = rpbs["shoulderTwk"+suffix]
+            armSocket = rpbs["armSocket"+suffix]
             armParent = rpbs["arm_parent"+suffix]
             upper_arm = rpbs["upper_arm"+suffix]
             forearm = rpbs["forearm"+suffix]
@@ -1049,7 +1049,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             copyRotation(forearm, hand0Ik, yTrue, rig, prop)
             forearmFk.lock_rotation = yTrue
 
-            legSocket = rpbs["thighTwk"+suffix]
+            legSocket = rpbs["legSocket"+suffix]
             legParent = rpbs["leg_parent"+suffix]
             thigh = rpbs["thigh"+suffix]
             shin = rpbs["shin"+suffix]
@@ -1367,8 +1367,8 @@ Gizmos = {
     "foot.fk.R" :       "GZM_Foot_R",
     "toe.fk.L" :        "GZM_Toe_L",
     "toe.fk.R" :        "GZM_Toe_R",
-    "thighTwk.L" :      "GZM_Ball025",
-    "thighTwk.R" :      "GZM_Ball025",
+    "legSocket.L" :     "GZM_Cube025",
+    "legSocket.R" :     "GZM_Cube025",
     "foot.rev.L" :      "GZM_RevFoot",
     "foot.rev.R" :      "GZM_RevFoot",
     "foot.ik.L" :       "GZM_FootIK",
@@ -1398,8 +1398,8 @@ Gizmos = {
     "forearm.fk.R" :    "GZM_Circle025",
     "hand.fk.L" :       "GZM_Hand",
     "hand.fk.R" :       "GZM_Hand",
-    "shoulderTwk.L" :   "GZM_Ball025",
-    "shoulderTwk.R" :   "GZM_Ball025",
+    "armSocket.L" :     "GZM_Cube025",
+    "armSocket.R" :     "GZM_Cube025",
     "hand.ik.L" :       "GZM_HandIK",
     "hand.ik.R" :       "GZM_HandIK",
     "elbow.pt.ik.L" :   "GZM_Cube025",
