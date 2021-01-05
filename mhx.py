@@ -797,6 +797,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 tb.lock_location = tb.lock_rotation = tb.lock_scale = (False,False,False)
 
         bpy.ops.object.mode_set(mode='OBJECT')
+        self.fixBoneDrivers(rig, tweakCorrectives)
         self.fixCorrectives(rig, tweakCorrectives)
 
 
@@ -818,7 +819,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
     def longName(self, m, suffix):
-        return (self.FingerNames[m][2:] + suffix)
+        fname = self.FingerNames[m]
+        if fname[0:2] == "f_":
+            return fname[2:] + suffix
+        else:
+            return fname + suffix
 
 
     def palmName(self, m, suffix):

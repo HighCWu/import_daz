@@ -150,17 +150,24 @@ class Fixer:
             eb2.roll = eb1.roll
 
 
+    def fixBoneDrivers(self, rig, assoc):
+        from .driver import replaceDriverBone
+        if rig.animation_data:
+            for pb in rig.pose.bones:
+                replaceDriverBone(assoc, rig, 'pose.bones["%s"]' % pb.name)
+
+
     def fixCorrectives(self, rig, jcms):
         from .driver import getShapekeyDriver, replaceDriverBone
         for ob in rig.children:
             if ob.type == 'MESH' and ob.data.shape_keys:
                 skeys = ob.data.shape_keys
                 for skey in skeys.key_blocks[1:]:
-                    if getShapekeyDriver(skeys, skey.name):
-                        replaceDriverBone(jcms, skeys, 'key_blocks["%s"].value' % (skey.name))
+                    replaceDriverBone(jcms, skeys, 'key_blocks["%s"]' % (skey.name))
 
 
     def checkCorrectives(self, rig):
+        return
         from .driver import getShapekeyDriver, checkDriverBone
         for ob in rig.children:
             if ob.type == 'MESH' and ob.data.shape_keys:

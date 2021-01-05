@@ -463,10 +463,9 @@ def getAllDriverVars(fcu):
     return [var.name for var in fcu.driver.variables]
 
 
-def replaceDriverBone(assoc, rna, path, idx=-1):
+def replaceDriverBone(assoc, rna, path):
     for fcu in rna.animation_data.drivers:
-        if (path == fcu.data_path and
-            (idx == -1 or idx == fcu.array_index)):
+        if fcu.data_path.startswith(path):
             changeBoneTarget(fcu, assoc)
 
 
