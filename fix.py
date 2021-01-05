@@ -160,10 +160,11 @@ class Fixer:
     def fixCorrectives(self, rig, jcms):
         from .driver import getShapekeyDriver, replaceDriverBone
         for ob in rig.children:
-            if ob.type == 'MESH' and ob.data.shape_keys:
+            if ob.type == 'MESH':
                 skeys = ob.data.shape_keys
-                for skey in skeys.key_blocks[1:]:
-                    replaceDriverBone(jcms, skeys, 'key_blocks["%s"]' % (skey.name))
+                if skeys and skeys.animation_data:
+                    for skey in skeys.key_blocks[1:]:
+                        replaceDriverBone(jcms, skeys, 'key_blocks["%s"]' % (skey.name))
 
 
     def checkCorrectives(self, rig):
