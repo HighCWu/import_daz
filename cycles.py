@@ -1305,9 +1305,14 @@ class CyclesTree:
 #   Utilities
 #-------------------------------------------------------------
 
-def findNode(tree, ntype):
+def findNode(tree, ntypes):
+    if isinstance(ntypes, list):
+        for ntype in ntypes:
+            node = findNode(tree, ntype)
+            if node:
+                return node
     for node in tree.nodes:
-        if node.type == ntype:
+        if node.type == ntypes:
             return node
     return None
 

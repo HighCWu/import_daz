@@ -536,24 +536,35 @@ class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap):
 
 
     def loadMap(self, mat, img):
-        from .cycles import findNode
+        from .cycles import findNode, findLinksTo
         tree = mat.node_tree
         texco = self.findTexco(tree)
         tex = self.addTexture(tree, img)
         tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
         if self.bakeType == 'NORMALS':
-            normal = tree.nodes.new(type="ShaderNodeNormalMap")
-            normal.location = (-300,-250)
-            normal.inputs["Strength"].default_value = 1
-            tree.links.new(tex.outputs["Color"], normal.inputs["Color"])
-            self.linkSlot(tree, normal, "Normal")
+            links = findLinksTo(tree, 'NORMAL_MAP')
+            if links:
+                node = tree.nodes.new(type="ShaderNodeMixRGB")
+                node.blend_type = 'OVERLAY'
+                node.location = (-300,-250)
+                node.inputs["Fac"].default_value = 1
+                link = links[0]
+                tree.links.new(link.from_socket, node.inputs["Color1"])
+                tree.links.new(tex.outputs["Color"], node.inputs["Color2"])
+                tree.links.new(node.outputs["Color"], link.to_socket)
+            else:
+                node = tree.nodes.new(type="ShaderNodeNormalMap")
+                node.location = (-300,-250)
+                node.inputs["Strength"].default_value = 1
+                tree.links.new(tex.outputs["Color"], node.inputs["Color"])
+                self.linkSlot(tree, node, "Normal")
         elif self.bakeType == 'DISPLACEMENT':
             disp = tree.nodes.new(type="ShaderNodeDisplacement")
             disp.location = (-300,-250)
             tree.links.new(tex.outputs["Color"], disp.inputs["Height"])
             disp.inputs["Midlevel"].default_value = 0.5
             disp.inputs["Scale"].default_value = self.dispScale
-            normal = findNode(tree, 'NORMAL_MAP')
+            normal = findNode(tree, ['BUMP', 'NORMAL_MAP'])
             if normal:
                 tree.links.new(normal.outputs["Normal"], disp.inputs["Normal"])
             self.linkSlot(tree, disp, "Displacement")
