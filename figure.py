@@ -123,6 +123,7 @@ class FigureInstance(Instance):
 
 
     def poseRig(self, context):
+        from .bone import BoneInstance
         Instance.poseRig(self, context)
         rig = self.rna
         activateObject(context, rig)
@@ -134,6 +135,9 @@ class FigureInstance(Instance):
         rig.DazLocLimits = rig.DazHasLocLimits = GS.useLimitLoc
         self.fixDependencyLoops(rig)
         bpy.ops.object.mode_set(mode='OBJECT')
+        for child in self.children.values():
+            if isinstance(child, BoneInstance):
+                child.buildFormulas(rig, False)
 
 
     def poseArmature(self, rig):
@@ -178,7 +182,6 @@ class FigureInstance(Instance):
 
 
     def setupPlanes(self):
-        from .bone import BoneInstance
         if self.node.rigtype not in PlanesUsed.keys():
             return
         for pname in PlanesUsed[self.node.rigtype]:
@@ -302,10 +305,6 @@ class Figure(Node):
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
                 child.buildBoneProps(rig, center)
-
-        for child in inst.children.values():
-            if isinstance(child, BoneInstance):
-                child.buildFormulas(rig, False)
 
 
 def getModifierPath(moddir, folder, tfile):
