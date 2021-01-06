@@ -1677,6 +1677,30 @@ class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
         MorphRemover.run(self, context)
 
 #-------------------------------------------------------------
+#   Add driven value nodes
+#-------------------------------------------------------------
+
+class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, IsMesh):
+    bl_idname = "daz.add_driven_value_nodes"
+    bl_label = "Add Driven Value Nodes"
+    bl_description = "Add driven value nodes"
+    bl_options = {'UNDO'}
+
+    allSets = theMorphSets
+
+    def getKeys(self, rig, ob):
+        morphs = getMorphList(ob, theMorphSets)
+        return [(item.name, item.text, "All") for item in morphs]
+
+    def run(self, context):
+        rig = getRigFromObject(context.object)
+        scn = context.scene
+        if rig:
+            props = self.getSelectedProps(scn)
+            print("Add DV", props)
+
+
+#-------------------------------------------------------------
 #   Add and remove driver
 #-------------------------------------------------------------
 
@@ -2041,6 +2065,7 @@ classes = [
     DAZ_OT_RemoveStandardMorphs,
     DAZ_OT_RemoveCustomMorphs,
     DAZ_OT_RemoveJCMs,
+    DAZ_OT_AddDrivenValueNodes,
     DAZ_OT_RemoveAllShapekeyDrivers,
     DAZ_OT_AddShapekeyDrivers,
     DAZ_OT_RemoveShapekeyDrivers,

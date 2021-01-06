@@ -449,6 +449,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.mesh_add_pinning")
             if bpy.app.version >= (2,90,0):
                 box.operator("daz.make_multires")
+            box.operator("daz.add_driven_value_nodes")
 
         layout.separator()
         box = layout.box()
