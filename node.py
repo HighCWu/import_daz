@@ -461,12 +461,6 @@ class Instance(Accessor, Channels):
 
 def transformDuplis():
     for inst,ob,empty,wmat,refgroup in LS.duplis:
-        if bpy.app.version < (2,80,0):
-            putOnHiddenLayer(ob)
-        if ob.name in inst.collection.objects:
-            inst.collection.objects.unlink(ob)
-        if ob.name in LS.collection.objects:
-            LS.collection.objects.unlink(ob)
         empty.parent = ob.parent
         setWorldMatrix(empty, wmat)
         for child in ob.children:
@@ -474,8 +468,11 @@ def transformDuplis():
         ob.parent = None
         ob.matrix_world = Matrix()
         inst.collection.objects.link(empty)
+        if bpy.app.version < (2,80,0):
+            putOnHiddenLayer(ob)
+        else:
+            unlinkAll(ob)
         refgroup.objects.link(ob)
-        #print("LiiS", refgroup.name, ob.name, ob.type)
 
 
 def addToRefgroup(ob, refgroup, inst):
