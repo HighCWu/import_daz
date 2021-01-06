@@ -294,26 +294,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.copy_materials")
             box.operator("daz.prune_node_trees")
 
-            if bpy.app.version >= (2,82,0):
-                box.separator()
-                box.operator("daz.bake_normal_disp_maps")
-                box.operator("daz.load_normal_disp_maps")
-
-            box.separator()
-            box.operator("daz.load_uv")
-            box.operator("daz.prune_uv_maps")
-
-            box.separator()
-            box.operator("daz.collapse_udims")
-            box.operator("daz.restore_udims")
-
-            box.separator()
-            box.operator("daz.remove_shells")
-            box.operator("daz.replace_shells")
-
-            box.separator()
-            box.operator("daz.make_decal")
-
             box.separator()
             box.operator("daz.launch_editor")
             box.operator("daz.reset_material")
@@ -439,6 +419,26 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
+        if showBox(scn, "DazShowMaterials2", box):
+            if bpy.app.version >= (2,82,0):
+                box.operator("daz.bake_normal_disp_maps")
+                box.operator("daz.load_normal_disp_maps")
+                box.operator("daz.add_driven_value_nodes")
+                box.separator()
+            box.operator("daz.load_uv")
+            box.operator("daz.prune_uv_maps")
+            box.separator()
+            box.operator("daz.collapse_udims")
+            box.operator("daz.restore_udims")
+            box.separator()
+            box.operator("daz.remove_shells")
+            box.operator("daz.replace_shells")
+            box.separator()
+            box.operator("daz.make_decal")
+
+
+        layout.separator()
+        box = layout.box()
         if showBox(scn, "DazShowMesh", box):
             box.operator("daz.limit_vertex_groups")
             box.operator("daz.prune_vertex_groups")
@@ -449,7 +449,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.mesh_add_pinning")
             if bpy.app.version >= (2,90,0):
                 box.operator("daz.make_multires")
-            box.operator("daz.add_driven_value_nodes")
 
         layout.separator()
         box = layout.box()
@@ -1481,20 +1480,18 @@ def initialize():
 
     bpy.types.Scene.DazShowCorrections = BoolProperty(name = "Corrections", default = False)
     bpy.types.Scene.DazShowMaterials = BoolProperty(name = "Materials", default = False)
-    bpy.types.Scene.DazShowMaterialSettings = BoolProperty(name = "Materials", default = False)
+    bpy.types.Scene.DazShowMaterials2 = BoolProperty(name = "Materials", default = False)
     bpy.types.Scene.DazShowMorphs = BoolProperty(name = "Morphs", default = False)
     bpy.types.Scene.DazShowFinish = BoolProperty(name = "Finishing", default = False)
     bpy.types.Scene.DazShowRigging = BoolProperty(name = "Rigging", default = False)
     bpy.types.Scene.DazShowLowpoly = BoolProperty(name = "Low-poly Versions", default = False)
     bpy.types.Scene.DazShowVisibility = BoolProperty(name = "Visibility", default = False)
     bpy.types.Scene.DazShowRigging2 = BoolProperty(name = "Rigging", default = False)
-    bpy.types.Scene.DazShowRiggingSettings = BoolProperty(name = "Rigging", default = False)
     bpy.types.Scene.DazShowMesh = BoolProperty(name = "Mesh", default = False)
     bpy.types.Scene.DazShowMorphs2 = BoolProperty(name = "Morphs", default = False)
     bpy.types.Scene.DazShowHair = BoolProperty(name = "Hair", default = False)
     bpy.types.Scene.DazShowGeneral = BoolProperty(name = "General", default = False)
     bpy.types.Scene.DazShowPaths = BoolProperty(name = "Paths To DAZ Library", default = False)
-    bpy.types.Scene.DazShowSettings = BoolProperty(name = "Load/Save Settings", default = False)
     bpy.types.Scene.DazShowContentDirs = BoolProperty(name = "Content Directories", default = True)
     bpy.types.Scene.DazShowMDLDirs = BoolProperty(name = "MDL Directories", default = False)
     bpy.types.Scene.DazShowCloudDirs = BoolProperty(name = "Cloud Directories", default = False)
