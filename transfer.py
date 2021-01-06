@@ -265,6 +265,7 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
                 cskey.slider_min = hskey.slider_min
                 cskey.slider_max = hskey.slider_max
                 cskey.value = hskey.value
+                self.addToMorphSet(trg, sname)
                 if fcu is not None:
                     copyDriver(fcu, cskey)
             else:
@@ -560,6 +561,9 @@ class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
                 keys.append((skey.name, skey.name, "All"))
         return keys
 
+    def addToMorphSet(self, ob, prop):
+        pass
+
 
 class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
     bl_idname = "daz.transfer_jcms"
@@ -576,7 +580,6 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
         self.preserveRigidity = False
         return MorphTransferer.invoke(self, context, event)
 
-
     def getKeys(self, rig, ob):
         from .morphing import getMorphList, theJCMMorphSets
         jcms = [item.name for item in getMorphList(ob, theJCMMorphSets)]
@@ -585,6 +588,10 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
             if skey.name in jcms:
                 keys.append((skey.name, skey.name, "All"))
         return keys
+
+    def addToMorphSet(self, ob, prop):
+        from .modifier import addToMorphSet0
+        addToMorphSet0(ob, "Standardjcms", prop)
 
 #----------------------------------------------------------
 #   Mix Shapekeys

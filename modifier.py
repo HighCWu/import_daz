@@ -317,12 +317,13 @@ def addToMorphSet(rig, ob, morphset, prop, usePropDrivers, asset):
                 asset.initProp(rig, prop)
             else:
                 setFloatProp(rig, prop, 0.0)
-        pg = getattr(rig, "Daz"+morphset)
-    else:
-        if ob is None:
-            return
-        pg = getattr(ob, "Daz"+morphset)
+    elif ob is None:
+         return
+    return addToMorphSet0(ob, morphset, prop)
 
+
+def addToMorphSet0(ob, morphset, prop):
+    pg = getattr(ob, "Daz"+morphset)
     if prop in pg.keys():
         item = pg[prop]
     else:
