@@ -431,26 +431,10 @@ class CustomEnums:
         items = G.getActiveCategories,
         name = "Category")
 
-class StandardEnums:
-    type = EnumProperty(
-        morphset = [("Units", "Units", "Units"),
-                 ("Expressions", "Expressions", "Expressions"),
-                 ("Visemes", "Visemes", "Visemes"),
-                 ("Body", "Body", "Body"),
-                ],
-        name = "Type",
-        default = "Units")
-
 class StandardAllEnums:
     morphset = EnumProperty(
-        items = [("All", "All", "All"),
-                 ("Units", "Units", "Units"),
-                 ("Expressions", "Expressions", "Expressions"),
-                 ("Visemes", "Visemes", "Visemes"),
-                 ("Body", "Body", "Body"),
-                ],
-        name = "Type",
-        default = "All")
+        items = G.getMorphEnums,
+        name = "Type")
 
 class DeleteShapekeysBool:
     deleteShapekeys = BoolProperty(

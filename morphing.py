@@ -44,6 +44,8 @@ theStandardMorphSets = ["Units", "Expressions", "Visemes", "Body"]
 theCustomMorphSets = ["Custom"]
 theJCMMorphSets = ["Standardjcms", "Flexions", "Customjcms"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
+theMorphEnums = []
+
 
 def getMorphs0(ob, morphset, sets, category):
     if morphset == "All":
@@ -322,6 +324,10 @@ class StandardSelector(Selector, B.StandardAllEnums):
         return [(item.name, item.text, "All") for item in morphs]
 
     def invoke(self, context, event):
+        global theMorphEnums
+        theMorphEnums = [("All", "All", "All")]
+        for morphset in self.allSets:
+            theMorphEnums.append((morphset, morphset, morphset))
         self.morphset = "All"
         return Selector.invoke(self, context, event)
 
@@ -1654,10 +1660,11 @@ class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
     allSets = theJCMMorphSets
 
     def getKeys(self, rig, ob):
-        if ob.data.shape_keys:
+        skeys = ob.data.shape_keys
+        if skeys:
             morphs = getMorphList(ob, theJCMMorphSets)
-            skeys = ob.data.shape_keys.key_blocks
-            return [(item.name, item.text, "All") for item in morphs if item.name in skeys.keys()]
+            return [(item.name, item.text, "All") for item in morphs
+                    if item.name in skeys.key_blocks.keys()]
         else:
             return []
 
@@ -1689,15 +1696,42 @@ class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, IsMesh):
     allSets = theMorphSets
 
     def getKeys(self, rig, ob):
-        morphs = getMorphList(ob, theMorphSets)
-        return [(item.name, item.text, "All") for item in morphs]
+        skeys = ob.data.shape_keys
+        if skeys:
+            morphs = getMorphList(rig, theMorphSets)
+            return [(item.name, item.text, "All") for item in morphs
+                    if item.name in skeys.key_blocks.keys()]
+        else:
+            return []
+
+
+    def draw(self, context):
+        ob = context.object
+        mat = ob.data.materials[ob.active_material_index]
+        self.layout.label(text = "Active material: %s" % mat.name)
+        Selector.draw(self, context)
+
 
     def run(self, context):
-        rig = getRigFromObject(context.object)
+        from .driver import getShapekeyDriver, copyDriver
+        ob = context.object
+        skeys = ob.data.shape_keys
+        if skeys is None:
+            raise DazError("Object %s has not shapekeys" % ob.name)
+        rig = getRigFromObject(ob)
         scn = context.scene
-        if rig:
-            props = self.getSelectedProps(scn)
-            print("Add DV", props)
+        mat = ob.data.materials[ob.active_material_index]
+        props = self.getSelectedProps(scn)
+        nprops = len(props)
+        for n,prop in enumerate(props):
+            skey = skeys.key_blocks[prop]
+            fcu = getShapekeyDriver(skeys, prop)
+            node = mat.node_tree.nodes.new(type="ShaderNodeValue")
+            node.name = node.label = skey.name
+            node.location = (-500, 500-n*125)
+            if fcu:
+                channel = ('nodes["%s"].outputs[0].default_value' % node.name)
+                copyDriver(fcu, mat.node_tree, channel2=channel)
 
 
 #-------------------------------------------------------------

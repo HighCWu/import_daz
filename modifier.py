@@ -305,7 +305,6 @@ def addToMorphSet(rig, ob, morphset, prop, usePropDrivers, asset):
     from .morphing import theJCMMorphSets
     if morphset is None:
         return
-    print("ATD", rig.name, ob, morphset, prop)
     if usePropDrivers:
         if (rig is None or
             prop in rig.data.bones.keys()):

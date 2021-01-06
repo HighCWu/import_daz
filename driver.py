@@ -298,9 +298,9 @@ def clearBendDrivers(fcus):
                 fcu.driver.variables.remove(var)
 
 
-def copyDriver(fcu1, rna2, id=None):
-    channel = fcu1.data_path.rsplit(".",2)[-1]
-    if channel == "value":
+def copyDriver(fcu1, rna2, id=None, channel2=None):
+    channel1 = fcu1.data_path.rsplit(".",2)[-1]
+    if channel1 == "value":
         idx = -1
     else:
         idx = fcu1.array_index
@@ -308,7 +308,9 @@ def copyDriver(fcu1, rna2, id=None):
     if (words[0] == "pose.bones[" and
         hasattr(rna2, "pose")):
         rna2 = rna2.pose.bones[words[1]]
-    fcu2 = rna2.driver_add(channel, idx)
+    if channel2 is None:
+        channel2 = channel1
+    fcu2 = rna2.driver_add(channel2, idx)
     fcu2.driver.type = fcu1.driver.type
     if hasattr(fcu1.driver, "use_self"):
         fcu2.driver.use_self = fcu1.driver.use_self

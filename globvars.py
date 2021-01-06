@@ -77,6 +77,11 @@ def getActiveMesh(scn, context):
 #   morphing.py
 #-------------------------------------------------------------
 
+def getMorphEnums(scn, context):
+    from .morphing import theMorphEnums
+    return theMorphEnums
+
+
 def getActiveCategories(scn, context):
     from .morphing import getRigFromObject
     rig = getRigFromObject(context.object)
