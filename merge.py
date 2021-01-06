@@ -395,8 +395,8 @@ def getSelectedRigs(context):
     if rig:
         bpy.ops.object.mode_set(mode='OBJECT')
     subrigs = []
-    for ob in getSelectedObjects(context):
-        if ob.type == 'ARMATURE' and ob != rig:
+    for ob in getSelectedArmatures(context):
+        if ob != rig:
             subrigs.append(ob)
     return rig, subrigs
 
@@ -505,9 +505,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
             self.mergeRigs(context, rig, subrigs)
         else:
             rigs = []
-            for ob in getSelectedObjects(context):
-                if ob.type == 'ARMATURE' and ob.parent is None:
-                    rigs.append(ob)
+            for rig in getSelectedArmatures(context):
+                if rig.parent is None:
+                    rigs.append(rig)
             pairs = []
             for rig in rigs:
                 subrigs = self.getSubRigs(context, rig)

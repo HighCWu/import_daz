@@ -1166,13 +1166,12 @@ class DAZ_OT_DeactivateAll(DazOperator, Activator):
 
 def prettifyAll(context):
     scn = context.scene
-    for ob in getSelectedObjects(context):
-        if ob.type == 'ARMATURE':
-            for prop in ob.keys():
-                if prop[0:7] == "DazShow":
-                    setattr(bpy.types.Object, prop, BoolProperty(default=True))
-                elif prop[0:3] in ["Mhh", "DzM"]:
-                    setattr(bpy.types.Object, prop, BoolProperty(default=True))
+    for ob in getSelectedArmatures(context):
+        for prop in ob.keys():
+            if prop[0:7] == "DazShow":
+                setattr(bpy.types.Object, prop, BoolProperty(default=True))
+            elif prop[0:3] in ["Mhh", "DzM"]:
+                setattr(bpy.types.Object, prop, BoolProperty(default=True))
 
 
 class DAZ_OT_Prettify(DazOperator):
