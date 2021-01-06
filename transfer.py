@@ -166,7 +166,7 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
         self.layout.prop(self, "useDriver")
         self.layout.prop(self, "useOverwrite")
         self.layout.prop(self, "useSelectedOnly")
-        self.layout.prop(self, "ignoreRigidity")
+        self.layout.prop(self, "preserveRigidity")
         Selector.draw(self, context)
 
 
@@ -258,7 +258,7 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
             elif self.autoTransfer(src, trg, hskey):
                 cskey = trg.data.shape_keys.key_blocks[sname]
                 print(" +", sname)
-                if cskey and not self.ignoreRigidity:
+                if cskey and self.preserveRigidity:
                     self.correctForRigidity(trg, cskey)
 
             if cskey:
@@ -571,6 +571,11 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
     usePropDriver = False
     useCorrectives = True
     defaultSelect = True
+
+    def invoke(self, context, event):
+        self.preserveRigidity = False
+        return MorphTransferer.invoke(self, context, event)
+
 
     def getKeys(self, rig, ob):
         from .morphing import getMorphList, theJCMMorphSets
