@@ -1698,9 +1698,7 @@ class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, IsMesh):
     def getKeys(self, rig, ob):
         skeys = ob.data.shape_keys
         if skeys:
-            morphs = getMorphList(rig, theMorphSets)
-            return [(item.name, item.text, "All") for item in morphs
-                    if item.name in skeys.key_blocks.keys()]
+            return [(sname, sname, "All") for sname in skeys.key_blocks.keys()]
         else:
             return []
 
