@@ -635,11 +635,10 @@ def matchesPaths(var, paths, rig):
 
 def updateAll(context):
     updateScene(context)
-    for ob in getSelectedObjects(context):
-        if ob.type == 'ARMATURE':
-            updateRig(ob, context)
-            #drivers = storeBoneDrivers(ob, list(ob.pose.bones.keys()))
-            #restoreBoneDrivers(ob, drivers, "")
+    for ob in getSelectedArmatures(context):
+        updateRig(ob, context)
+        #drivers = storeBoneDrivers(ob, list(ob.pose.bones.keys()))
+        #restoreBoneDrivers(ob, drivers, "")
         updateDrivers(ob)
 
 
@@ -743,11 +742,12 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
     def run(self, context):
         rig = context.object
         for ob in getSelectedObjects(context):
-            self.retargetRna(ob, rig)
-            if ob.data:
-                self.retargetRna(ob.data, rig)
-            if ob.type == 'MESH' and ob.data.shape_keys:
-                self.retargetRna(ob.data.shape_keys, rig)
+            if ob != rig:
+                self.retargetRna(ob, rig)
+                if ob.data:
+                    self.retargetRna(ob.data, rig)
+                if ob.type == 'MESH' and ob.data.shape_keys:
+                    self.retargetRna(ob.data.shape_keys, rig)
 
 
     def retargetRna(self, rna, rig):
@@ -822,8 +822,8 @@ class DAZ_OT_CopyBoneDrivers(DazOperator, IsArmature):
 
     def run(self, context):
         rig = context.object
-        for ob in getSelectedObjects(context):
-            if ob != rig and ob.type == 'ARMATURE':
+        for ob in getSelectedArmatures(context):
+            if ob != rig:
                 copyBoneDrivers(ob, rig)
                 return
         raise DazError("Need two selected armatures")
