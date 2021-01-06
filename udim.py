@@ -30,6 +30,7 @@ import os
 from bpy.props import *
 from .error import *
 from .utils import *
+from .fileutils import MultiFile
 
 
 class DazUdimGroup(bpy.types.PropertyGroup):
@@ -236,7 +237,7 @@ class DAZ_OT_SetUDims(DazOperator):
             mat.DazVDim = vdim
 
 #----------------------------------------------------------
-#   Normal maps
+#   Normal map
 #----------------------------------------------------------
 
 class NormalMap:
@@ -316,6 +317,9 @@ def getMultires(ob):
             return mod
     return None
 
+#----------------------------------------------------------
+#   Bake maps
+#----------------------------------------------------------
 
 class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
     bl_idname = "daz.bake_normal_disp_maps"
@@ -462,8 +466,76 @@ class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
                 uvloop.data[n].uv[0] += dx
                 uvloop.data[n].uv[1] += dy
 
+#----------------------------------------------------------
+#   Add map
+#----------------------------------------------------------
 
-class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap):
+class AddMap:
+    def addNormalMap(self, tree, tex, location):
+        from .cycles import findLinksTo
+        links = findLinksTo(tree, 'NORMAL_MAP')
+        if links:
+            node = tree.nodes.new(type="ShaderNodeMixRGB")
+            node.blend_type = 'OVERLAY'
+            node.location = location
+            node.inputs["Fac"].default_value = 1
+            link = links[0]
+            tree.links.new(link.from_socket, node.inputs["Color1"])
+            tree.links.new(tex.outputs["Color"], node.inputs["Color2"])
+            tree.links.new(node.outputs["Color"], link.to_socket)
+        else:
+            node = tree.nodes.new(type="ShaderNodeNormalMap")
+            node.location = location
+            node.inputs["Strength"].default_value = 1
+            tree.links.new(tex.outputs["Color"], node.inputs["Color"])
+            self.linkSlot(tree, node, "Normal")
+
+
+    def addDispMap(self, tree, tex, location):
+        from .cycles import findNode, findLinksTo
+        disp = tree.nodes.new(type="ShaderNodeDisplacement")
+        disp.location = location
+        tree.links.new(tex.outputs["Color"], disp.inputs["Height"])
+        disp.inputs["Midlevel"].default_value = 0.5
+        disp.inputs["Scale"].default_value = self.dispScale
+        normal = findNode(tree, ['BUMP', 'NORMAL_MAP'])
+        if normal:
+            tree.links.new(normal.outputs["Normal"], disp.inputs["Normal"])
+        self.linkSlot(tree, disp, "Displacement")
+
+
+    def findTexco(self, tree):
+        from .cycles import findNode
+        node = findNode(tree, 'TEX_COORD')
+        if node:
+            return node
+        node = tree.nodes.new(type="ShaderNodeTexCoord")
+        node.location = (-300,250)
+        return node
+
+
+    def linkSlot(self, tree, normal, slot):
+        for node in tree.nodes:
+            if slot in node.inputs.keys():
+                tree.links.new(normal.outputs[slot], node.inputs[slot])
+
+
+    def addTexture(self, tree, img, location):
+        node = tree.nodes.new(type="ShaderNodeTexImage")
+        node.location = location
+        node.label = img.name
+        node.image = img
+        if hasattr(node, "image_user"):
+            node.image_user.frame_duration = 1
+            node.image_user.frame_current = 1
+        tree.links.new(self.texco.outputs["UV"], node.inputs["Vector"])
+        return node
+
+#----------------------------------------------------------
+#   Load normal/displacement maps
+#----------------------------------------------------------
+
+class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap, AddMap):
     bl_idname = "daz.load_normal_disp_maps"
     bl_label = "Load Normal/Disp Maps"
     bl_description = "Load normal/displacement maps for the selected meshes"
@@ -536,68 +608,42 @@ class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap):
 
 
     def loadMap(self, mat, img):
-        from .cycles import findNode, findLinksTo
         tree = mat.node_tree
-        texco = self.findTexco(tree)
-        tex = self.addTexture(tree, img)
-        tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
+        self.texco = self.findTexco(tree)
+        tex = self.addTexture(tree, img, (-600,250))
         if self.bakeType == 'NORMALS':
-            links = findLinksTo(tree, 'NORMAL_MAP')
-            if links:
-                node = tree.nodes.new(type="ShaderNodeMixRGB")
-                node.blend_type = 'OVERLAY'
-                node.location = (-300,-250)
-                node.inputs["Fac"].default_value = 1
-                link = links[0]
-                tree.links.new(link.from_socket, node.inputs["Color1"])
-                tree.links.new(tex.outputs["Color"], node.inputs["Color2"])
-                tree.links.new(node.outputs["Color"], link.to_socket)
-            else:
-                node = tree.nodes.new(type="ShaderNodeNormalMap")
-                node.location = (-300,-250)
-                node.inputs["Strength"].default_value = 1
-                tree.links.new(tex.outputs["Color"], node.inputs["Color"])
-                self.linkSlot(tree, node, "Normal")
+            self.addNormalMap(tree, tex, (-300,250))
         elif self.bakeType == 'DISPLACEMENT':
-            disp = tree.nodes.new(type="ShaderNodeDisplacement")
-            disp.location = (-300,-250)
-            tree.links.new(tex.outputs["Color"], disp.inputs["Height"])
-            disp.inputs["Midlevel"].default_value = 0.5
-            disp.inputs["Scale"].default_value = self.dispScale
-            normal = findNode(tree, ['BUMP', 'NORMAL_MAP'])
-            if normal:
-                tree.links.new(normal.outputs["Normal"], disp.inputs["Normal"])
-            self.linkSlot(tree, disp, "Displacement")
+            self.addDispMap(tree, tex, (-300,0))
         if self.usePrune:
             from .material import pruneNodeTree
             pruneNodeTree(tree)
 
+#----------------------------------------------------------
+#   Add extra normal maps
+#----------------------------------------------------------
 
-    def findTexco(self, tree):
-        from .cycles import findNode
-        node = findNode(tree, 'TEX_COORD')
-        if node:
-            return node
-        node = tree.nodes.new(type="ShaderNodeTexCoord")
-        node.location = (-300,250)
-        return node
+class DAZ_OT_AddNormalMaps(DazOperator, AddMap, B.ImageFile, MultiFile, IsMesh):
+    bl_idname = "daz.add_normal_maps"
+    bl_label = "Add Normal Maps"
+    bl_description = "Load normal maps for the active material"
+    bl_options = {'UNDO'}
 
+    def run(self, context):
+        from .fileutils import getMultiFiles
+        from .globvars import theImageExtensions
 
-    def linkSlot(self, tree, normal, slot):
-        for node in tree.nodes:
-            if slot in node.inputs.keys():
-                tree.links.new(normal.outputs[slot], node.inputs[slot])
-
-
-    def addTexture(self, tree, img):
-        node = tree.nodes.new(type="ShaderNodeTexImage")
-        node.location = (-300,0)
-        node.label = img.name
-        node.image = img
-        if hasattr(node, "image_user"):
-            node.image_user.frame_duration = 1
-            node.image_user.frame_current = 1
-        return node
+        filepaths = getMultiFiles(self, theImageExtensions)
+        ob = context.object
+        mat = ob.data.materials[ob.active_material_index]
+        tree = mat.node_tree
+        self.texco = self.findTexco(tree)
+        for n,filepath in enumerate(filepaths):
+            img = bpy.data.images.load(filepath)
+            img.filepath = filepath
+            img.colorspace_settings.name = "Non-Color"
+            tex = self.addTexture(tree, img, (-600, -250*n))
+            self.addNormalMap(tree, tex, (-300, -250*n))
 
 #----------------------------------------------------------
 #   Initialize
@@ -609,6 +655,7 @@ classes = [
     DAZ_OT_SetUDims,
     DAZ_OT_BakeMaps,
     DAZ_OT_LoadMaps,
+    DAZ_OT_AddNormalMaps,
 ]
 
 def initialize():

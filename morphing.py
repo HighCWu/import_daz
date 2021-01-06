@@ -1726,7 +1726,7 @@ class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, IsMesh):
             fcu = getShapekeyDriver(skeys, prop)
             node = mat.node_tree.nodes.new(type="ShaderNodeValue")
             node.name = node.label = skey.name
-            node.location = (-500, 500-n*125)
+            node.location = (-800, 250-250*n)
             if fcu:
                 channel = ('nodes["%s"].outputs[0].default_value' % node.name)
                 copyDriver(fcu, mat.node_tree, channel2=channel)
