@@ -148,7 +148,10 @@ if bpy.app.version < (2,80,0):
 
     def selectObjects(context, objects):
         if context.object:
-            bpy.ops.object.mode_set(mode='OBJECT')
+            try:
+                bpy.ops.object.mode_set(mode='OBJECT')
+            except RuntimeError:
+                pass
         bpy.ops.object.select_all(action='DESELECT')
         for ob in objects:
             if ob:
@@ -304,7 +307,10 @@ else:
 
     def selectObjects(context, objects):
         if context.object:
-            bpy.ops.object.mode_set(mode='OBJECT')
+            try:
+                bpy.ops.object.mode_set(mode='OBJECT')
+            except RuntimeError:
+                pass
         bpy.ops.object.select_all(action='DESELECT')
         for ob in objects:
             try:

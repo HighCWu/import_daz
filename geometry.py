@@ -661,8 +661,11 @@ class Geometry(Asset, Channels):
 
         if self.sourcing:
             asset = self.sourcing
-            self.polygon_groups = asset.polygon_groups
-            self.polygon_material_groups = asset.polygon_material_groups
+            if isinstance(asset, Geometry):
+                self.polygon_groups = asset.polygon_groups
+                self.polygon_material_groups = asset.polygon_material_groups
+            else:
+                print("Sourcing:", self, asset)
 
         name = self.getName()
         me = self.rna = bpy.data.meshes.new(name)
