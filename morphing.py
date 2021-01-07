@@ -106,6 +106,13 @@ def getMorphList(ob, morphset, sets=None):
     return mlist
 
 
+def getMorphCategory(rig, prop):
+    for cat in rig.DazMorphCats:
+        if prop in cat.morphs.keys():
+            return cat.name
+    return "Shapes"
+
+
 def getMorphs(ob, morphset, category=None, activeOnly=False):
     """getMorphs(ob, type, category=None, activeOnly=False)
     Get all morph names and values of the specified type from the object.

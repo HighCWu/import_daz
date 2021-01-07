@@ -637,10 +637,9 @@ def matchesPaths(var, paths, rig):
 
 def updateAll(context):
     updateScene(context)
-    for ob in getSelectedArmatures(context):
-        updateRig(ob, context)
-        #drivers = storeBoneDrivers(ob, list(ob.pose.bones.keys()))
-        #restoreBoneDrivers(ob, drivers, "")
+    for ob in getSceneObjects(context):
+        if ob.type == 'ARMATURE':
+            updateRig(ob, context)
         updateDrivers(ob)
 
 
@@ -755,7 +754,7 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
     def retargetRna(self, rna, rig):
         from .morphing import addToCategories
         if rna and rna.animation_data:
-            props = []
+            props = {}
             for fcu in rna.animation_data.drivers:
                 for var in fcu.driver.variables:
                     if var.type == 'SINGLE_PROP':
@@ -763,15 +762,35 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
                         words = trg.data_path.split('"')
                         if len(words) == 3:
                             prop = words[1]
-                            setFloatProp(rig, prop, 0.0, GS.propMin, GS.propMax)
-                            props.append(prop)
+                            if prop not in rig.keys():
+                                min,max,cat = self.getOldData(trg, prop)
+                                if cat not in props.keys():
+                                    props[cat] = []
+                                props[cat].append(prop)
+                                setFloatProp(rig, prop, 0.0, min, max)
                     for trg in var.targets:
                         if trg.id_type == 'OBJECT':
                             trg.id = rig
-            updateDrivers(rna)
             if props:
-                addToCategories(rig, props, "Shapes")
+                for cat,cprops in props.items():
+                    addToCategories(rig, cprops, cat)
                 rig.DazCustomMorphs = True
+            updateDrivers(rna)
+
+
+    def getOldData(self, trg, prop):
+        from .morphing import getMorphCategory
+        if not trg.id:
+            return GS.propMin, GS.propMax, "Shapes"
+        min = GS.propMin
+        max = GS.propMax
+        rna_ui = trg.id.get('_RNA_UI')
+        if rna_ui and "min" in rna_ui.keys():
+            min = rna_ui["min"]
+        if rna_ui and "max" in rna_ui.keys():
+            max = rna_ui["max"]
+        cat = getMorphCategory(trg.id, prop)
+        return min, max, cat
 
 #----------------------------------------------------------
 #   Copy props
