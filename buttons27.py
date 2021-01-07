@@ -840,10 +840,10 @@ class TransferOptions:
         description = "Only copy to selected vertices",
         default = False)
 
-    preserveRigidity = BoolProperty(
-        name = "Preserve Rigidity Groups",
-        description = "Preserve rigidity groups when auto-transfer morphs.\nMorphs may differ from DAZ Studio.",
-        default = True)
+    ignoreRigidity = BoolProperty(
+        name = "Ignore Rigidity Groups",
+        description = "Ignore rigidity groups when auto-transfer morphs.\nMorphs may differ from DAZ Studio.",
+        default = False)
 
 
 class MixShapekeysOptions:
