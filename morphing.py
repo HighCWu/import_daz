@@ -985,6 +985,7 @@ class DAZ_OT_RenameCategory(DazPropsOperator, B.CustomEnums, B.CategoryString, I
 
 
 def removeFromPropGroups(rig, prop, keep=False):
+    from .propgroups import getAllPropGroups
     for pb in rig.pose.bones:
         pgs = getAllPropGroups(pb)
         for pg in pgs:

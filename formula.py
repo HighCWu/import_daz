@@ -520,7 +520,7 @@ class PoseboneDriver:
         from .driver import addTransformVar, driverHasVar
         fcu.driver.type = 'SCRIPTED'
         if abs(value) > 1e-4:
-            expr = 'evalMorphs%s(self, %d)' % (key, fcu.array_index)
+            expr = 'evalMorphs%s%d(self)' % (key, fcu.array_index)
             drvexpr = fcu.driver.expression[len(init):]
             if drvexpr in ["0.000", "-0.000"]:
                 if init:
@@ -549,7 +549,7 @@ class PoseboneDriver:
 
     def addMorphGroup(self, pb, idx, key, prop, default, factor, factor2=None):
         from .propgroups import getPropGroups
-        pgs = getPropGroups(key, idx)
+        pgs = getPropGroups(pb, key, idx)
         self.clearProp(pgs, prop, idx)
         pg = pgs.add()
         pg.init(prop, idx, default, factor, factor2)
