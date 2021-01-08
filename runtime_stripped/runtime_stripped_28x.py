@@ -231,21 +231,7 @@ def register():
     bpy.types.PoseBone.DazScaProps1 = CollectionProperty(type = DazMorphGroup)
     bpy.types.PoseBone.DazScaProps2 = CollectionProperty(type = DazMorphGroup)
 
-    bpy.app.driver_namespace["evalMorphs"] = evalMorphs
-    bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
-    bpy.app.driver_namespace["evalMorphsLoc"] = evalMorphsLoc
-    bpy.app.driver_namespace["evalMorphsLoc0"] = evalMorphsLoc0
-    bpy.app.driver_namespace["evalMorphsLoc1"] = evalMorphsLoc1
-    bpy.app.driver_namespace["evalMorphsLoc2"] = evalMorphsLoc2
-    bpy.app.driver_namespace["evalMorphsRot"] = evalMorphsRot
-    bpy.app.driver_namespace["evalMorphsRot0"] = evalMorphsRot0
-    bpy.app.driver_namespace["evalMorphsRot1"] = evalMorphsRot1
-    bpy.app.driver_namespace["evalMorphsRot2"] = evalMorphsRot2
-    bpy.app.driver_namespace["evalMorphsRot3"] = evalMorphsRot3
-    bpy.app.driver_namespace["evalMorphsSca"] = evalMorphsSca
-    bpy.app.driver_namespace["evalMorphsSca0"] = evalMorphsSca0
-    bpy.app.driver_namespace["evalMorphsSca1"] = evalMorphsSca1
-    bpy.app.driver_namespace["evalMorphsSca2"] = evalMorphsSca2
+    updateHandler(None)
     bpy.app.handlers.load_post.append(updateHandler)
 
     # Update drivers
