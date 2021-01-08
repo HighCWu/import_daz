@@ -775,7 +775,7 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
                 for cat,cprops in props.items():
                     addToCategories(rig, cprops, cat)
                 rig.DazCustomMorphs = True
-            updateDrivers(rna)
+            updateDrivers(rig)
 
 
     def getOldData(self, trg, prop):
