@@ -710,10 +710,11 @@ class Geometry(Asset, Channels):
                    "\# Blender polygons: %d\n" % len(me.polygons))
             reportError(msg, trigger=(2,3))
 
-        for fn,mn in enumerate(self.material_indices):
-            f = me.polygons[fn]
-            f.material_index = mn
-            f.use_smooth = True
+        if len(me.polygons) > 0:
+            for fn,mn in enumerate(self.material_indices):
+                f = me.polygons[fn]
+                f.material_index = mn
+                f.use_smooth = True
 
         if self.polylines:
             me.DazMatNums.clear()
