@@ -240,7 +240,7 @@ class DAZ_OT_SetUDims(DazOperator):
 #   Normal map
 #----------------------------------------------------------
 
-class NormalMap:
+class MapOperator:
     imageSize : EnumProperty(
         items = [("512", "512 x 512", "512 x 512 pixels"),
                  ("1024", "1024 x 1024", "1024 x 1024 pixels"),
@@ -259,14 +259,50 @@ class NormalMap:
         description = "Bake Type",
         default = 'NORMALS')
 
+    subfolder : StringProperty(
+        name = "Subfolder",
+        description = "Subfolder for normal/displace maps",
+        default = "")
+
+    basename : StringProperty(
+        name = "Base Name",
+        description = "Name used to construct file names",
+        default = "")
+
+    storedFolder : StringProperty(default = "")
+    storedName : StringProperty(default = "")
+
 
     def draw(self, context):
         self.layout.prop(self, "imageSize")
         self.layout.prop(self, "bakeType")
+        self.layout.prop(self, "subfolder")
+        self.layout.prop(self, "basename")
+
+
+    def setDefaultNames(self, context):
+        if self.storedName:
+            self.basename = self.storedName
+        else:
+            self.basename = ""
+            self.basename = self.getBaseName(context.object)
+        if self.storedFolder:
+            self.subfolder = self.storedFolder
+        else:
+            self.subfolder = self.basename
+
+
+    def storeDefaultNames(self, context):
+        if not self.subfolder:
+            self.subfolder = self.getBaseName(context.object)
+        self.storedFolder = self.subfolder
+        self.storedName = self.basename
 
 
     def getBaseName(self, ob):
-        if ob.name[-3:] == "_HD":
+        if self.basename:
+            return self.basename
+        elif ob.name[-3:] == "_HD":
             obname = ob.name[:-3]
         else:
             obname = ob.name
@@ -282,9 +318,9 @@ class NormalMap:
             return ("%s_DISP_%d_%s.png" % (basename, tile, self.imageSize))
 
 
-    def getImagePath(self, basename, imgname, create):
+    def getImagePath(self, imgname, create):
         folder = os.path.dirname(bpy.data.filepath)
-        dirpath = os.path.join(folder, "textures", self.bakeType.lower(), basename)
+        dirpath = os.path.join(folder, "textures", self.bakeType.lower(), self.subfolder)
         if not os.path.exists(dirpath):
             if create:
                 os.makedirs(dirpath)
@@ -321,16 +357,35 @@ def getMultires(ob):
 #   Bake maps
 #----------------------------------------------------------
 
-class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
+class DAZ_OT_BakeMaps(DazPropsOperator, MapOperator):
     bl_idname = "daz.bake_normal_disp_maps"
     bl_label = "Bake Normal/Disp Maps"
     bl_description = "Bake normal/displacement maps for the selected HD meshes"
     bl_options = {'UNDO'}
 
+    useSingleTile : BoolProperty(
+        name = "Single Tile",
+        description = "Only bake map for a single tile",
+        default = False)
+
+    tile : IntProperty(
+        name = "Tile",
+        description = "Single tile to bake",
+        min = 1001, max = 1100,
+        default = 1001)
+
+
     @classmethod
     def poll(self, context):
         ob = context.object
         return (bpy.data.filepath and ob and getMultires(ob))
+
+
+    def draw(self, context):
+        MapOperator.draw(self, context)
+        self.layout.prop(self, "useSingleTile")
+        if self.useSingleTile:
+            self.layout.prop(self, "tile")
 
 
     def prequel(self, context):
@@ -356,7 +411,13 @@ class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
         context.view_layer.objects.active = self.object
 
 
+    def invoke(self, context, event):
+        self.setDefaultNames(context)
+        return DazPropsOperator.invoke(self, context, event)
+
+
     def run(self, context):
+        self.storeDefaultNames(context)
         objects = [ob for ob in getSelectedMeshes(context) if getMultires(ob)]
         for ob in objects:
             activateObject(context, ob)
@@ -396,8 +457,10 @@ class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
         ntiles = len(tiles)
         startProgress("Baking %s" % ob.name)
         for n,data in enumerate(tiles.items()):
-            showProgress(n, ntiles)
             tile,fnums = data
+            if self.useSingleTile and tile != self.tile:
+                continue
+            showProgress(n, ntiles)
             img = self.makeImage(ob, tile)
             mat = self.makeMaterial(ob, img)
             self.translateTile(ob, fnums, tile, -1)
@@ -418,7 +481,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, NormalMap):
         size = int(self.imageSize)
         img = bpy.data.images.new(imgname, size, size)
         img.colorspace_settings.name = "Non-Color"
-        img.filepath = self.getImagePath(basename, imgname, True)
+        img.filepath = self.getImagePath(imgname, True)
         return img
 
 
@@ -535,7 +598,7 @@ class AddMap:
 #   Load normal/displacement maps
 #----------------------------------------------------------
 
-class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap, AddMap):
+class DAZ_OT_LoadMaps(DazPropsOperator, MapOperator, AddMap):
     bl_idname = "daz.load_normal_disp_maps"
     bl_label = "Load Normal/Disp Maps"
     bl_description = "Load normal/displacement maps for the selected meshes"
@@ -559,13 +622,19 @@ class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap, AddMap):
         default = True)
 
     def draw(self, context):
-        NormalMap.draw(self, context)
+        MapOperator.draw(self, context)
         if self.bakeType == 'DISPLACEMENT':
             self.layout.prop(self, "dispScale")
         self.layout.prop(self, "usePrune")
 
 
+    def invoke(self, context, event):
+        self.setDefaultNames(context)
+        return DazPropsOperator.invoke(self, context, event)
+
+
     def run(self, context):
+        self.storeDefaultNames(context)
         for ob in getSelectedMeshes(context):
             activateObject(context, ob)
             self.loadObjectNormals(ob)
@@ -596,7 +665,7 @@ class DAZ_OT_LoadMaps(DazPropsOperator, NormalMap, AddMap):
     def loadImage(self, ob, tile):
         basename = self.getBaseName(ob)
         imgname = self.getImageName(basename, tile)
-        filepath = self.getImagePath(basename, imgname, False)
+        filepath = self.getImagePath(imgname, False)
         if not filepath:
             raise DazError("No normal maps found for\nobject %s" % ob.name)
         if not os.path.exists(filepath):
