@@ -1041,9 +1041,6 @@ class DazDriverGroup(bpy.types.PropertyGroup):
     expression = StringProperty()
     channel = StringProperty()
 
-class DazStringGroup(bpy.types.PropertyGroup):
-    s = StringProperty()
-
 class DazKeys(bpy.types.PropertyGroup):
     keys = CollectionProperty(type = StringProperty)
 

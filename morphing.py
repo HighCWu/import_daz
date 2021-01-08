@@ -628,7 +628,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         import time
         from .asset import clearAssets
         from .main import finishMain
-        from .daz import clearDependecies
+        from .propgroups import clearDependecies
 
         scn = context.scene
         if self.mesh:
@@ -986,9 +986,9 @@ class DAZ_OT_RenameCategory(DazPropsOperator, B.CustomEnums, B.CategoryString, I
 
 def removeFromPropGroups(rig, prop, keep=False):
     for pb in rig.pose.bones:
-        removeFromPropGroup(pb.DazLocProps, prop)
-        removeFromPropGroup(pb.DazRotProps, prop)
-        removeFromPropGroup(pb.DazScaleProps, prop)
+        pgs = getAllPropGroups(pb)
+        for pg in pgs:
+            removeFromPropGroup(pg, prop)
 
     for morphset in theStandardMorphSets:
         pg = getattr(rig, "Daz" + morphset)
@@ -1293,6 +1293,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
 
 
     def run(self, context):
+        from .propgroups import getAllPropGroups
         for ob in context.scene.objects:
             for key in ob.keys():
                 self.updateKey(ob, key)
@@ -1307,7 +1308,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
             elif ob.type == 'ARMATURE':
                 bad = False
                 for pb in ob.pose.bones:
-                    for pgs in [pb.DazLocProps, pb.DazRotProps, pb.DazScaleProps]:
+                    for pgs in getAllPropGroups(pb):
                         for pg in pgs:
                             if pg.prop:
                                 pg.name = pg.prop
@@ -1323,8 +1324,9 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
 
 
     def removeAllMorphs(self, rig):
+        from propgroups import getAllPropGroups
         for pb in rig.pose.bones:
-            for pgs in [pb.DazLocProps, pb.DazRotProps, pb.DazScaleProps]:
+            for pgs in getAllPropGroups(pb):
                 pgs.clear()
         deletes = []
         for key in rig.keys():
@@ -1555,10 +1557,10 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, B.MorphSets, IsMeshArmat
 
 
     def clearPropGroups(self, rig):
+        from .propgroups import getAllPropGroups
         for pb in rig.pose.bones:
-            pb.DazLocProps.clear()
-            pb.DazRotProps.clear()
-            pb.DazScaleProps.clear()
+            for pgs in getAllPropGroups(pb):
+                pgs.clear()
             pb.location = (0,0,0)
             pb.rotation_euler = (0,0,0)
             pb.rotation_quaternion = (1,0,0,0)

@@ -837,7 +837,7 @@ class Rigify:
     def rigifyMeta(self, context, deleteMeta):
         from .driver import getBoneDrivers, copyDriver, changeBoneTarget
         from .node import setParent, clearParent
-        from .daz import copyPropGroups
+        from .propgroups import copyPropGroups
         from .mhx import unhideAllObjects, getBoneLayer, changeAllTargets
 
         print("Rigify metarig")

@@ -815,7 +815,7 @@ class DAZ_OT_CopyProps(DazOperator, IsObject):
 #----------------------------------------------------------
 
 def copyBoneDrivers(rig1, rig2):
-    from .daz import copyPropGroups
+    from .propgroups import copyPropGroups
 
     if rig1.animation_data:
         struct = {}

@@ -60,7 +60,7 @@ def importModules():
             modnames.append("buttons27")
         else:
             modnames.append("buttons28")
-        modnames += ["daz", "fileutils", "load_json", "driver", "asset", "channels", "formula",
+        modnames += ["propgroups", "daz", "fileutils", "load_json", "driver", "asset", "channels", "formula",
                     "transform", "node", "figure", "bone", "geometry", "objfile",
                     "fix", "modifier", "morphing", "convert", "material", "internal",
                     "cycles", "cgroup", "pbr", "render", "camera", "light",
@@ -169,6 +169,7 @@ classes = (
 def register():
     addon_updater_ops.register(bl_info)
     convert.initialize()
+    propgroups.initialize()
     daz.initialize()
     driver.initialize()
     figure.initialize()
@@ -212,6 +213,7 @@ def unregister():
     addon_updater_ops.unregister()
     animation.uninitialize()
     convert.uninitialize()
+    propgroups.uninitialize()
     daz.uninitialize()
     driver.uninitialize()
     figure.uninitialize()

@@ -548,7 +548,8 @@ class PoseboneDriver:
 
 
     def addMorphGroup(self, pb, idx, key, prop, default, factor, factor2=None):
-        pgs = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
+        from .propgroups import getPropGroups
+        pgs = getPropGroups(key, idx)
         self.clearProp(pgs, prop, idx)
         pg = pgs.add()
         pg.init(prop, idx, default, factor, factor2)
@@ -670,7 +671,7 @@ class PropFormulas(PoseboneDriver):
     def opencode(self, exprs, asset, opencoded, level):
         from .bone import getTargetName
         from .modifier import ChannelAsset
-        from .daz import addDependency
+        from .propgroups import addDependency
         if level > 5:
             raise DazError("Recursion too deep")
         for prop,expr in exprs.items():
@@ -765,7 +766,7 @@ class PropFormulas(PoseboneDriver):
 
 
     def getNextLevelMorphs(self, others):
-        from .daz import addDependency
+        from .propgroups import addDependency
         remains = {}
         batch = {}
         used = {}
@@ -785,15 +786,16 @@ class PropFormulas(PoseboneDriver):
 
 
     def getStoredMorphs(self, key):
+        from .propgroups import hasPropGroups, getLocProps, getRotProps, getScaleProps
         stored = {}
         for pb in self.rig.pose.bones:
-            if not (pb.DazLocProps or pb.DazRotProps or pb.DazScaleProps):
+            if not hasPropGroups(pb):
                 continue
             data = stored[pb.name] = {"Loc" : {}, "Rot" : {}, "Sca" : {}}
             for channel,pgs in [
-                ("Loc", pb.DazLocProps),
-                ("Rot", pb.DazRotProps),
-                ("Sca", pb.DazScaleProps)]:
+                ("Loc", getLocProps(pb)),
+                ("Rot", getRotProps(pb)),
+                ("Sca", getScaleProps(pb))]:
                 for pg in pgs:
                     if pg.name == key:
                         data[channel][pg.index] = (pg.factor, pg.factor2, pg.default)
