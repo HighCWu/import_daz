@@ -690,7 +690,6 @@ class Geometry(Asset, Channels):
             return None
 
         if self.polylines:
-            faces = []
             for pline in self.polylines:
                 edges += [(pline[i-1],pline[i]) for i in range(3,len(pline))]
                 pn = pline[0]
@@ -792,7 +791,7 @@ class Geometry(Asset, Channels):
             if uv_set.checkSize(me):
                 uv_set.build(context, me, self, setActive)
             else:
-                msg = ("Incompatible UV set\n  %s\n  %s" % (me, uv_set))
+                msg = ("Incompatible UV sets:\n  %s\n  %s" % (me.name, uv_set.name))
                 reportError(msg, trigger=(2,3))
 
 
