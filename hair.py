@@ -69,6 +69,11 @@ class HairSystem:
 
         pset.rendered_child_count = btn.nRenderChildren
         pset.child_nbr = btn.nViewChildren
+        if hasattr(pset, "display_step"):
+            pset.display_step = btn.nViewStep
+        else:
+            pset.draw_step = btn.nViewStep
+        pset.render_step = btn.nRenderStep
         pset.child_length = 1
         psys.child_seed = 0
         pset.child_radius = 0.1*btn.childRadius*self.scale
@@ -369,6 +374,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         box.label(text="Settings")
         box.prop(self, "nViewChildren")
         box.prop(self, "nRenderChildren")
+        box.prop(self, "nViewStep")
+        box.prop(self, "nRenderStep")
         box.prop(self, "childRadius")
         if bpy.app.version >= (2,80,0):
             box.prop(self, "strandShape")

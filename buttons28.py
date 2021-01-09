@@ -739,6 +739,18 @@ class Hair:
         min = 0,
         default = 0)
 
+    nViewStep : IntProperty(
+        name = "Viewport Steps",
+        description = "How many steps paths are drawn with (power of 2)",
+        min = 0,
+        default = 3)
+
+    nRenderStep : IntProperty(
+        name = "Render Steps",
+        description = "How many steps paths are rendered with (power of 2)",
+        min = 0,
+        default = 3)
+
     strandShape : EnumProperty(
         items = [('STANDARD', "Standard", "Standard strand shape"),
                  ('ROOTS', "Fading Roots", "Root transparency (standard shape with fading roots)"),
