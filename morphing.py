@@ -565,17 +565,20 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         skey = None
         prop = None
         if self.useShapekeys and isinstance(asset, Morph) and self.mesh and self.mesh.type == 'MESH':
+            useBuild = True
             if asset.vertex_count < 0:
                 print("Vertex count == %d" % asset.vertex_count)
             elif asset.vertex_count != len(self.mesh.data.vertices):
+                msg = ("Vertex count mismatch:\n  %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
                 if GS.verbosity > 2:
-                    msg = ("Vertex count mismatch:\n  %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
-                    if self.suppressError:
-                        print(msg)
-                    else:
-                        raise DazError(msg)
-                return [],miss
-            asset.buildMorph(self.mesh, self.useSoftLimits, morphset=self.morphset)
+                    print(msg)
+                if asset.hd_url and self.ignoreHD:
+                    useBuild = False
+                elif self.suppressError:
+                    return [],miss
+                else:
+                    raise DazError(msg)
+            asset.buildMorph(self.mesh, useBuild=useBuild, useSoftLimits=self.useSoftLimits, morphset=self.morphset)
             skey,ob,sname = asset.rna
             if self.rig and self.usePropDrivers:
                 prop = skey.name
@@ -693,16 +696,16 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
 
 class LoadShapekey(LoadMorph):
-
     usePropDrivers = False
+    ignoreHD = False
 
 #------------------------------------------------------------------
 #   Load typed morphs base class
 #------------------------------------------------------------------
 
 class LoadAllMorphs(LoadMorph):
-
     suppressError = True
+    ignoreHD = False
 
     def setupCharacter(self, context, rigIsMesh):
         ob = context.object
@@ -853,7 +856,10 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class ImportCustom(B.DazImageFile, MultiFile):
+class ImportCustom(B.DazImageFile, B.IgnoreHD, MultiFile):
+
+    def draw(self, context):
+        self.layout.prop(self, "ignoreHD")
 
     def invoke(self, context, event):
         from .fileutils import getFolder
@@ -861,7 +867,6 @@ class ImportCustom(B.DazImageFile, MultiFile):
         if folder is not None:
             self.properties.filepath = folder
         return MultiFile.invoke(self, context, event)
-
 
     def getNamePaths(self):
         from .fileutils import getMultiFiles
@@ -882,6 +887,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
     morphset = "Custom"
 
     def draw(self, context):
+        ImportCustom.draw(self, context)
         self.layout.prop(self, "usePropDrivers")
         self.layout.prop(self, "catname")
 
@@ -952,13 +958,11 @@ def addToCategories(rig, snames, catname):
         else:
             cat = cats[catname]
         setBoolProp(cat, "active", True)
-
-        morphs = dict([(morph.text,morph) for morph in cat.morphs])
         for sname in snames:
-            if sname not in morphs.keys():
+            if sname not in cat.morphs.keys():
                 morph = cat.morphs.add()
             else:
-                morph = morphs[sname]
+                morph = cat.morphs[sname]
             morph.name = sname
             morph.text = stripPrefix(sname)
 

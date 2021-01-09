@@ -445,6 +445,12 @@ class DeleteShapekeysBool:
         default = True
     )
 
+class IgnoreHD:
+    ignoreHD : BoolProperty(
+        name = "Ignore HD Mismatch",
+        description = "Ignore vertex count mismatch for HD morphs",
+        default = True
+    )
 
 class DazSelectGroup(bpy.types.PropertyGroup):
     text : StringProperty()

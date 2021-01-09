@@ -618,6 +618,7 @@ class Morph(FormulaAsset):
         FormulaAsset.__init__(self, fileref)
         self.type = "morph"
         self.vertex_count = 0
+        self.hd_url = None
 
 
     def __repr__(self):
@@ -629,8 +630,11 @@ class Morph(FormulaAsset):
         if not LS.useMorph:
             return
         self.parent = struct["parent"]
-        self.deltas = struct["morph"]["deltas"]["values"]
-        self.vertex_count = struct["morph"]["vertex_count"]
+        morph = struct["morph"]
+        self.deltas = morph["deltas"]["values"]
+        self.vertex_count = morph["vertex_count"]
+        if "hd_url" in morph.keys():
+            self.hd_url = morph["hd_url"]
 
 
     def update(self, struct):
@@ -731,7 +735,7 @@ class Morph(FormulaAsset):
             me.vertices[vn].co += scale * d2bu(delta[1:])
 
 
-    def buildMorph(self, ob, useSoftLimits=False, morphset=None, usePropDrivers=False):
+    def buildMorph(self, ob, useBuild=True, useSoftLimits=False, morphset=None, usePropDrivers=False):
         if not ob.data.shape_keys:
             basic = ob.shape_key_add(name="Basic")
         else:
@@ -747,7 +751,8 @@ class Morph(FormulaAsset):
             skey.slider_max = self.max if self.max is not None and GS.useDazPropLimits else GS.propMax
         skey.value = self.value
         self.rna = (skey, ob, sname)
-        self.buildShapeKey(ob, skey)
+        if useBuild:
+            self.buildShapeKey(ob, skey)
 
 
     def buildShapeKey(self, ob, skey):

@@ -378,6 +378,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
         ob = context.object
         layout = self.layout
         layout.operator("daz.decode_file")
+        layout.operator("daz.print_statistics")
         layout.separator()
         box = layout.box()
         if ob:
@@ -412,7 +413,6 @@ class DAZ_PT_Utils(bpy.types.Panel):
             layout.operator("daz.set_silent_mode", text="Silent Mode ON")
         else:
             layout.operator("daz.set_silent_mode", text="Silent Mode OFF")
-        layout.operator("daz.print_statistics")
         layout.operator("daz.get_finger_print")
         layout.operator("daz.inspect_prop_groups")
         layout.operator("daz.inspect_prop_dependencies")

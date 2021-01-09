@@ -352,10 +352,10 @@ class DAZ_OT_ImportDBZ(DazOperator, B.DbzFile, MultiFile, IsMesh):
         paths = getMultiFiles(self, ["dbz", "json"])
         for path in paths:
             for ob in objects:
-                self.buildMorph(ob, path)
+                self.buildDBZMorph(ob, path)
 
 
-    def buildMorph(self, ob, filepath):
+    def buildDBZMorph(self, ob, filepath):
         dbz = loadDbzFile(filepath)
         if not ob.data.shape_keys:
             basic = ob.shape_key_add(name="Basic")
