@@ -235,7 +235,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         scn = context.scene
         ob = context.object
         layout = self.layout
-        layout.operator("daz.update_all")
 
         box = layout.box()
         if showBox(scn, "DazShowLowpoly", box):
@@ -380,6 +379,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
         layout = self.layout
         layout.operator("daz.decode_file")
         layout.operator("daz.print_statistics")
+        layout.operator("daz.update_all")
         layout.separator()
         box = layout.box()
         if ob:

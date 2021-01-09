@@ -406,10 +406,14 @@ def updateRig(rig, context):
 
 
 def updateDrivers(ob):
-    if ob and ob.animation_data:
-        for fcu in ob.animation_data.drivers:
-            string = str(fcu.driver.expression)
-            fcu.driver.expression = string
+    def updateRna(rna):
+        if rna and rna.animation_data:
+            for fcu in rna.animation_data.drivers:
+                string = str(fcu.driver.expression)
+                fcu.driver.expression = string
+    updateRna(ob)
+    if ob.type == 'MESH':
+        updateRna(ob.data.shape_keys)
 
 
 def instRef(ref):
