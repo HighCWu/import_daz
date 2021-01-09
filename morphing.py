@@ -566,20 +566,27 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         prop = None
         if self.useShapekeys and isinstance(asset, Morph) and self.mesh and self.mesh.type == 'MESH':
             useBuild = True
+            skey = None
             if asset.vertex_count < 0:
                 print("Vertex count == %d" % asset.vertex_count)
             elif asset.vertex_count != len(self.mesh.data.vertices):
                 msg = ("Vertex count mismatch:\n  %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
                 if GS.verbosity > 2:
                     print(msg)
-                if asset.hd_url and self.ignoreHD:
-                    useBuild = False
+                if asset.hd_url:
+                    if self.treatHD == 'CREATE':
+                        useBuild = False
+                    elif self.treatHD == 'ACTIVE':
+                        skey,ob,sname = self.getActiveShape(asset)
+                if skey or not useBuild:
+                    pass
                 elif self.suppressError:
                     return [],miss
                 else:
                     raise DazError(msg)
-            asset.buildMorph(self.mesh, useBuild=useBuild, useSoftLimits=self.useSoftLimits, morphset=self.morphset)
-            skey,ob,sname = asset.rna
+            if skey is None:
+                asset.buildMorph(self.mesh, useBuild=useBuild, useSoftLimits=self.useSoftLimits, morphset=self.morphset)
+                skey,ob,sname = asset.rna
             if self.rig and self.usePropDrivers:
                 prop = skey.name
                 min = skey.slider_min if GS.useDazPropLimits else None
@@ -625,6 +632,16 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             return [prop],miss
         else:
             return [],miss
+
+
+    def getActiveShape(self, asset):
+        ob = self.mesh
+        sname = asset.name
+        skey = None
+        if ob.data.shape_keys:
+            skey = ob.data.shape_keys.key_blocks[ob.active_shape_key_index]
+            skey.name = sname
+        return skey, ob, sname
 
 
     def getAllMorphs(self, namepaths, context):
@@ -856,10 +873,10 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class ImportCustom(B.DazImageFile, B.IgnoreHD, MultiFile):
+class ImportCustom(B.DazImageFile, B.TreatHD, MultiFile):
 
     def draw(self, context):
-        self.layout.prop(self, "ignoreHD")
+        self.layout.prop(self, "treatHD")
 
     def invoke(self, context, event):
         from .fileutils import getFolder

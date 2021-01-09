@@ -445,11 +445,14 @@ class DeleteShapekeysBool:
         default = True
     )
 
-class IgnoreHD:
-    ignoreHD : BoolProperty(
-        name = "Ignore HD Mismatch",
-        description = "Ignore vertex count mismatch for HD morphs",
-        default = True
+class TreatHD:
+    treatHD : EnumProperty(
+        items = [('ERROR', "Error", "Raise error"),
+                 ('CREATE', "Create Shapekey", "Create empty shapekeys"),
+                 ('ACTIVE', "Active Shapekey", "Drive active shapekey")],
+        name = "Treat HD Mismatch",
+        description = "How to deal with vertex count mismatch for HD morphs",
+        default = 'ERROR'
     )
 
 class DazSelectGroup(bpy.types.PropertyGroup):
