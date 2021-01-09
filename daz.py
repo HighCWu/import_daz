@@ -330,6 +330,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.separator()
             box.operator("daz.convert_standard_morphs_to_shapekeys")
             box.operator("daz.convert_custom_morphs_to_shapekeys")
+            box.operator("daz.transfer_mesh_to_shape")
             box.separator()
             box.operator("daz.add_shapekey_drivers")
             box.operator("daz.remove_shapekey_drivers")

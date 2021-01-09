@@ -2072,6 +2072,37 @@ class DAZ_OT_ConvertCustomMorphsToShapes(DazOperator, CustomSelector, MorphsToSh
     morphset = "Custom"
 
 #-------------------------------------------------------------
+#   Transfer verts to shapekeys
+#-------------------------------------------------------------
+
+class DAZ_OT_MeshToShape(DazOperator, IsMesh):
+    bl_idname = "daz.transfer_mesh_to_shape"
+    bl_label = "Transfer Mesh To Shapekey"
+    bl_description = "Transfer selected mesh to active shapekey"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        trg = context.object
+        skeys = trg.data.shape_keys
+        if skeys is None:
+            raise DazError("Target mesh must have shapekeys")
+        idx = trg.active_shape_key_index
+        if idx == 0:
+            raise DazError("Cannot transfer to Basic shapekeys")
+        objects = [ob for ob in getSelectedMeshes(context) if ob != trg]
+        if len(objects) != 1:
+            raise DazError("Exactly two meshes must be selected")
+        src = objects[0]
+        nsverts = len(src.data.vertices)
+        ntverts = len(trg.data.vertices)
+        if nsverts != ntverts:
+            raise DazError("Vertex count mismatch:  \n%d != %d" % (nsverts, ntverts))
+        skey = skeys.key_blocks[idx]
+        print("SKEY", skey)
+        for v in src.data.vertices:
+            skey.data[v.index].co = v.co
+
+#-------------------------------------------------------------
 #   Property groups, for drivers
 #-------------------------------------------------------------
 
@@ -2120,6 +2151,7 @@ classes = [
     DAZ_OT_LoadMoho,
     DAZ_OT_ConvertStandardMorphsToShapes,
     DAZ_OT_ConvertCustomMorphsToShapes,
+    DAZ_OT_MeshToShape,
 ]
 
 def initialize():
