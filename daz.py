@@ -453,6 +453,7 @@ class DAZ_PT_Posing(bpy.types.Panel):
         op = layout.operator("daz.clear_morphs")
         op.morphset = "All"
         op.category = ""
+        op.useMesh = False
         layout.separator()
         layout.operator("daz.prune_action")
         layout.operator("daz.rotate_bones")
@@ -477,9 +478,11 @@ def activateLayout(layout, category, rig, self):
     op = layout.operator("daz.activate_all")
     op.morphset = self.morphset
     op.category = category
+    op.useMesh = self.useMesh
     op = layout.operator("daz.deactivate_all")
     op.morphset = self.morphset
     op.category = category
+    op.useMesh = self.useMesh
 
 
 def keyLayout(layout, self, category):
@@ -487,18 +490,23 @@ def keyLayout(layout, self, category):
     op = split.operator("daz.add_keyset", text="", icon='KEYINGSET')
     op.morphset = self.morphset
     op.category = category
+    op.useMesh = self.useMesh
     op = split.operator("daz.key_morphs", text="", icon='KEY_HLT')
     op.morphset = self.morphset
     op.category = category
+    op.useMesh = self.useMesh
     op = split.operator("daz.unkey_morphs", text="", icon='KEY_DEHLT')
     op.morphset = self.morphset
     op.category = category
+    op.useMesh = self.useMesh
     op = split.operator("daz.clear_morphs", text="", icon='X')
     op.morphset = self.morphset
     op.category = category
+    op.useMesh = self.useMesh
 
 
 class DAZ_PT_Morphs:
+    useMesh = False
 
     @classmethod
     def poll(self, context):
@@ -510,13 +518,19 @@ class DAZ_PT_Morphs:
         return False
 
 
-    def draw(self, context):
+    def getCurrentRig(self, context):
         rig = context.object
         if rig.type == 'MESH':
             rig = rig.parent
-        if rig is None:
-            return
-        if rig.type != 'ARMATURE':
+        if rig and rig.type == 'ARMATURE':
+            return rig
+        else:
+            return None
+
+
+    def draw(self, context):
+        rig = self.getCurrentRig(context)
+        if not rig:
             return
         layout = self.layout
 
@@ -561,6 +575,7 @@ class DAZ_PT_Morphs:
         op.key = key
         op.morphset = self.morphset
         op.category = category
+        op.useMesh = self.useMesh
 
 
 class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
@@ -610,7 +625,35 @@ class DAZ_PT_BodyMorphs(bpy.types.Panel, DAZ_PT_Morphs):
 #    Custom panels
 #------------------------------------------------------------------------
 
-class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
+class CustomDrawItems:
+    def drawItems(self, scn, ob):
+        row = self.layout.row()
+        op = row.operator("daz.toggle_all_cats", text="Open All Categories")
+        op.useOpen = True
+        op.useMesh = self.useMesh
+        op = row.operator("daz.toggle_all_cats", text="Close All Categories")
+        op.useOpen = False
+        op.useMesh = self.useMesh
+        self.layout.separator()
+        filter = scn.DazFilter.lower()
+
+        for cat in ob.DazMorphCats:
+            self.layout.separator()
+            box = self.layout.box()
+            if not cat.active:
+                box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
+                continue
+            box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
+            split = splitLayout(box, 0.5)
+            activateLayout(split, cat.name, ob, self)
+            keyLayout(box, self, cat.name)
+            for morph in cat.morphs:
+                if (morph.name in ob.keys() and
+                    filter in morph.text.lower()):
+                    self.displayProp(morph.text, morph.name, cat.name, ob, box, scn)
+
+
+class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     bl_label = "Custom Morphs"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -628,28 +671,30 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs):
             return ob.DazCustomMorphs
         return False
 
+    def drawItems(self, scn, ob):
+        CustomDrawItems.drawItems(self, scn, ob)
 
-    def drawItems(self, scn, rig):
-        row = self.layout.row()
-        row.operator("daz.toggle_all_cats", text="Open All Categories").useOpen=True
-        row.operator("daz.toggle_all_cats", text="Close All Categories").useOpen=False
-        self.layout.separator()
-        filter = scn.DazFilter.lower()
 
-        for cat in rig.DazMorphCats:
-            self.layout.separator()
-            box = self.layout.box()
-            if not cat.active:
-                box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
-                continue
-            box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
-            split = splitLayout(box, 0.5)
-            activateLayout(split, cat.name, rig, self)
-            keyLayout(box, self, cat.name)
-            for morph in cat.morphs:
-                if (morph.name in rig.keys() and
-                    filter in morph.text.lower()):
-                    self.displayProp(morph.text, morph.name, cat.name, rig, box, scn)
+class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
+    bl_label = "Mesh Shape Keys"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "DAZ Importer"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    morphset = "Custom"
+    useMesh = True
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'MESH' and ob.DazMeshMorphs)
+
+    def getCurrentRig(self, context):
+        return context.object
+
+    def drawItems(self, scn, ob):
+        CustomDrawItems.drawItems(self, scn, ob)
 
 #------------------------------------------------------------------------
 #    Simple IK Panel
@@ -1176,6 +1221,7 @@ classes = [
     DAZ_PT_Visemes,
     DAZ_PT_BodyMorphs,
     DAZ_PT_CustomMorphs,
+    DAZ_PT_CustomMeshMorphs,
     DAZ_PT_SimpleRig,
     DAZ_PT_MhxLayers,
     DAZ_PT_MhxFKIK,

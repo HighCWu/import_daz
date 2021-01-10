@@ -416,9 +416,14 @@ class MorphStrings:
         default = "Shapes")
 
     usePropDrivers : BoolProperty(
-        name = "Use drivers",
-        description = "Control morphs with rig properties",
+        name = "Use Drivers",
+        description = "Control morphs with rig or mesh properties",
         default = True)
+
+    useMeshDrivers : BoolProperty(
+        name = "Mesh Drivers",
+        description = "Use mesh properties to control morphs",
+        default = False)
 
 
 class CategoryString:
@@ -979,6 +984,9 @@ class MorphsetString:
     morphset : StringProperty(default = "")
     category : StringProperty(default = "")
     prefix : StringProperty(default = "")
+
+class UseMesh:
+    useMesh : BoolProperty(default=False)
 
 class UseOpenBool:
     useOpen : BoolProperty()
