@@ -425,6 +425,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             self.clearHair(hum)
 
         activateObject(context, hair)
+        nhairfaces = len(hair.data.polygons)
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_mode(type='FACE')
         bpy.ops.mesh.select_all(action='DESELECT')
@@ -497,7 +498,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             t8 = time.perf_counter()
             self.clocks.append(("Deleted mesh hairs", t8-t7))
         if self.nonquads:
-            print("Ignored %d non-quad faces out of %d faces" % (len(self.nonquads), len(hair.data.polygons)))
+            print("Ignored %d non-quad faces out of %d faces" % (len(self.nonquads), nhairfaces))
         print("Hair converted in %.2f seconds" % (t8-t1))
         for hdr,t in self.clocks:
             print("  %s: %2f s" % (hdr, t))
@@ -742,8 +743,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             if nneighs == 0:
                 return None,None,None,None
             elif nneighs >= 5:
-                print("  Face %d has %d neighbors" % (fn, nneighs))
-                #self.selectFaces(ob, [fn]+neighs)
+                sys.stdout.write("N")
                 return None,None,None,None
             types[nneighs].append(fn)
 
@@ -751,10 +751,10 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
         singlets.sort()
         if len(singlets) > 0:
             if len(singlets) != 2:
-                print("  Has %d singlets" % len(singlets))
+                sys.stdout.write("S")
                 return None,None,None,None
             if (types[3] != [] or types[4] != []):
-                print("  Has 2 singlets, %d triplets and %d quadruplets" % (len(types[3]), len(types[4])))
+                sys.stdout.write("T")
                 return None,None,None,None
             first = singlets[0][1]
             corner = types[1]
@@ -764,12 +764,12 @@ class DAZ_OT_MakeHair(DazPropsOperator, IsMesh, B.Hair):
             doublets = [(uvcenters[fn][0]+uvcenters[fn][1], fn) for fn in types[2]]
             doublets.sort()
             if len(doublets) > 4:
-                print("  Has %d doublets" % len(doublets))
+                sys.stdout.write(">")
                 self.selectFaces(ob, [fn for _,fn in doublets])
                 return None,None,None,None
             if len(doublets) < 4:
                 if len(doublets) == 2:
-                    print("  Has %d doublets" % len(doublets))
+                    sys.stdout.write("2")
                     self.selectFaces(ob, neighbors.keys())
                 return None,None,None,None
             first = doublets[0][1]

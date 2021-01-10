@@ -717,7 +717,10 @@ class Geometry(Asset, Channels):
 
         if self.polylines:
             me.DazMatNums.clear()
-            me.DazHairType = 'LINE'
+            if me.polygons:
+                me.DazHairType = 'TUBE'
+            else:
+                me.DazHairType = 'LINE'
             for pline in self.polylines:
                 mnum = pline[1]
                 for n in range(len(pline)-3):

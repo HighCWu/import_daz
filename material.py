@@ -74,6 +74,7 @@ class Material(Asset, Channels):
         self.metallic = False
         self.dualLobeWeight = 0
         self.translucent = False
+        self.isHair = False
 
 
     def __repr__(self):
@@ -130,6 +131,7 @@ class Material(Asset, Channels):
         self.metallic = (self.getValue(["Metallic Weight"], 0) > 0.5)
         self.dualLobeWeight = self.getValue(["Dual Lobe Specular Weight"], 0)
         self.translucent = (self.getValue("getChannelTranslucencyWeight", 0) > 0.01)
+        self.isHair = ("Root Transmission Color" in self.channels.keys())
 
 
     def setExtra(self, struct):
