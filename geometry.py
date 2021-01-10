@@ -718,7 +718,7 @@ class Geometry(Asset, Channels):
         if self.polylines:
             me.DazMatNums.clear()
             if me.polygons:
-                me.DazHairType = 'TUBE'
+                me.DazHairType = 'SHEET'
             else:
                 me.DazHairType = 'LINE'
             for pline in self.polylines:
@@ -920,8 +920,8 @@ class Uvset(Asset):
     def build(self, context, me, geo, setActive):
         if self.name is None or me in self.built:
             return
-
-        if geo.polylines:
+        if len(me.polygons) == 0:
+            print("NO UVs", me.name, self.name)
             return
 
         polyverts = self.getPolyVerts(me)
