@@ -25,7 +25,6 @@
 # of the authors and should not be interpreted as representing official policies,
 # either expressed or implied, of the FreeBSD Project.
 
-
 import os
 import bpy
 from mathutils import Vector
@@ -1110,7 +1109,6 @@ class DAZ_OT_SelectStrandsBySize(DazOperator, IsMesh, Selector):
 
 
     def invoke(self, context, event):
-        ob = context.object
         return Selector.invoke(self, context, event)
 
 
