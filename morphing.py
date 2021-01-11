@@ -921,11 +921,12 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
     morphset = "Custom"
 
     def draw(self, context):
-        ImportCustom.draw(self, context)
         self.layout.prop(self, "usePropDrivers")
         if self.usePropDrivers:
             self.layout.prop(self, "useMeshDrivers")
-        self.layout.prop(self, "catname")
+            self.layout.prop(self, "catname")
+        ImportCustom.draw(self, context)
+
 
     def run(self, context):
         from .driver import setBoolProp
@@ -934,7 +935,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
             raise DazError("Active object must be a mesh to use mesh drivers")
         namepaths = self.getNamePaths()
         props = self.getAllMorphs(namepaths, context)
-        if props:
+        if props and self.usePropDrivers:
             if self.useMeshDrivers:
                 addToCategories(ob, props, self.catname)
                 ob.DazMeshMorphs = True
