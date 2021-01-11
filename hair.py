@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2020, Thomas Larsson
+# Copyright (c) 2016-2021, Thomas Larsson
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -1124,7 +1124,8 @@ class DAZ_OT_CombineHairs(DazOperator, CombineHair, HairUpdater, Selector, B.Hai
         return 0, len(strand), strand
 
     def getHairKey(self, n, mnum):
-        return str(n),0
+        mat = self.materials[0]
+        return ("%d_%s" % (n, mat.name)), 0
 
 
     def getStrandsFromPsys(self, psys):
