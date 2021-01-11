@@ -111,7 +111,6 @@ class HairSystem:
 
     def resizeStrand(self, strand, n):
         m = len(strand)
-        print("RES", m, n)
         if m == n:
             return strand
         step = (m-1)/(n-1)
@@ -135,7 +134,6 @@ class HairSystem:
         btn = self.button
 
         hlen = int(len(self.strands[0]))
-        print("  HL", hlen, len(self.strands))
         if hlen < 3:
             return
         bpy.ops.object.particle_system_add()
@@ -183,6 +181,7 @@ class HairSystem:
         self.buildStrands(psys)
         t4 = time.perf_counter()
         psys = updateHair(context, ob, psys)
+        #printPsys(psys)
         t5 = time.perf_counter()
         self.buildFinish(context, psys, ob)
         t6 = time.perf_counter()
@@ -351,14 +350,14 @@ class CombineHair:
                 hsystems[key] = hsys
 
 
-    def hairResize(self, hsystems, hum):
+    def hairResize(self, size, hsystems, hum):
         print("Resize hair")
         nsystems = {}
         for hsys in hsystems.values():
-            key,mnum = self.getHairKey(self.size, hsys.mnum)
+            key,mnum = self.getHairKey(size, hsys.mnum)
             if key not in nsystems.keys():
-                nsystems[key] = HairSystem(key, self.size, hum, hsys.mnum, self)
-            nstrands = hsys.resize(self.size)
+                nsystems[key] = HairSystem(key, size, hum, hsys.mnum, self)
+            nstrands = hsys.resize(size)
             nsystems[key].strands += nstrands
         return nsystems
 
@@ -520,7 +519,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, B.Hair):
         if self.resizeInBlocks:
             hsystems = self.blockResize(hsystems, hum)
         elif self.resizeHair:
-            hsystems = self.hairResize(hsystems, hum)
+            hsystems = self.hairResize(self.size, hsystems, hum)
         t6 = time.perf_counter()
         self.clocks.append(("Resize", t6-t5))
         self.makeHairs(context, hsystems, hum)
@@ -949,6 +948,14 @@ def updateHairs(context, ob):
         dg = context.evaluated_depsgraph_get()
         return ob.evaluated_get(dg).particle_systems
 
+
+def printPsys(psys):
+    for m,hair in enumerate(psys.particles):
+        print("\n")
+        print(hair.location)
+        for v in hair.hair_keys:
+            print(v.co)
+
 #------------------------------------------------------------------------
 #   Deflector
 #------------------------------------------------------------------------
@@ -1105,7 +1112,13 @@ class DAZ_OT_CombineHairs(DazOperator, CombineHair, HairUpdater, Selector, B.Hai
         return Selector.invoke(self, context, event)
 
     def getKeys(self, rig, ob):
-        return [(str(n), psys.name, "All") for n,psys in enumerate(ob.particle_systems)]
+        enums = []
+        for n,psys in enumerate(ob.particle_systems):
+            if psys.settings.type == 'HAIR':
+                text = "(%3d)   %s" % (psys.settings.hair_step+1, psys.name)
+                enum = (str(n), text, "All")
+                enums.append(enum)
+        return enums
 
     def getStrand(self, strand):
         return 0, len(strand), strand
@@ -1117,8 +1130,7 @@ class DAZ_OT_CombineHairs(DazOperator, CombineHair, HairUpdater, Selector, B.Hai
     def getStrandsFromPsys(self, psys):
         strands = []
         for hair in psys.particles:
-            strand = [hair.location.copy()]
-            strand += [v.co.copy() for v in hair.hair_keys]
+            strand = [v.co.copy() for v in hair.hair_keys]
             strands.append(strand)
         return strands
 
@@ -1130,8 +1142,9 @@ class DAZ_OT_CombineHairs(DazOperator, CombineHair, HairUpdater, Selector, B.Hai
         hsystems = {}
         haircount = -1
         for item in self.getSelectedItems(scn):
-            psys = ob.particle_systems[item.text]
-            psystems.append((int(item.name), psys))
+            idx = int(item.name)
+            psys = ob.particle_systems[idx]
+            psystems.append((idx, psys))
         if len(psystems) == 0:
             raise DazError("No particle system selected")
         idx0, psys0 = psystems[0]
@@ -1142,18 +1155,18 @@ class DAZ_OT_CombineHairs(DazOperator, CombineHair, HairUpdater, Selector, B.Hai
         self.materials = [mat]
 
         for idx,psys in psystems:
+            ob.particle_systems.active_index = idx
+            psys = updateHair(context, ob, psys)
             strands = self.getStrandsFromPsys(psys)
             haircount = self.addStrands(ob, strands, hsystems, haircount)
         psystems.reverse()
         for idx,psys in psystems:
             ob.particle_systems.active_index = idx
             bpy.ops.object.particle_system_remove()
-        hsystems = self.hairResize(hsystems, ob)
+        hsystems = self.hairResize(self.size, hsystems, ob)
         for hsys in hsystems.values():
-            print("HSYS", hsys)
             hsys.build(context, ob)
         psys = ob.particle_systems.active
-        print("ACT", psys)
         self.setAllSettings(psys, data)
 
 #------------------------------------------------------------------------
