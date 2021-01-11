@@ -58,7 +58,7 @@ class AffectOptions:
     affectDrivenBones : BoolProperty(
         name = "Affect Driven Bones",
         description = "Animate bones with a Drv parent",
-        default = False)
+        default = True)
 
     affectMorphs : BoolProperty(
         name = "Affect Morphs",
