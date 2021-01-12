@@ -420,9 +420,9 @@ class MorphStrings:
         description = "Control morphs with rig or mesh properties",
         default = True)
 
-    useMeshDrivers : BoolProperty(
-        name = "Mesh Drivers",
-        description = "Use mesh properties to control morphs",
+    usePanelSkeys : BoolProperty(
+        name = "Panel Shapekeys",
+        description = "Prepare mesh so that shapekey values    \nare displayed in the N-panel",
         default = False)
 
 

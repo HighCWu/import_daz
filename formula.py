@@ -858,18 +858,8 @@ class PropFormulas(PoseboneDriver):
                     self.addOtherShapekey(prop, prop2, factor2)
 
             if success:
-                self.addToPropGroup(prop)
-
-
-    def addToPropGroup(self, prop):
-        from .modifier import stripPrefix
-        from .morphing import setActivated
-        pg = getattr(self.rig, "Daz"+self.morphset)
-        if prop not in pg.keys():
-            item = pg.add()
-            item.name = prop
-            item.text = stripPrefix(prop)
-            setActivated(self.rig, prop, True)
+                from .morphing import addToPropGroup
+                addToPropGroup(prop, self.rig, self.morphset)
 
 
     def addOtherShapekey(self, prop, key, factor):

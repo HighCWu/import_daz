@@ -514,7 +514,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
     useShapekeys = True
     suppressError = False
     usePropDrivers = True
-    useMeshDrivers = False
+    usePanelSkeys = False
     useBoneDrivers = False
     useStages = True
     morphset = None
@@ -564,7 +564,6 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
         skey = None
         prop = None
-        driving = self.getDrivingObject()
         if self.useShapekeys and isinstance(asset, Morph) and self.mesh and self.mesh.type == 'MESH':
             useBuild = True
             skey = None
@@ -588,65 +587,68 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             if skey is None:
                 asset.buildMorph(self.mesh, useBuild=useBuild, useSoftLimits=self.useSoftLimits, morphset=self.morphset)
                 skey,ob,sname = asset.rna
-            if self.usePropDrivers:
-                prop = self.driveShapeWithProp(ob, prop, skey, driving)
+            if self.usePropDrivers or self.usePanelSkeys:
+                prop = self.driveShapeWithProp(ob, prop, skey, self.rig)
                 if prop:
                     props = [prop]
             elif self.useBoneDrivers:
-                success = self.buildShapeFormula(asset, scn, driving, self.mesh)
+                success = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
                 if self.useShapekeysOnly and not success and skey:
                     print("Could not build shape formula", skey.name)
                 if not success:
                     miss = True
 
-        if self.usePropDrivers and driving:
+        if self.usePropDrivers and self.rig:
             if isinstance(asset, FormulaAsset) and asset.formulas:
                 if self.useShapekeys:
-                    success = self.buildShapeFormula(asset, scn, driving, self.mesh)
+                    success = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
                     if self.useShapekeysOnly and not success and skey:
                         print("Could not build shape formula", skey.name)
                     if not success:
                         miss = True
                 if not self.useShapekeysOnly:
-                    prop = asset.clearProp(self.morphset, driving)
+                    prop = asset.clearProp(self.morphset, self.rig)
                     self.taken[prop] = False
                     props = self.buildPropFormula(asset, filepath)
             elif isinstance(asset, Morph):
                 pass
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
-                prop = asset.clearProp(self.morphset, driving)
+                prop = asset.clearProp(self.morphset, self.rig)
                 self.taken[prop] = False
                 props = []
                 miss = True
 
         if props:
             for prop in props:
-                setActivated(driving, prop, True)
+                setActivated(self.rig, prop, True)
             return props,False
         elif skey:
             prop = skey.name
-            setActivated(driving, prop, True)
+            setActivated(self.mesh, prop, True)
             return [prop],miss
         else:
             return [],miss
 
 
     def getDrivingObject(self):
-        if self.useMeshDrivers:
+        if self.usePropDrivers:
+            return self.rig
+        elif self.usePanelSkeys:
             return self.mesh
         else:
-            return self.rig
+            return None
 
 
     def driveShapeWithProp(self, ob, prop, skey, rig):
         from .driver import makeShapekeyDriver
-        if rig is None:
-            return None
         prop = skey.name
         min = skey.slider_min if GS.useDazPropLimits else None
         max = skey.slider_max if GS.useDazPropLimits else None
-        makeShapekeyDriver(ob, prop, skey.value, rig, prop, min=min, max=max)
-        self.addToPropGroup(prop)
+        if rig is None:
+            addToPropGroup(prop, ob, self.morphset)
+        else:
+            makeShapekeyDriver(ob, prop, skey.value, rig, prop, min=min, max=max)
+            addToPropGroup(prop, rig, self.morphset)
         self.taken[prop] = self.built[prop] = True
         return prop
 
@@ -922,8 +924,9 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
 
     def draw(self, context):
         self.layout.prop(self, "usePropDrivers")
-        if self.usePropDrivers:
-            self.layout.prop(self, "useMeshDrivers")
+        if not self.usePropDrivers:
+            self.layout.prop(self, "usePanelSkeys")
+        if self.usePropDrivers or self.usePanelSkeys:
             self.layout.prop(self, "catname")
         ImportCustom.draw(self, context)
 
@@ -931,17 +934,20 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
     def run(self, context):
         from .driver import setBoolProp
         ob = context.object
-        if self.useMeshDrivers and ob.type != 'MESH':
-            raise DazError("Active object must be a mesh to use mesh drivers")
+        if not self.usePropDrivers and self.usePanelSkeys:
+            if ob.type == 'MESH':
+                self.rig = None
+            else:
+                raise DazError("Active object must be a mesh to use panel shapekeys")
         namepaths = self.getNamePaths()
         props = self.getAllMorphs(namepaths, context)
-        if props and self.usePropDrivers:
-            if self.useMeshDrivers:
-                addToCategories(ob, props, self.catname)
-                ob.DazMeshMorphs = True
-            elif self.rig:
+        if props:
+            if self.usePropDrivers:
                 addToCategories(self.rig, props, self.catname)
                 self.rig.DazCustomMorphs = True
+            elif self.usePanelSkeys:
+                addToCategories(ob, props, self.catname)
+                ob.DazMeshMorphs = True
         if self.errors:
             raise DazError(theLimitationsMessage)
 
@@ -1011,7 +1017,7 @@ def addToCategories(ob, props, catname):
 #   Rename category
 #------------------------------------------------------------------------
 
-class DAZ_OT_RenameCategory(DazPropsOperator, B.CustomEnums, B.CategoryString, IsArmature):
+class DAZ_OT_RenameCategory(DazPropsOperator, B.CustomEnums, B.CategoryString, IsMeshArmature):
     bl_idname = "daz.rename_category"
     bl_label = "Rename Category"
     bl_description = "Rename selected category"
@@ -1059,7 +1065,7 @@ def removeFromPropGroup(pgrps, prop):
         pgrps.remove(n)
 
 
-class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature, B.DeleteShapekeysBool):
+class DAZ_OT_RemoveCategories(DazOperator, Selector, IsMeshArmature, B.DeleteShapekeysBool):
     bl_idname = "daz.remove_categories"
     bl_label = "Remove Categories"
     bl_description = "Remove selected categories and associated drivers"
@@ -1069,11 +1075,26 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature, B.DeleteShapeke
         self.layout.prop(self, "deleteShapekeys")
 
     def run(self, context):
-        from .driver import removePropDrivers
         items = [(item.index, item.name) for item in self.getSelectedItems(context.scene)]
         items.sort()
         items.reverse()
-        rig = context.object
+        ob = context.object
+        if ob.type == 'ARMATURE':
+            self.runRig(context, ob, items)
+        elif ob.type == 'MESH':
+            self.runMesh(context, ob, items)
+
+
+    def runMesh(self, context, ob, items):
+        for idx,key in items:
+            cat = ob.DazMorphCats[key]
+            ob.DazMorphCats.remove(idx)
+        if len(ob.DazMorphCats) == 0:
+            ob.DazMeshMorphs = False
+
+
+    def runRig(self, context, rig, items):
+        from .driver import removePropDrivers
         for idx,key in items:
             cat = rig.DazMorphCats[key]
             for pg in cat.morphs:
@@ -1092,7 +1113,6 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature, B.DeleteShapeke
                 if pg.name in rig.keys():
                     removeFromPropGroups(rig, pg.name, keep)
             rig.DazMorphCats.remove(idx)
-
         if len(rig.DazMorphCats) == 0:
             rig.DazCustomMorphs = False
 
@@ -1103,7 +1123,7 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature, B.DeleteShapeke
 
     def getKeys(self, rig, ob):
         keys = []
-        for cat in rig.DazMorphCats:
+        for cat in ob.DazMorphCats:
             key = cat.name
             keys.append((key,key,key))
         return keys
@@ -1181,6 +1201,17 @@ def getActivated(rig, key, force=False):
     else:
         pg = getActivateGroup(rig, key)
         return pg.active
+
+
+def addToPropGroup(prop, ob, morphset):
+    from .modifier import stripPrefix
+    from .morphing import setActivated
+    pg = getattr(ob, "Daz"+morphset)
+    if prop not in pg.keys():
+        item = pg.add()
+        item.name = prop
+        item.text = stripPrefix(prop)
+        setActivated(ob, prop, True)
 
 
 def getExistingActivateGroup(rig, key):

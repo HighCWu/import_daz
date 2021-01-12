@@ -255,7 +255,7 @@ def addDependency(key, prop, factor):
     deps.append((prop,factor))
 
 
-class DAZ_OT_InspectPropDependencies(DazOperator, IsArmature):
+class DAZ_OT_InspectPropDependencies(DazOperator, IsMeshArmature):
     bl_idname = "daz.inspect_prop_dependencies"
     bl_label = "Inspect Prop Dependencies"
     bl_description = "List properties depending on other properties"

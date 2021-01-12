@@ -411,9 +411,11 @@ def updateDrivers(ob):
             for fcu in rna.animation_data.drivers:
                 string = str(fcu.driver.expression)
                 fcu.driver.expression = string
-    updateRna(ob)
-    if ob.type == 'MESH':
-        updateRna(ob.data.shape_keys)
+
+    if ob:
+        updateRna(ob)
+        if ob.type == 'MESH':
+            updateRna(ob.data.shape_keys)
 
 
 def instRef(ref):
