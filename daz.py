@@ -701,9 +701,9 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
 
 
     def preamble(self, layout, ob):
-        #split = splitLayout(layout, 0.5)
-        #split.operator("daz.prettify")
-        #self.activateLayout(split, "", rig)
+        split = splitLayout(layout, 0.333)
+        split.operator("daz.prettify")
+        self.activateLayout(split, "", ob)
         self.keyLayout(layout, "")
 
 
@@ -731,8 +731,8 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
         skeys = ob.data.shape_keys
         if skeys is None:
             return
-        #split = splitLayout(box, 0.5)
-        #self.activateLayout(split, cat.name, ob)
+        split = splitLayout(box, 0.5)
+        self.activateLayout(split, cat.name, ob)
         self.keyLayout(box, cat.name)
         for morph in cat.morphs:
             if (morph.name in skeys.key_blocks.keys() and

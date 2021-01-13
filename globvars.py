@@ -83,8 +83,6 @@ def getMorphEnums(scn, context):
 
 
 def getActiveCategories(scn, context):
-    #from .morphing import getRigFromObject
-    #rig = getRigFromObject(context.object)
     ob = context.object
     cats = [(cat.name,cat.name,cat.name) for cat in ob.DazMorphCats]
     cats.sort()

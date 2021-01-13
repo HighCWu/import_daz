@@ -1187,26 +1187,30 @@ def removeDrivingProps(rig, props):
 
 class Activator(B.MorphsetString, B.UseMesh):
     def run(self, context):
-        rig = getRigFromObject(context.object, self.useMesh)
-        morphs = getRelevantMorphs(rig, self.morphset, self.category)
+        if self.useMesh:
+            ob = context.object
+            morphs = getCustomMorphs(ob, self.category)
+        else:
+            ob = getRigFromObject(context.object)
+            morphs = getRelevantMorphs(rig, ob.morphset, self.category)
         for morph in morphs:
-           setActivated(rig, morph, self.activate)
+           setActivated(ob, morph, self.activate)
 
 
-def setActivated(rig, key, value):
-    if rig is None:
+def setActivated(ob, key, value):
+    if ob is None:
         return
-    pg = getActivateGroup(rig, key)
+    pg = getActivateGroup(ob, key)
     pg.active = value
 
 
-def getActivated(rig, key, force=False):
-    if key not in rig.keys():
+def getActivated(ob, rna, key, force=False):
+    if key not in rna.keys():
         return False
     elif force:
         return True
     else:
-        pg = getActivateGroup(rig, key)
+        pg = getActivateGroup(ob, key)
         return pg.active
 
 
@@ -1324,7 +1328,7 @@ def getCustomMorphs(ob, category):
 def clearMorphs(rig, morphset, category, scn, frame, force):
     morphs = getRelevantMorphs(rig, morphset, category)
     for morph in morphs:
-        if getActivated(rig, morph, force):
+        if getActivated(rig, rig, morph, force):
             rig[morph] = 0.0
             autoKeyProp(rig, morph, scn, frame, force)
 
@@ -1335,8 +1339,8 @@ def clearShapes(ob, category, scn, frame):
         return
     morphs = getCustomMorphs(ob, category)
     for morph in morphs:
-        if getActivated(ob, morph):
-            skeys.key_blocks[morph] = 0.0
+        if getActivated(ob, skeys.key_blocks, morph):
+            skeys.key_blocks[morph].value = 0.0
             autoKeyShape(skeys, morph, scn, frame)
 
 
@@ -1508,12 +1512,12 @@ class DAZ_OT_KeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
                 cats = rig.DazMorphCats
             for cat in cats:
                 for morph in cat.morphs:
-                    if getActivated(rig, morph.name):
+                    if getActivated(rig, rig, morph.name):
                         keyProp(rig, morph.name, frame)
         else:
             pg = getattr(rig, "Daz" + self.morphset)
             for key in pg.keys():
-                if getActivated(rig, key):
+                if getActivated(rig, rig, key):
                     keyProp(rig, key, frame)
 
 
@@ -1534,8 +1538,8 @@ class DAZ_OT_KeyShapes(DazOperator, B.MorphsetString, IsMesh):
                 cats = ob.DazMorphCats
             for cat in cats:
                 for morph in cat.morphs:
-                    if getActivated(ob, morph.name):
-                        keyShape(skeys, morph.name, frame)
+                    if getActivated(ob, skeys.key_blocks, morph.name):
+                        keyShape(skeys, morph.name, scn.frame_current)
 
 #------------------------------------------------------------------
 #   Remove morph keys
@@ -1566,12 +1570,12 @@ class DAZ_OT_UnkeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
                 cats = rig.DazMorphCats
             for cat in cats:
                 for morph in cat.morphs:
-                    if getActivated(rig, morph.name):
+                    if getActivated(rig, rig, morph.name):
                         unkeyProp(rig, morph.name, frame)
         else:
             pg = getattr(rig, "Daz" + self.morphset)
             for key in pg.keys():
-                if getActivated(rig, key):
+                if getActivated(rig, rig, key):
                     unkeyProp(rig, key, frame)
 
 
@@ -1592,8 +1596,8 @@ class DAZ_OT_UnkeyShapes(DazOperator, B.MorphsetString, IsMesh):
                 cats = ob.DazMorphCats
             for cat in cats:
                 for morph in cat.morphs:
-                    if getActivated(ob, morph.name):
-                        unkeyShape(skeys, morph.name, frame)
+                    if getActivated(ob, skeys.key_blocks, morph.name):
+                        unkeyShape(skeys, morph.name, scn.frame_current)
 
 #------------------------------------------------------------------
 #   Update property limits
@@ -2120,7 +2124,7 @@ def autoKeyProp(rig, key, scn, frame, force):
 
 def autoKeyShape(skeys, key, scn, frame):
     if scn.tool_settings.use_keyframe_insert_auto:
-        keyProp(skey, key, frame)
+        keyShape(skeys, key, frame)
 
 
 def pinProp(rig, scn, key, morphset, category, frame):
