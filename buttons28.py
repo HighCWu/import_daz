@@ -420,9 +420,9 @@ class MorphStrings:
         description = "Control morphs with rig or mesh properties",
         default = True)
 
-    usePanelSkeys : BoolProperty(
-        name = "Panel Shapekeys",
-        description = "Prepare mesh so that shapekey values    \nare displayed in the N-panel",
+    useSkeysCats : BoolProperty(
+        name = "Add Shapekeys To Categories",
+        description = "Add imported shapekeys to a category",
         default = False)
 
 
@@ -433,10 +433,17 @@ class CategoryString:
         default = "Shapes"
         )
 
+    makenew : BoolProperty(
+        name = "New Category",
+        description = "Create a new category",
+        default = False)
+
+
 class CustomEnums:
     custom : EnumProperty(
         items = G.getActiveCategories,
         name = "Category")
+
 
 class StandardAllEnums:
     morphset : EnumProperty(

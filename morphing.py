@@ -514,7 +514,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
     useShapekeys = True
     suppressError = False
     usePropDrivers = True
-    usePanelSkeys = False
+    useSkeysCats = False
     useBoneDrivers = False
     useStages = True
     morphset = None
@@ -587,7 +587,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             if skey is None:
                 asset.buildMorph(self.mesh, useBuild=useBuild, useSoftLimits=self.useSoftLimits, morphset=self.morphset)
                 skey,ob,sname = asset.rna
-            if self.usePropDrivers or self.usePanelSkeys:
+            if self.usePropDrivers or self.useSkeysCats:
                 prop = self.driveShapeWithProp(ob, prop, skey, self.rig)
                 if prop:
                     props = [prop]
@@ -633,7 +633,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
     def getDrivingObject(self):
         if self.usePropDrivers:
             return self.rig
-        elif self.usePanelSkeys:
+        elif self.useSkeysCats:
             return self.mesh
         else:
             return None
@@ -925,8 +925,8 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
     def draw(self, context):
         self.layout.prop(self, "usePropDrivers")
         if not self.usePropDrivers:
-            self.layout.prop(self, "usePanelSkeys")
-        if self.usePropDrivers or self.usePanelSkeys:
+            self.layout.prop(self, "useSkeysCats")
+        if self.usePropDrivers or self.useSkeysCats:
             self.layout.prop(self, "catname")
         ImportCustom.draw(self, context)
 
@@ -934,7 +934,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
     def run(self, context):
         from .driver import setBoolProp
         ob = context.object
-        if not self.usePropDrivers and self.usePanelSkeys:
+        if not self.usePropDrivers and self.useSkeysCats:
             if ob.type == 'MESH':
                 self.rig = None
             else:
@@ -945,7 +945,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
             if self.usePropDrivers:
                 addToCategories(self.rig, props, self.catname)
                 self.rig.DazCustomMorphs = True
-            elif self.usePanelSkeys:
+            elif self.useSkeysCats:
                 addToCategories(ob, props, self.catname)
                 ob.DazMeshMorphs = True
         if self.errors:
@@ -1827,9 +1827,47 @@ class AddRemoveDriver:
                 if self.includeShapekey(skeys, skey.name):
                     item = self.selection.add()
                     item.name = item.text = skey.name
-                    item.category = self.getCategory(rig, skey.name)
+                    item.category = self.getCategory(rig, ob, skey.name)
                     item.select = False
         return self.invokeDialog(context)
+
+
+class DAZ_OT_AddToCategory(DazOperator, AddRemoveDriver, Selector, B.CustomEnums, B.CategoryString, IsMesh):
+    bl_idname = "daz.add_shape_to_category"
+    bl_label = "Add Shapekey To Category"
+    bl_description = "Add selected shapekeys to mesh category"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "makenew")
+        if self.makenew:
+            self.layout.prop(self, "category")
+        else:
+            self.layout.prop(self, "custom")
+        Selector.draw(self, context)
+
+
+    def run(self, context):
+        ob = context.object
+        if self.makenew:
+            cat = self.category
+        elif self.custom == "All":
+            raise DazError("Cannot add to all categories")
+        else:
+            cat = self.custom
+        print("CAT", cat)
+        for sname in self.getSelectedProps(context.scene):
+            skey = ob.data.shape_keys.key_blocks[sname]
+            addToCategories(ob, [sname], cat)
+            ob.DazMeshMorphs = True
+
+
+    def includeShapekey(self, skeys, sname):
+        return True
+
+
+    def getCategory(self, rig, ob, sname):
+        return ""
 
 
 class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.CategoryString, IsMesh):
@@ -1856,7 +1894,7 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.Catego
         return (not getShapekeyDriver(skeys, sname))
 
 
-    def getCategory(self, rig, sname):
+    def getCategory(self, rig, ob, sname):
         return ""
 
 
@@ -1892,7 +1930,7 @@ class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, CustomSelector,
         return getShapekeyDriver(skeys, sname)
 
 
-    def getCategory(self, rig, sname):
+    def getCategory(self, rig, ob, sname):
         if rig is None:
             return ""
         for cat in rig.DazMorphCats:
@@ -2180,6 +2218,7 @@ classes = [
     DAZ_OT_ImportStandardJCMs,
     DAZ_OT_ImportCustomJCMs,
     DAZ_OT_ImportCustomFlexions,
+    DAZ_OT_AddToCategory,
     DAZ_OT_RenameCategory,
     DAZ_OT_RemoveCategories,
     DAZ_OT_Prettify,
