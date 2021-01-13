@@ -325,6 +325,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.remove_jcms")
             box.separator()
             box.operator("daz.add_shape_to_category")
+            box.operator("daz.remove_shape_from_category")
             box.operator("daz.rename_category")
             box.operator("daz.remove_categories")
             box.separator()

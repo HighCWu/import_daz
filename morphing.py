@@ -1013,6 +1013,13 @@ def addToCategories(ob, props, catname):
             morph.name = prop
             morph.text = stripPrefix(prop)
 
+
+def removeFromCategory(ob, props, catname):
+    if catname in ob.DazMorphCats.keys():
+        cat = ob.DazMorphCats[catname]
+        for prop in props:
+            removeFromPropGroup(cat.morphs, prop)
+
 #------------------------------------------------------------------------
 #   Rename category
 #------------------------------------------------------------------------
@@ -1043,8 +1050,8 @@ def removeFromPropGroups(rig, prop, keep=False):
             removeFromPropGroup(pg, prop)
 
     for morphset in theStandardMorphSets:
-        pg = getattr(rig, "Daz" + morphset)
-        removeFromPropGroup(pg, prop)
+        pgs = getattr(rig, "Daz" + morphset)
+        removeFromPropGroup(pgs, prop)
 
     if not keep:
         rig[prop] = 0
@@ -1055,14 +1062,14 @@ def removeFromPropGroups(rig, prop, keep=False):
                 del ob[prop]
 
 
-def removeFromPropGroup(pgrps, prop):
+def removeFromPropGroup(pgs, prop):
     idxs = []
-    for n,pg in enumerate(pgrps):
+    for n,pg in enumerate(pgs):
         if pg.name == prop:
             idxs.append(n)
     idxs.reverse()
     for n in idxs:
-        pgrps.remove(n)
+        pgs.remove(n)
 
 
 class DAZ_OT_RemoveCategories(DazOperator, Selector, IsMeshArmature, B.DeleteShapekeysBool):
@@ -1832,7 +1839,7 @@ class AddRemoveDriver:
         return self.invokeDialog(context)
 
 
-class DAZ_OT_AddToCategory(DazOperator, AddRemoveDriver, Selector, B.CustomEnums, B.CategoryString, IsMesh):
+class DAZ_OT_AddShapeToCategory(DazOperator, AddRemoveDriver, Selector, B.CustomEnums, B.CategoryString, IsMesh):
     bl_idname = "daz.add_shape_to_category"
     bl_label = "Add Shapekey To Category"
     bl_description = "Add selected shapekeys to mesh category"
@@ -1855,7 +1862,6 @@ class DAZ_OT_AddToCategory(DazOperator, AddRemoveDriver, Selector, B.CustomEnums
             raise DazError("Cannot add to all categories")
         else:
             cat = self.custom
-        print("CAT", cat)
         for sname in self.getSelectedProps(context.scene):
             skey = ob.data.shape_keys.key_blocks[sname]
             addToCategories(ob, [sname], cat)
@@ -1895,6 +1901,42 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.Catego
 
 
     def getCategory(self, rig, ob, sname):
+        return ""
+
+
+class DAZ_OT_RemoveShapeFromCategory(DazOperator, AddRemoveDriver, CustomSelector, IsMesh):
+    bl_idname = "daz.remove_shape_from_category"
+    bl_label = "Remove Shapekey From Category"
+    bl_description = "Remove selected shapekeys from mesh category"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "custom")
+        Selector.draw(self, context)
+
+
+    def run(self, context):
+        ob = context.object
+        snames = []
+        for sname in self.getSelectedProps(context.scene):
+            skey = ob.data.shape_keys.key_blocks[sname]
+            snames.append(skey.name)
+        if self.custom == "All":
+            for cat in ob.DazMorphCats:
+                removeFromCategory(ob, snames, cat.name)
+        else:
+            removeFromCategory(ob, snames, self.custom)
+
+
+    def includeShapekey(self, skeys, sname):
+        return True
+
+
+    def getCategory(self, rig, ob, sname):
+        for cat in ob.DazMorphCats:
+            for morph in cat.morphs:
+                if sname == morph.name:
+                    return cat.name
         return ""
 
 
@@ -2218,7 +2260,8 @@ classes = [
     DAZ_OT_ImportStandardJCMs,
     DAZ_OT_ImportCustomJCMs,
     DAZ_OT_ImportCustomFlexions,
-    DAZ_OT_AddToCategory,
+    DAZ_OT_AddShapeToCategory,
+    DAZ_OT_RemoveShapeFromCategory,
     DAZ_OT_RenameCategory,
     DAZ_OT_RemoveCategories,
     DAZ_OT_Prettify,
