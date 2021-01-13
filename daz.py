@@ -456,7 +456,6 @@ class DAZ_PT_Posing(bpy.types.Panel):
         op = layout.operator("daz.clear_morphs")
         op.morphset = "All"
         op.category = ""
-        op.useMesh = False
         layout.separator()
         layout.operator("daz.prune_action")
         layout.operator("daz.rotate_bones")
@@ -541,19 +540,15 @@ class DAZ_PT_Morphs:
         op = split.operator("daz.add_keyset", text="", icon='KEYINGSET')
         op.morphset = self.morphset
         op.category = category
-        op.useMesh = self.useMesh
         op = split.operator("daz.key_morphs", text="", icon='KEY_HLT')
         op.morphset = self.morphset
         op.category = category
-        op.useMesh = self.useMesh
         op = split.operator("daz.unkey_morphs", text="", icon='KEY_DEHLT')
         op.morphset = self.morphset
         op.category = category
-        op.useMesh = self.useMesh
         op = split.operator("daz.clear_morphs", text="", icon='X')
         op.morphset = self.morphset
         op.category = category
-        op.useMesh = self.useMesh
 
 
     def drawItems(self, scn, rig):
@@ -562,7 +557,7 @@ class DAZ_PT_Morphs:
         pg = getattr(rig, "Daz"+self.morphset)
         for item in pg.values():
             if filter in item.text.lower():
-                self.displayProp(item.text, item.name, "", rig, self.layout, scn)
+                self.displayProp(item, "", rig, self.layout, scn)
 
 
     def showBool(self, layout, ob, key, text=""):
@@ -572,17 +567,17 @@ class DAZ_PT_Morphs:
             layout.prop(pg, "active", text=text)
 
 
-    def displayProp(self, name, key, category, rig, layout, scn):
+    def displayProp(self, morph, category, rig, layout, scn):
+        key = morph.name
         if key not in rig.keys():
             return
         row = splitLayout(layout, 0.8)
-        row.prop(rig, '["%s"]' % key, text=name)
+        row.prop(rig, '["%s"]' % key, text=morph.text)
         self.showBool(row, rig, key)
         op = row.operator("daz.pin_prop", icon='UNPINNED')
         op.key = key
         op.morphset = self.morphset
         op.category = category
-        op.useMesh = self.useMesh
 
 
 class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
@@ -634,10 +629,6 @@ class DAZ_PT_BodyMorphs(bpy.types.Panel, DAZ_PT_Morphs):
 
 class CustomDrawItems:
     def drawItems(self, scn, ob):
-        rna = self.getRna(ob)
-        if rna is None:
-            print("No RNA")
-            return
         row = self.layout.row()
         op = row.operator("daz.toggle_all_cats", text="Open All Categories")
         op.useOpen = True
@@ -655,7 +646,7 @@ class CustomDrawItems:
                 box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
                 continue
             box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
-            self.drawBox(box, cat, scn, rna, filter)
+            self.drawBox(box, cat, scn, ob, filter)
 
 
 class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
@@ -682,6 +673,7 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     def getRna(self, ob):
         return ob
 
+
     def drawBox(self, box, cat, scn, ob, filter):
         split = splitLayout(box, 0.5)
         self.activateLayout(split, cat.name, ob)
@@ -689,7 +681,7 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
         for morph in cat.morphs:
             if (morph.name in ob.keys() and
                 filter in morph.text.lower()):
-                self.displayProp(morph.text, morph.name, cat.name, ob, box, scn)
+                self.displayProp(morph, cat.name, ob, box, scn)
 
 
 class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
@@ -707,8 +699,13 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
         ob = context.object
         return (ob and ob.type == 'MESH' and ob.DazMeshMorphs)
 
-    def preamble(self, layout, rig):
-        pass
+
+    def preamble(self, layout, ob):
+        #split = splitLayout(layout, 0.5)
+        #split.operator("daz.prettify")
+        #self.activateLayout(split, "", rig)
+        self.keyLayout(layout, "")
+
 
     def getCurrentRig(self, context):
         return context.object
@@ -719,12 +716,39 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     def getRna(self, ob):
         return ob.data.shape_keys
 
-    def drawBox(self, box, cat, scn, skeys, filter):
+
+    def keyLayout(self, layout, category):
+        split = splitLayout(layout, 0.333)
+        op = split.operator("daz.key_shapes", text="", icon='KEY_HLT')
+        op.category = category
+        op = split.operator("daz.unkey_shapes", text="", icon='KEY_DEHLT')
+        op.category = category
+        op = split.operator("daz.clear_shapes", text="", icon='X')
+        op.category = category
+
+
+    def drawBox(self, box, cat, scn, ob, filter):
+        skeys = ob.data.shape_keys
+        if skeys is None:
+            return
+        #split = splitLayout(box, 0.5)
+        #self.activateLayout(split, cat.name, ob)
+        self.keyLayout(box, cat.name)
         for morph in cat.morphs:
             if (morph.name in skeys.key_blocks.keys() and
                 filter in morph.text.lower()):
                 skey = skeys.key_blocks[morph.name]
-                box.prop(skey, "value", text=morph.text)
+                self.displayProp(morph, cat.name, ob, skey, box, scn)
+
+
+    def displayProp(self, morph, category, ob, skey, layout, scn):
+        key = morph.name
+        row = splitLayout(layout, 0.8)
+        row.prop(skey, "value", text=morph.text)
+        self.showBool(row, ob, key)
+        op = row.operator("daz.pin_shape", icon='UNPINNED')
+        op.key = key
+        op.category = category
 
 #------------------------------------------------------------------------
 #    Simple IK Panel
