@@ -179,7 +179,7 @@ class ExtraAsset(Modifier, Channels):
 
     def getGeoNodes(self, inst):
         if inst is None:
-            print("Cannot build %s" % self)
+            reportError("Cannot build %s" % self, trigger=(2,4))
             return None,None
         pinst = inst.parent
         geonode = self.getGeoNode(inst)

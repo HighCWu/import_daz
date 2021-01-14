@@ -474,11 +474,13 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, B.Hair):
 
         t2 = time.perf_counter()
         self.clocks.append(("Initialize", t2-t1))
+        print("Start conversion")
         hsystems = {}
         if self.strandType == 'SHEET':
             hairs = []
             bpy.ops.mesh.separate(type='LOOSE')
             bpy.ops.object.mode_set(mode='OBJECT')
+            print("Loose parts separated")
             hname = hair.name
             if (len(hname) >= 4 and hname[-4] == "." and hname[-3:].isdigit()):
                 hname = hname[:-4]

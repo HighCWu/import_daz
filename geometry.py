@@ -66,8 +66,12 @@ class GeoNode(Node):
         self.dforce = None
         self.index = figure.count
         if geo:
-            geo.caller = self
-            geo.nodes[self.id] = self
+            if isinstance(geo, Geometry):
+                geo.caller = self
+                geo.nodes[self.id] = self
+            else:
+                msg = ("Not a geometry:\n%s" % geo)
+                reportError(msg, trigger=(2,3))
         self.modifiers = {}
         self.morphsValues = {}
         self.shstruct = {}
