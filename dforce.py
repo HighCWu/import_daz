@@ -233,14 +233,10 @@ class DForce(SimData):
         activateObject(context, ob)
         deflect = None
         for key,sim in sims.items():
-            if GS.useDeflectors:
-                deflect = self.makeDeflectionCollection(context, hum, char, sim)
             if ob == hum or not hum:
                 mod = self.buildSoftBody(ob, sim, vgrps[key], sizes[key].length)
             else:
                 mod = self.buildCloth(ob, sim, vgrps[key], sizes[key].length)
-                if deflect:
-                    self.addDeflection(mod.collision_settings, deflect, sim)
             self.moveModifierUp(ob, mod)
 
 

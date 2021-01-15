@@ -102,7 +102,6 @@ class GlobalSettings:
 
         self.useInfluence = True
         self.useSimulation = False
-        self.useDeflectors = True
 
 
     SceneTable = {
@@ -151,7 +150,6 @@ class GlobalSettings:
         "DazMultires" : "useMultires",
         "DazInfluence" : "useInfluence",
         "DazSimulation" : "useSimulation",
-        "DazDeflectors" : "useDeflectors",
     }
 
     def fixPath(self, path):

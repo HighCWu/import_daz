@@ -1324,7 +1324,7 @@ class HairMaterial(CyclesMaterial):
 
 
 def getHairTree(dmat, color=BLACK):
-    print("Creating %s hair material" % LS.hairMaterialMethod)
+    #print("Creating %s hair material" % LS.hairMaterialMethod)
     if LS.hairMaterialMethod == 'HAIR_PRINCIPLED':
         return HairPBRTree(dmat, color)
     elif LS.hairMaterialMethod == 'PRINCIPLED':
