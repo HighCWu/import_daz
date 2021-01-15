@@ -1192,7 +1192,7 @@ class Activator(B.MorphsetString, B.UseMesh):
             morphs = getCustomMorphs(ob, self.category)
         else:
             ob = getRigFromObject(context.object)
-            morphs = getRelevantMorphs(rig, ob.morphset, self.category)
+            morphs = getRelevantMorphs(ob, self.morphset, self.category)
         for morph in morphs:
            setActivated(ob, morph, self.activate)
 
