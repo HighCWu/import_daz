@@ -27,7 +27,8 @@
 
 
 import bpy
-from .asset import *
+from mathutils import Vector, Matrix
+#from .asset import *
 from .error import reportError
 
 class FileAsset(Asset):
@@ -168,8 +169,14 @@ class FileAsset(Asset):
         else:
             from .node import Node
             asset = Node(self.fileref)
-        asset.attributes["center_point"] = Vector(preview["center_point"])
-        asset.attributes["end_point"] = Vector(preview["end_point"])
+        head = asset.attributes["center_point"] = Vector(preview["center_point"])
+        tail = asset.attributes["end_point"] = Vector(preview["end_point"])
+        xaxis = (tail-head).normalized()
+        yaxis = Vector((0,1,0))
+        zaxis = -xaxis.cross(yaxis).normalized()
+        omat = Matrix((xaxis,yaxis,zaxis)).transposed()
+        orient = Vector(omat.to_euler())
+        tail = asset.attributes["orientation"] = orient
         asset.rotation_order = preview["rotation_order"]
 
         asset.parse(struct)
@@ -186,11 +193,12 @@ class FileAsset(Asset):
                 self.instances[inst.id] = inst
                 self.nodes.append((geonode, inst))
                 geo = geonode.data
-                for mname in geo.polygon_material_groups:
-                    ref = self.fileref + "#" + mname
-                    dmat = self.getAsset(ref)
-                    if dmat and dmat not in self.materials:
-                        self.materials.append(dmat)
+                if geo:
+                    for mname in geo.polygon_material_groups:
+                        ref = self.fileref + "#" + mname
+                        dmat = self.getAsset(ref)
+                        if dmat and dmat not in self.materials:
+                            self.materials.append(dmat)
         return asset
 
 

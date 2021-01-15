@@ -194,7 +194,7 @@ class WorldTree(CyclesTree):
             eeveefix = True
             img = self.getImage(backdrop, "COLOR")
             if img:
-                tex = self.addTextureNode(2, img, "COLOR")
+                tex = self.addTextureNode(2, img, img.name, "COLOR")
                 self.linkVector(self.texco, tex)
         else:
             self.makeTree()

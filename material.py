@@ -696,18 +696,20 @@ class Texture:
         return ("<Texture %s %s %s>" % (self.map.url, self.map.image, self.rna))
 
 
+    def getName(self):
+        if self.map.url:
+            return self.map.url
+        elif self.map.image:
+            return self.map.image.name
+        else:
+            return ""
+
+
     def buildInternal(self):
         if self.built["COLOR"]:
             return self
-
-        if self.map.url:
-            key = self.map.url
-        elif self.map.image:
-            key = self.map.image.name
-        else:
-            key = None
-
-        if key is not None:
+        key = self.getName()
+        if key:
             img = self.images["COLOR"] = self.map.build()
             if img:
                 tex = self.rna = bpy.data.textures.new(img.name, 'IMAGE')

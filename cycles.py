@@ -1050,27 +1050,27 @@ class CyclesTree:
         isnew = False
         img = asset.buildCycles(colorSpace)
         if img:
-            key = img.name
-            hasMap = asset.hasMapping(map)
-            texnode = self.getTexNode(key, colorSpace)
-            if not hasMap and texnode:
-                return texnode, False
-            else:
-                texnode = self.addTextureNode(col, img, colorSpace)
-                isnew = True
-                if not hasMap:
-                    self.setTexNode(key, texnode, colorSpace)
+            imgname = img.name
         else:
-            texnode = self.addNode("ShaderNodeRGB", col)
-            texnode.outputs["Color"].default_value[0:3] = asset.map.color
+            imgname = asset.getName()
+        hasMap = asset.hasMapping(map)
+        texnode = self.getTexNode(imgname, colorSpace)
+        if not hasMap and texnode:
+            return texnode, False
+        else:
+            texnode = self.addTextureNode(col, img, imgname, colorSpace)
+            isnew = True
+            if not hasMap:
+                self.setTexNode(imgname, texnode, colorSpace)
         return texnode, isnew
 
 
-    def addTextureNode(self, col, img, colorSpace):
+    def addTextureNode(self, col, img, imgname, colorSpace):
         node = self.addNode("ShaderNodeTexImage", col)
         node.image = img
+        node.label = imgname.rsplit("/",1)[-1]
         self.setColorSpace(node, colorSpace)
-        node.name = img.name
+        node.name = imgname
         if hasattr(node, "image_user"):
             node.image_user.frame_duration = 1
             node.image_user.frame_current = 1
