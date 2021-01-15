@@ -179,12 +179,12 @@ class ExtraAsset(Modifier, Channels):
 
     def getGeoNodes(self, inst):
         if inst is None:
-            reportError("Cannot build %s" % self, trigger=(2,4))
+            reportError("Cannot build %s" % self, trigger=(3,4))
             return None,None
         pinst = inst.parent
         geonode = self.getGeoNode(inst)
         pgeonode = self.getGeoNode(pinst)
-        if geonode is None:
+        if geonode is None and GS.verbosity > 2:
             print("No geo", self)
         return geonode, pgeonode
 

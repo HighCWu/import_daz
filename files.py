@@ -105,6 +105,8 @@ class FileAsset(Asset):
                     asset = self.parseUrlAsset(nstruct)
                     if isinstance(asset, Geometry):
                         asset = asset.getNode(0)
+                    if asset is None:
+                        asset = self.makeLocalNode(nstruct)
                     if not isinstance(asset, Node):
                         continue
                     inst = asset.makeInstance(self.fileref, nstruct)
@@ -149,6 +151,40 @@ class FileAsset(Asset):
         if GS.verbosity > 4:
             print(msg)
         return self
+
+
+    def makeLocalNode(self, struct):
+        from .asset import storeAsset
+        if "geometries" in struct.keys():
+            geos = struct["geometries"]
+        else:
+            return None
+        if ("preview" in struct.keys() and
+            "type" in struct["preview"].keys() and
+            struct["preview"]["type"] == "figure"):
+            from .figure import Figure
+            asset = Figure(self.fileref)
+        else:
+            from .node import Node
+            asset = Node(self.fileref)
+        asset.parse(struct)
+        asset.update(struct)
+        self.saveAsset(struct, asset)
+        if "url" in struct.keys():
+            url = struct["url"]
+            storeAsset(asset, url)
+        for n,geonode in enumerate(asset.geometries):
+            storeAsset(geonode, geonode.id)
+            inst = geonode.makeInstance(self.fileref, geos[n])
+            self.instances[inst.id] = inst
+            self.nodes.append((geonode, inst))
+            geo = geonode.data
+            for mname in geo.polygon_material_groups:
+                ref = self.fileref + "#" + mname
+                dmat = self.getAsset(ref)
+                if dmat and dmat not in self.materials:
+                    self.materials.append(dmat)
+        return asset
 
 
     def parseRender(self, scene):
@@ -261,6 +297,7 @@ def getUrlPath(url):
 
 
 def parseAssetFile(struct, toplevel=False, fileref=None):
+    from .asset import storeAsset
     if fileref is None and "asset_info" in struct.keys():
         ainfo = struct["asset_info"]
         if "id" in ainfo.keys():

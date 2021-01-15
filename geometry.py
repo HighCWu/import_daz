@@ -669,7 +669,8 @@ class Geometry(Asset, Channels):
                 self.polygon_groups = asset.polygon_groups
                 self.polygon_material_groups = asset.polygon_material_groups
             else:
-                print("Sourcing:", self, asset)
+                msg = ("BUG: Sourcing:\n%  %s\n  %s" % (self, asset))
+                reportError(msg, trigger=(2,3))
 
         name = self.getName()
         me = self.rna = bpy.data.meshes.new(name)
@@ -733,37 +734,7 @@ class Geometry(Asset, Channels):
         elif self.isStrandHair:
             me.DazHairType = 'TUBE'
 
-        hasShells = False
-        for mn,mname in enumerate(self.polygon_material_groups):
-            if mname in self.materials.keys():
-                dmats = self.materials[mname]
-                if (isinstance(node, GeoNode) and
-                    node.index < len(dmats)):
-                    dmat = dmats[node.index]
-                elif inst and inst.index < len(dmats):
-                    dmat = dmats[inst.index]
-                else:
-                    dmat = dmats[0]
-            else:
-                dmat = None
-                if GS.verbosity > 2:
-                    mats = list(self.materials.keys())
-                    mats.sort()
-                    print("Existing materials:\n  %s" % mats)
-                reportError("\nMaterial \"%s\" not found in geometry %s" % (mname, self.name), trigger=(2,3))
-            if dmat:
-                if dmat.rna is None:
-                    msg = ("Material without rna:\n  %s" % self)
-                    reportError(msg, trigger=(2,3))
-                    return None
-                me.materials.append(dmat.rna)
-                if dmat.shells:
-                    hasShells = True
-                if dmat.uv_set and dmat.uv_set.checkSize(me):
-                    self.uv_set = dmat.uv_set
-                me.use_auto_smooth = dmat.getValue(["Smooth On"], False)
-                me.auto_smooth_angle = dmat.getValue(["Smooth Angle"], 89.9)*D
-
+        hasShells = self.addMaterials(me, node)
         for key,uvset in self.uv_sets.items():
             self.buildUVSet(context, uvset, me, False)
         self.buildUVSet(context, self.uv_set, me, True)
@@ -784,6 +755,43 @@ class Geometry(Asset, Channels):
         if hasShells:
             ob.DazVisibilityDrivers = True
         return ob
+
+
+    def addMaterials(self, me, node):
+        hasShells = False
+        for mn,mname in enumerate(self.polygon_material_groups):
+            dmat = None
+            if mname in self.materials.keys():
+                dmats = self.materials[mname]
+                if (isinstance(node, GeoNode) and
+                    node.index < len(dmats)):
+                    dmat = dmats[node.index]
+                elif inst and inst.index < len(dmats):
+                    dmat = dmats[inst.index]
+                else:
+                    dmat = dmats[0]
+            else:
+                ref = self.fileref + "#" + mname
+                dmat = self.getAsset(ref)
+            if dmat:
+                if dmat.rna is None:
+                    msg = ("Material without rna:\n  %s" % self)
+                    reportError(msg, trigger=(2,3))
+                    #return False
+                me.materials.append(dmat.rna)
+                if dmat.shells:
+                    hasShells = True
+                if dmat.uv_set and dmat.uv_set.checkSize(me):
+                    self.uv_set = dmat.uv_set
+                me.use_auto_smooth = dmat.getValue(["Smooth On"], False)
+                me.auto_smooth_angle = dmat.getValue(["Smooth Angle"], 89.9)*D
+            else:
+                if GS.verbosity > 3:
+                    mats = list(self.materials.keys())
+                    mats.sort()
+                    print("Existing materials:\n  %s" % mats)
+                reportError("Material \"%s\" not found in geometry %s" % (mname, self.name), trigger=(2,4))
+                return False
 
 
     def addAllMaterials(self, me):

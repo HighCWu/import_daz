@@ -97,7 +97,8 @@ class Accessor:
                 msg += ("in file:\n  '%s'\n" % self.caller.fileref)
             if not strict:
                 return None
-            reportError(msg)
+            reportError(msg, trigger=(2,3))
+            halt
             return None
         else:
             return self.getNewAsset(id, ref, strict)
@@ -343,10 +344,12 @@ class Asset(Accessor):
                 self.parent.children.append(self)
 
         if "source" in struct.keys():
-            asset = self.getAsset(struct["source"])
+            url = struct["source"]
+            asset = self.getAsset(url)
             if asset:
                 self.source = asset
                 asset.sourcing = self
+            theAssets[url] = self
 
         return self
 
@@ -408,9 +411,14 @@ def getExistingFile(fileref):
 #
 #-------------------------------------------------------------
 
-def storeAsset(asset, fileref):
+def storeAsset(asset, url):
     global theAssets
-    theAssets[fileref] = asset
+    theAssets[url] = asset
+
+
+def getAssets():
+    global theAssets
+    return theAssets
 
 
 def getId(id0, fileref):
