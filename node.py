@@ -600,7 +600,6 @@ class Node(Asset, Formula, Channels):
                 insts = self.instances
         if strict:
             reportError(msg, insts, trigger=(2,3))
-        halt
         return None
 
 

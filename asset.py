@@ -98,7 +98,6 @@ class Accessor:
             if not strict:
                 return None
             reportError(msg, trigger=(2,3))
-            halt
             return None
         else:
             return self.getNewAsset(id, ref, strict)
@@ -203,9 +202,12 @@ class Accessor:
             msg = ("Duplicate asset definition\n" +
                    "  Asset 1: %s\n" % asset +
                    "  Asset 2: %s\n" % asset2 +
-                   "  Ref: %s\n" % ref)
-            return reportError(msg, trigger=(3,4))
-        theAssets[ref] = theAssets[ref2] = asset
+                   "  Ref 1: %s\n" % ref +
+                   "  Ref 2: %s\n" % ref2)
+            reportError(msg, trigger=(2,4))
+            theAssets[ref2] = asset
+        else:
+            theAssets[ref] = theAssets[ref2] = asset
         return
 
         if asset.caller:
@@ -220,7 +222,7 @@ class Accessor:
                            "  Caller: %s\n" % asset.caller +
                            "  Ref 1: %s\n" % ref +
                            "  Ref 2: %s\n" % ref2)
-                    return reportError(msg)
+                    return reportError(msg, trigger=(2,3))
             else:
                 print("REF2", ref2)
                 print("  ", asset)

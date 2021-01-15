@@ -30,7 +30,6 @@ import bpy
 import math
 from mathutils import *
 from bpy.props import IntProperty
-from .asset import *
 from .utils import *
 from .error import *
 from .node import Node, Instance
@@ -269,6 +268,7 @@ class Figure(Node):
 
     def build(self, context, inst):
         from .bone import BoneInstance
+        from .asset import Asset
         scn = context.scene
 
         for child in inst.children.values():

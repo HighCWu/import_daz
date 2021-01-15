@@ -362,7 +362,7 @@ def addMultires(context, hdob, strict):
     else:
         reportError(msg, trigger=(2,4))
         hdob.modifiers.remove(mod)
-        LS.hdfailures.append(hdob)
+        LS.hdfailures.append(hdob.name)
         return False
 
 

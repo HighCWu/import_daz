@@ -28,8 +28,9 @@
 
 import bpy
 from mathutils import Vector, Matrix
-#from .asset import *
+from .asset import Asset
 from .error import reportError
+from .utils import LS, GS
 
 class FileAsset(Asset):
 
@@ -312,7 +313,7 @@ def getUrlPath(url):
 
 
 def parseAssetFile(struct, toplevel=False, fileref=None):
-    from .asset import storeAsset
+    from .asset import storeAsset, getId, getExistingFile
     if fileref is None and "asset_info" in struct.keys():
         ainfo = struct["asset_info"]
         if "id" in ainfo.keys():

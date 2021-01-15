@@ -145,8 +145,8 @@ def getMainAsset(filepath, context, btn):
                "For details see\n'%s'" % getErrorPath())
     elif LS.hdfailures:
         msg = ("Could not rebuild subdivisions for the following HD objects:       \n")
-        for hdob in LS.hdfailures:
-            msg += ("  %s\n" % hdob.name)
+        for hdname in LS.hdfailures:
+            msg += ("  %s\n" % hdname)
     if msg:
         clearErrorMessage()
         handleDazError(context, warning=True, dump=True)

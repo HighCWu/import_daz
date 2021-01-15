@@ -30,7 +30,6 @@ import bpy
 import math
 from math import pi
 from mathutils import *
-from .asset import *
 from .utils import *
 from .transform import Transform
 from .error import *
