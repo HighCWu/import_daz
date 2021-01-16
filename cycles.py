@@ -683,7 +683,7 @@ class CyclesTree:
 #-------------------------------------------------------------
 
     def checkTranslucency(self):
-        if (self.material.thinWalled or
+        if (self.material.thinWall or
             self.volume or
             self.material.translucent):
             self.useTranslucency = True
@@ -734,7 +734,7 @@ class CyclesTree:
         # if there's no volume we use the sss to make translucency
         # please note that here we only use the iray base translucency color with no textures
         # as for blender 2.8x eevee doesn't support nodes in the radius channel so we deal with it
-        if self.material.thinWalled:
+        if self.material.thinWall:
             return color,None
 
         sssmode = self.getValue(["SSS Mode"], 0)
@@ -834,10 +834,12 @@ class CyclesTree:
         roughness = roughness**2
         self.linkColor(coltex, node, color, "Refraction Color")
         self.linkScalar(iortex, node, ior, "Fresnel IOR")
-        if self.material.thinWalled:
+        if self.material.thinWall:
+            node.inputs["Thin Wall"].default_value = GS.thinWall
             node.inputs["Refraction IOR"].default_value = 1.0
             node.inputs["Refraction Roughness"].default_value = 0.0
         else:
+            node.inputs["Thin Wall"].default_value = 0
             self.linkScalar(roughtex, node, roughness, "Refraction Roughness")
             self.linkScalar(iortex, node, ior, "Refraction IOR")
         self.linkNormal(node)
@@ -921,7 +923,7 @@ class CyclesTree:
 
 
     def buildVolume(self):
-        if (self.material.thinWalled or
+        if (self.material.thinWall or
             GS.materialMethod != "BSDF"):
             return
 

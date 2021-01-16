@@ -67,7 +67,7 @@ class Material(Asset, Channels):
         self.uv_sets = {}
         self.udim = 0
         self.basemix = 0
-        self.thinWalled = False
+        self.thinWall = False
         self.refractive = False
         self.thinGlass = False
         self.shareGlossy = False
@@ -123,10 +123,10 @@ class Material(Asset, Channels):
         elif self.basemix not in [0,1]:
             raise DazError("Unknown Base Mixing: %s             " % self.material.basemix)
 
-        self.thinWalled = self.getValue(["Thin Walled"], False)
+        self.thinWall = self.getValue(["Thin Walled"], False)
         self.refractive = (self.getValue("getChannelRefractionWeight", 0) > 0.01 or
                            self.getValue("getChannelOpacity", 1) < 0.99)
-        self.thinGlass = (self.thinWalled and self.refractive)
+        self.thinGlass = (self.thinWall and self.refractive)
         self.shareGlossy = self.getValue(["Share Glossy Inputs"], False)
         self.metallic = (self.getValue(["Metallic Weight"], 0) > 0.5)
         self.dualLobeWeight = self.getValue(["Dual Lobe Specular Weight"], 0)
@@ -241,19 +241,7 @@ class Material(Asset, Channels):
 #-------------------------------------------------------------
 
     def getChannelDiffuse(self):
-        channel = self.getChannel(["diffuse", "Diffuse Color"])
-        if (GS.brightenEyes != 1.0 and
-            self.name[0:6].lower() in ["irises", "sclera"]):
-            if bpy.app.version < (2,80,0):
-                factor = GS.brightenEyes
-            else:
-                factor = math.sqrt(GS.brightenEyes)
-            if "value" in channel.keys():
-                channel["value"] = factor*Vector(channel["value"])
-            if "current_value" in channel.keys():
-                channel["current_value"] = factor*Vector(channel["current_value"])
-        return channel
-
+        return self.getChannel(["diffuse", "Diffuse Color"])
 
     def getChannelDiffuseStrength(self):
         return self.getChannel(["diffuse_strength", "Diffuse Strength"])
@@ -492,7 +480,7 @@ class Material(Asset, Channels):
     def sssActive(self):
         if not self.isActive("Subsurface"):
             return False
-        if self.refractive or self.thinWalled:
+        if self.refractive or self.thinWall:
             return False
         return True
 

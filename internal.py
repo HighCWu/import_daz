@@ -192,7 +192,7 @@ class InternalMaterial(Material):
 
 
     def buildSSS(self, mat):
-        if self.thinWalled:
+        if self.thinWall:
             return
         wt = self.getValue("getChannelTranslucencyWeight", 0)
         dist = self.getValue("getChannelScatterDist", 0.0) * 10

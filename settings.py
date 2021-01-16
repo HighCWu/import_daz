@@ -67,7 +67,7 @@ class GlobalSettings:
         self.useLegacyLocks = False
         self.caseSensitivePaths = (platform != 'win32')
         self.mergeShells = True
-        self.brightenEyes = 1.0
+        self.thinWall = 0.0
         self.pruneNodes = True
 
         self.limitBump = False
@@ -115,7 +115,7 @@ class GlobalSettings:
         "DazHairMaterialMethod" : "hairMaterialMethod",
         "DazChooseColors" : "chooseColors",
         "DazMergeShells" : "mergeShells",
-        "DazBrightenEyes" : "brightenEyes",
+        "DazThinWall" : "thinWall",
         "DazPruneNodes" : "pruneNodes",
         "DazUseEnvironment" : "useEnvironment",
         "DazReuseMaterials" : "reuseMaterials",

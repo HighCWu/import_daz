@@ -1211,7 +1211,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.separator()
         box.prop(scn, "DazChooseColors")
         box.prop(scn, "DazMergeShells")
-        box.prop(scn, "DazBrightenEyes")
+        box.prop(scn, "DazThinWall")
         box.prop(scn, "DazPruneNodes")
         box.prop(scn, "DazUseEnvironment")
         box.prop(scn, "DazReuseMaterials")
@@ -1542,11 +1542,10 @@ def initialize():
         name = "Prune Node Tree",
         description = "Prune material node-tree.\nDisable for debugging only")
 
-    bpy.types.Scene.DazBrightenEyes = FloatProperty(
-        name = "Brighten Eyes",
-        description = "Brighten eye textures with this factor\nto avoid dark eyes problem for Genesis 8",
-        default = 1.0,
-        min = 0.1, max = 10)
+    bpy.types.Scene.DazThinWall = FloatProperty(
+        name = "Thin Wall Factor",
+        description = "Mix factor between refraction and transparent nodes.\nIncrease this to avoid dark eyes problem for Genesis 8",
+        min = 0, max = 1)
 
     bpy.types.Scene.DazMaxBump = FloatProperty(
         name = "Max Bump Strength",

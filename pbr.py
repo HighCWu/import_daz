@@ -256,7 +256,7 @@ class PbrTree(CyclesTree):
                 wttex = self.limitNode(wttex, 'GREATER_THAN', 0.5)
             self.linkScalar(wttex, pbr, weight, "Transmission")
 
-        if self.material.thinWalled:
+        if self.material.thinWall:
             # if thin walled is on then there's no volume
             # and we use the clearcoat channel for reflections
             #  principled ior = 1
