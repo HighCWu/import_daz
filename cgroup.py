@@ -174,7 +174,12 @@ class FresnelGroup(CyclesGroup):
 
 
     def addNodes(self, args=None):
-        geo = self.addNode("ShaderNodeNewGeometry", 1)
+        geo = self.addNode("ShaderNodeNewGeometry", 0)
+
+        divide = self.addNode("ShaderNodeMath", 1)
+        divide.operation = 'DIVIDE'
+        divide.inputs[0].default_value = 1.0
+        self.links.new(self.inputs.outputs["IOR"], divide.inputs[1])
 
         bump = self.addNode("ShaderNodeBump", 1)
         self.links.new(self.inputs.outputs["Normal"], bump.inputs["Normal"])
@@ -183,7 +188,7 @@ class FresnelGroup(CyclesGroup):
         mix1 = self.addNode("ShaderNodeMixRGB", 2)
         self.links.new(geo.outputs["Backfacing"], mix1.inputs["Fac"])
         self.links.new(self.inputs.outputs["IOR"], mix1.inputs[1])
-        mix1.inputs[2].default_value[0:3] = WHITE
+        self.links.new(divide.outputs["Value"], mix1.inputs[2])
 
         mix2 = self.addNode("ShaderNodeMixRGB", 2)
         self.links.new(self.inputs.outputs["Roughness"], mix2.inputs["Fac"])
@@ -217,7 +222,9 @@ class MixGroup(CyclesGroup):
 
     def addNodes(self, args=None):
         self.mix1 = self.addNode("ShaderNodeMixShader", self.ncols-1)
+        self.mix1.label = "Cycles"
         self.mix2 = self.addNode("ShaderNodeMixShader", self.ncols-1)
+        self.mix2.label = "Eevee"
         self.links.new(self.inputs.outputs["Fac"], self.mix1.inputs[0])
         self.links.new(self.inputs.outputs["Fac"], self.mix2.inputs[0])
         self.links.new(self.inputs.outputs["Cycles"], self.mix1.inputs[1])
@@ -376,7 +383,7 @@ class RefractionGroup(MixGroup):
 
 
     def create(self, node, name, parent):
-        MixGroup.create(self, node, name, parent, 4)
+        MixGroup.create(self, node, name, parent, 5)
         self.group.inputs.new("NodeSocketFloat", "Thin Wall")
         self.group.inputs.new("NodeSocketColor", "Refraction Color")
         self.group.inputs.new("NodeSocketFloat", "Refraction Roughness")
@@ -415,13 +422,18 @@ class RefractionGroup(MixGroup):
         self.links.new(self.inputs.outputs["Glossy Roughness"], glossy.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
 
-        mix = self.addNode("ShaderNodeMixShader", 3)
-        self.links.new(fresnel.outputs[0], mix.inputs[0])
-        self.links.new(thin.outputs[0], mix.inputs[1])
-        self.links.new(glossy.outputs[0], mix.inputs[2])
+        mix1 = self.addNode("ShaderNodeMixShader", 3)
+        self.links.new(fresnel.outputs[0], mix1.inputs[0])
+        self.links.new(thin.outputs[0], mix1.inputs[1])
+        self.links.new(glossy.outputs[0], mix1.inputs[2])
 
-        self.links.new(mix.outputs[0], self.mix1.inputs[2])
-        self.links.new(mix.outputs[0], self.mix2.inputs[2])
+        mix2 = self.addNode("ShaderNodeMixShader", 3)
+        self.links.new(fresnel.outputs[0], mix2.inputs[0])
+        self.links.new(trans.outputs[0], mix2.inputs[1])
+        self.links.new(glossy.outputs[0], mix2.inputs[2])
+
+        self.links.new(mix1.outputs[0], self.mix1.inputs[2])
+        self.links.new(mix2.outputs[0], self.mix2.inputs[2])
 
 # ---------------------------------------------------------------------
 #   Transparent Group
