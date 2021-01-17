@@ -1074,6 +1074,47 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
             bpy.ops.object.mode_set(mode='EDIT')
 
 #-------------------------------------------------------------
+#   Select strands by width
+#-------------------------------------------------------------
+
+class DAZ_OT_SelectStrandsByWidth(DazPropsOperator, IsMesh, B.WidthFloat):
+    bl_idname = "daz.select_strands_by_width"
+    bl_label = "Select Strands By Width"
+    bl_description = ("Select strands no wider than threshold")
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        self.layout.prop(self, "width")
+
+
+    def run(self, context):
+        ob = context.object
+        prox = Proxifier(ob)
+        comps = prox.getComponents(ob, context)
+        verts = ob.data.vertices
+        faces = ob.data.polygons
+        maxwidth = 0.1 * self.width * ob.DazScale
+        for comp in comps.values():
+            if self.withinWidth(verts, faces, prox, comp, maxwidth):
+                prox.selectComp(comp, ob)
+
+
+    def withinWidth(self, verts, faces, prox, comp, maxwidth):
+        for fn in comp:
+            sizes = [(verts[vn1].co - verts[vn2].co).length
+                      for vn1,vn2 in faces[fn].edge_keys]
+            sizes.sort()
+            if sizes[-3] > maxwidth:
+                return False
+        return True
+
+
+    def sequel(self, context):
+        DazPropsOperator.sequel(self, context)
+        if context.object:
+            bpy.ops.object.mode_set(mode='EDIT')
+
+#-------------------------------------------------------------
 #   Select largest strands
 #-------------------------------------------------------------
 
@@ -1532,6 +1573,7 @@ classes = [
     DAZ_OT_SplitNgons,
     DAZ_OT_FindSeams,
     DAZ_OT_SelectRandomStrands,
+    DAZ_OT_SelectStrandsByWidth,
     DAZ_OT_SelectStrandsBySize,
     DAZ_OT_ApplyMorphs,
     DAZ_OT_ApplySubsurf,

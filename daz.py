@@ -358,6 +358,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             from .hair import getHairAndHuman
             box.operator("daz.print_statistics")
             box.operator("daz.select_strands_by_size")
+            box.operator("daz.select_strands_by_width")
             box.operator("daz.select_random_strands")
             box.separator()
             box.operator("daz.make_hair")
@@ -1361,8 +1362,8 @@ def initialize():
 
     bpy.types.Object.DazScale = FloatProperty(
         name = "Unit Scale",
-        default = 0.1,
-        precision = 3)
+        default = 0.01,
+        precision = 4)
 
     bpy.types.Object.DazUnits = StringProperty(default = "")
     bpy.types.Object.DazExpressions = StringProperty(default = "")

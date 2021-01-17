@@ -604,6 +604,13 @@ class FractionFloat:
         min = 0.0, max = 1.0,
         default = 0.5)
 
+class WidthFloat:
+    width = FloatProperty(
+        name = "Width",
+        description = "Max allowed width (mm)",
+        min = 0.1, max = 10,
+        default = 1.0)
+
 class IterationsInt:
     iterations = IntProperty(
         name = "Iterations",
