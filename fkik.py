@@ -33,7 +33,7 @@ from .error import *
 from .utils import *
 
 #------------------------------------------------------------------
-#   FK-IK snapping.
+#   Get pose matrix
 #------------------------------------------------------------------
 
 def getPoseMatrix(gmat, pb):
@@ -56,247 +56,223 @@ def getGlobalMatrix(mat, pb):
         return gmat
 
 
-def matchPoseTranslation(pb, src, auto, rig):
-    pmat = getPoseMatrix(src.matrix, pb)
-    insertLocation(pb, pmat, auto, rig)
-
-
-def insertLocation(pb, mat, auto, rig):
-    pb.location = mat.to_translation()
-    if auto or isKeyed(rig, pb, "location"):
-        pb.keyframe_insert("location", group=pb.name)
-    bpy.ops.object.mode_set(mode='OBJECT')
-    bpy.ops.object.mode_set(mode='POSE')
-
-
-def matchPoseRotation(pb, src, auto, rig):
-    pmat = getPoseMatrix(src.matrix, pb)
-    insertRotation(pb, pmat, auto, rig)
-
-
 def printMatrix(string,mat):
     print(string)
     for i in range(4):
         print("    %.4g %.4g %.4g %.4g" % tuple(mat[i]))
 
 
-def insertRotation(pb, mat, auto, rig):
-    quat = mat.to_quaternion()
-    if pb.rotation_mode == 'QUATERNION':
-        pb.rotation_quaternion = quat
-        if auto or isKeyed(rig, pb, "rotation_quaternion"):
-            pb.keyframe_insert("rotation_quaternion", group=pb.name)
-    else:
-        pb.rotation_euler = quat.to_euler(pb.rotation_mode)
-        if auto or isKeyed(rig, pb, "rotation_euler"):
-            pb.keyframe_insert("rotation_euler", group=pb.name)
+def muteConstraints(constraints, value):
+    for cns in constraints:
+        cns.mute = value
+
+
+def updatePose():
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.mode_set(mode='POSE')
 
+#------------------------------------------------------------------
+#   Snapper class
+#------------------------------------------------------------------
 
-def matchPoseTwist(pb, src, auto, rig):
-    pmat0 = src.matrix_basis
-    euler = pmat0.to_3x3().to_euler('YZX')
-    euler.z = 0
-    pmat = euler.to_matrix().to_4x4()
-    pmat.col[3] = pmat0.col[3]
-    insertRotation(pb, pmat, auto, rig)
+class Snapper:
 
-
-def matchIkLeg(legIk, toeFk, mBall, mToe, mHeel, auto, rig):
-    rmat = toeFk.matrix.to_3x3()
-    tHead = Vector(toeFk.matrix.col[3][:3])
-    ty = rmat.col[1]
-    tail = tHead + ty * toeFk.bone.length
-
-    try:
-        zBall = mBall.matrix.col[3][2]
-    except AttributeError:
-        return
-    zToe = mToe.matrix.col[3][2]
-    zHeel = mHeel.matrix.col[3][2]
-
-    x = Vector(rmat.col[0])
-    y = Vector(rmat.col[1])
-    z = Vector(rmat.col[2])
-
-    if zHeel > zBall and zHeel > zToe:
-        # 1. foot.ik is flat
-        if abs(y[2]) > abs(z[2]):
-            y = -z
-        y[2] = 0
-    else:
-        # 2. foot.ik starts at heel
-        hHead = Vector(mHeel.matrix.col[3][:3])
-        y = tail - hHead
-
-    y.normalize()
-    x -= x.dot(y)*y
-    x.normalize()
-    z = x.cross(y)
-    head = tail - y * legIk.bone.length
-
-    # Create matrix
-    gmat = Matrix()
-    gmat.col[0][:3] = x
-    gmat.col[1][:3] = y
-    gmat.col[2][:3] = z
-    gmat.col[3][:3] = head
-    pmat = getPoseMatrix(gmat, legIk)
-
-    insertLocation(legIk, pmat, auto, rig)
-    insertRotation(legIk, pmat, auto, rig)
+    def matchPoseTranslation(self, pb, src):
+        pmat = getPoseMatrix(src.matrix, pb)
+        self.insertLocation(pb, pmat)
 
 
-def matchPoleTarget(pb, above, below, auto, rig):
-    ay = Vector(above.matrix.col[1][:3])
-    by = Vector(below.matrix.col[1][:3])
-    az = Vector(above.matrix.col[2][:3])
-    bz = Vector(below.matrix.col[2][:3])
-    p0 = Vector(below.matrix.col[3][:3])
-    n = ay.cross(by)
-    if abs(n.length) > 1e-4:
-        d = ay - by
-        n.normalize()
-        d -= d.dot(n)*n
-        d.normalize()
-        if d.dot(az) > 0:
-            d = -d
-        p = p0 + 6*pb.bone.length*d
-    else:
-        p = p0
-    gmat = Matrix.Translation(p)
-    pmat = getPoseMatrix(gmat, pb)
-    insertLocation(pb, pmat, auto, rig)
+    def insertLocation(self, pb, mat):
+        pb.location = mat.to_translation()
+        if self.auto or self.isKeyed(pb, "location"):
+            pb.keyframe_insert("location", group=pb.name)
 
 
-def matchPoseReverse(pb, src, auto, rig):
-    gmat = src.matrix
-    tail = gmat.col[3] + src.length * gmat.col[1]
-    rmat = Matrix((gmat.col[0], -gmat.col[1], -gmat.col[2], tail))
-    rmat.transpose()
-    pmat = getPoseMatrix(rmat, pb)
-    pb.matrix_basis = pmat
-    insertRotation(pb, pmat, auto, rig)
+    def matchPoseRotation(self, pb, src):
+        pmat = getPoseMatrix(src.matrix, pb)
+        self.insertRotation(pb, pmat)
 
 
-def matchPoseScale(pb, src, auto, rig):
-    pmat = getPoseMatrix(src.matrix, pb)
-    pb.scale = pmat.to_scale()
-    if auto or isKeyed(rig, pb, "scale"):
-        pb.keyframe_insert("scale", group=pb.name)
-    bpy.ops.object.mode_set(mode='OBJECT')
-    bpy.ops.object.mode_set(mode='POSE')
+    def insertRotation(self, pb, mat):
+        quat = mat.to_quaternion()
+        if pb.rotation_mode == 'QUATERNION':
+            pb.rotation_quaternion = quat
+            if self.auto or self.isKeyed(pb, "rotation_quaternion"):
+                pb.keyframe_insert("rotation_quaternion", group=pb.name)
+        else:
+            pb.rotation_euler = quat.to_euler(pb.rotation_mode)
+            if self.auto or self.isKeyed(pb, "rotation_euler"):
+                pb.keyframe_insert("rotation_euler", group=pb.name)
 
 
-def snapFkArm(context, data):
-    rig = context.object
-    prop,old,suffix = setSnapProp(rig, data, 1.0, context, False)
-    auto = context.scene.tool_settings.use_keyframe_insert_auto
-
-    print("Snap FK Arm%s" % suffix)
-    snapFk,cnsFk = getSnapBones(rig, "ArmFK", suffix)
-    (uparmFk, loarmFk, handFk) = snapFk
-    muteConstraints(cnsFk, True)
-    snapIk,cnsIk = getSnapBones(rig, "ArmIK", suffix)
-    (uparmIk, loarmIk, elbow, elbowPt, handIk) = snapIk
-
-    matchPoseRotation(uparmFk, uparmIk, auto, rig)
-    matchPoseScale(uparmFk, uparmIk, auto, rig)
-    matchPoseRotation(loarmFk, loarmIk, auto, rig)
-    matchPoseScale(loarmFk, loarmIk, auto, rig)
-
-    restoreSnapProp(rig, prop, old, context)
-
-    try:
-        matchHand = rig["MhaHandFollowsWrist" + suffix]
-    except KeyError:
-        matchHand = True
-    if matchHand:
-        matchPoseRotation(handFk, handIk, auto, rig)
-        matchPoseScale(handFk, handIk, auto, rig)
-
-    muteConstraints(cnsFk, False)
-    setattr(rig, prop, 0)
+    def matchPoseTwist(self, pb, src):
+        pmat0 = src.matrix_basis
+        euler = pmat0.to_3x3().to_euler('YZX')
+        euler.z = 0
+        pmat = euler.to_matrix().to_4x4()
+        pmat.col[3] = pmat0.col[3]
+        self.insertRotation(pb, pmat)
 
 
-def snapIkArm(context, data):
-    rig = context.object
-    prop,old,suffix = setSnapProp(rig, data, 0.0, context, True)
-    auto = context.scene.tool_settings.use_keyframe_insert_auto
+    def matchIkLeg(self, legIk, toeFk, mBall, mToe, mHeel):
+        rmat = toeFk.matrix.to_3x3()
+        tHead = Vector(toeFk.matrix.col[3][:3])
+        ty = rmat.col[1]
+        tail = tHead + ty * toeFk.bone.length
 
-    print("Snap IK Arm%s" % suffix)
-    snapIk,cnsIk = getSnapBones(rig, "ArmIK", suffix)
-    (uparmIk, loarmIk, elbow, elbowPt, handIk) = snapIk
-    snapFk,cnsFk = getSnapBones(rig, "ArmFK", suffix)
-    (uparmFk, loarmFk, handFk) = snapFk
-    muteConstraints(cnsIk, True)
+        try:
+            zBall = mBall.matrix.col[3][2]
+        except AttributeError:
+            return
+        zToe = mToe.matrix.col[3][2]
+        zHeel = mHeel.matrix.col[3][2]
 
-    matchPoseTranslation(handIk, handFk, auto, rig)
-    matchPoseRotation(handIk, handFk, auto, rig)
-    matchPoleTarget(elbowPt, uparmFk, loarmFk, auto, rig)
-    #matchPoseRotation(uparmIk, uparmFk, auto, rig)
-    #matchPoseRotation(loarmIk, loarmFk, auto, rig)
+        x = Vector(rmat.col[0])
+        y = Vector(rmat.col[1])
+        z = Vector(rmat.col[2])
 
-    restoreSnapProp(rig, prop, old, context)
-    muteConstraints(cnsIk, False)
-    setattr(rig, prop, 1)
+        if zHeel > zBall and zHeel > zToe:
+            # 1. foot.ik is flat
+            if abs(y[2]) > abs(z[2]):
+                y = -z
+            y[2] = 0
+        else:
+            # 2. foot.ik starts at heel
+            hHead = Vector(mHeel.matrix.col[3][:3])
+            y = tail - hHead
 
+        y.normalize()
+        x -= x.dot(y)*y
+        x.normalize()
+        z = x.cross(y)
+        head = tail - y * legIk.bone.length
 
-def snapFkLeg(context, data):
-    rig = context.object
-    prop,old,suffix = setSnapProp(rig, data, 1.0, context, False)
-    auto = context.scene.tool_settings.use_keyframe_insert_auto
+        # Create matrix
+        gmat = Matrix()
+        gmat.col[0][:3] = x
+        gmat.col[1][:3] = y
+        gmat.col[2][:3] = z
+        gmat.col[3][:3] = head
+        pmat = getPoseMatrix(gmat, legIk)
 
-    print("Snap FK Leg%s" % suffix)
-    snap,_ = getSnapBones(rig, "Leg", suffix)
-    (upleg, loleg, foot, toe) = snap
-    snapIk,cnsIk = getSnapBones(rig, "LegIK", suffix)
-    (uplegIk, lolegIk, kneePt, ankle, ankleIk, legIk, footRev, toeRev, mBall, mToe, mHeel) = snapIk
-    snapFk,cnsFk = getSnapBones(rig, "LegFK", suffix)
-    (uplegFk, lolegFk, footFk, toeFk) = snapFk
-    muteConstraints(cnsFk, True)
-
-    matchPoseRotation(uplegFk, uplegIk, auto, rig)
-    matchPoseScale(uplegFk, uplegIk, auto, rig)
-    matchPoseRotation(lolegFk, lolegIk, auto, rig)
-    matchPoseScale(lolegFk, lolegIk, auto, rig)
-
-    restoreSnapProp(rig, prop, old, context)
-
-    if not getattr(rig, "MhaLegIkToAnkle" + suffix):
-        matchPoseReverse(footFk, footRev, auto, rig)
-        matchPoseReverse(toeFk, toeRev, auto, rig)
-
-    muteConstraints(cnsFk, False)
-    setattr(rig, prop, 0)
+        self.insertLocation(legIk, pmat)
+        self.insertRotation(legIk, pmat)
 
 
-def snapIkLeg(context, data):
-    rig = context.object
-    scn = context.scene
-    prop,old,suffix = setSnapProp(rig, data, 0.0, context, True)
-    auto = scn.tool_settings.use_keyframe_insert_auto
+    def matchPoleTarget(self, pb, above, below):
+        ay = Vector(above.matrix.col[1][:3])
+        by = Vector(below.matrix.col[1][:3])
+        az = Vector(above.matrix.col[2][:3])
+        bz = Vector(below.matrix.col[2][:3])
+        p0 = Vector(below.matrix.col[3][:3])
+        n = ay.cross(by)
+        if abs(n.length) > 1e-4:
+            d = ay - by
+            n.normalize()
+            d -= d.dot(n)*n
+            d.normalize()
+            if d.dot(az) > 0:
+                d = -d
+            p = p0 + 6*pb.bone.length*d
+        else:
+            p = p0
+        gmat = Matrix.Translation(p)
+        pmat = getPoseMatrix(gmat, pb)
+        self.insertLocation(pb, pmat)
 
-    print("Snap IK Leg%s" % suffix)
-    snapIk,cnsIk = getSnapBones(rig, "LegIK", suffix)
-    (uplegIk, lolegIk, kneePt, ankle, ankleIk, legIk, footRev, toeRev, mBall, mToe, mHeel) = snapIk
-    snapFk,cnsFk = getSnapBones(rig, "LegFK", suffix)
-    (uplegFk, lolegFk, footFk, toeFk) = snapFk
-    muteConstraints(cnsIk, True)
 
-    matchPoseTranslation(ankle, footFk, auto, rig)
-    matchIkLeg(legIk, toeFk, mBall, mToe, mHeel, auto, rig)
-    matchPoseReverse(toeRev, toeFk, auto, rig)
-    matchPoseReverse(footRev, footFk, auto, rig)
-    matchPoseTranslation(ankleIk, footFk, auto, rig)
-    matchPoleTarget(kneePt, uplegFk, lolegFk, auto, rig)
-    #matchPoseRotation(uplegIk, uplegFk, auto, rig)
-    #matchPoseRotation(lolegIk, lolegFk, auto, rig)
+    def matchPoseReverse(self, pb, src):
+        gmat = src.matrix
+        tail = gmat.col[3] + src.length * gmat.col[1]
+        rmat = Matrix((gmat.col[0], -gmat.col[1], -gmat.col[2], tail))
+        rmat.transpose()
+        pmat = getPoseMatrix(rmat, pb)
+        pb.matrix_basis = pmat
+        self.insertRotation(pb, pmat)
 
-    restoreSnapProp(rig, prop, old, context)
-    muteConstraints(cnsIk, False)
-    setattr(rig, prop, 1)
+
+    def matchPoseScale(self, pb, src):
+        pmat = getPoseMatrix(src.matrix, pb)
+        pb.scale = pmat.to_scale()
+        if self.auto or self.isKeyed(pb, "scale"):
+            pb.keyframe_insert("scale", group=pb.name)
+
+
+    def isKeyed(self, pb, path):
+        if self.rig.animation_data:
+            act = self.rig.animation_data.action
+            if act:
+                if pb:
+                    path = ('pose.bones["%s"].%s' % (pb.name, path))
+                for fcu in act.fcurves:
+                    if fcu.data_path == path:
+                        return True
+        return False
+
+
+    def getSnapBones(self, key, suffix):
+        try:
+            self.rig.pose.bones["thigh.fk.L"]
+            names = SnapBonesAlpha8[key]
+            suffix = '.' + suffix[1:]
+        except KeyError:
+            names = None
+
+        if not names:
+            raise DazError("Not an mhx armature")
+
+        pbones = []
+        constraints = []
+        for name in names:
+            if name:
+                try:
+                    pb = self.rig.pose.bones[name+suffix]
+                except KeyError:
+                    pb = None
+                pbones.append(pb)
+                if pb is not None:
+                    for cns in pb.constraints:
+                        if cns.type == 'LIMIT_ROTATION' and not cns.mute:
+                            constraints.append(cns)
+            else:
+                pbones.append(None)
+        return tuple(pbones),constraints
+
+
+    def setSnapProp(self, value, context, isIk):
+        words = self.data.split()
+        prop = words[0]
+        oldValue = getattr(self.rig, prop)
+        setattr(self.rig, prop, value)
+        ik = int(words[1])
+        fk = int(words[2])
+        extra = int(words[3])
+        oldIk = self.rig.data.layers[ik]
+        oldFk = self.rig.data.layers[fk]
+        oldExtra = self.rig.data.layers[extra]
+        self.rig.data.layers[ik] = True
+        self.rig.data.layers[fk] = True
+        self.rig.data.layers[extra] = True
+        updatePose()
+        if isIk:
+            oldValue = 1.0
+            oldIk = True
+            oldFk = False
+        else:
+            oldValue = 0.0
+            oldIk = False
+            oldFk = True
+            oldExtra = False
+        return (prop, (oldValue, ik, fk, extra, oldIk, oldFk, oldExtra), prop[-2:])
+
+
+    def restoreSnapProp(self, prop, old, context):
+        (oldValue, ik, fk, extra, oldIk, oldFk, oldExtra) = old
+        setattr(self.rig, prop,  oldValue)
+        self.rig.data.layers[ik] = oldIk
+        self.rig.data.layers[fk] = oldFk
+        self.rig.data.layers[extra] = oldExtra
+        updatePose()
 
 
 SnapBonesAlpha8 = {
@@ -309,157 +285,161 @@ SnapBonesAlpha8 = {
 }
 
 
-def getSnapBones(rig, key, suffix):
-    try:
-        rig.pose.bones["thigh.fk.L"]
-        names = SnapBonesAlpha8[key]
-        suffix = '.' + suffix[1:]
-    except KeyError:
-        names = None
-
-    if not names:
-        raise DazError("Not an mhx armature")
-
-    pbones = []
-    constraints = []
-    for name in names:
-        if name:
-            try:
-                pb = rig.pose.bones[name+suffix]
-            except KeyError:
-                pb = None
-            pbones.append(pb)
-            if pb is not None:
-                for cns in pb.constraints:
-                    if cns.type == 'LIMIT_ROTATION' and not cns.mute:
-                        constraints.append(cns)
-        else:
-            pbones.append(None)
-    return tuple(pbones),constraints
-
-
-def muteConstraints(constraints, value):
-    for cns in constraints:
-        cns.mute = value
-
-
-class DAZ_OT_MhxSnapFk2Ik(DazOperator, B.DataString):
+class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper, B.DataString):
     bl_idname = "daz.snap_fk_ik"
     bl_label = "Snap FK"
     bl_options = {'UNDO'}
 
     def run(self, context):
         bpy.ops.object.mode_set(mode='POSE')
-        rig = context.object
+        self.rig = context.object
+        self.auto = context.scene.tool_settings.use_keyframe_insert_auto
         if self.data[:6] == "MhaArm":
-            snapFkArm(context, self.data)
+            self.snapFkArm(context)
         elif self.data[:6] == "MhaLeg":
-            snapFkLeg(context, self.data)
+            self.snapFkLeg(context)
 
 
-class DAZ_OT_MhxSnapIk2Fk(DazOperator, B.DataString):
+    def snapFkArm(self, context):
+        prop,old,suffix = self.setSnapProp(1.0, context, False)
+        print("Snap FK Arm%s" % suffix)
+        snapFk,cnsFk = self.getSnapBones("ArmFK", suffix)
+        (uparmFk, loarmFk, handFk) = snapFk
+        muteConstraints(cnsFk, True)
+        snapIk,cnsIk = self.getSnapBones("ArmIK", suffix)
+        (uparmIk, loarmIk, elbow, elbowPt, handIk) = snapIk
+
+        self.matchPoseRotation(uparmFk, uparmIk)
+        self.matchPoseScale(uparmFk, uparmIk)
+        updatePose()
+        self.matchPoseRotation(loarmFk, loarmIk)
+        self.matchPoseScale(loarmFk, loarmIk)
+        updatePose()
+
+        try:
+            matchHand = self.rig["MhaHandFollowsWrist" + suffix]
+        except KeyError:
+            matchHand = True
+        if matchHand:
+            self.matchPoseRotation(handFk, handIk)
+            self.matchPoseScale(handFk, handIk)
+            updatePose()
+
+        self.restoreSnapProp(prop, old, context)
+        muteConstraints(cnsFk, False)
+        setattr(self.rig, prop, 0)
+
+
+    def snapFkLeg(self, context):
+        prop,old,suffix = self.setSnapProp(1.0, context, False)
+        print("Snap FK Leg%s" % suffix)
+        snap,_ = self.getSnapBones("Leg", suffix)
+        (upleg, loleg, foot, toe) = snap
+        snapIk,cnsIk = self.getSnapBones("LegIK", suffix)
+        (uplegIk, lolegIk, kneePt, ankle, ankleIk, legIk, footRev, toeRev, mBall, mToe, mHeel) = snapIk
+        snapFk,cnsFk = self.getSnapBones("LegFK", suffix)
+        (uplegFk, lolegFk, footFk, toeFk) = snapFk
+        muteConstraints(cnsFk, True)
+
+        self.matchPoseRotation(uplegFk, uplegIk)
+        self.matchPoseScale(uplegFk, uplegIk)
+        updatePose()
+        self.matchPoseRotation(lolegFk, lolegIk)
+        self.matchPoseScale(lolegFk, lolegIk)
+        updatePose()
+        if not getattr(self.rig, "MhaLegIkToAnkle" + suffix):
+            self.matchPoseReverse(footFk, footRev)
+            updatePose()
+            self.matchPoseReverse(toeFk, toeRev)
+            updatePose()
+
+        self.restoreSnapProp(prop, old, context)
+        muteConstraints(cnsFk, False)
+        setattr(self.rig, prop, 0)
+
+
+class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper, B.DataString):
     bl_idname = "daz.snap_ik_fk"
     bl_label = "Snap IK"
     bl_options = {'UNDO'}
 
     def run(self, context):
         bpy.ops.object.mode_set(mode='POSE')
-        rig = context.object
+        self.rig = context.object
+        self.auto = context.scene.tool_settings.use_keyframe_insert_auto
         if self.data[:6] == "MhaArm":
-            snapIkArm(context, self.data)
+            self.snapIkArm(context)
         elif self.data[:6] == "MhaLeg":
-            snapIkLeg(context, self.data)
+            self.snapIkLeg(context)
 
 
-def setSnapProp(rig, data, value, context, isIk):
-    words = data.split()
-    prop = words[0]
-    oldValue = getattr(rig, prop)
-    setattr(rig, prop, value)
-    ik = int(words[1])
-    fk = int(words[2])
-    extra = int(words[3])
-    oldIk = rig.data.layers[ik]
-    oldFk = rig.data.layers[fk]
-    oldExtra = rig.data.layers[extra]
-    rig.data.layers[ik] = True
-    rig.data.layers[fk] = True
-    rig.data.layers[extra] = True
-    updatePose(context)
-    if isIk:
-        oldValue = 1.0
-        oldIk = True
-        oldFk = False
-    else:
-        oldValue = 0.0
-        oldIk = False
-        oldFk = True
-        oldExtra = False
-    return (prop, (oldValue, ik, fk, extra, oldIk, oldFk, oldExtra), prop[-2:])
+    def snapIkArm(self, context):
+        prop,old,suffix = self.setSnapProp(0.0, context, True)
+        print("Snap IK Arm%s" % suffix)
+        snapIk,cnsIk = self.getSnapBones("ArmIK", suffix)
+        (uparmIk, loarmIk, elbow, elbowPt, handIk) = snapIk
+        snapFk,cnsFk = self.getSnapBones("ArmFK", suffix)
+        (uparmFk, loarmFk, handFk) = snapFk
+        muteConstraints(cnsIk, True)
+
+        self.matchPoseTranslation(handIk, handFk)
+        self.matchPoseRotation(handIk, handFk)
+        updatePose()
+        self.matchPoleTarget(elbowPt, uparmFk, loarmFk)
+        updatePose()
+
+        self.restoreSnapProp(prop, old, context)
+        muteConstraints(cnsIk, False)
+        setattr(self.rig, prop, 1)
 
 
-def restoreSnapProp(rig, prop, old, context):
-    updatePose(context)
-    (oldValue, ik, fk, extra, oldIk, oldFk, oldExtra) = old
-    setattr(rig, prop,  oldValue)
-    rig.data.layers[ik] = oldIk
-    rig.data.layers[fk] = oldFk
-    rig.data.layers[extra] = oldExtra
-    updatePose(context)
-    return
+    def snapIkLeg(self, context):
+        prop,old,suffix = self.setSnapProp(0.0, context, True)
+        print("Snap IK Leg%s" % suffix)
+        snapIk,cnsIk = self.getSnapBones("LegIK", suffix)
+        (uplegIk, lolegIk, kneePt, ankle, ankleIk, legIk, footRev, toeRev, mBall, mToe, mHeel) = snapIk
+        snapFk,cnsFk = self.getSnapBones("LegFK", suffix)
+        (uplegFk, lolegFk, footFk, toeFk) = snapFk
+        muteConstraints(cnsIk, True)
+
+        self.matchPoseTranslation(ankle, footFk)
+        updatePose()
+        self.matchIkLeg(legIk, toeFk, mBall, mToe, mHeel)
+        updatePose()
+        self.matchPoseReverse(toeRev, toeFk)
+        updatePose()
+        self.matchPoseReverse(footRev, footFk)
+        updatePose()
+        self.matchPoseTranslation(ankleIk, footFk)
+        updatePose()
+        self.matchPoleTarget(kneePt, uplegFk, lolegFk)
+        updatePose()
+
+        self.restoreSnapProp(prop, old, context)
+        muteConstraints(cnsIk, False)
+        setattr(self.rig, prop, 1)
 
 
-class DAZ_OT_MhxToggleFkIk(DazOperator, B.ToggleString):
+class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper, B.ToggleString):
     bl_idname = "daz.toggle_fk_ik"
     bl_label = "FK - IK"
     bl_options = {'UNDO'}
 
     def run(self, context):
         words = self.toggle.split()
-        rig = context.object
+        self.rig = context.object
         scn = context.scene
         prop = words[0]
         value = float(words[1])
         onLayer = int(words[2])
         offLayer = int(words[3])
-        rig.data.layers[onLayer] = True
-        rig.data.layers[offLayer] = False
-        setattr(rig, prop, value)
+        self.rig.data.layers[onLayer] = True
+        self.rig.data.layers[offLayer] = False
+        setattr(self.rig, prop, value)
         path = ('["%s"]' % prop)
-        if isKeyed(rig, None, path):
-            rig.keyframe_insert(path, frame=scn.frame_current)
-        updatePose(context)
-
-
-def isKeyed(rig, pb, path):
-    if rig.animation_data:
-        act = rig.animation_data.action
-        if act:
-            if pb:
-                path = ('pose.bones["%s"].%s' % (pb.name, path))
-            for fcu in act.fcurves:
-                if fcu.data_path == path:
-                    return True
-    return False
-
-#
-#   updatePose(context):
-#   class DAZ_OT_MhxUpdate(DazOperator):
-#
-
-def updatePose(context):
-    scn = context.scene
-    scn.frame_current = scn.frame_current
-    bpy.ops.object.posemode_toggle()
-    bpy.ops.object.posemode_toggle()
-
-
-class DAZ_OT_MhxUpdate(DazOperator):
-    bl_idname = "daz.update"
-    bl_label = "Update"
-
-    def run(self, context):
-        updatePose(context)
+        if self.isKeyed(None, path):
+            self.rig.keyframe_insert(path, frame=scn.frame_current)
+        updatePose()
 
 
 class DAZ_OT_MhxToggleHints(DazOperator):
@@ -474,7 +454,7 @@ class DAZ_OT_MhxToggleHints(DazOperator):
                 if cns.type == 'LIMIT_ROTATION' and cns.name == "Hint":
                     cns.mute = not cns.mute
         rig.DazHintsOn = not rig.DazHintsOn
-        updatePose(context)
+        updatePose()
 
 #----------------------------------------------------------
 #   Initialize
@@ -484,7 +464,6 @@ classes = [
     DAZ_OT_MhxSnapFk2Ik,
     DAZ_OT_MhxSnapIk2Fk,
     DAZ_OT_MhxToggleFkIk,
-    DAZ_OT_MhxUpdate,
     DAZ_OT_MhxToggleHints,
 ]
 
