@@ -1080,7 +1080,7 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
 class DAZ_OT_SelectStrandsByWidth(DazPropsOperator, IsMesh, B.WidthFloat):
     bl_idname = "daz.select_strands_by_width"
     bl_label = "Select Strands By Width"
-    bl_description = ("Select strands no wider than threshold")
+    bl_description = "Select strands no wider than threshold"
     bl_options = {'UNDO'}
 
     def draw(self, context):
@@ -1095,11 +1095,11 @@ class DAZ_OT_SelectStrandsByWidth(DazPropsOperator, IsMesh, B.WidthFloat):
         faces = ob.data.polygons
         maxwidth = 0.1 * self.width * ob.DazScale
         for comp in comps.values():
-            if self.withinWidth(verts, faces, prox, comp, maxwidth):
+            if self.withinWidth(verts, faces, comp, maxwidth):
                 prox.selectComp(comp, ob)
 
 
-    def withinWidth(self, verts, faces, prox, comp, maxwidth):
+    def withinWidth(self, verts, faces, comp, maxwidth):
         for fn in comp:
             sizes = [(verts[vn1].co - verts[vn2].co).length
                       for vn1,vn2 in faces[fn].edge_keys]

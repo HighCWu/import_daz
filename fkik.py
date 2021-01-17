@@ -203,7 +203,6 @@ def snapFkArm(context, data):
 
     matchPoseRotation(uparmFk, uparmIk, auto, rig)
     matchPoseScale(uparmFk, uparmIk, auto, rig)
-
     matchPoseRotation(loarmFk, loarmIk, auto, rig)
     matchPoseScale(loarmFk, loarmIk, auto, rig)
 
@@ -235,11 +234,9 @@ def snapIkArm(context, data):
 
     matchPoseTranslation(handIk, handFk, auto, rig)
     matchPoseRotation(handIk, handFk, auto, rig)
-
     matchPoleTarget(elbowPt, uparmFk, loarmFk, auto, rig)
-
-    matchPoseRotation(uparmIk, uparmFk, auto, rig)
-    matchPoseRotation(loarmIk, loarmFk, auto, rig)
+    #matchPoseRotation(uparmIk, uparmFk, auto, rig)
+    #matchPoseRotation(loarmIk, loarmFk, auto, rig)
 
     restoreSnapProp(rig, prop, old, context)
     muteConstraints(cnsIk, False)
@@ -262,7 +259,6 @@ def snapFkLeg(context, data):
 
     matchPoseRotation(uplegFk, uplegIk, auto, rig)
     matchPoseScale(uplegFk, uplegIk, auto, rig)
-
     matchPoseRotation(lolegFk, lolegIk, auto, rig)
     matchPoseScale(lolegFk, lolegIk, auto, rig)
 
@@ -291,17 +287,12 @@ def snapIkLeg(context, data):
 
     matchPoseTranslation(ankle, footFk, auto, rig)
     matchIkLeg(legIk, toeFk, mBall, mToe, mHeel, auto, rig)
-
     matchPoseReverse(toeRev, toeFk, auto, rig)
     matchPoseReverse(footRev, footFk, auto, rig)
-
-    matchPoleTarget(kneePt, uplegFk, lolegFk, auto, rig)
-
-    #matchPoseTwist(lolegIk, lolegFk, auto, rig)
-    matchPoseRotation(uplegIk, uplegIk, auto, rig)
-    matchPoseRotation(lolegIk, lolegIk, auto, rig)
-
     matchPoseTranslation(ankleIk, footFk, auto, rig)
+    matchPoleTarget(kneePt, uplegFk, lolegFk, auto, rig)
+    #matchPoseRotation(uplegIk, uplegFk, auto, rig)
+    #matchPoseRotation(lolegIk, lolegFk, auto, rig)
 
     restoreSnapProp(rig, prop, old, context)
     muteConstraints(cnsIk, False)
