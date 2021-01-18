@@ -127,7 +127,13 @@ class CyclesMaterial(Material):
             if alpha == 1 and tex is None:
                 return
             mat = self.rna
-            mat.blend_method = 'BLEND'
+            if self.thinWall:
+                mat.blend_method = 'BLEND'
+                mat.use_screen_refraction = False
+                mat.show_transparent_back = False
+            else:
+                mat.blend_method = 'HASHED'
+                mat.use_screen_refraction = True
             if hasattr(mat, "transparent_shadow_method"):
                 mat.transparent_shadow_method = 'HASHED'
             else:
@@ -849,8 +855,6 @@ class CyclesTree:
 
     def setRefractiveMaterial(self):
         if bpy.app.version > (2,80,0):
-            mat = self.material.rna
-            mat.use_screen_refraction = True
             self.material.alphaBlend(0, None)
         LS.usedFeatures["Transparent"] = True
 
