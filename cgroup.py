@@ -422,18 +422,13 @@ class RefractionGroup(MixGroup):
         self.links.new(self.inputs.outputs["Glossy Roughness"], glossy.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], glossy.inputs["Normal"])
 
-        mix1 = self.addNode("ShaderNodeMixShader", 3)
-        self.links.new(fresnel.outputs[0], mix1.inputs[0])
-        self.links.new(thin.outputs[0], mix1.inputs[1])
-        self.links.new(glossy.outputs[0], mix1.inputs[2])
+        mix = self.addNode("ShaderNodeMixShader", 3)
+        self.links.new(fresnel.outputs[0], mix.inputs[0])
+        self.links.new(thin.outputs[0], mix.inputs[1])
+        self.links.new(glossy.outputs[0], mix.inputs[2])
 
-        mix2 = self.addNode("ShaderNodeMixShader", 3)
-        self.links.new(fresnel.outputs[0], mix2.inputs[0])
-        self.links.new(trans.outputs[0], mix2.inputs[1])
-        self.links.new(glossy.outputs[0], mix2.inputs[2])
-
-        self.links.new(mix1.outputs[0], self.mix1.inputs[2])
-        self.links.new(mix2.outputs[0], self.mix2.inputs[2])
+        self.links.new(mix.outputs[0], self.mix1.inputs[2])
+        self.links.new(mix.outputs[0], self.mix2.inputs[2])
 
 # ---------------------------------------------------------------------
 #   Transparent Group

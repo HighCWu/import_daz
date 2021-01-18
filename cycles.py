@@ -127,7 +127,7 @@ class CyclesMaterial(Material):
             if alpha == 1 and tex is None:
                 return
             mat = self.rna
-            mat.blend_method = 'HASHED'
+            mat.blend_method = 'BLEND'
             if hasattr(mat, "transparent_shadow_method"):
                 mat.transparent_shadow_method = 'HASHED'
             else:
