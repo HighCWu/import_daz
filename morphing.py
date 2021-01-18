@@ -1267,9 +1267,9 @@ def prettifyAll(context):
     for ob in getSelectedArmatures(context):
         for prop in ob.keys():
             if prop[0:7] == "DazShow":
-                setattr(bpy.types.Object, prop, BoolProperty(default=True))
+                setattr(bpy.types.Object, prop, BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'}, options ={'LIBRARY_EDITABLE'}))
             elif prop[0:3] in ["Mhh", "DzM"]:
-                setattr(bpy.types.Object, prop, BoolProperty(default=True))
+                setattr(bpy.types.Object, prop, BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'}, options ={'LIBRARY_EDITABLE'}))
 
 
 class DAZ_OT_Prettify(DazOperator):
