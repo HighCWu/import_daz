@@ -1264,7 +1264,7 @@ class DAZ_OT_DeactivateAll(DazOperator, Activator):
 
 def prettifyAll(context):
     scn = context.scene
-    if bpy.app.version < (2,80,0):
+    if bpy.app.version < (2,90,0):
         boolprop = BoolProperty(default=True)
     else:
         boolprop = BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'})

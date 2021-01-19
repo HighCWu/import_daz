@@ -431,7 +431,7 @@ def setBoolProp(ob, prop, value, desc=""):
     if rna_ui is None:
         rna_ui = ob['_RNA_UI'] = {}
     rna_ui[prop] = { "min": 0, "max": 1 }
-    if bpy.app.version < (2,80,0):
+    if bpy.app.version < (2,90,0):
         boolprop = BoolProperty(default=value, description=desc)
     else:
         boolprop = BoolProperty(default=value, description=desc, override={'LIBRARY_OVERRIDABLE'})
