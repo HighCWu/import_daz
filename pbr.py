@@ -85,7 +85,7 @@ class PbrTree(CyclesTree):
         if "Alpha" in self.pbr.inputs.keys() and not self.postPBR:
             alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1)
             if alpha < 1 or tex:
-                self.material.alphaBlend(alpha, tex)
+                self.material.setTransSettings(False)
                 self.useCutout = True
             self.pbr.inputs["Alpha"].default_value = alpha
             if tex:
@@ -238,7 +238,7 @@ class PbrTree(CyclesTree):
             return
         color,coltex,roughness,roughtex = self.getRefractionColor()
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
-        self.setRefractiveMaterial()
+        self.material.setTransSettings(False)
 
         if weight < 1 or wttex:
             self.column += 1

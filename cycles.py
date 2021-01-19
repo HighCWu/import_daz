@@ -122,12 +122,11 @@ class CyclesMaterial(Material):
                         node.inputs[0].default_value /= area
 
 
-    def alphaBlend(self, alpha, tex):
+    def setTransSettings(self, thinWall):
+        LS.usedFeatures["Transparent"] = True
         if bpy.app.version >= (2,80,0):
-            if alpha == 1 and tex is None:
-                return
             mat = self.rna
-            if self.thinWall:
+            if thinWall:
                 mat.blend_method = 'BLEND'
                 mat.use_screen_refraction = False
                 mat.show_transparent_back = False
@@ -844,19 +843,14 @@ class CyclesTree:
             node.inputs["Thin Wall"].default_value = GS.thinWall
             node.inputs["Refraction IOR"].default_value = 1.0
             node.inputs["Refraction Roughness"].default_value = 0.0
+            self.material.setTransSettings(True)
         else:
             node.inputs["Thin Wall"].default_value = 0
             self.linkScalar(roughtex, node, roughness, "Refraction Roughness")
             self.linkScalar(iortex, node, ior, "Refraction IOR")
+            self.material.setTransSettings(False)
         self.linkNormal(node)
-        self.setRefractiveMaterial()
         return node
-
-
-    def setRefractiveMaterial(self):
-        if bpy.app.version > (2,80,0):
-            self.material.alphaBlend(0, None)
-        LS.usedFeatures["Transparent"] = True
 
 
     def buildCutout(self):
@@ -874,7 +868,8 @@ class CyclesTree:
                 node = self.addGroup(TransparentGroup, "DAZ Transparent")
                 self.mixWithActive(1-alpha, tex, node, flip=True)
             node.inputs["Color"].default_value[0:3] = WHITE
-            self.material.alphaBlend(alpha, tex)
+            if alpha < 1 or tex:
+                self.material.setTransSettings(False)
             LS.usedFeatures["Transparent"] = True
 
 #-------------------------------------------------------------
