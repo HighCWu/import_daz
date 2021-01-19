@@ -238,17 +238,7 @@ class PbrTree(CyclesTree):
         color,coltex,roughness,roughtex = self.getRefractionColor()
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
         self.material.setTransSettings(False)
-
-        if weight < 1 or wttex:
-            self.linkPBRNormal()
-            self.setPbrSlot("Transmission", 1.0)
-            self.column += 1
-            mix = self.mixShaders(weight, wttex, self.pbr, self.pbr2)
-            self.cycles = self.eevee = mix
-        else:
-            if wttex:
-                wttex = self.limitNode(wttex, 'GREATER_THAN', 0.5)
-            self.linkScalar(wttex, self.pbr, weight, "Transmission")
+        self.linkScalar(wttex, self.pbr, weight, "Transmission")
 
         if self.material.thinWall:
             # if thin walled is on then there's no volume
