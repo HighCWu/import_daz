@@ -431,8 +431,11 @@ def setBoolProp(ob, prop, value, desc=""):
     if rna_ui is None:
         rna_ui = ob['_RNA_UI'] = {}
     rna_ui[prop] = { "min": 0, "max": 1 }
-    setattr(bpy.types.Object, prop,
-        BoolProperty(default=value, description=desc, override={'LIBRARY_OVERRIDABLE'}, options ={'LIBRARY_EDITABLE'}))
+    if bpy.app.version < (2,80,0):
+        boolprop = BoolProperty(default=value, description=desc)
+    else:
+        boolprop = BoolProperty(default=value, description=desc, override={'LIBRARY_OVERRIDABLE'})
+    setattr(bpy.types.Object, prop, boolprop)
     setattr(ob, prop, value)
     ob[prop] = value
     setOverridable(ob, prop)

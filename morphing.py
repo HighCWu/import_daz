@@ -1264,12 +1264,16 @@ class DAZ_OT_DeactivateAll(DazOperator, Activator):
 
 def prettifyAll(context):
     scn = context.scene
+    if bpy.app.version < (2,80,0):
+        boolprop = BoolProperty(default=True)
+    else:
+        boolprop = BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'})
     for ob in getSelectedArmatures(context):
         for prop in ob.keys():
             if prop[0:7] == "DazShow":
-                setattr(bpy.types.Object, prop, BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'}, options ={'LIBRARY_EDITABLE'}))
+                setattr(bpy.types.Object, prop, boolprop)
             elif prop[0:3] in ["Mhh", "DzM"]:
-                setattr(bpy.types.Object, prop, BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'}, options ={'LIBRARY_EDITABLE'}))
+                setattr(bpy.types.Object, prop, boolprop)
 
 
 class DAZ_OT_Prettify(DazOperator):

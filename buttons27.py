@@ -431,7 +431,7 @@ class CategoryString:
         default = "Shapes"
         )
 
-    makenew : BoolProperty(
+    makenew = BoolProperty(
         name = "New Category",
         description = "Create a new category",
         default = False)
@@ -456,7 +456,7 @@ class DeleteShapekeysBool:
     )
 
 class TreatHD:
-    treatHD : EnumProperty(
+    treatHD = EnumProperty(
         items = [('ERROR', "Error", "Raise error"),
                  ('CREATE', "Create Shapekey", "Create empty shapekeys"),
                  ('ACTIVE', "Active Shapekey", "Drive active shapekey")],
