@@ -1522,6 +1522,7 @@ def checkRenderSettings(context, force):
         "Transparent" : [("use_ssr", "=", True),
                          ("use_ssr_refraction", "=", True),
                          ("use_ssr_halfres", "=", False),
+                         ("ssr_thickness", "<", 2*GS.unitScale),
                          ("ssr_quality", ">", 1.0),
                          ("ssr_max_roughness", ">", 1.0),
                          ],
