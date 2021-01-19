@@ -1207,7 +1207,8 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
         box = split.box()
         box.label(text = "Materials")
-        box.prop(scn, "DazMaterialMethod")
+        box.prop(scn, "DazOpaqueMethod")
+        box.prop(scn, "DazRefractiveMethod")
         box.prop(scn, "DazHairMaterialMethod")
         box.separator()
         box.prop(scn, "DazChooseColors")
@@ -1434,15 +1435,21 @@ def initialize():
         default = ""
     )
 
-    bpy.types.Scene.DazMaterialMethod = EnumProperty(
+    bpy.types.Scene.DazOpaqueMethod = EnumProperty(
         items = B.enumsMaterials,
-        name = "Method",
-        description = "Method for ordinary materials",
+        name = "Opaque",
+        description = "Method for opaque materials",
+        default = 'BSDF')
+
+    bpy.types.Scene.DazRefractiveMethod = EnumProperty(
+        items = B.enumsMaterials,
+        name = "Refractive",
+        description = "Method for refractive materials",
         default = 'BSDF')
 
     bpy.types.Scene.DazHairMaterialMethod = EnumProperty(
         items = B.enumsHair,
-        name = "Hair Method",
+        name = "Hair",
         description = "Method for hair materials",
         default = 'HAIR_BSDF')
 

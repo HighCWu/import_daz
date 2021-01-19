@@ -525,7 +525,7 @@ def getRenderMaterial(struct, base):
     elif isinstance(base, InternalMaterial):
         return InternalMaterial
 
-    if GS.materialMethod == 'INTERNAL':
+    if GS.opaqueMethod == 'INTERNAL':
         return InternalMaterial
     else:
         return CyclesMaterial
@@ -1544,7 +1544,7 @@ def checkRenderSettings(context, force):
         "Bounces" : getMinLightSettings(),
     }
 
-    if GS.materialMethod == 'INTERNAL':
+    if GS.opaqueMethod == 'INTERNAL':
         return
 
     scn = context.scene

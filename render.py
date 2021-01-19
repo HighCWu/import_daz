@@ -253,7 +253,7 @@ class WorldTree(CyclesTree):
 def parseRenderOptions(renderSettings, sceneSettings, backdrop, fileref):
     if not LS.useEnvironment:
         return
-    elif GS.materialMethod == 'INTERNAL':
+    elif GS.opaqueMethod == 'INTERNAL':
         pass
     else:
         renderOptions = renderSettings["render_options"]

@@ -78,10 +78,16 @@ class CyclesMaterial(Material):
                 return getHairTree(self)
             if self.metallic:
                 return PbrTree(self)
-            elif GS.materialMethod == 'PRINCIPLED':
-                return PbrTree(self)
+            elif self.refractive:
+                if GS.refractiveMethod == 'PRINCIPLED':
+                    return PbrTree(self)
+                else:
+                    return CyclesTree(self)
             else:
-                return CyclesTree(self)
+                if GS.opaqueMethod == 'PRINCIPLED':
+                    return PbrTree(self)
+                else:
+                    return CyclesTree(self)
         else:
             return CyclesTree(self)
 
@@ -923,7 +929,7 @@ class CyclesTree:
 
     def buildVolume(self):
         if (self.material.thinWall or
-            GS.materialMethod != "BSDF"):
+            GS.opaqueMethod != "BSDF"):
             return
 
         from .cgroup import VolumeGroup
