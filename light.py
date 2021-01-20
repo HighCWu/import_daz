@@ -135,7 +135,7 @@ class Light(Node):
             lamp.shadow_soft_size = height/2
             self.twosided = False
 
-        if GS.opaqueMethod == 'INTERNAL':
+        if GS.materialMethod == 'INTERNAL':
             self.setInternalProps(lamp)
         else:
             self.setCyclesProps(lamp)
@@ -204,7 +204,7 @@ class Light(Node):
 class LightInstance(Instance):
     def __init__(self, fileref, node, struct):
         Instance.__init__(self, fileref, node, struct)
-        if GS.opaqueMethod == 'INTERNAL':
+        if GS.materialMethod == 'INTERNAL':
             self.material = InternalLightMaterial(fileref, self)
         else:
             self.material = CyclesLightMaterial(fileref, self)

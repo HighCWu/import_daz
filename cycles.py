@@ -69,25 +69,16 @@ class CyclesMaterial(Material):
 
     def setupTree(self):
         from .pbr import PbrTree
-        if bpy.app.version >= (2, 78, 0):
-            if self.isHair:
-                from .hair import getHairTree
-                geo = self.geometry
-                if geo and geo.isStrandHair:
-                    geo.hairMaterials.append(self)
-                return getHairTree(self)
-            if self.metallic:
-                return PbrTree(self)
-            elif self.refractive:
-                if GS.refractiveMethod == 'PRINCIPLED':
-                    return PbrTree(self)
-                else:
-                    return CyclesTree(self)
-            else:
-                if GS.opaqueMethod == 'PRINCIPLED':
-                    return PbrTree(self)
-                else:
-                    return CyclesTree(self)
+        if self.isHair:
+            from .hair import getHairTree
+            geo = self.geometry
+            if geo and geo.isStrandHair:
+                geo.hairMaterials.append(self)
+            return getHairTree(self)
+        elif self.metallic:
+            return PbrTree(self)
+        elif GS.materialMethod == 'PRINCIPLED':
+            return PbrTree(self)
         else:
             return CyclesTree(self)
 
@@ -128,19 +119,16 @@ class CyclesMaterial(Material):
                         node.inputs[0].default_value /= area
 
 
-    def setTransSettings(self, useSSR, useBlend):
+    def setTransSettings(self, useRefraction, useBlend):
         LS.usedFeatures["Transparent"] = True
-        if useSSR:
-            LS.usedFeatures["SSR"] = True
         if bpy.app.version >= (2,80,0):
             mat = self.rna
             if useBlend:
                 mat.blend_method = 'BLEND'
-                mat.use_screen_refraction = False
                 mat.show_transparent_back = False
             else:
                 mat.blend_method = 'HASHED'
-                mat.use_screen_refraction = True
+            mat.use_screen_refraction = useRefraction
             if hasattr(mat, "transparent_shadow_method"):
                 mat.transparent_shadow_method = 'HASHED'
             else:
@@ -856,7 +844,7 @@ class CyclesTree:
             node.inputs["Thin Wall"].default_value = 0
             self.linkScalar(roughtex, node, roughness, "Refraction Roughness")
             self.linkScalar(iortex, node, ior, "Refraction IOR")
-            self.material.setTransSettings(False, False)
+            self.material.setTransSettings(True, False)
         self.linkNormal(node)
         return node
 
@@ -931,7 +919,7 @@ class CyclesTree:
 
     def buildVolume(self):
         if (self.material.thinWall or
-            GS.opaqueMethod != "BSDF"):
+            GS.materialMethod != "BSDF"):
             return
 
         from .cgroup import VolumeGroup

@@ -60,7 +60,7 @@ class GlobalSettings:
         self.unitScale = 0.01
         self.verbosity = 2
         self.zup = True
-        self.opaqueMethod = 'BSDF'
+        self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
         self.chooseColors = 'GUESS'
         self.orientMethod = 'DAZ STUDIO'
@@ -112,7 +112,7 @@ class GlobalSettings:
         "DazErrorPath" : "errorPath",
         "DazCaseSensitivePaths" : "caseSensitivePaths",
 
-        "DazOpaqueMethod" : "opaqueMethod",
+        "DazMaterialMethod" : "materialMethod",
         "DazRefractiveMethod" : "refractiveMethod",
         "DazHairMaterialMethod" : "hairMaterialMethod",
         "DazChooseColors" : "chooseColors",
@@ -416,7 +416,6 @@ class LocalSettings:
             "Diffuse" : False,
             "Glossy" : False,
             "Transparent" : False,
-            "SSR" : False,
             "SSS" : False,
             "Volume" : False,
         }

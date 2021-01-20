@@ -525,7 +525,7 @@ def getRenderMaterial(struct, base):
     elif isinstance(base, InternalMaterial):
         return InternalMaterial
 
-    if GS.opaqueMethod == 'INTERNAL':
+    if GS.materialMethod == 'INTERNAL':
         return InternalMaterial
     else:
         return CyclesMaterial
@@ -1519,8 +1519,8 @@ def checkRenderSettings(context, force):
     }
 
     renderSettingsEevee = {
-        "SSR" : [("use_ssr", "=", True)],
         "Transparent" : [
+                 ("use_ssr", "=", True),
                  ("use_ssr_refraction", "=", True),
                  ("use_ssr_halfres", "=", False),
                  ("ssr_thickness", "<", 2*GS.unitScale),
@@ -1545,7 +1545,7 @@ def checkRenderSettings(context, force):
         "Bounces" : getMinLightSettings(),
     }
 
-    if GS.opaqueMethod == 'INTERNAL':
+    if GS.materialMethod == 'INTERNAL':
         return
 
     scn = context.scene

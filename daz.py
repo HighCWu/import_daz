@@ -1207,7 +1207,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
         box = split.box()
         box.label(text = "Materials")
-        box.prop(scn, "DazOpaqueMethod")
+        box.prop(scn, "DazMaterialMethod")
         box.prop(scn, "DazRefractiveMethod")
         box.prop(scn, "DazHairMaterialMethod")
         box.separator()
@@ -1435,16 +1435,18 @@ def initialize():
         default = ""
     )
 
-    bpy.types.Scene.DazOpaqueMethod = EnumProperty(
+    bpy.types.Scene.DazMaterialMethod = EnumProperty(
         items = B.enumsMaterials,
-        name = "Opaque",
-        description = "Method for opaque materials",
+        name = "Method",
+        description = "Material Method",
         default = 'BSDF')
 
     bpy.types.Scene.DazRefractiveMethod = EnumProperty(
-        items = B.enumsMaterials,
-        name = "Refractive",
-        description = "Method for refractive materials",
+        items = [('BSDF', "BSDF", "BSDF refractive node group"),
+                 ('PRINCIPLED', "Principled", "Second principled node"),
+                 ('SQUEEZE', "Squeeze", "Use same principled node for \nboth opaque and refractive components.\nIntroduces artifacts sometims")],
+        name = "Refractive Method",
+        description = "Method for refractive part of principled materials",
         default = 'BSDF')
 
     bpy.types.Scene.DazHairMaterialMethod = EnumProperty(
