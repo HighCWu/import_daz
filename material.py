@@ -1519,7 +1519,8 @@ def checkRenderSettings(context, force):
     }
 
     renderSettingsEevee = {
-        "SSR" : [("use_ssr", "=", True),
+        "SSR" : [("use_ssr", "=", True)],
+        "Transparent" : [
                  ("use_ssr_refraction", "=", True),
                  ("use_ssr_halfres", "=", False),
                  ("ssr_thickness", "<", 2*GS.unitScale),
