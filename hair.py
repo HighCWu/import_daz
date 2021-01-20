@@ -1530,8 +1530,7 @@ class HairBSDFTree(HairTree):
             transp.inputs["Color"].default_value[0:3] = WHITE
             self.column += 1
             self.active = self.mixShaders(transp, self.active, weight)
-            self.material.setTransSettings(False)
-            LS.usedFeatures["Transparent"] = True
+            self.material.setTransSettings(False, False)
 
 #-------------------------------------------------------------
 #   Hair tree for adding root transparency to existing material

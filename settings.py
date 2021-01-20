@@ -416,6 +416,7 @@ class LocalSettings:
             "Diffuse" : False,
             "Glossy" : False,
             "Transparent" : False,
+            "SSR" : False,
             "SSS" : False,
             "Volume" : False,
         }

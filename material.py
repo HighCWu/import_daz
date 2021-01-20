@@ -1519,13 +1519,13 @@ def checkRenderSettings(context, force):
     }
 
     renderSettingsEevee = {
-        "Transparent" : [("use_ssr", "=", True),
-                         ("use_ssr_refraction", "=", True),
-                         ("use_ssr_halfres", "=", False),
-                         ("ssr_thickness", "<", 2*GS.unitScale),
-                         ("ssr_quality", ">", 1.0),
-                         ("ssr_max_roughness", ">", 1.0),
-                         ],
+        "SSR" : [("use_ssr", "=", True),
+                 ("use_ssr_refraction", "=", True),
+                 ("use_ssr_halfres", "=", False),
+                 ("ssr_thickness", "<", 2*GS.unitScale),
+                 ("ssr_quality", ">", 1.0),
+                 ("ssr_max_roughness", ">", 1.0),
+                ],
         "Bounces" : [("shadow_cube_size", ">", "1024"),
                  ("shadow_cascade_size", ">", "2048"),
                  ("use_shadow_high_bitdepth", "=", True),

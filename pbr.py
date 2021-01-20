@@ -84,7 +84,7 @@ class PbrTree(CyclesTree):
         if "Alpha" in self.pbr.inputs.keys() and not self.postPBR:
             alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1)
             if alpha < 1 or tex:
-                self.material.setTransSettings(False)
+                self.material.setTransSettings(False, False)
                 self.useCutout = True
             self.pbr.inputs["Alpha"].default_value = alpha
             if tex:
@@ -237,7 +237,6 @@ class PbrTree(CyclesTree):
             return
         color,coltex,roughness,roughtex = self.getRefractionColor()
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
-        self.material.setTransSettings(False)
         self.linkScalar(wttex, self.pbr, weight, "Transmission")
 
         if self.material.thinWall:
@@ -247,6 +246,7 @@ class PbrTree(CyclesTree):
             #  principled roughness = 0
             #  principled clearcoat = (iray refraction index - 1) * 10 * iray glossy layered weight
             #  principled clearcoat roughness = 0
+            self.material.setTransSettings(True, False)
             self.setPbrSlot("IOR", 1.0)
             self.setPbrSlot("Roughness", 0.0)
             strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
@@ -260,6 +260,7 @@ class PbrTree(CyclesTree):
             # principled specular = 0.5
             # principled ior = iray refraction index
             # principled roughness = iray glossy roughness
+            self.material.setTransSettings(True, False)
             transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
             dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
             if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
