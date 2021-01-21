@@ -101,25 +101,6 @@ class PbrTree(CyclesTree):
         self.removeLink(node, slot)
 
 
-    def replaceColor(self, node, slot, color, wttex, texture):
-        oldcolor = node.inputs[slot].default_value
-        link = self.getLink(node, slot)
-        if wttex:
-            mix = self.addNode("ShaderNodeMixRGB", col=3)
-            self.links.new(wttex.outputs[0], mix.inputs[0])
-            mix.inputs[1].default_value = oldcolor
-            if link:
-                self.links.new(link.from_socket, mix.inputs[1])
-            self.linkColor(texture, mix, color, slot=2)
-            self.links.new(mix.outputs[0], node.inputs[slot])
-        elif texture:
-            self.linkColor(texture, node, color, slot=slot)
-        else:
-            node.inputs[slot].default_value[0:3] = color
-            if link:
-                self.links.remove(link)
-
-
     def buildCutout(self):
         if "Alpha" in self.pbr.inputs.keys() and not self.postPBR:
             alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1)
@@ -282,14 +263,11 @@ class PbrTree(CyclesTree):
             pbr2.inputs["Transmission"].default_value = 1.0
             self.column += 1
             mix = self.mixShaders(weight, wttex, self.pbr, pbr2)
-            wttex = None
             self.cycles = self.eevee = mix
             self.postPBR = True
         else:
             pbr = self.pbr
-            #if wttex:
-            #    wttex = self.limitNode(wttex, 'GREATER_THAN', 0.5)
-            self.linkScalar(wttex, pbr, weight, "Transmission")
+            self.replaceSlot(pbr, "Transmission", weight)
 
         if self.material.thinWall:
             # if thin walled is on then there's no volume
@@ -303,6 +281,7 @@ class PbrTree(CyclesTree):
             self.replaceSlot(pbr, "Roughness", 0.0)
             strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
             clearcoat = (ior-1)*10*strength
+            self.removeLink(pbr, "Clearcoat")
             self.linkScalar(strtex, pbr, clearcoat, "Clearcoat")
             self.replaceSlot(pbr, "Clearcoat Roughness", 0)
 
@@ -318,20 +297,20 @@ class PbrTree(CyclesTree):
             if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
                 coltex = self.mixTexs('MULTIPLY', coltex, transtex)
                 color = self.compProd(color, transcolor)
-            #self.linkScalar(wttex, pbr, ior, "IOR")
             self.replaceSlot(pbr, "Metallic", 0)
             self.replaceSlot(pbr, "Specular", 0.5)
-            self.replaceSlot(pbr, "IOR", ior)
+            self.removeLink(pbr, "IOR")
+            self.linkScalar(iortex, pbr, ior, "IOR")
+            self.removeLink(pbr, "Roughness")
             self.setRoughness(pbr, "Roughness", roughness, roughtex, square=False)
-            if not roughtex:
-                self.removeLink(pbr, "Roughness")
 
-        self.replaceColor(pbr, "Base Color", color, wttex, coltex)
-        pbr.inputs["Subsurface"].default_value = 0
+        self.removeLink(pbr, "Base Color")
+        self.linkColor(coltex, pbr, color, "Base Color")
         self.replaceSlot(pbr, "Subsurface", 0)
         self.removeLink(pbr, "Subsurface Color")
+        pbr.inputs["Subsurface Color"].default_value[0:3] = WHITE
         if self.material.shareGlossy:
-            pbr.inputs["Specular Tint"].default_value = 1.0
+            self.replaceSlot(pbr, "Specular Tint", 1.0)
 
 
     def mixShaders(self, weight, wttex, node1, node2):
@@ -342,14 +321,6 @@ class PbrTree(CyclesTree):
         self.links.new(node1.outputs[0], mix.inputs[1])
         self.links.new(node2.outputs[0], mix.inputs[2])
         return mix
-
-
-    def limitNode(self, tex, op, threshold):
-        math = self.addNode("ShaderNodeMath", col = self.column-1)
-        math.operation = op
-        self.links.new(tex.outputs[0], math.inputs[0])
-        math.inputs[1].default_value = threshold
-        return math
 
 
     def getGlossyRoughness(self):
