@@ -70,6 +70,7 @@ class PbrTree(CyclesTree):
         if self.material.refractive:
             if GS.refractiveMethod == 'BSDF':
                 self.buildRefraction()
+                self.postPBR = True
             else:
                 self.buildPBRRefraction()
         else:
@@ -127,6 +128,7 @@ class PbrTree(CyclesTree):
                 self.linkColor(tex, self.pbr, color, "Emission")
         else:
             CyclesTree.buildEmission(self)
+            self.postPBR = True
 
 
     def buildPBRNode(self):
