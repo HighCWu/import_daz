@@ -541,7 +541,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
 
     def getSingleMorph(self, name, filepath, scn):
-        from .modifier import Morph, FormulaAsset, ChannelAsset
+        from .modifier import Morph, FormulaAsset, ChannelAsset, addToMorphSet0
         from .load_json import loadJson
         from .files import parseAssetFile
 
@@ -592,7 +592,9 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 prop = unquote(skey.name)
                 removeFromPropGroups(self.rig, prop)
                 isBoneDriven = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
-                if self.useShapekeysOnly and not isBoneDriven:
+                if isBoneDriven:
+                    addToMorphSet0(self.mesh, "Standardjcms", prop)
+                elif self.useShapekeysOnly:
                     print("Could not build shape formula (1)", skey.name)
             if ((not isBoneDriven or self.useDoubleDrivers) and
                 (self.usePropDrivers or self.useSkeysCats)):

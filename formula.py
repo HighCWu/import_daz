@@ -120,7 +120,7 @@ class Formula:
                 stack = stack[:-2]
                 stack.append(x)
             else:
-                reportError("Unknown formula %s" % struct.items(), trigger=(1,5), force=True)
+                reportError("Unknown formula %s %s" % (op, struct.items()), trigger=(1,5), force=True)
 
         if len(stack) == 1:
             ref,key = getRefKey(formula["output"])
@@ -137,20 +137,23 @@ class Formula:
             if self.evalFormula(formula, exprs, props, rig, mesh, useBone, useStages, stages):
                 success = True
         if not success:
+            if not self.formulas:
+                return False
             if verbose:
-                print("Could not parse formulas")
+                print("Could not parse formulas", self.formulas)
             return False
         return True
 
 
     def evalFormula(self, formula, exprs, props, rig, mesh, useBone, useStages, stages):
         from .bone import getTargetName
+        from .modifier import ChannelAsset
 
         driven = formula["output"].split("#")[-1]
         bname,channel = driven.split("?")
         if channel == "value":
-            if False and mesh is None:
-                if GS.verbosity > 3:
+            if mesh is None:
+                if GS.verbosity > 2:
                     print("Cannot drive properties", bname)
                 return False
             pb = None
@@ -187,6 +190,7 @@ class Formula:
         # URL
         struct = ops[0]
         if "url" not in struct.keys():
+            print("UU", url)
             return False
         prop,type = struct["url"].split("#")[-1].split("?")
         prop = unquote(prop)
@@ -227,7 +231,10 @@ class Formula:
             expr["points"] = [ops[n]["val"] for n in range(1,len(ops)-2)]
             expr["comp"] = comp
         else:
-            #reportError("Unknown formula %s" % ops, trigger=(2,6))
+            if useStages:
+                reportError("Unknown formula %s" % ops, trigger=(2,6))
+            else:
+                reportError("Multiple stages? %s %s" % (op, len(ops)), trigger=(2,6))
             return False
 
         if "stage" in formula.keys() and len(stages) > 1:
@@ -238,10 +245,14 @@ class Formula:
                 props1 = {}
                 if isinstance(asset, Formula):
                     asset.evalFormulas(exprs1, props1, rig, mesh, useBone)
-                else:
+                elif isinstance(asset, ChannelAsset):
+                    if GS.verbosity > 2:
+                        print("Error stage formula: Channel")
+                elif GS.verbosity > 1:
                     msg = "Error when evaluating stage formula"
                     #raise DazError(msg + ".\nWhere you trying to import flexions?")
                     print(msg)
+                    print(asset)
                 if exprs1:
                     expr1 = list(exprs1.values())[0]
                     exprlist.append(expr1)
@@ -333,20 +344,27 @@ class ShapeFormulas:
             return False
 
         from .modifier import addToMorphSet
+        if props and self.usePropDrivers:
+            for prop in props:
+                addToMorphSet(rig, ob, self.morphset, prop, True, None)
+
+        success = True
         for sname,expr in exprs.items():
             sname = unquote(sname)
             if sname in rig.data.bones.keys():
                 continue
-            addToMorphSet(rig, ob, self.morphset, sname, self.usePropDrivers, asset)
+            #addToMorphSet(rig, ob, self.morphset, sname, self.usePropDrivers, asset)
             if sname not in ob.data.shape_keys.key_blocks.keys():
                 print("No such shapekey:", sname)
                 return False
             skey = ob.data.shape_keys.key_blocks[sname]
             if "value" in expr.keys():
-                self.buildSingleShapeFormula(expr["value"], rig, ob, skey, verbose)
+                ok = self.buildSingleShapeFormula(expr["value"], rig, ob, skey, verbose)
+                success = (success and ok)
                 for other in expr["value"]["others"]:
-                    self.buildSingleShapeFormula(other, rig, ob, skey, verbose)
-        return True
+                    ok = self.buildSingleShapeFormula(other, rig, ob, skey, verbose)
+                    success = (success and ok)
+        return success
 
 
     def buildSingleShapeFormula(self, expr, rig, ob, skey, verbose):
