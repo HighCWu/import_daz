@@ -152,7 +152,7 @@ class Formula:
         driven = formula["output"].split("#")[-1]
         bname,channel = driven.split("?")
         if channel == "value":
-            if mesh is None:
+            if useBone and mesh is None:
                 if GS.verbosity > 2:
                     print("Cannot drive properties", bname)
                 return False
@@ -234,7 +234,7 @@ class Formula:
             if useStages:
                 reportError("Unknown formula %s" % ops, trigger=(2,6))
             else:
-                reportError("Multiple stages? %s %s" % (op, len(ops)), trigger=(2,6))
+                reportError("Multiple stages? %s %s" % (op, len(ops)), trigger=(3,6))
             return False
 
         if "stage" in formula.keys() and len(stages) > 1:
