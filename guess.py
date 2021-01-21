@@ -70,6 +70,7 @@ SkinMaterials = {
     "legs" : ("Skin", ),
     "skintorso" : ("Skin", ),
     "torso" : ("Skin", ),
+    "body" : ("Skin", ),
     "eyesocket" : ("Skin", ),
     "skinarm" : ("Skin", ),
     "arms" : ("Skin", ),

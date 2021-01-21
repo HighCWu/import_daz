@@ -530,15 +530,6 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
             return None
 
 
-    def getHipBone(self, rig):
-        if rig.DazRig == "mhx":
-            return "root"
-        if rig.DazRig[0:6] == "rigify":
-            return "torso"
-        else:
-            return "hip"
-
-
     def clearPose(self, rig, frame):
         self.worldMatrix = rig.matrix_world.copy()
         tfm = Transform()
