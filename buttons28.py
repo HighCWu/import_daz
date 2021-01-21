@@ -410,15 +410,25 @@ class MergeUVLayers:
 #   morphing.py
 #-------------------------------------------------------------
 
-class MorphStrings:
+class CustomOptions:
     catname : StringProperty(
         name = "Category",
         default = "Shapes")
 
     usePropDrivers : BoolProperty(
-        name = "Use Drivers",
+        name = "Property Drivers",
         description = "Control morphs with rig or mesh properties",
         default = True)
+
+    useBoneDrivers : BoolProperty(
+        name = "Bone Drivers",
+        description = "Control morphs with bone rotations",
+        default = True)
+
+    useDoubleDrivers : BoolProperty(
+        name = "Double Drivers",
+        description = "Control morphs with both properties and bones",
+        default = False)
 
     useSkeysCats : BoolProperty(
         name = "Add Shapekeys To Categories",

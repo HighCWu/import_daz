@@ -329,7 +329,7 @@ class ShapeFormulas:
 
         exprs = {}
         props = {}
-        if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=self.useStages, verbose=verbose):
+        if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=True, verbose=verbose):
             return False
 
         from .modifier import addToMorphSet
@@ -354,9 +354,10 @@ class ShapeFormulas:
 
         bname = expr["bone"]
         if bname is None:
-            msg =('No bone to drive shapekey %s' % skey.name)
-            if verbose:
-                print(msg)
+            if not self.usePropDrivers:
+                msg =('No bone to drive shapekey %s' % skey.name)
+                if verbose:
+                    print(msg)
             return False
         if bname not in rig.pose.bones.keys():
             if bname in BoneAlternatives.keys():
@@ -662,6 +663,7 @@ class PropFormulas(PoseboneDriver):
     def getOthers(self, exprs, asset):
         from .bone import getTargetName
         for prop,expr in exprs.items():
+            prop = unquote(prop)
             bname = getTargetName(prop, self.rig)
             if bname is None:
                 if prop in self.built.keys() and self.built[prop]:

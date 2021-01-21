@@ -89,10 +89,13 @@ def getRnaDriver(rna, path, type):
 #-------------------------------------------------------------
 
 class Driver:
-    def __init__(self, fcu):
+    def __init__(self, fcu, isArray):
         drv = fcu.driver
         self.data_path = fcu.data_path
-        self.array_index = fcu.array_index
+        if isArray:
+            self.array_index = fcu.array_index
+        else:
+            self.array_index = -1
         self.type = drv.type
         self.use_self = drv.use_self
         self.expression = drv.expression
@@ -100,16 +103,19 @@ class Driver:
         for var in drv.variables:
             self.variables.append(Variable(var))
 
-    def create(self, rig, bname):
-        pb = rig.pose.bones[bname]
+    def create(self, rna):
         channel = self.data_path.rsplit(".")[-1]
-        fcu = pb.driver_add(channel, self.array_index)
+        if self.array_index >= 0:
+            fcu = rna.driver_add(channel, self.array_index)
+        else:
+            fcu = rna.driver_add(channel)
         drv = fcu.driver
         drv.type = self.type
         drv.use_self = self.use_self
         drv.expression = self.expression
         for var in self.variables:
             var.create(drv.variables.new())
+        return fcu
 
 
 class Variable:
@@ -369,14 +375,21 @@ def makePropDriver(prop, rna, channel, rig, expr, idx=-1):
     addDriverVar(fcu, "x", prop, rig)
 
 
-def makeShapekeyDriver(ob, sname, value, rig, prop, min=None, max=None):
+def makeShapekeyDriver(ob, sname, value, rig, prop, min=None, max=None, keep=False):
     setFloatProp(rig, prop, value, min=min, max=max)
     skey = ob.data.shape_keys.key_blocks[sname]
-    if getShapekeyDriver(ob.data.shape_keys, sname):
+    fcu = getShapekeyDriver(ob.data.shape_keys, sname)
+    driver = None
+    if fcu:
+        driver = Driver(fcu, False)
         skey.driver_remove("value")
-    fcu = skey.driver_add("value")
-    fcu.driver.type = 'SCRIPTED'
-    fcu.driver.expression = "x"
+    if keep and driver:
+        fcu = driver.create(skey)
+        fcu.driver.expression = "%s + x" % driver.expression
+    else:
+        fcu = skey.driver_add("value")
+        fcu.driver.type = 'SCRIPTED'
+        fcu.driver.expression = "x"
     addDriverVar(fcu, "x", prop, rig)
 
 
@@ -556,7 +569,7 @@ def storeBoneDrivers(rig, bones):
     for bname in fcus.keys():
         drivers[bname] = []
         for fcu in fcus[bname]:
-            drivers[bname].append(Driver(fcu))
+            drivers[bname].append(Driver(fcu, True))
     removeDriverFCurves(flatten(fcus.values()), rig)
     return drivers
 
@@ -570,8 +583,9 @@ def flatten(lists):
 
 def restoreBoneDrivers(rig, drivers, suffix):
     for bname,bdrivers in drivers.items():
+        pb = rig.pose.bones[bname+suffix]
         for driver in bdrivers:
-            driver.create(rig, bname+suffix)
+            driver.create(pb)
 
 
 def removeBoneDrivers(rig, bones):

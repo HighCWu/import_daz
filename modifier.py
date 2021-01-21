@@ -310,8 +310,7 @@ def addToMorphSet(rig, ob, morphset, prop, usePropDrivers, asset):
             prop in rig.data.bones.keys()):
             return
         if rig.type != 'ARMATURE':
-            print("BUG. Not armature", rig)
-            halt
+            raise RuntimeError("BUG. Not armature: %s" % rig)
         if prop not in rig.keys():
             if asset:
                 asset.initProp(rig, prop)
@@ -320,6 +319,7 @@ def addToMorphSet(rig, ob, morphset, prop, usePropDrivers, asset):
         return addToMorphSet0(rig, morphset, prop)
     elif ob:
         return addToMorphSet0(ob, morphset, prop)
+
     else:
         return None
 

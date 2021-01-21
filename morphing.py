@@ -516,7 +516,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
     usePropDrivers = True
     useSkeysCats = False
     useBoneDrivers = False
-    useStages = True
+    useDoubleDrivers = False
     morphset = None
 
     def __init__(self, mesh=None, verbose=True):
@@ -564,6 +564,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
         skey = None
         prop = None
+        isBoneDriven = False
         if self.useShapekeys and isinstance(asset, Morph) and self.mesh and self.mesh.type == 'MESH':
             useBuild = True
             skey = None
@@ -587,25 +588,22 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             if skey is None:
                 asset.buildMorph(self.mesh, useBuild=useBuild, useSoftLimits=self.useSoftLimits, morphset=self.morphset)
                 skey,ob,sname = asset.rna
-            if self.usePropDrivers or self.useSkeysCats:
-                prop = self.driveShapeWithProp(ob, prop, skey, self.rig)
+            if self.useBoneDrivers and skey:
+                prop = unquote(skey.name)
+                removeFromPropGroups(self.rig, prop)
+                isBoneDriven = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
+                if self.useShapekeysOnly and not isBoneDriven:
+                    print("Could not build shape formula (1)", skey.name)
+            if ((not isBoneDriven or self.useDoubleDrivers) and
+                (self.usePropDrivers or self.useSkeysCats)):
+                prop = self.driveShapeWithProp(ob, prop, skey, self.rig, isBoneDriven)
                 if prop:
                     props = [prop]
-            elif self.useBoneDrivers:
-                success = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
-                if self.useShapekeysOnly and not success and skey:
-                    print("Could not build shape formula (1)", skey.name)
-                if not success:
-                    miss = True
 
         if self.usePropDrivers and self.rig:
-            if isinstance(asset, FormulaAsset) and asset.formulas:
-                if self.useShapekeys:
-                    success = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
-                    if self.useShapekeysOnly and not success and skey:
-                        print("Could not build shape formula (2)", skey.name)
-                    if not success:
-                        miss = True
+            if isBoneDriven:
+                pass
+            elif isinstance(asset, FormulaAsset) and asset.formulas:
                 if not self.useShapekeysOnly:
                     prop = asset.clearProp(self.morphset, self.rig)
                     self.taken[prop] = False
@@ -623,9 +621,12 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 setActivated(self.rig, prop, True)
             return props,False
         elif skey:
-            prop = skey.name
-            setActivated(self.mesh, prop, True)
-            return [prop],miss
+            if isBoneDriven:
+                return [],False
+            else:
+                prop = skey.name
+                setActivated(self.mesh, prop, True)
+                return [prop],miss
         else:
             return [],miss
 
@@ -639,7 +640,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             return None
 
 
-    def driveShapeWithProp(self, ob, prop, skey, rig):
+    def driveShapeWithProp(self, ob, prop, skey, rig, keep):
         from .driver import makeShapekeyDriver
         prop = skey.name
         min = skey.slider_min if GS.useDazPropLimits else None
@@ -647,7 +648,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         if rig is None:
             addToPropGroup(prop, ob, self.morphset)
         else:
-            makeShapekeyDriver(ob, prop, skey.value, rig, prop, min=min, max=max)
+            makeShapekeyDriver(ob, prop, skey.value, rig, prop, min=min, max=max, keep=keep)
             addToPropGroup(prop, rig, self.morphset)
         self.taken[prop] = self.built[prop] = True
         return prop
@@ -726,6 +727,8 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             elif miss:
                 print("?", name)
                 missing[name] = True
+            elif self.useBoneDrivers:
+                print("!", name)
             else:
                 print("-", name)
         return missing
@@ -871,7 +874,6 @@ class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorph
     useSoftLimits = False
     usePropDrivers = False
     useBoneDrivers = True
-    useStages = True
 
 
 class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
@@ -886,7 +888,6 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
     useSoftLimits = False
     usePropDrivers = False
     useBoneDrivers = True
-    useStages = False
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -914,17 +915,19 @@ class ImportCustom(B.DazImageFile, B.TreatHD, MultiFile):
         return namepaths
 
 
-class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStrings, IsMeshArmature):
+class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.CustomOptions, IsMeshArmature):
     bl_idname = "daz.import_custom_morphs"
     bl_label = "Import Custom Morphs"
     bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
 
     morphset = "Custom"
-    useStages = True
 
     def draw(self, context):
         self.layout.prop(self, "usePropDrivers")
+        self.layout.prop(self, "useBoneDrivers")
+        if self.usePropDrivers and self.useBoneDrivers:
+            self.layout.prop(self, "useDoubleDrivers")
         if not self.usePropDrivers:
             self.layout.prop(self, "useSkeysCats")
         if self.usePropDrivers or self.useSkeysCats:
@@ -935,6 +938,8 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
     def run(self, context):
         from .driver import setBoolProp
         ob = context.object
+        if not (self.usePropDrivers and self.useBoneDrivers):
+            self.useDoubleDrivers = False
         if not self.usePropDrivers and self.useSkeysCats:
             if ob.type == 'MESH':
                 self.rig = None
@@ -965,26 +970,6 @@ class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMesh):
     useSoftLimits = False
     usePropDrivers = False
     useBoneDrivers = True
-    useStages = True
-
-    def run(self, context):
-        namepaths = self.getNamePaths()
-        self.getAllMorphs(namepaths, context)
-
-
-class DAZ_OT_ImportCustomFlexions(DazOperator, LoadMorph, ImportCustom, IsMesh):
-    bl_idname = "daz.import_custom_flexions"
-    bl_label = "Import Custom Flexions"
-    bl_description = "Import selected flexion morphs from native DAZ files (*.duf, *.dsf)"
-    bl_options = {'UNDO'}
-
-    morphset = "Flexions"
-
-    useShapekeysOnly = True
-    useSoftLimits = False
-    usePropDrivers = False
-    useBoneDrivers = True
-    useStages = False
 
     def run(self, context):
         namepaths = self.getNamePaths()
@@ -2370,11 +2355,9 @@ classes = [
     DAZ_OT_ImportVisemes,
     DAZ_OT_ImportBodyMorphs,
     DAZ_OT_ImportFlexions,
-    #DAZ_OT_ImportStandardMorphs,
     DAZ_OT_ImportCustomMorphs,
     DAZ_OT_ImportStandardJCMs,
     DAZ_OT_ImportCustomJCMs,
-    DAZ_OT_ImportCustomFlexions,
     DAZ_OT_AddShapeToCategory,
     DAZ_OT_RemoveShapeFromCategory,
     DAZ_OT_RenameCategory,
