@@ -649,7 +649,7 @@ class Offset:
 #-------------------------------------------------------------
 
 enumsMaterials = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
-                  ('PRINCIPLED', "Principled", "Principled (Cycles)"),
+                  ('PRINCIPLED', "Principled", "Principled (Eevee and Cycles)"),
                   ('INTERNAL', "Internal", "Blender Internal and Game")]
 
 enumsHair = [('HAIR_BSDF', "Hair BSDF", "Hair BSDF (Cycles)"),

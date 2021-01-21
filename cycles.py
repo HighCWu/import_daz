@@ -198,14 +198,6 @@ class CyclesTree:
         return node
 
 
-    def removeLink(self, node, slot):
-        for link in self.links:
-            if (link.to_node == node and
-                link.to_socket.name == slot):
-                self.links.remove(link)
-                return
-
-
     def getTexco(self, uv):
         key = self.material.getUvKey(uv, self.texcos)
         if key is None:
@@ -808,6 +800,7 @@ class CyclesTree:
             tex = self.multiplyScalarTex(roughness, roughtex)
             if tex:
                 self.links.new(tex.outputs[0], node.inputs[channel])
+        return roughness
 
 
     def buildRefraction(self):

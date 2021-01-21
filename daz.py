@@ -1442,9 +1442,12 @@ def initialize():
         default = 'BSDF')
 
     bpy.types.Scene.DazRefractiveMethod = EnumProperty(
-        items = [('BSDF', "BSDF", "BSDF refractive node group"),
-                 ('PRINCIPLED', "Principled", "Second principled node"),
-                 ('SQUEEZE', "Squeeze", "Use same principled node for \nboth opaque and refractive components.\nIntroduces artifacts sometims")],
+        items = [('BSDF', "BSDF", "Add BSDF refractive node group"),
+                 ('PRINCIPLED', "Principled", "Add second principled node for refractive part"),
+                 ('NONE', "None",
+                    ("Don't add extra nodes for refractive parts, but reuse the\n" +
+                     "principled node for both opaque and refractive components.\n" +
+                     "Introduces artifacts sometimes"))],
         name = "Refractive Method",
         description = "Method for refractive part of principled materials",
         default = 'BSDF')

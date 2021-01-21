@@ -65,8 +65,7 @@ class PbrTree(CyclesTree):
             self.postPBR = True
         if self.material.dualLobeWeight > 0:
             self.buildDualLobe()
-            self.pbr.inputs["Specular"].default_value = 0
-            self.removeLink(self.pbr, "Specular")
+            self.replaceSlot(self.pbr, "Specular", 0)
             self.postPBR = True
         if self.material.refractive:
             if GS.refractiveMethod == 'BSDF':
@@ -81,6 +80,44 @@ class PbrTree(CyclesTree):
         if self.normal:
             self.links.new(self.normal.outputs["Normal"], pbr.inputs["Normal"])
             self.links.new(self.normal.outputs["Normal"], pbr.inputs["Clearcoat Normal"])
+
+
+    def getLink(self, node, slot):
+        for link in self.links:
+            if (link.to_node == node and
+                link.to_socket.name == slot):
+                return link
+        return None
+
+
+    def removeLink(self, node, slot):
+        link = self.getLink(node, slot)
+        if link:
+           self.links.remove(link)
+
+
+    def replaceSlot(self, node, slot, value):
+        node.inputs[slot].default_value = value
+        self.removeLink(node, slot)
+
+
+    def replaceColor(self, node, slot, color, wttex, texture):
+        oldcolor = node.inputs[slot].default_value
+        link = self.getLink(node, slot)
+        if wttex:
+            mix = self.addNode("ShaderNodeMixRGB", col=3)
+            self.links.new(wttex.outputs[0], mix.inputs[0])
+            mix.inputs[1].default_value = oldcolor
+            if link:
+                self.links.new(link.from_socket, mix.inputs[1])
+            self.linkColor(texture, mix, color, slot=2)
+            self.links.new(mix.outputs[0], node.inputs[slot])
+        elif texture:
+            self.linkColor(texture, node, color, slot=slot)
+        else:
+            node.inputs[slot].default_value[0:3] = color
+            if link:
+                self.links.remove(link)
 
 
     def buildCutout(self):
@@ -217,11 +254,6 @@ class PbrTree(CyclesTree):
         self.endSSS()
 
 
-    def setPbrSlot(self, pbr, slot, value):
-        pbr.inputs[slot].default_value = value
-        self.removeLink(pbr, slot)
-
-
     def getRefractionWeight(self):
         channel = self.material.getChannelRefractionWeight()
         if channel:
@@ -247,15 +279,16 @@ class PbrTree(CyclesTree):
             pbr = pbr2 = self.addNode("ShaderNodeBsdfPrincipled")
             self.ycoords[self.column] -= 500
             self.linkPBRNormal(pbr2)
-            self.setPbrSlot(pbr2, "Transmission", 1.0)
+            pbr2.inputs["Transmission"].default_value = 1.0
             self.column += 1
             mix = self.mixShaders(weight, wttex, self.pbr, pbr2)
+            wttex = None
             self.cycles = self.eevee = mix
             self.postPBR = True
         else:
             pbr = self.pbr
-            if wttex:
-                wttex = self.limitNode(wttex, 'GREATER_THAN', 0.5)
+            #if wttex:
+            #    wttex = self.limitNode(wttex, 'GREATER_THAN', 0.5)
             self.linkScalar(wttex, pbr, weight, "Transmission")
 
         if self.material.thinWall:
@@ -266,12 +299,12 @@ class PbrTree(CyclesTree):
             #  principled clearcoat = (iray refraction index - 1) * 10 * iray glossy layered weight
             #  principled clearcoat roughness = 0
             self.material.setTransSettings(True, False)
-            self.setPbrSlot(pbr, "IOR", 1.0)
-            self.setPbrSlot(pbr, "Roughness", 0.0)
+            self.replaceSlot(pbr, "IOR", 1.0)
+            self.replaceSlot(pbr, "Roughness", 0.0)
             strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
             clearcoat = (ior-1)*10*strength
             self.linkScalar(strtex, pbr, clearcoat, "Clearcoat")
-            self.setPbrSlot(pbr, "Clearcoat Roughness", 0)
+            self.replaceSlot(pbr, "Clearcoat Roughness", 0)
 
         else:
             # principled transmission = 1
@@ -285,19 +318,17 @@ class PbrTree(CyclesTree):
             if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
                 coltex = self.mixTexs('MULTIPLY', coltex, transtex)
                 color = self.compProd(color, transcolor)
-            self.linkScalar(wttex, pbr, ior, "IOR")
-            self.setPbrSlot(pbr, "Metallic", 0)
-            self.setPbrSlot(pbr, "Specular", 0.5)
-            self.setPbrSlot(pbr, "IOR", ior)
+            #self.linkScalar(wttex, pbr, ior, "IOR")
+            self.replaceSlot(pbr, "Metallic", 0)
+            self.replaceSlot(pbr, "Specular", 0.5)
+            self.replaceSlot(pbr, "IOR", ior)
             self.setRoughness(pbr, "Roughness", roughness, roughtex, square=False)
             if not roughtex:
                 self.removeLink(pbr, "Roughness")
 
-        self.linkColor(coltex, pbr, color, slot="Base Color")
-        if not coltex:
-            self.removeLink(pbr, "Base Color")
+        self.replaceColor(pbr, "Base Color", color, wttex, coltex)
         pbr.inputs["Subsurface"].default_value = 0
-        self.removeLink(pbr, "Subsurface")
+        self.replaceSlot(pbr, "Subsurface", 0)
         self.removeLink(pbr, "Subsurface Color")
         if self.material.shareGlossy:
             pbr.inputs["Specular Tint"].default_value = 1.0

@@ -669,7 +669,7 @@ class Offset:
 #-------------------------------------------------------------
 
 enumsMaterials = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
-                  ('PRINCIPLED', "Principled", "Principled (Cycles)")]
+                  ('PRINCIPLED', "Principled", "Principled (Eevee and Cycles)")]
 
 enumsHair = [('HAIR_BSDF', "Hair BSDF", "Hair BSDF (Cycles)"),
              ('HAIR_PRINCIPLED', "Hair Principled", "Hair Principled (Cycles)"),
