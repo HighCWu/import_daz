@@ -594,7 +594,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             elif self.useBoneDrivers:
                 success = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
                 if self.useShapekeysOnly and not success and skey:
-                    print("Could not build shape formula", skey.name)
+                    print("Could not build shape formula (1)", skey.name)
                 if not success:
                     miss = True
 
@@ -603,7 +603,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 if self.useShapekeys:
                     success = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
                     if self.useShapekeysOnly and not success and skey:
-                        print("Could not build shape formula", skey.name)
+                        print("Could not build shape formula (2)", skey.name)
                     if not success:
                         miss = True
                 if not self.useShapekeysOnly:
@@ -921,6 +921,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.MorphStr
     bl_options = {'UNDO'}
 
     morphset = "Custom"
+    useStages = True
 
     def draw(self, context):
         self.layout.prop(self, "usePropDrivers")

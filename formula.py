@@ -239,7 +239,9 @@ class Formula:
                 if isinstance(asset, Formula):
                     asset.evalFormulas(exprs1, props1, rig, mesh, useBone)
                 else:
-                    raise DazError("Error when evaluating stage formula.\nWhere you trying to import flexions?")
+                    msg = "Error when evaluating stage formula"
+                    #raise DazError(msg + ".\nWhere you trying to import flexions?")
+                    print(msg)
                 if exprs1:
                     expr1 = list(exprs1.values())[0]
                     exprlist.append(expr1)
@@ -274,8 +276,11 @@ class Formula:
         if exprlist:
             vectors = []
             for expr in exprlist:
-                evalue = expr["value"]
-                vectors.append(evalue["value"])
+                if "value" in expr.keys():
+                    evalue = expr["value"]
+                    vectors.append(evalue["value"])
+                else:
+                    return
             struct = exprs[key] = exprlist[0]
             struct["value"]["value"] = vectors
 
@@ -329,26 +334,29 @@ class ShapeFormulas:
 
         from .modifier import addToMorphSet
         for sname,expr in exprs.items():
+            sname = unquote(sname)
             if sname in rig.data.bones.keys():
                 continue
             addToMorphSet(rig, ob, self.morphset, sname, self.usePropDrivers, asset)
             if sname not in ob.data.shape_keys.key_blocks.keys():
-                #print("No such shapekey:", sname)
+                print("No such shapekey:", sname)
                 return False
             skey = ob.data.shape_keys.key_blocks[sname]
             if "value" in expr.keys():
-                self.buildSingleShapeFormula(expr["value"], rig, ob, skey)
+                self.buildSingleShapeFormula(expr["value"], rig, ob, skey, verbose)
                 for other in expr["value"]["others"]:
-                    self.buildSingleShapeFormula(other, rig, ob, skey)
+                    self.buildSingleShapeFormula(other, rig, ob, skey, verbose)
         return True
 
 
-    def buildSingleShapeFormula(self, expr, rig, ob, skey):
+    def buildSingleShapeFormula(self, expr, rig, ob, skey, verbose):
         from .bone import BoneAlternatives
 
         bname = expr["bone"]
         if bname is None:
-            # print("BSSF", expr, skey.name)
+            msg =('No bone to drive shapekey %s' % skey.name)
+            if verbose:
+                print(msg)
             return False
         if bname not in rig.pose.bones.keys():
             if bname in BoneAlternatives.keys():
