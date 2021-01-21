@@ -42,7 +42,7 @@ from .fileutils import MultiFile
 
 theStandardMorphSets = ["Units", "Expressions", "Visemes", "Body"]
 theCustomMorphSets = ["Custom"]
-theJCMMorphSets = ["Standardjcms", "Flexions", "Customjcms"]
+theJCMMorphSets = ["Standardjcms", "Flexions"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
 theMorphEnums = []
 
@@ -123,7 +123,7 @@ def getMorphs(ob, morphset, category=None, activeOnly=False):
     Arguments:
     ?ob: Object (armature or mesh) which owns the morphs
 
-    ?type: Either a string in ["Units", "Expressions", "Visemes", "Body", "Custom", "Standardjcms", "Flexions", "Customjcms"],
+    ?type: Either a string in ["Units", "Expressions", "Visemes", "Body", "Custom", "Standardjcms", "Flexions"],
         or a list of such strings, or the keyword "All" signifying all morphset in the list.
 
     ?category (optional): The category name for Custom morphs.
@@ -864,10 +864,10 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs,
     morphset = "Body"
 
 
-class DAZ_OT_ImportStandardJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
-    bl_idname = "daz.import_standard_jcms"
-    bl_label = "Import Standard JCMs"
-    bl_description = "Import selected standard joint corrective morphs"
+class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
+    bl_idname = "daz.import_jcms"
+    bl_label = "Import JCMs"
+    bl_description = "Import selected joint corrective morphs"
     bl_options = {'UNDO'}
 
     morphset = "Standardjcms"
@@ -895,29 +895,7 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class ImportCustom(B.DazImageFile, B.TreatHD, MultiFile):
-
-    def draw(self, context):
-        self.layout.prop(self, "treatHD")
-
-    def invoke(self, context, event):
-        from .fileutils import getFolder
-        folder = getFolder(self.mesh, context.scene, ["Morphs/", ""])
-        if folder is not None:
-            self.properties.filepath = folder
-        return MultiFile.invoke(self, context, event)
-
-    def getNamePaths(self):
-        from .fileutils import getMultiFiles
-        namepaths = {}
-        folder = ""
-        for path in getMultiFiles(self, ["duf", "dsf"]):
-            name = os.path.splitext(os.path.basename(path))[0]
-            namepaths[name] = path
-        return namepaths
-
-
-class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.CustomOptions, IsMeshArmature):
+class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.TreatHD, MultiFile, B.CustomOptions, IsMeshArmature):
     bl_idname = "daz.import_custom_morphs"
     bl_label = "Import Custom Morphs"
     bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"
@@ -934,7 +912,15 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.CustomOp
             self.layout.prop(self, "useSkeysCats")
         if self.usePropDrivers or self.useSkeysCats:
             self.layout.prop(self, "catname")
-        ImportCustom.draw(self, context)
+        self.layout.prop(self, "treatHD")
+
+
+    def invoke(self, context, event):
+        from .fileutils import getFolder
+        folder = getFolder(self.mesh, context.scene, ["Morphs/", ""])
+        if folder is not None:
+            self.properties.filepath = folder
+        return MultiFile.invoke(self, context, event)
 
 
     def run(self, context):
@@ -960,22 +946,14 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, ImportCustom, B.CustomOp
             raise DazError(theLimitationsMessage)
 
 
-class DAZ_OT_ImportCustomJCMs(DazOperator, LoadMorph, ImportCustom, IsMesh):
-    bl_idname = "daz.import_custom_jcms"
-    bl_label = "Import Custom JCMs"
-    bl_description = "Import selected joint corrective morphs from native DAZ files (*.duf, *.dsf)"
-    bl_options = {'UNDO'}
-
-    morphset = "Customjcms"
-
-    useShapekeysOnly = True
-    useSoftLimits = False
-    usePropDrivers = False
-    useBoneDrivers = True
-
-    def run(self, context):
-        namepaths = self.getNamePaths()
-        self.getAllMorphs(namepaths, context)
+    def getNamePaths(self):
+        from .fileutils import getMultiFiles
+        namepaths = {}
+        folder = ""
+        for path in getMultiFiles(self, ["duf", "dsf"]):
+            name = os.path.splitext(os.path.basename(path))[0]
+            namepaths[name] = path
+        return namepaths
 
 #------------------------------------------------------------------------
 #   Categories
@@ -1374,7 +1352,6 @@ class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArma
                  "DzC" : "Standardjcms",
                  "DzF" : "Flexions",
                  "DzM" : "Custom",
-                 "DzN" : "Customjcms",
                  "Mhh" : "Visibility"
                 }
 
@@ -2358,8 +2335,7 @@ classes = [
     DAZ_OT_ImportBodyMorphs,
     DAZ_OT_ImportFlexions,
     DAZ_OT_ImportCustomMorphs,
-    DAZ_OT_ImportStandardJCMs,
-    DAZ_OT_ImportCustomJCMs,
+    DAZ_OT_ImportJCMs,
     DAZ_OT_AddShapeToCategory,
     DAZ_OT_RemoveShapeFromCategory,
     DAZ_OT_RenameCategory,
