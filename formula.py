@@ -131,6 +131,7 @@ class Formula:
 
 
     def evalFormulas(self, exprs, props, rig, mesh, useBone, useStages=False, verbose=False):
+        from .modifier import Morph
         success = False
         stages = []
         for formula in self.formulas:
@@ -283,17 +284,38 @@ class Formula:
 
 
     def multiplyStages(self, exprs, exprlist):
+        if not exprlist:
+            return
         key = list(exprs.keys())[0]
-        if exprlist:
+        expr = exprs[key]
+        bone = self.getExprValue(expr, "bone")
+        evalue = self.getExprValue(expr, "value")
+        if bone and evalue:
+            vectors = [evalue]
+        else:
             vectors = []
-            for expr in exprlist:
-                if "value" in expr.keys():
-                    evalue = expr["value"]
-                    vectors.append(evalue["value"])
-                else:
-                    return
-            struct = exprs[key] = exprlist[0]
-            struct["value"]["value"] = vectors
+        for expr2 in exprlist:
+            bone2 = self.getExprValue(expr2, "bone")
+            if bone2 is None:
+                continue
+            if bone is None:
+                bone = bone2
+                expr = exprs[key] = expr2
+            if bone2 == bone:
+                evalue2 = self.getExprValue(expr2, "value")
+                if evalue2 is not None:
+                    vectors.append(evalue2)
+            else:
+                print("Stage: %s != %s" % (bone, bone2))
+        expr["value"]["value"] = vectors
+
+
+    def getExprValue(self, expr, key):
+        if ("value" in expr.keys() and
+            key in expr["value"].keys()):
+            return expr["value"][key]
+        else:
+            return None
 
 
 def getRefKey(string):
@@ -344,16 +366,16 @@ class ShapeFormulas:
             return False
 
         from .modifier import addToMorphSet
-        if props and self.usePropDrivers:
-            for prop in props:
-                addToMorphSet(rig, ob, self.morphset, prop, True, None)
+        #if props and self.usePropDrivers:
+        #    for prop in props:
+        #        addToMorphSet(rig, ob, self.morphset, prop, True, None)
 
         success = True
         for sname,expr in exprs.items():
             sname = unquote(sname)
             if sname in rig.data.bones.keys():
                 continue
-            #addToMorphSet(rig, ob, self.morphset, sname, self.usePropDrivers, asset)
+            addToMorphSet(rig, ob, self.morphset, sname, self.usePropDrivers, asset)
             if sname not in ob.data.shape_keys.key_blocks.keys():
                 print("No such shapekey:", sname)
                 return False
