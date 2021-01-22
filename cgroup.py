@@ -524,6 +524,43 @@ class SSSGroup(MixGroup):
         self.links.new(sss.outputs[0], self.mix2.inputs[2])
 
 # ---------------------------------------------------------------------
+#   Ray Clip Group
+# ---------------------------------------------------------------------
+
+class RayClipGroup(CyclesGroup):
+
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["Shader", "Color"]
+        self.outsockets += ["Shader"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 4)
+        self.group.inputs.new("NodeSocketShader", "Shader")
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.outputs.new("NodeSocketShader", "Shader")
+
+
+    def addNodes(self, args=None):
+        lpath = self.addNode("ShaderNodeLightPath", 1)
+
+        max = self.addNode("ShaderNodeMath", 2)
+        max.operation = 'MAXIMUM'
+        self.links.new(lpath.outputs["Is Shadow Ray"], max.inputs[0])
+        self.links.new(lpath.outputs["Is Reflection Ray"], max.inputs[1])
+
+        trans = self.addNode("ShaderNodeBsdfTransparent", 2)
+        self.links.new(self.inputs.outputs["Color"], trans.inputs["Color"])
+
+        mix = self.addNode("ShaderNodeMixShader", 3)
+        self.links.new(max.outputs[0], mix.inputs[0])
+        self.links.new(self.inputs.outputs["Shader"], mix.inputs[1])
+        self.links.new(trans.outputs[0], mix.inputs[2])
+
+        self.links.new(mix.outputs[0], self.outputs.inputs["Shader"])
+
+# ---------------------------------------------------------------------
 #   Dual Lobe Group
 # ---------------------------------------------------------------------
 

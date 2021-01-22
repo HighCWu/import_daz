@@ -256,16 +256,29 @@ class PbrTree(CyclesTree):
         color,coltex,roughness,roughtex = self.getRefractionColor()
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
 
-        if (GS.refractiveMethod == 'PRINCIPLED' and
-            (weight < 1 or wttex)):
+        if GS.refractiveMethod == 'PRINCIPLED':
+            if weight < 1 or wttex:
+                self.column += 1
+                pbr = pbr2 = self.addNode("ShaderNodeBsdfPrincipled")
+                self.ycoords[self.column] -= 500
+                self.linkPBRNormal(pbr2)
+                pbr2.inputs["Transmission"].default_value = 1.0
+            else:
+                pbr = self.pbr
+                pbr2 = None
+                self.replaceSlot(pbr, "Transmission", weight)
+
+            from .cgroup import RayClipGroup
             self.column += 1
-            pbr = pbr2 = self.addNode("ShaderNodeBsdfPrincipled")
-            self.ycoords[self.column] -= 500
-            self.linkPBRNormal(pbr2)
-            pbr2.inputs["Transmission"].default_value = 1.0
-            self.column += 1
-            mix = self.mixShaders(weight, wttex, self.pbr, pbr2)
-            self.cycles = self.eevee = mix
+            clip = self.addGroup(RayClipGroup, "DAZ Ray Clip")
+            self.links.new(pbr.outputs[0], clip.inputs["Shader"])
+            self.linkColor(coltex, clip, color, "Color")
+            self.cycles = self.eevee = clip
+
+            if pbr2:
+                self.column += 1
+                mix = self.mixShaders(weight, wttex, self.pbr, clip)
+                self.cycles = self.eevee = mix
             self.postPBR = True
         else:
             pbr = self.pbr
