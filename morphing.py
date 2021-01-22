@@ -588,7 +588,11 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 else:
                     raise DazError(msg)
             if skey is None:
-                asset.buildMorph(self.mesh, useBuild=useBuild, useSoftLimits=self.useSoftLimits, morphset=self.morphset)
+                asset.buildMorph(self.mesh,
+                                 useBuild=useBuild,
+                                 useSoftLimits=self.useSoftLimits,
+                                 morphset=self.morphset,
+                                 strength=self.strength)
                 skey,ob,sname = asset.rna
             if self.useBoneDrivers and skey:
                 prop = unquote(skey.name)
@@ -792,10 +796,10 @@ class LoadAllMorphs(LoadMorph):
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class StandardMorphSelector(Selector, B.StrengthFloat):
+class StandardMorphSelector(Selector):
+    strength = 1
 
     def draw(self, context):
-        self.layout.prop(self, "strength")
         Selector.draw(self, context)
 
 
@@ -902,7 +906,7 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.TreatHD, MultiFile, B.CustomOptions, B.StrengthFloat, IsMeshArmature):
+class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, MultiFile, B.CustomOptions, IsMeshArmature):
     bl_idname = "daz.import_custom_morphs"
     bl_label = "Import Custom Morphs"
     bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"

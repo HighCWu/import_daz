@@ -735,7 +735,12 @@ class Morph(FormulaAsset):
             me.vertices[vn].co += scale * d2bu(delta[1:])
 
 
-    def buildMorph(self, ob, useBuild=True, useSoftLimits=False, morphset=None, usePropDrivers=False):
+    def buildMorph(self, ob,
+                   useBuild=True,
+                   useSoftLimits=False,
+                   morphset=None,
+                   usePropDrivers=False,
+                   strength=1):
         if not ob.data.shape_keys:
             basic = ob.shape_key_add(name="Basic")
         else:
@@ -752,10 +757,13 @@ class Morph(FormulaAsset):
         skey.value = self.value
         self.rna = (skey, ob, sname)
         if useBuild:
-            self.buildShapeKey(ob, skey)
+            self.buildShapeKey(ob, skey, strength)
 
 
-    def buildShapeKey(self, ob, skey):
+    def buildShapeKey(self, ob, skey, strength=1):
+        if strength != 1:
+            scale = LS.scale
+            LS.scale *= strength
         for v in ob.data.vertices:
             skey.data[v.index].co = v.co
         if GS.zup:
@@ -766,6 +774,8 @@ class Morph(FormulaAsset):
             for delta in self.deltas:
                 vn = delta[1]
                 skey.data[vn].co += d2b00(delta[1:])
+        if strength != 1:
+            LS.scale = scale
 
 
     def rebuild(self, geonode, value):

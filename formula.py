@@ -958,16 +958,24 @@ class PropFormulas(PoseboneDriver):
             tfm = Transform()
             nonzero = False
             if "translation" in expr.keys():
-                tfm.setTrans(expr["translation"]["value"], expr["translation"]["prop"])
+                value = expr["translation"]["value"]
+                prop = expr["translation"]["prop"]
+                tfm.setTrans(self.strength*value, prop)
                 nonzero = True
             if "rotation" in expr.keys():
-                tfm.setRot(expr["rotation"]["value"], expr["rotation"]["prop"])
+                value = expr["rotation"]["value"]
+                prop = expr["rotation"]["prop"]
+                tfm.setRot(self.strength*value, prop)
                 nonzero = True
             if "scale" in expr.keys():
-                tfm.setScale(expr["scale"]["value"], True, expr["scale"]["prop"])
+                value = expr["scale"]["value"]
+                prop = expr["scale"]["prop"]
+                tfm.setScale(value, prop)
                 nonzero = True
             if "general_scale" in expr.keys():
-                tfm.setGeneral(expr["general_scale"]["value"], True, expr["general_scale"]["prop"])
+                value = expr["general_scale"]["value"]
+                prop = expr["general_scale"]["prop"]
+                tfm.setGeneral(value, prop)
                 nonzero = True
             if nonzero:
                 # Fix: don't assume that the rest pose is at slider value 0.0.

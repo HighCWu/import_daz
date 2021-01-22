@@ -435,6 +435,21 @@ class CustomOptions:
         description = "Add imported shapekeys to a category",
         default = False)
 
+    strength : FloatProperty(
+        name = "Strength",
+        description = "Multiply morphs with this value",
+        default = 1.0
+    )
+
+    treatHD : EnumProperty(
+        items = [('ERROR', "Error", "Raise error"),
+                 ('CREATE', "Create Shapekey", "Create empty shapekeys"),
+                 ('ACTIVE', "Active Shapekey", "Drive active shapekey")],
+        name = "Treat HD Mismatch",
+        description = "How to deal with vertex count mismatch for HD morphs",
+        default = 'ERROR'
+    )
+
 
 class CategoryString:
     category : StringProperty(
@@ -467,22 +482,6 @@ class DeleteShapekeysBool:
         default = True
     )
 
-class StrengthFloat:
-    strength : FloatProperty(
-        name = "Strength",
-        description = "Multiply morphs with this value",
-        default = 1.0
-    )
-
-class TreatHD:
-    treatHD : EnumProperty(
-        items = [('ERROR', "Error", "Raise error"),
-                 ('CREATE', "Create Shapekey", "Create empty shapekeys"),
-                 ('ACTIVE', "Active Shapekey", "Drive active shapekey")],
-        name = "Treat HD Mismatch",
-        description = "How to deal with vertex count mismatch for HD morphs",
-        default = 'ERROR'
-    )
 
 class DazSelectGroup(bpy.types.PropertyGroup):
     text : StringProperty()
