@@ -465,6 +465,13 @@ class DeleteShapekeysBool:
         default = True
     )
 
+class StrengthFloat:
+    strength = FloatProperty(
+        name = "Strength",
+        description = "Multiply morphs with this value",
+        default = 1.0
+    )
+
 class TreatHD:
     treatHD = EnumProperty(
         items = [('ERROR', "Error", "Raise error"),

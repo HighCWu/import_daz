@@ -206,6 +206,8 @@ class DAZ_OT_SelectNone(bpy.types.Operator):
 class Selector(B.Selection):
     defaultSelect = False
     columnWidth = 180
+    ncols = 6
+    nrows = 20
 
     def draw(self, context):
         scn = context.scene
@@ -218,8 +220,8 @@ class Selector(B.Selection):
         items = [item for item in self.selection if self.isSelected(item)]
         items.sort()
         nitems = len(items)
-        ncols = 6
-        nrows = 24
+        ncols = self.ncols
+        nrows = self.nrows
         if nitems > ncols*nrows:
             nrows = nitems//ncols + 1
         else:
@@ -284,9 +286,9 @@ class Selector(B.Selection):
         from .fileutils import clearSelection
         clearSelection()
         wm = context.window_manager
-        ncols = len(self.selection)//24 + 1
-        if ncols > 6:
-            ncols = 6
+        ncols = len(self.selection)//self.nrows + 1
+        if ncols > self.ncols:
+            ncols = self.ncols
         wm.invoke_props_dialog(self, width=ncols*self.columnWidth)
         return {'RUNNING_MODAL'}
 
@@ -790,7 +792,12 @@ class LoadAllMorphs(LoadMorph):
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class StandardMorphSelector(Selector):
+class StandardMorphSelector(Selector, B.StrengthFloat):
+
+    def draw(self, context):
+        self.layout.prop(self, "strength")
+        Selector.draw(self, context)
+
 
     def getActiveMorphFiles(self, context):
         from .fileutils import getSelection
@@ -895,7 +902,7 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.TreatHD, MultiFile, B.CustomOptions, IsMeshArmature):
+class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.TreatHD, MultiFile, B.CustomOptions, B.StrengthFloat, IsMeshArmature):
     bl_idname = "daz.import_custom_morphs"
     bl_label = "Import Custom Morphs"
     bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"
@@ -912,6 +919,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, B.TreatH
             self.layout.prop(self, "useSkeysCats")
         if self.usePropDrivers or self.useSkeysCats:
             self.layout.prop(self, "catname")
+        self.layout.prop(self, "strength")
         self.layout.prop(self, "treatHD")
 
 
