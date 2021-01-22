@@ -305,8 +305,6 @@ class Formula:
                 evalue2 = self.getExprValue(expr2, "value")
                 if evalue2 is not None:
                     vectors.append(evalue2)
-            else:
-                print("Stage: %s != %s" % (bone, bone2))
         expr["value"]["value"] = vectors
 
 
@@ -421,12 +419,12 @@ def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
     elif isinstance(expr["value"], list):
         uvecs = []
         for vec in expr["value"]:
-            uvec = convertDualVector(vec/D, pb, False)
+            uvec = convertDualVector(vec, pb, False)
             uvecs.append(uvec)
         makeProductBoneDriver(uvecs, rna, channel, rig, ob, bname, idx)
     else:
         vec = expr["value"]
-        uvec = convertDualVector(vec/D, pb, False)
+        uvec = convertDualVector(vec, pb, False)
         makeSimpleBoneDriver(uvec, rna, channel, rig, ob, bname, idx)
 
 
@@ -439,7 +437,7 @@ def getSplinePoints(expr, pb):
 
     diff = points[n-1][0] - points[0][0]
     vec = Vector((0,0,0))
-    vec[j] = 1/(diff*D)
+    vec[j] = 1/diff
     uvec = convertDualVector(vec, pb, False)
     xys = []
     for k in range(n):
@@ -465,7 +463,7 @@ def convertDualVector(uvec, pb, invert):
         mat = Mult3(smat, Units[i], smat.inverted())
         euler = mat.to_euler(pb.DazRotMode)
         nvec[i] = uvec.dot(Vector(euler))
-    return nvec
+    return nvec/D
 
 
 def convertDualMatrix(umat, pbDriver, pbDriven):
