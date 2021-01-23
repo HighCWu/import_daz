@@ -268,12 +268,15 @@ class PbrTree(CyclesTree):
                 pbr2 = None
                 self.replaceSlot(pbr, "Transmission", weight)
 
-            from .cgroup import RayClipGroup
-            self.column += 1
-            clip = self.addGroup(RayClipGroup, "DAZ Ray Clip")
-            self.links.new(pbr.outputs[0], clip.inputs["Shader"])
-            self.linkColor(coltex, clip, color, "Color")
-            self.cycles = self.eevee = clip
+            if self.material.thinWall:
+                from .cgroup import RayClipGroup
+                self.column += 1
+                clip = self.addGroup(RayClipGroup, "DAZ Ray Clip")
+                self.links.new(pbr.outputs[0], clip.inputs["Shader"])
+                self.linkColor(coltex, clip, color, "Color")
+                self.cycles = self.eevee = clip
+            else:
+                clip = pbr
 
             if pbr2:
                 self.column += 1
