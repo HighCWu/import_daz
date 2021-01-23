@@ -986,8 +986,8 @@ class DAZ_PT_MhxProperties(bpy.types.Panel):
             left,right = props[0:2]
             props = props[2:]
             row = layout.row()
-            row.prop(ob, '["%s"]' % left, text=left[3:-2])
-            row.prop(ob, '["%s"]' % right, text=right[3:-2])
+            row.prop(ob, getAttrPath(ob, left), text=left[3:-2])
+            row.prop(ob, getAttrPath(ob, right), text=right[3:-2])
 
 #------------------------------------------------------------------------
 #   Visibility panels

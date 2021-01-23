@@ -831,10 +831,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
     def addLongFingers(self, rig):
+        from .driver import setBoolProp
         for suffix,dlayer in [(".L",0), (".R",16)]:
             prop = "MhaFingerControl_" + suffix[1]
-            setattrOVR(rig, prop, 1.0)
-            setPropMinMax(rig, prop, 0, 1)
+            setBoolProp(rig, prop, True)
 
             bpy.ops.object.mode_set(mode='EDIT')
             for m in range(5):
@@ -881,6 +881,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     }
 
     def setupFkIk(self, rig):
+        from .driver import setBoolProp, setFloatProp
         bpy.ops.object.mode_set(mode='EDIT')
         root = rig.data.edit_bones[self.hip]
         head = rig.data.edit_bones["head"]
@@ -1036,14 +1037,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             elbowLink = rpbs["elbow.link"+suffix]
 
             prop = "MhaArmHinge_" + suffix[1]
-            setattrOVR(rig, prop, 0.0)
-            setPropMinMax(rig, prop, 0, 1)
+            setBoolProp(rig, prop, False)
             copyTransform(armParent, None, armSocket, rig, prop, "1-x")
             copyLocation(armParent, armSocket, rig, prop, "x")
 
             prop = "MhaArmIk_"+suffix[1]
-            setattrOVR(rig, prop, 0.0)
-            setPropMinMax(rig, prop, 0, 1)
+            setFloatProp(rig, prop, 0.0, 0.0, 1.0)
             copyTransform(upper_arm, upper_armFk, upper_armIk, rig, prop)
             copyTransform(forearm, forearmFk, forearmIk, rig, prop)
             copyTransform(hand, handFk, hand0Ik, rig, prop)
@@ -1080,17 +1079,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             toeInv = rpbs["toe.inv.ik"+suffix]
 
             prop = "MhaLegHinge_" + suffix[1]
-            setattrOVR(rig, prop, 0.0)
-            setPropMinMax(rig, prop, 0, 1)
+            setBoolProp(rig, prop, False)
             copyTransform(legParent, None, legSocket, rig, prop, "1-x")
             copyLocation(legParent, legSocket, rig, prop, "x")
 
             prop1 = "MhaLegIk_"+suffix[1]
-            setattrOVR(rig, prop1, 0.0)
-            setPropMinMax(rig, prop1, 0, 1)
+            setFloatProp(rig, prop1, 0.0, 0.0, 1.0)
             prop2 = "MhaLegIkToAnkle_"+suffix[1]
-            setattrOVR(rig, prop2, False)
-            setPropMinMax(rig, prop2, 0, 1)
+            setBoolProp(rig, prop2, False)
 
             footRev.lock_rotation = (False,True,True)
 
@@ -1107,8 +1103,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             cns.influence = 0
 
             prop = "MhaGaze_" + suffix[1]
-            setattrOVR(rig, prop, 0.0)
-            setPropMinMax(rig, prop, 0, 1)
+            setFloatProp(rig, prop, 0.0, 0.0, 1.0)
             prefix = suffix[1].lower()
             eye = rpbs[prefix+"Eye"]
             gaze = rpbs["gaze"+suffix]
@@ -1122,8 +1117,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ])
 
         prop = "MhaGazeFollowsHead"
-        setattrOVR(rig, prop, 0.0)
-        setPropMinMax(rig, prop, 0, 1)
+        setFloatProp(rig, prop, 0.0, 0.0, 1.0)
         gaze0 = rpbs["gaze0"]
         gaze1 = rpbs["gaze1"]
         copyTransform(gaze1, None, gaze0, rig, prop)
@@ -1509,24 +1503,23 @@ class DAZ_OT_ReinitMhxProps(DazOperator):
     bl_description = "Reinitialize MHX properties,\nif they are greyed out after overriding"
 
     def run(self, context):
+        from .driver import setBoolProp, setFloatProp
         rig = context.object
         prop = "MhaGazeFollowsHead"
-        setattrOVR(rig, prop, 0.0)
-        setPropMinMax(rig, prop, 0.0, 1.0)
+        setFloatProp(rig, prop, 0.0, 0.0, 1.0)
         bools = ["MhaArmHinge", "MhaFingerControl", "MhaLegHinge", "MhaLegIkToAnkle"]
         floats = ["MhaArmIk", "MhaGaze", "MhaLegIk"]
         for suffix in ["_L", "_R"]:
             for prop in bools:
-                setattrOVR(rig, prop+suffix, False)
-                setPropMinMax(rig, prop+suffix, 0, 1)
+                setBoolProp(rig, prop+suffix, False)
             for prop in floats:
-                setattrOVR(rig, prop+suffix, 0.0)
-                setPropMinMax(rig, prop+suffix, 0.0, 1.0)
+                setFloatProp(rig, prop+suffix, 0.0, 0.0, 1.0)
         initMhxProps()
 
 
 def initMhxProps():
     # MHX Control properties
+    from .driver import BoolPropOVR, FloatPropOVR
     bpy.types.Object.MhaGazeFollowsHead = FloatPropOVR(0.0, min=0.0, max=1.0)
     bpy.types.Object.DazHintsOn = BoolPropOVR(True)
 
@@ -1555,7 +1548,7 @@ classes = [
 
 def initialize():
     bpy.types.Object.DazMhxLegacy = BoolProperty(default=True)
-    initMhxProps()
+    #initMhxProps()
     for cls in classes:
         bpy.utils.register_class(cls)
 

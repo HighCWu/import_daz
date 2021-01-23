@@ -335,45 +335,22 @@ else:
         return color
 
 #-------------------------------------------------------------
-#   Overridable properties
-#-------------------------------------------------------------
-
-if bpy.app.version < (2,90,0):
-    def BoolPropOVR(default, description=""):
-        bpy.props.BoolProperty(default=default, description=description)
-
-    def FloatPropOVR(default, description="", precision=2, min=0, max=1):
-        bpy.props.FloatProperty(default=default, description=description, precision=precision, min=min, max=max)
-
-    def setattrOVR(ob, attr, value):
-        ob[attr] = value
-else:
-    def BoolPropOVR(default, description=""):
-        bpy.props.BoolProperty(default=default, description=description, override={'LIBRARY_OVERRIDABLE'})
-
-    def FloatPropOVR(default, description="", precision=2, min=0, max=1):
-        bpy.props.FloatProperty(default=default, description=description, precision=precision, min=min, max=max, override={'LIBRARY_OVERRIDABLE'})
-
-    def setattrOVR(ob, attr, value):
-        ob[attr] = value
-        ob.property_overridable_library_set('["%s"]' % attr, True)
-
-
-def getattrOVR(ob, attr):
-    if attr in ob.keys():
-        return ob[attr]
-    else:
-        return getattr(ob, attr)
-
-def setPropMinMax(ob, prop, min, max):
-    rna_ui = ob.get('_RNA_UI')
-    if rna_ui is None:
-        rna_ui = ob['_RNA_UI'] = {}
-    rna_ui[prop] = { "min": min, "max": max}
-
-#-------------------------------------------------------------
 #   Utility functions
 #-------------------------------------------------------------
+
+def getattrOVR(rna, attr):
+    if attr in rna.keys():
+        return rna[attr]
+    else:
+        return getattr(rna, attr)
+
+
+def getAttrPath(rna, attr):
+    if False and hasattr(rna, attr) and getattr(rna, attr) is not None:
+        return attr
+    else:
+        return '["%s"]' % attr
+
 
 def deleteObjects(context, objects):
     selectObjects(context, objects)

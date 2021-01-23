@@ -1241,17 +1241,21 @@ class DAZ_OT_DeactivateAll(DazOperator, Activator):
 #------------------------------------------------------------------------
 
 def prettifyAll(context):
+    from .driver import setBoolProp
     scn = context.scene
-    if bpy.app.version < (2,90,0):
-        boolprop = BoolProperty(default=True)
-    else:
-        boolprop = BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'})
-    for ob in getSelectedArmatures(context):
+    for ob in getSelectedObjects(context):
         for prop in ob.keys():
             if prop[0:7] == "DazShow":
-                setattr(bpy.types.Object, prop, boolprop)
+                setBoolProp(ob, prop, True)
             elif prop[0:3] in ["Mhh", "DzM"]:
-                setattr(bpy.types.Object, prop, boolprop)
+                setBoolProp(ob, prop, True)
+        for cat in ob.DazMorphCats:
+            setBoolProp(cat, "active", True)
+            for morph in cat.morphs:
+                if morph.name in ob.keys():
+                    setOverridable(ob, morph.name)
+        for pg in ob.DazActivated:
+            setBoolProp(pg, "active", True)
 
 
 class DAZ_OT_Prettify(DazOperator):

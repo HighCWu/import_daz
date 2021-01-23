@@ -243,7 +243,7 @@ class Snapper:
         words = self.data.split()
         prop = words[0]
         oldValue = getattrOVR(self.rig, prop)
-        setattrOVR(self.rig, prop, value)
+        self.rig[prop] = value
         ik = int(words[1])
         fk = int(words[2])
         extra = int(words[3])
@@ -268,7 +268,7 @@ class Snapper:
 
     def restoreSnapProp(self, prop, old, context):
         (oldValue, ik, fk, extra, oldIk, oldFk, oldExtra) = old
-        setattrOVR(self.rig, prop,  oldValue)
+        self.rig[prop] = oldValue
         self.rig.data.layers[ik] = oldIk
         self.rig.data.layers[fk] = oldFk
         self.rig.data.layers[extra] = oldExtra
@@ -327,7 +327,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper, B.DataString):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsFk, False)
-        setattrOVR(self.rig, prop, 0.0)
+        self.rig[prop] = 0.0
 
 
     def snapFkLeg(self, context):
@@ -355,7 +355,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper, B.DataString):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsFk, False)
-        setattrOVR(self.rig, prop, 0.0)
+        self.rig[prop] = 0.0
 
 
 class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper, B.DataString):
@@ -390,7 +390,7 @@ class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper, B.DataString):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsIk, False)
-        setattrOVR(self.rig, prop, 1.0)
+        self.rig[prop] = 1.0
 
 
     def snapIkLeg(self, context):
@@ -417,7 +417,7 @@ class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper, B.DataString):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsIk, False)
-        setattrOVR(self.rig, prop, 1.0)
+        self.rig[prop] = 1.0
 
 
 class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper, B.ToggleString):
@@ -435,7 +435,7 @@ class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper, B.ToggleString):
         offLayer = int(words[3])
         self.rig.data.layers[onLayer] = True
         self.rig.data.layers[offLayer] = False
-        setattrOVR(self.rig, prop, value)
+        self.rig[prop] = value
         path = ('["%s"]' % prop)
         if self.isKeyed(None, path):
             self.rig.keyframe_insert(path, frame=scn.frame_current)

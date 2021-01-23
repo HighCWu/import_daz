@@ -406,10 +406,40 @@ def addVarToDriver(fcu, rig, prop, factor):
     fcu.driver.expression = string + ("+%.4f*%s" % (factor, vname))
     addDriverVar(fcu, vname, prop, rig)
 
+
 #-------------------------------------------------------------
-#   Access to properties.
-#   Don't know whether to use custom attributes or custom props with RNA_UI
+#   Overridable properties
 #-------------------------------------------------------------
+
+if bpy.app.version < (2,90,0):
+    def BoolPropOVR(default, description=""):
+        bpy.props.BoolProperty(default=default, description=description)
+
+    def FloatPropOVR(default, description="", precision=2, min=0, max=1):
+        bpy.props.FloatProperty(default=default, description=description, precision=precision, min=min, max=max)
+
+    def setOverridable(ob, attr):
+        pass
+
+else:
+    def BoolPropOVR(default, description=""):
+        bpy.props.BoolProperty(default=default, description=description, override={'LIBRARY_OVERRIDABLE'})
+
+    def FloatPropOVR(default, description="", precision=2, min=0, max=1):
+        bpy.props.FloatProperty(default=default, description=description, precision=precision, min=min, max=max, override={'LIBRARY_OVERRIDABLE'})
+
+    def setOverridable(ob, attr):
+        ob.property_overridable_library_set('["%s"]' % attr, True)
+
+
+
+def setPropMinMax(rna, prop, min, max):
+    setOverridable(rna, prop)
+    rna_ui = rna.get('_RNA_UI')
+    if rna_ui is None:
+        rna_ui = rna['_RNA_UI'] = {}
+    rna_ui[prop] = { "min": min, "max": max}
+
 
 def truncateProp(prop):
     if len(prop) > 63:
@@ -424,15 +454,17 @@ def setFloatProp(ob, prop, value, min=None, max=None):
     min = float(min) if min is not None and GS.useDazPropLimits else GS.propMin
     max = float(max) if max is not None and GS.useDazPropLimits else GS.propMax
     prop = truncateProp(prop)
-    setattrOVR(ob, prop, value)
+    ob[prop] = value
     setPropMinMax(ob, prop, min, max)
 
 
 def setBoolProp(ob, prop, value, desc=""):
     prop = truncateProp(prop)
-    setattrOVR(ob, prop, value)
+    #setattr(bpy.types.Object, prop, BoolPropOVR(value, description=desc))
+    setattr(bpy.types.Object, prop, BoolProperty(default=value, description=desc, options={'LIBRARY_EDITABLE'}))
+    setattr(ob, prop, value)
+    ob[prop] = value
     setPropMinMax(ob, prop, 0, 1)
-    setattr(bpy.types.Object, prop, BoolPropOVR(default=value, description=desc))
 
 #-------------------------------------------------------------
 #
