@@ -365,6 +365,12 @@ def getattrOVR(ob, attr):
     else:
         return getattr(ob, attr)
 
+def setPropMinMax(ob, prop, min, max):
+    rna_ui = ob.get('_RNA_UI')
+    if rna_ui is None:
+        rna_ui = ob['_RNA_UI'] = {}
+    rna_ui[prop] = { "min": min, "max": max}
+
 #-------------------------------------------------------------
 #   Utility functions
 #-------------------------------------------------------------

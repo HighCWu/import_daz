@@ -425,22 +425,14 @@ def setFloatProp(ob, prop, value, min=None, max=None):
     max = float(max) if max is not None and GS.useDazPropLimits else GS.propMax
     prop = truncateProp(prop)
     setattrOVR(ob, prop, value)
-    rna_ui = ob.get('_RNA_UI')
-    if rna_ui is None:
-        rna_ui = ob['_RNA_UI'] = {}
-    rna_ui[prop] = { "min": min, "max": max, "soft_min": min, "soft_max": max}
+    setPropMinMax(ob, prop, min, max)
 
 
 def setBoolProp(ob, prop, value, desc=""):
     prop = truncateProp(prop)
     setattrOVR(ob, prop, value)
-    rna_ui = ob.get('_RNA_UI')
-    if rna_ui is None:
-        rna_ui = ob['_RNA_UI'] = {}
-    rna_ui[prop] = { "min": 0, "max": 1 }
+    setPropMinMax(ob, prop, 0, 1)
     setattr(bpy.types.Object, prop, BoolPropOVR(default=value, description=desc))
-    setattr(ob, prop, value)
-    ob[prop] = value
 
 #-------------------------------------------------------------
 #

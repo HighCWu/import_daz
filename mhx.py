@@ -834,6 +834,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         for suffix,dlayer in [(".L",0), (".R",16)]:
             prop = "MhaFingerControl_" + suffix[1]
             setattrOVR(rig, prop, 1.0)
+            setPropMinMax(rig, prop, 0, 1)
 
             bpy.ops.object.mode_set(mode='EDIT')
             for m in range(5):
@@ -1036,11 +1037,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             prop = "MhaArmHinge_" + suffix[1]
             setattrOVR(rig, prop, 0.0)
+            setPropMinMax(rig, prop, 0, 1)
             copyTransform(armParent, None, armSocket, rig, prop, "1-x")
             copyLocation(armParent, armSocket, rig, prop, "x")
 
             prop = "MhaArmIk_"+suffix[1]
             setattrOVR(rig, prop, 0.0)
+            setPropMinMax(rig, prop, 0, 1)
             copyTransform(upper_arm, upper_armFk, upper_armIk, rig, prop)
             copyTransform(forearm, forearmFk, forearmIk, rig, prop)
             copyTransform(hand, handFk, hand0Ik, rig, prop)
@@ -1078,13 +1081,16 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             prop = "MhaLegHinge_" + suffix[1]
             setattrOVR(rig, prop, 0.0)
+            setPropMinMax(rig, prop, 0, 1)
             copyTransform(legParent, None, legSocket, rig, prop, "1-x")
             copyLocation(legParent, legSocket, rig, prop, "x")
 
             prop1 = "MhaLegIk_"+suffix[1]
             setattrOVR(rig, prop1, 0.0)
+            setPropMinMax(rig, prop1, 0, 1)
             prop2 = "MhaLegIkToAnkle_"+suffix[1]
             setattrOVR(rig, prop2, False)
+            setPropMinMax(rig, prop2, 0, 1)
 
             footRev.lock_rotation = (False,True,True)
 
@@ -1102,6 +1108,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             prop = "MhaGaze_" + suffix[1]
             setattrOVR(rig, prop, 0.0)
+            setPropMinMax(rig, prop, 0, 1)
             prefix = suffix[1].lower()
             eye = rpbs[prefix+"Eye"]
             gaze = rpbs["gaze"+suffix]
@@ -1116,6 +1123,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
         prop = "MhaGazeFollowsHead"
         setattrOVR(rig, prop, 0.0)
+        setPropMinMax(rig, prop, 0, 1)
         gaze0 = rpbs["gaze0"]
         gaze1 = rpbs["gaze1"]
         copyTransform(gaze1, None, gaze0, rig, prop)
@@ -1502,14 +1510,18 @@ class DAZ_OT_ReinitMhxProps(DazOperator):
 
     def run(self, context):
         rig = context.object
-        setattrOVR(rig, "MhaGazeFollowsHead", 0.0)
+        prop = "MhaGazeFollowsHead"
+        setattrOVR(rig, prop, 0.0)
+        setPropMinMax(rig, prop, 0.0, 1.0)
         bools = ["MhaArmHinge", "MhaFingerControl", "MhaLegHinge", "MhaLegIkToAnkle"]
         floats = ["MhaArmIk", "MhaGaze", "MhaLegIk"]
         for suffix in ["_L", "_R"]:
             for prop in bools:
                 setattrOVR(rig, prop+suffix, False)
+                setPropMinMax(rig, prop+suffix, 0, 1)
             for prop in floats:
                 setattrOVR(rig, prop+suffix, 0.0)
+                setPropMinMax(rig, prop+suffix, 0.0, 1.0)
         initMhxProps()
 
 
