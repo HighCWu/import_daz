@@ -290,10 +290,7 @@ class Formula:
         expr = exprs[key]
         bone = self.getExprValue(expr, "bone")
         evalue = self.getExprValue(expr, "value")
-        if bone and evalue:
-            vectors = [evalue]
-        else:
-            vectors = []
+        vectors = []
         for expr2 in exprlist:
             bone2 = self.getExprValue(expr2, "bone")
             if bone2 is None:
@@ -305,7 +302,8 @@ class Formula:
                 evalue2 = self.getExprValue(expr2, "value")
                 if evalue2 is not None:
                     vectors.append(evalue2)
-        expr["value"]["value"] = vectors
+        if vectors:
+            expr["value"]["value"] = vectors
 
 
     def getExprValue(self, expr, key):
