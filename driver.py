@@ -419,39 +419,28 @@ def truncateProp(prop):
         return prop
 
 
-def setOverridable(ob, prop):
-    if hasattr(ob, "property_overridable_library_set"):
-        ob.property_overridable_library_set('["%s"]' % prop, True)
-
-
 def setFloatProp(ob, prop, value, min=None, max=None):
     value = float(value)
     min = float(min) if min is not None and GS.useDazPropLimits else GS.propMin
     max = float(max) if max is not None and GS.useDazPropLimits else GS.propMax
     prop = truncateProp(prop)
-    ob[prop] = value
+    setattrOVR(ob, prop, value)
     rna_ui = ob.get('_RNA_UI')
     if rna_ui is None:
         rna_ui = ob['_RNA_UI'] = {}
     rna_ui[prop] = { "min": min, "max": max, "soft_min": min, "soft_max": max}
-    setOverridable(ob, prop)
 
 
 def setBoolProp(ob, prop, value, desc=""):
     prop = truncateProp(prop)
-    ob[prop] = value
+    setattrOVR(ob, prop, value)
     rna_ui = ob.get('_RNA_UI')
     if rna_ui is None:
         rna_ui = ob['_RNA_UI'] = {}
     rna_ui[prop] = { "min": 0, "max": 1 }
-    if bpy.app.version < (2,90,0):
-        boolprop = BoolProperty(default=value, description=desc)
-    else:
-        boolprop = BoolProperty(default=value, description=desc, override={'LIBRARY_OVERRIDABLE'})
-    setattr(bpy.types.Object, prop, boolprop)
+    setattr(bpy.types.Object, prop, BoolPropOVR(default=value, description=desc))
     setattr(ob, prop, value)
     ob[prop] = value
-    setOverridable(ob, prop)
 
 #-------------------------------------------------------------
 #

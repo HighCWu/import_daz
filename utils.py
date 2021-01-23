@@ -335,7 +335,38 @@ else:
         return color
 
 #-------------------------------------------------------------
-#
+#   Overridable properties
+#-------------------------------------------------------------
+
+if bpy.app.version < (2,90,0):
+    def BoolPropOVR(default, description=""):
+        bpy.props.BoolProperty(default=default, description=description)
+
+    def FloatPropOVR(default, description="", precision=2, min=0, max=1):
+        bpy.props.FloatProperty(default=default, description=description, precision=precision, min=min, max=max)
+
+    def setattrOVR(ob, attr, value):
+        ob[attr] = value
+else:
+    def BoolPropOVR(default, description=""):
+        bpy.props.BoolProperty(default=default, description=description, override={'LIBRARY_OVERRIDABLE'})
+
+    def FloatPropOVR(default, description="", precision=2, min=0, max=1):
+        bpy.props.FloatProperty(default=default, description=description, precision=precision, min=min, max=max, override={'LIBRARY_OVERRIDABLE'})
+
+    def setattrOVR(ob, attr, value):
+        ob[attr] = value
+        ob.property_overridable_library_set('["%s"]' % attr, True)
+
+
+def getattrOVR(ob, attr):
+    if attr in ob.keys():
+        return ob[attr]
+    else:
+        return getattr(ob, attr)
+
+#-------------------------------------------------------------
+#   Utility functions
 #-------------------------------------------------------------
 
 def deleteObjects(context, objects):
@@ -358,14 +389,9 @@ def setWorldMatrix(ob, wmat):
     if (Vector(ob.scale) - One).length < 1e-6:
         ob.scale = One
 
-
-def toggleEditMode():
-    try:
-        bpy.ops.object.editmode_toggle()
-        bpy.ops.object.editmode_toggle()
-    except RuntimeError:
-        print("Could not update", bpy.context.object)
-        pass
+#-------------------------------------------------------------
+#   Updating
+#-------------------------------------------------------------
 
 def updateRig(rig, context):
     ob = context.object
@@ -417,6 +443,9 @@ def updateDrivers(ob):
         if ob.type == 'MESH':
             updateRna(ob.data.shape_keys)
 
+#-------------------------------------------------------------
+#   More utility functions
+#-------------------------------------------------------------
 
 def instRef(ref):
     return ref.rsplit("#",1)[-1]

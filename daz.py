@@ -944,12 +944,12 @@ class DAZ_PT_MhxFKIK(bpy.types.Panel):
         row.operator("daz.snap_ik_fk", text="Snap L IK Leg").data = "MhaLegIk_L 4 5 12"
         row.operator("daz.snap_ik_fk", text="Snap R IK Leg").data = "MhaLegIk_R 20 21 28"
 
-        onoff = "Off" if rig.DazHintsOn else "On"
+        onoff = "Off" if getattrOVR(rig, "DazHintsOn") else "On"
         layout.operator("daz.toggle_hints", text="Toggle Hints %s" % onoff)
 
 
     def toggle(self, row, rig, prop, fk, ik):
-        if getattr(rig, prop) > 0.5:
+        if getattrOVR(rig, prop) > 0.5:
             row.operator("daz.toggle_fk_ik", text="IK").toggle = prop + " 0" + fk + ik
         else:
             row.operator("daz.toggle_fk_ik", text="FK").toggle = prop + " 1" + ik + fk
@@ -972,18 +972,22 @@ class DAZ_PT_MhxProperties(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         ob = context.object
-        layout.prop(ob, "DazGazeFollowsHead", text="Gaze Follows Head")
+        layout.operator("daz.reinit_mhx_props")
+        if "MhaGazeFollowsHead" not in ob.keys():
+            return
+        layout.separator()
+        layout.prop(ob, '["MhaGazeFollowsHead"]', text="Gaze Follows Head")
         row = layout.row()
         row.label(text = "Left")
         row.label(text = "Right")
-        props = [key for key in dir(ob) if key[0:3] == "Mha"]
+        props = [key for key in ob.keys() if key[0:3] == "Mha" and key[-1] in ["L", "R"]]
         props.sort()
         while props:
             left,right = props[0:2]
             props = props[2:]
             row = layout.row()
-            row.prop(ob, left, text=left[3:-2])
-            row.prop(ob, right, text=right[3:-2])
+            row.prop(ob, '["%s"]' % left, text=left[3:-2])
+            row.prop(ob, '["%s"]' % right, text=right[3:-2])
 
 #------------------------------------------------------------------------
 #   Visibility panels

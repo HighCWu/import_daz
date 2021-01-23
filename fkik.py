@@ -242,8 +242,8 @@ class Snapper:
     def setSnapProp(self, value, context, isIk):
         words = self.data.split()
         prop = words[0]
-        oldValue = getattr(self.rig, prop)
-        setattr(self.rig, prop, value)
+        oldValue = getattrOVR(self.rig, prop)
+        setattrOVR(self.rig, prop, value)
         ik = int(words[1])
         fk = int(words[2])
         extra = int(words[3])
@@ -268,7 +268,7 @@ class Snapper:
 
     def restoreSnapProp(self, prop, old, context):
         (oldValue, ik, fk, extra, oldIk, oldFk, oldExtra) = old
-        setattr(self.rig, prop,  oldValue)
+        setattrOVR(self.rig, prop,  oldValue)
         self.rig.data.layers[ik] = oldIk
         self.rig.data.layers[fk] = oldFk
         self.rig.data.layers[extra] = oldExtra
@@ -327,7 +327,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper, B.DataString):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsFk, False)
-        setattr(self.rig, prop, 0)
+        setattrOVR(self.rig, prop, 0.0)
 
 
     def snapFkLeg(self, context):
@@ -347,7 +347,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper, B.DataString):
         self.matchPoseRotation(lolegFk, lolegIk)
         self.matchPoseScale(lolegFk, lolegIk)
         updatePose()
-        if not getattr(self.rig, "MhaLegIkToAnkle" + suffix):
+        if not getattrOVR(self.rig, "MhaLegIkToAnkle" + suffix):
             self.matchPoseReverse(footFk, footRev)
             updatePose()
             self.matchPoseReverse(toeFk, toeRev)
@@ -355,7 +355,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper, B.DataString):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsFk, False)
-        setattr(self.rig, prop, 0)
+        setattrOVR(self.rig, prop, 0.0)
 
 
 class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper, B.DataString):
@@ -390,7 +390,7 @@ class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper, B.DataString):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsIk, False)
-        setattr(self.rig, prop, 1)
+        setattrOVR(self.rig, prop, 1.0)
 
 
     def snapIkLeg(self, context):
@@ -417,7 +417,7 @@ class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper, B.DataString):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsIk, False)
-        setattr(self.rig, prop, 1)
+        setattrOVR(self.rig, prop, 1.0)
 
 
 class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper, B.ToggleString):
@@ -435,7 +435,7 @@ class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper, B.ToggleString):
         offLayer = int(words[3])
         self.rig.data.layers[onLayer] = True
         self.rig.data.layers[offLayer] = False
-        setattr(self.rig, prop, value)
+        setattrOVR(self.rig, prop, value)
         path = ('["%s"]' % prop)
         if self.isKeyed(None, path):
             self.rig.keyframe_insert(path, frame=scn.frame_current)
@@ -453,7 +453,7 @@ class DAZ_OT_MhxToggleHints(DazOperator):
             for cns in pb.constraints:
                 if cns.type == 'LIMIT_ROTATION' and cns.name == "Hint":
                     cns.mute = not cns.mute
-        rig.DazHintsOn = not rig.DazHintsOn
+        rig["DazHintsOn"] = not getattrOVR(rig, "DazHintsOn")
         updatePose()
 
 #----------------------------------------------------------
