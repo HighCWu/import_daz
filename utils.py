@@ -339,11 +339,23 @@ else:
 #-------------------------------------------------------------
 
 if bpy.app.version < (2,90,0):
-    def setOverridable(ob, attr):
+    def BoolPropOVR(default, description=""):
+        return bpy.props.BoolProperty(default=default, description=description)
+
+    def FloatPropOVR(default, description="", precision=2, min=0, max=1):
+        return bpy.props.FloatProperty(default=default, description=description, precision=precision, min=min, max=max)
+
+    def setOverridable(rna, attr):
         pass
 else:
-    def setOverridable(ob, attr):
-        ob.property_overridable_library_set('["%s"]' % attr, True)
+    def BoolPropOVR(default, description=""):
+        return bpy.props.BoolProperty(default=default, description=description, override={'LIBRARY_OVERRIDABLE'})
+
+    def FloatPropOVR(default, description="", precision=2, min=0, max=1):
+        return bpy.props.FloatProperty(default=default, description=description, precision=precision, min=min, max=max, override={'LIBRARY_OVERRIDABLE'})
+
+    def setOverridable(rna, attr):
+        rna.property_overridable_library_set('["%s"]' % attr, True)
 
 
 def getattrOVR(rna, attr):
@@ -358,6 +370,12 @@ def getnameOVR(rna, attr):
         return '["%s"]' % attr
     else:
         return attr
+
+
+def setattrOVR(rna, attr, value):
+    setattr(rna, attr, value)
+    rna[attr] = value
+    setOverridable(rna, attr)
 
 #-------------------------------------------------------------
 #   Utility functions

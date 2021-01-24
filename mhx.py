@@ -831,10 +831,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
     def addLongFingers(self, rig):
-        from .driver import setBoolProp
         for suffix,dlayer in [(".L",0), (".R",16)]:
             prop = "MhaFingerControl_" + suffix[1]
-            setBoolProp(rig, prop, True)
+            setattrOVR(rig, prop, True)
 
             bpy.ops.object.mode_set(mode='EDIT')
             for m in range(5):
@@ -881,7 +880,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     }
 
     def setupFkIk(self, rig):
-        from .driver import setBoolProp, setFloatProp
         bpy.ops.object.mode_set(mode='EDIT')
         root = rig.data.edit_bones[self.hip]
         head = rig.data.edit_bones["head"]
@@ -1037,12 +1035,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             elbowLink = rpbs["elbow.link"+suffix]
 
             prop = "MhaArmHinge_" + suffix[1]
-            setBoolProp(rig, prop, False)
+            setattrOVR(rig, prop, False)
             copyTransform(armParent, None, armSocket, rig, prop, "1-x")
             copyLocation(armParent, armSocket, rig, prop, "x")
 
             prop = "MhaArmIk_"+suffix[1]
-            setFloatProp(rig, prop, 0.0, 0.0, 1.0)
+            setattrOVR(rig, prop, 0.0)
             copyTransform(upper_arm, upper_armFk, upper_armIk, rig, prop)
             copyTransform(forearm, forearmFk, forearmIk, rig, prop)
             copyTransform(hand, handFk, hand0Ik, rig, prop)
@@ -1079,14 +1077,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             toeInv = rpbs["toe.inv.ik"+suffix]
 
             prop = "MhaLegHinge_" + suffix[1]
-            setBoolProp(rig, prop, False)
+            setattrOVR(rig, prop, False)
             copyTransform(legParent, None, legSocket, rig, prop, "1-x")
             copyLocation(legParent, legSocket, rig, prop, "x")
 
             prop1 = "MhaLegIk_"+suffix[1]
-            setFloatProp(rig, prop1, 0.0, 0.0, 1.0)
+            setattrOVR(rig, prop1, 0.0)
             prop2 = "MhaLegIkToAnkle_"+suffix[1]
-            setBoolProp(rig, prop2, False)
+            setattrOVR(rig, prop2, False)
 
             footRev.lock_rotation = (False,True,True)
 
@@ -1103,7 +1101,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             cns.influence = 0
 
             prop = "MhaGaze_" + suffix[1]
-            setFloatProp(rig, prop, 0.0, 0.0, 1.0)
+            setattrOVR(rig, prop, 0.0)
             prefix = suffix[1].lower()
             eye = rpbs[prefix+"Eye"]
             gaze = rpbs["gaze"+suffix]
@@ -1117,7 +1115,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ])
 
         prop = "MhaGazeFollowsHead"
-        setFloatProp(rig, prop, 0.0, 0.0, 1.0)
+        setattrOVR(rig, prop, 0.0)
         gaze0 = rpbs["gaze0"]
         gaze1 = rpbs["gaze1"]
         copyTransform(gaze1, None, gaze0, rig, prop)
@@ -1503,42 +1501,41 @@ class DAZ_OT_ReinitMhxProps(DazOperator):
     bl_description = "Reinitialize MHX properties,\nif they are greyed out after overriding"
 
     def run(self, context):
-        from .driver import setBoolProp, setFloatProp
+        initMhxProps()
         rig = context.object
         prop = "MhaGazeFollowsHead"
-        setFloatProp(rig, prop, 0.0, 0.0, 1.0)
+        setattrOVR(rig, prop, 0.0)
         prop = "MhaHintsOn"
-        setBoolProp(rig, prop, True)
+        setattrOVR(rig, prop, True)
         bools = ["MhaArmHinge", "MhaFingerControl", "MhaLegHinge", "MhaLegIkToAnkle"]
         floats = ["MhaArmIk", "MhaGaze", "MhaLegIk"]
         for suffix in ["_L", "_R"]:
             for prop in bools:
-                setBoolProp(rig, prop+suffix, False)
+                setattrOVR(rig, prop+suffix, False)
             for prop in floats:
-                setFloatProp(rig, prop+suffix, 0.0, 0.0, 1.0)
-        #initMhxProps()
+                setattrOVR(rig, prop+suffix, 0.0)
 
 
 def initMhxProps():
     # MHX Control properties
-    bpy.types.Object.MhaGazeFollowsHead = FloatProperty(default=0.0, min=0.0, max=1.0)
-    bpy.types.Object.MhaHintsOn = BoolProperty(default=True)
+    bpy.types.Object.MhaGazeFollowsHead = FloatPropOVR(0.0, min=0.0, max=1.0)
+    bpy.types.Object.MhaHintsOn = BoolPropOVR(True)
 
-    bpy.types.Object.MhaArmHinge_L = BoolProperty(default=False)
-    bpy.types.Object.MhaArmIk_L = FloatProperty(default=0.0, precision=3, min=0.0, max=1.0)
-    bpy.types.Object.MhaFingerControl_L = BoolProperty(default=False)
-    bpy.types.Object.MhaGaze_L = FloatProperty(default=0.0, min=0.0, max=1.0)
-    bpy.types.Object.MhaLegHinge_L = BoolProperty(default=False)
-    bpy.types.Object.MhaLegIkToAnkle_L = BoolProperty(default=False)
-    bpy.types.Object.MhaLegIk_L = FloatProperty(default=0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Object.MhaArmHinge_L = BoolPropOVR(False)
+    bpy.types.Object.MhaArmIk_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Object.MhaFingerControl_L = BoolPropOVR(False)
+    bpy.types.Object.MhaGaze_L = FloatPropOVR(0.0, min=0.0, max=1.0)
+    bpy.types.Object.MhaLegHinge_L = BoolPropOVR(False)
+    bpy.types.Object.MhaLegIkToAnkle_L = BoolPropOVR(False)
+    bpy.types.Object.MhaLegIk_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
 
-    bpy.types.Object.MhaArmHinge_R = BoolProperty(default=False)
-    bpy.types.Object.MhaArmIk_R = FloatProperty(default=0.0, precision=3, min=0.0, max=1.0)
-    bpy.types.Object.MhaFingerControl_R = BoolProperty(default=False)
-    bpy.types.Object.MhaGaze_R = FloatProperty(default=0.0, min=0.0, max=1.0)
-    bpy.types.Object.MhaLegHinge_R = BoolProperty(default=False)
-    bpy.types.Object.MhaLegIkToAnkle_R = BoolProperty(default=False)
-    bpy.types.Object.MhaLegIk_R = FloatProperty(default=0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Object.MhaArmHinge_R = BoolPropOVR(False)
+    bpy.types.Object.MhaArmIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Object.MhaFingerControl_R = BoolPropOVR(False)
+    bpy.types.Object.MhaGaze_R = FloatPropOVR(0.0, min=0.0, max=1.0)
+    bpy.types.Object.MhaLegHinge_R = BoolPropOVR(False)
+    bpy.types.Object.MhaLegIkToAnkle_R = BoolPropOVR(False)
+    bpy.types.Object.MhaLegIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
 
 
 classes = [
@@ -1548,8 +1545,8 @@ classes = [
 ]
 
 def initialize():
-    bpy.types.Object.DazMhxLegacy = BoolProperty(default=True)
-    #initMhxProps()
+    bpy.types.Object.DazMhxLegacy = BoolProperty(default = True)
+    initMhxProps()
     for cls in classes:
         bpy.utils.register_class(cls)
 
