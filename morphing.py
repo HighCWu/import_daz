@@ -2397,8 +2397,13 @@ def initialize():
     for morphset in theMorphSets:
         setattr(bpy.types.Object, "Daz"+morphset, CollectionProperty(type = B.DazTextGroup))
 
-    bpy.types.Object.DazActivated = CollectionProperty(type = B.DazActiveGroup)
-    bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory)
+    if bpy.app.version < (2,90,0):
+        bpy.types.Object.DazActivated = CollectionProperty(type = B.DazActiveGroup)
+        bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory)
+    else:
+        bpy.types.Object.DazActivated = CollectionProperty(type = B.DazActiveGroup, override={'LIBRARY_OVERRIDABLE'})
+        bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory, override={'LIBRARY_OVERRIDABLE'})
+
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],
         name = "Morph")

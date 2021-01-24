@@ -1516,7 +1516,7 @@ class DAZ_OT_ReinitMhxProps(DazOperator):
                 setBoolProp(rig, prop+suffix, False)
             for prop in floats:
                 setFloatProp(rig, prop+suffix, 0.0, 0.0, 1.0)
-        initMhxProps()
+        #initMhxProps()
 
 
 def initMhxProps():
@@ -1549,7 +1549,7 @@ classes = [
 
 def initialize():
     bpy.types.Object.DazMhxLegacy = BoolProperty(default=True)
-    initMhxProps()
+    #initMhxProps()
     for cls in classes:
         bpy.utils.register_class(cls)
 

@@ -1130,9 +1130,6 @@ class DazStringStringGroup(bpy.types.PropertyGroup):
 class DazKeys(bpy.types.PropertyGroup):
     keys : CollectionProperty(type = StringProperty)
 
-class DazActiveGroup(bpy.types.PropertyGroup):
-    active : BoolProperty(default = True)
-
 
 class DazTextGroup(bpy.types.PropertyGroup):
     text : StringProperty()
@@ -1140,11 +1137,23 @@ class DazTextGroup(bpy.types.PropertyGroup):
     def __lt__(self, other):
         return (self.text < other.text)
 
+if bpy.app.version < (2,90,0):
+    class DazCategory(bpy.types.PropertyGroup):
+        custom : StringProperty()
+        morphs : CollectionProperty(type = DazTextGroup)
+        active : BoolProperty(default=False)
 
-class DazCategory(bpy.types.PropertyGroup):
-    custom : StringProperty()
-    morphs : CollectionProperty(type = DazTextGroup)
-    active : BoolProperty(default = False)
+    class DazActiveGroup(bpy.types.PropertyGroup):
+        active : BoolProperty(default=True)
+else:
+    class DazCategory(bpy.types.PropertyGroup):
+        custom : StringProperty()
+        morphs : CollectionProperty(type = DazTextGroup)
+        active : BoolProperty(default=False, override={'LIBRARY_OVERRIDABLE'})
+
+    class DazActiveGroup(bpy.types.PropertyGroup):
+        active : BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'})
+
 
 class DazFormula(bpy.types.PropertyGroup):
     prop : StringProperty()
