@@ -134,7 +134,7 @@ def getMorphs(ob, morphset, category=None, activeOnly=False):
     def isActiveKey(key, rig):
         if rig:
             return (key in rig.DazActivated.keys() and
-                    getattrOVR(rig.DazActivated[key], "active"))
+                    rig.DazActivated[key].active)
         else:
             return True
 
@@ -1192,7 +1192,7 @@ def getActivated(ob, rna, key, force=False):
         return True
     else:
         pg = getActivateGroup(ob, key)
-        return getattrOVR(pg, "active")
+        return pg.active
 
 
 def addToPropGroup(prop, ob, morphset):

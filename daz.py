@@ -565,7 +565,7 @@ class DAZ_PT_Morphs:
         from .morphing import getExistingActivateGroup
         pg = getExistingActivateGroup(ob, key)
         if pg is not None:
-            layout.prop(pg, getnameOVR(pg, "active"), text=text)
+            layout.prop(pg, "active", text=text)
 
 
     def displayProp(self, morph, category, rig, layout, scn):
@@ -643,10 +643,10 @@ class CustomDrawItems:
         for cat in ob.DazMorphCats:
             self.layout.separator()
             box = self.layout.box()
-            if not getattrOVR(cat, "active"):
-                box.prop(cat, getnameOVR(cat, "active"), text=cat.name, icon="RIGHTARROW", emboss=False)
+            if not cat.active:
+                box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
                 continue
-            box.prop(cat, getnameOVR(cat, "active"), text=cat.name, icon="DOWNARROW_HLT", emboss=False)
+            box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
             self.drawBox(box, cat, scn, ob, filter)
 
 
@@ -944,13 +944,13 @@ class DAZ_PT_MhxFKIK(bpy.types.Panel):
         row.operator("daz.snap_ik_fk", text="Snap L IK Leg").data = "MhaLegIk_L 4 5 12"
         row.operator("daz.snap_ik_fk", text="Snap R IK Leg").data = "MhaLegIk_R 20 21 28"
 
-        onoff = "Off" if getattrOVR(rig, "MhaHintsOn") else "On"
+        onoff = "Off" if rig.MhaHintsOn else "On"
         layout.separator()
         layout.operator("daz.toggle_hints", text="Toggle Hints %s" % onoff)
 
 
     def toggle(self, row, rig, prop, fk, ik):
-        if getattrOVR(rig, prop) > 0.5:
+        if getattr(rig, prop) > 0.5:
             row.operator("daz.toggle_fk_ik", text="IK").toggle = prop + " 0" + fk + ik
         else:
             row.operator("daz.toggle_fk_ik", text="FK").toggle = prop + " 1" + ik + fk
@@ -977,7 +977,7 @@ class DAZ_PT_MhxProperties(bpy.types.Panel):
         if "MhaGazeFollowsHead" not in ob.keys():
             return
         layout.separator()
-        layout.prop(ob, getnameOVR(ob, "MhaGazeFollowsHead"), text="Gaze Follows Head")
+        layout.prop(ob, "MhaGazeFollowsHead", text="Gaze Follows Head")
         row = layout.row()
         row.label(text = "Left")
         row.label(text = "Right")
@@ -987,8 +987,8 @@ class DAZ_PT_MhxProperties(bpy.types.Panel):
             left,right = props[0:2]
             props = props[2:]
             row = layout.row()
-            row.prop(ob, getnameOVR(ob, left), text=left[3:-2])
-            row.prop(ob, getnameOVR(ob, right), text=right[3:-2])
+            row.prop(ob, left, text=left[3:-2])
+            row.prop(ob, ob, right, text=right[3:-2])
 
 #------------------------------------------------------------------------
 #   Visibility panels
