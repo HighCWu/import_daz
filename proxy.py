@@ -1341,16 +1341,9 @@ def addMannequins(self, context):
         if rig.name not in mangrp.objects.keys():
             mangrp.objects.link(rig)
     else:
-        coll = None
-        for coll1 in scn.collection.children:
-            if coll1.name == self.group:
-                coll = coll1
-                break
-        if coll is None:
-            coll = bpy.data.collections.new(name=self.group)
-            scn.collection.children.link(coll)
-        if rig.name not in coll.objects.keys():
-            coll.objects.link(rig)
+        from .hide import getRigCollection, createSubCollection
+        rigcoll = getRigCollection(rig)
+        coll = createSubCollection(rigcoll, self.group)
 
     # Add mannequin objects for selected meshes
     for ob in meshes:

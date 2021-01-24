@@ -107,6 +107,10 @@ class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, B.SingleGroup, B.Use
         MeshSelection.draw(self, context)
 
 
+    def invoke(self, context, event):
+        return MeshSelection.invoke(self, context, event)
+
+
     def run(self, context):
         rig = context.object
         print("Create visibility drivers for %s:" % rig.name)
@@ -156,49 +160,53 @@ class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, B.SingleGroup, B.Use
 
 
     def addCollections(self, context, rig, selected):
-        self.getCollection(rig)
-        if self.collection is None:
+        rigcoll = getRigCollection(rig)
+        if rigcoll is None:
             raise DazError("No collection found")
         print("Create visibility collections for %s:" % rig.name)
         if self.singleGroup:
-            coll = self.createCollection(context, self.groupName)
+            coll = createSubCollection(rigcoll, self.groupName)
             for ob in selected:
-                self.moveToCollection(ob, coll)
+                moveToCollection(ob, coll)
         else:
             for ob in selected:
-                coll = self.createCollection(context, ob.name)
-                self.moveToCollection(ob, coll)
+                coll = createSubCollection(rigcoll, ob.name)
+                moveToCollection(ob, coll)
         rig.DazVisibilityCollections = True
         print("Visibility collections created")
 
+#------------------------------------------------------------------------
+#   Collections
+#------------------------------------------------------------------------
 
-    def createCollection(self, context, cname):
-        coll = bpy.data.collections.new(cname)
-        context.collection.children.link(coll)
-        return coll
-
-
-    def getCollection(self, rig):
-        self.collection = None
-        for coll in bpy.data.collections:
-            if rig in coll.all_objects.values():
-                for ob in rig.children:
-                    if ob in coll.all_objects.values():
-                        self.collection = coll
-                        break
+def createSubCollection(coll, cname):
+    subcoll = bpy.data.collections.new(cname)
+    coll.children.link(subcoll)
+    return subcoll
 
 
-    def moveToCollection(self, ob, newcoll):
-        for coll in bpy.data.collections:
-            if ob in coll.objects.values():
-                coll.objects.unlink(ob)
-            if ob not in newcoll.objects.values():
-                newcoll.objects.link(ob)
+def getRigCollection(rig):
+    for coll in bpy.data.collections:
+        if rig in coll.objects.values():
+            return coll
+            for ob in rig.children:
+                if ob in coll.all_objects.values():
+                    return collection
+    return None
 
 
-    def invoke(self, context, event):
-        return MeshSelection.invoke(self, context, event)
+def moveToCollection(ob, newcoll):
+    if newcoll is None:
+        return
+    for coll in bpy.data.collections:
+        if ob in coll.objects.values():
+            coll.objects.unlink(ob)
+        if ob not in newcoll.objects.values():
+            newcoll.objects.link(ob)
 
+#------------------------------------------------------------------------
+#   Remove visibility
+#------------------------------------------------------------------------
 
 class DAZ_OT_RemoveVisibility(DazOperator):
     bl_idname = "daz.remove_visibility_drivers"
@@ -230,42 +238,6 @@ class DAZ_OT_RemoveVisibility(DazOperator):
         updateDrivers(rig)
         rig.DazVisibilityDrivers = False
         print("Visibility drivers removed")
-
-#------------------------------------------------------------------------
-#   Visibility collections
-#------------------------------------------------------------------------
-
-if bpy.app.version >= (2,80,0):
-
-    class DAZ_OT_CreateCollections(DazPropsOperator, B.NameString):
-        bl_idname = "daz.create_collections"
-        bl_label = "Create Collections"
-        bl_description = "Create collections for selected objects. After file linking."
-        bl_options = {'UNDO'}
-
-        def draw(self, context):
-            self.layout.prop(self, "name")
-
-        def run(self, context):
-            newcoll = bpy.data.collections.new(self.name)
-            coll = context.collection
-            coll.children.link(newcoll)
-            meshcoll = None
-            for ob in coll.objects:
-                if ob.select_get():
-                    if ob.type == 'EMPTY':
-                        if meshcoll is None:
-                            meshcoll = bpy.data.collections.new(self.name + " Meshes")
-                            newcoll.children.link(meshcoll)
-                        subcoll = bpy.data.collections.new(ob.name)
-                        meshcoll.children.link(subcoll)
-                        ob.hide_select = True
-                        subcoll.objects.link(ob)
-                        coll.objects.unlink(ob)
-                    else:
-                        ob.show_in_front = True
-                        newcoll.objects.link(ob)
-                        coll.objects.unlink(ob)
 
 #------------------------------------------------------------------------
 #   Show/Hide all
@@ -405,11 +377,6 @@ classes = [
     DAZ_OT_CreateMasks,
     DAZ_OT_AddShrinkwrap,
 ]
-
-if bpy.app.version >= (2,80,0):
-    classes += [
-        DAZ_OT_CreateCollections,
-    ]
 
 def initialize():
     bpy.types.Object.DazVisibilityDrivers = BoolProperty(default = False)
