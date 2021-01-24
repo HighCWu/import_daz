@@ -256,7 +256,7 @@ class PbrTree(CyclesTree):
         color,coltex,roughness,roughtex = self.getRefractionColor()
         ior,iortex = self.getColorTex("getChannelIOR", "NONE", 1.45)
 
-        if GS.refractiveMethod == 'PRINCIPLED':
+        if GS.refractiveMethod == 'SECOND':
             if weight < 1 or wttex:
                 self.column += 1
                 pbr = pbr2 = self.addNode("ShaderNodeBsdfPrincipled")
