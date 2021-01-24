@@ -133,7 +133,8 @@ def getMorphs(ob, morphset, category=None, activeOnly=False):
 
     def isActiveKey(key, rig):
         if rig:
-            return (key in rig.DazActivated.keys() and rig.DazActivated[key].active)
+            return (key in rig.DazActivated.keys() and
+                    getattrOVR(rig.DazActivated[key], "active"))
         else:
             return True
 
@@ -990,6 +991,7 @@ def addToCategories(ob, props, catname):
                 morph = cat.morphs[prop]
             morph.name = prop
             morph.text = stripPrefix(prop)
+            setBoolProp(morph, "active", True)
 
 
 def removeFromCategory(ob, props, catname):
@@ -1176,10 +1178,11 @@ class Activator(B.MorphsetString, B.UseMesh):
 
 
 def setActivated(ob, key, value):
+    from .driver import setBoolProp
     if ob is None:
         return
     pg = getActivateGroup(ob, key)
-    pg.active = value
+    setBoolProp(pg, "active", value)
 
 
 def getActivated(ob, rna, key, force=False):
@@ -1189,12 +1192,11 @@ def getActivated(ob, rna, key, force=False):
         return True
     else:
         pg = getActivateGroup(ob, key)
-        return pg.active
+        return getattrOVR(pg, "active")
 
 
 def addToPropGroup(prop, ob, morphset):
     from .modifier import stripPrefix
-    from .morphing import setActivated
     pg = getattr(ob, "Daz"+morphset)
     if prop not in pg.keys():
         item = pg.add()
@@ -2066,7 +2068,7 @@ class DAZ_OT_ToggleAllCats(DazOperator, B.UseOpenBool, B.UseMesh, IsMeshArmature
         rig = getRigFromObject(context.object, self.useMesh)
         if rig:
             for cat in rig.DazMorphCats:
-                cat.active = self.useOpen
+                cat["active"] = self.useOpen
 
 #-------------------------------------------------------------
 #

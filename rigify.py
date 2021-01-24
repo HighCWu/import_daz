@@ -1089,7 +1089,6 @@ class Rigify:
 
 
     def copyProp(self, prop, src, trg):
-        from .driver import setOverridable
         trg[prop] = src[prop]
         if prop[0:3] not in ["Daz", "_RN"]:
             setOverridable(trg, prop)

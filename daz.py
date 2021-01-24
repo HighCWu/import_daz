@@ -565,7 +565,7 @@ class DAZ_PT_Morphs:
         from .morphing import getExistingActivateGroup
         pg = getExistingActivateGroup(ob, key)
         if pg is not None:
-            layout.prop(pg, "active", text=text)
+            layout.prop(pg, getnameOVR(pg, "active"), text=text)
 
 
     def displayProp(self, morph, category, rig, layout, scn):
@@ -643,10 +643,10 @@ class CustomDrawItems:
         for cat in ob.DazMorphCats:
             self.layout.separator()
             box = self.layout.box()
-            if not cat.active:
-                box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
+            if not getattrOVR(cat, "active"):
+                box.prop(cat, getnameOVR(cat, "active"), text=cat.name, icon="RIGHTARROW", emboss=False)
                 continue
-            box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
+            box.prop(cat, getnameOVR(cat, "active"), text=cat.name, icon="DOWNARROW_HLT", emboss=False)
             self.drawBox(box, cat, scn, ob, filter)
 
 
@@ -944,7 +944,8 @@ class DAZ_PT_MhxFKIK(bpy.types.Panel):
         row.operator("daz.snap_ik_fk", text="Snap L IK Leg").data = "MhaLegIk_L 4 5 12"
         row.operator("daz.snap_ik_fk", text="Snap R IK Leg").data = "MhaLegIk_R 20 21 28"
 
-        onoff = "Off" if getattrOVR(rig, "DazHintsOn") else "On"
+        onoff = "Off" if getattrOVR(rig, "MhaHintsOn") else "On"
+        layout.separator()
         layout.operator("daz.toggle_hints", text="Toggle Hints %s" % onoff)
 
 
@@ -976,7 +977,7 @@ class DAZ_PT_MhxProperties(bpy.types.Panel):
         if "MhaGazeFollowsHead" not in ob.keys():
             return
         layout.separator()
-        layout.prop(ob, '["MhaGazeFollowsHead"]', text="Gaze Follows Head")
+        layout.prop(ob, getnameOVR(ob, "MhaGazeFollowsHead"), text="Gaze Follows Head")
         row = layout.row()
         row.label(text = "Left")
         row.label(text = "Right")
@@ -986,8 +987,8 @@ class DAZ_PT_MhxProperties(bpy.types.Panel):
             left,right = props[0:2]
             props = props[2:]
             row = layout.row()
-            row.prop(ob, getAttrPath(ob, left), text=left[3:-2])
-            row.prop(ob, getAttrPath(ob, right), text=right[3:-2])
+            row.prop(ob, getnameOVR(ob, left), text=left[3:-2])
+            row.prop(ob, getnameOVR(ob, right), text=right[3:-2])
 
 #------------------------------------------------------------------------
 #   Visibility panels
@@ -1026,7 +1027,7 @@ class DAZ_PT_Visibility(bpy.types.Panel):
         for prop in props:
             if prop[0:3] == prefix:
                 if hasattr(ob, prop):
-                    self.layout.prop(ob, prop, text=prop[3:])
+                    self.layout.prop(ob, getnameOVR(ob, prop), text=prop[3:])
                 else:
                     self.layout.prop(ob, '["%s"]' % prop, text=prop[3:])
 
@@ -1175,6 +1176,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "General")
         box.prop(scn, "DazUnitScale")
         box.prop(scn, "DazVerbosity")
+        box.prop(scn, "DazOverrides")
         box.prop(scn, "DazZup")
         box.prop(scn, "DazCaseSensitivePaths")
 
@@ -1550,6 +1552,10 @@ def initialize():
     bpy.types.Scene.DazSimulation = BoolProperty(
         name = "Simulation",
         description = "Add simultations")
+
+    bpy.types.Scene.DazOverrides = BoolProperty(
+        name = "Library Overrides",
+        description = "Make Boolean properties overridable.\nDisplayed as integers rather than checkboxes")
 
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shell Materials",

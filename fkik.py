@@ -453,7 +453,7 @@ class DAZ_OT_MhxToggleHints(DazOperator):
             for cns in pb.constraints:
                 if cns.type == 'LIMIT_ROTATION' and cns.name == "Hint":
                     cns.mute = not cns.mute
-        rig["DazHintsOn"] = not getattrOVR(rig, "DazHintsOn")
+        rig["MhaHintsOn"] = not getattrOVR(rig, "MhaHintsOn")
         updatePose()
 
 #----------------------------------------------------------

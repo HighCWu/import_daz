@@ -1144,7 +1144,7 @@ class DazTextGroup(bpy.types.PropertyGroup):
 class DazCategory(bpy.types.PropertyGroup):
     custom : StringProperty()
     morphs : CollectionProperty(type = DazTextGroup)
-    active : BoolProperty(default=False)
+    active : BoolProperty(default = False)
 
 class DazFormula(bpy.types.PropertyGroup):
     prop : StringProperty()

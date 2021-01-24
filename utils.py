@@ -335,22 +335,33 @@ else:
         return color
 
 #-------------------------------------------------------------
-#   Utility functions
+#   Overridable properties
 #-------------------------------------------------------------
 
+if bpy.app.version < (2,90,0):
+    def setOverridable(ob, attr):
+        pass
+else:
+    def setOverridable(ob, attr):
+        ob.property_overridable_library_set('["%s"]' % attr, True)
+
+
 def getattrOVR(rna, attr):
-    if attr in rna.keys():
+    if GS.useOverrides:
         return rna[attr]
     else:
         return getattr(rna, attr)
 
 
-def getAttrPath(rna, attr):
-    if False and hasattr(rna, attr) and getattr(rna, attr) is not None:
-        return attr
-    else:
+def getnameOVR(rna, attr):
+    if GS.useOverrides:
         return '["%s"]' % attr
+    else:
+        return attr
 
+#-------------------------------------------------------------
+#   Utility functions
+#-------------------------------------------------------------
 
 def deleteObjects(context, objects):
     selectObjects(context, objects)
