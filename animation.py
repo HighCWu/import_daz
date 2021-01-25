@@ -720,23 +720,8 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         return (pb.name[-5:] == "Twist")
 
 
-    def getCanonicalKey(self, key, rig):
-        from .modifier import stripPrefix
-        lkey = stripPrefix(key.lower())
-        if lkey[-5:] == "_div2":
-            lkey = lkey[:-5]
-        if lkey[-3:] == "_hd":
-            lkey = lkey[:-3]
-        if lkey[-2:] == "hd":
-            lkey = lkey[:-2]
-        if lkey[-4:-1] == "_hd":
-            lkey = lkey[:-4] + lkey[-1]
-        if lkey[-3:-1] == "hd":
-            lkey = lkey[:-3] + lkey[-1]
-        return lkey
-
-
     def getRigKey(self, key, rig, missing):
+        from .modifier import getCanonicalKey
         key = unquote(key)
         if key in rig.keys():
             return key
@@ -746,7 +731,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                 pg = rig.DazPropNames[lkey]
                 return pg.text
         else:
-            lkey = self.getCanonicalKey(key, rig)
+            lkey = getCanonicalKey(key.lower())
             if lkey in self.rigProps.keys():
                 return self.rigProps[lkey]
         if key not in missing:
@@ -755,6 +740,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
 
 
     def setupRigProps(self, rig):
+        from .modifier import getCanonicalKey
         if rig.DazPropNames:
             return
         if not self.affectMorphs:
@@ -766,7 +752,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         ]
         self.rigProps = {}
         for key in rig.keys():
-            lkey = self.getCanonicalKey(key, rig)
+            lkey = self.getCanonicalKey(key.lower())
             self.rigProps[lkey] = key
             for syns in synonymList:
                 for syn1 in syns:

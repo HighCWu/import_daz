@@ -605,7 +605,7 @@ class ToggleLocks:
 
 class DAZ_OT_ToggleRotLocks(DazOperator, ToggleLocks):
     bl_idname = "daz.toggle_rot_locks"
-    bl_label = "Toggle Rotation Locks"
+    bl_label = "Rotation Locks"
     bl_description = "Toggle rotation locks"
     bl_options = {'UNDO'}
 
@@ -619,7 +619,7 @@ class DAZ_OT_ToggleRotLocks(DazOperator, ToggleLocks):
 
 class DAZ_OT_ToggleLocLocks(DazOperator, ToggleLocks):
     bl_idname = "daz.toggle_loc_locks"
-    bl_label = "Toggle Location Locks"
+    bl_label = "Location Locks"
     bl_description = "Toggle location locks"
     bl_options = {'UNDO'}
 
@@ -646,7 +646,7 @@ class ToggleLimits:
 
 class DAZ_OT_ToggleRotLimits(DazOperator, ToggleLimits):
     bl_idname = "daz.toggle_rot_limits"
-    bl_label = "Toggle Limits"
+    bl_label = "Rotation Limits"
     bl_description = "Toggle rotation limits"
     bl_options = {'UNDO'}
 
@@ -660,7 +660,7 @@ class DAZ_OT_ToggleRotLimits(DazOperator, ToggleLimits):
 
 class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits):
     bl_idname = "daz.toggle_loc_limits"
-    bl_label = "Toggle Location Limits"
+    bl_label = "Location Limits"
     bl_description = "Toggle location limits"
     bl_options = {'UNDO'}
 

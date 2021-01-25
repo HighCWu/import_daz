@@ -781,7 +781,7 @@ class PropFormulas(PoseboneDriver):
 
 
     def buildOthers(self, missing):
-        from .modifier import stripPrefix
+        from .modifier import getCanonicalKey
         remains = self.others
         sorted = []
         nremains = len(remains)
@@ -791,10 +791,10 @@ class PropFormulas(PoseboneDriver):
             batch, used, remains = self.getNextLevelMorphs(remains)
             self.buildMorphBatch(batch)
             for key in batch.keys():
-                prop = stripPrefix(key)
+                prop = getCanonicalKey(key)
                 print(" *", prop)
                 missing[prop] = False
-                props.append(prop)
+                props.append(key)
             if len(remains) == nremains:
                 break
             for key in batch.keys():
@@ -805,7 +805,7 @@ class PropFormulas(PoseboneDriver):
         if remains:
             print("Missing:")
             for key in remains.keys():
-                prop = stripPrefix(key)
+                prop = getCanonicalKey(key)
                 print("-", prop)
         return props
 

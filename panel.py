@@ -408,10 +408,14 @@ class DAZ_PT_Posing(bpy.types.Panel):
 
         layout.separator()
         split = splitLayout(layout, 0.6)
-        layout.operator("daz.toggle_loc_locks", text = "Location Locks Are " + ("ON" if ob.DazLocLocks else "OFF"))
-        layout.operator("daz.toggle_rot_locks", text = "Rotation Locks Are " + ("ON" if ob.DazRotLocks else "OFF"))
-        layout.operator("daz.toggle_loc_limits", text = "Location Limits Are " + ("ON" if ob.DazLocLimits else "OFF"))
-        layout.operator("daz.toggle_rot_limits", text = "Rotation Limits Are " + ("ON" if ob.DazRotLimits else "OFF"))
+        icon = 'CHECKBOX_HLT' if ob.DazLocLocks else 'CHECKBOX_DEHLT'
+        layout.operator("daz.toggle_loc_locks", icon=icon, emboss=False)
+        icon = 'CHECKBOX_HLT' if ob.DazRotLocks else 'CHECKBOX_DEHLT'
+        layout.operator("daz.toggle_rot_locks", icon=icon, emboss=False)
+        icon = 'CHECKBOX_HLT' if ob.DazLocLimits else 'CHECKBOX_DEHLT'
+        layout.operator("daz.toggle_loc_limits", icon=icon, emboss=False)
+        icon = 'CHECKBOX_HLT' if ob.DazRotLimits else 'CHECKBOX_DEHLT'
+        layout.operator("daz.toggle_rot_limits", icon=icon, emboss=False)
 
         return
         layout.separator()

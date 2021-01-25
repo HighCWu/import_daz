@@ -298,11 +298,32 @@ def stripPrefix(prop):
         "phm", "ephm", "pbm", "ppbm", "vsm",
         "pjcm", "ejcm", "jcm", "mcm",
         "dzu", "dze", "dzv", "dzb",
-        "facs_jnt_", "facs_ctrl_", "facs_bs_", "facs_"]:
+        "facs_jnt_", "facs_ctrl_", "facs_"]:
         n = len(prefix)
         if lprop[0:n] == prefix:
             return prop[n:]
     return prop
+
+
+def getCanonicalKey(key):
+    key = stripPrefix(key)
+    lkey = key.lower()
+    if lkey[-5:] == "_div2":
+        key = key[:-5]
+        lkey = lkey[:-5]
+    if lkey[-3:] == "_hd":
+        key = key[:-3]
+        lkey = lkey[:-3]
+    if lkey[-2:] == "hd":
+        key = key[:-2]
+        lkey = lkey[:-2]
+    if lkey[-4:-1] == "_hd":
+        key = key[:-4] + key[-1]
+        lkey = lkey[:-4] + lkey[-1]
+    if lkey[-3:-1] == "hd":
+        key = key[:-3] + key[-1]
+        lkey = lkey[:-3] + lkey[-1]
+    return key
 
 
 def addToMorphSet(rig, ob, morphset, prop, usePropDrivers, asset):
@@ -336,7 +357,7 @@ def addToMorphSet0(ob, morphset, prop):
     else:
         item = pg.add()
     item.name = prop
-    item.text = stripPrefix(prop)
+    item.text = getCanonicalKey(prop)
     return prop
 
 

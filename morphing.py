@@ -386,6 +386,7 @@ def setupMorphPaths(scn, force):
     from collections import OrderedDict
     from .asset import fixBrokenPath
     from .load_json import loadJson
+    from .modifier import getCanonicalKey
 
     if theMorphFiles and not force:
         return
@@ -438,6 +439,7 @@ def setupMorphPaths(scn, force):
                             continue
                         isright,name = isRightType(fname, prefixes, includes, excludes)
                         if isright:
+                            #name = getCanonicalKey(name)
                             fname = fname.lower()
                             fpath = os.path.join(folder, file)
                             typeFiles[name] = os.path.join(folderpath, file)
@@ -617,6 +619,8 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                     prop = asset.clearProp(self.morphset, self.rig)
                     self.taken[prop] = False
                     props = self.buildPropFormula(asset, filepath)
+                    if not props:
+                        miss = True
             elif isinstance(asset, Morph):
                 pass
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
@@ -999,7 +1003,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, MultiFil
 
 def addToCategories(ob, props, catname):
     from .driver import setBoolProp
-    from .modifier import stripPrefix
+    from .modifier import getCanonicalKey
 
     if props and ob is not None:
         cats = dict([(cat.name,cat) for cat in ob.DazMorphCats])
@@ -1015,7 +1019,7 @@ def addToCategories(ob, props, catname):
             else:
                 morph = cat.morphs[prop]
             morph.name = prop
-            morph.text = stripPrefix(prop)
+            morph.text = getCanonicalKey(prop)
             setBoolProp(morph, "active", True)
 
 
@@ -1221,12 +1225,12 @@ def getActivated(ob, rna, key, force=False):
 
 
 def addToPropGroup(prop, ob, morphset):
-    from .modifier import stripPrefix
+    from .modifier import getCanonicalKey
     pg = getattr(ob, "Daz"+morphset)
     if prop not in pg.keys():
         item = pg.add()
         item.name = prop
-        item.text = stripPrefix(prop)
+        item.text = getCanonicalKey(prop)
         setActivated(ob, prop, True)
 
 
