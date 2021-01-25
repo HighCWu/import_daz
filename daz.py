@@ -201,6 +201,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
     bl_description = "Show or update global settings"
 
     def draw(self, context):
+        from .panel import showBox
         scn = context.scene
         split = splitLayout(self.layout, 0.4)
         col = split.column()

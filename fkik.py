@@ -444,8 +444,8 @@ class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper, B.ToggleString):
 
 class DAZ_OT_MhxToggleHints(DazOperator):
     bl_idname = "daz.toggle_hints"
-    bl_label = "Toggle Hints"
-    bl_description = "Toggle hints for elbow and knee bending. It may be necessary to turn these off for correct FK->IK snapping."
+    bl_label = "Elbow And Knee Hints"
+    bl_description = "Toggle hints for elbow and knee bending.\nIt may be necessary to turn these off for correct FK->IK snapping."
 
     def run(self, context):
         rig = context.object

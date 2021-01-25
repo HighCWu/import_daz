@@ -909,9 +909,9 @@ class DAZ_PT_MhxFKIK(bpy.types.Panel):
         row.operator("daz.snap_ik_fk", text="Snap L IK Leg").data = "MhaLegIk_L 4 5 12"
         row.operator("daz.snap_ik_fk", text="Snap R IK Leg").data = "MhaLegIk_R 20 21 28"
 
-        onoff = "Off" if rig.MhaHintsOn else "On"
         layout.separator()
-        layout.operator("daz.toggle_hints", text="Toggle Hints %s" % onoff)
+        icon = 'CHECKBOX_HLT' if rig.MhaHintsOn else 'CHECKBOX_DEHLT'
+        layout.operator("daz.toggle_hints", icon=icon, emboss=False)
 
 
     def toggle(self, row, rig, prop, fk, ik):
@@ -953,7 +953,7 @@ class DAZ_PT_MhxProperties(bpy.types.Panel):
             props = props[2:]
             row = layout.row()
             row.prop(ob, left, text=left[3:-2])
-            row.prop(ob, ob, right, text=right[3:-2])
+            row.prop(ob, right, text=right[3:-2])
 
 #------------------------------------------------------------------------
 #   Visibility panels
@@ -995,13 +995,9 @@ class DAZ_PT_Visibility(bpy.types.Panel):
     def drawProps(self, rig, props, prefix):
         for prop in props:
             if prop[0:3] == prefix:
-                if rig[prop]:
-                    icon = 'CHECKBOX_HLT'
-                else:
-                    icon = 'CHECKBOX_DEHLT'
+                icon = 'CHECKBOX_HLT' if rig[prop] else 'CHECKBOX_DEHLT'
                 op = self.layout.operator("daz.toggle_vis", text=prop[3:], icon=icon, emboss=False)
                 op.name = prop
-
 
 #-------------------------------------------------------------
 #   Initialize
