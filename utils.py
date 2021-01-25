@@ -358,20 +358,6 @@ else:
         rna.property_overridable_library_set('["%s"]' % attr, True)
 
 
-def getattrOVR(rna, attr):
-    if GS.useOverrides:
-        return rna[attr]
-    else:
-        return getattr(rna, attr)
-
-
-def getnameOVR(rna, attr):
-    if GS.useOverrides:
-        return '["%s"]' % attr
-    else:
-        return attr
-
-
 def setattrOVR(rna, attr, value):
     setattr(rna, attr, value)
     rna[attr] = value

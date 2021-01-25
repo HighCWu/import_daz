@@ -1178,7 +1178,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "General")
         box.prop(scn, "DazUnitScale")
         box.prop(scn, "DazVerbosity")
-        box.prop(scn, "DazOverrides")
         box.prop(scn, "DazZup")
         box.prop(scn, "DazCaseSensitivePaths")
 
@@ -1554,10 +1553,6 @@ def initialize():
     bpy.types.Scene.DazSimulation = BoolProperty(
         name = "Simulation",
         description = "Add simultations")
-
-    bpy.types.Scene.DazOverrides = BoolProperty(
-        name = "Library Overrides",
-        description = "Make Boolean properties overridable.\nDisplayed as integers rather than checkboxes")
 
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shell Materials",

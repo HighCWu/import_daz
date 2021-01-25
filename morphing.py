@@ -746,6 +746,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 class LoadShapekey(LoadMorph):
     usePropDrivers = False
     ignoreHD = False
+    strength = 1.0
 
 #------------------------------------------------------------------
 #   Load typed morphs base class
