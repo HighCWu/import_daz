@@ -40,7 +40,7 @@ from .fileutils import MultiFile
 #   Morph sets
 #-------------------------------------------------------------
 
-theStandardMorphSets = ["Units", "Expressions", "Visemes", "Body"]
+theStandardMorphSets = ["Units", "Expressions", "Visemes", "Facs", "Facsexpr", "Body"]
 theCustomMorphSets = ["Custom"]
 theJCMMorphSets = ["Standardjcms", "Flexions"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
@@ -123,7 +123,7 @@ def getMorphs(ob, morphset, category=None, activeOnly=False):
     Arguments:
     ?ob: Object (armature or mesh) which owns the morphs
 
-    ?type: Either a string in ["Units", "Expressions", "Visemes", "Body", "Custom", "Standardjcms", "Flexions"],
+    ?type: Either a string in ["Units", "Expressions", "Visemes", "Facs", "Facsexpr", "Body", "Custom", "Standardjcms", "Flexions"],
         or a list of such strings, or the keyword "All" signifying all morphset in the list.
 
     ?category (optional): The category name for Custom morphs.
@@ -866,6 +866,24 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, Is
     bl_options = {'UNDO'}
 
     morphset = "Visemes"
+
+
+class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+    bl_idname = "daz.import_facs"
+    bl_label = "Import FACS"
+    bl_description = "Import selected FACS morphs"
+    bl_options = {'UNDO'}
+
+    morphset = "Units"
+
+
+class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+    bl_idname = "daz.import_facs_expressions"
+    bl_label = "Import FACS Expressions"
+    bl_description = "Import selected FACS expression morphs"
+    bl_options = {'UNDO'}
+
+    morphset = "Facsexpr"
 
 
 class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -2351,6 +2369,8 @@ classes = [
     DAZ_OT_ImportUnits,
     DAZ_OT_ImportExpressions,
     DAZ_OT_ImportVisemes,
+    DAZ_OT_ImportFacs,
+    DAZ_OT_ImportFacsExpressions,
     DAZ_OT_ImportBodyMorphs,
     DAZ_OT_ImportFlexions,
     DAZ_OT_ImportCustomMorphs,

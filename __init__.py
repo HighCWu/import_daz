@@ -60,7 +60,7 @@ def importModules():
             modnames.append("buttons27")
         else:
             modnames.append("buttons28")
-        modnames += ["propgroups", "daz", "fileutils", "load_json", "driver", "asset", "channels", "formula",
+        modnames += ["propgroups", "daz", "panel", "fileutils", "load_json", "driver", "asset", "channels", "formula",
                     "transform", "node", "figure", "bone", "geometry", "objfile",
                     "fix", "modifier", "morphing", "convert", "material", "internal",
                     "cycles", "cgroup", "pbr", "render", "camera", "light",
@@ -192,6 +192,7 @@ def register():
     proxy.initialize()
     rigify.initialize()
     transfer.initialize()
+    panel.initialize()
     if bpy.app.version >= (2,82,0):
         udim.initialize()
 
