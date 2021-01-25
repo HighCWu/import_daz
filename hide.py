@@ -127,6 +127,7 @@ class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, B.SingleGroup, B.Use
         for ob in rig.children:
             if ob.type == 'MESH':
                 self.createMaskVisibility(rig, ob, obnames)
+                ob.DazVisibilityDrivers = True
         rig.DazVisibilityDrivers = True
         updateDrivers(rig)
 
@@ -245,9 +246,9 @@ class DAZ_OT_RemoveVisibility(DazOperator):
 
 class SetAllVisibility:
     def run(self, context):
-        from .morphing import autoKeyProp
+        from .morphing import autoKeyProp, getRigFromObject
         from .driver import updateAll
-        rig = context.object
+        rig = getRigFromObject(context.object)
         scn = context.scene
         if rig is None:
             return
@@ -256,14 +257,13 @@ class SetAllVisibility:
                 if key:
                     rig[key] = self.on
                     autoKeyProp(rig, key, scn, scn.frame_current, True)
-        updateAll(context)
+        updateDrivers(rig)
 
 
 class DAZ_OT_ShowAllVis(DazOperator, SetAllVisibility, B.PrefixString):
     bl_idname = "daz.show_all_vis"
     bl_label = "Show All"
     bl_description = "Show all meshes/makeup of this rig"
-    bl_options = {'UNDO'}
 
     on = True
 
@@ -272,9 +272,23 @@ class DAZ_OT_HideAllVis(DazOperator, SetAllVisibility, B.PrefixString):
     bl_idname = "daz.hide_all_vis"
     bl_label = "Hide All"
     bl_description = "Hide all meshes/makeup of this rig"
-    bl_options = {'UNDO'}
 
     on = False
+
+
+class DAZ_OT_ToggleVis(DazOperator, IsMeshArmature, B.NameString):
+    bl_idname = "daz.toggle_vis"
+    bl_label = "Toggle Vis"
+    bl_description = "Toggle visibility of this mesh"
+
+    def run(self, context):
+        from .morphing import getRigFromObject, autoKeyProp
+        rig = getRigFromObject(context.object)
+        scn = context.scene
+        if rig:
+            rig[self.name] = not rig[self.name]
+            autoKeyProp(rig, self.name, scn, scn.frame_current, True)
+            updateDrivers(rig)
 
 #------------------------------------------------------------------------
 #   Mask modifiers
@@ -376,6 +390,7 @@ classes = [
     DAZ_OT_HideAllVis,
     DAZ_OT_CreateMasks,
     DAZ_OT_AddShrinkwrap,
+    DAZ_OT_ToggleVis,
 ]
 
 def initialize():

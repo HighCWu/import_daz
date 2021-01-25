@@ -1005,27 +1005,33 @@ class DAZ_PT_Visibility(bpy.types.Panel):
         return (ob and ob.DazVisibilityDrivers)
 
     def draw(self, context):
-        ob = context.object
+        ob = rig = context.object
         scn = context.scene
         if ob.type == 'MESH':
             self.layout.operator("daz.set_shell_visibility")
-            return
+            self.layout.separator()
+            if ob.parent and ob.parent.type == 'ARMATURE':
+                rig = ob.parent
+            else:
+                return
         split = splitLayout(self.layout, 0.3333)
         split.operator("daz.prettify")
         split.operator("daz.show_all_vis")
         split.operator("daz.hide_all_vis")
-        props = list(ob.keys())
+        props = list(rig.keys())
         props.sort()
-        self.drawProps(ob, props, "Mhh")
-        self.drawProps(ob, props, "DzS")
+        self.drawProps(rig, props, "Mhh")
+        self.drawProps(rig, props, "DzS")
 
-    def drawProps(self, ob, props, prefix):
+    def drawProps(self, rig, props, prefix):
         for prop in props:
             if prop[0:3] == prefix:
-                if hasattr(ob, prop):
-                    self.layout.prop(ob, getnameOVR(ob, prop), text=prop[3:])
+                if rig[prop]:
+                    icon = 'CHECKBOX_HLT'
                 else:
-                    self.layout.prop(ob, '["%s"]' % prop, text=prop[3:])
+                    icon = 'CHECKBOX_DEHLT'
+                op = self.layout.operator("daz.toggle_vis", text=prop[3:], icon=icon, emboss=False)
+                op.name = prop
 
 #-------------------------------------------------------------
 #   Settings popup
