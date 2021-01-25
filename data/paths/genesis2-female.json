@@ -19,18 +19,6 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 2/Female/Morphs/DAZ 3D/Base/"
 	},
-	"standardjcms" : {
-		"prefix" : "",
-		"include" : ["none"],
-		"exclude" : [],
-		"path" : "data/DAZ 3D/Genesis 2/Female/Morphs/DAZ 3D/Base/"
-	},
-	"flexions" : {
-		"prefix" : "",
-		"include" : ["none"],
-		"exclude" : [],
-		"path" : "data/DAZ 3D/Genesis 2/Female/Morphs/DAZ 3D/Base/"
-	},
 	"body" : {
 		"prefix" : ["ctrl", "pbm"],
 		"include" : ["ctrl", "pbm"],

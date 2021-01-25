@@ -30,7 +30,6 @@ import bpy
 from bpy.props import *
 from .error import *
 from .utils import *
-from . import addon_updater_ops
 
 #------------------------------------------------------------------
 #   Import DAZ

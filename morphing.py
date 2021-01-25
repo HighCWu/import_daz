@@ -832,7 +832,13 @@ class StandardMorphSelector(Selector):
         if not self.setupCharacter(context, True):
             return {'FINISHED'}
         setupMorphPaths(scn, False)
-        for key,path in theMorphFiles[self.char][self.morphset].items():
+        try:
+            pg = theMorphFiles[self.char][self.morphset]
+        except KeyError:
+            msg = ("Character %s does not support feature %s" % (self.char, self.morphset))
+            print(msg)
+            return {'FINISHED'}
+        for key,path in pg.items():
             item = self.selection.add()
             item.name = path
             item.text = key
@@ -874,7 +880,7 @@ class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMes
     bl_description = "Import selected FACS morphs"
     bl_options = {'UNDO'}
 
-    morphset = "Units"
+    morphset = "Facs"
 
 
 class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):

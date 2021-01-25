@@ -20,6 +20,18 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 8/Female/Morphs/DAZ 3D/Base Pose Head/"
 	},
+	"facs" : {
+		"prefix" : ["facs_jnt_", "facs_ctrl_", "facs_bs_"],
+		"include" : ["facs_jnt_", "facs_ctrl_", "facs_bs_"],
+		"exclude" : [],
+		"path" : "data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/"
+	},
+	"facsexpr" : {
+		"prefix" : ["facs_ctrl_"],
+		"include" : ["facs_ctrl_"],
+		"exclude" : [],
+		"path" : "data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACSExpressions/"
+	},
 	"flexions" : {
 		"prefix" : "pjcm",
 		"include" : ["pjcm"],
