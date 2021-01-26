@@ -29,6 +29,7 @@
 import bpy
 import collections
 import os
+import numpy as np
 
 from .asset import Asset
 from .channels import Channels
@@ -648,7 +649,7 @@ class Morph(FormulaAsset):
 
 
     def __repr__(self):
-        return ("<Morph %s %f>" % (self.id, self.value))
+        return ("<Morph %s %f %d %d>" % (self.name, self.value, self.vertex_count, len(self.deltas)))
 
 
     def parse(self, struct):
@@ -754,11 +755,23 @@ class Morph(FormulaAsset):
     def addMorphToVerts(self, me):
         if self.value == 0.0:
             return
-
         scale = self.value * LS.scale
         for delta in self.deltas:
             vn = delta[0]
             me.vertices[vn].co += scale * d2bu(delta[1:])
+
+
+    def toNumpy(self, ob):
+        nverts = self.vertex_count
+        if nverts < 0:
+            if ob and ob.type == 'MESH':
+                nverts = len(ob.data.vertices)
+            else:
+                return None
+        arr = np.zeros((nverts, 3), dtype=float)
+        for delta in self.deltas:
+            arr[delta[0]] = delta[1:]
+        return arr
 
 
     def buildMorph(self, ob,
@@ -767,16 +780,9 @@ class Morph(FormulaAsset):
                    morphset=None,
                    usePropDrivers=False,
                    strength=1):
-        if not ob.data.shape_keys:
-            basic = ob.shape_key_add(name="Basic")
-        else:
-            basic = ob.data.shape_keys.key_blocks[0]
         sname = self.getName()
         addToMorphSet(ob.parent, ob, morphset, sname, usePropDrivers, self)
-        if sname in ob.data.shape_keys.key_blocks.keys():
-            skey = ob.data.shape_keys.key_blocks[sname]
-            ob.shape_key_remove(skey)
-        skey = ob.shape_key_add(name=sname)
+        skey = addShapekey(ob, sname)
         if useSoftLimits:
             skey.slider_min = self.min if self.min is not None and GS.useDazPropLimits else GS.propMin
             skey.slider_max = self.max if self.max is not None and GS.useDazPropLimits else GS.propMax
@@ -819,3 +825,25 @@ class Morph(FormulaAsset):
                 if self.value > 0.0:
                     self.buildMorph(ob)
             #raise DazError("No such shapekey %s in %s" % (skey, ob))
+
+
+def addShapekey(ob, sname):
+    if not ob.data.shape_keys:
+        basic = ob.shape_key_add(name="Basic")
+    else:
+        basic = ob.data.shape_keys.key_blocks[0]
+    if sname in ob.data.shape_keys.key_blocks.keys():
+        skey = ob.data.shape_keys.key_blocks[sname]
+        ob.shape_key_remove(skey)
+    return ob.shape_key_add(name=sname)
+
+
+def buildShapeFromNumpy(ob, skey, delta):
+    verts = np.array([list(v.co) for v in ob.data.vertices])
+    if GS.zup:
+        delta = np.array((delta[:,0], -delta[:,2], delta[:,1]))
+        delta = np.transpose(delta)
+    verts += LS.scale*delta
+    nverts = len(ob.data.vertices)
+    for n in range(nverts):
+        skey.data[n].co = verts[n]

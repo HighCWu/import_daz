@@ -569,6 +569,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
         skey = None
         prop = None
+        self.morph = None
         isBoneDriven = False
         if self.useShapekeys and isinstance(asset, Morph) and self.mesh and self.mesh.type == 'MESH':
             useBuild = True
@@ -621,6 +622,8 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                     props = self.buildPropFormula(asset, filepath)
                     if not props:
                         miss = True
+                    elif self.morph is not None:
+                        self.addSubmorph(prop)
             elif isinstance(asset, Morph):
                 pass
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
@@ -665,6 +668,14 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             addToPropGroup(prop, rig, self.morphset)
         self.taken[prop] = self.built[prop] = True
         return prop
+
+
+    def addSubmorph(self, prop):
+        from .driver import makeShapekeyDriver
+        from .modifier import addShapekey, buildShapeFromNumpy
+        skey = addShapekey(self.mesh, prop)
+        buildShapeFromNumpy(self.mesh, skey, self.morph)
+        makeShapekeyDriver(self.mesh, prop, skey.value, self.rig, prop)
 
 
     def getActiveShape(self, asset):

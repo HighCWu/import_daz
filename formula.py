@@ -715,7 +715,7 @@ class PropFormulas(PoseboneDriver):
 
     def opencode(self, exprs, asset, opencoded, level):
         from .bone import getTargetName
-        from .modifier import ChannelAsset
+        from .modifier import ChannelAsset, Morph
         from .propgroups import addDependency
         if level > 5:
             raise DazError("Recursion too deep")
@@ -738,21 +738,38 @@ class PropFormulas(PoseboneDriver):
                     continue
                 addDependency(key, prop, val)
                 subasset = asset.getTypedAsset(url, ChannelAsset)
-                if isinstance(subasset, Formula):
-                    subexprs = {}
-                    subprops = {}
-                    subasset.evalFormulas(subexprs, subprops, self.rig, None, False)
-                    subopen = {}
-                    self.opencode(subexprs, asset, subopen, level+1)
-                    if key not in opencoded.keys():
-                        opencoded[key] = []
-                    opencoded[key].append((val,subexprs,subprops,subopen))
+                if isinstance(subasset, Morph):
+                    subdata = self.evalSubAsset(asset, subasset, level)
+                    morph = subasset.toNumpy(self.mesh)
+                elif isinstance(subasset, Formula):
+                    subdata = self.evalSubAsset(asset, subasset, level)
+                    morph = None
+                else:
+                    continue
+                if key not in opencoded.keys():
+                    opencoded[key] = []
+                opencoded[key].append((val,subdata,morph,subasset.name))
+
+
+    def evalSubAsset(self, asset, subasset, level):
+        subexprs = {}
+        subprops = {}
+        subasset.evalFormulas(subexprs, subprops, self.rig, None, False)
+        subopen = {}
+        self.opencode(subexprs, asset, subopen, level+1)
+        return (subexprs,subprops,subopen)
 
 
     def combineExpressions(self, openlist, prop, exprs, value):
         from .bone import getTargetName
-        for val,subexprs,subprops,subopen in openlist:
+        for val,subdata,submorph,subname in openlist:
             value1 = val*value
+            subexprs,subprops,subopen = subdata
+            if submorph is not None:
+                if self.morph is None:
+                    self.morph = value1*submorph
+                else:
+                    self.morph += value1*submorph
             if subopen:
                 for subprop,sublist in subopen.items():
                     self.combineExpressions(sublist, prop, exprs, value1)
