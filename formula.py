@@ -738,7 +738,7 @@ class PropFormulas(PoseboneDriver):
                     continue
                 addDependency(key, prop, val)
                 subasset = asset.getTypedAsset(url, ChannelAsset)
-                if isinstance(subasset, Morph):
+                if GS.useMultiShapes and isinstance(subasset, Morph):
                     subdata = self.evalSubAsset(asset, subasset, level)
                     morph = subasset.toNumpy(self.mesh)
                 elif isinstance(subasset, Formula):

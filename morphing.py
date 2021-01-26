@@ -891,8 +891,8 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, Is
 
 class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
     bl_idname = "daz.import_facs"
-    bl_label = "Import FACS"
-    bl_description = "Import selected FACS morphs"
+    bl_label = "Import FACS Units"
+    bl_description = "Import selected FACS unit morphs"
     bl_options = {'UNDO'}
 
     morphset = "Facs"

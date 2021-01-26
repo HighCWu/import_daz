@@ -100,6 +100,7 @@ class GlobalSettings:
         self.useInstancing = True
         self.buildHighdef = True
         self.useMultires = True
+        self.useMultiShapes = False
 
         self.useInfluence = True
         self.useSimulation = False
@@ -150,6 +151,7 @@ class GlobalSettings:
         "DazUseInstancing" : "useInstancing",
         "DazBuildHighdef" : "buildHighdef",
         "DazMultires" : "useMultires",
+        "DazMultiShapes" : "useMultiShapes",
         "DazInfluence" : "useInfluence",
         "DazSimulation" : "useSimulation",
     }
