@@ -143,8 +143,11 @@ class PbrTree(CyclesTree):
             self.diffuseTex = None
 
         # Metallic Weight
-        metallicity,tex = self.getColorTex(["Metallic Weight"], "NONE", 0.0)
-        self.linkScalar(tex, self.pbr, metallicity, "Metallic")
+        if self.isEnabled("Metallicity"):
+            metallicity,tex = self.getColorTex(["Metallic Weight"], "NONE", 0.0)
+            self.linkScalar(tex, self.pbr, metallicity, "Metallic")
+        else:
+            metallicity = 0
         useTex = not (self.material.basemix == 0 and metallicity > 0.5)
 
         # Subsurface scattering
@@ -224,6 +227,8 @@ class PbrTree(CyclesTree):
 
 
     def buildSSS(self):
+        if not self.isEnabled("Sub Surface"):
+            return
         if not self.checkTranslucency():
             return
         # a 2.5 gamma for the translucency texture is used to avoid the "white skin" effect

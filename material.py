@@ -396,7 +396,10 @@ class Material(Asset, Channels):
         color = self.getChannelValue(channel, default, warn)
         if isinstance(color, int) or isinstance(color, float):
             color = (color, color, color)
-        return self.srgbToLinear(color)
+        if channel and "type" in channel.keys() and channel["type"] == "float_color":
+            return Vector(color)
+        else:
+            return self.srgbToLinear(color)
 
 
     def srgbToLinear(self, srgb):

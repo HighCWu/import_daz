@@ -551,12 +551,15 @@ class CyclesTree:
 #-------------------------------------------------------------
 
     def buildDualLobe(self):
-        from .cgroup import DualLobeGroup
+        from .cgroup import DualLobeGroupUberIray, DualLobeGroupPBRSkin
         if not self.isEnabled("Dual Lobe Specular"):
             return
 
         self.column += 1
-        node = self.addGroup(DualLobeGroup, "DAZ Dual Lobe", size=100)
+        if self.material.shader == 'PBRSKIN':
+            node = self.addGroup(DualLobeGroupPBRSkin, "DAZ Dual Lobe PBRSkin", size=100)
+        else:
+            node = self.addGroup(DualLobeGroupUberIray, "DAZ Dual Lobe", size=100)
         value,tex = self.getColorTex(["Dual Lobe Specular Weight"], "NONE", 0.5, False)
         node.inputs["Weight"].default_value = value
         if tex:
@@ -570,13 +573,19 @@ class CyclesTree:
             iortex = self.multiplyAddScalarTex(0.7*value, 1.1, tex)
             self.links.new(iortex.outputs[0], node.inputs["IOR"])
 
-        value,tex = self.getColorTex(["Specular Lobe 1 Roughness"], "NONE", 0.0, False)
-        self.setRoughness(node, "Roughness 1", value, tex)
-
-        value,tex = self.getColorTex(["Specular Lobe 2 Roughness"], "NONE", 0.0, False)
-        self.setRoughness(node, "Roughness 2", value, tex)
-
         ratio = self.getValue(["Dual Lobe Specular Ratio"], 1.0)
+        if self.material.shader == 'PBRSKIN':
+            roughness,roughtex = self.getColorTex(["Specular Lobe 1 Roughness"], "NONE", 0.0, False)
+            lobe2mult = self.getValue(["Specular Lobe 2 Roughness Mult"], 1.0)
+            duallobemult = self.getValue(["Dual Lobe Specular Roughness Mult"], 1.0)
+            self.setRoughness(node, "Roughness 1", roughness*duallobemult, roughtex)
+            self.setRoughness(node, "Roughness 2", roughness*duallobemult*lobe2mult, roughtex)
+            ratio = 1 - ratio
+        else:
+            roughness1,roughtex1 = self.getColorTex(["Specular Lobe 1 Roughness"], "NONE", 0.0, False)
+            self.setRoughness(node, "Roughness 1", roughness1, roughtex1)
+            roughness2,roughtex2 = self.getColorTex(["Specular Lobe 2 Roughness"], "NONE", 0.0, False)
+            self.setRoughness(node, "Roughness 2", roughness2, roughtex2)
 
         self.linkNormal(node)
         self.mixWithActive(ratio, None, node)
@@ -658,10 +667,14 @@ class CyclesTree:
 #-------------------------------------------------------------
 
     def buildTopCoat(self):
+        if not self.isEnabled("Top Coat"):
+            return
         topweight = self.getValue(["Top Coat Weight"], 0)
         if topweight == 0:
             return
-        _,weighttex = self.getColorTex(["Top Coat Weight"], "NONE", 0, value=0.1*topweight)
+        reflectivity = self.getValue("getChannelGlossyReflectivity", 1)
+        weight = 0.1 * topweight * reflectivity
+        _,weighttex = self.getColorTex(["Top Coat Weight"], "NONE", 0, value=weight)
         color,tex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
         roughness,roughtex = self.getColorTex(["Top Coat Roughness"], "NONE", 0)
         if roughness == 0:
@@ -675,7 +688,7 @@ class CyclesTree:
         self.linkColor(tex, top, color, "Color")
         self.linkScalar(roughtex, top, roughness, "Roughness")
         self.linkNormal(top)
-        self.mixWithActive(0.1*topweight, weighttex, top)
+        self.mixWithActive(weight, weighttex, top)
 
 #-------------------------------------------------------------
 #   Translucency
