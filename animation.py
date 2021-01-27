@@ -752,7 +752,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         ]
         self.rigProps = {}
         for key in rig.keys():
-            lkey = self.getCanonicalKey(key.lower())
+            lkey = getCanonicalKey(key.lower())
             self.rigProps[lkey] = key
             for syns in synonymList:
                 for syn1 in syns:

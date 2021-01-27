@@ -564,8 +564,8 @@ class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
         DAZ_PT_Morphs.draw(self, context)
 
 
-class DAZ_PT_Facs(bpy.types.Panel, DAZ_PT_Morphs):
-    bl_label = "FACS"
+class DAZ_PT_FacsUnits(bpy.types.Panel, DAZ_PT_Morphs):
+    bl_label = "FACS Units"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ Importer"
@@ -1015,7 +1015,7 @@ classes = [
     DAZ_PT_Units,
     DAZ_PT_Expressions,
     DAZ_PT_Visemes,
-    DAZ_PT_Facs,
+    DAZ_PT_FacsUnits,
     DAZ_PT_FacsExpressions,
     DAZ_PT_BodyMorphs,
     DAZ_PT_CustomMorphs,
