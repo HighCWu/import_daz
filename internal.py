@@ -54,21 +54,21 @@ class InternalMaterial(Material):
         mat.specular_shader = GS.specularShader
 
         self.buildDiffuse(mat)
-        if self.isActive("Specular"):
+        if self.isEnabled("Specular"):
             self.buildSpecular(mat)
-        if GS.useReflection and self.isActive("Reflection"):
+        if GS.useReflection and self.isEnabled("Reflection"):
             self.buildReflection(mat)
         if self.sssActive():
             self.buildSSS(mat)
-        if self.isActive("Translucency"):
+        if self.isEnabled("Translucency"):
             self.buildTranslucency(mat)
-        if GS.useEmission and self.isActive("Emission"):
+        if GS.useEmission and self.isEnabled("Emission"):
             self.buildEmission(mat)
-        if self.isActive("Normal"):
+        if self.isEnabled("Normal"):
             self.buildNormal(mat)
-        if self.isActive("Bump"):
+        if self.isEnabled("Bump"):
             self.buildBump(mat)
-        if GS.useDisplacement and self.isActive("Displacement"):
+        if GS.useDisplacement and self.isEnabled("Displacement"):
             self.buildDisplacement(mat)
         self.buildTransparency(mat)
 

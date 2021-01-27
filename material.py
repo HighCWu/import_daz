@@ -128,7 +128,7 @@ class Material(Asset, Channels):
                            self.getValue("getChannelOpacity", 1) < 0.99)
         self.thinGlass = (self.thinWall and self.refractive)
         self.shareGlossy = self.getValue(["Share Glossy Inputs"], False)
-        self.metallic = (self.getValue(["Metallic Weight"], 0) > 0.5)
+        self.metallic = (self.getValue(["Metallic Weight"], 0) > 0.5 and self.isEnabled("Metallicity"))
         self.dualLobeWeight = self.getValue(["Dual Lobe Specular Weight"], 0)
         self.translucent = (self.getValue("getChannelTranslucencyWeight", 0) > 0.01)
         self.isHair = ("Root Transmission Color" in self.channels.keys())
@@ -136,9 +136,12 @@ class Material(Asset, Channels):
 
     def setExtra(self, struct):
         if struct["type"] == "studio/material/uber_iray":
-            self.shader = 'IRAY'
+            self.shader = 'UBER_IRAY'
         elif struct["type"] == "studio/material/daz_brick":
-            self.shader = '3DELIGHT'
+            if self.url.split("#")[-1] == "PBRSkin":
+                self.shader = 'PBRSKIN'
+            else:
+                self.shader = '3DELIGHT'
         elif struct["type"] == "studio/material/daz_shader":
             self.shader = 'DAZ'
 
@@ -359,14 +362,13 @@ class Material(Asset, Channels):
         return self.getChannel(["v_offset", "Vertical Offset"])
 
 
-    def isActive(self, name):
+    def isEnabled(self, name):
         cname = "%s Active" % name
         if cname in self.channels.keys():
-            channel = self.channels[cname]
-            if "current_value" in channel.keys():
-                return channel["current_value"]
-            elif "value" in channel.keys():
-                return channel["value"]
+            return self.getValue([cname], True)
+        cname = "%s Enable" % name
+        if cname in self.channels.keys():
+            return self.getValue([cname], True)
         return True
 
 
@@ -478,7 +480,7 @@ class Material(Asset, Channels):
 
 
     def sssActive(self):
-        if not self.isActive("Subsurface"):
+        if not self.isEnabled("Subsurface"):
             return False
         if self.refractive or self.thinWall:
             return False

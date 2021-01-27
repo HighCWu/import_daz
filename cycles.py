@@ -181,6 +181,10 @@ class CyclesTree:
         return self.material.getValue(channel, default)
 
 
+    def isEnabled(self, channel):
+        return self.material.isEnabled(channel)
+
+
     def getColor(self, channel, default):
         return self.material.getColor(channel, default)
 
@@ -303,7 +307,7 @@ class CyclesTree:
     def buildLayer(self):
         self.buildBumpNodes()
         self.buildDiffuse()
-        self.checkTranslucency()
+
         self.buildTranslucency()
         self.buildOverlay()
         if self.material.dualLobeWeight == 1:
@@ -402,7 +406,7 @@ class CyclesTree:
 
         # Normal map
         channel = self.material.getChannelNormal()
-        if channel and self.material.isActive("Normal"):
+        if channel and self.isEnabled("Normal"):
             tex = self.addTexImageNode(channel, "NONE")
             #_,tex = self.getColorTex("getChannelNormal", "NONE", BLACK)
             if self.material.uv_set:
@@ -423,7 +427,7 @@ class CyclesTree:
 
         # Bump map
         channel = self.material.getChannelBump()
-        if channel and self.material.isActive("Bump"):
+        if channel and self.isEnabled("Bump"):
             #tex = self.addTexImageNode(channel, "NONE")
             _,tex = self.getColorTex("getChannelBump", "NONE", 0, False)
             if tex:
@@ -462,7 +466,7 @@ class CyclesTree:
 
     def buildDiffuse(self):
         channel = self.material.getChannelDiffuse()
-        if channel:
+        if channel and self.isEnabled("Diffuse"):
             self.column = 4
             color,tex = self.getDiffuseColor()
             self.diffuseTex = tex
@@ -548,9 +552,11 @@ class CyclesTree:
 
     def buildDualLobe(self):
         from .cgroup import DualLobeGroup
+        if not self.isEnabled("Dual Lobe Specular"):
+            return
+
         self.column += 1
         node = self.addGroup(DualLobeGroup, "DAZ Dual Lobe", size=100)
-
         value,tex = self.getColorTex(["Dual Lobe Specular Weight"], "NONE", 0.5, False)
         node.inputs["Weight"].default_value = value
         if tex:
@@ -635,7 +641,7 @@ class CyclesTree:
         #   fresnel ior = 1.1 + iray glossy specular / 0.078
         ior = 1.45
         iortex = None
-        if self.material.shader == 'IRAY':
+        if self.material.shader == 'UBER_IRAY':
             if self.material.basemix == 0:    # Metallic/Roughness
                 value,tex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0, False)
                 factor = 0.7 * value
@@ -676,17 +682,19 @@ class CyclesTree:
 #-------------------------------------------------------------
 
     def checkTranslucency(self):
+        if not self.isEnabled("Translucency"):
+            return False
         if (self.material.thinWall or
             self.volume or
             self.material.translucent):
-            self.useTranslucency = True
+            return True
         if (self.material.refractive or
             not self.material.translucent):
-            self.useTranslucency = False
+            return False
 
 
     def buildTranslucency(self):
-        if not self.useTranslucency:
+        if not self.checkTranslucency():
             return
         self.column += 1
         mat = self.material.rna
@@ -861,9 +869,9 @@ class CyclesTree:
                 self.material.setTransSettings(False, False)
             LS.usedFeatures["Transparent"] = True
 
-#-------------------------------------------------------------
-#   Emission
-#-------------------------------------------------------------
+    #-------------------------------------------------------------
+    #   Emission
+    #-------------------------------------------------------------
 
     def buildEmission(self):
         if not GS.useEmission:
@@ -904,6 +912,9 @@ class CyclesTree:
                 self.links.new(self.getEeveeSocket(), node.inputs["Eevee"])
                 self.cycles = self.eevee = node
 
+    #-------------------------------------------------------------
+    #   Volume
+    #-------------------------------------------------------------
 
     def invertColor(self, color, tex, col):
         inverse = (1-color[0], 1-color[1], 1-color[2])
@@ -914,19 +925,41 @@ class CyclesTree:
         if (self.material.thinWall or
             GS.materialMethod != "BSDF"):
             return
-
-        from .cgroup import VolumeGroup
+        useSSS = self.isEnabled("Sub Surface")
+        useTrans = self.isEnabled("Transmission")
+        if not (useSSS or useTrans):
+            return
         transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
-        sssmode = self.getValue(["SSS Mode"], 0)
+        sssmode, ssscolor, ssstex, switch = self.getSSSInfo(transcolor)
+        self.volume = None
+        if useTrans:
+            self.buildVolumeTransmission(transcolor, transtex, switch)
+        if useSSS:
+            self.buildVolumeSubSurface(sssmode, ssscolor, ssstex, switch)
+        if self.volume:
+            self.volume.width = 240
+            LS.usedFeatures["Volume"] = True
+
+
+    def getSSSInfo(self, transcolor):
+        if self.material.shader == 'UBER_IRAY':
+            sssmode = self.getValue(["SSS Mode"], 0)
+        elif self.material.shader == 'PBRSKIN':
+            sssmode = 1
+        else:
+            sssmode = 0
         # [ "Mono", "Chromatic" ]
         if sssmode == 1:
             ssscolor,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK)
             # https://bitbucket.org/Diffeomorphic/import-daz/issues/27/better-volumes-minor-but-important-fixes
             switch = (transcolor[1] == 0 or ssscolor[1] == 0)
+            return 1, ssscolor, ssstex, switch
         else:
-            switch = False
+            return 0, WHITE, None, False
 
-        self.volume = None
+
+    def buildVolumeTransmission(self, transcolor, transtex, switch):
+        from .cgroup import VolumeGroup
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
         if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
             if switch:
@@ -938,6 +971,14 @@ class CyclesTree:
             self.volume.inputs["Absorbtion Density"].default_value = 100/dist
             self.linkColor(tex, self.volume, color, "Absorbtion Color")
 
+
+    def buildVolumeSubSurface(self, sssmode, ssscolor, ssstex, switch):
+        from .cgroup import VolumeGroup
+        if self.material.shader == 'UBER_IRAY':
+            factor = 50
+        else:
+            factor = 25
+
         sss = self.getValue(["SSS Amount"], 0.0)
         dist = self.getValue("getChannelScatterDist", 0.0)
         if not (sssmode == 0 or isBlack(ssscolor) or isWhite(ssscolor) or dist == 0.0):
@@ -945,26 +986,23 @@ class CyclesTree:
                 color,tex = ssscolor,ssstex
             else:
                 color,tex = self.invertColor(ssscolor, ssstex, 6)
-            #scatter = self.addNode(6, "ShaderNodeVolumeScatter")
             if self.volume is None:
                 self.volume = self.addGroup(VolumeGroup, "DAZ Volume")
             self.linkColor(tex, self.volume, color, "Scatter Color")
-            self.volume.inputs["Scatter Density"].default_value = 50/dist
+            self.volume.inputs["Scatter Density"].default_value = factor/dist
             self.volume.inputs["Scatter Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
         elif sss > 0 and dist > 0.0:
-            #scatter = self.addNode(6, "ShaderNodeVolumeScatter")
             if self.volume is None:
                 self.volume = self.addGroup(VolumeGroup, "DAZ Volume")
             sss,tex = self.getColorTex(["SSS Amount"], "NONE", 0.0)
             color = (sss,sss,sss)
             self.linkColor(tex, self.volume, color, "Scatter Color")
-            self.volume.inputs["Scatter Density"].default_value = 50/dist
+            self.volume.inputs["Scatter Density"].default_value = factor/dist
             self.volume.inputs["Scatter Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
 
-        if self.volume:
-            self.volume.width = 240
-            LS.usedFeatures["Volume"] = True
-
+    #-------------------------------------------------------------
+    #   Output
+    #-------------------------------------------------------------
 
     def buildOutput(self):
         self.column += 1
@@ -998,7 +1036,7 @@ class CyclesTree:
     def buildDisplacementNodes(self):
         channel = self.material.getChannelDisplacement()
         if not( channel and
-                self.material.isActive("Displacement") and
+                self.material.isEnabled("Displacement") and
                 GS.useDisplacement):
             return
         tex = self.addTexImageNode(channel, "NONE")

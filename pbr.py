@@ -133,15 +133,19 @@ class PbrTree(CyclesTree):
 
     def buildPBRNode(self):
         # Basic
-        color,tex = self.getDiffuseColor()
-        self.diffuseColor = color
-        self.diffuseTex = tex
-        self.linkColor(tex, self.pbr, color, "Base Color")
+        if self.isEnabled("Diffuse"):
+            color,tex = self.getDiffuseColor()
+            self.diffuseColor = color
+            self.diffuseTex = tex
+            self.linkColor(tex, self.pbr, color, "Base Color")
+        else:
+            self.diffuseColor = WHITE
+            self.diffuseTex = None
 
         # Metallic Weight
         metallicity,tex = self.getColorTex(["Metallic Weight"], "NONE", 0.0)
         self.linkScalar(tex, self.pbr, metallicity, "Metallic")
-        useTex = not (self.material.shader == 'IRAY' and self.material.basemix == 0 and metallicity > 0.5)
+        useTex = not (self.material.basemix == 0 and metallicity > 0.5)
 
         # Subsurface scattering
         self.checkTranslucency()
@@ -162,7 +166,7 @@ class PbrTree(CyclesTree):
 
         # Specular
         strength,strtex = self.getColorTex("getChannelGlossyLayeredWeight", "NONE", 1.0, False)
-        if self.material.shader == 'IRAY':
+        if self.material.shader == 'UBER_IRAY':
             if self.material.basemix == 0:    # Metallic/Roughness
                 # principled specular = iray glossy reflectivity * iray glossy layered weight * iray glossy color / 0.8
                 refl,reftex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0.5, False, useTex)
@@ -193,7 +197,7 @@ class PbrTree(CyclesTree):
 
         # Clearcoat
         top,toptex = self.getColorTex(["Top Coat Weight"], "NONE", 1.0, False)
-        if self.material.shader == 'IRAY':
+        if self.material.shader == 'UBER_IRAY':
             if self.material.basemix == 0:    # Metallic/Roughness
                 refl,reftex = self.getColorTex("getChannelGlossyReflectivity", "NONE", 0.5, False, useTex)
                 tex = self.mixTexs('MULTIPLY', toptex, reftex)
@@ -214,13 +218,13 @@ class PbrTree(CyclesTree):
         self.linkScalar(tex, self.pbr, rough, "Clearcoat Roughness")
 
         # Sheen
-        if self.material.isActive("Backscattering"):
+        if self.material.isEnabled("Backscattering"):
             sheen,tex = self.getColorTex(["Backscattering Weight"], "NONE", 0.0)
             self.linkScalar(tex, self.pbr, sheen, "Sheen")
 
 
     def buildSSS(self):
-        if not self.useTranslucency:
+        if not self.checkTranslucency():
             return
         # a 2.5 gamma for the translucency texture is used to avoid the "white skin" effect
         gamma = self.addNode("ShaderNodeGamma", col=3)
