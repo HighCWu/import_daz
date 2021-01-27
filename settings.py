@@ -100,7 +100,7 @@ class GlobalSettings:
         self.useInstancing = True
         self.buildHighdef = True
         self.useMultires = True
-        self.useMultiShapes = False
+        self.useMultiShapes = True
 
         self.useInfluence = True
         self.useSimulation = False
