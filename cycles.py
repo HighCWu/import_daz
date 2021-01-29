@@ -672,7 +672,7 @@ class CyclesTree:
         if topweight == 0:
             return
         reflectivity = self.getValue(["Top Coat Reflectivity"], 1)
-        weight = 0.1 * topweight * reflectivity
+        weight = 0.05 * topweight * reflectivity
         _,weighttex = self.getColorTex(["Top Coat Weight"], "NONE", 0, value=weight)
         color,tex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
         roughness,roughtex = self.getColorTex(["Top Coat Roughness"], "NONE", 0)
