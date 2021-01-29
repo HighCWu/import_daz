@@ -428,7 +428,6 @@ class CyclesTree:
         # Bump map
         channel = self.material.getChannelBump()
         if channel and self.isEnabled("Bump"):
-            #tex = self.addTexImageNode(channel, "NONE")
             _,tex = self.getColorTex("getChannelBump", "NONE", 0, False)
             if tex:
                 bump = self.addNode("ShaderNodeBump", col=3)
@@ -531,7 +530,8 @@ class CyclesTree:
             tex = None
         if value is not None:
             pass
-        elif colorSpace == "COLOR":
+        #elif colorSpace == "COLOR":
+        elif channel["type"] in ["color", "float_color"]:
             value = self.material.getChannelColor(channel, default)
         else:
             value = self.material.getChannelValue(channel, default)
@@ -672,7 +672,7 @@ class CyclesTree:
         topweight = self.getValue(["Top Coat Weight"], 0)
         if topweight == 0:
             return
-        reflectivity = self.getValue("getChannelGlossyReflectivity", 1)
+        reflectivity = self.getValue(["Top Coat Reflectivity"], 1)
         weight = 0.1 * topweight * reflectivity
         _,weighttex = self.getColorTex(["Top Coat Weight"], "NONE", 0, value=weight)
         color,tex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
@@ -681,13 +681,15 @@ class CyclesTree:
             glossiness,glosstex = self.getColorTex(["Top Coat Glossiness"], "NONE", 1)
             roughness = 1-glossiness
             roughtex = self.invertTex(glosstex, 5)
+        bump,bumptex = self.getColorTex(["Top Coat Bump", "Top Coat Bump Weight"], "NONE", 0)
 
-        from .cgroup import GlossyGroup
+        from .cgroup import TopCoatGroup
         self.column += 1
-        top = self.addGroup(GlossyGroup, "DAZ Top Coat")
+        top = self.addGroup(TopCoatGroup, "DAZ Top Coat")
         self.linkColor(tex, top, color, "Color")
         self.linkScalar(roughtex, top, roughness, "Roughness")
         self.linkNormal(top)
+        self.linkScalar(bumptex, top, bump, "Bump")
         self.mixWithActive(weight, weighttex, top)
 
 #-------------------------------------------------------------
@@ -1148,7 +1150,7 @@ class CyclesTree:
             self.links.new(texco.outputs["UV"], node.inputs[slot])
 
 
-    def addTexImageNode(self, channel, colorSpace):
+    def addTexImageNode(self, channel, colorSpace=None):
         col = self.column-2
         assets,maps = self.material.getTextures(channel)
         if len(assets) != len(maps):

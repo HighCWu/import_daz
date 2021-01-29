@@ -369,6 +369,39 @@ class GlossyGroup(MixGroup):
         self.links.new(glossy.outputs[0], self.mix2.inputs[2])
 
 # ---------------------------------------------------------------------
+#   Top Coat Group
+# ---------------------------------------------------------------------
+
+class TopCoatGroup(MixGroup):
+
+    def __init__(self):
+        MixGroup.__init__(self)
+        self.insockets += ["Color", "Roughness", "Normal", "Bump"]
+
+
+    def create(self, node, name, parent):
+        MixGroup.create(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "Roughness")
+        self.group.inputs.new("NodeSocketVector", "Normal")
+        self.group.inputs.new("NodeSocketFloat", "Bump")
+
+
+    def addNodes(self, args=None):
+        MixGroup.addNodes(self, args)
+        glossy = self.addNode("ShaderNodeBsdfGlossy", 1)
+        self.links.new(self.inputs.outputs["Color"], glossy.inputs["Color"])
+        self.links.new(self.inputs.outputs["Roughness"], glossy.inputs["Roughness"])
+        self.links.new(glossy.outputs[0], self.mix1.inputs[2])
+        self.links.new(glossy.outputs[0], self.mix2.inputs[2])
+
+        mult = self.addNode("ShaderNodeVectorMath", 1)
+        mult.operation = 'MULTIPLY'
+        self.links.new(self.inputs.outputs["Normal"], mult.inputs[0])
+        self.links.new(self.inputs.outputs["Bump"], mult.inputs[1])
+        self.links.new(mult.outputs[0], glossy.inputs["Normal"])
+
+# ---------------------------------------------------------------------
 #   Refraction Group
 # ---------------------------------------------------------------------
 
@@ -591,7 +624,7 @@ class DualLobeGroup(CyclesGroup):
 
     def addNodes(self, args=None):
         fresnel1 = self.addFresnel(True, "Roughness 1")
-        glossy1 = self.addGlossy("Roughness 1", True)
+        glossy1 = self.addGlossy("Roughness 1", self.lobe1Normal)
         cycles1 = self.mixGlossy(fresnel1, glossy1, "Cycles")
         eevee1 = self.mixGlossy(fresnel1, glossy1, "Eevee")
         fresnel2 = self.addFresnel(False, "Roughness 2")
@@ -628,6 +661,7 @@ class DualLobeGroup(CyclesGroup):
 
 
 class DualLobeGroupUberIray(DualLobeGroup):
+    lobe1Normal = True
 
     def addFresnel(self, useNormal, roughness):
         fresnel = self.addNode("ShaderNodeFresnel", 1)
@@ -638,6 +672,7 @@ class DualLobeGroupUberIray(DualLobeGroup):
 
 
 class DualLobeGroupPBRSkin(DualLobeGroup):
+    lobe1Normal = False
 
     def addFresnel(self, useNormal, roughness):
         fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 1)
