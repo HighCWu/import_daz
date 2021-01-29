@@ -505,7 +505,9 @@ class DAZ_PT_Morphs:
         self.layout.separator()
         filter = scn.DazFilter.lower()
         pg = getattr(rig, "Daz"+self.morphset)
-        for item in pg.values():
+        items = [(data[1].text, n, data[1]) for n,data in enumerate(pg.items())]
+        items.sort()
+        for _,_,item in items:
             if filter in item.text.lower():
                 self.displayProp(item, "", rig, self.layout, scn)
 
