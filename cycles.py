@@ -530,7 +530,6 @@ class CyclesTree:
             tex = None
         if value is not None:
             pass
-        #elif colorSpace == "COLOR":
         elif channel["type"] in ["color", "float_color"]:
             value = self.material.getChannelColor(channel, default)
         else:

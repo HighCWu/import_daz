@@ -396,21 +396,28 @@ class Material(Asset, Channels):
         color = self.getChannelValue(channel, default, warn)
         if isinstance(color, int) or isinstance(color, float):
             color = (color, color, color)
-        if channel and "type" in channel.keys() and channel["type"] == "float_color":
-            return Vector(color)
+        if channel and channel["type"] == "color":
+            return self.srgbToLinearCorrect(color)
         else:
-            return self.srgbToLinear(color)
+            return self.srgbToLinearGamma22(color)
 
 
-    def srgbToLinear(self, srgb):
+    def srgbToLinearCorrect(self, srgb):
         lin = []
         for s in srgb:
-            #   this is the correct linear function used by cycles
-            # if s < 0.04045:
-            #     l = s/12.92
-            # else:
-            #     l = ((s+0.055)/1.055)**2.4
-            #   this is the gamma 2.2 approximation used by iray
+            if s < 0:
+                l = 0
+            elif s < 0.04045:
+                l = s/12.92
+            else:
+                l = ((s+0.055)/1.055)**2.4
+            lin.append(l)
+        return Vector(lin)
+
+
+    def srgbToLinearGamma22(self, srgb):
+        lin = []
+        for s in srgb:
             if s < 0:
                 l = 0
             else:
