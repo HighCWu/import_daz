@@ -654,7 +654,8 @@ class PropFormulas(PoseboneDriver):
                     continue
                 struct = expr["value"]
                 key = struct["prop"]
-                self.taken[key] = False
+                if key not in self.taken.keys():
+                    self.taken[key] = False
                 val = struct["value"]
                 if prop not in self.others.keys():
                     self.others[prop] = []

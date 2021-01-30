@@ -618,15 +618,14 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 if prop:
                     props = [prop]
 
-        if drvprop is None:
-            drvprop = prop
         if self.usePropDrivers and self.rig:
             if isBoneDriven:
                 pass
             elif isinstance(asset, FormulaAsset) and asset.formulas:
                 if not self.useShapekeysOnly:
-                    if drvprop == prop:
+                    if drvprop == prop or drvprop is None:
                         prop = asset.clearProp(self.morphset, self.rig)
+                        drvprop = prop
                         self.taken[prop] = False
                         fresh = True
                     else:
