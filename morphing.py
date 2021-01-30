@@ -569,6 +569,8 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
         skey = None
         prop = None
+        drvprop = None
+        drvvalue = 1.0
         self.morph = None
         isBoneDriven = False
         if self.useShapekeys and isinstance(asset, Morph) and self.mesh and self.mesh.type == 'MESH':
@@ -598,28 +600,41 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                                  morphset=self.morphset,
                                  strength=self.strength)
                 skey,ob,sname = asset.rna
-            if self.useBoneDrivers and skey:
+            if skey:
                 prop = unquote(skey.name)
+            if (skey and
+                (self.useBoneDrivers or not asset.visible)):
                 removeFromPropGroups(self.rig, prop)
-                isBoneDriven = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
+                isBoneDriven,drvprop,drvvalue = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
                 if isBoneDriven:
                     addToMorphSet0(self.mesh, "Standardjcms", prop)
                 elif self.useShapekeysOnly:
                     print("Could not build shape formula (1)", skey.name)
             if ((not isBoneDriven or self.useDoubleDrivers) and
                 (self.usePropDrivers or self.useSkeysCats)):
-                prop = self.driveShapeWithProp(ob, prop, skey, self.rig, isBoneDriven)
+                if drvprop is None:
+                    drvprop = prop
+                self.driveShapeWithProp(ob, drvprop, skey, asset.visible, isBoneDriven)
                 if prop:
                     props = [prop]
 
+        if drvprop is None:
+            drvprop = prop
         if self.usePropDrivers and self.rig:
             if isBoneDriven:
                 pass
             elif isinstance(asset, FormulaAsset) and asset.formulas:
                 if not self.useShapekeysOnly:
-                    prop = asset.clearProp(self.morphset, self.rig)
-                    self.taken[prop] = False
-                    props = self.buildPropFormula(asset, filepath)
+                    if drvprop == prop:
+                        prop = asset.clearProp(self.morphset, self.rig)
+                        self.taken[prop] = False
+                        fresh = True
+                    else:
+                        asset.id = drvprop
+                        if drvvalue != 1.0:
+                            print("Warn driving value: %s %s %f" % (prop, drvprop, drvvalue))
+                        fresh = False
+                    props = self.buildPropFormula(asset, filepath, fresh)
                     if not props:
                         miss = True
                     elif self.morph is not None:
@@ -656,18 +671,20 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             return None
 
 
-    def driveShapeWithProp(self, ob, prop, skey, rig, keep):
+    def driveShapeWithProp(self, ob, prop, skey, visible, keep):
         from .driver import makeShapekeyDriver
-        prop = skey.name
         min = skey.slider_min if GS.useDazPropLimits else None
         max = skey.slider_max if GS.useDazPropLimits else None
-        if rig is None:
-            addToPropGroup(prop, ob, self.morphset)
+        if not visible:
+            makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop, min=min, max=max, keep=keep)
         else:
-            makeShapekeyDriver(ob, prop, skey.value, rig, prop, min=min, max=max, keep=keep)
-            addToPropGroup(prop, rig, self.morphset)
+            prop = skey.name
+            if self.rig is None:
+                addToPropGroup(prop, ob, self.morphset)
+            else:
+                makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop, min=min, max=max, keep=keep)
+                addToPropGroup(prop, self.rig, self.morphset)
         self.taken[prop] = self.built[prop] = True
-        return prop
 
 
     def addSubmorph(self, prop):
@@ -706,7 +723,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
         self.errors = {}
         t1 = time.perf_counter()
-        props = []
+        self.props = []
         if namepaths:
             path = list(namepaths.values())[0]
             folder = os.path.dirname(path)
@@ -715,7 +732,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         npaths = len(namepaths)
         self.suppressError = (npaths > 1)
         passidx = 1
-        missing = self.getPass(passidx, list(namepaths.items()), props, scn)
+        missing = self.getPass(passidx, list(namepaths.items()), scn)
         others = self.buildOthers(missing)
         for prop in others:
             setActivated(self.rig, prop, True)
@@ -732,10 +749,8 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 print("  Props: %s" % struct["props"])
                 print("  Bones: %s" % struct["bones"])
 
-        return props
 
-
-    def getPass(self, passidx, namepaths, props, scn):
+    def getPass(self, passidx, namepaths, scn):
         print("--- Pass %d ---" % passidx)
         namepaths.sort()
         missing = {}
@@ -744,10 +759,10 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         for name,path in namepaths:
             showProgress(idx, npaths)
             idx += 1
-            props1,miss = self.getSingleMorph(name, path, scn)
-            if props1:
+            props,miss = self.getSingleMorph(name, path, scn)
+            if props:
                 print("*", name)
-                props += props1
+                self.props += props
             elif miss:
                 print("?", name)
                 missing[name] = True
@@ -987,13 +1002,13 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, MultiFil
             else:
                 raise DazError("Active object must be a mesh to use panel shapekeys")
         namepaths = self.getNamePaths()
-        props = self.getAllMorphs(namepaths, context)
-        if props:
+        self.getAllMorphs(namepaths, context)
+        if self.props:
             if self.usePropDrivers:
-                addToCategories(self.rig, props, self.catname)
+                addToCategories(self.rig, self.props, self.catname)
                 self.rig.DazCustomMorphs = True
             elif self.useSkeysCats:
-                addToCategories(ob, props, self.catname)
+                addToCategories(ob, self.props, self.catname)
                 ob.DazMeshMorphs = True
         if self.errors:
             raise DazError(theLimitationsMessage)

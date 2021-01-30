@@ -233,6 +233,7 @@ class ChannelAsset(Modifier):
         self.value = 0
         self.min = None
         self.max = None
+        self.visible = True
 
     def __repr__(self):
         return ("<Channel %s %s>" % (self.id, self.type))
@@ -242,13 +243,18 @@ class ChannelAsset(Modifier):
         if not LS.useMorph:
             return
         if "channel" in struct.keys():
-            channel = struct["channel"]
-            if "value" in channel.keys():
-                self.value = channel["value"]
-            if "min" in channel.keys():
-                self.min = channel["min"]
-            if "max" in channel.keys():
-                self.max = channel["max"]
+            for key,value in struct["channel"].items():
+                if key == "value":
+                    self.value = value
+                elif key == "min":
+                    self.min = value
+                elif key == "max":
+                    self.max = value
+                elif key == "visible":
+                    self.visible = value
+                elif key == "label":
+                    self.label = value
+
 
     def update(self, struct):
         Modifier.update(self, struct)
@@ -257,10 +263,14 @@ class ChannelAsset(Modifier):
             self.value = struct["channel"]["current_value"]
 
 
-    def setupProp(self, morphset, rig, usePropDrivers):
+    def setupQuick(self, morphset, rig):
         self.morphset = morphset
         self.rig = rig
         self.prop = unquote(self.id.rsplit("#",2)[-1])
+
+
+    def setupProp(self, morphset, rig, usePropDrivers):
+        self.setupQuick(morphset, rig)
         lname = self.name.lower()
         if lname in rig.DazPropNames.keys():
             pg = rig.DazPropNames[lname]

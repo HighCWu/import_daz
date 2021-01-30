@@ -71,7 +71,7 @@ class Formula:
         if rig.pose is None:
             return
         formulas = PropFormulas(rig)
-        props = formulas.buildPropFormula(self, None)
+        props = formulas.buildPropFormula(self, None, True)
         addToCategories(rig, props, "Imported")
         for prop in props:
             setFloatProp(rig, prop, self.value)
@@ -354,55 +354,57 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
 class ShapeFormulas:
     def buildShapeFormula(self, asset, scn, rig, ob, verbose=True):
         if ob is None or ob.type != 'MESH' or ob.data.shape_keys is None:
-            return False
+            return False,None
 
         exprs = {}
         props = {}
         if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=True, verbose=verbose):
-            return False
+            return False,None,1
 
         from .modifier import addToMorphSet
-        #if props and self.usePropDrivers:
-        #    for prop in props:
-        #        addToMorphSet(rig, ob, self.morphset, prop, True, None)
-
         success = True
+        skey = None
+        prop = None
+        value = 1.0
         for sname,expr in exprs.items():
             sname = unquote(sname)
             if sname in rig.data.bones.keys():
                 continue
-            addToMorphSet(rig, ob, self.morphset, sname, self.usePropDrivers, asset)
+            if asset.visible:
+                addToMorphSet(rig, ob, self.morphset, sname, self.usePropDrivers, asset)
             if sname not in ob.data.shape_keys.key_blocks.keys():
                 print("No such shapekey:", sname)
-                return False
+                return False,None,1.0
             skey = ob.data.shape_keys.key_blocks[sname]
             if "value" in expr.keys():
-                ok = self.buildSingleShapeFormula(expr["value"], rig, ob, skey, verbose)
+                ok,prop,value = self.buildSingleShapeFormula(expr["value"], rig, ob, skey, asset, verbose)
                 success = (success and ok)
                 for other in expr["value"]["others"]:
-                    ok = self.buildSingleShapeFormula(other, rig, ob, skey, verbose)
+                    ok,_,_ = self.buildSingleShapeFormula(other, rig, ob, skey, asset, verbose)
                     success = (success and ok)
-        return success
+        return success,prop,value
 
 
-    def buildSingleShapeFormula(self, expr, rig, ob, skey, verbose):
+    def buildSingleShapeFormula(self, expr, rig, ob, skey, asset, verbose):
         from .bone import BoneAlternatives
 
         bname = expr["bone"]
         if bname is None:
-            if not self.usePropDrivers:
+            if not asset.visible:
+                return False, expr["prop"], expr["value"][0]
+            elif not self.usePropDrivers:
                 msg =('No bone to drive shapekey %s' % skey.name)
                 if verbose:
                     print(msg)
-            return False
+            return False, None, 1.0
         if bname not in rig.pose.bones.keys():
             if bname in BoneAlternatives.keys():
                 bname = BoneAlternatives[bname]
             else:
                 reportError("Missing bone (buildSingleShapeFormula): %s" % bname, trigger=(2,3))
-                return False
+                return False, None, 1.0
         makeSomeBoneDriver(expr, skey, "value", rig, ob, bname, -1)
-        return True
+        return True, None, 1.0
 
 
 def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
@@ -547,17 +549,10 @@ class PoseboneDriver:
         fcurves = self.getBoneFcurves(pb, channel)
         if len(fcurves) == 0:
             return
-        if hasattr(fcurves[0].driver, "use_self"):
-            for fcu in fcurves:
-                idx = fcu.array_index
-                self.addCustomDriver(fcu, pb, init, value[idx], prop, key)
-                init = ""
-        else:
-            fcurves = self.getBoneFcurves(pb, channel)
-            for fcu in fcurves:
-                idx = fcu.array_index
-                self.addScriptedDriver(fcu, pb, init, value[idx], path)
-                init = ""
+        for fcu in fcurves:
+            idx = fcu.array_index
+            self.addCustomDriver(fcu, pb, init, value[idx], prop, key)
+            init = ""
 
 
     def addCustomDriver(self, fcu, pb, init, value, prop, key):
@@ -610,53 +605,6 @@ class PoseboneDriver:
         if pb.name not in self.errors[err]["bones"]:
             self.errors[err]["bones"].append(pb.name)
 
-
-    def addScriptedDriver(self, fcu, pb, init, value, path):
-        fcu.driver.type = 'SCRIPTED'
-        var,isnew = getDriverVar(path, fcu.driver)
-        if var is None:
-            self.addError("Too many variables for the following properties:", path, pb)
-            return
-        drvexpr = removeInitFromExpr(var, fcu.driver.expression, init)
-        if abs(value) > 1e-4:
-            if isnew:
-                self.addDriverVar(var, path, fcu.driver)
-            if value < 0:
-                sign = "-"
-                value = -value
-            else:
-                sign = "+"
-            expr = "%s%d*%s" % (sign, int(1000*value), var)
-            drvexpr = init + "(" + drvexpr + expr + ")/1000"
-            if len(drvexpr) <= 255:
-                fcu.driver.expression = drvexpr
-            else:
-                string = drvexpr[0:249]
-                string1 = string.rsplit("+",1)[0]
-                string2 = string.rsplit("-",1)[0]
-                if len(string1) > len(string2):
-                    string = string1
-                else:
-                    string = string2
-                drvexpr = string + ")/1000"
-                fcu.driver.expression = drvexpr
-                self.addError("Drive expression too long:", path, pb, errors)
-                return
-
-        if len(fcu.modifiers) > 0:
-            fmod = fcu.modifiers[0]
-            fcu.modifiers.remove(fmod)
-
-
-    def addDriverVar(self, vname, path, drv):
-        var = drv.variables.new()
-        var.name = vname
-        var.type = 'SINGLE_PROP'
-        trg = var.targets[0]
-        trg.id_type = 'OBJECT'
-        trg.id = self.rig
-        trg.data_path = path
-
 #-------------------------------------------------------------
 #   class PropFormulas
 #-------------------------------------------------------------
@@ -670,26 +618,26 @@ class PropFormulas(PoseboneDriver):
         self.built = {}
 
 
-    def buildPropFormula(self, asset, filepath):
+    def buildPropFormula(self, asset, filepath, fresh):
         self.filepath = filepath
         exprs = {}
         props = {}
         asset.evalFormulas(exprs, props, self.rig, None, False)
-
         if not props:
             if GS.verbosity > 3:
                 print("Cannot evaluate formula")
             if GS.verbosity > 4:
                 print(asset.formulas)
-
-        asset.setupProp(self.morphset, self.rig, self.usePropDrivers)
+        if fresh:
+            asset.setupProp(self.morphset, self.rig, self.usePropDrivers)
+        else:
+            asset.setupQuick(self.morphset, self.rig)
 
         opencoded = {}
         self.opencode(exprs, asset, opencoded, 0)
         for prop,openlist in opencoded.items():
             self.combineExpressions(openlist, prop, exprs, 1.0)
         self.getOthers(exprs, asset)
-
         if self.buildBoneFormulas(asset, exprs):
             return props
         else:
