@@ -808,6 +808,12 @@ def applyRestPoses(context, rig, subrigs):
     for subrig in rigs:
         for ob in subrig.children:
             if ob.type == 'MESH':
+                setSelected(ob, True)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+    for subrig in rigs:
+        for ob in subrig.children:
+            if ob.type == 'MESH':
                 setRestPose(ob, subrig, context)
         if not setActiveObject(context, subrig):
             continue
