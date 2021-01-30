@@ -354,22 +354,27 @@ def addToMorphSet(rig, ob, morphset, prop, usePropDrivers, asset):
                 asset.initProp(rig, prop)
             else:
                 setFloatProp(rig, prop, 0.0)
-        return addToMorphSet0(rig, morphset, prop)
+        return addToMorphSet0(rig, morphset, prop, asset)
     elif ob:
-        return addToMorphSet0(ob, morphset, prop)
+        return addToMorphSet0(ob, morphset, prop, asset)
 
     else:
         return None
 
 
-def addToMorphSet0(ob, morphset, prop):
+def addToMorphSet0(ob, morphset, prop, asset=None):
     pg = getattr(ob, "Daz"+morphset)
     if prop in pg.keys():
         item = pg[prop]
     else:
         item = pg.add()
     item.name = prop
-    item.text = getCanonicalKey(prop)
+    if asset is None:
+        item.text = getCanonicalKey(prop)
+    elif asset.visible:
+        item.text = asset.label
+    else:
+        item.text = "[%s]" % getCanonicalKey(prop)
     return prop
 
 

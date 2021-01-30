@@ -614,7 +614,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 (self.usePropDrivers or self.useSkeysCats)):
                 if drvprop is None:
                     drvprop = prop
-                self.driveShapeWithProp(ob, drvprop, skey, asset.visible, isBoneDriven)
+                self.driveShapeWithProp(ob, drvprop, skey, asset, isBoneDriven)
                 if prop:
                     props = [prop]
 
@@ -670,19 +670,19 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             return None
 
 
-    def driveShapeWithProp(self, ob, prop, skey, visible, keep):
+    def driveShapeWithProp(self, ob, prop, skey, asset, keep):
         from .driver import makeShapekeyDriver
         min = skey.slider_min if GS.useDazPropLimits else None
         max = skey.slider_max if GS.useDazPropLimits else None
-        if not visible:
+        if not asset.visible:
             makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop, min=min, max=max, keep=keep)
         else:
             prop = skey.name
             if self.rig is None:
-                addToPropGroup(prop, ob, self.morphset)
+                addToPropGroup(prop, ob, self.morphset, asset)
             else:
                 makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop, min=min, max=max, keep=keep)
-                addToPropGroup(prop, self.rig, self.morphset)
+                addToPropGroup(prop, self.rig, self.morphset, asset)
         self.taken[prop] = self.built[prop] = True
 
 
@@ -1249,13 +1249,18 @@ def getActivated(ob, rna, key, force=False):
         return pg.active
 
 
-def addToPropGroup(prop, ob, morphset):
+def addToPropGroup(prop, ob, morphset, asset=None):
     from .modifier import getCanonicalKey
     pg = getattr(ob, "Daz"+morphset)
     if prop not in pg.keys():
         item = pg.add()
         item.name = prop
-        item.text = getCanonicalKey(prop)
+        if asset is None:
+            item.text = getCanonicalKey(prop)
+        elif asset.visible:
+            item.text = asset.label
+        else:
+            item.text = "[%s]" % getCanonicalKey(prop)
         setActivated(ob, prop, True)
 
 
