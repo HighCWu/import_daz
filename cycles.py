@@ -426,21 +426,24 @@ class CyclesTree:
                 self.links.new(tex.outputs[0], self.normal.inputs["Color"])
 
         # Bump map
-        channel = self.material.getChannelBump()
-        if channel and self.isEnabled("Bump"):
-            _,tex = self.getColorTex("getChannelBump", "NONE", 0, False)
-            if tex:
-                bump = self.addNode("ShaderNodeBump", col=3)
-                strength = self.material.getChannelValue(channel, 1.0)
-                if GS.limitBump and strength > GS.maxBump:
-                    strength = GS.maxBump
-                bump.inputs["Strength"].default_value = strength
-                bumpmin = self.material.getChannelValue(self.material.getChannelBumpMin(), -0.01)
-                bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.01)
-                bump.inputs["Distance"].default_value = (bumpmax-bumpmin) * LS.scale
-                self.links.new(tex.outputs[0], bump.inputs["Height"])
-                self.linkNormal(bump)
-                self.normal = bump
+        bump,bumptex = self.getColorTex("getChannelBump", "NONE", 0, False)
+        if bump and self.isEnabled("Bump"):
+            node = self.buildBumpMap(bump, bumptex, col=3)
+            self.normal = node
+
+
+    def buildBumpMap(self, bump, bumptex, col=3):
+        node = self.addNode("ShaderNodeBump", col=col)
+        if GS.limitBump and bump > GS.maxBump:
+            u = GS.maxBump
+        node.inputs["Strength"].default_value = bump
+        bumpmin = self.material.getChannelValue(self.material.getChannelBumpMin(), -0.01)
+        bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.01)
+        node.inputs["Distance"].default_value = (bumpmax-bumpmin) * LS.scale
+        self.links.new(bumptex.outputs[0], node.inputs["Height"])
+        self.linkNormal(node)
+        return node
+
 
     def linkNormal(self, node):
         if self.normal:
@@ -671,24 +674,40 @@ class CyclesTree:
         topweight = self.getValue(["Top Coat Weight"], 0)
         if topweight == 0:
             return
-        reflectivity = self.getValue(["Top Coat Reflectivity"], 1)
-        weight = 0.05 * topweight * reflectivity
-        _,weighttex = self.getColorTex(["Top Coat Weight"], "NONE", 0, value=weight)
+        if self.material.shader == 'UBER_IRAY':
+            # Top Coat Layering Mode
+            #   [ "Reflectivity", "Weighted", "Fresnel", "Custom Curve" ]
+            # Top Coat Bump Mode
+            #   [ "Height Map", "Normal Map" ]
+            refl,refltex = self.getColorTex(["Reflectivity"], "NONE", 0, useFactor=False)
+            bump,bumptex = self.getColorTex(["Top Coat Bump"], "NONE", 0)
+        else:
+            refl,refltex = self.getColorTex(["Top Coat Reflectivity"], "NONE", 0, useFactor=False)
+            bump = self.getValue(["Top Coat Bump Weight"], 0)
+            bumptex = None
+
+        weight = 0.05 * topweight * refl
+        _,tex = self.getColorTex(["Top Coat Weight"], "NONE", 0, value=weight)
+        weighttex = self.multiplyTexs(tex, refltex)
         color,tex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
         roughness,roughtex = self.getColorTex(["Top Coat Roughness"], "NONE", 0)
         if roughness == 0:
             glossiness,glosstex = self.getColorTex(["Top Coat Glossiness"], "NONE", 1)
             roughness = 1-glossiness
             roughtex = self.invertTex(glosstex, 5)
-        bump,bumptex = self.getColorTex(["Top Coat Bump", "Top Coat Bump Weight"], "NONE", 0)
+        print("BUMP", bump, bumptex)
 
         from .cgroup import TopCoatGroup
         self.column += 1
         top = self.addGroup(TopCoatGroup, "DAZ Top Coat")
         self.linkColor(tex, top, color, "Color")
         self.linkScalar(roughtex, top, roughness, "Roughness")
-        self.linkNormal(top)
-        self.linkScalar(bumptex, top, bump, "Bump")
+        if bumptex:
+            node = self.buildBumpMap(1.0, bumptex, col=self.column-1)
+            self.links.new(node.outputs[0], top.inputs["Normal"])
+        else:
+            self.linkNormal(top)
+        top.inputs["Bump"].default_value = bump
         self.mixWithActive(weight, weighttex, top)
 
 #-------------------------------------------------------------
@@ -1342,6 +1361,19 @@ class CyclesTree:
             add.inputs[1].default_value = term
             self.links.new(mult.outputs[slot], add.inputs[0])
             return add
+
+
+    def multiplyTexs(self, tex1, tex2):
+        if tex1 and tex2:
+            mult = self.addNode("ShaderNodeMath")
+            mult.operation = 'MULTIPLY'
+            self.links.new(tex1.outputs[0], mult.inputs[0])
+            self.links.new(tex2.outputs[0], mult.inputs[1])
+            return mult
+        elif tex1:
+            return tex1
+        else:
+            return tex2
 
 #-------------------------------------------------------------
 #   Utilities
