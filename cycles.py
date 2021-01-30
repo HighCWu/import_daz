@@ -689,18 +689,17 @@ class CyclesTree:
         weight = 0.05 * topweight * refl
         _,tex = self.getColorTex(["Top Coat Weight"], "NONE", 0, value=weight)
         weighttex = self.multiplyTexs(tex, refltex)
-        color,tex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
+        color,coltex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
         roughness,roughtex = self.getColorTex(["Top Coat Roughness"], "NONE", 0)
         if roughness == 0:
             glossiness,glosstex = self.getColorTex(["Top Coat Glossiness"], "NONE", 1)
             roughness = 1-glossiness
             roughtex = self.invertTex(glosstex, 5)
-        print("BUMP", bump, bumptex)
 
         from .cgroup import TopCoatGroup
         self.column += 1
         top = self.addGroup(TopCoatGroup, "DAZ Top Coat")
-        self.linkColor(tex, top, color, "Color")
+        self.linkColor(coltex, top, color, "Color")
         self.linkScalar(roughtex, top, roughness, "Roughness")
         if bumptex:
             node = self.buildBumpMap(1.0, bumptex, col=self.column-1)
