@@ -347,11 +347,14 @@ class BoneInstance(Instance):
     def __repr__(self):
         pname = (self.parent.id if self.parent else None)
         fname = (self.figure.name if self.figure else None)
-        return "<BoneInst %s N: %s F: %s P: %s R:%s>" % (self.id, self.node.name, fname, pname, self.rna)
+        return "<BoneInst %s N: %s F: %s T: %s P: %s R:%s>" % (self.id, self.node.name, fname, self.target, pname, self.rna)
 
 
     def listBones(self):
-        self.figure.bones[self.node.name] = self
+        if self.target:
+            print("Bone with target:", self)
+        else:
+            self.figure.bones[self.node.name] = self
         for child in self.children.values():
             if isinstance(child, BoneInstance):
                 child.listBones()
@@ -934,14 +937,23 @@ class Bone(Node):
 
     def getInstance(self, caller, ref, strict=True):
         iref = instRef(ref)
-        try:
+        if iref in self.instances.keys():
             return self.instances[iref]
-        except KeyError:
-            pass
         try:
             return self.instances[BoneAlternatives[iref]]
         except KeyError:
             pass
+        trgfig = self.figure.sourcing
+        if trgfig:
+            struct = {
+                "id" : iref,
+                "url" : self.url,
+                "target" : trgfig,
+            }
+            inst = self.makeInstance(self.fileref, struct)
+            self.instances[iref] = inst
+            print("Creating reference to target figure:\n", inst)
+            return inst
         if (GS.verbosity <= 2 and
             len(self.instances.values()) > 0):
             return list(self.instances.values())[0]

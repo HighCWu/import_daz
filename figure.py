@@ -58,6 +58,14 @@ class FigureInstance(Instance):
         pass
 
 
+    def preprocess(self, struct):
+        from .bone import BoneInstance
+        Instance.preprocess(self, struct)
+        for child in self.children.values():
+            if isinstance(child, BoneInstance):
+                child.listBones()
+
+
     def postbuild(self, context):
         Instance.postbuild(self, context)
         if LS.fitFile:
@@ -271,9 +279,6 @@ class Figure(Node):
         from .asset import Asset
         scn = context.scene
 
-        for child in inst.children.values():
-            if isinstance(child, BoneInstance):
-                child.listBones()
         self.rigtype = getRigType1(inst.bones.keys())
         center = d2b(inst.attributes["center_point"])
         Asset.build(self, context, inst)

@@ -123,6 +123,9 @@ class Instance(Accessor, Channels):
         self.children = {}
         self.label = node.label
         node.label = None
+        self.target = None
+        if "target" in struct.keys():
+            self.target = struct["target"]
         self.visible = node.visible
         node.visible = True
         self.extra = node.extra
@@ -131,6 +134,8 @@ class Instance(Accessor, Channels):
         node.channels = {}
         self.shstruct = {}
         self.center = Vector((0,0,0))
+        self.cpoint = Vector((0,0,0))
+        self.wmat = self.wrot = self.wscale = Matrix()
         self.refgroup = None
         self.isGroupNode = False
         self.isStrandHair = False
