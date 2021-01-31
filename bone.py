@@ -945,8 +945,8 @@ class Bone(Node):
         if (GS.verbosity <= 2 and
             len(self.instances.values()) > 0):
             return list(self.instances.values())[0]
-        msg = ("Did not find instance %s in %s" % (iref, list(self.instances.keys())))
-        reportError(msg, trigger=(2,4))
+        msg = ("Bone: Did not find instance %s in %s" % (iref, list(self.instances.keys())))
+        reportError(msg, trigger=(2,3))
         return None
 
 

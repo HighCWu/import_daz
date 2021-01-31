@@ -599,13 +599,13 @@ class Node(Asset, Formula, Channels):
             try:
                 return caller.instances[iref]
             except KeyError:
-                msg = ("Did not find instance %s in %s" % (iref, caller))
+                msg = ("Caller: Did not find instance %s in %s" % (iref, caller))
                 insts = caller.instances
         else:
             try:
                 return self.instances[iref]
             except KeyError:
-                msg = ("Did not find instance %s in %s" % (iref, self))
+                msg = ("Node: Did not find instance %s in %s" % (iref, self))
                 insts = self.instances
         if strict:
             reportError(msg, insts, trigger=(2,3))

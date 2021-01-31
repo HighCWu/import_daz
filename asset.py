@@ -389,7 +389,18 @@ class Asset(Accessor):
                     self.parent = self.caller.getAsset(struct["parent"])
             elif key == "channel":
                 self.value = getCurrentValue(value)
+        if False and self.source:
+            self.children = self.source.children
+            self.sourceChildren(self.source)
         return self
+
+
+    def sourceChildren(self, source):
+        for srcnode in source.children:
+            url = self.fileref + "#" + srcnode.id.rsplit("#",1)[-1]
+            print("HHH", url)
+            theAssets[url] = srcnode
+            self.sourceChildren(srcnode)
 
 
     def build(self, context, inst=None):
