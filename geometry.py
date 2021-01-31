@@ -766,8 +766,8 @@ class Geometry(Asset, Channels):
                 if (isinstance(node, GeoNode) and
                     node.index < len(dmats)):
                     dmat = dmats[node.index]
-                elif inst and inst.index < len(dmats):
-                    dmat = dmats[inst.index]
+                #elif inst and inst.index < len(dmats):
+                #    dmat = dmats[inst.index]
                 else:
                     dmat = dmats[0]
             else:

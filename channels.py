@@ -43,7 +43,7 @@ class Channels:
     def parse(self, struct):
         if "url" in struct.keys():
             asset = self.getAsset(struct["url"])
-            if asset:
+            if asset and hasattr(asset, "channels"):
                 self.channels = copy.deepcopy(asset.channels)
         for key,data in struct.items():
             if key == "extra":

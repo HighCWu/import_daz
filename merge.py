@@ -502,7 +502,11 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
     def run(self, context):
         if not self.separateCharacters:
             rig,subrigs = getSelectedRigs(context)
+            if not self.useApplyRestPose:
+                wmats,children,success = self.applyTransforms([(rig, subrigs)])
             self.mergeRigs(context, rig, subrigs)
+            if not self.useApplyRestPose and success:
+                self.restoreTransforms([rig], wmats, children)
         else:
             rigs = []
             for rig in getSelectedArmatures(context):
@@ -512,9 +516,13 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
             for rig in rigs:
                 subrigs = self.getSubRigs(context, rig)
                 pairs.append((rig,subrigs))
+            if not self.useApplyRestPose:
+                wmats,children,success = self.applyTransforms(pairs)
             for rig,subrigs in pairs:
                 activateObject(context, rig)
                 self.mergeRigs(context, rig, subrigs)
+            if not self.useApplyRestPose and success:
+                self.restoreTransforms(rigs, wmats, children)
 
 
     def getSubRigs(self, context, rig):
@@ -524,6 +532,45 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                 subrigs.append(ob)
                 subrigs += self.getSubRigs(context, ob)
         return subrigs
+
+
+    def applyTransforms(self, pairs):
+        wmats = []
+        children = []
+        bpy.ops.object.select_all(action='DESELECT')
+        for rig,subrigs in pairs:
+            wmats.append(rig.matrix_world.copy())
+            setSelected(rig, True)
+            self.selectChildren(rig, children)
+            for subrig in subrigs:
+                setSelected(subrig, True)
+                self.selectChildren(subrig, children)
+        try:
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+            success = True
+        except RuntimeError:
+            print("Could not apply object transforms")
+            success = False
+        return wmats,children,success
+
+
+    def selectChildren(self, subrig, children):
+        for ob in subrig.children:
+            if ob.type == 'MESH':
+                setSelected(ob, True)
+                children.append(ob)
+
+
+    def restoreTransforms(self, rigs, wmats, children):
+        bpy.ops.object.select_all(action='DESELECT')
+        for rig,wmat in zip(rigs, wmats):
+            setWorldMatrix(rig, wmat.inverted())
+            setSelected(rig, True)
+        for ob in children:
+            setSelected(ob, True)
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        for rig,wmat in zip(rigs, wmats):
+            setWorldMatrix(rig, wmat)
 
 
     def mergeRigs(self, context, rig, subrigs):
@@ -691,7 +738,10 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         if extras:
             storage = {}
             if activateObject(context, subrig):
-                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+                try:
+                    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+                except RuntimeError:
+                    pass
 
             bpy.ops.object.mode_set(mode='EDIT')
             for bname in extras:
@@ -809,7 +859,14 @@ def applyRestPoses(context, rig, subrigs):
         for ob in subrig.children:
             if ob.type == 'MESH':
                 setSelected(ob, True)
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    try:
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        msg = ""
+    except RuntimeError:
+        msg = ("Could not apply object transformations.        \n" +
+               "This usually happens with shared meshes")
+    if msg:
+        raise DazError(msg)
 
     for subrig in rigs:
         for ob in subrig.children:

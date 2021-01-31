@@ -349,10 +349,17 @@ class Asset(Accessor):
             url = struct["source"]
             asset = self.getAsset(url)
             if asset:
-                self.source = asset
-                asset.sourcing = self
-            theAssets[url] = self
-
+                if self.type == asset.type:
+                    self.source = asset
+                    asset.sourcing = self
+                    theAssets[url] = self
+                else:
+                    msg = ("Source type mismatch:   \n" +
+                           "%s != %s\n" % (asset.type, self.type) +
+                           "URL: %s           \n" % url +
+                           "Asset: %s\n" % self +
+                           "Source: %s\n" % asset)
+                    reportError(msg, trigger=(2,3))
         return self
 
 
