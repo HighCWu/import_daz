@@ -503,9 +503,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         if not self.separateCharacters:
             rig,subrigs = getSelectedRigs(context)
             if not self.useApplyRestPose:
-                wmats,children,success = self.applyTransforms([(rig, subrigs)])
+                wmats,children = self.applyTransforms([(rig, subrigs)])
             self.mergeRigs(context, rig, subrigs)
-            if not self.useApplyRestPose and success:
+            if not self.useApplyRestPose:
                 self.restoreTransforms([rig], wmats, children)
         else:
             rigs = []
@@ -517,11 +517,11 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
                 subrigs = self.getSubRigs(context, rig)
                 pairs.append((rig,subrigs))
             if not self.useApplyRestPose:
-                wmats,children,success = self.applyTransforms(pairs)
+                wmats,children = self.applyTransforms(pairs)
             for rig,subrigs in pairs:
                 activateObject(context, rig)
                 self.mergeRigs(context, rig, subrigs)
-            if not self.useApplyRestPose and success:
+            if not self.useApplyRestPose:
                 self.restoreTransforms(rigs, wmats, children)
 
 
@@ -537,27 +537,23 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
     def applyTransforms(self, pairs):
         wmats = []
         children = []
-        bpy.ops.object.select_all(action='DESELECT')
+        rigs = []
         for rig,subrigs in pairs:
             wmats.append(rig.matrix_world.copy())
-            setSelected(rig, True)
-            self.selectChildren(rig, children)
+            rigs.append(rig)
+            self.collectChildren(rig, children)
             for subrig in subrigs:
-                setSelected(subrig, True)
-                self.selectChildren(subrig, children)
-        try:
-            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-            success = True
-        except RuntimeError:
-            print("Could not apply object transforms")
-            success = False
-        return wmats,children,success
+                rigs.append(subrig)
+                self.collectChildren(subrig, children)
+        if applyAllObjectTransforms(rigs):
+            return wmats, children
+        else:
+            return wmats, []
 
 
-    def selectChildren(self, subrig, children):
+    def collectChildren(self, subrig, children):
         for ob in subrig.children:
             if ob.type == 'MESH':
-                setSelected(ob, True)
                 children.append(ob)
 
 
@@ -855,19 +851,7 @@ def applyRestPoses(context, rig, subrigs):
 
     LS.forAnimation(None, rig, context.scene)
     rigs = [rig] + subrigs
-    for subrig in rigs:
-        for ob in subrig.children:
-            if ob.type == 'MESH':
-                setSelected(ob, True)
-    try:
-        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        msg = ""
-    except RuntimeError:
-        msg = ("Could not apply object transformations.        \n" +
-               "This usually happens with shared meshes")
-    if msg:
-        raise DazError(msg)
-
+    applyAllObjectTransforms(rigs)
     for subrig in rigs:
         for ob in subrig.children:
             if ob.type == 'MESH':
@@ -880,6 +864,24 @@ def applyRestPoses(context, rig, subrigs):
         for cns,mute in constraints:
             cns.mute = mute
     setActiveObject(context, rig)
+
+
+def applyAllObjectTransforms(rigs):
+    bpy.ops.object.select_all(action='DESELECT')
+    for rig in rigs:
+        setSelected(rig, True)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    bpy.ops.object.select_all(action='DESELECT')
+    for rig in rigs:
+        for ob in rig.children:
+            if ob.type == 'MESH':
+                setSelected(ob, True)
+    try:
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        return True
+    except RuntimeError:
+        print("Could not apply object transformations to meshes")
+        return False
 
 
 def setRestPose(ob, rig, context):
