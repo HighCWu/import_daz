@@ -429,6 +429,7 @@ class CyclesTree:
         bump,bumptex = self.getColorTex("getChannelBump", "NONE", 0, False)
         if bump and self.isEnabled("Bump"):
             node = self.buildBumpMap(bump, bumptex, col=3)
+            self.linkNormal(node)
             self.normal = node
 
 
@@ -441,7 +442,6 @@ class CyclesTree:
         bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.01)
         node.inputs["Distance"].default_value = (bumpmax-bumpmin) * LS.scale
         self.links.new(bumptex.outputs[0], node.inputs["Height"])
-        self.linkNormal(node)
         return node
 
 
