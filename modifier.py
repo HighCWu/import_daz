@@ -434,6 +434,24 @@ class SkinBinding(Modifier):
             reportError(msg, trigger=(2,3))
 
 
+    def parseSource(self, url):
+        from .asset import theAssets
+        asset = self.getAsset(url)
+        if asset:
+            if (self.parent is None or
+                self.parent.type != asset.type):
+                msg = ("SkinBinding source bug:\n" +
+                       "URL: %s\n" % url +
+                       "Skin: %s\n" % self +
+                       "Asset: %s\n" % asset +
+                       "Parent: %s\n" % self.parent)
+                reportError(msg, trigger=(2,3))
+            if asset != self.parent:
+                self.parent.source = asset
+                asset.sourcing = self.parent
+            theAssets[url] = self.parent
+
+
     def build(self, context, inst):
         ob,rig,geonode = self.getGeoRig(context, inst, self.skin["geometry"])
         if ob is None or rig is None or ob.type != 'MESH':

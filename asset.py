@@ -346,21 +346,24 @@ class Asset(Accessor):
                 self.parent.children.append(self)
 
         if "source" in struct.keys():
-            url = struct["source"]
-            asset = self.getAsset(url)
-            if asset:
-                if self.type == asset.type:
-                    self.source = asset
-                    asset.sourcing = self
-                    theAssets[url] = self
-                else:
-                    msg = ("Source type mismatch:   \n" +
-                           "%s != %s\n" % (asset.type, self.type) +
-                           "URL: %s           \n" % url +
-                           "Asset: %s\n" % self +
-                           "Source: %s\n" % asset)
-                    reportError(msg, trigger=(2,3))
+            self.parseSource(struct["source"])
         return self
+
+
+    def parseSource(self, url):
+        asset = self.getAsset(url)
+        if asset:
+            if self.type == asset.type:
+                self.source = asset
+                asset.sourcing = self
+                theAssets[url] = self
+            else:
+                msg = ("Source type mismatch:   \n" +
+                       "%s != %s\n" % (asset.type, self.type) +
+                       "URL: %s           \n" % url +
+                       "Asset: %s\n" % self +
+                       "Source: %s\n" % asset)
+                reportError(msg, trigger=(2,3))
 
 
     def update(self, struct):
