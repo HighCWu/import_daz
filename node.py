@@ -123,6 +123,8 @@ class Instance(Accessor, Channels):
         self.children = {}
         self.label = node.label
         node.label = None
+        self.visible = node.visible
+        node.visible = True
         self.extra = node.extra
         node.extra = []
         self.channels = node.channels
@@ -226,10 +228,17 @@ class Instance(Accessor, Channels):
             elif channel["id"] == "Visible in Viewport":
                 if not value:
                     setHideViewport(ob, True)
+                    for geo in self.geometries:
+                        if geo.rna:
+                            setHideViewport(geo.rna, True)
             elif channel["id"] == "Visible":
                 if not value:
                     ob.hide_render = True
                     setHideViewport(ob, True)
+                    for geo in self.geometries:
+                        if geo.rna:
+                            geo.rna.hide_render = True
+                            setHideViewport(geo.rna, True)
             elif channel["id"] == "Selectable":
                 if not value:
                     ob.hide_select = True

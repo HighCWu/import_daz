@@ -233,7 +233,6 @@ class ChannelAsset(Modifier):
         self.value = 0
         self.min = None
         self.max = None
-        self.visible = True
 
     def __repr__(self):
         return ("<Channel %s %s>" % (self.id, self.type))
@@ -250,10 +249,6 @@ class ChannelAsset(Modifier):
                     self.min = value
                 elif key == "max":
                     self.max = value
-                elif key == "visible":
-                    self.visible = value
-                elif key == "label":
-                    self.label = value
 
 
     def update(self, struct):

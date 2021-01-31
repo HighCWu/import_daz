@@ -240,6 +240,7 @@ class Asset(Accessor):
         self.name = None
         self.label = None
         self.type = None
+        self.visible = True
         self.parent = None
         self.children = []
         self.source = None
@@ -339,6 +340,13 @@ class Asset(Accessor):
 
         if "label" in struct.keys():
             self.label = struct["label"]
+
+        if "channel" in struct.keys():
+            for key,value in struct["channel"].items():
+                if key == "visible":
+                    self.visible = value
+                elif key == "label":
+                    self.label = value
 
         if "parent" in struct.keys():
             self.parent = self.getAsset(struct["parent"])
@@ -546,7 +554,7 @@ def fixBrokenPath(path):
                        "  Folder: '%s'\n" % check +
                        "  File: '%s'\n" % pc +
                        "  Files: %s" % os.listdir(check))
-                reportError(msg, trigger=(3,4))
+                reportError(msg, trigger=(4,5))
         check = cand
 
     return check

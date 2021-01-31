@@ -235,7 +235,7 @@ class Formula:
             if useStages:
                 reportError("Unknown formula %s" % ops, trigger=(2,6))
             else:
-                reportError("Multiple stages? %s %s" % (op, len(ops)), trigger=(3,6))
+                reportError("Multiple stages? %s %s" % (op, len(ops)), trigger=(4,6))
             return False
 
         if "stage" in formula.keys() and len(stages) > 1:

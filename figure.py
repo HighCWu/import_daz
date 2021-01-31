@@ -275,7 +275,6 @@ class Figure(Node):
             if isinstance(child, BoneInstance):
                 child.listBones()
         self.rigtype = getRigType1(inst.bones.keys())
-
         center = d2b(inst.attributes["center_point"])
         Asset.build(self, context, inst)
         for geo in inst.geometries:
