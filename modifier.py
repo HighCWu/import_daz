@@ -674,6 +674,7 @@ class Morph(FormulaAsset):
         FormulaAsset.__init__(self, fileref)
         self.type = "morph"
         self.vertex_count = 0
+        self.deltas = []
         self.hd_url = None
 
 
