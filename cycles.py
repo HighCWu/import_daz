@@ -680,7 +680,7 @@ class CyclesTree:
             # Top Coat Bump Mode
             #   [ "Height Map", "Normal Map" ]
             refl,refltex = self.getColorTex(["Reflectivity"], "NONE", 0, useFactor=False)
-            bump,bumptex = self.getColorTex(["Top Coat Bump"], "NONE", 0)
+            bump,bumptex = self.getColorTex(["Top Coat Bump"], "NONE", 0, useFactor=False)
         else:
             refl,refltex = self.getColorTex(["Top Coat Reflectivity"], "NONE", 0, useFactor=False)
             bump = self.getValue(["Top Coat Bump Weight"], 0)
