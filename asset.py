@@ -362,7 +362,7 @@ class Asset(Accessor):
     def parseSource(self, url):
         asset = self.getAsset(url)
         if asset:
-            if isinstance(self, asset.classType):
+            if self.type == asset.type:
                 self.source = asset
                 asset.sourcing = self
                 theAssets[url] = self

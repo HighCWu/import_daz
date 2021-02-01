@@ -698,6 +698,10 @@ class Morph(FormulaAsset):
             self.hd_url = morph["hd_url"]
 
 
+    def parseSource(self, url):
+        print("Skip source", self)
+
+
     def update(self, struct):
         from .geometry import GeoNode, Geometry
         from .figure import Figure, FigureInstance
