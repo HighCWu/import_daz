@@ -124,8 +124,14 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
         self.layout.prop(self, "useEyesRot")
 
 
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
     def run(self, context):
         from .morphing import getRigFromObject
+
         rig = getRigFromObject(context.object)
         scale = rig.DazScale
         bshapes, hlockeys, hrotkeys, leyekeys, reyekeys, bskeys = self.parse()
@@ -145,9 +151,10 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
         head = rig.pose.bones["head"]
         leye = rig.pose.bones["lEye"]
         reye = rig.pose.bones["rEye"]
+        factor = self.fps * 1e-3
 
         for t in bskeys.keys():
-            frame = self.fps * t * 1e-3
+            frame = factor * t
 
             if self.useHeadLoc:
                 hloc = scale * hlockeys[t]
@@ -162,10 +169,10 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
             if self.useEyesRot:
                 rot = leyekeys[t].to_matrix().to_euler(leye.rotation_mode)
                 leye.rotation_euler = rot
-                leye.keyframe_insert("rotation_euler", frame=frame, group="head")
+                leye.keyframe_insert("rotation_euler", frame=frame, group="lEye")
                 rot = reyekeys[t].to_matrix().to_euler(reye.rotation_mode)
                 reye.rotation_euler = rot
-                reye.keyframe_insert("rotation_euler", frame=frame, group="head")
+                reye.keyframe_insert("rotation_euler", frame=frame, group="rEye")
 
             for bshape,value in zip(bshapes,bskeys[t]):
                 prop = FacsTable[bshape]
@@ -176,12 +183,7 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
                     print("MISS", bshape, prop)
 
 
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
-    # timestamp in nano seconds,
+    # timestamp in milli seconds (file says nano),
     # head position xyz,
     # head eulerAngles xyz,
     # left-eye eulerAngles xy,
@@ -203,9 +205,9 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
                     words = line.split(",")
                     t = int(words[1])
                     hlockeys[t] = Vector((float(words[2]), float(words[3]), float(words[4])))
-                    hrotkeys[t] = Euler((float(words[5]), float(words[6]), float(words[7])))
-                    leyekeys[t] = Euler((float(words[8]), float(words[9]), 0.0))
-                    reyekeys[t] = Euler((float(words[10]), float(words[11]), 0.0))
+                    hrotkeys[t] = Euler((D*float(words[5]), D*float(words[6]), D*float(words[7])))
+                    leyekeys[t] = Euler((D*float(words[8]), D*float(words[9]), 0.0))
+                    reyekeys[t] = Euler((D*float(words[10]), D*float(words[11]), 0.0))
                     bskeys[t] = [float(word) for word in words[12:]]
                 elif line[0:5] == "info,":
                     pass
