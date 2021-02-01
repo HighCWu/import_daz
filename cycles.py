@@ -165,6 +165,7 @@ class CyclesTree:
         self.diffuseTex = None
         self.fresnel = None
         self.normal = None
+        self.bump = None
         self.texco = None
         self.texcos = {}
         self.mapping = None
@@ -427,11 +428,10 @@ class CyclesTree:
                 self.links.new(tex.outputs[0], self.normal.inputs["Color"])
 
         # Bump map
-        bump,bumptex = self.getColorTex("getChannelBump", "NONE", 0, False)
-        if bump and self.isEnabled("Bump"):
-            node = self.buildBumpMap(bump, bumptex, col=3)
-            self.linkNormal(node)
-            self.normal = node
+        bumpval,self.bumptex = self.getColorTex("getChannelBump", "NONE", 0, False)
+        if bumpval and self.isEnabled("Bump"):
+            self.bump = self.buildBumpMap(bumpval, self.bumptex, col=3)
+            self.linkNormal(self.bump)
 
 
     def buildBumpMap(self, bump, bumptex, col=3):
@@ -444,6 +444,18 @@ class CyclesTree:
         node.inputs["Distance"].default_value = (bumpmax-bumpmin) * LS.scale
         self.links.new(bumptex.outputs[0], node.inputs["Height"])
         return node
+
+
+    def linkBumpNormal(self, node):
+        if self.bump:
+            self.links.new(self.bump.outputs["Normal"], node.inputs["Normal"])
+        elif self.normal:
+            self.links.new(self.normal.outputs["Normal"], node.inputs["Normal"])
+
+
+    def linkBump(self, node):
+        if self.bump:
+            self.links.new(self.bump.outputs["Normal"], node.inputs["Normal"])
 
 
     def linkNormal(self, node):
@@ -478,7 +490,7 @@ class CyclesTree:
             self.linkColor(tex, node, color, "Color")
             roughness = clamp( self.getValue(["Diffuse Roughness"], GS.diffuseRoughness) )
             self.addSlot(channel, node, "Roughness", roughness, roughness, False)
-            self.linkNormal(node)
+            self.linkBumpNormal(node)
             LS.usedFeatures["Diffuse"] = True
 
 
@@ -503,7 +515,7 @@ class CyclesTree:
             self.linkColor(tex, node, color, "Color")
             roughness,roughtex = self.getColorTex(["Diffuse Overlay Roughness"], "NONE", 0, False)
             self.setRoughness(node, "Roughness", roughness, roughtex)
-            self.linkNormal(node)
+            self.linkBumpNormal(node)
             self.mixWithActive(weight**power, wttex, node)
             return True
         else:
@@ -590,7 +602,7 @@ class CyclesTree:
             roughness2,roughtex2 = self.getColorTex(["Specular Lobe 2 Roughness"], "NONE", 0.0, False)
             self.setRoughness(node, "Roughness 2", roughness2, roughtex2)
 
-        self.linkNormal(node)
+        self.linkBumpNormal(node)
         self.mixWithActive(ratio, None, node)
         LS.usedFeatures["Glossy"] = True
 
@@ -619,7 +631,7 @@ class CyclesTree:
         fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel")
         ior,iortex = self.getFresnelIOR()
         self.linkScalar(iortex, fresnel, ior, "IOR")
-        self.linkNormal(fresnel)
+        self.linkBumpNormal(fresnel)
         self.fresnel = fresnel
 
         #   glossy bsdf roughness = iray glossy roughness ^ 2
@@ -641,7 +653,7 @@ class CyclesTree:
         color,tex = self.getGlossyColor()
         self.linkColor(tex, glossy, color, "Color")
         roughtex = self.addSlot(channel, glossy, "Roughness", roughness, value, invert)
-        self.linkNormal(glossy)
+        self.linkBumpNormal(glossy)
         self.linkScalar(roughtex, fresnel, fnroughness, "Roughness")
 
         LS.usedFeatures["Glossy"] = True
@@ -702,8 +714,16 @@ class CyclesTree:
         top = self.addGroup(TopCoatGroup, "DAZ Top Coat")
         self.linkColor(coltex, top, color, "Color")
         self.linkScalar(roughtex, top, roughness, "Roughness")
-        if bumptex:
+        if self.material.shader == 'PBRSKIN':
+            if (self.bump and self.bumptex and
+                self.bump.inputs["Strength"].default_value != 1.0):
+                node = self.buildBumpMap(1.0, self.bumptex, col=self.column-1)
+                self.links.new(node.outputs[0], top.inputs["Normal"])
+            else:
+                self.linkBump(top)
+        elif bumptex:
             node = self.buildBumpMap(1.0, bumptex, col=self.column-1)
+            self.linkNormal(node)
             self.links.new(node.outputs[0], top.inputs["Normal"])
         top.inputs["Bump"].default_value = bump
         self.mixWithActive(weight, weighttex, top)
@@ -736,7 +756,7 @@ class CyclesTree:
         node.inputs["Scale"].default_value = 1
         radius,radtex = self.getSSSRadius(color)
         self.linkColor(radtex, node, radius, "Radius")
-        self.linkNormal(node)
+        self.linkBumpNormal(node)
         fac,factex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         effect = self.getValue(["Base Color Effect"], 0)
         if effect == 1: # Scatter and transmit
@@ -877,7 +897,7 @@ class CyclesTree:
             self.linkScalar(roughtex, node, roughness, "Refraction Roughness")
             self.linkScalar(iortex, node, ior, "Refraction IOR")
             self.material.setTransSettings(True, False)
-        self.linkNormal(node)
+        self.linkBumpNormal(node)
         return node
 
 

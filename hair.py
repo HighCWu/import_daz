@@ -1385,7 +1385,7 @@ class HairTree(CyclesTree):
         self.links.new(self.info.outputs["Tangent Normal"], node.inputs["Tangent"])
 
 
-    def linkNormal(self, node):
+    def linkBumpNormal(self, node):
         self.links.new(self.info.outputs["Tangent Normal"], node.inputs["Normal"])
 
 
@@ -1517,7 +1517,7 @@ class HairBSDFTree(HairTree):
             arots = self.getValue(["Anisotropy Rotations"], 0)
             node.inputs["Rotation"].default_value = arots
             self.linkTangent(node)
-            self.linkNormal(node)
+            self.linkBumpNormal(node)
             self.column += 1
             self.active = self.addShaders(self.active, node)
 
