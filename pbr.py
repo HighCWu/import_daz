@@ -78,7 +78,10 @@ class PbrTree(CyclesTree):
 
 
     def linkPBRNormal(self, pbr):
-        if self.normal:
+        if self.bump:
+            self.links.new(self.bump.outputs["Normal"], pbr.inputs["Normal"])
+            self.links.new(self.bump.outputs["Normal"], pbr.inputs["Clearcoat Normal"])
+        elif self.normal:
             self.links.new(self.normal.outputs["Normal"], pbr.inputs["Normal"])
             self.links.new(self.normal.outputs["Normal"], pbr.inputs["Clearcoat Normal"])
 
