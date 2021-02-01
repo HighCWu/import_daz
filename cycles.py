@@ -718,9 +718,10 @@ class CyclesTree:
             if (self.bump and self.bumptex and
                 self.bump.inputs["Strength"].default_value != 1.0):
                 node = self.buildBumpMap(1.0, self.bumptex, col=self.column-1)
+                self.linkNormal(node)
                 self.links.new(node.outputs[0], top.inputs["Normal"])
             else:
-                self.linkBump(top)
+                self.linkBumpNormal(top)
         elif bumptex:
             node = self.buildBumpMap(1.0, bumptex, col=self.column-1)
             self.linkNormal(node)
