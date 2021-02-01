@@ -629,7 +629,7 @@ class DualLobeGroup(CyclesGroup):
         cycles1 = self.mixGlossy(fresnel1, glossy1, "Cycles")
         eevee1 = self.mixGlossy(fresnel1, glossy1, "Eevee")
         fresnel2 = self.addFresnel(False, "Roughness 2")
-        glossy2 = self.addGlossy("Roughness 2", False)
+        glossy2 = self.addGlossy("Roughness 2", self.lobe2Normal)
         cycles2 = self.mixGlossy(fresnel2, glossy2, "Cycles")
         eevee2 = self.mixGlossy(fresnel2, glossy2, "Eevee")
         self.mixOutput(cycles1, cycles2, "Cycles")
@@ -663,6 +663,7 @@ class DualLobeGroup(CyclesGroup):
 
 class DualLobeGroupUberIray(DualLobeGroup):
     lobe1Normal = True
+    lobe2Normal = False
 
     def addFresnel(self, useNormal, roughness):
         fresnel = self.addNode("ShaderNodeFresnel", 1)
@@ -673,12 +674,14 @@ class DualLobeGroupUberIray(DualLobeGroup):
 
 
 class DualLobeGroupPBRSkin(DualLobeGroup):
-    lobe1Normal = False
+    lobe1Normal = True
+    lobe2Normal = True
 
     def addFresnel(self, useNormal, roughness):
         fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 1)
         self.links.new(self.inputs.outputs["IOR"], fresnel.inputs["IOR"])
         self.links.new(self.inputs.outputs[roughness], fresnel.inputs["Roughness"])
+        self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
         return fresnel
 
 # ---------------------------------------------------------------------
