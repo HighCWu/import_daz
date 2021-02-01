@@ -704,8 +704,6 @@ class CyclesTree:
         if bumptex:
             node = self.buildBumpMap(1.0, bumptex, col=self.column-1)
             self.links.new(node.outputs[0], top.inputs["Normal"])
-        else:
-            self.linkNormal(top)
         top.inputs["Bump"].default_value = bump
         self.mixWithActive(weight, weighttex, top)
 
