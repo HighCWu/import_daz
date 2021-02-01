@@ -575,6 +575,10 @@ class DAZ_PT_FacsUnits(bpy.types.Panel, DAZ_PT_Morphs):
 
     morphset = "Facs"
 
+    def preamble(self, layout, rig):
+        layout.operator("daz.import_facecap")
+        DAZ_PT_Morphs.preamble(self, layout, rig)
+
 
 class DAZ_PT_FacsExpressions(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "FACS Expressions"

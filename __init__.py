@@ -68,7 +68,7 @@ def importModules():
                     "matedit", "tables", "proxy", "rigify", "merge", "hide",
                     "mhx", "layers", "fkik", "hair", "transfer", "dforce"]
         if bpy.app.version >= (2,82,0):
-            modnames.append("udim")
+            modnames += ["udim", "facecap"]
         anchor = os.path.basename(__file__[0:-12])
         theModules = []
         for modname in modnames:
@@ -195,6 +195,7 @@ def register():
     panel.initialize()
     if bpy.app.version >= (2,82,0):
         udim.initialize()
+        facecap.initialize()
 
     if bpy.app.version < (2,80,0):
         bpy.types.INFO_MT_file_import.append(menu_func_import)
@@ -236,8 +237,10 @@ def unregister():
     proxy.uninitialize()
     rigify.uninitialize()
     transfer.uninitialize()
+    panel.uninitialize()
     if bpy.app.version >= (2,82,0):
         udim.uninitialize()
+        facecap.uninitialize()
 
     if bpy.app.version < (2,80,0):
         bpy.types.INFO_MT_file_import.remove(menu_func_import)
