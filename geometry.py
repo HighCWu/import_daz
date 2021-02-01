@@ -48,6 +48,7 @@ class GeoNode(Node):
         else:
             fileref = figure.fileref
         Node.__init__(self, fileref)
+        self.classType = GeoNode
         self.id = normalizeRef(ref)
         self.data = geo
         self.figure = figure
@@ -403,6 +404,7 @@ class Geometry(Asset, Channels):
     def __init__(self, fileref):
         Asset.__init__(self, fileref)
         Channels.__init__(self)
+        self.classType = Geometry
         self.instances = self.nodes = {}
 
         self.verts = []
@@ -875,6 +877,7 @@ class Uvset(Asset):
 
     def __init__(self, fileref):
         Asset.__init__(self, fileref)
+        self.classType = Uvset
         self.material = None
         self.built = []
 

@@ -53,6 +53,7 @@ class Material(Asset, Channels):
     def __init__(self, fileref):
         Asset.__init__(self, fileref)
         Channels.__init__(self)
+        self.classType = Material
         self.scene = None
         self.shader = 'DAZ'
         self.channels = OrderedDict()
@@ -771,7 +772,8 @@ class Texture:
         elif self.images["NONE"]:
             img = self.images["NONE"]
         else:
-            raise RuntimeError("BUG: getMapping finds no image")
+            reportError("BUG: getMapping finds no image", trigger=(3,5))
+            return (0,0,1,1,0)
 
         tx,ty = img.size
         mx,my = map.size

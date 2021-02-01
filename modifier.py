@@ -89,6 +89,7 @@ def parseMorph(asset, struct):
 class Modifier(Asset):
     def __init__(self, fileref):
         Asset.__init__(self, fileref)
+        self.classType = Modifier
         self.groups = []
 
 
@@ -229,6 +230,7 @@ class ChannelAsset(Modifier):
 
     def __init__(self, fileref):
         Modifier.__init__(self, fileref)
+        self.classType = ChannelAsset
         self.type = "channel"
         self.value = 0
         self.min = None
@@ -409,6 +411,7 @@ class SkinBinding(Modifier):
 
     def __init__(self, fileref):
         Modifier.__init__(self, fileref)
+        self.classType = SkinBinding
         self.parent = None
         self.skin = None
         self.type = "skin_binding"
@@ -672,6 +675,7 @@ class Morph(FormulaAsset):
 
     def __init__(self, fileref):
         FormulaAsset.__init__(self, fileref)
+        self.classType = Morph
         self.type = "morph"
         self.vertex_count = 0
         self.deltas = []

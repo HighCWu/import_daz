@@ -32,6 +32,7 @@ from .cycles import CyclesTree
 from .pbr import PbrTree
 from .material import WHITE
 from .utils import LS, GS
+from .error import reportError
 
 # ---------------------------------------------------------------------
 #   CyclesGroup
@@ -967,7 +968,12 @@ class LieGroup(CyclesGroup):
                     self.links.new(mapping.outputs["Vector"], texnode.inputs["Vector"])
                     innode = mapping
                 else:
-                    self.setTexNode(asset.images[colorSpace].name, texnode, colorSpace)
+                    img = asset.images[colorSpace]
+                    if img:
+                        self.setTexNode(img.name, texnode, colorSpace)
+                    else:
+                        msg = ("Missing image: %s" % asset.getName())
+                        reportError(msg, trigger=(3,5))
                 self.links.new(self.inputs.outputs["Vector"], innode.inputs["Vector"])
             texnodes.append([texnode])
 

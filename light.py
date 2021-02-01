@@ -54,6 +54,7 @@ class Light(Node):
 
     def __init__(self, fileref):
         Node.__init__(self, fileref)
+        self.classType = Light
         self.type = None
         self.info = {}
         self.presentation = {}

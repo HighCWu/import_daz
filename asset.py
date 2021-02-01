@@ -240,6 +240,7 @@ class Asset(Accessor):
         self.name = None
         self.label = None
         self.type = None
+        self.classType = Asset
         self.visible = True
         self.parent = None
         self.children = []
@@ -361,7 +362,7 @@ class Asset(Accessor):
     def parseSource(self, url):
         asset = self.getAsset(url)
         if asset:
-            if self.type == asset.type:
+            if isinstance(self, asset.classType):
                 self.source = asset
                 asset.sourcing = self
                 theAssets[url] = self

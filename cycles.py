@@ -42,6 +42,7 @@ class CyclesMaterial(Material):
 
     def __init__(self, fileref):
         Material.__init__(self, fileref)
+        self.classType = CyclesMaterial
         self.tree = None
         self.useEevee = False
 

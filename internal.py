@@ -25,7 +25,6 @@
 # of the authors and should not be interpreted as representing official policies,
 # either expressed or implied, of the FreeBSD Project.
 
-
 import bpy
 import math
 from mathutils import Vector
@@ -33,6 +32,11 @@ from .utils import *
 from .material import Material, WHITE, BLACK, setImageColorSpace, isBlack, isWhite
 
 class InternalMaterial(Material):
+
+    def __init__(self, fileref):
+        Material.__init__(self, fileref)
+        self.classType = InternalMaterial
+
 
     def __repr__(self):
         return ("<Internal %s r: %s>" % (self.id, self.rna))
