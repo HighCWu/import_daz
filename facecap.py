@@ -28,7 +28,7 @@
 
 import bpy
 from bpy.props import BoolProperty, FloatProperty
-from mathutils import Vector, Euler
+from mathutils import Vector, Euler, Matrix
 from .error import *
 from .utils import *
 
@@ -113,9 +113,9 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
         default = True)
 
     fps : FloatProperty(
-        name = "FPS",
-        description = "Frames per second",
-        default = 25)
+        name = "Framerate",
+        description = "Framerate in frames per second (fps)",
+        default = 24)
 
     def draw(self, context):
         self.layout.prop(self, "fps")
@@ -148,30 +148,43 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
                 msg += ("  %s\n" % bshape)
             raise DazError(msg)
 
+        RX = Matrix.Rotation(90*D, 3, 'X')
+        RXinv = RX.inverted()
         head = rig.pose.bones["head"]
         leye = rig.pose.bones["lEye"]
         reye = rig.pose.bones["rEye"]
+        hrest = head.bone.matrix_local.inverted()
+        lrest = leye.bone.matrix_local.inverted() @ head.bone.matrix_local
+        rrest = reye.bone.matrix_local.inverted() @ head.bone.matrix_local
+        hrest = hrest.to_3x3()
+        lrest = lrest.to_3x3()
+        rrest = rrest.to_3x3()
+
         factor = self.fps * 1e-3
 
         for t in bskeys.keys():
             frame = factor * t
 
             if self.useHeadLoc:
-                hloc = scale * hlockeys[t]
+                hloc = scale * hrest @ hlockeys[t]
                 head.location = hloc
                 head.keyframe_insert("location", frame=frame, group="head")
 
+            hmat = RX @ hrotkeys[t].to_matrix() @ RXinv
             if self.useHeadRot:
-                rot = hrotkeys[t].to_matrix().to_euler(head.rotation_mode)
-                head.rotation_euler = rot
+                hloc = hrest @ hmat @ hrest.inverted()
+                head.rotation_euler = hloc.to_euler(head.rotation_mode)
                 head.keyframe_insert("rotation_euler", frame=frame, group="head")
 
             if self.useEyesRot:
-                rot = leyekeys[t].to_matrix().to_euler(leye.rotation_mode)
-                leye.rotation_euler = rot
+                lmat = RX @ leyekeys[t].to_matrix() @ RXinv
+                lloc = lrest @ lmat @ lrest.inverted()
+                leye.rotation_euler = lloc.to_euler(leye.rotation_mode)
                 leye.keyframe_insert("rotation_euler", frame=frame, group="lEye")
-                rot = reyekeys[t].to_matrix().to_euler(reye.rotation_mode)
-                reye.rotation_euler = rot
+
+                rmat = RX @ reyekeys[t].to_matrix() @ RXinv
+                rloc = rrest @ rmat @ rrest.inverted()
+                reye.rotation_euler = rloc.to_euler(leye.rotation_mode)
                 reye.keyframe_insert("rotation_euler", frame=frame, group="rEye")
 
             for bshape,value in zip(bshapes,bskeys[t]):
