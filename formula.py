@@ -616,6 +616,7 @@ class PropFormulas(PoseboneDriver):
         self.others = {}
         self.taken = {}
         self.built = {}
+        self.depends = {}
 
 
     def buildPropFormula(self, asset, filepath, fresh):
@@ -686,6 +687,9 @@ class PropFormulas(PoseboneDriver):
                     #print("Recursive definition:", prop, asset.selfref())
                     continue
                 addDependency(key, prop, val)
+                if prop not in self.depends.keys():
+                    self.depends[prop] = []
+                self.depends[prop].append((key,val))
                 subasset = asset.getTypedAsset(url, ChannelAsset)
                 if GS.useMultiShapes and isinstance(subasset, Morph):
                     subdata = self.evalSubAsset(asset, subasset, level)

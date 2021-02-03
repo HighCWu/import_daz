@@ -675,15 +675,30 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         min = skey.slider_min if GS.useDazPropLimits else None
         max = skey.slider_max if GS.useDazPropLimits else None
         if not asset.visible:
-            makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop, min=min, max=max, keep=keep)
+            makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
+                min=min, max=max, factor=1.0, varname="a", keep=keep)
         else:
             prop = skey.name
             if self.rig is None:
                 addToPropGroup(prop, ob, self.morphset, asset)
             else:
-                makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop, min=min, max=max, keep=keep)
+                makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
+                    min=min, max=max, factor=1.0, varname="a", keep=keep)
                 addToPropGroup(prop, self.rig, self.morphset, asset)
+                self.driveDependents(ob, skey, prop, 1.0, "a", min, max)
         self.taken[prop] = self.built[prop] = True
+
+
+    def driveDependents(self, ob, skey, prop, value, varname, min, max):
+        from .driver import makeShapekeyDriver
+        if prop in self.depends.keys():
+            for (dep,val) in self.depends[prop]:
+                factor = val*value
+                varname = chr(ord(varname) + 1)
+                makeShapekeyDriver(ob, skey.name, skey.value, self.rig, dep,
+                    min=min, max=max, factor=factor, varname=varname, keep=True)
+                varname = self.driveDependents(ob, skey, dep, factor, varname, min, max)
+        return varname
 
 
     def addSubmorph(self, prop):
@@ -2387,7 +2402,6 @@ class DAZ_OT_MeshToShape(DazOperator, IsMesh):
         if nsverts != ntverts:
             raise DazError("Vertex count mismatch:  \n%d != %d" % (nsverts, ntverts))
         skey = skeys.key_blocks[idx]
-        print("SKEY", skey)
         for v in src.data.vertices:
             skey.data[v.index].co = v.co
 

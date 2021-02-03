@@ -136,12 +136,14 @@ class Target:
         self.bone_target = trg.bone_target
         self.transform_type = trg.transform_type
         self.transform_space = trg.transform_space
+        self.data_path = trg.data_path
 
     def create(self, trg):
         trg.id = self.id
         trg.bone_target = self.bone_target
         trg.transform_type = self.transform_type
         trg.transform_space = self.transform_space
+        trg.data_path = self.data_path
 
 #-------------------------------------------------------------
 #
@@ -375,22 +377,26 @@ def makePropDriver(prop, rna, channel, rig, expr, idx=-1):
     addDriverVar(fcu, "x", prop, rig)
 
 
-def makeShapekeyDriver(ob, sname, value, rig, prop, min=None, max=None, keep=False):
+def makeShapekeyDriver(ob, sname, value, rig, prop,
+        min=None, max=None, factor=1.0, varname="a", keep=False):
     setFloatProp(rig, prop, value, min=min, max=max)
     skey = ob.data.shape_keys.key_blocks[sname]
     fcu = getShapekeyDriver(ob.data.shape_keys, sname)
     driver = None
+    facstr = ""
+    if factor != 1.0:
+        facstr = "(%.3f)*" % factor
     if fcu:
         driver = Driver(fcu, False)
         skey.driver_remove("value")
     if keep and driver:
         fcu = driver.create(skey)
-        fcu.driver.expression = "%s + x" % driver.expression
+        fcu.driver.expression = "%s+%s%s" % (driver.expression, facstr, varname)
     else:
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
-        fcu.driver.expression = "x"
-    addDriverVar(fcu, "x", prop, rig)
+        fcu.driver.expression = "%s%s" % (facstr, varname)
+    addDriverVar(fcu, varname, prop, rig)
 
 
 def addVarToDriver(fcu, rig, prop, factor):
