@@ -27,7 +27,7 @@
 
 
 import bpy
-from bpy.props import BoolProperty, FloatProperty
+from bpy.props import BoolProperty, FloatProperty, StringProperty
 from mathutils import Vector, Euler, Matrix
 from .error import *
 from .utils import *
@@ -91,11 +91,26 @@ FacsTable = {
 #   Import FaceCap
 #------------------------------------------------------------------
 
-class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
+class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMeshArmature):
     bl_idname = "daz.import_facecap"
     bl_label = "Import FaceCap File"
     bl_description = "Import a text file with facecap data"
     bl_options = {'UNDO'}
+
+    makeNewAction : BoolProperty(
+        name = "New Action",
+        description = "Unlink current action and make a new one",
+        default = True)
+
+    actionName : StringProperty(
+        name = "Action Name",
+        description = "Name of loaded action",
+        default = "Action")
+
+    fps : FloatProperty(
+        name = "Frame Rate",
+        description = "Animation FPS in FaceCap file",
+        default = 24)
 
     useHeadLoc : BoolProperty(
         name = "Head Location",
@@ -112,12 +127,11 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
         description = "Include eyes rotation animation",
         default = True)
 
-    fps : FloatProperty(
-        name = "Framerate",
-        description = "Framerate in frames per second (fps)",
-        default = 24)
 
     def draw(self, context):
+        self.layout.prop(self, "makeNewAction")
+        if self.makeNewAction:
+            self.layout.prop(self, "actionName")
         self.layout.prop(self, "fps")
         self.layout.prop(self, "useHeadLoc")
         self.layout.prop(self, "useHeadRot")
@@ -131,15 +145,25 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
 
     def run(self, context):
         from .morphing import getRigFromObject
-
         rig = getRigFromObject(context.object)
-        scale = rig.DazScale
-        bshapes, hlockeys, hrotkeys, leyekeys, reyekeys, bskeys = self.parse()
-        first = list(bskeys.values())[0]
-        print("Blendshapes: %d\nKeys: %d" % (len(bshapes), len(first)))
+        if rig is None:
+            raise DazError("No rig selected")
+        LS.scale = rig.DazScale
+        self.parse()
+        first = list(self.bskeys.values())[0]
+        print("Blendshapes: %d\nKeys: %d" % (len(self.bshapes), len(first)))
+        if self.makeNewAction and rig.animation_data:
+            rig.animation_data.action = None
+        self.build(rig)
+        if self.makeNewAction and rig.animation_data:
+            act = rig.animation_data.action
+            if act:
+                act.name = self.actionName
 
+
+    def build(self, rig):
         missing = []
-        for bshape in bshapes:
+        for bshape in self.bshapes:
             if bshape not in FacsTable.keys():
                 missing.append(bshape)
         if missing:
@@ -148,52 +172,55 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
                 msg += ("  %s\n" % bshape)
             raise DazError(msg)
 
-        RX = Matrix.Rotation(90*D, 3, 'X')
-        RXinv = RX.inverted()
-        head = rig.pose.bones["head"]
-        leye = rig.pose.bones["lEye"]
-        reye = rig.pose.bones["rEye"]
-        hrest = head.bone.matrix_local.inverted()
-        lrest = leye.bone.matrix_local.inverted() @ head.bone.matrix_local
-        rrest = reye.bone.matrix_local.inverted() @ head.bone.matrix_local
-        hrest = hrest.to_3x3()
-        lrest = lrest.to_3x3()
-        rrest = rrest.to_3x3()
+        head = self.getBone("head", rig)
+        leye = self.getBone("lEye", rig)
+        reye = self.getBone("rEye", rig)
+        if self.useHeadLoc:
+            hip = self.getBone("hip", rig)
 
         factor = self.fps * 1e-3
 
-        for t in bskeys.keys():
+        for t in self.bskeys.keys():
             frame = factor * t
 
             if self.useHeadLoc:
-                hloc = scale * hrest @ hlockeys[t]
-                head.location = hloc
-                head.keyframe_insert("location", frame=frame, group="head")
+                hip.location = self.hlockeys[t]
+                hip.keyframe_insert("location", frame=frame, group="hip")
 
-            hmat = RX @ hrotkeys[t].to_matrix() @ RXinv
             if self.useHeadRot:
-                hloc = hrest @ hmat @ hrest.inverted()
-                head.rotation_euler = hloc.to_euler(head.rotation_mode)
+                hmat = self.hrotkeys[t].to_matrix()
+                head.rotation_euler = hmat.to_euler(head.rotation_mode)
                 head.keyframe_insert("rotation_euler", frame=frame, group="head")
 
             if self.useEyesRot:
-                lmat = RX @ leyekeys[t].to_matrix() @ RXinv
-                lloc = lrest @ lmat @ lrest.inverted()
-                leye.rotation_euler = lloc.to_euler(leye.rotation_mode)
+                lmat = self.leyekeys[t].to_matrix()
+                leye.rotation_euler = lmat.to_euler()
                 leye.keyframe_insert("rotation_euler", frame=frame, group="lEye")
 
-                rmat = RX @ reyekeys[t].to_matrix() @ RXinv
-                rloc = rrest @ rmat @ rrest.inverted()
-                reye.rotation_euler = rloc.to_euler(leye.rotation_mode)
+                rmat = self.reyekeys[t].to_matrix()
+                reye.rotation_euler = rmat.to_euler()
                 reye.keyframe_insert("rotation_euler", frame=frame, group="rEye")
 
-            for bshape,value in zip(bshapes,bskeys[t]):
+            for bshape,value in zip(self.bshapes,self.bskeys[t]):
                 prop = FacsTable[bshape]
                 if prop in rig.keys():
                     rig[prop] = value
                     rig.keyframe_insert('["%s"]' % prop, frame=frame, group="FACS")
                 else:
                     print("MISS", bshape, prop)
+
+
+    def getBone(self, bname, rig):
+        if bname not in rig.pose.bones.keys():
+            raise DazError("Did not find bone: %s" % bname)
+        pb = rig.pose.bones[bname]
+        msg = ("Bone %s is driven.\nMake extra face bones first" % bname)
+        if rig.animation_data:
+            datapath = 'pose.bones["%s"].rotation_euler' % bname
+            for fcu in rig.animation_data.drivers:
+                if fcu.data_path == datapath:
+                    raise DazError(msg)
+        return pb
 
 
     # timestamp in milli seconds (file says nano),
@@ -203,30 +230,30 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, IsMeshArmature):
     # right-eye eulerAngles xy,
     # blendshapes
     def parse(self):
-        bshapes = []
-        hlockeys = {}
-        hrotkeys = {}
-        leyekeys = {}
-        reyekeys = {}
-        bskeys = {}
+        self.bshapes = []
+        self.hlockeys = {}
+        self.hrotkeys = {}
+        self.leyekeys = {}
+        self.reyekeys = {}
+        self.bskeys = {}
         with open(self.filepath, "r") as fp:
             for line in fp:
                 line = line.strip()
                 if line[0:3] == "bs,":
-                    bshapes = line.split(",")[1:]
+                    self.bshapes = line.split(",")[1:]
                 elif line[0:2] == "k,":
                     words = line.split(",")
                     t = int(words[1])
-                    hlockeys[t] = Vector((float(words[2]), float(words[3]), float(words[4])))
-                    hrotkeys[t] = Euler((D*float(words[5]), D*float(words[6]), D*float(words[7])))
-                    leyekeys[t] = Euler((D*float(words[8]), D*float(words[9]), 0.0))
-                    reyekeys[t] = Euler((D*float(words[10]), D*float(words[11]), 0.0))
-                    bskeys[t] = [float(word) for word in words[12:]]
+                    self.hlockeys[t] = d2b((float(words[2]), float(words[3]), float(words[4])))
+                    self.hrotkeys[t] = Euler((D*float(words[5]), D*float(words[6]), D*float(words[7])))
+                    self.leyekeys[t] = Euler((D*float(words[9]), 0.0, D*float(words[8])))
+                    self.reyekeys[t] = Euler((D*float(words[11]), 0.0, D*float(words[10])))
+                    self.bskeys[t] = [float(word) for word in words[12:]]
                 elif line[0:5] == "info,":
                     pass
                 else:
                     raise DazError("Illegal syntax:\%s     " % line)
-        return bshapes, hlockeys, hrotkeys, leyekeys, reyekeys, bskeys
+        return self.bshapes, self.hlockeys, self.hrotkeys, self.leyekeys, self.reyekeys, self.bskeys
 
 #----------------------------------------------------------
 #   Initialize
