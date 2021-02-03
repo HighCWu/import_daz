@@ -55,7 +55,7 @@ def importModules():
             importlib.reload(mod)
     else:
         print("\nLoading DAZ")
-        modnames = ["globvars", "settings", "utils", "error"]
+        modnames = ["buildnumber", "globvars", "settings", "utils", "error"]
         if bpy.app.version < (2,80,0):
             modnames.append("buttons27")
         else:
