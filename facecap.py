@@ -148,7 +148,6 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
         rig = getRigFromObject(context.object)
         if rig is None:
             raise DazError("No rig selected")
-        LS.scale = rig.DazScale
         self.parse()
         first = list(self.bskeys.values())[0]
         print("Blendshapes: %d\nKeys: %d" % (len(self.bshapes), len(first)))
@@ -179,12 +178,13 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
             hip = self.getBone("hip", rig)
 
         factor = self.fps * 1e-3
+        scale = rig.DazScale
 
         for t in self.bskeys.keys():
             frame = factor * t
 
             if self.useHeadLoc:
-                hip.location = self.hlockeys[t]
+                hip.location = scale*self.hlockeys[t]
                 hip.keyframe_insert("location", frame=frame, group="hip")
 
             if self.useHeadRot:
@@ -244,7 +244,7 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
                 elif line[0:2] == "k,":
                     words = line.split(",")
                     t = int(words[1])
-                    self.hlockeys[t] = d2b((float(words[2]), float(words[3]), float(words[4])))
+                    self.hlockeys[t] = Vector((float(words[2]), -float(words[3]), -float(words[4])))
                     self.hrotkeys[t] = Euler((D*float(words[5]), D*float(words[6]), D*float(words[7])))
                     self.leyekeys[t] = Euler((D*float(words[9]), 0.0, D*float(words[8])))
                     self.reyekeys[t] = Euler((D*float(words[11]), 0.0, D*float(words[10])))
