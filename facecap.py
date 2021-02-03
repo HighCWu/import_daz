@@ -171,11 +171,11 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
                 msg += ("  %s\n" % bshape)
             raise DazError(msg)
 
-        head = self.getBone("head", rig)
-        leye = self.getBone("lEye", rig)
-        reye = self.getBone("rEye", rig)
+        head = self.getBones(["head"], rig)
+        leye = self.getBones(["lEye"], rig)
+        reye = self.getBones(["rEye"], rig)
         if self.useHeadLoc:
-            hip = self.getBone("hip", rig)
+            hip = self.getBones(["hip", "torso"], rig)
 
         factor = self.fps * 1e-3
         scale = rig.DazScale
@@ -186,20 +186,11 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
             if self.useHeadLoc:
                 hip.location = scale*self.hlockeys[t]
                 hip.keyframe_insert("location", frame=frame, group="hip")
-
             if self.useHeadRot:
-                hmat = self.hrotkeys[t].to_matrix()
-                head.rotation_euler = hmat.to_euler(head.rotation_mode)
-                head.keyframe_insert("rotation_euler", frame=frame, group="head")
-
+                self.setRotation(head, self.hrotkeys[t], frame)
             if self.useEyesRot:
-                lmat = self.leyekeys[t].to_matrix()
-                leye.rotation_euler = lmat.to_euler()
-                leye.keyframe_insert("rotation_euler", frame=frame, group="lEye")
-
-                rmat = self.reyekeys[t].to_matrix()
-                reye.rotation_euler = rmat.to_euler()
-                reye.keyframe_insert("rotation_euler", frame=frame, group="rEye")
+                self.setRotation(leye, self.leyekeys[t], frame)
+                self.setRotation(reye, self.reyekeys[t], frame)
 
             for bshape,value in zip(self.bshapes,self.bskeys[t]):
                 prop = FacsTable[bshape]
@@ -210,9 +201,27 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
                     print("MISS", bshape, prop)
 
 
+    def setRotation(self, pb, euler, frame):
+        mat = euler.to_matrix()
+        if pb.rotation_mode == 'QUATERNION':
+            pb.rotation_quaternion = mat.to_quaternion()
+            pb.keyframe_insert("rotation_quaternion", frame=frame, group=pb.name)
+        else:
+            pb.rotation_euler = mat.to_euler(pb.rotation_mode)
+            pb.keyframe_insert("rotation_euler", frame=frame, group=pb.name)
+
+
+    def getBones(self, bnames, rig):
+        for bname in bnames:
+            pb = self.getBone(bname, rig)
+            if pb:
+                return pb
+        raise DazError("Did not find bones: %s" % bnames)
+
+
     def getBone(self, bname, rig):
         if bname not in rig.pose.bones.keys():
-            raise DazError("Did not find bone: %s" % bname)
+            return None
         pb = rig.pose.bones[bname]
         msg = ("Bone %s is driven.\nMake extra face bones first" % bname)
         if rig.animation_data:
