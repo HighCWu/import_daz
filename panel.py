@@ -28,6 +28,7 @@
 import bpy
 from .utils import *
 from . import addon_updater_ops
+from .buildnumber import BUILD
 
 #----------------------------------------------------------
 #   Panels
@@ -43,7 +44,7 @@ def showBox(scn, attr, layout):
 
 
 class DAZ_PT_Setup(bpy.types.Panel):
-    bl_label = "Setup (version 1.5.1)"
+    bl_label = "Setup (version 1.5.1.%04d)" % BUILD
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ Importer"
