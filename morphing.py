@@ -573,7 +573,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         drvvalue = 1.0
         self.morph = None
         isBoneDriven = False
-        if self.useShapekeys and isinstance(asset, Morph) and self.mesh and self.mesh.type == 'MESH':
+        if self.useShapekeys and isinstance(asset, Morph) and self.mesh:
             useBuild = True
             skey = None
             if asset.vertex_count < 0:
@@ -858,7 +858,7 @@ class StandardMorphSelector(Selector):
         global theMorphFiles
         scn = context.scene
         self.selection.clear()
-        if not self.setupCharacter(context, True):
+        if not self.setupCharacter(context, False):
             return {'FINISHED'}
         setupMorphPaths(scn, False)
         try:
