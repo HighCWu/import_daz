@@ -677,6 +677,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         if not asset.visible:
             makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
                 min=min, max=max, factor=1.0, varname="a", keep=keep)
+            self.driveDependents(ob, skey, prop, 1.0, "a", min, max)
         else:
             prop = skey.name
             if self.rig is None:
