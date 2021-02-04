@@ -378,7 +378,7 @@ def makePropDriver(prop, rna, channel, rig, expr, idx=-1):
 
 
 def makeShapekeyDriver(ob, sname, value, rig, prop,
-        min=None, max=None, factor=1.0, varname="a", keep=False):
+        min=None, max=None, factor=1.0, varname="a", keep=False, mult=None):
     setFloatProp(rig, prop, value, min=min, max=max)
     skey = ob.data.shape_keys.key_blocks[sname]
     fcu = getShapekeyDriver(ob.data.shape_keys, sname)
@@ -391,12 +391,19 @@ def makeShapekeyDriver(ob, sname, value, rig, prop,
         skey.driver_remove("value")
     if keep and driver:
         fcu = driver.create(skey)
-        fcu.driver.expression = "%s+%s%s" % (driver.expression, facstr, varname)
+        expr = "%s+%s%s" % (driver.expression, facstr, varname)
     else:
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
-        fcu.driver.expression = "%s%s" % (facstr, varname)
+        expr = "%s%s" % (facstr, varname)
     addDriverVar(fcu, varname, prop, rig)
+    if mult:
+        varname = chr(ord(varname) + 1)
+        addDriverVar(fcu, varname, mult, rig)
+        fcu.driver.expression = "%s*(%s)" % (varname, expr)
+    else:
+        fcu.driver.expression = expr
+    return varname
 
 
 def addVarToDriver(fcu, rig, prop, factor):

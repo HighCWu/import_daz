@@ -674,19 +674,24 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         from .driver import makeShapekeyDriver
         min = skey.slider_min if GS.useDazPropLimits else None
         max = skey.slider_max if GS.useDazPropLimits else None
+
+        mult = self.getShapeMultiplier(asset, self.rig, ob, prop)
+        if mult:
+            print("Multiply properties:", prop, mult)
+
         if not asset.visible:
             makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
-                min=min, max=max, factor=1.0, varname="a", keep=keep)
+                min=min, max=max, factor=1.0, varname="a", keep=keep, mult=mult)
             self.driveDependents(ob, skey, prop, 1.0, "a", min, max)
         else:
             prop = skey.name
             if self.rig is None:
                 addToPropGroup(prop, ob, self.morphset, asset)
             else:
-                makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
-                    min=min, max=max, factor=1.0, varname="a", keep=keep)
+                varname = makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
+                    min=min, max=max, factor=1.0, varname="a", keep=keep, mult=mult)
                 addToPropGroup(prop, self.rig, self.morphset, asset)
-                self.driveDependents(ob, skey, prop, 1.0, "a", min, max)
+                self.driveDependents(ob, skey, prop, 1.0, varname, min, max)
         self.taken[prop] = self.built[prop] = True
 
 
@@ -696,7 +701,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             for (dep,val) in self.depends[prop]:
                 factor = val*value
                 varname = chr(ord(varname) + 1)
-                makeShapekeyDriver(ob, skey.name, skey.value, self.rig, dep,
+                varname = makeShapekeyDriver(ob, skey.name, skey.value, self.rig, dep,
                     min=min, max=max, factor=factor, varname=varname, keep=True)
                 varname = self.driveDependents(ob, skey, dep, factor, varname, min, max)
         return varname

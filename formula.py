@@ -130,7 +130,7 @@ class Formula:
             return None,None,0
 
 
-    def evalFormulas(self, exprs, props, rig, mesh, useBone, useStages=False, verbose=False):
+    def evalFormulas(self, exprs, props, rig, mesh, useBone, useStages=False):
         from .modifier import Morph
         success = False
         stages = []
@@ -140,7 +140,7 @@ class Formula:
         if not success:
             if not self.formulas:
                 return False
-            if verbose:
+            if GS.verbosity > 3:
                 print("Could not parse formulas", self.formulas)
             return False
         return True
@@ -174,12 +174,24 @@ class Formula:
             exprs[bname] = {}
         if path not in exprs[bname].keys():
             value = self.getDefaultValue(useBone, pb, default)
-            exprs[bname][path] = {"value" : value, "others" : [], "prop" : None, "bone" : None, "output" : formula["output"]}
+            mult = self.getMultiplyUrl(formula)
+            exprs[bname][path] = {
+                "value" : value,
+                "others" : [],
+                "prop" : None,
+                "bone" : None,
+                "output" : formula["output"],
+                "mult" : mult}
         elif "stage" in formula.keys():
             pass
         elif path == "value":
             expr = exprs[bname][path]
-            other = {"value" : expr["value"], "prop" : expr["prop"], "bone" : expr["bone"], "output" : formula["output"]}
+            other = {
+                "value" : expr["value"],
+                "prop" : expr["prop"],
+                "bone" : expr["bone"],
+                "output" : formula["output"],
+                "mult" : None}
             expr["others"].append(other)
             expr["value"] = self.getDefaultValue(useBone, pb, default)
 
@@ -268,6 +280,17 @@ class Formula:
         return True
 
 
+    def getMultiplyUrl(self, formula):
+        if ("stage" in formula.keys() and
+            "operations" in formula.keys()):
+            ops = formula["operations"]
+            if (formula["stage"] == "mult" and
+                len(ops) == 1 and
+                "url" in ops[0].keys()):
+                return ops[0]["url"]
+        return None
+
+
     def getDefaultValue(self, useBone, pb, default):
         if not useBone:
             return default
@@ -352,13 +375,34 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
 #-------------------------------------------------------------
 
 class ShapeFormulas:
-    def buildShapeFormula(self, asset, scn, rig, ob, verbose=True):
-        if ob is None or ob.type != 'MESH' or ob.data.shape_keys is None:
-            return False,None
-
+    def getShapeExprsProps(self, asset, rig, ob):
         exprs = {}
         props = {}
-        if not asset.evalFormulas(exprs, props, rig, ob, True, useStages=True, verbose=verbose):
+        if (ob and ob.type == 'MESH' and ob.data.shape_keys and
+            asset.evalFormulas(exprs, props, rig, ob, True, useStages=True)):
+            return exprs, props
+        else:
+            return {}, {}
+
+
+    def getShapeMultiplier(self, asset, rig, ob, prop):
+        exprs,props = self.getShapeExprsProps(asset, rig, ob)
+        if not exprs:
+            return None
+        for sname,expr in exprs.items():
+            sname = unquote(sname)
+            if (sname == prop and
+                "value" in expr.keys() and
+                "mult" in expr["value"].keys()):
+                url = expr["value"]["mult"]
+                mult = unquote( url.split("#")[-1].split("?")[0] )
+                return mult
+        return None
+
+
+    def buildShapeFormula(self, asset, scn, rig, ob):
+        exprs,props = self.getShapeExprsProps(asset, rig, ob)
+        if not exprs:
             return False,None,1
 
         from .modifier import addToMorphSet
@@ -377,15 +421,15 @@ class ShapeFormulas:
                 return False,None,1.0
             skey = ob.data.shape_keys.key_blocks[sname]
             if "value" in expr.keys():
-                ok,prop,value = self.buildSingleShapeFormula(expr["value"], rig, ob, skey, asset, verbose)
+                ok,prop,value = self.buildSingleShapeFormula(expr["value"], rig, ob, skey, asset)
                 success = (success and ok)
                 for other in expr["value"]["others"]:
-                    ok,_,_ = self.buildSingleShapeFormula(other, rig, ob, skey, asset, verbose)
+                    ok,_,_ = self.buildSingleShapeFormula(other, rig, ob, skey, asset)
                     success = (success and ok)
         return success,prop,value
 
 
-    def buildSingleShapeFormula(self, expr, rig, ob, skey, asset, verbose):
+    def buildSingleShapeFormula(self, expr, rig, ob, skey, asset):
         from .bone import BoneAlternatives
 
         bname = expr["bone"]
@@ -394,7 +438,7 @@ class ShapeFormulas:
                 return False, expr["prop"], expr["value"][0]
             elif not self.usePropDrivers:
                 msg =('No bone to drive shapekey %s' % skey.name)
-                if verbose:
+                if GS.verbosity > 2:
                     print(msg)
             return False, None, 1.0
         if bname not in rig.pose.bones.keys():
