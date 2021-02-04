@@ -258,6 +258,7 @@ class DazOperator(bpy.types.Operator):
 
     def prequel(self, context):
         self.mode = None
+        self.activeObject = context.object
         if context.object:
             self.mode = context.object.mode
             try:
@@ -268,9 +269,12 @@ class DazOperator(bpy.types.Operator):
 
 
     def sequel(self, context):
+        from .utils import setActiveObject, setSelected
         wm = bpy.context.window_manager
         wm.progress_update(100)
         wm.progress_end()
+        setActiveObject(context, self.activeObject)
+        setSelected(self.activeObject, True)
         if self.mode:
             try:
                 bpy.ops.object.mode_set(mode=self.mode)
