@@ -29,7 +29,6 @@
 import bpy
 import collections
 import os
-import numpy as np
 
 from .asset import Asset
 from .channels import Channels
@@ -799,19 +798,6 @@ class Morph(FormulaAsset):
             me.vertices[vn].co += scale * d2bu(delta[1:])
 
 
-    def toNumpy(self, ob):
-        nverts = self.vertex_count
-        if nverts < 0:
-            if ob and ob.type == 'MESH':
-                nverts = len(ob.data.vertices)
-            else:
-                return None
-        arr = np.zeros((nverts, 3), dtype=float)
-        for delta in self.deltas:
-            arr[delta[0]] = delta[1:]
-        return arr
-
-
     def buildMorph(self, ob,
                    useBuild=True,
                    useSoftLimits=False,
@@ -875,13 +861,3 @@ def addShapekey(ob, sname):
         ob.shape_key_remove(skey)
     return ob.shape_key_add(name=sname)
 
-
-def buildShapeFromNumpy(ob, skey, delta):
-    verts = np.array([list(v.co) for v in ob.data.vertices])
-    if GS.zup:
-        delta = np.array((delta[:,0], -delta[:,2], delta[:,1]))
-        delta = np.transpose(delta)
-    verts += LS.scale*delta
-    nverts = len(ob.data.vertices)
-    for n in range(nverts):
-        skey.data[n].co = verts[n]

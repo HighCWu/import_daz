@@ -571,7 +571,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         prop = None
         drvprop = None
         drvvalue = 1.0
-        self.morph = None
+        self.shapes = []
         isBoneDriven = False
         if self.useShapekeys and isinstance(asset, Morph) and self.mesh:
             useBuild = True
@@ -636,8 +636,8 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                     props = self.buildPropFormula(asset, filepath, fresh)
                     if not props:
                         miss = True
-                    elif self.morph is not None:
-                        self.addSubmorph(prop)
+                    elif self.shapes:
+                        self.addSubshapes(prop)
             elif isinstance(asset, Morph):
                 pass
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
@@ -672,6 +672,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
     def driveShapeWithProp(self, ob, prop, skey, asset, keep):
         from .driver import makeShapekeyDriver
+        skeys = ob.data.shape_keys
         min = skey.slider_min if GS.useDazPropLimits else None
         max = skey.slider_max if GS.useDazPropLimits else None
 
@@ -680,7 +681,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             print("Multiply properties:", prop, mult)
 
         if not asset.visible:
-            varname = makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
+            varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, prop,
                 min=min, max=max, factor=value, varname="a", keep=keep, mult=mult)
             self.driveDependents(ob, skey, prop, value, varname, min, max)
         else:
@@ -688,31 +689,37 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             if self.rig is None:
                 addToPropGroup(prop, ob, self.morphset, asset)
             else:
-                varname = makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
+                varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, prop,
                     min=min, max=max, factor=value, varname="a", keep=keep, mult=mult)
                 addToPropGroup(prop, self.rig, self.morphset, asset)
-                self.driveDependents(ob, skey, prop, value, varname, min, max)
+                self.driveDependents(skeys, skey, prop, value, varname, min, max)
         self.taken[prop] = self.built[prop] = True
 
 
-    def driveDependents(self, ob, skey, prop, value, varname, min, max):
+    def driveDependents(self, skeys, skey, prop, value, varname, min, max):
         from .driver import makeShapekeyDriver
         if prop in self.depends.keys():
             for (dep,val) in self.depends[prop]:
                 factor = val*value
                 varname = chr(ord(varname) + 1)
-                varname = makeShapekeyDriver(ob, skey.name, skey.value, self.rig, dep,
+                varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, dep,
                     min=min, max=max, factor=factor, varname=varname, keep=True)
-                varname = self.driveDependents(ob, skey, dep, factor, varname, min, max)
+                varname = self.driveDependents(skeys, skey, dep, factor, varname, min, max)
         return varname
 
 
-    def addSubmorph(self, prop):
-        from .driver import makeShapekeyDriver
-        from .modifier import addShapekey, buildShapeFromNumpy
-        skey = addShapekey(self.mesh, prop)
-        buildShapeFromNumpy(self.mesh, skey, self.morph)
-        makeShapekeyDriver(self.mesh, prop, skey.value, self.rig, prop)
+    def addSubshapes(self, prop):
+        from .driver import addToShapekeyDriver
+        print("SSU", prop, self.shapes)
+        skeys = self.mesh.data.shape_keys
+        if skeys is None:
+            print("addSubshapes no shapekeys", prop)
+            return
+        for factor,sname in self.shapes:
+            if sname in skeys.key_blocks.keys():
+                addToShapekeyDriver(skeys, sname, self.rig, prop, factor)
+            else:
+                print("Missing shapekey:", sname)
 
 
     def getActiveShape(self, asset):
@@ -2030,8 +2037,9 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.Catego
 
     def handleShapekey(self, sname, rig, ob):
         from .driver import makeShapekeyDriver
-        skey = ob.data.shape_keys.key_blocks[sname]
-        makeShapekeyDriver(ob, sname, skey.value, rig, sname)
+        skeys = ob.data.shape_keys
+        skey = skeys.key_blocks[sname]
+        makeShapekeyDriver(skeys, sname, skey.value, rig, sname)
         addToCategories(rig, [sname], self.category)
         rig.DazCustomMorphs = True
 

@@ -117,6 +117,13 @@ class Driver:
             var.create(drv.variables.new())
         return fcu
 
+    def getFirstVar(self):
+        varname = "a"
+        for var in self.variables:
+            if ord(var.name) > ord(varname):
+                varname = var.name
+        return chr(ord(varname)+1)
+
 
 class Variable:
     def __init__(self, var):
@@ -377,11 +384,16 @@ def makePropDriver(prop, rna, channel, rig, expr, idx=-1):
     addDriverVar(fcu, "x", prop, rig)
 
 
-def makeShapekeyDriver(ob, sname, value, rig, prop,
+def makeShapekeyDriver(skeys, sname, value, rig, prop,
         min=None, max=None, factor=1.0, varname="a", keep=False, mult=None):
     setFloatProp(rig, prop, value, min=min, max=max)
-    skey = ob.data.shape_keys.key_blocks[sname]
-    fcu = getShapekeyDriver(ob.data.shape_keys, sname)
+    return addToShapekeyDriver(skeys, sname, rig, prop, factor, varname, keep, mult)
+
+
+def addToShapekeyDriver(skeys, sname, rig, prop,
+        factor, varname="a", keep=True, mult=None):
+    skey = skeys.key_blocks[sname]
+    fcu = getShapekeyDriver(skeys, sname)
     driver = None
     facstr = ""
     if factor != 1.0:
@@ -391,11 +403,13 @@ def makeShapekeyDriver(ob, sname, value, rig, prop,
         skey.driver_remove("value")
     if keep and driver:
         fcu = driver.create(skey)
+        varname = driver.getFirstVar()
         expr = "%s+%s%s" % (driver.expression, facstr, varname)
     else:
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
         expr = "%s%s" % (facstr, varname)
+    print("ASF", sname, expr)
     addDriverVar(fcu, varname, prop, rig)
     if mult:
         varname = chr(ord(varname) + 1)

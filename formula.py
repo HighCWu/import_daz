@@ -742,7 +742,7 @@ class PropFormulas(PoseboneDriver):
                 subasset = asset.getTypedAsset(url, ChannelAsset)
                 if GS.useMultiShapes and isinstance(subasset, Morph):
                     subdata = self.evalSubAsset(asset, subasset, level)
-                    morph = subasset.toNumpy(self.mesh)
+                    morph = subasset.name
                 elif isinstance(subasset, Formula):
                     subdata = self.evalSubAsset(asset, subasset, level)
                     morph = None
@@ -764,14 +764,11 @@ class PropFormulas(PoseboneDriver):
 
     def combineExpressions(self, openlist, prop, exprs, value):
         from .bone import getTargetName
-        for val,subdata,submorph,subname in openlist:
+        for val,subdata,subshape,subname in openlist:
             value1 = val*value
             subexprs,subprops,subopen = subdata
-            if submorph is not None:
-                if self.morph is None:
-                    self.morph = value1*submorph
-                else:
-                    self.morph += value1*submorph
+            if subshape is not None:
+                self.shapes.append((value1, subshape))
             if subopen:
                 for subprop,sublist in subopen.items():
                     self.combineExpressions(sublist, prop, exprs, value1)
