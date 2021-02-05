@@ -409,7 +409,7 @@ def makeShapekeyDriver(ob, sname, value, rig, prop,
 def addVarToDriver(fcu, rig, prop, factor):
     if hasDriverVar(fcu, prop, rig):
         print("Already", prop)
-        return
+        #return
     varnames = getAllDriverVars(fcu)
     n = ord("A")
     while chr(n) in varnames:

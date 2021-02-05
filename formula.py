@@ -152,6 +152,7 @@ class Formula:
 
         driven = formula["output"].split("#")[-1]
         bname,channel = driven.split("?")
+        bname = unquote(bname)
         if channel == "value":
             if useBone and mesh is None:
                 if GS.verbosity > 2:
@@ -211,7 +212,11 @@ class Formula:
         if type == "value":
             if props is None:
                 return False
-            expr["prop"] = prop
+            #print("UUU", bname, expr["prop"], prop)
+            if expr["prop"] and prop != expr["prop"]:
+                expr["mult"] = prop
+            else:
+                expr["prop"] = prop
             props[prop] = True
         else:
             expr["bone"] = prop
@@ -385,19 +390,19 @@ class ShapeFormulas:
             return {}, {}
 
 
-    def getShapeMultiplier(self, asset, rig, ob, prop):
+    def getShapeMultiplier(self, sname, asset, rig, ob):
         exprs,props = self.getShapeExprsProps(asset, rig, ob)
-        if not exprs:
-            return None
-        for sname,expr in exprs.items():
-            sname = unquote(sname)
-            if (sname == prop and
-                "value" in expr.keys() and
-                "mult" in expr["value"].keys()):
-                url = expr["value"]["mult"]
-                mult = unquote( url.split("#")[-1].split("?")[0] )
-                return mult
-        return None
+        if (exprs and
+            sname in exprs.keys() and
+            "value" in exprs[sname].keys()):
+            expr = exprs[sname]["value"]
+            mult = None
+            if "mult" in expr.keys():
+                url = expr["mult"]
+                if url:
+                    mult = unquote( url.split("#")[-1].split("?")[0] )
+            return 1.0, mult
+        return 1.0, None
 
 
     def buildShapeFormula(self, asset, scn, rig, ob):

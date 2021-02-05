@@ -675,23 +675,23 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         min = skey.slider_min if GS.useDazPropLimits else None
         max = skey.slider_max if GS.useDazPropLimits else None
 
-        mult = self.getShapeMultiplier(asset, self.rig, ob, prop)
+        value,mult = self.getShapeMultiplier(skey.name, asset, self.rig, ob)
         if mult:
             print("Multiply properties:", prop, mult)
 
         if not asset.visible:
-            makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
-                min=min, max=max, factor=1.0, varname="a", keep=keep, mult=mult)
-            self.driveDependents(ob, skey, prop, 1.0, "a", min, max)
+            varname = makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
+                min=min, max=max, factor=value, varname="a", keep=keep, mult=mult)
+            self.driveDependents(ob, skey, prop, value, varname, min, max)
         else:
             prop = skey.name
             if self.rig is None:
                 addToPropGroup(prop, ob, self.morphset, asset)
             else:
                 varname = makeShapekeyDriver(ob, skey.name, skey.value, self.rig, prop,
-                    min=min, max=max, factor=1.0, varname="a", keep=keep, mult=mult)
+                    min=min, max=max, factor=value, varname="a", keep=keep, mult=mult)
                 addToPropGroup(prop, self.rig, self.morphset, asset)
-                self.driveDependents(ob, skey, prop, 1.0, varname, min, max)
+                self.driveDependents(ob, skey, prop, value, varname, min, max)
         self.taken[prop] = self.built[prop] = True
 
 
