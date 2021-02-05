@@ -257,8 +257,10 @@ class DazOperator(bpy.types.Operator):
 
 
     def prequel(self, context):
+        from .utils import getSelectedObjects
         self.mode = None
         self.activeObject = context.object
+        self.selectedObjects = [ob.name for ob in getSelectedObjects(context)]
         if context.object:
             self.mode = context.object.mode
             try:
@@ -273,14 +275,16 @@ class DazOperator(bpy.types.Operator):
         wm = bpy.context.window_manager
         wm.progress_update(100)
         wm.progress_end()
-        if self.activeObject:
-            setActiveObject(context, self.activeObject)
-            setSelected(self.activeObject, True)
-        if self.mode:
-            try:
+        try:
+            if self.activeObject:
+                setActiveObject(context, self.activeObject)
+            for obname in self.selectedObjects:
+                if obname in bpy.data.objects.keys():
+                    setSelected(bpy.data.objects[obname], True)
+            if self.mode:
                 bpy.ops.object.mode_set(mode=self.mode)
-            except RuntimeError:
-                pass
+        except RuntimeError:
+            pass
 
 
 class DazPropsOperator(DazOperator):
