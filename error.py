@@ -273,8 +273,9 @@ class DazOperator(bpy.types.Operator):
         wm = bpy.context.window_manager
         wm.progress_update(100)
         wm.progress_end()
-        setActiveObject(context, self.activeObject)
-        setSelected(self.activeObject, True)
+        if self.activeObject:
+            setActiveObject(context, self.activeObject)
+            setSelected(self.activeObject, True)
         if self.mode:
             try:
                 bpy.ops.object.mode_set(mode=self.mode)

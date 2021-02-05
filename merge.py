@@ -229,8 +229,19 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
 
 
     def moveGraftVerts(self, aob, cob):
+        cvgroups = dict([(vgrp.index, vgrp.name) for vgrp in cob.vertex_groups])
         for pair in aob.data.DazGraftGroup:
-            aob.data.vertices[pair.a].co = cob.data.vertices[pair.b].co
+            avert = aob.data.vertices[pair.a]
+            cvert = cob.data.vertices[pair.b]
+            avert.co = cvert.co
+            for cg in cvert.groups:
+                vgname = cvgroups[cg.group]
+                if vgname in aob.vertex_groups.keys():
+                    avgrp = aob.vertex_groups[vgname]
+                else:
+                    avgrp = aob.vertex_groups.new(name=vgname)
+                avgrp.add([pair.a], cg.weight, 'REPLACE')
+
         if cob.data.shape_keys and aob.data.shape_keys:
             for cskey in cob.data.shape_keys.key_blocks:
                 if cskey.name in aob.data.shape_keys.key_blocks.keys():
