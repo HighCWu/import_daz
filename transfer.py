@@ -517,13 +517,14 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
 #----------------------------------------------------------
 
 def getMorphPath(sname, ob, scn):
-    from .fileutils import getFolder
+    from .fileutils import getFolders
     file = sname + ".dsf"
-    folder = getFolder(ob, scn, ["Morphs/"])
-    if folder:
-        return findFileRecursive(folder, file)
-    else:
-        return None
+    folders = getFolders(ob, scn, ["Morphs/"])
+    for folder in folders:
+        path = findFileRecursive(folder, file)
+        if path:
+            return path
+    return None
 
 
 def findFileRecursive(folder, tfile):

@@ -1014,10 +1014,10 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, MultiFil
 
 
     def invoke(self, context, event):
-        from .fileutils import getFolder
-        folder = getFolder(self.mesh, context.scene, ["Morphs/", ""])
-        if folder is not None:
-            self.properties.filepath = folder
+        from .fileutils import getFolders
+        folders = getFolders(self.mesh, context.scene, ["Morphs/", ""])
+        if folders:
+            self.properties.filepath = folders[0]
         return MultiFile.invoke(self, context, event)
 
 

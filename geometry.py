@@ -1124,10 +1124,10 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
     bl_options = {'UNDO'}
 
     def invoke(self, context, event):
-        from .fileutils import getFolder
-        folder = getFolder(context.object, context.scene, ["UV Sets/", ""])
-        if folder is not None:
-            self.properties.filepath = folder
+        from .fileutils import getFolders
+        folders = getFolders(context.object, context.scene, ["UV Sets/", ""])
+        if folders:
+            self.properties.filepath = folders[0]
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 

@@ -74,23 +74,21 @@ def safeOpen(filepath, rw, dirMustExist=False, fileMustExist=False, mustOpen=Fal
 #   Open and check for case change
 #-------------------------------------------------------------
 
-def getFolder(ob, scn, subdirs):
-    from .asset import getDazPath, setDazPaths
-    setDazPaths(scn)
+def getFolders(ob, scn, subdirs):
     if ob is None:
         return None
     fileref = ob.DazUrl.split("#")[0]
     if len(fileref) < 2:
         return None
-    folder = os.path.dirname(fileref)
-    basedir = getDazPath(folder)
-    if basedir is None:
-        return None
-    for subdir in subdirs:
-        folder = os.path.join(basedir, subdir)
-        if os.path.exists(folder):
-            return folder
-    return None
+    reldir = os.path.dirname(fileref)
+    folders = []
+    for basedir in GS.getDazPaths():
+        for subdir in subdirs:
+            folder = "%s/%s/%s" % (basedir, reldir, subdir)
+            folder = folder.replace("//", "/")
+            if os.path.exists(folder):
+                folders.append(folder)
+    return folders
 
 
 """
