@@ -412,15 +412,15 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor,
                 msg = ("Shapekey %s     \nis driven by too many properties" % sname)
                 raise DazError(msg)
             varname = vname
-            addDriverVar(fcu, vname, prop, rig)
+            addDriverVar(fcu, varname, prop, rig)
         else:
             print("Shapekey %s already driven by %s" % (sname, prop))
             return varname
         expr = driver.expression
         if expr[-1] == ")":
-            expr = "%s+%s%s)" % (expr[:-1], facstr, vname)
+            expr = "%s+%s%s)" % (expr[:-1], facstr, varname)
         else:
-            expr = "%s+%s%s" % (expr, facstr, vname)
+            expr = "%s+%s%s" % (expr, facstr, varname)
     else:
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'

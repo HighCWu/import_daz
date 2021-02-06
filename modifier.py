@@ -267,12 +267,12 @@ class ChannelAsset(Modifier):
 
     def setupProp(self, morphset, rig, usePropDrivers):
         self.setupQuick(morphset, rig)
-        lname = self.name.lower()
-        if lname in rig.DazPropNames.keys():
-            pg = rig.DazPropNames[lname]
+        prop = unquote(self.name)
+        if prop in rig.DazPropNames.keys():
+            pg = rig.DazPropNames[prop]
         else:
             pg = rig.DazPropNames.add()
-        pg.name = lname
+        pg.name = prop
         pg.text = self.prop
         addToMorphSet(rig, None, morphset, self.prop, usePropDrivers, self)
 
@@ -804,7 +804,8 @@ class Morph(FormulaAsset):
                    morphset=None,
                    usePropDrivers=False,
                    strength=1):
-        sname = self.getName()
+        sname = unquote(self.name)
+        #sname = self.getName()
         addToMorphSet(ob.parent, ob, morphset, sname, usePropDrivers, self)
         skey = addShapekey(ob, sname)
         if useSoftLimits:

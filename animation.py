@@ -726,9 +726,8 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
         if key in rig.keys():
             return key
         elif rig.DazPropNames:
-            lkey = key.lower()
-            if lkey in rig.DazPropNames.keys():
-                pg = rig.DazPropNames[lkey]
+            if key in rig.DazPropNames.keys():
+                pg = rig.DazPropNames[key]
                 return pg.text
         else:
             lkey = getCanonicalKey(key.lower())
