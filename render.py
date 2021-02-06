@@ -125,7 +125,10 @@ class WorldMaterial(CyclesMaterial):
                 print("Don't draw environment. Image file not found")
             else:
                 foundenv = True
-        if not foundenv and mode in [0,3] and not isBlack(self.background):
+        if (not foundenv and
+            mode in [0,3] and
+            self.background and
+            not isBlack(self.background)):
             print("Draw backdrop", mode, self.background)
             self.envmap = None
             fixray = True
