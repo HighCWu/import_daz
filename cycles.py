@@ -488,8 +488,8 @@ class CyclesTree:
             node = self.addNode("ShaderNodeBsdfDiffuse")
             self.cycles = self.eevee = node
             self.linkColor(tex, node, color, "Color")
-            roughness = clamp( self.getValue(["Diffuse Roughness"], GS.diffuseRoughness) )
-            self.addSlot(channel, node, "Roughness", roughness, roughness, False)
+            roughness,roughtex = self.getColorTex(["Diffuse Roughness"], "NONE", 0, False)
+            self.setRoughness(node, "Roughness", roughness, roughtex)
             self.linkBumpNormal(node)
             LS.usedFeatures["Diffuse"] = True
 
@@ -852,14 +852,14 @@ class CyclesTree:
         return value,tex
 
 
-    def setRoughness(self, node, channel, roughness, roughtex, square=True):
+    def setRoughness(self, node, slot, roughness, roughtex, square=True):
         if square and bpy.app.version < (2,80,0):
             roughness = roughness * roughness
-        node.inputs[channel].default_value = roughness
+        node.inputs[slot].default_value = roughness
         if roughtex:
             tex = self.multiplyScalarTex(roughness, roughtex)
             if tex:
-                self.links.new(tex.outputs[0], node.inputs[channel])
+                self.links.new(tex.outputs[0], node.inputs[slot])
         return roughness
 
 
