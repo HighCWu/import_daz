@@ -29,21 +29,23 @@ from mathutils import *
 from .utils import *
 
 class Transform:
-    def __init__(self, trans=None, rot=None, scale=None, general=None):
+    def __init__(self, trans=None, rot=None, scale=None, general=None, center=None):
         self.trans = trans
         self.rot = rot
         self.scale = scale
         self.general = general
+        self.center = center
 
         self.transProp = None
         self.rotProp = None
         self.scaleProp = None
         self.generalProp = None
+        self.centerPoint = None
 
     def __repr__(self):
-        return ("<TFM t:%s\n    r::%s\n    s:%s\n    g:%s\n    %s %s %s %s>" %
-                (self.trans, self.rot, self.scale, self.general,
-                 self.transProp, self.rotProp, self.scaleProp, self.generalProp))
+        return ("<TFM t:%s\n    r::%s\n    s:%s\n    g:%s\n    c:%s\n    %s %s %s %s %s>" %
+                (self.trans, self.rot, self.scale, self.general, self.center,
+                 self.transProp, self.rotProp, self.scaleProp, self.generalProp, self.centerProp))
 
 
     def noTrans(self):
@@ -53,6 +55,14 @@ class Transform:
     def setTrans(self, trans, prop=None):
         self.trans = Vector(trans)
         self.transProp = prop
+
+    def noCenter(self):
+        self.center = None
+        self.centerProp = None
+
+    def setCenter(self, center, prop=None):
+        self.center = Vector(center)
+        self.centerProp = prop
 
     def noRot(self):
         self.rot = None
@@ -91,6 +101,12 @@ class Transform:
         else:
             return self.trans
 
+    def evalCenter(self):
+        if self.center is None:
+            return Vector((0,0,0))
+        else:
+            return self.center
+
     def evalRot(self):
         if self.rot is None:
             return Vector((0,0,0))
@@ -111,6 +127,10 @@ class Transform:
 
     def getTransMat(self):
         return Matrix.Translation(d2b00(self.evalTrans()))
+
+
+    def getCenterMat(self):
+        return Matrix.Translation(d2b00(self.evalCenter()))
 
 
     def getRotMat(self, pb):

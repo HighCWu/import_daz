@@ -146,7 +146,11 @@ class Target:
         self.transform_type = trg.transform_type
         self.transform_space = trg.transform_space
         self.data_path = trg.data_path
-        self.name = trg.data_path.split('"')[1]
+        words = trg.data_path.split('"')
+        if len(words) > 1:
+            self.name = words[1]
+        else:
+            self.name = words[0]
 
     def create(self, trg):
         trg.id = self.id
