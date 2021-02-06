@@ -243,16 +243,9 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
                     trg.shape_key_remove(cskey)
 
             cskey = None
-            path = getMorphPath(sname, trg, scn)
-            if path is not None:
-                from .morphing import LoadShapekey
-                loader = LoadShapekey(mesh=trg, verbose=False)
-                LS.forMorphLoad(trg, scn)
-                loader.errors = {}
-                loader.getSingleMorph(sname, path, scn)
-                if sname in trg.data.shape_keys.key_blocks.keys():
-                    cskey = trg.data.shape_keys.key_blocks[sname]
-
+            filepath = getMorphPath(sname, trg, scn)
+            if filepath is not None:
+                cskey = self.loadMorph(filepath, trg, scn)
             if cskey:
                 print(" *", sname)
             elif self.autoTransfer(src, trg, hskey):
@@ -277,6 +270,23 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
             print("No shapekeys transferred to %s" % trg.name)
             trg.shape_key_remove(basic)
         return True
+
+
+    def loadMorph(self, filepath, mesh, scn):
+        from .load_json import loadJson
+        from .files import parseAssetFile
+        from .modifier import Morph
+        LS.forMorphLoad(mesh, scn)
+        struct = loadJson(filepath)
+        asset = parseAssetFile(struct)
+        if not isinstance(asset, Morph):
+            return None
+        asset.buildMorph(mesh, useBuild=True)
+        if asset.rna:
+            skey,ob,sname = asset.rna
+            return skey
+        else:
+            return None
 
 
     def correctForRigidity(self, ob, skey):
