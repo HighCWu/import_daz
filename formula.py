@@ -417,7 +417,7 @@ class ShapeFormulas:
         value = 1.0
         skeys = ob.data.shape_keys
         for key,expr in exprs.items():
-            sname = unquote(asset.name)
+            sname = asset.getName()
             if sname in rig.data.bones.keys():
                 continue
             if asset.visible:
@@ -750,7 +750,7 @@ class PropFormulas(PoseboneDriver):
                 subasset = asset.getTypedAsset(url, ChannelAsset)
                 if GS.useMultiShapes and isinstance(subasset, Morph):
                     subdata = self.evalSubAsset(asset, subasset, level)
-                    morph = subasset.name
+                    morph = subasset
                 elif isinstance(subasset, Formula):
                     subdata = self.evalSubAsset(asset, subasset, level)
                     morph = None
@@ -772,11 +772,11 @@ class PropFormulas(PoseboneDriver):
 
     def combineExpressions(self, openlist, prop, exprs, value):
         from .bone import getTargetName
-        for val,subdata,subshape,subname in openlist:
+        for val,subdata,morph,subname in openlist:
             value1 = val*value
             subexprs,subprops,subopen = subdata
-            if subshape is not None:
-                self.shapes.append((value1, subshape))
+            if morph is not None:
+                self.shapes.append((value1, morph))
             if subopen:
                 for subprop,sublist in subopen.items():
                     self.combineExpressions(sublist, prop, exprs, value1)

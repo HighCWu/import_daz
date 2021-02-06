@@ -40,7 +40,7 @@ class Transform:
         self.rotProp = None
         self.scaleProp = None
         self.generalProp = None
-        self.centerPoint = None
+        self.centerProp = None
 
     def __repr__(self):
         return ("<TFM t:%s\n    r::%s\n    s:%s\n    g:%s\n    c:%s\n    %s %s %s %s %s>" %

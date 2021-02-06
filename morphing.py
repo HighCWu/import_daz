@@ -594,15 +594,10 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 else:
                     raise DazError(msg)
             if skey is None:
-                asset.buildMorph(self.mesh,
-                                 useBuild=useBuild,
-                                 useSoftLimits=self.useSoftLimits,
-                                 morphset=self.morphset,
-                                 strength=self.strength)
-                skey,ob,sname = asset.rna
+                skey,ob,sname = self.buildShapekey(asset, useBuild)
             if skey:
                 prop = unquote(skey.name)
-                self.alias[asset.getName()] = prop
+                self.alias[asset.name] = prop
             if (skey and
                 (self.useBoneDrivers or not asset.visible)):
                 removeFromPropGroups(self.rig, prop)
@@ -662,6 +657,17 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             return [],miss
 
 
+    def buildShapekey(self, asset, useBuild=True):
+        if asset.rna:
+            return asset.rna
+        asset.buildMorph(self.mesh,
+                         useBuild=useBuild,
+                         useSoftLimits=self.useSoftLimits,
+                         morphset=self.morphset,
+                         strength=self.strength)
+        return asset.rna
+
+
     def getDrivingObject(self):
         if self.usePropDrivers:
             return self.rig
@@ -712,11 +718,11 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         if skeys is None:
             print("addSubshapes no shapekeys", prop)
             return
-        for factor,sname in self.shapes:
-            if sname in skeys.key_blocks.keys():
-                addToShapekeyDriver(skeys, sname, self.rig, prop, factor)
-            else:
-                print("Missing shapekey:", sname)
+        for factor,morph in self.shapes:
+            sname = morph.getName()
+            if sname not in skeys.key_blocks.keys():
+                skey,ob,sname = self.buildShapekey(morph)
+            addToShapekeyDriver(skeys, sname, self.rig, prop, factor)
 
 
     def getActiveShape(self, asset):

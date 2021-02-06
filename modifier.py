@@ -262,8 +262,7 @@ class ChannelAsset(Modifier):
     def setupQuick(self, morphset, rig):
         self.morphset = morphset
         self.rig = rig
-        self.prop = unquote(self.getName())
-        #self.prop = self.name
+        self.prop = self.getName()
 
 
     def setupProp(self, morphset, rig, usePropDrivers):
@@ -683,7 +682,7 @@ class Morph(FormulaAsset):
 
 
     def __repr__(self):
-        return ("<Morph %s %f %d %d>" % (self.name, self.value, self.vertex_count, len(self.deltas)))
+        return ("<Morph %s %f %d %d %s>" % (self.name, self.value, self.vertex_count, len(self.deltas), self.rna))
 
 
     def parse(self, struct):
@@ -805,8 +804,8 @@ class Morph(FormulaAsset):
                    morphset=None,
                    usePropDrivers=False,
                    strength=1):
-        sname = unquote(self.name)
-        #sname = self.getName()
+        #sname = unquote(self.name)
+        sname = self.getName()
         addToMorphSet(ob.parent, ob, morphset, sname, usePropDrivers, self)
         skey = addShapekey(ob, sname)
         if useSoftLimits:
