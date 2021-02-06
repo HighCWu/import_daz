@@ -416,7 +416,7 @@ class ShapeFormulas:
         prop = None
         value = 1.0
         skeys = ob.data.shape_keys
-        for sname,expr in exprs.items():
+        for key,expr in exprs.items():
             sname = unquote(asset.name)
             if sname in rig.data.bones.keys():
                 continue
@@ -667,6 +667,7 @@ class PropFormulas(PoseboneDriver):
         self.taken = {}
         self.built = {}
         self.depends = {}
+        self.alias = {}
 
 
     def buildPropFormula(self, asset, filepath, fresh):
@@ -877,6 +878,8 @@ class PropFormulas(PoseboneDriver):
                         for idx in channel.keys():
                             value, value2, default = channel[idx]
                             self.addMorphGroup(pb, idx, key, prop, default, factor*value)
+                if not success:
+                    self.addOtherShapekey(prop, prop1, factor)
 
             elif len(bdata) == 2:
                 factor1,prop1,bones1 = bdata[0]
@@ -913,10 +916,25 @@ class PropFormulas(PoseboneDriver):
                                 v1 = factor1*value11+factor2*value22
                                 v2 = factor2*value21+factor1*value12
                             self.addMorphGroup(pb, idx, key, prop, default1, v1, v2)
+                if not success:
+                    self.addOtherShapekey(prop, prop1, factor1)
+                    self.addOtherShapekey(prop, prop2, factor2)
 
             if success:
                 from .morphing import addToPropGroup
                 addToPropGroup(prop, self.rig, self.morphset)
+
+
+    def addOtherShapekey(self, prop, key, factor):
+        from .driver import getShapekeyPropDriver, addVarToDriver
+        if self.mesh and self.mesh.type == 'MESH' and self.rig:
+            skeys = self.mesh.data.shape_keys
+            if skeys:
+                if key in self.alias.keys():
+                    key = self.alias[key]
+                if key in skeys.key_blocks.keys():
+                    fcu = getShapekeyPropDriver(skeys, key)
+                    addVarToDriver(fcu, self.rig, prop, factor)
 
 
     def addMissingBones(self, bones1, bones2):

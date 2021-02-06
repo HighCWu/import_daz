@@ -262,7 +262,8 @@ class ChannelAsset(Modifier):
     def setupQuick(self, morphset, rig):
         self.morphset = morphset
         self.rig = rig
-        self.prop = unquote(self.id.rsplit("#",2)[-1])
+        self.prop = unquote(self.getName())
+        #self.prop = self.name
 
 
     def setupProp(self, morphset, rig, usePropDrivers):

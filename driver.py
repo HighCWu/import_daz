@@ -447,8 +447,12 @@ def addVarToDriver(fcu, rig, prop, factor):
     while chr(n) in varnames:
         n += 1
     vname = chr(n)
-    string = fcu.driver.expression
-    fcu.driver.expression = string + ("+%.4f*%s" % (factor, vname))
+    expr = fcu.driver.expression
+    if factor == 1.0:
+        facstr = ""
+    else:
+        facstr = "%g*"
+    fcu.driver.expression = expr + ("+%s%s" % (facstr, vname))
     addDriverVar(fcu, vname, prop, rig)
 
 

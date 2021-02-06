@@ -602,6 +602,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 skey,ob,sname = asset.rna
             if skey:
                 prop = unquote(skey.name)
+                self.alias[asset.getName()] = prop
             if (skey and
                 (self.useBoneDrivers or not asset.visible)):
                 removeFromPropGroups(self.rig, prop)
