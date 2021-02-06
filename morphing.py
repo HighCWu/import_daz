@@ -683,7 +683,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         if not asset.visible:
             varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, prop,
                 min=min, max=max, factor=value, varname="a", keep=keep, mult=mult)
-            self.driveDependents(ob, skey, prop, value, varname, min, max)
+            self.driveDependents(skeys, skey, prop, value, varname, min, max)
         else:
             prop = skey.name
             if self.rig is None:
@@ -710,7 +710,6 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
     def addSubshapes(self, prop):
         from .driver import addToShapekeyDriver
-        print("SSU", prop, self.shapes)
         skeys = self.mesh.data.shape_keys
         if skeys is None:
             print("addSubshapes no shapekeys", prop)
