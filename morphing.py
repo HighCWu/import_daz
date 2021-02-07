@@ -522,6 +522,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
     useSkeysCats = False
     useBoneDrivers = False
     useDoubleDrivers = False
+    useCenterPoint = False
     morphset = None
 
     def __init__(self, mesh=None, verbose=True):
@@ -935,6 +936,7 @@ class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMes
     bl_options = {'UNDO'}
 
     morphset = "Facs"
+    useCenterPoint = True
 
 
 class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -944,6 +946,7 @@ class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMo
     bl_options = {'UNDO'}
 
     morphset = "Facsexpr"
+    useCenterPoint = True
 
 
 class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):

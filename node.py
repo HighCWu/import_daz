@@ -825,6 +825,7 @@ def getCenterMatrix(tfm, pb):
     from .transform import roundMatrix
     dmat,bmat,rmat = getTransformMatrices(pb)
     wmat = Mult3(rmat.inverted(), tfm.getCenterMat(), rmat)
+    #wmat = tfm.getCenterMat()
     mat = Mult3(bmat.inverted(), wmat, bmat)
     roundMatrix(mat, 1e-4)
     return mat

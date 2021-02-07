@@ -785,7 +785,8 @@ class PropFormulas(PoseboneDriver):
                     bname1 = getTargetName(bname, self.rig)
                     if bname1 is not None:
                         self.addValue("translation", bname1, prop, exprs, subexpr, value1)
-                        self.addValue("center_point", bname1, prop, exprs, subexpr, value1)
+                        if self.useCenterPoint:
+                            self.addValue("center_point", bname1, prop, exprs, subexpr, value1)
                         self.addValue("rotation", bname1, prop, exprs, subexpr, value1)
                         self.addValue("scale", bname1, prop, exprs, subexpr, value1)
                         self.addValue("general_scale", bname1, prop, exprs, subexpr, value1)
@@ -986,10 +987,10 @@ class PropFormulas(PoseboneDriver):
                 prop = expr["translation"]["prop"]
                 tfm.setTrans(self.strength*value, prop)
                 nonzero = True
-            elif "center_point" in expr.keys():
+            elif self.useCenterPoint and "center_point" in expr.keys():
                 value = expr["center_point"]["value"]
                 prop = expr["center_point"]["prop"]
-                tfm.setCenter(self.strength*value, prop)
+                tfm.setCenter(self.strength*value, prop, pb)
                 nonzero = True
             if "rotation" in expr.keys():
                 value = expr["rotation"]["value"]

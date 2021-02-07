@@ -60,7 +60,9 @@ class Transform:
         self.center = None
         self.centerProp = None
 
-    def setCenter(self, center, prop=None):
+    def setCenter(self, center, prop, pb):
+        self.head = Vector(pb.bone.DazHead)
+        self.overall = 1
         self.center = Vector(center)
         self.centerProp = prop
 
@@ -105,7 +107,7 @@ class Transform:
         if self.center is None:
             return Vector((0,0,0))
         else:
-            return self.center
+            return self.overall*(self.center + self.head) - self.head
 
     def evalRot(self):
         if self.rot is None:
