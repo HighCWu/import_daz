@@ -391,14 +391,29 @@ def makePropDriver(prop, rna, channel, rig, expr, idx=-1):
     addDriverVar(fcu, "x", prop, rig)
 
 
-def makeShapekeyDriver(skeys, sname, value, rig, prop,
+def makeShapekeyDriver(skeys, sname, value, rig, prop, depends,
         min=None, max=None, factor=1.0, varname="a", keep=False, mult=None):
     setFloatProp(rig, prop, value, min=min, max=max)
-    return addToShapekeyDriver(skeys, sname, rig, prop, factor, varname, keep, mult)
+    return addToShapekeyDriver(skeys, sname, rig, prop, factor, depends, varname, keep, mult)
 
 
-def addToShapekeyDriver(skeys, sname, rig, prop, factor,
+def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
     varname="a", keep=True, mult=None):
+
+    def getVarString(prop, depends, varname, fcu, rig):
+        if prop in depends.keys():
+            varstr = "(%s" % varname
+            for key,factor in depends[prop]:
+                varname = chr(ord(varname)+1)
+                if factor == 1.0:
+                    varstr += "+%s" % varname
+                else:
+                    varstr += "+%g*%s" % (factor,varname)
+                addDriverVar(fcu, varname, key, rig)
+            return varstr + ")", varname
+        else:
+            return varname, varname
+
     skey = skeys.key_blocks[sname]
     fcu = getShapekeyDriver(skeys, sname)
     driver = None
@@ -418,7 +433,7 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor,
             varname = vname
             addDriverVar(fcu, varname, prop, rig)
         else:
-            print("Shapekey %s already driven by %s" % (sname, prop))
+            #print("Shapekey %s already driven by %s" % (sname, prop))
             return varname
         expr = driver.expression
         if expr[-1] == ")":
@@ -428,12 +443,17 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor,
     else:
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
-        expr = "%s%s" % (facstr, varname)
         addDriverVar(fcu, varname, prop, rig)
+        varstr,varname = getVarString(prop, depends, varname, fcu, rig)
+        expr = "%s%s" % (facstr, varstr)
     if mult:
         varname = chr(ord(varname) + 1)
         addDriverVar(fcu, varname, mult, rig)
-        expr = "%s*(%s)" % (varname, expr)
+        varstr,varname = getVarString(mult, depends, varname, fcu, rig)
+        if expr[0] == "(":
+            expr = "%s*%s" % (varstr, expr)
+        else:
+            expr = "%s*(%s)" % (varstr, expr)
     if len(expr) < 255:
         fcu.driver.expression = expr
     else:

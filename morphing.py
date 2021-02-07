@@ -686,7 +686,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         value,mult = self.getShapeMultiplier(skey.name, asset, self.rig, ob)
 
         if not asset.visible:
-            varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, prop,
+            varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, prop, self.depends,
                 min=min, max=max, factor=value, varname="a", keep=keep, mult=mult)
             self.driveDependents(skeys, skey, prop, value, varname, min, max)
         else:
@@ -694,7 +694,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             if self.rig is None:
                 addToPropGroup(prop, ob, self.morphset, asset)
             else:
-                varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, prop,
+                varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, prop, self.depends,
                     min=min, max=max, factor=value, varname="a", keep=keep, mult=mult)
                 addToPropGroup(prop, self.rig, self.morphset, asset)
                 self.driveDependents(skeys, skey, prop, value, varname, min, max)
@@ -707,7 +707,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             for (dep,val) in self.depends[prop]:
                 factor = val*value
                 varname = chr(ord(varname) + 1)
-                varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, dep,
+                varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, dep, self.depends,
                     min=min, max=max, factor=factor, varname=varname, keep=True)
                 varname = self.driveDependents(skeys, skey, dep, factor, varname, min, max)
         return varname
@@ -723,7 +723,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             sname = morph.getName()
             if sname not in skeys.key_blocks.keys():
                 skey,ob,sname = self.buildShapekey(morph)
-            addToShapekeyDriver(skeys, sname, self.rig, prop, factor)
+            addToShapekeyDriver(skeys, sname, self.rig, prop, factor, self.depends)
 
 
     def getActiveShape(self, asset):
@@ -936,7 +936,7 @@ class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMes
     bl_options = {'UNDO'}
 
     morphset = "Facs"
-    useCenterPoint = True
+    useCenterPoint = False
 
 
 class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -946,7 +946,7 @@ class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMo
     bl_options = {'UNDO'}
 
     morphset = "Facsexpr"
-    useCenterPoint = True
+    useCenterPoint = False
 
 
 class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -2039,7 +2039,7 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.Catego
         from .driver import makeShapekeyDriver
         skeys = ob.data.shape_keys
         skey = skeys.key_blocks[sname]
-        makeShapekeyDriver(skeys, sname, skey.value, rig, sname)
+        makeShapekeyDriver(skeys, sname, skey.value, rig, sname, {})
         addToCategories(rig, [sname], self.category)
         rig.DazCustomMorphs = True
 
