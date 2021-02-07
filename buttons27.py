@@ -428,6 +428,11 @@ class CustomOptions:
         description = "Control morphs with both properties and bones",
         default = False)
 
+    useCenterPoint = BoolProperty(
+        name = "Center Point Drivers",
+        description = "Use drivers to move bone heads (experimental)",
+        default = False)
+
     useSkeysCats = BoolProperty(
         name = "Add Shapekeys To Categories",
         description = "Add imported shapekeys to a category",
