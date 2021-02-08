@@ -29,23 +29,21 @@ from mathutils import *
 from .utils import *
 
 class Transform:
-    def __init__(self, trans=None, rot=None, scale=None, general=None, center=None):
+    def __init__(self, trans=None, rot=None, scale=None, general=None):
         self.trans = trans
         self.rot = rot
         self.scale = scale
         self.general = general
-        self.center = center
 
         self.transProp = None
         self.rotProp = None
         self.scaleProp = None
         self.generalProp = None
-        self.centerProp = None
 
     def __repr__(self):
-        return ("<TFM t:%s\n    r::%s\n    s:%s\n    g:%s\n    c:%s\n    %s %s %s %s %s>" %
-                (self.trans, self.rot, self.scale, self.general, self.center,
-                 self.transProp, self.rotProp, self.scaleProp, self.generalProp, self.centerProp))
+        return ("<TFM t:%s\n    r::%s\n    s:%s\n    g:%s\n    %s %s %s %s>" %
+                (self.trans, self.rot, self.scale, self.general,
+                 self.transProp, self.rotProp, self.scaleProp, self.generalProp))
 
 
     def noTrans(self):
@@ -55,16 +53,6 @@ class Transform:
     def setTrans(self, trans, prop=None):
         self.trans = Vector(trans)
         self.transProp = prop
-
-    def noCenter(self):
-        self.center = None
-        self.centerProp = None
-
-    def setCenter(self, center, prop, pb):
-        self.head = Vector(pb.bone.DazHead)
-        self.overall = 1
-        self.center = Vector(center)
-        self.centerProp = prop
 
     def noRot(self):
         self.rot = None
@@ -103,12 +91,6 @@ class Transform:
         else:
             return self.trans
 
-    def evalCenter(self):
-        if self.center is None:
-            return Vector((0,0,0))
-        else:
-            return self.overall*(self.center + self.head) - self.head
-
     def evalRot(self):
         if self.rot is None:
             return Vector((0,0,0))
@@ -129,10 +111,6 @@ class Transform:
 
     def getTransMat(self):
         return Matrix.Translation(d2b00(self.evalTrans()))
-
-
-    def getCenterMat(self):
-        return Matrix.Translation(d2b00(self.evalCenter()))
 
 
     def getRotMat(self, pb):

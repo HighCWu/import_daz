@@ -821,16 +821,6 @@ def getBoneMatrix(tfm, pb, test=False):
     return mat
 
 
-def getCenterMatrix(tfm, pb):
-    from .transform import roundMatrix
-    dmat,bmat,rmat = getTransformMatrices(pb)
-    #wmat = Mult3(rmat.inverted(), tfm.getCenterMat(), rmat)
-    wmat = tfm.getCenterMat()
-    mat = Mult3(bmat.inverted(), wmat, bmat)
-    roundMatrix(mat, 1e-4)
-    return mat
-
-
 def setBoneTransform(tfm, pb):
     mat = getBoneMatrix(tfm, pb)
     pb.matrix_basis = mat

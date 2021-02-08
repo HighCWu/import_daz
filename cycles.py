@@ -572,9 +572,9 @@ class CyclesTree:
 
         self.column += 1
         if self.material.shader == 'PBRSKIN':
-            node = self.addGroup(DualLobeGroupPBRSkin, "DAZ Dual Lobe PBRSkin", size=100)
+            node = self.addGroup(DualLobeGroupPBRSkin, "DAZ Dual Lobe PBR", size=100)
         else:
-            node = self.addGroup(DualLobeGroupUberIray, "DAZ Dual Lobe", size=100)
+            node = self.addGroup(DualLobeGroupUberIray, "DAZ Dual Lobe Uber", size=100)
         value,tex = self.getColorTex(["Dual Lobe Specular Weight"], "NONE", 0.5, False)
         node.inputs["Weight"].default_value = value
         if tex:
