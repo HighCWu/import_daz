@@ -601,6 +601,9 @@ def makeArmatureModifier(name, context, ob, rig):
     activateObject(context, ob)
     for n in range(len(ob.modifiers)-1):
         bpy.ops.object.modifier_move_up(modifier=mod.name)
+    ob.location = (0,0,0)
+    ob.rotation_euler = (0,0,0)
+    ob.scale = (1,1,1)
     ob.lock_location = (True,True,True)
     ob.lock_rotation = (True,True,True)
     ob.lock_scale = (True,True,True)
