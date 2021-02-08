@@ -1010,7 +1010,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, MultiFil
             self.layout.prop(self, "catname")
         self.layout.prop(self, "strength")
         self.layout.prop(self, "treatHD")
-        self.layout.prop(self, "useCenterPoint")
+        #self.layout.prop(self, "useCenterPoint")
 
 
     def invoke(self, context, event):
