@@ -162,7 +162,7 @@ class Formula:
         else:
             bname1 = getTargetName(bname, rig)
             if bname1 is None:
-                reportError("Missing bone (evalFormula): %s" % bname, trigger=(2,3))
+                reportError("Missing bone (evalFormula): %s" % bname, trigger=(2,4))
                 return False
             else:
                 bname = bname1
@@ -451,7 +451,7 @@ class ShapeFormulas:
             if bname in BoneAlternatives.keys():
                 bname = BoneAlternatives[bname]
             else:
-                reportError("Missing bone (buildSingleShapeFormula): %s" % bname, trigger=(2,3))
+                reportError("Missing bone (buildSingleShapeFormula): %s" % bname, trigger=(2,4))
                 return False, None, 1.0
         makeSomeBoneDriver(expr, skey, "value", rig, ob, bname, -1)
         return True, None, 1.0
@@ -460,7 +460,7 @@ class ShapeFormulas:
 def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
     from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
     if bname not in rig.pose.bones:
-        reportError("Missing bone (makeSomeBoneDriver): %s" % bname, trigger=(2,3))
+        reportError("Missing bone (makeSomeBoneDriver): %s" % bname, trigger=(2,4))
         return
     pb = rig.pose.bones[bname]
     if "comp" in expr.keys():
