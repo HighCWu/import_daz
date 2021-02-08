@@ -342,8 +342,10 @@ class DAZ_PT_Utils(bpy.types.Panel):
             box.prop(ob, "DazMesh")
             box.prop(ob, "DazOrientMethod")
             box.prop(ob, "DazScale")
+            factor = 1/ob.DazScale
         else:
             box.label(text = "No active object")
+            factor = 1
         layout.separator()
         pb = context.active_pose_bone
         box = layout.box()
@@ -355,6 +357,10 @@ class DAZ_PT_Utils(bpy.types.Panel):
             self.propRow(box, pb, "DazRotMode")
             self.propRow(box, pb, "DazLocLocks")
             self.propRow(box, pb, "DazRotLocks")
+            loc,quat,scale = pb.matrix.decompose()
+            self.vecRow(box, factor*loc, "Location")
+            self.vecRow(box, Vector(quat.to_euler())/D, "Rotation")
+            self.vecRow(box, scale, "Scale")
         else:
             box.label(text = "No active bone")
 
@@ -374,7 +380,16 @@ class DAZ_PT_Utils(bpy.types.Panel):
         row.label(text=prop[3:])
         attr = getattr(rna, prop)
         for n in range(3):
-            row.label(text=str(attr[n]))
+            if isinstance(attr[n], float):
+                row.label(text = "%.3f" % attr[n])
+            else:
+                row.label(text = str(attr[n]))
+
+    def vecRow(self, layout, vec, text):
+        row = layout.row()
+        row.label(text=text)
+        for n in range(3):
+            row.label(text = "%.3f" % vec[n])
 
 
 class DAZ_PT_Posing(bpy.types.Panel):
