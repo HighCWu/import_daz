@@ -372,7 +372,7 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
                 else:
                     umat = convertDualMatrix(rot, pbDriver, pbDriven)
                     for idx in range(3):
-                        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, None, driver, idx)
+                        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, None, driver, idx, False)
 
 #-------------------------------------------------------------
 #   Build shape formula
@@ -427,15 +427,15 @@ class ShapeFormulas:
                 return False,None,1.0
             skey = ob.data.shape_keys.key_blocks[sname]
             if "value" in expr.keys():
-                ok,prop,value = self.buildSingleShapeFormula(expr["value"], rig, ob, skey, asset)
+                ok,prop,value = self.buildSingleShapeFormula(expr["value"], rig, skeys, skey, asset, 0)
                 success = (success and ok)
-                for other in expr["value"]["others"]:
-                    ok,_,_ = self.buildSingleShapeFormula(other, rig, ob, skey, asset)
+                for n,other in enumerate(expr["value"]["others"]):
+                    ok,_,_ = self.buildSingleShapeFormula(other, rig, skeys, skey, asset, n+1)
                     success = (success and ok)
         return success,prop,value
 
 
-    def buildSingleShapeFormula(self, expr, rig, ob, skey, asset):
+    def buildSingleShapeFormula(self, expr, rig, skeys, skey, asset, drvnum):
         from .bone import BoneAlternatives
 
         bname = expr["bone"]
@@ -453,11 +453,11 @@ class ShapeFormulas:
             else:
                 reportError("Missing bone (buildSingleShapeFormula): %s" % bname, trigger=(2,4))
                 return False, None, 1.0
-        makeSomeBoneDriver(expr, skey, "value", rig, ob, bname, -1)
+        makeSomeBoneDriver(expr, skey, "value", rig, skeys, bname, -1, drvnum)
         return True, None, 1.0
 
 
-def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
+def makeSomeBoneDriver(expr, rna, channel, rig, skeys, bname, idx, drvnum):
     from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
     if bname not in rig.pose.bones:
         reportError("Missing bone (makeSomeBoneDriver): %s" % bname, trigger=(2,4))
@@ -465,17 +465,17 @@ def makeSomeBoneDriver(expr, rna, channel, rig, ob, bname, idx):
     pb = rig.pose.bones[bname]
     if "comp" in expr.keys():
         uvec,xys = getSplinePoints(expr, pb)
-        makeSplineBoneDriver(uvec, xys, rna, channel, rig, ob, bname, idx)
+        makeSplineBoneDriver(uvec, xys, rna, channel, rig, skeys, bname, idx, drvnum)
     elif isinstance(expr["value"], list):
         uvecs = []
         for vec in expr["value"]:
             uvec = convertDualVector(vec, pb, False)
             uvecs.append(uvec)
-        makeProductBoneDriver(uvecs, rna, channel, rig, ob, bname, idx)
+        makeProductBoneDriver(uvecs, rna, channel, rig, skeys, bname, idx, drvnum)
     else:
         vec = expr["value"]
         uvec = convertDualVector(vec, pb, False)
-        makeSimpleBoneDriver(uvec, rna, channel, rig, ob, bname, idx)
+        makeSimpleBoneDriver(uvec, rna, channel, rig, skeys, bname, idx, drvnum)
 
 
 def getSplinePoints(expr, pb):
