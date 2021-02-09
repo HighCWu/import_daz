@@ -164,6 +164,7 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
     def draw(self, context):
         self.layout.prop(self, "transferMethod", expand=True)
         self.layout.prop(self, "useDriver")
+        self.layout.prop(self, "useVendorMorphs")
         self.layout.prop(self, "useOverwrite")
         self.layout.prop(self, "useSelectedOnly")
         self.layout.prop(self, "ignoreRigidity")
@@ -243,7 +244,9 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
                     trg.shape_key_remove(cskey)
 
             cskey = None
-            filepath = getMorphPath(sname, trg, scn)
+            filepath = None
+            if self.useVendorMorphs:
+                filepath = getMorphPath(sname, trg, scn)
             if filepath is not None:
                 cskey = self.loadMorph(filepath, trg, scn)
             if cskey:

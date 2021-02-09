@@ -886,6 +886,11 @@ class TransferOptions:
         description = "Transfer both shapekeys and drivers",
         default = True)
 
+    useVendorMorphs = BoolProperty(
+        name = "Use Vendor Morphs",
+        description = "Use customized morphs provided by vendor,\notherwise always auto-transfer morphs",
+        default = True)
+
     useOverwrite = BoolProperty(
         name = "Overwrite Existing Shapekeys",
         description = "Overwrite existing shapekeys or create new ones",
