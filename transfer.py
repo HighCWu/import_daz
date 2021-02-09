@@ -272,18 +272,19 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
         return True
 
 
-    def loadMorph(self, filepath, mesh, scn):
+    def loadMorph(self, filepath, ob, scn):
         from .load_json import loadJson
         from .files import parseAssetFile
         from .modifier import Morph
-        LS.forMorphLoad(mesh, scn)
+        LS.forMorphLoad(ob, scn)
         struct = loadJson(filepath)
         asset = parseAssetFile(struct)
-        if not isinstance(asset, Morph):
+        if (not isinstance(asset, Morph) or
+            len(ob.data.vertices) != asset.vertex_count):
             return None
-        asset.buildMorph(mesh, useBuild=True)
+        asset.buildMorph(ob, useBuild=True)
         if asset.rna:
-            skey,ob,sname = asset.rna
+            skey,_,_ = asset.rna
             return skey
         else:
             return None
