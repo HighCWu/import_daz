@@ -120,7 +120,7 @@ def isCharacter(node):
     return False
 
 
-class DAZ_OT_GetFingerPrint(bpy.types.Operator):
+class DAZ_OT_GetFingerPrint(bpy.types.Operator, IsMeshArmature):
     bl_idname = "daz.get_finger_print"
     bl_label = "Get Fingerprint"
     bl_description = "Get fingerprint of active character"
