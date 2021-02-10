@@ -975,23 +975,27 @@ class PropFormulas(PoseboneDriver):
             tfm = Transform()
             nonzero = False
             if "translation" in expr.keys():
-                value = expr["translation"]["value"]
-                prop = expr["translation"]["prop"]
+                expr = self.cheatSplineTCB(expr["translation"])
+                value = expr["value"]
+                prop = expr["prop"]
                 tfm.setTrans(self.strength*value, prop)
                 nonzero = True
             if "rotation" in expr.keys():
-                value = expr["rotation"]["value"]
-                prop = expr["rotation"]["prop"]
+                expr = self.cheatSplineTCB(expr["rotation"])
+                value = expr["value"]
+                prop = expr["prop"]
                 tfm.setRot(self.strength*value, prop)
                 nonzero = True
             if "scale" in expr.keys():
-                value = expr["scale"]["value"]
-                prop = expr["scale"]["prop"]
+                expr = expr["scale"]
+                value = expr["value"]
+                prop = expr["prop"]
                 tfm.setScale(value, prop)
                 nonzero = True
             if "general_scale" in expr.keys():
-                value = expr["general_scale"]["value"]
-                prop = expr["general_scale"]["prop"]
+                expr = expr["general_scale"]
+                value = expr["value"]
+                prop = expr["prop"]
                 tfm.setGeneral(value, prop)
                 nonzero = True
             if nonzero:
@@ -1000,6 +1004,17 @@ class PropFormulas(PoseboneDriver):
                 if self.addPoseboneDriver(pb, tfm):
                     success = True
         return success
+
+
+    def cheatSplineTCB(self, expr):
+        if "points" in expr.keys():
+            comp = expr["output"][-1]
+            idx = ord(comp) - ord('x')
+            last = expr["points"][-1]
+            expr["value"][idx] = last[0]*last[1]
+            return expr
+        else:
+            return expr
 
 #-------------------------------------------------------------
 #   Eval formulas
