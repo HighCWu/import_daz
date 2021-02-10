@@ -603,7 +603,7 @@ class CyclesTree:
             self.setRoughness(node, "Roughness 2", roughness2, roughtex2)
 
         self.linkBumpNormal(node)
-        self.mixWithActive(ratio, None, node)
+        self.mixWithActive(ratio, None, node, keep=True)
         LS.usedFeatures["Glossy"] = True
 
 
@@ -1242,12 +1242,12 @@ class CyclesTree:
         return mix
 
 
-    def mixWithActive(self, fac, tex, shader, useAlpha=False, flip=False):
+    def mixWithActive(self, fac, tex, shader, useAlpha=False, flip=False, keep=False):
         if shader.type != 'GROUP':
             raise RuntimeError("BUG: mixWithActive", shader.type)
-        if fac == 0 and tex is None:
+        if fac == 0 and tex is None and not keep:
             return
-        elif fac == 1 and tex is None:
+        elif fac == 1 and tex is None and not keep:
             shader.inputs["Fac"].default_value = fac
             self.cycles = shader
             self.eevee = shader
