@@ -975,27 +975,27 @@ class PropFormulas(PoseboneDriver):
             tfm = Transform()
             nonzero = False
             if "translation" in expr.keys():
-                expr = self.cheatSplineTCB(expr["translation"])
-                value = expr["value"]
-                prop = expr["prop"]
+                exprv = self.cheatSplineTCB(expr["translation"])
+                value = exprv["value"]
+                prop = exprv["prop"]
                 tfm.setTrans(self.strength*value, prop)
                 nonzero = True
             if "rotation" in expr.keys():
-                expr = self.cheatSplineTCB(expr["rotation"])
-                value = expr["value"]
-                prop = expr["prop"]
+                exprv = self.cheatSplineTCB(expr["rotation"])
+                value = exprv["value"]
+                prop = exprv["prop"]
                 tfm.setRot(self.strength*value, prop)
                 nonzero = True
             if "scale" in expr.keys():
-                expr = expr["scale"]
-                value = expr["value"]
-                prop = expr["prop"]
+                exprv = expr["scale"]
+                value = exprv["value"]
+                prop = exprv["prop"]
                 tfm.setScale(value, prop)
                 nonzero = True
             if "general_scale" in expr.keys():
-                expr = expr["general_scale"]
-                value = expr["value"]
-                prop = expr["prop"]
+                exprv = expr["general_scale"]
+                value = exprv["value"]
+                prop = exprv["prop"]
                 tfm.setGeneral(value, prop)
                 nonzero = True
             if nonzero:
