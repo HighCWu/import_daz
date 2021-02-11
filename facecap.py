@@ -32,70 +32,11 @@ from mathutils import Vector, Euler, Matrix
 from .error import *
 from .utils import *
 
-FacsTable = {
-    "browInnerUp" : "facs_ctrl_BrowInnerUp",
-    "browDown_L" : "facs_BrowDownLeft",
-    "browDown_R" : "facs_BrowDownRight",
-    "browOuterUp_L" : "facs_BrowOuterUpLeft",
-    "browOuterUp_R" : "facs_BrowOuterUpRight",
-    "eyeLookUp_L" : "facs_jnt_EyeLookUpLeft",
-    "eyeLookUp_R" : "facs_jnt_EyeLookUpRight",
-    "eyeLookDown_L" : "facs_jnt_EyeLookDownLeft",
-    "eyeLookDown_R" : "facs_jnt_EyeLookDownRight",
-    "eyeLookIn_L" : "facs_bs_EyeLookInLeft_div2",
-    "eyeLookIn_R" : "facs_bs_EyeLookInRight_div2",
-    "eyeLookOut_L" : "facs_bs_EyeLookOutLeft_div2",
-    "eyeLookOut_R" : "facs_bs_EyeLookOutRight_div2",
-    "eyeBlink_L" : "facs_jnt_EyeBlinkLeft",
-    "eyeBlink_R" : "facs_jnt_EyeBlinkRight",
-    "eyeSquint_L" : "facs_bs_EyeSquintLeft_div2",
-    "eyeSquint_R" : "facs_bs_EyeSquintRight_div2",
-    "eyeWide_L" : "facs_jnt_EyesWideLeft",
-    "eyeWide_R" : "facs_jnt_EyesWideRight",
-    "cheekPuff" : "facs_ctrl_CheekPuff",
-    "cheekSquint_L" : "facs_bs_CheekSquintLeft_div2",
-    "cheekSquint_R" : "facs_bs_CheekSquintRight_div2",
-    "noseSneer_L" : "facs_bs_NoseSneerLeft_div2",
-    "noseSneer_R" : "facs_bs_NoseSneerRight_div2",
-    "jawOpen" : "facs_jnt_JawOpen",
-    "jawForward" : "facs_jnt_JawForward",
-    "jawLeft" : "facs_jnt_JawLeft",
-    "jawRight" : "facs_jnt_JawRight",
-    "mouthFunnel" : "facs_bs_MouthFunnel_div2",
-    "mouthPucker" : "facs_bs_MouthPucker_div2",
-    "mouthLeft" : "facs_bs_MouthLeft_div2",
-    "mouthRight" : "facs_bs_MouthRight_div2",
-    "mouthRollUpper" : "facs_bs_MouthRollUpper_div2",
-    "mouthRollLower" : "facs_bs_MouthRollLower_div2",
-    "mouthShrugUpper" : "facs_bs_MouthShrugUpper_div2",
-    "mouthShrugLower" : "facs_bs_MouthShrugLower_div2",
-    "mouthClose" : "facs_bs_MouthClose_div2",
-    "mouthSmile_L" : "facs_bs_MouthSmileLeft_div2",
-    "mouthSmile_R" : "facs_bs_MouthSmileRight_div2",
-    "mouthFrown_L" : "facs_bs_MouthFrownLeft_div2",
-    "mouthFrown_R" : "facs_bs_MouthFrownRight_div2",
-    "mouthDimple_L" : "facs_bs_MouthDimpleLeft_div2",
-    "mouthDimple_R" : "facs_bs_MouthDimpleRight_div2",
-    "mouthUpperUp_L" : "facs_bs_MouthUpperUpLeft_div2",
-    "mouthUpperUp_R" : "facs_bs_MouthUpperUpRight_div2",
-    "mouthLowerDown_L" : "facs_bs_MouthLowerDownLeft_div2",
-    "mouthLowerDown_R" : "facs_bs_MouthLowerDownRight_div2",
-    "mouthPress_L" : "facs_bs_MouthPressLeft_div2",
-    "mouthPress_R" : "facs_bs_MouthPressRight_div2",
-    "mouthStretch_L" : "facs_bs_MouthStretchLeft_div2",
-    "mouthStretch_R" : "facs_bs_MouthStretchRight_div2",
-    "tongueOut" : "facs_bs_TongueOut",
-}
-
 #------------------------------------------------------------------
-#   Import FaceCap
+#   Generic FACS importer
 #------------------------------------------------------------------
 
-class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMeshArmature):
-    bl_idname = "daz.import_facecap"
-    bl_label = "Import FaceCap File"
-    bl_description = "Import a text file with facecap data"
-    bl_options = {'UNDO'}
+class FACSImporter(B.SingleFile, B.ActionOptions):
 
     makeNewAction : BoolProperty(
         name = "New Action",
@@ -110,6 +51,7 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
     fps : FloatProperty(
         name = "Frame Rate",
         description = "Animation FPS in FaceCap file",
+        min = 0,
         default = 24)
 
     useHeadLoc : BoolProperty(
@@ -148,6 +90,12 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
         rig = getRigFromObject(context.object)
         if rig is None:
             raise DazError("No rig selected")
+        self.bshapes = []
+        self.bskeys = {}
+        self.hlockeys = {}
+        self.hrotkeys = {}
+        self.leyekeys = {}
+        self.reyekeys = {}
         self.parse()
         first = list(self.bskeys.values())[0]
         print("Blendshapes: %d\nKeys: %d" % (len(self.bshapes), len(first)))
@@ -163,7 +111,7 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
     def build(self, rig):
         missing = []
         for bshape in self.bshapes:
-            if bshape not in FacsTable.keys():
+            if bshape not in self.FacsTable.keys():
                 missing.append(bshape)
         if missing:
             msg = "Missing blendshapes:     \n"
@@ -171,34 +119,37 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
                 msg += ("  %s\n" % bshape)
             raise DazError(msg)
 
-        head = self.getBones(["head"], rig)
-        leye = self.getBones(["lEye"], rig)
-        reye = self.getBones(["rEye"], rig)
-        if self.useHeadLoc:
-            hip = self.getBones(["hip", "torso"], rig)
-
-        factor = self.fps * 1e-3
-        scale = rig.DazScale
-
+        self.setupBones(rig)
+        self.scale = rig.DazScale
         for t in self.bskeys.keys():
-            frame = factor * t
-
-            if self.useHeadLoc:
-                hip.location = scale*self.hlockeys[t]
-                hip.keyframe_insert("location", frame=frame, group="hip")
-            if self.useHeadRot:
-                self.setRotation(head, self.hrotkeys[t], frame)
-            if self.useEyesRot:
-                self.setRotation(leye, self.leyekeys[t], frame)
-                self.setRotation(reye, self.reyekeys[t], frame)
-
+            frame = self.getFrame(t)
+            self.setBoneFrame(t, frame)
             for bshape,value in zip(self.bshapes,self.bskeys[t]):
-                prop = FacsTable[bshape]
+                prop = self.FacsTable[bshape]
                 if prop in rig.keys():
                     rig[prop] = value
                     rig.keyframe_insert('["%s"]' % prop, frame=frame, group="FACS")
                 else:
                     print("MISS", bshape, prop)
+
+
+    def setupBones(self, rig):
+        self.head = self.getBones(["head"], rig)
+        self.leye = self.getBones(["lEye"], rig)
+        self.reye = self.getBones(["rEye"], rig)
+        if self.useHeadLoc:
+            self.hip = self.getBones(["hip", "torso"], rig)
+
+
+    def setBoneFrame(self, t, frame):
+        if self.useHeadLoc:
+            self.hip.location = self.scale*self.hlockeys[t]
+            self.hip.keyframe_insert("location", frame=frame, group="hip")
+        if self.useHeadRot:
+            self.setRotation(self.head, self.hrotkeys[t], frame)
+        if self.useEyesRot:
+            self.setRotation(self.leye, self.leyekeys[t], frame)
+            self.setRotation(self.reye, self.reyekeys[t], frame)
 
 
     def setRotation(self, pb, euler, frame):
@@ -231,6 +182,73 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
                     raise DazError(msg)
         return pb
 
+#------------------------------------------------------------------
+#   FaceCap
+#------------------------------------------------------------------
+
+class ImportFaceCap(DazOperator, B.TextFile, IsMeshArmature, FACSImporter):
+    bl_idname = "daz.import_facecap"
+    bl_label = "Import FaceCap File"
+    bl_description = "Import a text file with facecap data"
+    bl_options = {'UNDO'}
+
+    FacsTable = {
+        "browInnerUp" : "facs_ctrl_BrowInnerUp",
+        "browDown_L" : "facs_BrowDownLeft",
+        "browDown_R" : "facs_BrowDownRight",
+        "browOuterUp_L" : "facs_BrowOuterUpLeft",
+        "browOuterUp_R" : "facs_BrowOuterUpRight",
+        "eyeLookUp_L" : "facs_jnt_EyeLookUpLeft",
+        "eyeLookUp_R" : "facs_jnt_EyeLookUpRight",
+        "eyeLookDown_L" : "facs_jnt_EyeLookDownLeft",
+        "eyeLookDown_R" : "facs_jnt_EyeLookDownRight",
+        "eyeLookIn_L" : "facs_bs_EyeLookInLeft_div2",
+        "eyeLookIn_R" : "facs_bs_EyeLookInRight_div2",
+        "eyeLookOut_L" : "facs_bs_EyeLookOutLeft_div2",
+        "eyeLookOut_R" : "facs_bs_EyeLookOutRight_div2",
+        "eyeBlink_L" : "facs_jnt_EyeBlinkLeft",
+        "eyeBlink_R" : "facs_jnt_EyeBlinkRight",
+        "eyeSquint_L" : "facs_bs_EyeSquintLeft_div2",
+        "eyeSquint_R" : "facs_bs_EyeSquintRight_div2",
+        "eyeWide_L" : "facs_jnt_EyesWideLeft",
+        "eyeWide_R" : "facs_jnt_EyesWideRight",
+        "cheekPuff" : "facs_ctrl_CheekPuff",
+        "cheekSquint_L" : "facs_bs_CheekSquintLeft_div2",
+        "cheekSquint_R" : "facs_bs_CheekSquintRight_div2",
+        "noseSneer_L" : "facs_bs_NoseSneerLeft_div2",
+        "noseSneer_R" : "facs_bs_NoseSneerRight_div2",
+        "jawOpen" : "facs_jnt_JawOpen",
+        "jawForward" : "facs_jnt_JawForward",
+        "jawLeft" : "facs_jnt_JawLeft",
+        "jawRight" : "facs_jnt_JawRight",
+        "mouthFunnel" : "facs_bs_MouthFunnel_div2",
+        "mouthPucker" : "facs_bs_MouthPucker_div2",
+        "mouthLeft" : "facs_bs_MouthLeft_div2",
+        "mouthRight" : "facs_bs_MouthRight_div2",
+        "mouthRollUpper" : "facs_bs_MouthRollUpper_div2",
+        "mouthRollLower" : "facs_bs_MouthRollLower_div2",
+        "mouthShrugUpper" : "facs_bs_MouthShrugUpper_div2",
+        "mouthShrugLower" : "facs_bs_MouthShrugLower_div2",
+        "mouthClose" : "facs_bs_MouthClose_div2",
+        "mouthSmile_L" : "facs_bs_MouthSmileLeft_div2",
+        "mouthSmile_R" : "facs_bs_MouthSmileRight_div2",
+        "mouthFrown_L" : "facs_bs_MouthFrownLeft_div2",
+        "mouthFrown_R" : "facs_bs_MouthFrownRight_div2",
+        "mouthDimple_L" : "facs_bs_MouthDimpleLeft_div2",
+        "mouthDimple_R" : "facs_bs_MouthDimpleRight_div2",
+        "mouthUpperUp_L" : "facs_bs_MouthUpperUpLeft_div2",
+        "mouthUpperUp_R" : "facs_bs_MouthUpperUpRight_div2",
+        "mouthLowerDown_L" : "facs_bs_MouthLowerDownLeft_div2",
+        "mouthLowerDown_R" : "facs_bs_MouthLowerDownRight_div2",
+        "mouthPress_L" : "facs_bs_MouthPressLeft_div2",
+        "mouthPress_R" : "facs_bs_MouthPressRight_div2",
+        "mouthStretch_L" : "facs_bs_MouthStretchLeft_div2",
+        "mouthStretch_R" : "facs_bs_MouthStretchRight_div2",
+        "tongueOut" : "facs_bs_TongueOut",
+    }
+
+    def getFrame(self, t):
+        return self.fps * 1e-3 * t
 
     # timestamp in milli seconds (file says nano),
     # head position xyz,
@@ -239,12 +257,6 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
     # right-eye eulerAngles xy,
     # blendshapes
     def parse(self):
-        self.bshapes = []
-        self.hlockeys = {}
-        self.hrotkeys = {}
-        self.leyekeys = {}
-        self.reyekeys = {}
-        self.bskeys = {}
         with open(self.filepath, "r") as fp:
             for line in fp:
                 line = line.strip()
@@ -262,7 +274,108 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
                     pass
                 else:
                     raise DazError("Illegal syntax:\%s     " % line)
-        return self.bshapes, self.hlockeys, self.hrotkeys, self.leyekeys, self.reyekeys, self.bskeys
+
+#------------------------------------------------------------------
+#   Unreal Live Link
+#------------------------------------------------------------------
+
+class ImportLiveLink(DazOperator, B.CsvFile, IsMeshArmature, FACSImporter):
+    bl_idname = "daz.import_livelink"
+    bl_label = "Import Live Link File"
+    bl_description = "Import a csv file with Unreal's Live Link data"
+    bl_options = {'UNDO'}
+
+    FacsTable = {
+        "browInnerUp" : "facs_ctrl_BrowInnerUp",
+        "browDownLeft" : "facs_BrowDownLeft",
+        "browDownRight" : "facs_BrowDownRight",
+        "browOuterUpLeft" : "facs_BrowOuterUpLeft",
+        "browOuterUpRight" : "facs_BrowOuterUpRight",
+        "eyeLookUpLeft" : "facs_jnt_EyeLookUpLeft",
+        "eyeLookUpRight" : "facs_jnt_EyeLookUpRight",
+        "eyeLookDownLeft" : "facs_jnt_EyeLookDownLeft",
+        "eyeLookDownRight" : "facs_jnt_EyeLookDownRight",
+        "eyeLookInLeft" : "facs_bs_EyeLookInLeft_div2",
+        "eyeLookInRight" : "facs_bs_EyeLookInRight_div2",
+        "eyeLookOutLeft" : "facs_bs_EyeLookOutLeft_div2",
+        "eyeLookOutRight" : "facs_bs_EyeLookOutRight_div2",
+        "eyeBlinkLeft" : "facs_jnt_EyeBlinkLeft",
+        "eyeBlinkRight" : "facs_jnt_EyeBlinkRight",
+        "eyeSquintLeft" : "facs_bs_EyeSquintLeft_div2",
+        "eyeSquintRight" : "facs_bs_EyeSquintRight_div2",
+        "eyeWideLeft" : "facs_jnt_EyesWideLeft",
+        "eyeWideRight" : "facs_jnt_EyesWideRight",
+        "cheekPuff" : "facs_ctrl_CheekPuff",
+        "cheekSquintLeft" : "facs_bs_CheekSquintLeft_div2",
+        "cheekSquintRight" : "facs_bs_CheekSquintRight_div2",
+        "noseSneerLeft" : "facs_bs_NoseSneerLeft_div2",
+        "noseSneerRight" : "facs_bs_NoseSneerRight_div2",
+        "jawOpen" : "facs_jnt_JawOpen",
+        "jawForward" : "facs_jnt_JawForward",
+        "jawLeft" : "facs_jnt_JawLeft",
+        "jawRight" : "facs_jnt_JawRight",
+        "mouthFunnel" : "facs_bs_MouthFunnel_div2",
+        "mouthPucker" : "facs_bs_MouthPucker_div2",
+        "mouthLeft" : "facs_bs_MouthLeft_div2",
+        "mouthRight" : "facs_bs_MouthRight_div2",
+        "mouthRollUpper" : "facs_bs_MouthRollUpper_div2",
+        "mouthRollLower" : "facs_bs_MouthRollLower_div2",
+        "mouthShrugUpper" : "facs_bs_MouthShrugUpper_div2",
+        "mouthShrugLower" : "facs_bs_MouthShrugLower_div2",
+        "mouthClose" : "facs_bs_MouthClose_div2",
+        "mouthSmileLeft" : "facs_bs_MouthSmileLeft_div2",
+        "mouthSmileRight" : "facs_bs_MouthSmileRight_div2",
+        "mouthFrownLeft" : "facs_bs_MouthFrownLeft_div2",
+        "mouthFrownRight" : "facs_bs_MouthFrownRight_div2",
+        "mouthDimpleLeft" : "facs_bs_MouthDimpleLeft_div2",
+        "mouthDimpleRight" : "facs_bs_MouthDimpleRight_div2",
+        "mouthUpperUpLeft" : "facs_bs_MouthUpperUpLeft_div2",
+        "mouthUpperUpRight" : "facs_bs_MouthUpperUpRight_div2",
+        "mouthLowerDownLeft" : "facs_bs_MouthLowerDownLeft_div2",
+        "mouthLowerDownRight" : "facs_bs_MouthLowerDownRight_div2",
+        "mouthPressLeft" : "facs_bs_MouthPressLeft_div2",
+        "mouthPressRight" : "facs_bs_MouthPressRight_div2",
+        "mouthStretchLeft" : "facs_bs_MouthStretchLeft_div2",
+        "mouthStretchRight" : "facs_bs_MouthStretchRight_div2",
+        "tongueOut" : "facs_bs_TongueOut",
+    }
+
+    def getFrame(self, t):
+        return t
+
+    def parse(self):
+        def getRawFrame(string):
+            words = string.split(":")
+            ss = float(words[3])
+            mm = float(words[2])
+            hh = float(words[1])
+            dd = float(words[0])
+            return int(round(ss + 60*(mm + 60*(hh + 24*dd))))
+
+        def getRotation(data):
+            yaw,pitch,roll = data
+            return Euler((pitch, roll, yaw))
+
+        from csv import reader
+        with open(self.filepath, newline='') as fp:
+            lines = list(reader(fp))
+        if len(lines) < 2:
+            raise DazError("Found no keyframes")
+
+        self.bshapes = lines[0][2:-9]
+        t0 = getRawFrame(lines[1][0])
+        for line in lines[1:]:
+            t = getRawFrame(line[0]) - t0
+            nums = [float(word) for word in line[2:]]
+            self.bskeys[t] = nums[0:-9]
+            self.hlockeys[t] = Vector((0,0,0))
+            self.hrotkeys[t] = getRotation(nums[-9:-6])
+            self.leyekeys[t] = getRotation(nums[-6:-3])
+            self.reyekeys[t] = getRotation(nums[-3:])
+
+        for key in self.bshapes:
+            if key not in self.FacsTable.keys():
+                print(key)
 
 #----------------------------------------------------------
 #   Initialize
@@ -270,6 +383,7 @@ class ImportFaceCap(DazOperator, B.SingleFile, B.TextFile, B.ActionOptions, IsMe
 
 classes = [
     ImportFaceCap,
+    ImportLiveLink,
 ]
 
 def initialize():

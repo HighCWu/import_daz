@@ -1077,6 +1077,11 @@ class TextFile:
     filename_ext = ".txt"
     filter_glob = StringProperty(default="*.txt", options={'HIDDEN'})
 
+
+class CsvFile:
+    filename_ext = ".csv"
+    filter_glob = StringProperty(default="*.csv", options={'HIDDEN'})
+
 #-------------------------------------------------------------
 #   Property groups
 #-------------------------------------------------------------
