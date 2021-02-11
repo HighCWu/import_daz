@@ -48,12 +48,6 @@ class FACSImporter(B.SingleFile, B.ActionOptions):
         description = "Name of loaded action",
         default = "Action")
 
-    fps : FloatProperty(
-        name = "Frame Rate",
-        description = "Animation FPS in FaceCap file",
-        min = 0,
-        default = 24)
-
     useHeadLoc : BoolProperty(
         name = "Head Location",
         description = "Include head location animation",
@@ -74,7 +68,6 @@ class FACSImporter(B.SingleFile, B.ActionOptions):
         self.layout.prop(self, "makeNewAction")
         if self.makeNewAction:
             self.layout.prop(self, "actionName")
-        self.layout.prop(self, "fps")
         self.layout.prop(self, "useHeadLoc")
         self.layout.prop(self, "useHeadRot")
         self.layout.prop(self, "useEyesRot")
@@ -192,6 +185,12 @@ class ImportFaceCap(DazOperator, B.TextFile, IsMeshArmature, FACSImporter):
     bl_description = "Import a text file with facecap data"
     bl_options = {'UNDO'}
 
+    fps : FloatProperty(
+        name = "Frame Rate",
+        description = "Animation FPS in FaceCap file",
+        min = 0,
+        default = 24)
+
     FacsTable = {
         "browInnerUp" : "facs_ctrl_BrowInnerUp",
         "browDown_L" : "facs_BrowDownLeft",
@@ -246,6 +245,11 @@ class ImportFaceCap(DazOperator, B.TextFile, IsMeshArmature, FACSImporter):
         "mouthStretch_R" : "facs_bs_MouthStretchRight_div2",
         "tongueOut" : "facs_bs_TongueOut",
     }
+
+    def draw(self, context):
+        self.layout.prop(self, "fps")
+        FACSImporter.draw(self, context)
+
 
     def getFrame(self, t):
         return self.fps * 1e-3 * t
@@ -341,21 +345,9 @@ class ImportLiveLink(DazOperator, B.CsvFile, IsMeshArmature, FACSImporter):
     }
 
     def getFrame(self, t):
-        return t
+        return t+1
 
     def parse(self):
-        def getRawFrame(string):
-            words = string.split(":")
-            ss = float(words[3])
-            mm = float(words[2])
-            hh = float(words[1])
-            dd = float(words[0])
-            return int(round(ss + 60*(mm + 60*(hh + 24*dd))))
-
-        def getRotation(data):
-            yaw,pitch,roll = data
-            return Euler((pitch, roll, yaw))
-
         from csv import reader
         with open(self.filepath, newline='') as fp:
             lines = list(reader(fp))
@@ -363,15 +355,16 @@ class ImportLiveLink(DazOperator, B.CsvFile, IsMeshArmature, FACSImporter):
             raise DazError("Found no keyframes")
 
         self.bshapes = lines[0][2:-9]
-        t0 = getRawFrame(lines[1][0])
-        for line in lines[1:]:
-            t = getRawFrame(line[0]) - t0
+        for t,line in enumerate(lines[1:]):
             nums = [float(word) for word in line[2:]]
             self.bskeys[t] = nums[0:-9]
             self.hlockeys[t] = Vector((0,0,0))
-            self.hrotkeys[t] = getRotation(nums[-9:-6])
-            self.leyekeys[t] = getRotation(nums[-6:-3])
-            self.reyekeys[t] = getRotation(nums[-3:])
+            yaw,pitch,roll = nums[-9:-6]
+            self.hrotkeys[t] = Euler((-pitch, -yaw, roll))
+            yaw,pitch,roll = nums[-6:-3]
+            self.leyekeys[t] = Euler((yaw, roll, pitch))
+            yaw,pitch,roll = nums[-3:]
+            self.reyekeys[t] = Euler((yaw, roll, pitch))
 
         for key in self.bshapes:
             if key not in self.FacsTable.keys():
