@@ -573,7 +573,10 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         drvvalue = 1.0
         self.shapes = []
         isBoneDriven = False
-        if self.useShapekeys and isinstance(asset, Morph) and self.mesh:
+        if (self.useShapekeys and
+            isinstance(asset, Morph) and
+            self.mesh and
+            asset.deltas):
             useBuild = True
             skey = None
             if asset.vertex_count < 0:
@@ -634,7 +637,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                         miss = True
                     elif self.shapes:
                         self.addSubshapes(prop)
-            elif isinstance(asset, Morph):
+            elif isinstance(asset, Morph) and asset.deltas:
                 pass
             elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
                 prop = asset.clearProp(self.morphset, self.rig)
@@ -935,8 +938,8 @@ class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMes
     bl_options = {'UNDO'}
 
     morphset = "Facs"
-    useBoneDrivers = True
-    useDoubleDrivers = True
+    useBoneDrivers = False
+    useDoubleDrivers = False
 
 
 class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
