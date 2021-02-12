@@ -167,6 +167,12 @@ def handleDazError(context, warning=False, dump=False):
         print(theMessage)
 
 
+def dumpErrors(context):
+    filepath = getErrorPath()
+    with open(filepath, "w") as fp:
+        printTraceBack(context, fp)
+
+
 def getMissingAssets():
     if not LS.missingAssets:
         return ""

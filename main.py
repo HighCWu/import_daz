@@ -136,6 +136,9 @@ def getMainAsset(filepath, context, btn):
         for asset in main.materials:
             asset.guessColor()
 
+    if GS.useDump:
+        from .error import dumpErrors
+        dumpErrors(filepath)
     finishMain("File", filepath, t1)
 
     msg = None

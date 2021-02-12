@@ -227,6 +227,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "General")
         box.prop(scn, "DazUnitScale")
         box.prop(scn, "DazVerbosity")
+        box.prop(scn, "DazDump")
         box.prop(scn, "DazZup")
         box.prop(scn, "DazCaseSensitivePaths")
 
@@ -540,10 +541,13 @@ def initialize():
     bpy.types.Object.DazHasLocLimits = BoolProperty(default=False)
     bpy.types.Object.DazHasRotLimits = BoolProperty(default=False)
 
+    bpy.types.Scene.DazDump = BoolProperty(
+        name = "Dump Debug Info",
+        description = "Dump debug info in the file\ndaz_importer_errors.text after loading file")
+
     bpy.types.Scene.DazZup = BoolProperty(
         name = "Z Up",
-        description = "Convert from DAZ's Y up convention to Blender's Z up convention.\nDisable for debugging only",
-        default = True)
+        description = "Convert from DAZ's Y up convention to Blender's Z up convention.\nDisable for debugging only")
 
     bpy.types.Scene.DazOrientMethod = EnumProperty(
         items = [("BLENDER LEGACY", "Blender Legacy", "Legacy bone orientation used in version 1.5.0 and before"),
@@ -556,13 +560,11 @@ def initialize():
 
     bpy.types.Scene.DazUseQuaternions = BoolProperty(
         name = "Quaternions",
-        description = "Use quaternions for ball-and-socket joints (shoulders and hips)",
-        default = False)
+        description = "Use quaternions for ball-and-socket joints (shoulders and hips)")
 
     bpy.types.Scene.DazUseLegacyLocks = BoolProperty(
         name = "Legacy Locks",
-        description = "Use the simplified locks used by Blender Legacy mode",
-        default = False)
+        description = "Use the simplified locks used by Blender Legacy mode")
 
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(
         name = "Case-Sensitive Paths",

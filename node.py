@@ -588,7 +588,10 @@ class Node(Asset, Formula, Channels):
 
     def __repr__(self):
         pid = (self.parent.id if self.parent else None)
-        return ("<Node %s %s P: %s>" % (self.id, self.label, pid))
+        string = ("<Node %s %s P: %s" % (self.id, self.label, pid))
+        for inst in self.instances.values():
+            string += "\n    %s" % inst
+        return string + ">"
 
 
     def postTransform(self):

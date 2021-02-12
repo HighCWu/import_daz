@@ -59,6 +59,7 @@ class GlobalSettings:
 
         self.unitScale = 0.01
         self.verbosity = 2
+        self.useDump = False
         self.zup = True
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
@@ -109,6 +110,7 @@ class GlobalSettings:
     SceneTable = {
         "DazUnitScale" : "unitScale",
         "DazVerbosity" : "verbosity",
+        "DazDump" : "useDump",
         "DazZup" : "zup",
         "DazErrorPath" : "errorPath",
         "DazCaseSensitivePaths" : "caseSensitivePaths",
