@@ -98,11 +98,11 @@ class Material(Asset, Channels):
             return key
 
 
-    def addToGeo(self, geo, key):
-        if key not in geo.materials.keys():
-            geo.materials[key] = []
-        geo.materials[key].append(self)
-        self.geometry = geo
+    def addToGeoNode(self, geonode, key):
+        if key not in geonode.materials.keys():
+            geonode.materials[key] = []
+        geonode.materials[key].append(self)
+        self.geometry = geonode
 
 
     def update(self, struct):
@@ -114,10 +114,15 @@ class Material(Asset, Channels):
             if self.uv_set:
                 self.uv_set.material = self
         if "geometry" in struct.keys():
-            geo = self.getAsset(struct["geometry"], True)
+            ref = struct["geometry"]
+            geo = self.getAsset(ref, True)
             if geo is not None:
                 key = self.getMatName(self.id)
-                self.addToGeo(geo, key)
+                iref = instRef(ref)
+                if iref in geo.nodes.keys():
+                    geonode = geo.nodes[iref]
+                    print("GNOD", geonode.name, self.name)
+                    self.addToGeoNode(geonode, key)
         self.basemix = self.getValue(["Base Mixing"], 0)
         if self.basemix == 2:
             self.basemix = 0
@@ -152,7 +157,7 @@ class Material(Asset, Channels):
 
 
     def build(self, context):
-        from .geometry import Geometry
+        from .geometry import Geometry, GeoNode
         if self.dontBuild():
             return
         if self.rna is None:

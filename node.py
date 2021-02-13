@@ -156,13 +156,15 @@ class Instance(Accessor, Channels):
 
     def __repr__(self):
         pname = (self.parent.id if self.parent else None)
-        return "<Instance %s %d N: %s P: %sR: %s>" % (self.label, self.index, self.node.name, pname, self.rna)
+        return "<Instance %s %d N: %s P: %s M: %d R: %s>" % (self.label, self.index, self.node.name, pname, len(self.materials), self.rna)
 
 
     def errorWrite(self, ref, fp):
         fp.write('  "%s": %s\n' % (ref, self))
+        for dmat in self.materials:
+            dmat.errorWrite("   M: ", fp)
         for geonode in self.geometries:
-            geonode.errorWrite("", fp)
+            geonode.errorWrite("   G:", fp)
 
 
     def getSelfId(self):
@@ -207,8 +209,8 @@ class Instance(Accessor, Channels):
             elif extra["type"] == "studio/node/tone_mapper":
                 self.ignore = True
 
-        for geo in self.geometries:
-            geo.preprocess(context, self)
+        for geonode in self.geometries:
+            geonode.preprocess(context, self)
 
 
     def preprocess2(self, context):
@@ -239,17 +241,17 @@ class Instance(Accessor, Channels):
             elif channel["id"] == "Visible in Viewport":
                 if not value:
                     setHideViewport(ob, True)
-                    for geo in self.geometries:
-                        if geo.rna:
-                            setHideViewport(geo.rna, True)
+                    for geonode in self.geometries:
+                        if geonode.rna:
+                            setHideViewport(geonode.rna, True)
             elif channel["id"] == "Visible":
                 if not value:
                     ob.hide_render = True
                     setHideViewport(ob, True)
-                    for geo in self.geometries:
-                        if geo.rna:
-                            geo.rna.hide_render = True
-                            setHideViewport(geo.rna, True)
+                    for geonode in self.geometries:
+                        if geonode.rna:
+                            geonode.rna.hide_render = True
+                            setHideViewport(geonode.rna, True)
             elif channel["id"] == "Selectable":
                 if not value:
                     ob.hide_select = True
@@ -444,8 +446,8 @@ class Instance(Accessor, Channels):
             print("Warning: Trying to parent %s to itself" % ob)
             ob.parent = None
         elif isinstance(self.parent, FigureInstance):
-            for geo in self.geometries:
-                geo.setHideInfo()
+            for geonode in self.geometries:
+                geonode.setHideInfo()
             ob.parent = self.parent.rna
             ob.parent_type = 'OBJECT'
         elif isinstance(self.parent, BoneInstance):
@@ -675,15 +677,15 @@ class Node(Asset, Formula, Channels):
                 for geostruct in data:
                     if "url" in geostruct.keys():
                         geo = self.parseUrlAsset(geostruct)
-                        node = GeoNode(self, geo, geostruct["id"])
+                        geonode = GeoNode(self, geo, geostruct["id"])
                     else:
                         print("No geometry URL")
-                        node = GeoNode(self, None, geostruct["id"])
-                        self.saveAsset(geostruct, node)
-                    node.parse(geostruct)
-                    node.update(geostruct)
-                    node.extra = self.extra
-                    self.geometries.append(node)
+                        geonode = GeoNode(self, None, geostruct["id"])
+                        self.saveAsset(geostruct, geonode)
+                    geonode.parse(geostruct)
+                    geonode.update(geostruct)
+                    geonode.extra = self.extra
+                    self.geometries.append(geonode)
             elif channel in self.attributes.keys():
                 self.setAttribute(channel, data)
         self.count += 1

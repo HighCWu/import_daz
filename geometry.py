@@ -56,6 +56,7 @@ class GeoNode(Node):
         self.verts = None
         self.edges = []
         self.faces = []
+        self.materials = {}
         self.hairMaterials = []
         self.isStrandHair = False
         self.properties = {}
@@ -80,7 +81,7 @@ class GeoNode(Node):
 
 
     def __repr__(self):
-        return ("<GeoNode %s %d %s %s %s>" % (self.id, self.index, self.center, self.rna, self.data.rna))
+        return ("<GeoNode %s %d M:%d C: %s R: %s>" % (self.id, self.index, len(self.materials), self.center, self.rna))
 
 
     def errorWrite(self, ref, fp):
@@ -169,6 +170,7 @@ class GeoNode(Node):
 
 
     def addHDMaterials(self, mats, prefix):
+        print("HD", mats)
         for mat in mats:
             pg = self.hdobject.data.DazHDMaterials.add()
             pg.name = prefix + mat.name.rsplit("-",1)[0]
@@ -415,7 +417,6 @@ class Geometry(Asset, Channels):
         self.faces = []
         self.polylines = []
         self.strands = []
-        self.materials = {}
         self.polygon_indices = []
         self.material_indices = []
         self.polygon_material_groups = []
@@ -583,7 +584,7 @@ class Geometry(Asset, Channels):
             if child.shstruct:
                 geonode = inst.geometries[0]
                 geo = geonode.data
-                for mname,shellmats in self.materials.items():
+                for mname,shellmats in geonode.materials.items():
                     if mname in vis.keys():
                         if not vis[mname]:
                             continue
@@ -594,9 +595,9 @@ class Geometry(Asset, Channels):
                         shmat.getValue("getChannelOpacity", 1) == 0):
                         continue
                     uv = self.uvs[mname]
-                    if mname in geo.materials.keys():
-                        dmats = geo.materials[mname]
-                        mshells = dmats[geonode.index].shells
+                    if mname in geonode.materials.keys():
+                        dmat = geonode.materials[mname][0]
+                        mshells = dmat.shells
                         if shname not in mshells.keys():
                             mshells[shname] = self.addShell(shname, shmat, uv)
                         shmat.ignore = True
@@ -627,8 +628,8 @@ class Geometry(Asset, Channels):
             mname1 = mname[n:]
         else:
             mname1 = None
-        if mname1 and mname1 in geo.materials.keys():
-            dmats = geo.materials[mname1]
+        if mname1 and mname1 in geonode.materials.keys():
+            dmats = geonode.materials[mname1]
             mshells = dmats[idx].shells
             if shname not in mshells.keys():
                 mshells[shname] = self.addShell(shname, shmat, uv)
@@ -680,6 +681,7 @@ class Geometry(Asset, Channels):
 
         name = self.getName()
         me = self.rna = bpy.data.meshes.new(name)
+        print("BDAT", name, node, inst)
 
         verts = self.verts
         edges = []
@@ -763,25 +765,19 @@ class Geometry(Asset, Channels):
         return ob
 
 
-    def addMaterials(self, me, node):
+    def addMaterials(self, me, geonode):
         hasShells = False
         for mn,mname in enumerate(self.polygon_material_groups):
             dmat = None
-            if mname in self.materials.keys():
-                dmats = self.materials[mname]
-                if (isinstance(node, GeoNode) and
-                    node.index < len(dmats)):
-                    dmat = dmats[node.index]
-                #elif inst and inst.index < len(dmats):
-                #    dmat = dmats[inst.index]
-                else:
-                    dmat = dmats[0]
+            if mname in geonode.materials.keys():
+                dmat = geonode.materials[mname][0]
+                print("ADM", mname)
             else:
                 ref = self.fileref + "#" + mname
                 dmat = self.getAsset(ref)
             if dmat:
                 if dmat.rna is None:
-                    msg = ("Material without rna:\n  %s" % self)
+                    msg = ("Material without rna:\n  %s\n  %s\n  %s" % (dmat, geonode, self))
                     reportError(msg, trigger=(2,3))
                     #return False
                 me.materials.append(dmat.rna)
@@ -793,18 +789,19 @@ class Geometry(Asset, Channels):
                 me.auto_smooth_angle = dmat.getValue(["Smooth Angle"], 89.9)*D
             else:
                 if GS.verbosity > 3:
-                    mats = list(self.materials.keys())
+                    mats = list(geonode.materials.keys())
                     mats.sort()
                     print("Existing materials:\n  %s" % mats)
-                reportError("Material \"%s\" not found in geometry %s" % (mname, self.name), trigger=(2,4))
+                reportError("Material \"%s\" not found in geometry %s" % (mname, geonode.name), trigger=(2,4))
                 return False
 
 
     def addAllMaterials(self, me):
-        for dmats in self.materials.values():
-            mat = dmats[0].rna
-            if mat:
-                me.materials.append(mat)
+        for geonode in self.nodes.values():
+            for dmats in geonode.materials.values():
+                mat = dmats[0].rna
+                if mat:
+                    me.materials.append(mat)
 
 
     def buildUVSet(self, context, uv_set, me, setActive):
@@ -971,14 +968,20 @@ class Uvset(Asset):
                     udim = 0
                     if GS.verbosity > 2:
                         print("UV coordinate difference %f - %f > 1" % (umax, umin))
-                key = geo.polygon_material_groups[mn]
-                if key in geo.materials.keys():
-                    for dmat in geo.materials[key]:
-                        dmat.fixUdim(context, udim)
-                else:
-                    print("Material \"%s\" not found" % key)
-
+                self.fixUdims(context, mn, udim, geo)
         self.built.append(me)
+
+
+    def fixUdims(self, context, mn, udim, geo):
+        fixed = False
+        key = geo.polygon_material_groups[mn]
+        for geonode in geo.nodes.values():
+            if key in geonode.materials.keys():
+                for dmat in geonode.materials[key]:
+                    dmat.fixUdim(context, udim)
+                    fixed = True
+        if not fixed:
+            print("Material \"%s\" not found" % key)
 
 
 def makeNewUvloop(me, name, setActive):
