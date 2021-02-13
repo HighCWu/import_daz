@@ -123,7 +123,7 @@ def guessMaterialColor(mat, method, choose, enforce):
         color = (random(), random(), random(), 1)
         setDiffuse(mat, color)
 
-    elif choose in ['GUESS', 'GUESSRANDOM']:
+    elif choose in ['GUESS', 'RANDOMCLOTHES']:
         color = getSkinMaterial(mat)
         if color is not None:
             if isinstance(color, int):
