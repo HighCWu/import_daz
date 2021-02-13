@@ -680,8 +680,7 @@ class Geometry(Asset, Channels):
                 msg = ("BUG: Sourcing:\n%  %s\n  %s" % (self, asset))
                 reportError(msg, trigger=(2,3))
 
-        name = self.getName()
-        me = self.rna = bpy.data.meshes.new(name)
+        me = self.rna = bpy.data.meshes.new(geonode.getName())
 
         verts = self.verts
         edges = []
