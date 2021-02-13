@@ -80,7 +80,11 @@ class GeoNode(Node):
 
 
     def __repr__(self):
-        return ("<GeoNode %s %d %s %s>" % (self.id, self.index, self.center, self.rna))
+        return ("<GeoNode %s %d %s %s %s>" % (self.id, self.index, self.center, self.rna, self.data.rna))
+
+
+    def errorWrite(self, ref, fp):
+        fp.write('   G: %s\n' % (self))
 
 
     def isVisibleMaterial(self, dmat):

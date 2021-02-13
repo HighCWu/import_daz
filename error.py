@@ -117,13 +117,12 @@ class DazError(Exception):
 
 
 def reportError(msg, instances={}, warnPaths=False, trigger=(2,3), force=False):
-    global theUseDumpErrors, theInstances
+    global theUseDumpErrors
     trigWarning,trigError = trigger
     if GS.verbosity >= trigWarning or force:
         print(msg)
     if GS.verbosity >= trigError or force:
         theUseDumpErrors = True
-        theInstances = instances
         if warnPaths:
             msg += ("\nHave all DAZ library paths been set up correctly?\n" +
                     "See https://diffeomorphic.blogspot.se/p/setting-up-daz-library-paths.html         ")
@@ -183,8 +182,6 @@ def getMissingAssets():
 
 
 def printTraceBack(context, fp):
-    global theInstances
-
     import sys, traceback
     type,value,tb = sys.exc_info()
     fp.write("\n\nTRACEBACK:\n")
@@ -192,24 +189,20 @@ def printTraceBack(context, fp):
 
     from .settings import theTrace
     from .asset import theAssets, theOtherAssets, theDazPaths
+    from .node import Node
 
     fp.write("\n\nFILES VISITED:\n")
     for string in theTrace:
         fp.write("  %s\n" % string)
 
-    fp.write("\nINSTANCES:\n")
-    refs = list(theInstances.keys())
-    refs.sort()
-    for ref in refs:
-        fp.write('"%s":    %s\n' % (ref, theInstances[ref]))
-
-    fp.write("\nASSETS:\n")
+    fp.write("\nASSETS:")
     refs = list(theAssets.keys())
     refs.sort()
     for ref in refs:
-        fp.write('"%s"\n    %s\n\n' % (ref, theAssets[ref]))
+        asset = theAssets[ref]
+        asset.errorWrite(ref, fp)
 
-    fp.write("\nOTHER ASSETS:\n")
+    fp.write("\n\nOTHER ASSETS:\n")
     refs = list(theOtherAssets.keys())
     refs.sort()
     for ref in refs:

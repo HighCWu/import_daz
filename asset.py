@@ -253,6 +253,11 @@ class Asset(Accessor):
         return ("<Asset %s t: %s r: %s>" % (self.id, self.type, self.rna))
 
 
+    def errorWrite(self, ref, fp):
+        fp.write('\n"%s":' % ref)
+        fp.write(" %s\n" % self)
+
+
     def selfref(self):
         return ("#" + self.id.rsplit("#", 2)[-1])
 

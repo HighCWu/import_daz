@@ -156,7 +156,13 @@ class Instance(Accessor, Channels):
 
     def __repr__(self):
         pname = (self.parent.id if self.parent else None)
-        return "<Instance %s %d N: %s P: %s R: %s>" % (self.label, self.index, self.node.name, pname, self.rna)
+        return "<Instance %s %d N: %s P: %sR: %s>" % (self.label, self.index, self.node.name, pname, self.rna)
+
+
+    def errorWrite(self, ref, fp):
+        fp.write('  "%s": %s\n' % (ref, self))
+        for geonode in self.geometries:
+            geonode.errorWrite("", fp)
 
 
     def getSelfId(self):
@@ -588,10 +594,13 @@ class Node(Asset, Formula, Channels):
 
     def __repr__(self):
         pid = (self.parent.id if self.parent else None)
-        string = ("<Node %s %s P: %s" % (self.id, self.label, pid))
-        for inst in self.instances.values():
-            string += "\n    %s" % inst
-        return string + ">"
+        return ("<Node %s %s P: %s G: %s>" % (self.id, self.label, pid, self.geometries))
+
+
+    def errorWrite(self, ref, fp):
+        Asset.errorWrite(self, ref, fp)
+        for iref,inst in self.instances.items():
+            inst.errorWrite(iref, fp)
 
 
     def postTransform(self):
