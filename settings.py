@@ -63,7 +63,7 @@ class GlobalSettings:
         self.zup = True
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
-        self.chooseColors = 'GUESS'
+        self.viewportColors = 'GUESS'
         self.orientMethod = 'DAZ STUDIO'
         self.useQuaternions = False
         self.useLegacyLocks = False
@@ -118,7 +118,7 @@ class GlobalSettings:
         "DazMaterialMethod" : "materialMethod",
         "DazRefractiveMethod" : "refractiveMethod",
         "DazHairMaterialMethod" : "hairMaterialMethod",
-        "DazChooseColors" : "chooseColors",
+        "DazViewportColor" : "viewportColors",
         "DazMergeShells" : "mergeShells",
         "DazThinWall" : "thinWall",
         "DazPruneNodes" : "pruneNodes",

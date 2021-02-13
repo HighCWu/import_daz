@@ -132,7 +132,7 @@ def getMainAsset(filepath, context, btn):
     transformDuplis()
 
     if (LS.useMaterials and
-        GS.chooseColors != 'WHITE'):
+        GS.viewportColors != 'WHITE'):
         for asset in main.materials:
             asset.guessColor()
 

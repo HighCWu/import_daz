@@ -60,9 +60,12 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions, B.PoleT
         layout.separator()
         box = layout.box()
         box.label(text = "Viewport Color")
-        row = box.row()
-        row.prop(self, "skinColor")
-        row.prop(self, "clothesColor")
+        if GS.viewportColors == 'GUESS':
+            row = box.row()
+            row.prop(self, "skinColor")
+            row.prop(self, "clothesColor")
+        else:
+            box.label(text = GS.viewportColors)
         layout.separator()
         box = layout.box()
         box.label(text = "For more options, see Global Settings.")
@@ -269,7 +272,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazRefractiveMethod")
         box.prop(scn, "DazHairMaterialMethod")
         box.separator()
-        box.prop(scn, "DazChooseColors")
+        box.prop(scn, "DazViewportColor")
         box.prop(scn, "DazMergeShells")
         box.prop(scn, "DazThinWall")
         box.prop(scn, "DazPruneNodes")
@@ -500,13 +503,13 @@ def initialize():
         description = "Method for hair materials",
         default = 'HAIR_BSDF')
 
-    bpy.types.Scene.DazChooseColors = EnumProperty(
+    bpy.types.Scene.DazViewportColor = EnumProperty(
         items = [('WHITE', "White", "Default diffuse color"),
                  ('RANDOM', "Random", "Random colors for each object"),
                  ('GUESS', "Guess", "Guess colors based on name"),
                  ],
-        name = "Color Choice",
-        description = "Method to use object colors")
+        name = "Viewport Color",
+        description = "Method to display object in viewport")
 
     bpy.types.Scene.DazUseEnvironment = BoolProperty(
         name = "Environment",

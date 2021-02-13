@@ -44,7 +44,7 @@ class InternalMaterial(Material):
 
     def guessColor(self):
         from .guess import guessMaterialColor
-        guessMaterialColor(self.rna, 'INTERNAL', GS.chooseColors, False)
+        guessMaterialColor(self.rna, 'INTERNAL', GS.viewportColors, False)
 
 
     def build(self, context):
