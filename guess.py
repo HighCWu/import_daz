@@ -123,7 +123,7 @@ def guessMaterialColor(mat, method, choose, enforce):
         color = (random(), random(), random(), 1)
         setDiffuse(mat, color)
 
-    elif choose in ['GUESS', 'RANDOMCLOTHES']:
+    elif choose == 'GUESS':
         color = getSkinMaterial(mat)
         if color is not None:
             if isinstance(color, int):
@@ -142,10 +142,7 @@ def guessMaterialColor(mat, method, choose, enforce):
                 elif color == "Black":
                     setDiffuse(mat, (0,0,0,1))
         else:
-            if choose == 'GUESS':
-                setDiffuse(mat, LS.clothesColor)
-            else:
-                setDiffuse(mat, (random(), random(), random(), 1))
+            setDiffuse(mat, LS.clothesColor)
 
 
 def hasDiffuseTexture(mat, method, enforce):

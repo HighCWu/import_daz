@@ -64,10 +64,6 @@ class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions, B.PoleT
             row = box.row()
             row.prop(self, "skinColor")
             row.prop(self, "clothesColor")
-        elif GS.viewportColors == 'RANDOMCLOTHES':
-            row = box.row()
-            row.prop(self, "skinColor")
-            row.label(text = "Random Clothes")
         else:
             box.label(text = GS.viewportColors)
         layout.separator()
@@ -509,9 +505,8 @@ def initialize():
 
     bpy.types.Scene.DazViewportColor = EnumProperty(
         items = [('ORIGINAL', "Original", "Original diffuse color"),
-                 ('RANDOM', "Random", "Random colors for each object"),
+                 ('RANDOM', "Random", "Random colors for each material"),
                  ('GUESS', "Guess", "Guess colors based on name"),
-                 ('RANDOMCLOTHES', "Random Clothes", "Random colors for clothes only"),
                  ],
         name = "Viewport Color",
         description = "Method to display object in viewport")
