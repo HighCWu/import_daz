@@ -456,9 +456,9 @@ class Geometry(Asset, Channels):
 
 
     def getNode(self, idx):
-        for node in self.nodes.values():
-            if node.index == idx:
-                return node
+        for geonode in self.nodes.values():
+            if geonode.index == idx:
+                return geonode
         return None
 
 
@@ -555,9 +555,9 @@ class Geometry(Asset, Channels):
     def preprocess(self, context, inst):
         scn = context.scene
         if self.shstruct:
-            node = self.getNode(0)
+            geonode = self.getNode(0)
             self.uvs = None
-            for extra in node.extra:
+            for extra in geonode.extra:
                 if "type" not in extra.keys():
                     pass
                 elif extra["type"] == "studio/node/shell":
@@ -570,7 +570,7 @@ class Geometry(Asset, Channels):
                     for mname,shmat,uv,idx in missing:
                         msg = ("Missing shell material\n" +
                                "Material: %s\n" % mname +
-                               "Node: %s\n" % node.name +
+                               "Node: %s\n" % geonode.name +
                                "Inst: %s\n" % inst.name +
                                "Index: %d\n" % idx +
                                "Node2: %s\n" % inst.node2.name +
@@ -580,30 +580,29 @@ class Geometry(Asset, Channels):
 
     def addUvSets(self, inst, shname, vis):
         missing = []
+        geonode = inst.geometries[0]
         for key,child in inst.children.items():
             if child.shstruct:
-                geonode = inst.geometries[0]
-                geo = geonode.data
-                for mname,shellmats in geonode.materials.items():
+                cgeonode = child.geometries[0]
+                for mname,shmat in cgeonode.materials.items():
                     if mname in vis.keys():
                         if not vis[mname]:
                             continue
                     else:
                         print("Warning: no visibility for material %s" % mname)
-                    shmat = shellmats[0]
                     if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or
                         shmat.getValue("getChannelOpacity", 1) == 0):
                         continue
                     uv = self.uvs[mname]
                     if mname in geonode.materials.keys():
-                        dmat = geonode.materials[mname][0]
+                        dmat = geonode.materials[mname]
                         mshells = dmat.shells
                         if shname not in mshells.keys():
                             mshells[shname] = self.addShell(shname, shmat, uv)
                         shmat.ignore = True
                         # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
                         # so they can be used to define materials assigned to the geometry in Blender.
-                        self.addNewUvset(uv, geo)
+                        self.addNewUvset(uv, self, inst)
                     else:
                         missing.append((mname,shmat,uv,geonode.index))
 
@@ -629,21 +628,21 @@ class Geometry(Asset, Channels):
         else:
             mname1 = None
         if mname1 and mname1 in geonode.materials.keys():
-            dmats = geonode.materials[mname1]
-            mshells = dmats[idx].shells
+            dmat = geonode.materials[mname1]
+            mshells = dmat.shells
             if shname not in mshells.keys():
                 mshells[shname] = self.addShell(shname, shmat, uv)
             shmat.ignore = True
-            self.addNewUvset(uv, geo)
+            self.addNewUvset(uv, geo, inst)
             self.matused.append(mname)
         else:
             for key,child in inst.children.items():
                 self.addMoreUvSets(child, mname, shname, shmat, uv, idx, prefix)
 
 
-    def addNewUvset(self, uv, geo):
+    def addNewUvset(self, uv, geo, inst):
         if uv not in geo.uv_sets.keys():
-            uvset = self.findUvSet(uv, geo.id)
+            uvset = self.findUvSet(uv, inst.node.id)
             if uvset:
                 geo.uv_sets[uv] = geo.uv_sets[uvset.name] = uvset
 
@@ -666,7 +665,9 @@ class Geometry(Asset, Channels):
         return None
 
 
-    def buildData(self, context, node, inst, center):
+    def buildData(self, context, geonode, inst, center):
+        if not isinstance(geonode, GeoNode):
+            raise DazError("BUG buildData: Should be Geonode:\n  %s" % geonode)
         if (self.rna and not LS.singleUser):
             return
 
@@ -681,22 +682,21 @@ class Geometry(Asset, Channels):
 
         name = self.getName()
         me = self.rna = bpy.data.meshes.new(name)
-        print("BDAT", name, node, inst)
 
         verts = self.verts
         edges = []
         faces = self.faces
-        if isinstance(node, GeoNode) and node.verts:
-            if node.edges:
-                verts = node.verts
-                edges = node.edges
-            elif node.faces:
-                verts = node.verts
-                faces = node.faces
+        if isinstance(geonode, GeoNode) and geonode.verts:
+            if geonode.edges:
+                verts = geonode.verts
+                edges = geonode.edges
+            elif geonode.faces:
+                verts = geonode.verts
+                faces = geonode.faces
             elif self.polylines:
-                verts = node.verts
-            elif len(node.verts) == len(verts):
-                verts = node.verts
+                verts = geonode.verts
+            elif len(geonode.verts) == len(verts):
+                verts = geonode.verts
 
         if not verts:
             self.addAllMaterials(me)
@@ -742,7 +742,7 @@ class Geometry(Asset, Channels):
         elif self.isStrandHair:
             me.DazHairType = 'TUBE'
 
-        hasShells = self.addMaterials(me, node)
+        hasShells = self.addMaterials(me, geonode, context)
         for key,uvset in self.uv_sets.items():
             self.buildUVSet(context, uvset, me, False)
         self.buildUVSet(context, self.uv_set, me, True)
@@ -765,13 +765,12 @@ class Geometry(Asset, Channels):
         return ob
 
 
-    def addMaterials(self, me, geonode):
+    def addMaterials(self, me, geonode, context):
         hasShells = False
         for mn,mname in enumerate(self.polygon_material_groups):
             dmat = None
             if mname in geonode.materials.keys():
-                dmat = geonode.materials[mname][0]
-                print("ADM", mname)
+                dmat = geonode.materials[mname]
             else:
                 ref = self.fileref + "#" + mname
                 dmat = self.getAsset(ref)
@@ -798,10 +797,9 @@ class Geometry(Asset, Channels):
 
     def addAllMaterials(self, me):
         for geonode in self.nodes.values():
-            for dmats in geonode.materials.values():
-                mat = dmats[0].rna
-                if mat:
-                    me.materials.append(mat)
+            for dmat in geonode.materials.values():
+                if dmat.rna:
+                    me.materials.append(dmat.rna)
 
 
     def buildUVSet(self, context, uv_set, me, setActive):
@@ -977,9 +975,9 @@ class Uvset(Asset):
         key = geo.polygon_material_groups[mn]
         for geonode in geo.nodes.values():
             if key in geonode.materials.keys():
-                for dmat in geonode.materials[key]:
-                    dmat.fixUdim(context, udim)
-                    fixed = True
+                dmat = geonode.materials[key]
+                dmat.fixUdim(context, udim)
+                fixed = True
         if not fixed:
             print("Material \"%s\" not found" % key)
 

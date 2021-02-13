@@ -48,11 +48,13 @@ class CyclesMaterial(Material):
 
 
     def __repr__(self):
+        treetype = None
         if self.tree:
-            type = self.tree.type
-        else:
-            type = None
-        return ("<%sMaterial %s r:%s g:%s i:%s t:%s>" % (type, self.id, self.rna, self.geometry, self.ignore, self.hasAnyTexture()))
+            treetype = self.tree.type
+        geoname = None
+        if self.geometry:
+            geoname = self.geometry.name
+        return ("<%sMaterial %s r:%s g:%s i:%s t:%s>" % (treetype, self.id, self.rna, geoname, self.ignore, self.hasAnyTexture()))
 
 
     def guessColor(self):

@@ -79,7 +79,7 @@ class Material(Asset, Channels):
 
 
     def __repr__(self):
-        return ("<Material %s %s %s>" % (self.id, self.rna, self.geometry))
+        return ("<Material %s %s %s>" % (self.id, self.geometry.name, self.rna))
 
 
     def parse(self, struct):
@@ -99,9 +99,13 @@ class Material(Asset, Channels):
 
 
     def addToGeoNode(self, geonode, key):
-        if key not in geonode.materials.keys():
-            geonode.materials[key] = []
-        geonode.materials[key].append(self)
+        if key in geonode.materials.keys():
+            msg = ("Duplicate geonode material: %s\n" % key +
+                   "  %s\n" % geonode +
+                   "  %s\n" % geonode.materials[key] +
+                   "  %s" % self)
+            reportError(msg, trigger=(2,3))
+        geonode.materials[key] = self
         self.geometry = geonode
 
 
@@ -121,7 +125,6 @@ class Material(Asset, Channels):
                 iref = instRef(ref)
                 if iref in geo.nodes.keys():
                     geonode = geo.nodes[iref]
-                    print("GNOD", geonode.name, self.name)
                     self.addToGeoNode(geonode, key)
         self.basemix = self.getValue(["Base Mixing"], 0)
         if self.basemix == 2:
@@ -171,13 +174,12 @@ class Material(Asset, Channels):
             mat.game_settings.alpha_blend = 'CLIP'
         if self.uv_set:
             self.uv_sets[self.uv_set.name] = self.uv_set
-        geo = self.geometry
-        if geo and isinstance(geo, Geometry):
-            for uv,uvset in geo.uv_sets.items():
+        geonode = self.geometry
+        if geonode and isinstance(geonode, GeoNode):
+            for uv,uvset in geonode.data.uv_sets.items():
                 if uvset:
                     self.uv_sets[uv] = self.uv_sets[uvset.name] = uvset
-            if self.name not in geo.materials.keys():
-                geo.materials[self.name] = [self]
+            geonode.materials[self.name] = self
         for shell in self.shells.values():
             shell.material.shader = self.shader
         if self.thinGlass:
@@ -185,7 +187,8 @@ class Material(Asset, Channels):
 
 
     def dontBuild(self):
-        if self.ignore:
+        if False and self.ignore:
+            print("IGNORE", self)
             return True
         elif self.force:
             return False
