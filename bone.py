@@ -336,6 +336,7 @@ class BoneInstance(Instance):
         self.axes = [0,1,2]
         self.flipped = [False,False,False]
         self.flopped = [False,False,False]
+        self.isPosed = False
         self.test = (self.name in [])
 
 
@@ -388,7 +389,7 @@ class BoneInstance(Instance):
             tail = (self.attributes["end_point"] - center)
             orient = Euler(self.attributes["orientation"]*D)
             xyz = self.rotation_order
-            wsmat = None
+            wsmat = self.U3
 
         return head,tail,orient,xyz,wsmat
 
@@ -418,7 +419,9 @@ class BoneInstance(Instance):
                 tail = d2b(tail)
                 length = (head-tail).length
                 omat = orient.to_matrix()
-                self.lsmat = self.getLocalMatrix(wsmat, omat)
+                lsmat = self.getLocalMatrix(wsmat, omat)
+                if not eulerIsZero(lsmat.to_euler()):
+                    self.isPosed = True
                 omat = omat.to_4x4()
                 if GS.zup:
                     omat = Mult2(self.RX, omat)
@@ -428,12 +431,11 @@ class BoneInstance(Instance):
                     #self.printRollDiff(omat, eb, figure, isFace)
 
                 #  engetudouiti's fix for posed bones
-                if wsmat:
-                    rmat = wsmat.to_4x4()
-                    if GS.zup:
-                        rmat = Mult3(self.RX, rmat, self.RX.inverted())
-                    if rmat.determinant() > 1e-4:
-                        omat = Mult2(rmat.inverted(), omat)
+                rmat = wsmat.to_4x4()
+                if GS.zup:
+                    rmat = Mult3(self.RX, rmat, self.RX.inverted())
+                if rmat.determinant() > 1e-4:
+                    omat = Mult2(rmat.inverted(), omat)
 
                 if GS.orientMethod == 'DAZ UNFLIPPED':
                     omat.col[3][0:3] = head
@@ -828,21 +830,17 @@ class BoneInstance(Instance):
             for n,lock in enumerate(locks):
                 idx = self.axes[n]
                 pb.lock_rotation[idx] = lock
-        if GS.useLimitRot and useLimits:
-            if self.lsmat:
-                restrot = -Vector(self.lsmat.to_euler(pb.DazRotMode))
-            else:
-                restrot = [0,0,0]
+        if GS.useLimitRot and useLimits and not self.isPosed:
             cns = pb.constraints.new('LIMIT_ROTATION')
             cns.owner_space = 'LOCAL'
             for n,limit in enumerate(limits):
                 idx = self.axes[n]
                 if limit is not None:
                     mind, maxd = limit
-                    minr = mind*D - restrot[n]
+                    minr = mind*D
                     if abs(minr) < 1e-4:
                         minr = 0
-                    maxr = maxd*D - restrot[n]
+                    maxr = maxd*D
                     if abs(maxr) < 1e-4:
                         maxr = 0
                     if self.flipped[n]:
@@ -884,6 +882,11 @@ class BoneInstance(Instance):
 #-------------------------------------------------------------
 #   Bone
 #-------------------------------------------------------------
+
+def eulerIsZero(euler):
+    vals = [abs(x) for x in euler]
+    return (max(vals) < 1e-4)
+
 
 def setRoll(eb, xaxis):
     yaxis = eb.tail - eb.head

@@ -470,13 +470,12 @@ class Instance(Accessor, Channels):
 
     def getLocalMatrix(self, wsmat, orient):
         # global_rotation = parent.global_rotation * orientation * rotation * (orientation)-1
-        if wsmat:
-            self.wsmat = wsmat
-            if self.parent:
-                lsmat = Mult2(self.parent.wsmat.inverted(), self.wsmat)
-            else:
-                lsmat = self.wsmat
-            return Mult3(orient.inverted(), lsmat, orient)
+        self.wsmat = wsmat
+        if self.parent:
+            lsmat = Mult2(self.parent.wsmat.inverted(), self.wsmat)
+        else:
+            lsmat = self.wsmat
+        return Mult3(orient.inverted(), lsmat, orient)
 
 
 def transformDuplis():
