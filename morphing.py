@@ -428,7 +428,7 @@ def setupMorphPaths(scn, force):
 
             for dazpath in GS.getDazPaths():
                 folderpath = os.path.join(dazpath, folder)
-                if not os.path.exists(folderpath):
+                if not os.path.exists(folderpath) and GS.caseSensitivePaths:
                     folderpath = fixBrokenPath(folderpath)
                 if os.path.exists(folderpath):
                     files = list(os.listdir(folderpath))
