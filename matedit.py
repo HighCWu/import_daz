@@ -800,12 +800,14 @@ class DAZ_OT_ReplaceShells(DazPropsOperator, ShellRemover, IsMesh):
 
     def draw(self, context):
         rows = []
+        n = 0
         for tname,struct in self.shells.items():
             for mname,data in struct.items():
                 for mat,node in data:
-                    rows.append((node.name, node))
+                    rows.append((node.name, n, node))
+                    n += 1
         rows.sort()
-        for nname,node in rows:
+        for nname,n,node in rows:
             row = self.layout.row()
             row.label(text=nname)
             row.prop(node, "node_tree")
