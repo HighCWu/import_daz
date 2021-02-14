@@ -2426,7 +2426,6 @@ class DAZ_OT_MeshToShape(DazOperator, IsMesh):
 #-------------------------------------------------------------
 
 classes = [
-    B.DazFormula,
     B.DazSelectGroup,
     B.DazActiveGroup,
     B.DazCategory,

@@ -1125,6 +1125,9 @@ class DazMorphGroupProps:
 class DazIntGroup(bpy.types.PropertyGroup):
     a : IntProperty()
 
+class DazFloatGroup(bpy.types.PropertyGroup):
+    f : FloatProperty()
+
 class DazPairGroup(bpy.types.PropertyGroup):
     a : IntProperty()
     b : IntProperty()
@@ -1163,11 +1166,6 @@ else:
 
     class DazActiveGroup(bpy.types.PropertyGroup):
         active : BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'})
-
-
-class DazFormula(bpy.types.PropertyGroup):
-    prop : StringProperty()
-    value : FloatProperty()
 
 #-------------------------------------------------------------
 #   Rigidity groups

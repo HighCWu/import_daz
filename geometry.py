@@ -1243,6 +1243,7 @@ classes = [
     DAZ_OT_LoadUV,
     DAZ_OT_LimitVertexGroups,
     B.DazIntGroup,
+    B.DazFloatGroup,
     B.DazPairGroup,
     B.DazRigidityGroup,
     B.DazStringStringGroup,

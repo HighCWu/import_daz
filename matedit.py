@@ -654,28 +654,31 @@ class DAZ_OT_SetShellVisibility(DazPropsOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def draw(self, context):
-        oldname = None
-        for obname,nname,n,node in self.shells:
-            if obname != oldname:
-                self.layout.label(text=obname)
-                oldname = obname
-            self.layout.prop(node.inputs["Influence"], "default_value", text=nname)
+        for item in context.scene.DazFloats:
+            self.layout.prop(item, "f", text=item.name)
 
     def run(self, context):
-        pass
+        for item in context.scene.DazFloats:
+            for node in self.shells[item.name]:
+                node.inputs["Influence"].default_value = item.f
 
     def invoke(self, context, event):
-        self.shells = []
-        n = 0
+        self.shells = {}
+        scn = context.scene
+        scn.DazFloats.clear()
         for ob in getSelectedMeshes(context):
             for mat in ob.data.materials:
                 if mat.node_tree:
                     for node in mat.node_tree.nodes:
                         if (node.type == 'GROUP' and
                             "Influence" in node.inputs.keys()):
-                            self.shells.append((ob.name, node.label, n, node))
-                            n += 1
-        self.shells.sort()
+                            key = node.label
+                            if key not in self.shells.keys():
+                               self.shells[key] = []
+                               item = scn.DazFloats.add()
+                               item.name = key
+                               item.f = node.inputs["Influence"].default_value
+                            self.shells[key].append(node)
         return DazPropsOperator.invoke(self, context, event)
 
 # ---------------------------------------------------------------------
@@ -806,6 +809,7 @@ def initialize():
     bpy.types.Material.DazSlots = CollectionProperty(type = B.EditSlotGroup)
     bpy.types.Object.DazSlots = CollectionProperty(type = B.EditSlotGroup)
     bpy.types.Object.DazAffectedMaterials = CollectionProperty(type = B.DazActiveGroup)
+    bpy.types.Scene.DazFloats = CollectionProperty(type = B.DazFloatGroup)
 
     from .globvars import getActiveMaterial
     bpy.types.Object.DazActiveMaterial = EnumProperty(
