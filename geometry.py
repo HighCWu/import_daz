@@ -1037,32 +1037,6 @@ class DAZ_OT_PruneUvMaps(DazOperator, IsMesh):
 #   Collaps UDims
 #-------------------------------------------------------------
 
-def collapseUDims(ob):
-    from .material import addUdim
-    if ob.DazUDimsCollapsed:
-        return
-    ob.DazUDimsCollapsed = True
-    addUdimsToUVs(ob, False, 0, 0)
-    for mn,mat in enumerate(ob.data.materials):
-        if mat.DazUDimsCollapsed:
-            continue
-        mat.DazUDimsCollapsed = True
-        addUdim(mat, -mat.DazUDim, -mat.DazVDim)
-
-
-def restoreUDims(ob):
-    from .material import addUdim
-    if not ob.DazUDimsCollapsed:
-        return
-    ob.DazUDimsCollapsed = False
-    addUdimsToUVs(ob, True, 0, 0)
-    for mn,mat in enumerate(ob.data.materials):
-        if not mat.DazUDimsCollapsed:
-            continue
-        mat.DazUDimsCollapsed = False
-        addUdim(mat, mat.DazUDim, mat.DazVDim)
-
-
 def addUdimsToUVs(ob, restore, udim, vdim):
     mat = ob.data.materials[0]
     for uvloop in ob.data.uv_layers:
@@ -1094,7 +1068,19 @@ class DAZ_OT_CollapseUDims(DazOperator):
 
     def run(self, context):
         for ob in getSelectedMeshes(context):
-            collapseUDims(ob)
+            self.collapseUDims(ob)
+
+    def collapseUDims(self, ob):
+        from .material import addUdim
+        if ob.DazUDimsCollapsed:
+            return
+        ob.DazUDimsCollapsed = True
+        addUdimsToUVs(ob, False, 0, 0)
+        for mn,mat in enumerate(ob.data.materials):
+            if mat.DazUDimsCollapsed:
+                continue
+            mat.DazUDimsCollapsed = True
+            addUdim(mat, -mat.DazUDim, -mat.DazVDim)
 
 
 class DAZ_OT_RestoreUDims(DazOperator):
@@ -1110,7 +1096,56 @@ class DAZ_OT_RestoreUDims(DazOperator):
 
     def run(self, context):
         for ob in getSelectedMeshes(context):
-            restoreUDims(ob)
+            self.restoreUDims(ob)
+
+    def restoreUDims(self, ob):
+        from .material import addUdim
+        if not ob.DazUDimsCollapsed:
+            return
+        ob.DazUDimsCollapsed = False
+        addUdimsToUVs(ob, True, 0, 0)
+        for mn,mat in enumerate(ob.data.materials):
+            if not mat.DazUDimsCollapsed:
+                continue
+            mat.DazUDimsCollapsed = False
+            addUdim(mat, mat.DazUDim, mat.DazVDim)
+
+
+class DAZ_OT_UDimsFromTextures(DazOperator, IsMesh):
+    bl_idname = "daz.udims_from_textures"
+    bl_label = "UDIMs From Textures"
+    bl_description = "Restore UV coordinates based on texture names"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        for ob in getSelectedMeshes(context):
+            self.udimsFromTextures(ob)
+
+    def udimsFromTextures(self, ob):
+        dims = {}
+        print("Shift materials:")
+        for mn,mat in enumerate(ob.data.materials):
+            udim = vdim = 0
+            if mat.node_tree:
+                for node in mat.node_tree.nodes:
+                    if (node.type == 'TEX_IMAGE' and
+                        node.image):
+                        tile = node.image.name.rsplit("_", 1)[-1]
+                        if len(tile) == 4 and tile.isdigit():
+                            udim = (int(tile) - 1001) % 10
+                            vdim = (int(tile) - 1001) // 10
+            dims[mn] = (udim, vdim)
+            print("  ", mat.name, udim, vdim)
+
+        for uvloop in ob.data.uv_layers:
+            m = 0
+            for fn,f in enumerate(ob.data.polygons):
+                udim,vdim = dims[f.material_index]
+                for _ in f.vertices:
+                    uvs = uvloop.data[m].uv
+                    uvs[0] += udim - int(uvs[0])
+                    uvs[1] += vdim - int(uvs[1])
+                    m += 1
 
 #-------------------------------------------------------------
 #   Load UVs
@@ -1204,6 +1239,7 @@ classes = [
     DAZ_OT_MakeMultires,
     DAZ_OT_CollapseUDims,
     DAZ_OT_RestoreUDims,
+    DAZ_OT_UDimsFromTextures,
     DAZ_OT_LoadUV,
     DAZ_OT_LimitVertexGroups,
     B.DazIntGroup,

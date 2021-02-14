@@ -222,6 +222,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.separator()
             box.operator("daz.collapse_udims")
             box.operator("daz.restore_udims")
+            box.operator("daz.udims_from_textures")
             box.separator()
             box.operator("daz.remove_shells")
             box.operator("daz.replace_shells")
