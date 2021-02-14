@@ -293,9 +293,11 @@ class CyclesTree:
 
     def buildShells(self):
         shells = []
-        for n,shell in enumerate(self.material.shells.values()):
-            geonode = shell.geometry.getNode(0)
-            shells.append((geonode.push, n, shell))
+        n = 0
+        for shell in self.material.shells.values():
+            for geonode in shell.geometry.nodes.values():
+                shells.append((geonode.push, n, shell))
+                n += 1
         shells.sort()
         for push,n,shell in shells:
             node = self.addShellGroup(shell, push)

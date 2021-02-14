@@ -106,14 +106,15 @@ class FileAsset(Asset):
                 for nstruct in scene["nodes"]:
                     asset = self.parseUrlAsset(nstruct)
                     if isinstance(asset, Geometry):
-                        asset = asset.getNode(0)
-                    if asset is None:
-                        asset = self.makeLocalNode(nstruct)
-                    if not isinstance(asset, Node):
-                        continue
-                    inst = asset.makeInstance(self.fileref, nstruct)
-                    self.instances[inst.id] = inst
-                    self.nodes.append((asset, inst))
+                        print("NOD GEO", asset)
+                        for geonode in asset.nodes:
+                            inst = geonode.makeInstance(self.fileref, nstruct)
+                            self.instances[inst.id] = inst
+                            self.nodes.append((geonode, inst))
+                    else:
+                        inst = asset.makeInstance(self.fileref, nstruct)
+                        self.instances[inst.id] = inst
+                        self.nodes.append((asset, inst))
 
             if LS.useMaterials and "materials" in scene.keys():
                 for mstruct in scene["materials"]:

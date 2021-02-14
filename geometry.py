@@ -454,13 +454,6 @@ class Geometry(Asset, Channels):
             return None
 
 
-    def getNode(self, idx):
-        for geonode in self.nodes.values():
-            if geonode.index == idx:
-                return geonode
-        return None
-
-
     def addUvSet(self, uvstruct):
         uvset = self.getTypedAsset(uvstruct, Uvset)
         if uvset:
@@ -551,29 +544,30 @@ class Geometry(Asset, Channels):
 
 
     def preprocess(self, context, inst):
-        scn = context.scene
         if self.shstruct:
-            geonode = self.getNode(0)
-            self.uvs = None
-            for extra in geonode.extra:
-                if "type" not in extra.keys():
-                    pass
-                elif extra["type"] == "studio/node/shell":
-                    if "material_uvs" in extra.keys():
-                        self.uvs = dict(extra["material_uvs"])
+            self.uvs = {}
+            for geonode in self.nodes.values():
+                self.processShell(geonode, inst)
 
-            if GS.mergeShells:
-                if inst.node2:
-                    missing = self.addUvSets(inst.node2, inst.name, self.material_group_vis)
-                    for mname,shmat,uv,idx in missing:
-                        msg = ("Missing shell material\n" +
-                               "Material: %s\n" % mname +
-                               "Node: %s\n" % geonode.name +
-                               "Inst: %s\n" % inst.name +
-                               "Index: %d\n" % idx +
-                               "Node2: %s\n" % inst.node2.name +
-                               "UV set: %s\n" % uv)
-                        reportError(msg, trigger=(2,4))
+
+    def processShell(self, geonode, inst):
+        for extra in geonode.extra:
+            if "type" not in extra.keys():
+                pass
+            elif extra["type"] == "studio/node/shell":
+                if "material_uvs" in extra.keys():
+                    self.uvs = dict(extra["material_uvs"])
+        if GS.mergeShells:
+            if inst.node2:
+                missing = self.addUvSets(inst.node2, inst.name, self.material_group_vis)
+                for mname,shmat,uv,idx in missing:
+                    msg = ("Missing shell material\n" +
+                           "Material: %s\n" % mname +
+                           "Node: %s\n" % geonode.name +
+                           "Inst: %s\n" % inst.name +
+                           "Node2: %s\n" % inst.node2.name +
+                           "UV set: %s\n" % uv)
+                    reportError(msg, trigger=(2,4))
 
 
     def addUvSets(self, inst, shname, vis):

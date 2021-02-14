@@ -465,17 +465,7 @@ class SkinBinding(Modifier):
     def getGeoRig(self, context, inst, geoname):
         from .geometry import GeoNode
         from .figure import FigureInstance
-        if isinstance(inst, FigureInstance):
-            rig = inst.rna
-            if not geoname:
-                return None,rig,None
-            geonode = ob = None
-            geo = self.getAsset(geoname)
-            if geo:
-                geonode = geo.getNode(0)
-                ob = geonode.getRna(context)
-            return ob, rig, geonode
-        elif isinstance(inst, GeoNode):
+        if isinstance(inst, GeoNode):
             ob = inst.getRna(context)
             if ob:
                 rig = ob.parent
