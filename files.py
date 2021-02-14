@@ -139,7 +139,7 @@ class FileAsset(Asset):
                     if "parent" in mstruct.keys():
                         par = self.getAsset(mstruct["parent"])
                         if par:
-                            inst = par.getInstance(self, mstruct["parent"])
+                            inst = par.getInstance(mstruct["parent"], self)
                         else:
                             inst = None
                     else:

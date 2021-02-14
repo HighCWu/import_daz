@@ -446,8 +446,11 @@ class Geometry(Asset, Channels):
         return ("<Geometry %s %s %s>" % (self.id, self.name, self.rna))
 
 
-    def getInstance(self, caller, ref):
+    def getInstance(self, ref, caller=None):
         iref = instRef(ref)
+        if iref in self.nodes.keys():
+            return self.nodes[iref]
+        iref = unquote(iref)
         if iref in self.nodes.keys():
             return self.nodes[iref]
         else:

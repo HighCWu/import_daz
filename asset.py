@@ -254,8 +254,8 @@ class Asset(Accessor):
 
 
     def errorWrite(self, ref, fp):
-        fp.write('\n"%s":' % ref)
-        fp.write(" %s\n" % self)
+        fp.write('\n"%s":\n' % ref)
+        fp.write("  %s\n" % self)
 
 
     def selfref(self):

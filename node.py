@@ -104,13 +104,17 @@ class Instance(Accessor, Channels):
         self.figure = None
         self.id = normalizeRef(struct["id"])
         self.id = self.getSelfId()
+        self.label = node.label
+        node.label = None
+        self.name = node.getLabel(self)
         node.instances[self.id] = self
+        node.instances[self.name] = self
         self.geometries = node.geometries
         node.geometries = []
         self.rotation_order = node.rotation_order
         self.collection = LS.collection
         if "parent" in struct.keys() and node.parent is not None:
-            self.parent = node.parent.getInstance(node.caller, struct["parent"])
+            self.parent = node.parent.getInstance(struct["parent"], node.caller)
             if self.parent == self:
                 print("Self-parent", self)
                 self.parent = None
@@ -121,8 +125,6 @@ class Instance(Accessor, Channels):
             self.parent = None
         node.parent = None
         self.children = {}
-        self.label = node.label
-        node.label = None
         self.target = None
         if "target" in struct.keys():
             self.target = struct["target"]
@@ -143,10 +145,7 @@ class Instance(Accessor, Channels):
         self.isNodeInstance = False
         self.node2 = None
         self.hdobject = None
-        self.name = node.getLabel(self)
         self.modifiers = {}
-        self.materials = node.materials
-        node.materials = {}
         self.attributes = copyElements(node.attributes)
         self.restdata = None
         self.wsmat = self.U3
@@ -156,15 +155,13 @@ class Instance(Accessor, Channels):
 
     def __repr__(self):
         pname = (self.parent.id if self.parent else None)
-        return "<Instance %s %d N: %s P: %s M: %d R: %s>" % (self.label, self.index, self.node.name, pname, len(self.materials), self.rna)
+        return "<Instance %s %d N: %s P: %s R: %s>" % (self.label, self.index, self.node.name, pname, self.rna)
 
 
     def errorWrite(self, ref, fp):
         fp.write('  "%s": %s\n' % (ref, self))
-        for dmat in self.materials:
-            dmat.errorWrite("   M: ", fp)
         for geonode in self.geometries:
-            geonode.errorWrite("   G:", fp)
+            geonode.errorWrite("     ", fp)
 
 
     def getSelfId(self):
@@ -180,7 +177,7 @@ class Instance(Accessor, Channels):
                 ref = channel["node"]
                 node = self.getAsset(ref)
                 if node:
-                    self.node2 = node.instances[instRef(ref)]
+                    self.node2 = node.getInstance(ref)
             elif channel["type"] == "bool":
                 words = channel["id"].split("_")
                 if (words[0] == "material" and words[1] == "group" and words[-1] == "vis"):
@@ -568,7 +565,6 @@ class Node(Asset, Formula, Channels):
         self.data = None
         self.center = None
         self.geometries = []
-        self.materials = {}
         self.rotation_order = 'XYZ'
         self.attributes = self.defaultAttributes()
         self.origAttrs = self.defaultAttributes()
@@ -612,20 +608,18 @@ class Node(Asset, Formula, Channels):
         return Instance(fileref, self, struct)
 
 
-    def getInstance(self, caller, ref, strict=True):
+    def getInstance(self, ref, caller=None, strict=True):
+        if caller is None:
+            caller = self
         iref = instRef(ref)
-        if caller:
-            try:
-                return caller.instances[iref]
-            except KeyError:
-                msg = ("Caller: Did not find instance %s in %s" % (iref, caller))
-                insts = caller.instances
+        if iref in caller.instances.keys():
+            return caller.instances[iref]
+        iref = unquote(iref)
+        if iref in caller.instances.keys():
+            return caller.instances[iref]
         else:
-            try:
-                return self.instances[iref]
-            except KeyError:
-                msg = ("Node: Did not find instance %s in %s" % (iref, self))
-                insts = self.instances
+            msg = ("Node: Did not find instance %s in %s" % (iref, caller))
+            insts = caller.instances
         if strict:
             reportError(msg, insts, trigger=(2,3))
         return None

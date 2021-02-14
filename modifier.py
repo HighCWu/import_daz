@@ -691,7 +691,8 @@ class Morph(FormulaAsset):
 
 
     def parseSource(self, url):
-        print("Skip source", self)
+        #print("Skip source", self)
+        pass
 
 
     def update(self, struct):
@@ -716,7 +717,7 @@ class Morph(FormulaAsset):
             geonode = parent
         elif isinstance(parent, Figure) and parent.instances:
             ref = list(parent.instances.keys())[0]
-            inst = parent.getInstance(self.caller, ref)
+            inst = parent.getInstance(ref, self.caller)
             geonode = inst.geometries[0]
         elif isinstance(parent, FigureInstance):
             geonode = parent.geometries[0]
