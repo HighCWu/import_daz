@@ -85,12 +85,13 @@ class ShellGroup(MaterialGroup):
     def __init__(self, push):
         MaterialGroup.__init__(self)
         self.push = push
-        self.insockets += ["Cycles", "Eevee", "Displacement", "UV"]
+        self.insockets += ["Influence", "Cycles", "Eevee", "Displacement", "UV"]
         self.outsockets += ["Cycles", "Eevee", "Displacement"]
 
 
     def create(self, node, name, parent):
         MaterialGroup.create(self, node, name, parent, 8)
+        self.group.inputs.new("NodeSocketFloat", "Influence")
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
         self.group.inputs.new("NodeSocketVector", "Displacement")
@@ -107,6 +108,7 @@ class ShellGroup(MaterialGroup):
         self.buildLayer()
         alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
         mult = self.addMult("Shell Influence", 6, 1.0, alpha, tex)
+        self.links.new(self.inputs.outputs["Influence"], mult.inputs[0])
         self.addOutput(alpha, mult, self.getCyclesSocket(), "Cycles")
         self.addOutput(alpha, mult, self.getEeveeSocket(), "Eevee")
         if self.push > 0:
@@ -132,11 +134,11 @@ class ShellGroup(MaterialGroup):
 
 
 
-    def addOutput(self, alpha, tex, socket, slot):
+    def addOutput(self, alpha, node, socket, slot):
         mix = self.addNode("ShaderNodeMixShader", 7)
         mix.inputs[0].default_value = alpha
-        if tex:
-            self.links.new(tex.outputs[0], mix.inputs[0])
+        if node:
+            self.links.new(node.outputs[0], mix.inputs[0])
         self.links.new(self.inputs.outputs[slot], mix.inputs[1])
         self.links.new(socket, mix.inputs[2])
         self.links.new(mix.outputs[0], self.outputs.inputs[slot])

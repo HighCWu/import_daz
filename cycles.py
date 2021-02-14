@@ -87,16 +87,15 @@ class CyclesMaterial(Material):
 
 
     def postbuild(self):
-        geo = self.geometry
-        if (self.geosockets and geo and geo.rna):
-            me = geo.rna
+        geonode = self.geometry
+        if (self.geosockets and geonode and geonode.data.rna):
+            me = geonode.data.rna
             mnum = 0
             for mn,mat in enumerate(me.materials):
                 if mat == self.rna:
                     mnum = mn
                     break
-
-            nodes = list(geo.nodes.values())
+            nodes = list(geonode.data.nodes.values())
             if self.geosockets:
                 self.correctArea(nodes, me, mnum)
 
@@ -260,11 +259,14 @@ class CyclesTree:
         else:
             nname = ("%s_%s" % (shname, self.material.name))
         node.name = nname
+        node.label = shname
         if shell.tree:
             node.node_tree = shell.tree
+            node.inputs["Influence"].default_value = 1.0
             return node
         elif shell.match and shell.match.tree:
             node.node_tree = shell.tree = shell.match.tree
+            node.inputs["Influence"].default_value = 1.0
             return node
         if self.type == 'CYCLES':
             from .cgroup import ShellCyclesGroup
@@ -276,6 +278,7 @@ class CyclesTree:
             raise RuntimeError("Bug Cycles type %s" % self.type)
         group.create(node, nname, self)
         group.addNodes(shmat)
+        node.inputs["Influence"].default_value = 1.0
         shell.tree = node.node_tree
         return node
 
