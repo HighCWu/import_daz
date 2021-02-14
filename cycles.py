@@ -752,6 +752,10 @@ class CyclesTree:
     def buildTranslucency(self):
         if not self.checkTranslucency():
             return
+        fac = self.getValue("getChannelTranslucencyWeight", 0)
+        effect = self.getValue(["Base Color Effect"], 0)
+        if fac == 0 and effect != 1:
+            return
         self.column += 1
         mat = self.material.rna
         color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
@@ -763,7 +767,6 @@ class CyclesTree:
         self.linkColor(radtex, node, radius, "Radius")
         self.linkBumpNormal(node)
         fac,factex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
-        effect = self.getValue(["Base Color Effect"], 0)
         if effect == 1: # Scatter and transmit
             fac = 0.5 + fac/2
             self.setMultiplier(factex, fac)
