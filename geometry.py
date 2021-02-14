@@ -170,7 +170,6 @@ class GeoNode(Node):
 
 
     def addHDMaterials(self, mats, prefix):
-        print("HD", mats)
         for mat in mats:
             pg = self.hdobject.data.DazHDMaterials.add()
             pg.name = prefix + mat.name.rsplit("-",1)[0]
@@ -516,7 +515,6 @@ class Geometry(Asset, Channels):
 
         if self.uv_set is None:
             self.uv_set = self.default_uv_set
-
         return self
 
 
@@ -581,6 +579,7 @@ class Geometry(Asset, Channels):
     def addUvSets(self, inst, shname, vis):
         missing = []
         geonode = inst.geometries[0]
+        geo = geonode.data
         for key,child in inst.children.items():
             if child.shstruct:
                 cgeonode = child.geometries[0]
@@ -596,13 +595,12 @@ class Geometry(Asset, Channels):
                     uv = self.uvs[mname]
                     if mname in geonode.materials.keys():
                         dmat = geonode.materials[mname]
-                        mshells = dmat.shells
-                        if shname not in mshells.keys():
-                            mshells[shname] = self.addShell(shname, shmat, uv)
+                        if shname not in dmat.shells.keys():
+                            dmat.shells[shname] = self.addShell(shname, shmat, uv)
                         shmat.ignore = True
                         # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
                         # so they can be used to define materials assigned to the geometry in Blender.
-                        self.addNewUvset(uv, self, inst)
+                        self.addNewUvset(uv, geo, inst)
                     else:
                         missing.append((mname,shmat,uv,geonode.index))
 
@@ -698,7 +696,7 @@ class Geometry(Asset, Channels):
                 verts = geonode.verts
 
         if not verts:
-            self.addAllMaterials(me)
+            self.addAllMaterials(me, geonode)
             return None
 
         if self.polylines:
@@ -794,11 +792,11 @@ class Geometry(Asset, Channels):
                 return False
 
 
-    def addAllMaterials(self, me):
-        for geonode in self.nodes.values():
-            for dmat in geonode.materials.values():
-                if dmat.rna:
-                    me.materials.append(dmat.rna)
+    def addAllMaterials(self, me, geonode):
+        for key, dmat in geonode.materials.items():
+            print("AAM", geonode.getName(), key)
+            if dmat.rna:
+                me.materials.append(dmat.rna)
 
 
     def buildUVSet(self, context, uv_set, me, setActive):

@@ -179,7 +179,7 @@ class Material(Asset, Channels):
             for uv,uvset in geonode.data.uv_sets.items():
                 if uvset:
                     self.uv_sets[uv] = self.uv_sets[uvset.name] = uvset
-            geonode.materials[self.name] = self
+            #geonode.materials[self.name] = self
         for shell in self.shells.values():
             shell.material.shader = self.shader
         if self.thinGlass:
@@ -187,8 +187,7 @@ class Material(Asset, Channels):
 
 
     def dontBuild(self):
-        if False and self.ignore:
-            print("IGNORE", self)
+        if self.ignore:
             return True
         elif self.force:
             return False
@@ -205,14 +204,8 @@ class Material(Asset, Channels):
 
 
     def getUvKey(self, key, struct):
-        if key in struct.keys():
-            return key
-        if False and key[0:7].lower() == "default":
-            for key1 in struct.keys():
-                if key1[0:7].lower() == "default":
-                    print("Alt key: '%s' = '%s'" % (key, key1))
-                    return key1
-        print("Missing UV for '%s', '%s' not in %s" % (self.getLabel(), key, list(struct.keys())))
+        if key not in struct.keys():
+            print("Missing UV for '%s', '%s' not in %s" % (self.getLabel(), key, list(struct.keys())))
         return key
 
 
