@@ -85,8 +85,8 @@ class ShellGroup(MaterialGroup):
     def __init__(self, push):
         MaterialGroup.__init__(self)
         self.push = push
-        self.insockets += ["Influence", "Cycles", "Eevee", "UV"]
-        self.outsockets += ["Cycles", "Eevee"]
+        self.insockets += ["Influence", "Cycles", "Eevee", "UV", "Displacement"]
+        self.outsockets += ["Cycles", "Eevee", "Displacement"]
 
 
     def create(self, node, name, parent):
@@ -95,8 +95,10 @@ class ShellGroup(MaterialGroup):
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
         self.group.inputs.new("NodeSocketVector", "UV")
+        self.group.inputs.new("NodeSocketFloat", "Displacement")
         self.group.outputs.new("NodeSocketShader", "Cycles")
         self.group.outputs.new("NodeSocketShader", "Eevee")
+        self.group.outputs.new("NodeSocketFloat", "Displacement")
 
 
     def addNodes(self, shell):
@@ -111,6 +113,16 @@ class ShellGroup(MaterialGroup):
         self.linkScalar(tex, mult, alpha, 1)
         self.addOutput(mult, self.getCyclesSocket(), "Cycles")
         self.addOutput(mult, self.getEeveeSocket(), "Eevee")
+        self.buildDisplacementNodes()
+        if self.displacement:
+            mult2 = self.addNode("ShaderNodeMath", 7)
+            mult2.label = "Multiply Displacement"
+            mult2.operation = 'MULTIPLY'
+            self.links.new(mult.outputs[0], mult2.inputs[0])
+            self.links.new(self.displacement, mult2.inputs[1])
+            self.links.new(mult2.outputs[0], self.outputs.inputs["Displacement"])
+        else:
+            self.links.new(self.inputs.outputs["Displacement"], self.outputs.inputs["Displacement"])
 
 
     def addOutput(self, mult, socket, slot):

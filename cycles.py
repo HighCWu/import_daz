@@ -307,7 +307,10 @@ class CyclesTree:
                 self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])
                 self.links.new(self.getEeveeSocket(), node.inputs["Eevee"])
                 self.links.new(self.getTexco(shell.uv), node.inputs["UV"])
+                if self.displacement:
+                    self.links.new(self.displacement, node.inputs["Displacement"])
                 self.cycles = self.eevee = node
+                self.displacement = node.outputs["Displacement"]
                 self.ycoords[self.column] -= 50
 
 
@@ -1074,7 +1077,7 @@ class CyclesTree:
         if self.volume and not self.useCutout:
             self.links.new(self.volume.outputs[0], output.inputs["Volume"])
         if self.displacement:
-            self.links.new(self.displacement.outputs["Displacement"], output.inputs["Displacement"])
+            self.links.new(self.displacement, output.inputs["Displacement"])
         if self.liegroups:
             node = self.addNode("ShaderNodeValue", col=self.column-1)
             node.outputs[0].default_value = 1.0
@@ -1090,7 +1093,7 @@ class CyclesTree:
             elif self.cycles:
                 self.links.new(self.getCyclesSocket(), outputEevee.inputs["Surface"])
             if self.displacement:
-                self.links.new(self.displacement.outputs["Displacement"], outputEevee.inputs["Displacement"])
+                self.links.new(self.displacement, outputEevee.inputs["Displacement"])
 
 
     def buildDisplacementNodes(self):
@@ -1110,10 +1113,10 @@ class CyclesTree:
             from .cgroup import DisplacementGroup
             node = self.addGroup(DisplacementGroup, "DAZ Displacement")
             self.links.new(tex.outputs[0], node.inputs["Texture"])
-            node.inputs["Strength"].default_value = LS.scale * strength
+            node.inputs["Strength"].default_value = -LS.scale * strength
             node.inputs["Difference"].default_value = dmax - dmin
             node.inputs["Min"].default_value = dmin
-            self.displacement = node
+            self.displacement = node.outputs["Displacement"]
             mat = self.material.rna
             mat.cycles.displacement_method = 'BOTH'
 
@@ -1368,8 +1371,9 @@ class CyclesTree:
         return mult
 
 
-    def multiplyAddScalarTex(self, factor, term, tex, slot=0):
-        col = self.column-1
+    def multiplyAddScalarTex(self, factor, term, tex, slot=0, col=None):
+        if col is None:
+            col = self.column-1
         mult = self.addNode("ShaderNodeMath", col)
         try:
             mult.operation = 'MULTIPLY_ADD'
