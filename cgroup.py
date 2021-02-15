@@ -107,31 +107,37 @@ class ShellGroup(MaterialGroup):
         self.texco = self.inputs.outputs["UV"]
         self.buildLayer()
         alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
-        mult = self.addMult("Shell Influence", 6, 1.0, alpha, tex)
+        mult = self.addMult(6, 1.0, alpha, tex)
         self.links.new(self.inputs.outputs["Influence"], mult.inputs[0])
         self.addOutput(alpha, mult, self.getCyclesSocket(), "Cycles")
         self.addOutput(alpha, mult, self.getEeveeSocket(), "Eevee")
         if self.push > 0:
-            push = self.push * LS.scale
-            disp = self.addMult("Displacement", 6, push, alpha, tex)
-            add = self.addNode("ShaderNodeMath", 7)
-            self.links.new(disp.outputs[0], add.inputs[0])
-            self.links.new(self.inputs.outputs["Displacement"], add.inputs[1])
-            self.links.new(add.outputs[0], self.outputs.inputs["Displacement"])
+            if tex:
+                mult3 = self.addMult(4, self.push*alpha, 1.0, tex)
+                mult2 = self.addMult(5, 1.0, 1.0, None)
+                self.links.new(mult3.outputs[0], mult2.inputs[1])
+            else:
+                mult2 = self.addMult(5, 1.0, self.push*alpha, None)
+            self.links.new(self.inputs.outputs["Influence"], mult2.inputs[0])
+            disp = self.addNode("ShaderNodeDisplacement", 6)
+            disp.inputs["Height"].default_value = self.push
+            self.links.new(mult2.outputs[0], disp.inputs["Height"])
+            disp.inputs["Midlevel"].default_value = 0
+            disp.inputs["Scale"].default_value = LS.scale
+            self.links.new(self.inputs.outputs["Displacement"], disp.inputs["Normal"])
+            self.links.new(disp.outputs["Displacement"], self.outputs.inputs["Displacement"])
         else:
             self.links.new(self.inputs.outputs["Displacement"], self.outputs.inputs["Displacement"])
 
 
-    def addMult(self, name, col, value, alpha, tex):
+    def addMult(self, col, value, alpha, tex):
         mult = self.addNode("ShaderNodeMath", col)
-        mult.name = mult.label = name
         mult.operation = 'MULTIPLY'
         mult.inputs[0].default_value = value
         mult.inputs[1].default_value = alpha
         if tex:
             self.links.new(tex.outputs[0], mult.inputs[1])
         return mult
-
 
 
     def addOutput(self, alpha, node, socket, slot):

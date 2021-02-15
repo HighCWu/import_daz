@@ -248,6 +248,9 @@ class Material(Asset, Channels):
     def getChannelDiffuse(self):
         return self.getChannel(["diffuse", "Diffuse Color"])
 
+    def getDiffuse(self):
+        return self.getColor("getChannelDiffuse", BLACK)
+
     def getChannelDiffuseStrength(self):
         return self.getChannel(["diffuse_strength", "Diffuse Strength"])
 

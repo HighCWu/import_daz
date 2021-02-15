@@ -562,7 +562,7 @@ class Geometry(Asset, Channels):
                     self.uvs = dict(extra["material_uvs"])
         if GS.mergeShells:
             if inst.node2:
-                missing = self.addUvSets(inst.node2, inst.name, self.material_group_vis)
+                missing = self.addShells(inst.node2, inst, self.material_group_vis)
                 for mname,shmat,uv,idx in missing:
                     msg = ("Missing shell material\n" +
                            "Material: %s\n" % mname +
@@ -573,42 +573,39 @@ class Geometry(Asset, Channels):
                     reportError(msg, trigger=(2,4))
 
 
-    def addUvSets(self, inst, shname, vis):
+    def addShells(self, inst, shinst, vis):
         missing = []
         geonode = inst.geometries[0]
         geo = geonode.data
-        for key,child in inst.children.items():
-            if child.shstruct:
-                cgeonode = child.geometries[0]
-                for mname,shmat in cgeonode.materials.items():
-                    if mname in vis.keys():
-                        if not vis[mname]:
-                            continue
-                    else:
-                        print("Warning: no visibility for material %s" % mname)
-                    if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or
-                        shmat.getValue("getChannelOpacity", 1) == 0):
+        if shinst.shstruct:
+            shgeonode = shinst.geometries[0]
+            shname = shinst.name
+            for mname,shmat in shgeonode.materials.items():
+                if mname in vis.keys():
+                    if not vis[mname]:
                         continue
-                    uv = self.uvs[mname]
-                    if mname in geonode.materials.keys():
-                        dmat = geonode.materials[mname]
-                        if shname not in dmat.shells.keys():
-                            dmat.shells[shname] = self.addShell(shname, shmat, uv)
-                        shmat.ignore = True
-                        # UVs used in materials for shell in Daz must also exist on underlying geometry in Blender
-                        # so they can be used to define materials assigned to the geometry in Blender.
-                        self.addNewUvset(uv, geo, inst)
-                    else:
-                        missing.append((mname,shmat,uv,geonode.index))
-
+                else:
+                    print("Warning: no visibility for material %s" % mname)
+                if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or
+                    shmat.getValue("getChannelOpacity", 1) == 0):
+                    continue
+                uv = self.uvs[mname]
+                if mname in geonode.materials.keys():
+                    dmat = geonode.materials[mname]
+                    if shname not in dmat.shells.keys():
+                        dmat.shells[shname] = self.makeShell(shname, shmat, uv)
+                    shmat.ignore = True
+                    self.addNewUvset(uv, geo, inst)
+                else:
+                    missing.append((mname,shmat,uv))
         self.matused = []
-        for mname,shmat,uv,idx in missing:
+        for mname,shmat,uv in missing:
             for key,child in inst.children.items():
-                self.addMoreUvSets(child, mname, shname, shmat, uv, idx, "")
+                self.addMoreShells(child, mname, shname, shmat, uv, "")
         return [miss for miss in missing if miss[0] not in self.matused]
 
 
-    def addMoreUvSets(self, inst, mname, shname, shmat, uv, idx, pprefix):
+    def addMoreShells(self, inst, mname, shname, shmat, uv, pprefix):
         from .figure import FigureInstance
         if not isinstance(inst, FigureInstance):
             return
@@ -626,13 +623,13 @@ class Geometry(Asset, Channels):
             dmat = geonode.materials[mname1]
             mshells = dmat.shells
             if shname not in mshells.keys():
-                mshells[shname] = self.addShell(shname, shmat, uv)
+                mshells[shname] = self.makeShell(shname, shmat, uv)
             shmat.ignore = True
             self.addNewUvset(uv, geo, inst)
             self.matused.append(mname)
         else:
             for key,child in inst.children.items():
-                self.addMoreUvSets(child, mname, shname, shmat, uv, idx, prefix)
+                self.addMoreShells(child, mname, shname, shmat, uv, prefix)
 
 
     def addNewUvset(self, uv, geo, inst):
@@ -787,6 +784,7 @@ class Geometry(Asset, Channels):
                     print("Existing materials:\n  %s" % mats)
                 reportError("Material \"%s\" not found in geometry %s" % (mname, geonode.name), trigger=(2,4))
                 return False
+        return hasShells
 
 
     def addAllMaterials(self, me, geonode):
@@ -825,7 +823,7 @@ class Geometry(Asset, Channels):
                     vert.a = vn
 
 
-    def addShell(self, shname, shmat, uv):
+    def makeShell(self, shname, shmat, uv):
         first = False
         if shname not in self.shells.keys():
             first = True
@@ -860,7 +858,8 @@ class Shell:
 
 
     def __repr__(self):
-        return ("<Shell %s %s %s>" % (self.name, self.material.name, self.single))
+        dmat = self.material
+        return ("<Shell %s %s S:%s D:%s>" % (self.name, dmat.name, self.single, dmat.getDiffuse()))
 
 #-------------------------------------------------------------
 #   UV Asset

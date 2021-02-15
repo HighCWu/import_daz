@@ -254,10 +254,7 @@ class CyclesTree:
             return None
         node = self.addNode("ShaderNodeGroup")
         node.width = 240
-        if shell.single:
-            nname = shname
-        else:
-            nname = ("%s_%s" % (shname, self.material.name))
+        nname = ("%s_%s" % (shname, self.material.name))
         node.name = nname
         node.label = shname
         if shell.tree:
@@ -302,6 +299,8 @@ class CyclesTree:
                 shells.append((geonode.push, n, shell))
                 n += 1
         shells.sort()
+        if shells:
+            self.column += 1
         for push,n,shell in shells:
             node = self.addShellGroup(shell, push)
             if node:
@@ -311,6 +310,10 @@ class CyclesTree:
                 if self.displacement:
                     self.links.new(self.displacement.outputs["Displacement"], node.inputs["Displacement"])
                 self.cycles = self.eevee = self.displacement = node
+                self.ycoords[self.column] -= 50
+                if push:
+                    mat = self.material.rna
+                    mat.cycles.displacement_method = 'BOTH'
 
 
     def buildLayer(self):
@@ -718,7 +721,7 @@ class CyclesTree:
 
         from .cgroup import TopCoatGroup
         self.column += 1
-        top = self.addGroup(TopCoatGroup, "DAZ Top Coat")
+        top = self.addGroup(TopCoatGroup, "DAZ Top Coat", size=100)
         self.linkColor(coltex, top, color, "Color")
         self.linkScalar(roughtex, top, roughness, "Roughness")
         if self.material.shader == 'PBRSKIN':
@@ -1116,6 +1119,8 @@ class CyclesTree:
             node.inputs["Difference"].default_value = dmax - dmin
             node.inputs["Min"].default_value = dmin
             self.displacement = node
+            mat = self.material.rna
+            mat.cycles.displacement_method = 'BOTH'
 
 
     def getLinkFrom(self, node, name):
