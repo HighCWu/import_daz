@@ -85,8 +85,8 @@ class ShellGroup(MaterialGroup):
     def __init__(self, push):
         MaterialGroup.__init__(self)
         self.push = push
-        self.insockets += ["Influence", "Cycles", "Eevee", "Displacement", "UV"]
-        self.outsockets += ["Cycles", "Eevee", "Displacement"]
+        self.insockets += ["Influence", "Cycles", "Eevee", "UV"]
+        self.outsockets += ["Cycles", "Eevee"]
 
 
     def create(self, node, name, parent):
@@ -94,11 +94,9 @@ class ShellGroup(MaterialGroup):
         self.group.inputs.new("NodeSocketFloat", "Influence")
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
-        self.group.inputs.new("NodeSocketVector", "Displacement")
         self.group.inputs.new("NodeSocketVector", "UV")
         self.group.outputs.new("NodeSocketShader", "Cycles")
         self.group.outputs.new("NodeSocketShader", "Eevee")
-        self.group.outputs.new("NodeSocketVector", "Displacement")
 
 
     def addNodes(self, shell):
@@ -107,44 +105,18 @@ class ShellGroup(MaterialGroup):
         self.texco = self.inputs.outputs["UV"]
         self.buildLayer()
         alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
-        mult = self.addMult(6, 1.0, alpha, tex)
-        self.links.new(self.inputs.outputs["Influence"], mult.inputs[0])
-        self.addOutput(alpha, mult, self.getCyclesSocket(), "Cycles")
-        self.addOutput(alpha, mult, self.getEeveeSocket(), "Eevee")
-        if self.push > 0:
-            if tex:
-                mult3 = self.addMult(4, self.push*alpha, 1.0, tex)
-                mult2 = self.addMult(5, 1.0, 1.0, None)
-                self.links.new(mult3.outputs[0], mult2.inputs[1])
-            else:
-                mult2 = self.addMult(5, 1.0, self.push*alpha, None)
-            self.links.new(self.inputs.outputs["Influence"], mult2.inputs[0])
-            disp = self.addNode("ShaderNodeDisplacement", 6)
-            disp.inputs["Height"].default_value = self.push
-            self.links.new(mult2.outputs[0], disp.inputs["Height"])
-            disp.inputs["Midlevel"].default_value = 0
-            disp.inputs["Scale"].default_value = LS.scale
-            self.links.new(self.inputs.outputs["Displacement"], disp.inputs["Normal"])
-            self.links.new(disp.outputs["Displacement"], self.outputs.inputs["Displacement"])
-        else:
-            self.links.new(self.inputs.outputs["Displacement"], self.outputs.inputs["Displacement"])
-
-
-    def addMult(self, col, value, alpha, tex):
-        mult = self.addNode("ShaderNodeMath", col)
+        mult = self.addNode("ShaderNodeMath", 6)
         mult.operation = 'MULTIPLY'
-        mult.inputs[0].default_value = value
-        mult.inputs[1].default_value = alpha
-        if tex:
-            self.links.new(tex.outputs[0], mult.inputs[1])
-        return mult
+        self.links.new(self.inputs.outputs["Influence"], mult.inputs[0])
+        self.linkScalar(tex, mult, alpha, 1)
+        self.addOutput(mult, self.getCyclesSocket(), "Cycles")
+        self.addOutput(mult, self.getEeveeSocket(), "Eevee")
 
 
-    def addOutput(self, alpha, node, socket, slot):
+    def addOutput(self, mult, socket, slot):
         mix = self.addNode("ShaderNodeMixShader", 7)
-        mix.inputs[0].default_value = alpha
-        if node:
-            self.links.new(node.outputs[0], mix.inputs[0])
+        mix.inputs[0].default_value = 1
+        self.links.new(mult.outputs[0], mix.inputs[0])
         self.links.new(self.inputs.outputs[slot], mix.inputs[1])
         self.links.new(socket, mix.inputs[2])
         self.links.new(mix.outputs[0], self.outputs.inputs[slot])

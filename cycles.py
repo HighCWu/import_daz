@@ -307,13 +307,8 @@ class CyclesTree:
                 self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])
                 self.links.new(self.getEeveeSocket(), node.inputs["Eevee"])
                 self.links.new(self.getTexco(shell.uv), node.inputs["UV"])
-                if self.displacement:
-                    self.links.new(self.displacement.outputs["Displacement"], node.inputs["Displacement"])
-                self.cycles = self.eevee = self.displacement = node
+                self.cycles = self.eevee = node
                 self.ycoords[self.column] -= 50
-                if push:
-                    mat = self.material.rna
-                    mat.cycles.displacement_method = 'BOTH'
 
 
     def buildLayer(self):
