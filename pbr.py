@@ -154,7 +154,6 @@ class PbrTree(CyclesTree):
         useTex = not (self.material.basemix == 0 and metallicity > 0.5)
 
         # Subsurface scattering
-        self.checkTranslucency()
         self.buildSSS()
 
         # Anisotropic
@@ -234,13 +233,15 @@ class PbrTree(CyclesTree):
             return
         if not self.checkTranslucency():
             return
-        # a 2.5 gamma for the translucency texture is used to avoid the "white skin" effect
-        gamma = self.addNode("ShaderNodeGamma", col=3)
-        gamma.inputs["Gamma"].default_value = 2.5
+        wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
+        if wt == 0:
+            return
         color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", BLACK)
         if isBlack(color):
             return
-        wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
+        # a 2.5 gamma for the translucency texture is used to avoid the "white skin" effect
+        gamma = self.addNode("ShaderNodeGamma", col=3)
+        gamma.inputs["Gamma"].default_value = 2.5
         radius,radtex = self.getSSSRadius(color)
         self.linkColor(coltex, gamma, color, "Color")
         self.links.new(gamma.outputs[0], self.pbr.inputs["Subsurface Color"])
