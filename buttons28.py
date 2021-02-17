@@ -438,8 +438,13 @@ class CustomOptions:
     strength : FloatProperty(
         name = "Strength",
         description = "Multiply morphs with this value",
-        default = 1.0
-    )
+        default = 1.0)
+
+    maxRecursionDepth : IntProperty(
+        name = "Max Recursion Depth",
+        description = "Maximal recursion level for inter-dependent morphs",
+        min = 1, max = 20,
+        default = 5)
 
     treatHD : EnumProperty(
         items = [('ERROR', "Error", "Raise error"),

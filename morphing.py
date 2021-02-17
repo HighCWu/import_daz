@@ -522,6 +522,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
     useSkeysCats = False
     useBoneDrivers = False
     useDoubleDrivers = False
+    maxRecursionDepth = 5
     morphset = None
 
     def __init__(self, mesh=None, verbose=True):
@@ -1009,6 +1010,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, MultiFil
             self.layout.prop(self, "useSkeysCats")
         if self.usePropDrivers or self.useSkeysCats:
             self.layout.prop(self, "catname")
+        self.layout.prop(self, "maxRecursionDepth")
         self.layout.prop(self, "strength")
         self.layout.prop(self, "treatHD")
 

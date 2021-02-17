@@ -717,7 +717,7 @@ class PropFormulas(PoseboneDriver):
         from .bone import getTargetName
         from .modifier import ChannelAsset, Morph
         from .propgroups import addDependency
-        if level > 5:
+        if level > self.maxRecursionDepth:
             self.addError("Recursion too deep", asset)
             return
         for prop,expr in exprs.items():

@@ -433,6 +433,12 @@ class CustomOptions:
         description = "Add imported shapekeys to a category",
         default = False)
 
+    maxRecursionDepth = IntProperty(
+        name = "Max Recursion Depth",
+        description = "Maximal recursion level for inter-dependent morphs",
+        min = 1, max = 20,
+        default = 5)
+
     strength = FloatProperty(
         name = "Strength",
         description = "Multiply morphs with this value",
