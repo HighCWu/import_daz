@@ -176,10 +176,13 @@ class GeoNode(Node):
             pg.text = mat.name
         if self.data and self.data.vertex_pairs:
             # Geograft
-            inst = list(self.figure.instances.values())[0]
-            par = inst.parent.geometries[0]
-            if par and par.hdobject and par.hdobject != par.rna:
-                par.addHDMaterials(mats, inst.name + "?" + prefix)
+            insts = []
+            for inst in self.figure.instances.values():
+                if inst and inst.parent and inst not in insts:
+                    insts.append(inst)
+                    par = inst.parent.geometries[0]
+                    if par and par.hdobject and par.hdobject != par.rna:
+                        par.addHDMaterials(mats, inst.name + "?" + prefix)
 
 
     def stripNegatives(self, faces):
