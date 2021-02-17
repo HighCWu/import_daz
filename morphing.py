@@ -776,11 +776,12 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         updateDrivers(self.mesh)
         finishMain("Folder", folder, t1)
         if self.errors:
-            print("but there were errors:")
-            for err,struct in self.errors.items():
-                print("%s:" % err)
-                print("  Props: %s" % struct["props"])
-                print("  Bones: %s" % struct["bones"])
+            msg = "Morphs loaded with errors.\n  "
+            for err,props in self.errors.items():
+                msg += "\n%s:    \n" % err
+                for prop in props:
+                    msg += "    %s\n" % prop
+            raise DazError(msg, warning=True)
 
 
     def getPass(self, passidx, namepaths, scn):

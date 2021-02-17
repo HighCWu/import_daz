@@ -647,13 +647,12 @@ class PoseboneDriver:
             setFloatProp(self.rig, prop, 0.0)
 
 
-    def addError(self, err, prop, pb):
+    def addError(self, err, asset):
         if err not in self.errors.keys():
-            self.errors[err] = {"props" : [], "bones": []}
-        if prop not in self.errors[err]["props"]:
-            self.errors[err]["props"].append(prop)
-        if pb.name not in self.errors[err]["bones"]:
-            self.errors[err]["bones"].append(pb.name)
+            self.errors[err] = []
+        label = asset.getLabel()
+        if label not in self.errors[err]:
+            self.errors[err].append(label)
 
 #-------------------------------------------------------------
 #   class PropFormulas
@@ -719,7 +718,8 @@ class PropFormulas(PoseboneDriver):
         from .modifier import ChannelAsset, Morph
         from .propgroups import addDependency
         if level > 5:
-            raise DazError("Recursion too deep")
+            self.addError("Recursion too deep", asset)
+            return
         for prop,expr in exprs.items():
             bname = getTargetName(prop, self.rig)
             if bname is None:
