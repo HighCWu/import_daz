@@ -870,6 +870,8 @@ class Uvset(Asset):
     def __init__(self, fileref):
         Asset.__init__(self, fileref)
         self.classType = Uvset
+        self.uvs = []
+        self.polyverts = []
         self.material = None
         self.built = []
 
