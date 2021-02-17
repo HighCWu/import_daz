@@ -144,6 +144,7 @@ class DAZ_OT_SaveSettingsFile(bpy.types.Operator, B.SingleFile, B.JsonExportFile
 class DAZ_OT_LoadFactorySettings(DazOperator):
     bl_idname = "daz.load_factory_settings"
     bl_label = "Load Factory Settings"
+    bl_description = "Restore all global settings to factory defaults"
     bl_options = {'UNDO'}
 
     def execute(self, context):
@@ -241,8 +242,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseInstancing")
 
         box = col.box()
-        box.label(text = "Morphs")
-        box.prop(scn, "DazMultiShapes")
+        box.label(text = "Properties")
         box.prop(scn, "DazUsePropLimits")
         box.prop(scn, "DazUsePropDefault")
         box.prop(scn, "DazPropMin")
@@ -584,13 +584,6 @@ def initialize():
     bpy.types.Scene.DazMultires = BoolProperty(
         name = "Add Multires",
         description = "Add multires modifier to HD meshes and rebuild lower subdivision levels")
-
-    bpy.types.Scene.DazMultiShapes = BoolProperty(
-        name = "Combine Multiple Shapekeys",
-        description = (
-            "When importing morphs which depend on other morphs,\n" +
-            "combine shapekeys and not just bone transformations.\n" +
-            "More accurate but may be space consuming"))
 
     bpy.types.Scene.DazInfluence = BoolProperty(
         name = "Influence Groups",
