@@ -600,15 +600,6 @@ def d2bs(v):
         return d2b00s(v)
 
 
-def vector(comp, value):
-    if comp == "x":
-        return LS.scale*Vector((value,0,0))
-    elif comp == "y":
-        return LS.scale*Vector((0,value,0))
-    elif comp == "z":
-        return LS.scale*Vector((0,0,value))
-
-
 D2R = "%.6f*" % (math.pi/180)
 D = math.pi/180
 

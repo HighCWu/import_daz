@@ -128,6 +128,7 @@ class DBZObject:
 
 def loadDbzFile(filepath):
     from .load_json import loadJson
+    from .geometry import d2bList
     dbz = DBZInfo()
     struct = loadJson(filepath)
     if ("application" not in struct.keys() or
@@ -151,7 +152,7 @@ def loadDbzFile(filepath):
             dbz.objects[name] = []
 
         if "vertices" in figure.keys():
-            verts = [d2b(vec) for vec in figure["vertices"]]
+            verts = d2bList(figure["vertices"])
             edges = faces = uvs = matgroups = []
             props = {}
             if "edges" in figure.keys():
@@ -170,7 +171,7 @@ def loadDbzFile(filepath):
             LS.useHDObjects = True
             if name not in dbz.hdobjects.keys():
                 dbz.hdobjects[name] = []
-            verts = [d2b(vec) for vec in figure["hd vertices"]]
+            verts = d2bList(figure["hd vertices"])
             lod = figure["subd level"]
             uvs = figure["hd uvs"]
             faces = figure["hd faces"]

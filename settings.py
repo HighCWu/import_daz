@@ -153,7 +153,6 @@ class GlobalSettings:
         "DazUseInstancing" : "useInstancing",
         "DazBuildHighdef" : "buildHighdef",
         "DazMultires" : "useMultires",
-        "DazMultiShapes" : "useMultiShapes",
         "DazInfluence" : "useInfluence",
         "DazSimulation" : "useSimulation",
     }

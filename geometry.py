@@ -472,15 +472,9 @@ class Geometry(Asset, Channels):
         Asset.parse(self, struct)
         Channels.parse(self, struct)
 
-        vdata = struct["vertices"]["values"]
-        if GS.zup:
-            self.verts = [d2b90(v) for v in vdata]
-        else:
-            self.verts = [d2b00(v) for v in vdata]
-
+        self.verts = d2bList(struct["vertices"]["values"])
         if "polyline_list" in struct.keys():
             self.polylines = struct["polyline_list"]["values"]
-
         fdata = struct["polylist"]["values"]
         self.faces = [ f[2:] for f in fdata]
         self.polygon_indices = [f[0] for f in fdata]
@@ -707,7 +701,7 @@ class Geometry(Asset, Channels):
         if LS.fitFile:
             me.from_pydata(verts, edges, faces)
         else:
-            me.from_pydata([vco-center for vco in verts], edges, faces)
+            me.from_pydata([Vector(vco)-center for vco in verts], edges, faces)
 
         if len(faces) != len(me.polygons):
             msg = ("Not all faces were created:\n" +
@@ -844,6 +838,14 @@ class Geometry(Asset, Channels):
         shell = Shell(shname, shmat, uv, self, first, match)
         self.shells[shname].append(shell)
         return shell
+
+
+def d2bList(verts):
+    s = LS.scale
+    if GS.zup:
+        return [[s*v[0], -s*v[2], s*v[1]] for v in verts]
+    else:
+        return [[s*v[0], s*v[1], s*v[2]] for v in verts]
 
 #-------------------------------------------------------------
 #   Shell
