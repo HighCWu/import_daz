@@ -415,14 +415,14 @@ class CustomOptions:
 
     driverType = EnumProperty(
         items = [
-            ('MORPH', "Morph", "Morphs driven by rig properties"),
+            ('SLIDER', "Slider", "Morphs driven by sliders (rig properties)"),
             ('JCM', "JCM", "Corrective morphs driven by bone rotations"),
-            ('EITHER', "Either", "Morphs driven by either bone rotations or otherwise by rig properties"),
+            ('EITHER', "Either", "Morphs driven by either bone rotations or otherwise by sliders"),
             ('BOTH', "Both",  "Morphs driven by both bone rotations and rig properties"),
             ('NONE', "None", "No drivers for shapekeys")],
         name = "Driver Type",
         description = "Preferred driver type",
-        default = 'MORPH')
+        default = 'SLIDER')
 
     useSkeysCats = BoolProperty(
         name = "Add Shapekeys To Categories",

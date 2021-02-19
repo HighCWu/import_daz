@@ -1025,7 +1025,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, MultiFil
     def run(self, context):
         from .driver import setBoolProp
         ob = context.object
-        if self.driverType == 'MORPH':
+        if self.driverType == 'SLIDER':
             self.usePropDrivers = True
             self.useBoneDrivers = False
             self.useDoubleDrivers = False
