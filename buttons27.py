@@ -413,31 +413,21 @@ class CustomOptions:
         name = "Category",
         default = "Shapes")
 
-    usePropDrivers = BoolProperty(
-        name = "Property Drivers",
-        description = "Control morphs with rig or mesh properties",
-        default = True)
-
-    useBoneDrivers = BoolProperty(
-        name = "Bone Drivers",
-        description = "Control morphs with bone rotations",
-        default = True)
-
-    useDoubleDrivers = BoolProperty(
-        name = "Double Drivers",
-        description = "Control morphs with both properties and bones",
-        default = False)
+    driverType = EnumProperty(
+        items = [
+            ('MORPH', "Morph", "Morphs driven by rig properties"),
+            ('JCM', "JCM", "Corrective morphs driven by bone rotations"),
+            ('EITHER', "Either", "Morphs driven by either bone rotations or otherwise by rig properties"),
+            ('BOTH', "Both",  "Morphs driven by both bone rotations and rig properties"),
+            ('NONE', "None", "No drivers for shapekeys")],
+        name = "Driver Type",
+        description = "Preferred driver type",
+        default = 'MORPH')
 
     useSkeysCats = BoolProperty(
         name = "Add Shapekeys To Categories",
         description = "Add imported shapekeys to a category",
         default = False)
-
-    maxRecursionDepth = IntProperty(
-        name = "Max Recursion Depth",
-        description = "Maximal recursion level for inter-dependent morphs",
-        min = 1, max = 20,
-        default = 5)
 
     strength = FloatProperty(
         name = "Strength",

@@ -603,6 +603,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                 prop = unquote(skey.name)
                 self.alias[asset.name] = prop
             if (skey and
+                self.rig and
                 (self.useBoneDrivers or not asset.visible)):
                 removeFromPropGroups(self.rig, prop)
                 isBoneDriven,drvprop,drvvalue = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
@@ -688,7 +689,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         max = skey.slider_max if GS.useDazPropLimits else None
         value,mult = self.getShapeMultiplier(skey.name, asset, self.rig, ob)
 
-        if not asset.visible:
+        if not asset.visible and self.rig:
             varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, prop, self.depends,
                 min=min, max=max, factor=value, varname="a", keep=keep, mult=mult)
             self.driveDependents(skeys, skey, prop, value, varname, min, max)
@@ -1002,15 +1003,13 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, MultiFil
     morphset = "Custom"
 
     def draw(self, context):
-        self.layout.prop(self, "usePropDrivers")
-        self.layout.prop(self, "useBoneDrivers")
-        if self.usePropDrivers and self.useBoneDrivers:
-            self.layout.prop(self, "useDoubleDrivers")
-        if not self.usePropDrivers:
+        self.layout.prop(self, "driverType")
+        if self.driverType == 'NONE':
             self.layout.prop(self, "useSkeysCats")
-        if self.usePropDrivers or self.useSkeysCats:
+            if self.useSkeysCats:
+                self.layout.prop(self, "catname")
+        elif self.driverType != 'JCM':
             self.layout.prop(self, "catname")
-        self.layout.prop(self, "maxRecursionDepth")
         self.layout.prop(self, "strength")
         self.layout.prop(self, "treatHD")
 
@@ -1026,13 +1025,32 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, MultiFil
     def run(self, context):
         from .driver import setBoolProp
         ob = context.object
-        if not (self.usePropDrivers and self.useBoneDrivers):
+        if self.driverType == 'MORPH':
+            self.usePropDrivers = True
+            self.useBoneDrivers = False
             self.useDoubleDrivers = False
-        if not self.usePropDrivers and self.useSkeysCats:
-            if ob.type == 'MESH':
-                self.rig = None
-            else:
-                raise DazError("Active object must be a mesh to use panel shapekeys")
+        elif self.driverType == 'JCM':
+            self.usePropDrivers = False
+            self.useBoneDrivers = True
+            self.useDoubleDrivers = False
+        elif self.driverType == 'EITHER':
+            self.usePropDrivers = True
+            self.useBoneDrivers = True
+            self.useDoubleDrivers = False
+        elif self.driverType == 'BOTH':
+            self.usePropDrivers = True
+            self.useBoneDrivers = True
+            self.useDoubleDrivers = True
+        elif self.driverType == 'NONE':
+            self.usePropDrivers = False
+            self.useBoneDrivers = False
+            self.useDoubleDrivers = False
+            if self.useSkeysCats:
+                if ob.type == 'MESH':
+                    self.rig = None
+                else:
+                    raise DazError("Active object must be a mesh to use panel shapekeys")
+
         namepaths = self.getNamePaths()
         self.getAllMorphs(namepaths, context)
         if self.props:
