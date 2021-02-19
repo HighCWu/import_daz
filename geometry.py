@@ -129,7 +129,7 @@ class GeoNode(Node):
                 multi = addMultires(context, hdob, False)
             if not multi and len(hdob.data.vertices) == len(ob.data.vertices):
                 print("HD mesh same as base mesh:", ob.name)
-                self.hdobject = inst.hdobject = ob
+                self.hdobject = inst.hdobject = None
                 deleteObjects(context, [hdob])
         elif LS.useHDObjects:
             self.hdobject = inst.hdobject = ob
@@ -357,6 +357,9 @@ def addMultires(context, hdob, strict):
         print("Cannot rebuild subdiv in Blender %d.%d.%d" % bpy.app.version)
         return False
     activateObject(context, hdob)
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.delete_loose()
+    bpy.ops.object.mode_set(mode='OBJECT')
     mod = hdob.modifiers.new("Multires", 'MULTIRES')
     try:
         bpy.ops.object.multires_rebuild_subdiv(modifier="Multires")
