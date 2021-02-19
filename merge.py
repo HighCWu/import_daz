@@ -56,7 +56,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
             if (aob != cob and
                 aob.data.DazGraftGroup):
                 anatomies.append(aob)
-                self.removeMultires(aob)
+                #self.removeMultires(aob)
 
         if len(anatomies) < 1:
             raise DazError("At least two meshes must be selected.\nGeografts selected and target active.")
