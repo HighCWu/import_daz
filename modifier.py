@@ -456,7 +456,11 @@ class SkinBinding(Modifier):
         makeArmatureModifier(self.name, context, ob, rig)
         self.addVertexGroups(ob, geonode, rig)
         hdob = geonode.hdobject
-        if hdob and hdob != ob and hdob.DazMultires and GS.useMultires:
+        if (hdob and
+            hdob != ob and
+            len(hdob.data.vertices) == len(ob.data.vertices) and
+            hdob.DazMultires and
+            GS.useMultires):
             hdob.parent = ob.parent
             makeArmatureModifier(self.name, context, hdob, rig)
             copyVertexGroups(ob, hdob)
