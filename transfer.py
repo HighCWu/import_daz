@@ -120,17 +120,16 @@ class DAZ_OT_TransferVertexGroups(DazPropsOperator, FastMatcher, IsMesh, B.Thres
             raise DazError("Source mesh %s         \nhas no vertex groups" % src.name)
         import time
         t1 = time.perf_counter()
-        targets = self.getTargets(src, context)
-        for trg in targets:
-            print("Copy vertex groups from %s to %s" % (src.name, trg.name))
-            activateObject(context, trg)
-            mod = trg.modifiers.new("DataTransfer", 'DATA_TRANSFER')
-            mod.show_viewport = True
-            mod.object = src
-            mod.use_vert_data = True
-            mod.data_types_verts = {'VGROUP_WEIGHTS'}
-            bpy.ops.object.datalayout_transfer(modifier="DataTransfer")
-            bpy.ops.object.modifier_apply(modifier="DataTransfer")
+        targets = []
+        for trg in self.getTargets(src, context):
+            targets.append(trg.name)
+            trg.vertex_groups.clear()
+        print("Copy vertex groups from %s to %s" % (src.name, targets))
+        bpy.ops.object.data_transfer(
+            data_type = "VGROUP_WEIGHTS",
+            vert_mapping = 'NEAREST',
+            layers_select_src = 'ALL',
+            layers_select_dst = 'NAME')
         t2 = time.perf_counter()
         print("Vertex groups transferred in %.1f seconds" % (t2-t1))
 
