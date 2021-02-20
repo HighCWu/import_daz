@@ -194,6 +194,18 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
+        # Create graft vertex group
+        vgrp = cob.vertex_groups.new(name="Graft")
+        for vn in selected.keys():
+            vgrp.add([vn], 1.0, 'REPLACE')
+        for mod in cob.modifiers:
+            if mod.type == 'MULTIRES':
+                smod = cob.modifiers.new("Graft", 'SMOOTH')
+                smod.factor = 1.0
+                smod.iterations = 10
+                smod.vertex_group = vgrp.name
+                break
+
         # Update cob graft group
         if cob.data.DazGraftGroup and selected:
             for pair in cob.data.DazGraftGroup:
