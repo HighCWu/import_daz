@@ -400,6 +400,7 @@ class LocalSettings:
         self.integerFrames = True
         self.missingAssets = {}
         self.hdfailures = []
+        self.hdweights = []
         self.deflectors = {}
         self.images = {}
         self.textures = {}

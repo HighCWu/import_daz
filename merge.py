@@ -883,11 +883,11 @@ def applyAllObjectTransforms(rigs):
         setSelected(rig, True)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     bpy.ops.object.select_all(action='DESELECT')
-    for rig in rigs:
-        for ob in rig.children:
-            if ob.type == 'MESH':
-                setSelected(ob, True)
     try:
+        for rig in rigs:
+            for ob in rig.children:
+                if ob.type == 'MESH':
+                    setSelected(ob, True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         return True
     except RuntimeError:

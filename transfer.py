@@ -114,7 +114,6 @@ class DAZ_OT_TransferVertexGroups(DazPropsOperator, FastMatcher, IsMesh, B.Thres
     def draw(self, context):
         self.layout.prop(self, "threshold")
 
-
     def run(self, context):
         src = context.object
         if not src.vertex_groups:
@@ -122,33 +121,42 @@ class DAZ_OT_TransferVertexGroups(DazPropsOperator, FastMatcher, IsMesh, B.Thres
         import time
         t1 = time.perf_counter()
         targets = self.getTargets(src, context)
-        data = self.prepare(context, src, True)
-        trisrc,rig = data
-        try:
-            vnames,weights = findVertexGroups(src)
-            self.findTriangles(trisrc)
-            for trg in targets:
-                print("Copy vertex groups from %s to %s" % (src.name, trg.name))
-                self.copyVertexGroups(src, trisrc, vnames, weights, trg)
-        finally:
-            self.restore(context, data)
+        for trg in targets:
+            print("Copy vertex groups from %s to %s" % (src.name, trg.name))
+            activateObject(context, trg)
+            mod = trg.modifiers.new("DataTransfer", 'DATA_TRANSFER')
+            mod.show_viewport = True
+            mod.object = src
+            mod.use_vert_data = True
+            mod.data_types_verts = {'VGROUP_WEIGHTS'}
+            bpy.ops.object.datalayout_transfer(modifier="DataTransfer")
+            bpy.ops.object.modifier_apply(modifier="DataTransfer")
         t2 = time.perf_counter()
         print("Vertex groups transferred in %.1f seconds" % (t2-t1))
 
 
-    def copyVertexGroups(self, src, trisrc, vnames, weights, trg):
-        self.findMatchNearest(trisrc, trg)
-        tris, wmat, offsets = self.match
-        for gn,vname in enumerate(vnames):
-            tweights = weights[gn][tris]
-            cweights = np.sum(tweights * wmat, axis=1)
-            cweights[cweights > 1] = 1
-            cweights[cweights < self.threshold] = 0
-            tvgrp = trg.vertex_groups.new(name=vname)
-            nonzero = np.nonzero(cweights)[0].astype(int)
-            for vn in nonzero:
-                tvgrp.add([int(vn)], cweights[vn], 'REPLACE')
-            print("  * %s" % vname)
+class DAZ_OT_CopyVertexGroupsByNumber(DazOperator, IsMesh):
+    bl_idname = "daz.copy_vertex_groups_by_number"
+    bl_label = "Copy Vertex Groups By Number"
+    bl_description = "Copy vertex groups from active to selected meshes with the same number of vertices"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        from .finger import getFingerPrint
+        from .modifier import copyVertexGroups
+        src = context.object
+        if not src.vertex_groups:
+            raise DazError("Source mesh %s         \nhas no vertex groups" % src.name)
+        srcfinger = getFingerPrint(src)
+        for trg in getSelectedMeshes(context):
+            if trg != src:
+                trgfinger = getFingerPrint(trg)
+                if trgfinger != srcfinger:
+                    msg = ("Cannot copy vertex groups between meshes with different topology:\n" +
+                           "Source: %s %s\n" % (srcfinger, src.name) +
+                           "Target: %s %s" % (trgfinger, trg.name))
+                    raise DazError(msg)
+                copyVertexGroups(src, trg)
 
 #----------------------------------------------------------
 #   Morphs transfer
@@ -771,6 +779,7 @@ class DAZ_OT_PruneVertexGroups(DazPropsOperator, B.ThresholdFloat, IsMesh):
 
 classes = [
     DAZ_OT_TransferVertexGroups,
+    DAZ_OT_CopyVertexGroupsByNumber,
     DAZ_OT_TransferCorrectives,
     DAZ_OT_TransferOtherMorphs,
     DAZ_OT_PruneVertexGroups,

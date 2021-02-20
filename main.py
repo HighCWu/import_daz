@@ -140,15 +140,20 @@ def getMainAsset(filepath, context, btn):
         dumpErrors(filepath)
     finishMain("File", filepath, t1)
 
-    msg = None
+    msg = ""
     if LS.missingAssets:
         msg = ("Some assets were not found.\n" +
                "Check that all Daz paths have been set up correctly.        \n" +
                "For details see\n'%s'" % getErrorPath())
-    elif LS.hdfailures:
-        msg = ("Could not rebuild subdivisions for the following HD objects:       \n")
-        for hdname in LS.hdfailures:
-            msg += ("  %s\n" % hdname)
+    else:
+        if LS.hdfailures:
+            msg += "Could not rebuild subdivisions for the following HD objects:       \n"
+            for hdname in LS.hdfailures:
+                msg += ("  %s\n" % hdname)
+        if LS.hdweights:
+            msg += "Could not copy vertex weights to the following HD objects:         \n"
+            for hdname in LS.hdweights:
+                msg += ("  %s\n" % hdname)
     if msg:
         clearErrorMessage()
         handleDazError(context, warning=True, dump=True)
