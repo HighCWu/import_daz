@@ -66,6 +66,7 @@ class Material(Asset, Channels):
         self.geosockets = []
         self.uv_set = None
         self.uv_sets = {}
+        self.defaultUvs = None
         self.udim = 0
         self.basemix = 0
         self.thinWall = False
@@ -112,11 +113,7 @@ class Material(Asset, Channels):
     def update(self, struct):
         Asset.update(self, struct)
         Channels.update(self, struct)
-        if "uv_set" in struct.keys():
-            from .geometry import Uvset
-            self.uv_set = self.getTypedAsset(struct["uv_set"], Uvset)
-            if self.uv_set:
-                self.uv_set.material = self
+        geo = None
         if "geometry" in struct.keys():
             ref = struct["geometry"]
             geo = self.getAsset(ref, True)
@@ -126,6 +123,15 @@ class Material(Asset, Channels):
                 if iref in geo.nodes.keys():
                     geonode = geo.nodes[iref]
                     self.addToGeoNode(geonode, key)
+        if "uv_set" in struct.keys():
+            from .geometry import Uvset
+            uvset = self.getTypedAsset(struct["uv_set"], Uvset)
+            if uvset:
+                uvset.material = self
+                if geo and uvset != geo.default_uv_set:
+                    geo.uv_sets[uvset.name] = uvset
+                    self.defaultUvs = uvset.name
+            self.uv_set = uvset
         self.basemix = self.getValue(["Base Mixing"], 0)
         if self.basemix == 2:
             self.basemix = 0

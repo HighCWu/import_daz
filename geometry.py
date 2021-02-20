@@ -463,14 +463,6 @@ class Geometry(Asset, Channels):
             return None
 
 
-    def addUvSet(self, uvstruct):
-        uvset = self.getTypedAsset(uvstruct, Uvset)
-        if uvset:
-            uvset.name = uvset.getLabel()
-            self.uv_sets[uvset.name] = uvset
-        return uvset
-
-
     def parse(self, struct):
         Asset.parse(self, struct)
         Channels.parse(self, struct)
@@ -487,9 +479,13 @@ class Geometry(Asset, Channels):
 
         for key,data in struct.items():
             if key == "default_uv_set":
-                self.default_uv_set = self.addUvSet(data)
+                uvset = self.getTypedAsset(data, Uvset)
+                if uvset:
+                    self.default_uv_set = self.uv_sets[uvset.name] = uvset
             elif key == "uv_set":
-                self.uv_set = self.addUvSet(data)
+                uvset = self.getTypedAsset(data, Uvset)
+                if uvset:
+                    self.uv_set = self.uv_sets[uvset.name] = uvset
             elif key == "graft":
                 for key1,data1 in data.items():
                     if key1 == "vertex_count":
@@ -893,6 +889,7 @@ class Uvset(Asset):
         self.type = "uv_set"
         self.uvs = struct["uvs"]["values"]
         self.polyverts = struct["polygon_vertex_indices"]
+        self.name = self.getLabel()
         return self
 
 

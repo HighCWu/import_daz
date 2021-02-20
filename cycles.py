@@ -344,8 +344,13 @@ class CyclesTree:
 
 
     def addTexco(self, slot):
-        node = self.addNode("ShaderNodeTexCoord", 1)
-        self.texco = node.outputs[slot]
+        if self.material.defaultUvs is None:
+            node = self.addNode("ShaderNodeTexCoord", 1)
+            self.texco = node.outputs[slot]
+        else:
+            node = self.addNode("ShaderNodeUVMap", 1)
+            node.uv_map = self.material.defaultUvs
+            self.texco = node.outputs["UV"]
 
         mat = self.material
         ox = mat.getChannelValue(mat.getChannelHorizontalOffset(), 0)
@@ -367,14 +372,9 @@ class CyclesTree:
 
 
     def addUvNode(self, key, uvname):
-        if True:
-            node = self.addNode("ShaderNodeUVMap", 1)
-            node.uv_map = uvname
-            slot = "UV"
-        else:
-            node = self.addNode("ShaderNodeAttribute", 1)
-            node.attribute_name = uvname
-            slot = "Vector"
+        node = self.addNode("ShaderNodeUVMap", 1)
+        node.uv_map = uvname
+        slot = "UV"
         self.texcos[key] = node.outputs[slot]
 
 
