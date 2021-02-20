@@ -220,7 +220,7 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
         activateObject(context, src)
         if not self.findMatch(src, trg):
             return False
-        setActiveObject(context, trg)
+        setSelected(trg, True)
         if not trg.data.shape_keys:
             basic = trg.shape_key_add(name="Basic")
         else:
@@ -417,20 +417,11 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
             vgrp = src.vertex_groups.new(name=vgname)
             for vn,w in enumerate(weights):
                 vgrp.add([vn], w, 'REPLACE')
-
-            mod = trg.modifiers.new(vgname, 'DATA_TRANSFER')
-            for i in range(len(trg.modifiers)-1):
-                bpy.ops.object.modifier_move_up(modifier=mod.name)
-            mod.object = src
-            mod.use_vert_data = True
-            #'TOPOLOGY', 'NEAREST', 'EDGE_NEAREST', 'EDGEINTERP_NEAREST',
-            # 'POLY_NEAREST', 'POLYINTERP_NEAREST', 'POLYINTERP_VNORPROJ'
-            mod.vert_mapping = 'POLYINTERP_NEAREST'
-            mod.data_types_verts = {'VGROUP_WEIGHTS'}
-            mod.layers_vgroup_select_src = vgname
-            mod.mix_mode = 'REPLACE'
-            bpy.ops.object.datalayout_transfer(modifier=mod.name)
-            bpy.ops.object.modifier_apply(modifier=mod.name)
+            bpy.ops.object.data_transfer(
+                data_type = "VGROUP_WEIGHTS",
+                vert_mapping = 'POLYINTERP_NEAREST',
+                layers_select_src = 'ACTIVE',
+                layers_select_dst = 'NAME')
             src.vertex_groups.remove(vgrp)
 
         coords = []
