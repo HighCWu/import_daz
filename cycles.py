@@ -344,12 +344,12 @@ class CyclesTree:
 
 
     def addTexco(self, slot):
-        if self.material.defaultUvs is None:
+        if self.material.useDefaultUvs:
             node = self.addNode("ShaderNodeTexCoord", 1)
             self.texco = node.outputs[slot]
         else:
             node = self.addNode("ShaderNodeUVMap", 1)
-            node.uv_map = self.material.defaultUvs
+            node.uv_map = self.material.uv_set.name
             self.texco = node.outputs["UV"]
 
         mat = self.material

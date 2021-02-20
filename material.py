@@ -66,7 +66,7 @@ class Material(Asset, Channels):
         self.geosockets = []
         self.uv_set = None
         self.uv_sets = {}
-        self.defaultUvs = None
+        self.useDefaultUvs = True
         self.udim = 0
         self.basemix = 0
         self.thinWall = False
@@ -130,8 +130,8 @@ class Material(Asset, Channels):
                 uvset.material = self
                 if geo and uvset != geo.default_uv_set:
                     geo.uv_sets[uvset.name] = uvset
-                    self.defaultUvs = uvset.name
-            self.uv_set = uvset
+                    self.useDefaultUvs = False
+                self.uv_set = uvset
         self.basemix = self.getValue(["Base Mixing"], 0)
         if self.basemix == 2:
             self.basemix = 0
