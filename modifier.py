@@ -740,6 +740,9 @@ class Morph(FormulaAsset):
 
         if not LS.useMorph:
             return self
+        if len(self.deltas) == 0:
+            print("Morph without deltas: %s" % self.name)
+            return self
         Formula.prebuild(self, context, inst)
         Modifier.build(self, context)
 

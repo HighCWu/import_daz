@@ -206,7 +206,8 @@ class Formula:
         if "url" not in struct.keys():
             print("UU", url)
             return False
-        prop,type = struct["url"].split("#")[-1].split("?")
+        url = struct["url"].split("#")[-1]
+        prop,type = url.split("?")
         prop = unquote(prop)
         path,comp,default = parseChannel(type)
         if type == "value":
@@ -226,6 +227,8 @@ class Formula:
         op = last["op"]
         if op == "mult" and len(ops) == 3:
             value = ops[1]["val"]
+            addToStruct(LS.morphUses, url, driven, value)
+            addToStruct(LS.morphUsed, driven, url, value)
             if not useBone:
                 if isinstance(expr["value"], Vector):
                     expr["value"][idx] = value

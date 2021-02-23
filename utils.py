@@ -464,6 +464,12 @@ def isVector(value):
     return (hasattr(value, "__len__") and len(value) >= 3)
 
 
+def addToStruct(struct, key, prop, value):
+    if key not in struct.keys():
+        struct[key] = {}
+    struct[key][prop] = value
+
+
 def averageColor(value):
     if isVector(value):
         x,y,z = value

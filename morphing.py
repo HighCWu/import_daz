@@ -756,6 +756,16 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         LS.forMorphLoad(ob, scn)
         clearDependecies()
 
+        xnamepaths = {
+    'bs_EyeLookInLeft_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInLeft_div2.dsf',
+    'bs_EyeLookInRight_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInRight_div2.dsf',
+    'EyeLookInLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInLeft.dsf',
+    'EyeLookInRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInRight.dsf',
+    'EyeLookSide-Side': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-Side.dsf',
+    'EyeLookSide-SideLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideLeft.dsf',
+    'EyeLookSide-SideRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideRight.dsf'
+}
+
         self.errors = {}
         t1 = time.perf_counter()
         self.props = []
@@ -771,6 +781,7 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         others = self.buildOthers(missing)
         for prop in others:
             setActivated(self.rig, prop, True)
+        self.buildUsedMorphs()
         missing = [key for key in missing.keys() if missing[key]]
         if missing:
             print("Failed to load the following %d morphs:\n%s\n" % (len(missing), missing))
@@ -807,6 +818,97 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             else:
                 print("-", name)
         return missing
+
+
+    def printTabs(self):
+        print("USES")
+        for data in LS.morphUses.items():
+            print(data)
+        print("USED")
+        for data in LS.morphUsed.items():
+            print(data)
+
+
+    def buildUsedMorphs(self):
+        return
+        #self.printTabs()
+        if self.mesh:
+            skeys = self.mesh.data.shape_keys
+            if skeys is None:
+                return
+            exprs = {}
+            props = {}
+            varnames = {}
+            for channel in LS.morphUsed.keys():
+                prop = self.getChannelProp(channel)
+                if (prop and
+                    self.isShapeMorph(prop) and
+                    prop in skeys.key_blocks.keys()):
+                    exprs[prop] = ""
+                    props[prop] = {}
+                    varnames[prop] = "J"
+            for channel,used in LS.morphUsed.items():
+                if self.isTransform(channel):
+                    users = []
+                    self.buildUsers(channel, 1, used, users, exprs, props, varnames)
+            for prop in exprs.keys():
+                print("LL", prop, exprs[prop])
+                for data in props[prop].items():
+                    print("  ", data)
+
+
+    def buildUsers(self, channel, val, used, users, exprs, props, varnames):
+        for channel2,val2 in used.items():
+            users.append(channel2)
+            self.buildUses(channel2, val*val2, LS.morphUses[channel2], users, exprs, props, varnames)
+            if channel2 in LS.morphUsed.keys():
+                self.buildUsers(channel2, val*val2, LS.morphUsed[channel2], [], exprs, props, varnames)
+
+
+    def buildUses(self, channel, val, uses, users, exprs, props, varnames):
+        prop = self.getChannelProp(channel)
+        if prop and prop in exprs.keys():
+            for channel2 in users:
+                prop2 = self.getChannelProp(channel2)
+                if prop2 is None:
+                    continue
+                elif prop2 in props[prop].keys():
+                    continue
+                elif self.isShapeMorph(prop2):
+                    continue
+                varname = varnames[prop] = chr(ord(varnames[prop])+1)
+                if val > 0:
+                    sgn = "+"
+                else:
+                    sgn = ""
+                exprs[prop] += "%s%g*%s" % (sgn, val, varname)
+                props[prop][prop2] = varname
+        else:
+            for channel2,val2 in uses.items():
+                if channel2 in LS.morphUses.keys():
+                    uses2 = LS.morphUses[channel2]
+                else:
+                    uses2 = {}
+                #if self.isTransform(channel2):
+                #    val2 = 1
+                #print("LOO", channel, channel2, uses2, val2)
+                self.buildUses(channel2, val*val2, uses2, users, exprs, props, varnames)
+
+
+    def isShapeMorph(self, prop):
+        return (prop.startswith("facs_bs") or prop.startswith("facs_cbs"))
+
+
+    def isTransform(self, channel):
+        return (channel[-2:] in ["/x", "/y", "/z"])
+
+
+    def getChannelProp(self, channel):
+        words = channel.split("?")
+        if len(words) == 2 and words[1] == "value":
+            return words[0]
+        else:
+            return None
 
 #------------------------------------------------------------------
 #   Load typed morphs base class
