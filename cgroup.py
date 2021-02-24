@@ -848,7 +848,7 @@ class DisplacementGroup(CyclesGroup):
 
     def __init__(self):
         CyclesGroup.__init__(self)
-        self.insockets += ["Texture", "Strength", "Max", "Min"]
+        self.insockets += ["Texture", "Strength", "Max", "Min", "Normal"]
         self.outsockets += ["Displacement"]
 
 
@@ -858,6 +858,7 @@ class DisplacementGroup(CyclesGroup):
         self.group.inputs.new("NodeSocketFloat", "Strength")
         self.group.inputs.new("NodeSocketFloat", "Max")
         self.group.inputs.new("NodeSocketFloat", "Min")
+        self.group.inputs.new("NodeSocketVector", "Normal")
         self.group.outputs.new("NodeSocketVector", "Displacement")
 
 
@@ -884,6 +885,7 @@ class DisplacementGroup(CyclesGroup):
         self.links.new(add.outputs[0], disp.inputs["Height"])
         disp.inputs["Midlevel"].default_value = 0
         self.links.new(self.inputs.outputs["Strength"], disp.inputs["Scale"])
+        self.links.new(self.inputs.outputs["Normal"], disp.inputs["Normal"])
 
         self.links.new(disp.outputs[0], self.outputs.inputs["Displacement"])
 

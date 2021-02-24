@@ -1116,6 +1116,7 @@ class CyclesTree:
             node.inputs["Strength"].default_value = strength
             node.inputs["Max"].default_value = LS.scale * dmax
             node.inputs["Min"].default_value = LS.scale * dmin
+            self.linkNormal(node)
             self.displacement = node.outputs["Displacement"]
             mat = self.material.rna
             mat.cycles.displacement_method = 'BOTH'
