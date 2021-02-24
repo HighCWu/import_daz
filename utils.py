@@ -90,7 +90,7 @@ if bpy.app.version < (2,80,0):
         try:
             context.scene.objects.active = ob
             return True
-        except RuntimeError:
+        except:
             return False
 
     def putOnHiddenLayer(ob):
@@ -234,7 +234,7 @@ else:
         try:
             context.view_layer.objects.active = ob
             return True
-        except RuntimeError:
+        except:
             return False
 
     def putOnHiddenLayer(ob):

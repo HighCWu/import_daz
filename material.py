@@ -111,18 +111,23 @@ class Material(Asset, Channels):
 
 
     def update(self, struct):
+        from .geometry import Geometry, GeoNode
         Asset.update(self, struct)
         Channels.update(self, struct)
-        geo = None
+        geo = geonode = None
         if "geometry" in struct.keys():
             ref = struct["geometry"]
             geo = self.getAsset(ref, True)
-            if geo is not None:
-                key = self.getMatName(self.id)
+            if isinstance(geo, GeoNode):
+                geonode = geo
+                geo = geonode.data
+            elif isinstance(geo, Geometry):
                 iref = instRef(ref)
                 if iref in geo.nodes.keys():
                     geonode = geo.nodes[iref]
-                    self.addToGeoNode(geonode, key)
+            if geonode:
+                key = self.getMatName(self.id)
+                self.addToGeoNode(geonode, key)
         if "uv_set" in struct.keys():
             from .geometry import Uvset
             uvset = self.getTypedAsset(struct["uv_set"], Uvset)

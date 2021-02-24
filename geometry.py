@@ -785,7 +785,6 @@ class Geometry(Asset, Channels):
 
     def addAllMaterials(self, me, geonode):
         for key, dmat in geonode.materials.items():
-            print("AAM", geonode.getName(), key)
             if dmat.rna:
                 me.materials.append(dmat.rna)
 
