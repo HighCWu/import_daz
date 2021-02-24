@@ -848,7 +848,7 @@ class DisplacementGroup(CyclesGroup):
 
     def __init__(self):
         CyclesGroup.__init__(self)
-        self.insockets += ["Texture", "Strength", "Difference", "Min"]
+        self.insockets += ["Texture", "Strength", "Max", "Min"]
         self.outsockets += ["Displacement"]
 
 
@@ -856,28 +856,36 @@ class DisplacementGroup(CyclesGroup):
         CyclesGroup.create(self, node, name, parent, 4)
         self.group.inputs.new("NodeSocketFloat", "Texture")
         self.group.inputs.new("NodeSocketFloat", "Strength")
-        self.group.inputs.new("NodeSocketFloat", "Difference")
+        self.group.inputs.new("NodeSocketFloat", "Max")
         self.group.inputs.new("NodeSocketFloat", "Min")
-        self.group.outputs.new("NodeSocketFloat", "Displacement")
+        self.group.outputs.new("NodeSocketVector", "Displacement")
 
 
     def addNodes(self, args=None):
-        mult1 = self.addNode("ShaderNodeMath", 1)
-        mult1.operation = 'MULTIPLY'
-        self.links.new(self.inputs.outputs["Texture"], mult1.inputs[0])
-        self.links.new(self.inputs.outputs["Difference"], mult1.inputs[1])
+        bw = self.addNode("ShaderNodeRGBToBW", 1)
+        self.links.new(self.inputs.outputs["Texture"], bw.inputs[0])
+
+        sub = self.addNode("ShaderNodeMath", 1)
+        sub.operation = 'SUBTRACT'
+        self.links.new(self.inputs.outputs["Max"], sub.inputs[0])
+        self.links.new(self.inputs.outputs["Min"], sub.inputs[1])
+
+        mult = self.addNode("ShaderNodeMath", 2)
+        mult.operation = 'MULTIPLY'
+        self.links.new(bw.outputs[0], mult.inputs[0])
+        self.links.new(sub.outputs[0], mult.inputs[1])
 
         add = self.addNode("ShaderNodeMath", 2)
         add.operation = 'ADD'
-        self.links.new(mult1.outputs[0], add.inputs[0])
+        self.links.new(mult.outputs[0], add.inputs[0])
         self.links.new(self.inputs.outputs["Min"], add.inputs[1])
 
-        mult2 = self.addNode("ShaderNodeMath", 3)
-        mult2.operation = 'MULTIPLY'
-        self.links.new(self.inputs.outputs["Strength"], mult2.inputs[0])
-        self.links.new(add.outputs[0], mult2.inputs[1])
+        disp = self.addNode("ShaderNodeDisplacement", 3)
+        self.links.new(add.outputs[0], disp.inputs["Height"])
+        disp.inputs["Midlevel"].default_value = 0
+        self.links.new(self.inputs.outputs["Strength"], disp.inputs["Scale"])
 
-        self.links.new(mult2.outputs[0], self.outputs.inputs["Displacement"])
+        self.links.new(disp.outputs[0], self.outputs.inputs["Displacement"])
 
 # ---------------------------------------------------------------------
 #   Decal Group

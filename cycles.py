@@ -1113,9 +1113,9 @@ class CyclesTree:
             from .cgroup import DisplacementGroup
             node = self.addGroup(DisplacementGroup, "DAZ Displacement")
             self.links.new(tex.outputs[0], node.inputs["Texture"])
-            node.inputs["Strength"].default_value = -LS.scale * strength
-            node.inputs["Difference"].default_value = dmax - dmin
-            node.inputs["Min"].default_value = dmin
+            node.inputs["Strength"].default_value = strength
+            node.inputs["Max"].default_value = LS.scale * dmax
+            node.inputs["Min"].default_value = LS.scale * dmin
             self.displacement = node.outputs["Displacement"]
             mat = self.material.rna
             mat.cycles.displacement_method = 'BOTH'
