@@ -71,7 +71,6 @@ class Material(Asset, Channels):
         self.basemix = 0
         self.thinWall = False
         self.refractive = False
-        self.thinGlass = False
         self.shareGlossy = False
         self.metallic = False
         self.dualLobeWeight = 0
@@ -146,7 +145,6 @@ class Material(Asset, Channels):
         self.thinWall = self.getValue(["Thin Walled"], False)
         self.refractive = (self.getValue("getChannelRefractionWeight", 0) > 0.01 or
                            self.getValue("getChannelOpacity", 1) < 0.99)
-        self.thinGlass = (self.thinWall and self.refractive)
         self.shareGlossy = self.getValue(["Share Glossy Inputs"], False)
         self.metallic = (self.getValue(["Metallic Weight"], 0) > 0.5 and self.isEnabled("Metallicity"))
         self.dualLobeWeight = self.getValue(["Dual Lobe Specular Weight"], 0)
@@ -193,8 +191,6 @@ class Material(Asset, Channels):
             #geonode.materials[self.name] = self
         for shell in self.shells.values():
             shell.material.shader = self.shader
-        if self.thinGlass:
-            mat.DazThinGlass = True
 
 
     def dontBuild(self):

@@ -274,7 +274,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.separator()
         box.prop(scn, "DazViewportColor")
         box.prop(scn, "DazMergeShells")
-        box.prop(scn, "DazThinWall")
         box.prop(scn, "DazPruneNodes")
         box.prop(scn, "DazUseEnvironment")
         box.prop(scn, "DazReuseMaterials")
@@ -601,11 +600,6 @@ def initialize():
         name = "Prune Node Tree",
         description = "Prune material node-tree.\nDisable for debugging only")
 
-    bpy.types.Scene.DazThinWall = FloatProperty(
-        name = "Thin Wall Factor",
-        description = "Mix factor between refraction and transparent nodes.\nIncrease this to avoid dark eyes problem for Genesis 8",
-        min = 0, max = 1)
-
     bpy.types.Scene.DazMaxBump = FloatProperty(
         name = "Max Bump Strength",
         description = "Max bump strength",
@@ -661,7 +655,6 @@ def initialize():
 
     bpy.types.Material.DazRenderEngine = StringProperty(default='NONE')
     bpy.types.Material.DazShader = StringProperty(default='NONE')
-    bpy.types.Material.DazThinGlass = BoolProperty(default=False)
 
     bpy.types.Object.DazUDimsCollapsed = BoolProperty(default=False)
     bpy.types.Material.DazUDimsCollapsed = BoolProperty(default=False)

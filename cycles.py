@@ -900,7 +900,7 @@ class CyclesTree:
         self.linkColor(coltex, node, color, "Refraction Color")
         self.linkScalar(iortex, node, ior, "Fresnel IOR")
         if self.material.thinWall:
-            node.inputs["Thin Wall"].default_value = GS.thinWall
+            node.inputs["Thin Wall"].default_value = 1
             node.inputs["Refraction IOR"].default_value = 1.0
             node.inputs["Refraction Roughness"].default_value = 0.0
             self.material.setTransSettings(False, True)

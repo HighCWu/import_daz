@@ -433,7 +433,6 @@ class RefractionGroup(MixGroup):
 
         thin = self.addNode("ShaderNodeMixShader", 2)
         thin.label = "Thin Wall"
-        thin.inputs["Fac"].default_value = GS.thinWall
         self.links.new(self.inputs.outputs["Thin Wall"], thin.inputs["Fac"])
         self.links.new(refr.outputs[0], thin.inputs[1])
         self.links.new(trans.outputs[0], thin.inputs[2])
