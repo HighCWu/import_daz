@@ -27,20 +27,60 @@
 
 import os
 import bpy
-from bpy.props import *
+
 from .error import *
 from .utils import *
+from .fileutils import SingleFile, JsonFile, JsonExportFile, DazImageFile
+
+#------------------------------------------------------------------
+#   Classes
+#------------------------------------------------------------------
+
+EnumsMaterials = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
+                  ('PRINCIPLED', "Principled", "Principled (Eevee and Cycles)")]
+
+EnumsHair = [('HAIR_BSDF', "Hair BSDF", "Hair BSDF (Cycles)"),
+             ('HAIR_PRINCIPLED', "Hair Principled", "Hair Principled (Cycles)"),
+             ('PRINCIPLED', "Principled", "Principled (Eevee and Cycles)")]
 
 #------------------------------------------------------------------
 #   Import DAZ
 #------------------------------------------------------------------
 
-class ImportDAZ(DazOperator, B.DazImageFile, B.SingleFile, B.DazOptions, B.PoleTargets):
+class ImportDAZ(DazOperator, DazImageFile, SingleFile):
     """Import a DAZ DUF/DSF File"""
     bl_idname = "daz.import_daz"
     bl_label = "Import DAZ File"
     bl_description = "Import a native DAZ file (*.duf, *.dsf, *.dse)"
     bl_options = {'PRESET', 'UNDO'}
+
+    skinColor : FloatVectorProperty(
+        name = "Skin",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.6, 0.4, 0.25, 1.0)
+    )
+
+    clothesColor : FloatVectorProperty(
+        name = "Clothes",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.09, 0.01, 0.015, 1.0)
+    )
+
+    fitMeshes : EnumProperty(
+        items = [('SHARED', "Unmorphed Shared (Environments)", "Don't fit meshes. All objects share the same mesh.\nFor environments with identical objects like leaves"),
+                 ('UNIQUE', "Unmorped Unique (Environments)", "Don't fit meshes. Each object has unique mesh instance.\nFor environments with objects with same mesh but different materials, like paintings"),
+                 ('DBZFILE', "DBZ File (Characters)", "Use exported .dbz (.json) file to fit meshes. Must exist in same directory.\nFor characters and other objects with morphs"),
+                ],
+        name = "Mesh Fitting",
+        description = "Mesh fitting method",
+        default = 'DBZFILE')
+
 
     def run(self, context):
         from .main import getMainAsset
@@ -124,7 +164,7 @@ class DAZ_OT_AddCloudDir(bpy.types.Operator):
         return {'PASS_THROUGH'}
 
 
-class DAZ_OT_SaveSettingsFile(bpy.types.Operator, B.SingleFile, B.JsonExportFile):
+class DAZ_OT_SaveSettingsFile(bpy.types.Operator, SingleFile, JsonExportFile):
     bl_idname = "daz.save_settings_file"
     bl_label = "Save Settings File"
     bl_description = "Save current settings to file"
@@ -153,11 +193,24 @@ class DAZ_OT_LoadFactorySettings(DazOperator):
         return {'PASS_THROUGH'}
 
 
-class DAZ_OT_LoadRootPaths(DazOperator, B.SingleFile, B.JsonFile, B.LoadRootPaths):
+class DAZ_OT_LoadRootPaths(DazOperator, SingleFile, JsonFile):
     bl_idname = "daz.load_root_paths"
     bl_label = "Load Root Paths"
     bl_description = "Load DAZ root paths from file"
     bl_options = {'UNDO'}
+
+    useContent : BoolProperty(
+        name = "Load Content Directories",
+        default = True)
+
+    useMDL : BoolProperty(
+        name = "Load MDL Directories",
+        default = True)
+
+    useCloud : BoolProperty(
+        name = "Load Cloud Directories",
+        default = False)
+
 
     def draw(self, context):
         self.layout.prop(self, "useContent")
@@ -181,7 +234,7 @@ class DAZ_OT_LoadRootPaths(DazOperator, B.SingleFile, B.JsonFile, B.LoadRootPath
         return {'RUNNING_MODAL'}
 
 
-class DAZ_OT_LoadSettingsFile(DazOperator, B.SingleFile, B.JsonFile):
+class DAZ_OT_LoadSettingsFile(DazOperator, SingleFile, JsonFile):
     bl_idname = "daz.load_settings_file"
     bl_label = "Load Settings File"
     bl_description = "Load settings from file"
@@ -480,7 +533,7 @@ def initialize():
     )
 
     bpy.types.Scene.DazMaterialMethod = EnumProperty(
-        items = B.enumsMaterials,
+        items = EnumsMaterials,
         name = "Method",
         description = "Material Method",
         default = 'BSDF')
@@ -497,7 +550,7 @@ def initialize():
         default = 'BSDF')
 
     bpy.types.Scene.DazHairMaterialMethod = EnumProperty(
-        items = B.enumsHair,
+        items = EnumsHair,
         name = "Hair",
         description = "Method for hair materials",
         default = 'HAIR_BSDF')

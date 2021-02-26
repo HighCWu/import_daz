@@ -29,7 +29,7 @@
 import os
 import json
 import bpy
-from bpy.props import *
+
 from .utils import *
 from .error import *
 from .material import MaterialMerger
@@ -371,11 +371,30 @@ class DAZ_OT_CreateGraftGroups(DazOperator):
 #   Merge UV sets
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeUVLayers(DazPropsOperator, IsMesh, B.MergeUVLayers):
+def getUVLayers(scn, context):
+    ob = context.object
+    enums = []
+    for n,uv in enumerate(ob.data.uv_layers):
+        ename = "%s (%d)" % (uv.name, n)
+        enums.append((str(n), ename, ename))
+    return enums
+
+
+class DAZ_OT_MergeUVLayers(DazPropsOperator, IsMesh):
     bl_idname = "daz.merge_uv_layers"
     bl_label = "Merge UV Layers"
     bl_description = "Merge two UV layers"
     bl_options = {'UNDO'}
+
+    layer1 : EnumProperty(
+        items = getUVLayers,
+        name = "Layer To Keep",
+        description = "UV layer that the other layer is merged with")
+
+    layer2 : EnumProperty(
+        items = getUVLayers,
+        name = "Layer To Merge",
+        description = "UV layer that is merged with the other layer")
 
     def draw(self, context):
         self.layout.prop(self, "layer1")
@@ -508,11 +527,37 @@ class DAZ_OT_EliminateEmpties(DazOperator):
 #   Merge rigs
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
+class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature):
     bl_idname = "daz.merge_rigs"
     bl_label = "Merge Rigs"
     bl_description = "Merge selected rigs to active rig"
     bl_options = {'UNDO'}
+
+    clothesLayer : IntProperty(
+        name = "Clothes Layer",
+        description = "Bone layer used for extra bones when merging clothes",
+        min = 1, max = 32,
+        default = 3)
+
+    separateCharacters : BoolProperty(
+        name = "Separate Characters",
+        description = "Don't merge armature that belong to different characters",
+        default = False)
+
+    useApplyRestPose : BoolProperty(
+        name = "Apply Rest Pose",
+        description = "Apply current pose as rest pose for all armatures",
+        default = False)
+
+    useCreateDuplicates : BoolProperty(
+        name = "Create Duplicate Bones",
+        description = "Create separate bones if several bones with the same name are found",
+        default = False)
+
+    createMeshCollection : BoolProperty(
+        name = "Create Mesh Collection",
+        description = "Create a new collection and move all meshes to it",
+        default = True)
 
     def draw(self, context):
         self.layout.prop(self, "clothesLayer")

@@ -27,7 +27,6 @@
 
 
 import bpy
-from bpy.props import StringProperty
 from mathutils import *
 from .error import *
 from .utils import *
@@ -285,10 +284,12 @@ SnapBonesAlpha8 = {
 }
 
 
-class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper, B.DataString):
+class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper):
     bl_idname = "daz.snap_fk_ik"
     bl_label = "Snap FK"
     bl_options = {'UNDO'}
+
+    data : StringProperty()
 
     def run(self, context):
         bpy.ops.object.mode_set(mode='POSE')
@@ -358,10 +359,12 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper, B.DataString):
         self.rig[prop] = 0.0
 
 
-class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper, B.DataString):
+class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper):
     bl_idname = "daz.snap_ik_fk"
     bl_label = "Snap IK"
     bl_options = {'UNDO'}
+
+    data : StringProperty()
 
     def run(self, context):
         bpy.ops.object.mode_set(mode='POSE')
@@ -420,10 +423,12 @@ class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper, B.DataString):
         self.rig[prop] = 1.0
 
 
-class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper, B.ToggleString):
+class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper):
     bl_idname = "daz.toggle_fk_ik"
     bl_label = "FK - IK"
     bl_options = {'UNDO'}
+
+    toggle : StringProperty()
 
     def run(self, context):
         words = self.toggle.split()

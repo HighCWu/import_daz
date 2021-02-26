@@ -27,7 +27,7 @@
 
 
 import bpy
-from bpy.props import *
+
 import math
 from mathutils import *
 from .error import DazError, reportError

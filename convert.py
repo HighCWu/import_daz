@@ -31,6 +31,7 @@ import os
 from mathutils import *
 from .error import *
 from .utils import *
+from .fileutils import SingleFile, JsonFile, JsonExportFile
 
 Converters = {}
 TwistBones = {}
@@ -42,10 +43,13 @@ IkPoses = {}
 #   Save current pose
 #-------------------------------------------------------------
 
-class DAZ_OT_SaveCurrentPose(DazOperator, B.JsonExportFile, B.SkelPoseBool, IsArmature):
+class DAZ_OT_SaveCurrentPose(DazOperator, JsonExportFile, IsArmature):
     bl_idname = "daz.save_current_pose"
     bl_label = "Save Current Pose"
     bl_options = {'UNDO'}
+
+    skeleton : BoolProperty("Skeleton", default=True)
+    pose : BoolProperty("Pose", default=True)
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -211,7 +215,7 @@ def loadBonePose(pb, pose):
             loadBonePose(child, pose)
 
 
-class DAZ_OT_LoadPose(DazOperator, B.JsonFile, B.SingleFile, IsArmature):
+class DAZ_OT_LoadPose(DazOperator, JsonFile, SingleFile, IsArmature):
     bl_idname = "daz.load_pose"
     bl_label = "Load Pose"
     bl_options = {'UNDO'}
@@ -232,11 +236,16 @@ class DAZ_OT_LoadPose(DazOperator, B.JsonFile, B.SingleFile, IsArmature):
 #   Optimize pose for IK
 #-------------------------------------------------------------
 
-class DAZ_OT_OptimizePose(DazPropsOperator, B.MergeRigs, IsArmature):
+class DAZ_OT_OptimizePose(DazPropsOperator, IsArmature):
     bl_idname = "daz.optimize_pose"
     bl_label = "Optimize Pose For IK"
     bl_description = "Optimize pose for IK.\nIncompatible with pose loading and body morphs."
     bl_options = {'UNDO'}
+
+    useApplyRestPose : BoolProperty(
+        name = "Apply Rest Pose",
+        description = "Apply current pose as rest pose for all armatures",
+        default = False)
 
     def draw(self, context):
         self.layout.prop(self, "useApplyRestPose")
@@ -268,11 +277,17 @@ SourceRig = {
     "genesis_8_male" : "genesis8",
 }
 
-class DAZ_OT_ConvertRigPose(DazPropsOperator, B.NewRig):
+class DAZ_OT_ConvertRigPose(DazPropsOperator):
     bl_idname = "daz.convert_rig"
     bl_label = "Convert DAZ Rig"
     bl_description = "Convert current DAZ rig to other DAZ rig"
     bl_options = {'UNDO'}
+
+    newRig : EnumProperty(
+        items = G.theRestPoseItems,
+        name = "New Rig",
+        description = "Convert active rig to this",
+        default = "genesis_3_female")
 
     @classmethod
     def poll(self, context):

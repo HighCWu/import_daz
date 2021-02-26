@@ -25,11 +25,9 @@
 # of the authors and should not be interpreted as representing official policies,
 # either expressed or implied, of the FreeBSD Project.
 
-
 import bpy
 import math
 from mathutils import *
-from bpy.props import IntProperty
 from .utils import *
 from .error import *
 from .node import Node, Instance
@@ -383,11 +381,15 @@ class DAZ_OT_PrintMatrix(DazOperator, IsArmature):
         print(mat)
 
 
-class DAZ_OT_RotateBones(DazPropsOperator, B.XYZ, IsArmature):
+class DAZ_OT_RotateBones(DazPropsOperator, IsArmature):
     bl_idname = "daz.rotate_bones"
     bl_label = "Rotate Bones"
     bl_description = "Rotate selected bones the same angle"
     bl_options = {'UNDO'}
+
+    X : FloatProperty(name = "X")
+    Y : FloatProperty(name = "Y")
+    Z : FloatProperty(name = "Z")
 
     def draw(self, context):
         self.layout.prop(self, "X")
@@ -680,8 +682,6 @@ class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits):
 #   Simple IK
 #-------------------------------------------------------------
 
-from bpy.props import BoolProperty, FloatProperty, StringProperty
-
 class SimpleIK:
     def __init__(self, usePoleTargets=False):
         self.usePoleTargets = usePoleTargets
@@ -796,11 +796,16 @@ class SimpleIK:
 #   Add Simple IK
 #-------------------------------------------------------------
 
-class DAZ_OT_AddSimpleIK(DazPropsOperator, B.PoleTargets):
+class DAZ_OT_AddSimpleIK(DazPropsOperator):
     bl_idname = "daz.add_simple_ik"
     bl_label = "Add Simple IK"
     bl_description = "Add Simple IK constraints to the active rig"
     bl_options = {'UNDO'}
+
+    usePoleTargets : BoolProperty(
+        name = "Pole Targets",
+        description = "Add pole targets to the IK chains.\nPoses will not be loaded correctly.",
+        default = False)
 
     @classmethod
     def poll(self, context):
@@ -947,11 +952,33 @@ def driveConstraint(pb, type, rig, prop, expr):
 #   Connect bones in IK chains
 #----------------------------------------------------------
 
-class DAZ_OT_ConnectIKChains(DazPropsOperator, SimpleIK, B.ConnectIK, IsArmature):
+class DAZ_OT_ConnectIKChains(DazPropsOperator, SimpleIK, IsArmature):
     bl_idname = "daz.connect_ik_chains"
     bl_label = "Connect IK Chains"
     bl_description = "Connect all bones in IK chains to their parents"
     bl_options = {'UNDO'}
+
+    type : EnumProperty(
+        items = [('ARMS', "Arms Only", "Connect arms only"),
+                 ('LEGS', "Legs Only", "Connect legs only"),
+                 ('ARMSLEGS', "Arms And Legs", "Connect both arms and legs"),
+                 ('SELECTED', "Selected", "Connect selected bones")],
+        name = "Chain Types",
+        description = "Connect the specified types of chains",
+        default = 'ARMSLEGS')
+
+    unlock : BoolProperty(
+        name = "Unlock Last Bone",
+        description = "Remove location locks of the last bone in each chain for use as Auto IK target",
+        default = True)
+
+    location : EnumProperty(
+        items = [('HEAD', "Child Head", "Connect at the head of the child bone"),
+                 ('TAIL', "Parent Tail", "Connect at the tail of the parent bone"),
+                 ('CENTER', "Center", "Connect at the midpoint between the parent tail and child head")],
+        name = "Location",
+        description = "Where to connect parent and child bones",
+        default = 'HEAD')
 
     def draw(self, context):
         self.layout.prop(self, "type")
@@ -1313,11 +1340,14 @@ def snapSimpleFK(rig, bnames, prop):
         pb.matrix = mat
 
 
-class DAZ_OT_SnapSimpleFK(DazOperator, SimpleIK, B.PrefixString, B.TypeString):
+class DAZ_OT_SnapSimpleFK(DazOperator, SimpleIK):
     bl_idname = "daz.snap_simple_fk"
     bl_label = "Snap FK"
     bl_description = "Snap FK bones to IK bones"
     bl_options = {'UNDO'}
+
+    prefix : StringProperty()
+    type : StringProperty()
 
     def run(self, context):
         rig = context.object
@@ -1332,11 +1362,14 @@ class DAZ_OT_SnapSimpleFK(DazOperator, SimpleIK, B.PrefixString, B.TypeString):
 #   IK Snap
 #----------------------------------------------------------
 
-class DAZ_OT_SnapSimpleIK(DazOperator, SimpleIK, B.PrefixString, B.TypeString):
+class DAZ_OT_SnapSimpleIK(DazOperator, SimpleIK):
     bl_idname = "daz.snap_simple_ik"
     bl_label = "Snap IK"
     bl_description = "Snap IK bones to FK bones"
     bl_options = {'UNDO'}
+
+    prefix : StringProperty()
+    type : StringProperty()
 
     def run(self, context):
         rig = context.object

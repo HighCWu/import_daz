@@ -27,7 +27,6 @@
 
 
 import bpy
-from bpy.props import *
 import math
 import os
 from mathutils import *
@@ -346,7 +345,117 @@ class HideOperator(DazOperator):
 #   AnimatorBase class
 #-------------------------------------------------------------
 
-class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B.ConvertOptions, PoseboneDriver, IsMeshArmature):
+class ConvertOptions:
+    convertPoses : BoolProperty(
+        name = "Convert Poses",
+        description = "Attempt to convert poses to the current rig.",
+        default = False)
+
+    srcCharacter : EnumProperty(
+        items = G.theRestPoseItems,
+        name = "Source Character",
+        description = "Character this file was made for",
+        default = "genesis_3_female")
+
+
+class AffectOptions:
+    affectBones : BoolProperty(
+        name = "Affect Bones",
+        description = "Animate bones.",
+        default = True)
+
+    affectDrivenBones : BoolProperty(
+        name = "Affect Driven Bones",
+        description = "Animate bones with a Drv parent",
+        default = True)
+
+    affectMorphs : BoolProperty(
+        name = "Affect Morphs",
+        description = "Animate morph properties.",
+        default = True)
+
+    affectObject : EnumProperty(
+        items = [('OBJECT', "Object", "Animate global object transformation"),
+                 ('MASTER', "Master Bone", "Object transformations affect master/root bone instead of object.\nOnly for MHX and Rigify"),
+                 ('NONE', "None", "Don't animate global object transformations"),
+                ],
+        name = "Affect Object",
+        description = "How to animate global object transformation",
+        default = 'OBJECT')
+
+    reportMissingMorphs : BoolProperty(
+        name = "Report Missing Morphs",
+        description = "Print a list of missing morphs.",
+        default = False)
+
+    affectSelectedOnly : BoolProperty(
+        name = "Selected Bones Only",
+        description = "Only animate selected bones.",
+        default = False)
+
+    ignoreLimits : BoolProperty(
+        name = "Ignore Limits",
+        description = "Set pose even if outside limit constraints",
+        default = True)
+
+    ignoreLocks : BoolProperty(
+        name = "Ignore Locks",
+        description = "Set pose even for locked bones",
+        default = False)
+
+
+class ActionOptions:
+    makeNewAction : BoolProperty(
+        name = "New Action",
+        description = "Unlink current action and make a new one",
+        default = True)
+
+    actionName : StringProperty(
+        name = "Action Name",
+        description = "Name of loaded action",
+        default = "Action")
+
+    fps : FloatProperty(
+        name = "Frame Rate",
+        description = "Animation FPS in Daz Studio",
+        default = 30)
+
+    integerFrames : BoolProperty(
+        name = "Integer Frames",
+        description = "Round all keyframes to intergers",
+        default = True)
+
+    atFrameOne : BoolProperty(
+        name = "Start At Frame 1",
+        description = "Always start actions at frame 1",
+        default = False)
+
+    firstFrame : IntProperty(
+        name = "First Frame",
+        description = "Start import with this frame",
+        default = 1)
+
+    lastFrame : IntProperty(
+        name = "Last Frame",
+        description = "Finish import with this frame",
+        default = 250)
+
+
+class PoseLibOptions:
+    makeNewPoseLib : BoolProperty(
+        name = "New Pose Library",
+        description = "Unlink current pose library and make a new one",
+        default = True)
+
+    poseLibName : StringProperty(
+        name = "Pose Library Name",
+        description = "Name of loaded pose library",
+        default = "PoseLib")
+
+
+class AnimatorBase(MultiFile, FrameConverter, AffectOptions, PoseboneDriver, IsMeshArmature):
+    filename_ext = ".duf"
+    filter_glob : StringProperty(default = G.theDazDefaults + G.theImagedDefaults, options={'HIDDEN'})
     lockMeshes = False
 
     def __init__(self):
@@ -1005,7 +1114,7 @@ class NodePose:
 #   Import Action
 #-------------------------------------------------------------
 
-class ActionBase(B.ActionOptions, AnimatorBase):
+class ActionBase(ActionOptions, AnimatorBase):
     verbose = False
     useAction = True
     usePoseLib = False
@@ -1049,7 +1158,7 @@ class DAZ_OT_ImportNodeAction(HideOperator, NodePose, ActionBase, StandardAnimat
 #   Import Poselib
 #-------------------------------------------------------------
 
-class PoselibBase(B.PoseLibOptions, AnimatorBase):
+class PoselibBase(PoseLibOptions, AnimatorBase):
     verbose = False
     useAction = False
     usePoseLib = True

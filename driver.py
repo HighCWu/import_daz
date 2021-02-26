@@ -27,7 +27,7 @@
 
 
 import bpy
-from bpy.props import *
+
 from .error import *
 from .utils import *
 

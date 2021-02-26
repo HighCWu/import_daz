@@ -37,7 +37,6 @@ Postprocessing of rigify rig
 import bpy
 import os
 from collections import OrderedDict
-from bpy.props import *
 from mathutils import Vector
 
 from .error import *
@@ -1162,11 +1161,37 @@ class Rigify:
 #  Buttons
 #-------------------------------------------------------------
 
-class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, B.Rigify, B.Meta):
+class Meta:
+    useAutoAlign : BoolProperty(
+        name = "Auto Align Hand/Foot",
+        description = "Auto align hand and foot (Rigify parameter)",
+        default = False
+    )
+
+    useCustomLayers : BoolProperty(
+        name = "Custom Layers",
+        description = "Display layers for face and custom bones.\nNot for Rigify legacy",
+        default = True
+    )
+
+    useKeepRig : BoolProperty(
+        name = "Keep DAZ Rig",
+        description = "Keep existing armature and meshes in a new collection",
+        default = False
+    )
+
+
+class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
     bl_idname = "daz.rigify_daz"
     bl_label = "Convert To Rigify"
     bl_description = "Convert active rig to rigify"
     bl_options = {'UNDO'}
+
+    deleteMeta : BoolProperty(
+        name = "Delete Metarig",
+        description = "Delete intermediate rig after Rigify",
+        default = False
+    )
 
     @classmethod
     def poll(self, context):
@@ -1195,7 +1220,7 @@ class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, B.Rigify, B.
         print("DAZ rig %s successfully rigified in %.3f seconds" % (rname, t2-t1))
 
 
-class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists, B.Meta):
+class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
     bl_idname = "daz.create_meta"
     bl_label = "Create Metarig"
     bl_description = "Create a metarig from the active rig"

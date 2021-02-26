@@ -27,7 +27,7 @@
 
 import sys
 import bpy
-from bpy.props import *
+
 from mathutils import Vector
 from math import floor
 from .error import *
@@ -35,6 +35,169 @@ from .utils import *
 from .material import WHITE, GREY, BLACK, isWhite, isBlack
 from .cycles import CyclesMaterial, CyclesTree
 from .morphing import Selector
+from .guess import ColorProp
+from .daz import EnumsHair
+
+#-------------------------------------------------------------
+#   Classes
+#-------------------------------------------------------------
+
+class ColorGroup(bpy.types.PropertyGroup):
+    color : FloatVectorProperty(
+        name = "Hair Color",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.2, 0.02, 0.01, 1)
+    )
+
+class HairOptions:
+    # Create
+
+    strandType : EnumProperty(
+        items = [('SHEET', "Sheet", "Sheets"),
+                 ('LINE', "Line", "Polylines"),
+                 ('TUBE', "Tube", "Tubes")],
+        name = "Strand Type",
+        description = "Mesh hair strand type",
+        default = 'SHEET')
+
+    strandOrientation : EnumProperty(
+        items = [('TOP', "Top-Down", "Top-Down"),
+                 ('BOTTOM', "Bottom-Up", "Bottom-Up"),
+                 ('LEFT', "Left-Right", "Left-Right"),
+                 ('RIGHT', "Right-Left", "Right-Left")],
+        name = "Strand Orientation",
+        default = 'TOP',
+        description = "How the strands are oriented in UV space"
+    )
+
+    keepMesh : BoolProperty(
+        name = "Keep Mesh Hair",
+        default = False,
+        description = "Keep (reconstruct) mesh hair after making particle hair"
+    )
+
+    removeOldHairs : BoolProperty(
+        name = "Remove Particle Hair",
+        default = False,
+        description = "Remove existing particle systems from this mesh"
+    )
+
+    sparsity : IntProperty(
+        name = "Sparsity",
+        min = 1,
+        max = 50,
+        default = 1,
+        description = "Only use every n:th hair"
+    )
+
+    size : IntProperty(
+        name = "Hair Length",
+        min = 3,
+        max = 100,
+        default = 20,
+        description = "Hair length"
+    )
+
+    resizeHair : BoolProperty(
+        name = "Resize Hair",
+        default = False,
+        description = "Resize hair afterwards"
+    )
+
+    resizeInBlocks : BoolProperty(
+        name = "Resize In Blocks",
+        default = False,
+        description = "Resize hair in blocks of ten afterwards"
+    )
+
+    # Settings
+
+    nViewChildren : IntProperty(
+        name = "Viewport Children",
+        description = "Number of hair children displayed in viewport",
+        min = 0,
+        default = 0)
+
+    nRenderChildren : IntProperty(
+        name = "Render Children",
+        description = "Number of hair children displayed in renders",
+        min = 0,
+        default = 0)
+
+    nViewStep : IntProperty(
+        name = "Viewport Steps",
+        description = "How many steps paths are drawn with (power of 2)",
+        min = 0,
+        default = 3)
+
+    nRenderStep : IntProperty(
+        name = "Render Steps",
+        description = "How many steps paths are rendered with (power of 2)",
+        min = 0,
+        default = 3)
+
+    strandShape : EnumProperty(
+        items = [('STANDARD', "Standard", "Standard strand shape"),
+                 ('ROOTS', "Fading Roots", "Root transparency (standard shape with fading roots)"),
+                 ('SHRINK', "Root And Tip Shrink", "Root and tip shrink.\n(Root and tip radii interchanged)")],
+        name = "Strand Shape",
+        description = "Strand shape",
+        default = 'STANDARD')
+
+    rootRadius : FloatProperty(
+        name = "Root radius (mm)",
+        description = "Strand diameter at the root",
+        min = 0,
+        default = 0.3)
+
+    tipRadius : FloatProperty(
+        name = "Tip radius (mm)",
+        description = "Strand diameter at the tip",
+        min = 0,
+        default = 0.3)
+
+    childRadius : FloatProperty(
+        name = "Child radius (mm)",
+        description = "Radius of children around parent",
+        min = 0,
+        default = 10)
+
+    # Materials
+
+    multiMaterials : BoolProperty(
+        name = "Multi Materials",
+        description = "Create separate particle systems for each material",
+        default = True)
+
+    keepMaterial : BoolProperty(
+        name = "Keep Material",
+        description = "Use existing material",
+        default = True)
+
+    activeMaterial : EnumProperty(
+        items = G.getActiveMaterial,
+        name = "Material",
+        description = "Material to use as hair material")
+
+    color : FloatVectorProperty(
+        name = "Hair Color",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.2, 0.02, 0.01, 1)
+    )
+
+    colors : CollectionProperty(type = ColorGroup)
+
+    hairMaterialMethod : EnumProperty(
+        items = EnumsHair,
+        name = "Hair Material Method",
+        description = "Type of hair material node tree",
+        default = 'HAIR_BSDF')
 
 #-------------------------------------------------------------
 #   Hair system class
@@ -365,7 +528,7 @@ class CombineHair:
 #   Make Hair
 #-------------------------------------------------------------
 
-class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, B.Hair):
+class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
     bl_idname = "daz.make_hair"
     bl_label = "Make Hair"
     bl_description = "Make particle hair from mesh hair"
@@ -1070,11 +1233,16 @@ class HairUpdater:
                 pass
 
 
-class DAZ_OT_UpdateHair(DazPropsOperator, HairUpdater, B.AffectMaterial, IsHair):
+class DAZ_OT_UpdateHair(DazPropsOperator, HairUpdater, IsHair):
     bl_idname = "daz.update_hair"
     bl_label = "Update Hair"
     bl_description = "Change settings for particle hair"
     bl_options = {'UNDO'}
+
+    affectMaterial : BoolProperty(
+        name = "Affect Material",
+        description = "Also change materials",
+        default = False)
 
     def draw(self, context):
         self.layout.prop(self, "affectMaterial")
@@ -1095,7 +1263,7 @@ class DAZ_OT_UpdateHair(DazPropsOperator, HairUpdater, B.AffectMaterial, IsHair)
 #   Combine Hairs
 #------------------------------------------------------------------------
 
-class DAZ_OT_CombineHairs(DazOperator, CombineHair, HairUpdater, Selector, B.Hair):
+class DAZ_OT_CombineHairs(DazOperator, CombineHair, HairUpdater, Selector, HairOptions):
     bl_idname = "daz.combine_hairs"
     bl_label = "Combine Hairs"
     bl_description = "Combine several hair particle systems into a single one"
@@ -1176,7 +1344,7 @@ class DAZ_OT_CombineHairs(DazOperator, CombineHair, HairUpdater, Selector, B.Hai
 #   Color Hair
 #------------------------------------------------------------------------
 
-class DAZ_OT_ColorHair(DazPropsOperator, IsHair, B.ColorProp):
+class DAZ_OT_ColorHair(DazPropsOperator, IsHair, ColorProp):
     bl_idname = "daz.color_hair"
     bl_label = "Color Hair"
     bl_description = "Change particle hair color"
@@ -1654,7 +1822,44 @@ class HairEeveeTree(HairTree):
 #   Pinning
 # ---------------------------------------------------------------------
 
-class Pinning(B.Pinning):
+class Pinning:
+    pinningX0 : FloatProperty(
+        name = "Pin X0",
+        min = 0.0,
+        max = 1.0,
+        default = 0.25,
+        precision = 3,
+        description = ""
+    )
+
+    pinningX1 : FloatProperty(
+        name = "Pin X1",
+        min = 0.0,
+        max = 1.0,
+        default = 0.75,
+        precision = 3,
+        description = ""
+    )
+
+    pinningW0 : FloatProperty(
+        name = "Pin W0",
+        min = 0.0,
+        max = 1.0,
+        default = 1.0,
+        precision = 3,
+        description = ""
+    )
+
+    pinningW1 : FloatProperty(
+        name = "Pin W1",
+        min = 0.0,
+        max = 1.0,
+        default = 0.0,
+        precision = 3,
+        description = ""
+    )
+
+
     def pinCoeffs(self):
         x0 = self.pinningX0
         x1 = self.pinningX1
@@ -1712,7 +1917,7 @@ class DAZ_OT_HairAddPinning(DazPropsOperator, IsMesh, Pinning):
 # ---------------------------------------------------------------------
 
 classes = [
-    B.ColorGroup,
+    ColorGroup,
 
     DAZ_OT_MakeHair,
     DAZ_OT_CombineHairs,

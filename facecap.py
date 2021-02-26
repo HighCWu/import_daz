@@ -27,16 +27,17 @@
 
 
 import bpy
-from bpy.props import BoolProperty, FloatProperty, StringProperty
 from mathutils import Vector, Euler, Matrix
 from .error import *
 from .utils import *
+from .animation import ActionOptions
+from .fileutils import SingleFile, TextFile, CsvFile
 
 #------------------------------------------------------------------
 #   Generic FACS importer
 #------------------------------------------------------------------
 
-class FACSImporter(B.SingleFile, B.ActionOptions):
+class FACSImporter(SingleFile, ActionOptions):
 
     makeNewAction : BoolProperty(
         name = "New Action",
@@ -179,7 +180,7 @@ class FACSImporter(B.SingleFile, B.ActionOptions):
 #   FaceCap
 #------------------------------------------------------------------
 
-class ImportFaceCap(DazOperator, B.TextFile, IsMeshArmature, FACSImporter):
+class ImportFaceCap(DazOperator, TextFile, IsMeshArmature, FACSImporter):
     bl_idname = "daz.import_facecap"
     bl_label = "Import FaceCap File"
     bl_description = "Import a text file with facecap data"
@@ -283,7 +284,7 @@ class ImportFaceCap(DazOperator, B.TextFile, IsMeshArmature, FACSImporter):
 #   Unreal Live Link
 #------------------------------------------------------------------
 
-class ImportLiveLink(DazOperator, B.CsvFile, IsMeshArmature, FACSImporter):
+class ImportLiveLink(DazOperator, CsvFile, IsMeshArmature, FACSImporter):
     bl_idname = "daz.import_livelink"
     bl_label = "Import Live Link File"
     bl_description = "Import a csv file with Unreal's Live Link data"

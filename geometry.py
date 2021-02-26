@@ -35,6 +35,7 @@ from .channels import Channels
 from .utils import *
 from .error import *
 from .node import Node, Instance
+from .fileutils import SingleFile, DazFile
 
 #-------------------------------------------------------------
 #   Geonode
@@ -1156,7 +1157,7 @@ class DAZ_OT_UDimsFromTextures(DazOperator, IsMesh):
 #   Load UVs
 #-------------------------------------------------------------
 
-class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
+class DAZ_OT_LoadUV(DazOperator, DazFile, SingleFile, IsMesh):
     bl_idname = "daz.load_uv"
     bl_label = "Load UV Set"
     bl_description = "Load a UV set to the active mesh"
@@ -1202,11 +1203,18 @@ class DAZ_OT_LoadUV(DazOperator, B.DazFile, B.SingleFile, IsMesh):
 #   Prune vertex groups
 #----------------------------------------------------------
 
-class DAZ_OT_LimitVertexGroups(DazPropsOperator, IsMesh, B.LimitInt):
+class DAZ_OT_LimitVertexGroups(DazPropsOperator, IsMesh):
     bl_idname = "daz.limit_vertex_groups"
     bl_label = "Limit Vertex Groups"
     bl_description = "Limit the number of vertex groups per vertex"
     bl_options = {'UNDO'}
+
+    limit : IntProperty(
+        name = "Limit",
+        description = "Max number of vertex group per vertex",
+        default = 4,
+        min = 1, max = 10
+    )
 
     def draw(self, context):
         self.layout.prop(self, "limit")
@@ -1259,7 +1267,6 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    from bpy.props import CollectionProperty, IntProperty, BoolProperty, StringProperty
     bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = B.DazRigidityGroup)
     bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = B.DazPairGroup)
     bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)

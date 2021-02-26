@@ -27,9 +27,9 @@
 
 import bpy
 import os
-from bpy.props import *
+from bpy_extras.io_utils import ImportHelper, ExportHelper
 from .error import *
-from .utils import B
+from .utils import *
 
 #-------------------------------------------------------------
 #   Open and check for case change
@@ -161,10 +161,80 @@ def setSelection(files):
 clearSelection()
 
 #-------------------------------------------------------------
-#   Multifiles
+#   SingleFile and MultiFile
 #-------------------------------------------------------------
 
-class MultiFile(B.MultiFile):
+class DbzFile:
+    filename_ext = ".dbz"
+    filter_glob : StringProperty(default="*.dbz;*.json", options={'HIDDEN'})
+
+
+class JsonFile:
+    filename_ext = ".json"
+    filter_glob : StringProperty(default="*.json", options={'HIDDEN'})
+
+
+class JsonExportFile(ExportHelper):
+    filename_ext = ".json"
+    filter_glob : StringProperty(default="*.json", options={'HIDDEN'})
+    filepath : StringProperty(
+        name="File Path",
+        description="Filepath used for exporting the .json file",
+        maxlen=1024,
+        default = "")
+
+
+class ImageFile:
+    filename_ext = ".png;.jpeg;.jpg;.bmp;.tif;.tiff"
+    filter_glob : StringProperty(default="*.png;*.jpeg;*.jpg;*.bmp;*.tif;*.tiff", options={'HIDDEN'})
+
+
+class DazImageFile:
+    filename_ext = ".duf"
+    filter_glob : StringProperty(default="*.duf;*.dsf;*.png;*.jpeg;*.jpg;*.bmp", options={'HIDDEN'})
+
+
+class DazFile:
+    filename_ext = ".dsf;.duf;*.dbz"
+    filter_glob : StringProperty(default="*.dsf;*.duf;*.dbz", options={'HIDDEN'})
+
+
+class DatFile:
+    filename_ext = ".dat"
+    filter_glob : StringProperty(default="*.dat", options={'HIDDEN'})
+
+
+class TextFile:
+    filename_ext = ".txt"
+    filter_glob : StringProperty(default="*.txt", options={'HIDDEN'})
+
+
+class CsvFile:
+    filename_ext = ".csv"
+    filter_glob : StringProperty(default="*.csv", options={'HIDDEN'})
+
+#-------------------------------------------------------------
+#   File extensions
+#-------------------------------------------------------------
+
+class SingleFile(ImportHelper):
+    filepath : StringProperty(
+        name="File Path",
+        description="Filepath used for importing the file",
+        maxlen=1024,
+        default="")
+
+
+class MultiFile(ImportHelper):
+    files : CollectionProperty(
+            name = "File Path",
+            type = bpy.types.OperatorFileListElement,
+            )
+
+    directory : StringProperty(
+            subtype='DIR_PATH',
+            )
+
     def invoke(self, context, event):
         clearSelection()
         context.window_manager.fileselect_add(self)

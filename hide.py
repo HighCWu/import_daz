@@ -31,6 +31,7 @@ from bpy.props import *
 #from .drivers import *
 from .utils import *
 from .error import *
+from .proxy import Offset
 
 
 def getMaskName(string):
@@ -93,11 +94,28 @@ class MeshSelection:
 #    Setup: Add and remove hide drivers
 #------------------------------------------------------------------------
 
-class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, B.SingleGroup, B.UseCollectionsBool, IsArmature):
+class SingleGroup:
+    singleGroup : BoolProperty(
+        name = "Single Group",
+        description = "Treat all selected meshes as a single group",
+        default = False)
+
+    groupName : StringProperty(
+        name = "Group Name",
+        description = "Name of the single group",
+        default = "All")
+
+
+class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, SingleGroup, IsArmature):
     bl_idname = "daz.add_visibility_drivers"
     bl_label = "Add Visibility Drivers"
     bl_description = "Control visibility with rig property. For file linking."
     bl_options = {'UNDO'}
+
+    useCollections : BoolProperty(
+        name = "Add Collections",
+        description = "Move selected meshes to new collections",
+        default = True)
 
     def draw(self, context):
         self.layout.prop(self, "singleGroup")
@@ -246,6 +264,8 @@ class DAZ_OT_RemoveVisibility(DazOperator):
 #------------------------------------------------------------------------
 
 class SetAllVisibility:
+    prefix : StringProperty()
+
     def run(self, context):
         from .morphing import autoKeyProp, getRigFromObject
         from .driver import updateAll
@@ -261,7 +281,7 @@ class SetAllVisibility:
         updateDrivers(rig)
 
 
-class DAZ_OT_ShowAllVis(DazOperator, SetAllVisibility, B.PrefixString):
+class DAZ_OT_ShowAllVis(DazOperator, SetAllVisibility):
     bl_idname = "daz.show_all_vis"
     bl_label = "Show All"
     bl_description = "Show all meshes/makeup of this rig"
@@ -269,7 +289,7 @@ class DAZ_OT_ShowAllVis(DazOperator, SetAllVisibility, B.PrefixString):
     on = True
 
 
-class DAZ_OT_HideAllVis(DazOperator, SetAllVisibility, B.PrefixString):
+class DAZ_OT_HideAllVis(DazOperator, SetAllVisibility):
     bl_idname = "daz.hide_all_vis"
     bl_label = "Hide All"
     bl_description = "Hide all meshes/makeup of this rig"
@@ -277,10 +297,12 @@ class DAZ_OT_HideAllVis(DazOperator, SetAllVisibility, B.PrefixString):
     on = False
 
 
-class DAZ_OT_ToggleVis(DazOperator, IsMeshArmature, B.NameString):
+class DAZ_OT_ToggleVis(DazOperator, IsMeshArmature):
     bl_idname = "daz.toggle_vis"
     bl_label = "Toggle Vis"
     bl_description = "Toggle visibility of this mesh"
+
+    name : StringProperty()
 
     def run(self, context):
         from .morphing import getRigFromObject, autoKeyProp
@@ -295,7 +317,7 @@ class DAZ_OT_ToggleVis(DazOperator, IsMeshArmature, B.NameString):
 #   Mask modifiers
 #------------------------------------------------------------------------
 
-class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, MeshSelection, B.SingleGroup):
+class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, MeshSelection, SingleGroup):
     bl_idname = "daz.create_masks"
     bl_label = "Create Masks"
     bl_description = "Create vertex groups and mask modifiers in active mesh for selected meshes"
@@ -345,7 +367,7 @@ class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, MeshSelection, B.SingleGroup)
 #   Shrinkwrap
 #------------------------------------------------------------------------
 
-class DAZ_OT_AddShrinkwrap(DazPropsOperator, MeshSelection, IsMesh, B.Offset):
+class DAZ_OT_AddShrinkwrap(DazPropsOperator, MeshSelection, IsMesh):
     bl_idname = "daz.add_shrinkwrap"
     bl_label = "Add Shrinkwrap"
     bl_description = "Add a shrinkwrap modifier covering the active mesh"

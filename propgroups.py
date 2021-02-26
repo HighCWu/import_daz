@@ -29,11 +29,21 @@ import bpy
 from .utils import *
 from .error import *
 
+
 #-------------------------------------------------------------
 #   Property groups, for drivers
 #-------------------------------------------------------------
 
-class DazMorphGroup(bpy.types.PropertyGroup, B.DazMorphGroupProps):
+class DazMorphGroupProps:
+    prop : StringProperty()
+    factor : FloatProperty()
+    factor2 : FloatProperty()
+    index : IntProperty()
+    default : FloatProperty()
+    simple : BoolProperty(default=True)
+
+
+class DazMorphGroup(bpy.types.PropertyGroup, DazMorphGroupProps):
     def __repr__(self):
         return "<MorphGroup %d %s %f %f>" % (self.index, self.prop, self.factor, self.default)
 
@@ -320,7 +330,6 @@ classes = [
     ]
 
 def initialize():
-    from bpy.props import CollectionProperty
     for cls in classes:
         bpy.utils.register_class(cls)
 

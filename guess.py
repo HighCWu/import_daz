@@ -183,7 +183,17 @@ def hasDiffuseTexture(mat, method, enforce):
 #   Change colors
 #-------------------------------------------------------------
 
-class ColorChanger(B.ColorProp):
+class ColorProp:
+    color : FloatVectorProperty(
+        name = "Color",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.1, 0.1, 0.5, 1)
+    )
+
+class ColorChanger(ColorProp):
     def draw(self, context):
         self.layout.prop(self, "color")
 

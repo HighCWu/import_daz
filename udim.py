@@ -27,11 +27,9 @@
 
 import bpy
 import os
-from bpy.props import *
 from .error import *
 from .utils import *
-from .fileutils import MultiFile
-
+from .fileutils import MultiFile, ImageFile
 
 class DazUdimGroup(bpy.types.PropertyGroup):
     name : StringProperty()
@@ -692,7 +690,7 @@ class DAZ_OT_LoadMaps(DazPropsOperator, MapOperator, AddMap):
 #   Add extra normal maps
 #----------------------------------------------------------
 
-class DAZ_OT_AddNormalMaps(DazOperator, AddMap, B.ImageFile, MultiFile, IsMesh):
+class DAZ_OT_AddNormalMaps(DazOperator, AddMap, ImageFile, MultiFile, IsMesh):
     bl_idname = "daz.add_normal_maps"
     bl_label = "Add Normal Maps"
     bl_description = "Load normal maps for the active material"

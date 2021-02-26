@@ -28,13 +28,13 @@
 
 import os
 import bpy
-from bpy.props import *
+
 from bpy_extras.io_utils import ImportHelper
 from mathutils import Vector
 from .error import *
 from .utils import *
 from . import utils
-from .fileutils import MultiFile
+from .fileutils import SingleFile, MultiFile, DazImageFile, DatFile
 
 #-------------------------------------------------------------
 #   Morph sets
@@ -172,6 +172,45 @@ def getMorphs(ob, morphset, category=None, activeOnly=False):
     return mdict
 
 #-------------------------------------------------------------
+#   Classes
+#-------------------------------------------------------------
+
+class MorphsetString:
+    morphset : StringProperty(default = "")
+    category : StringProperty(default = "")
+    prefix : StringProperty(default = "")
+
+
+class CategoryString:
+    category : StringProperty(
+        name = "Category",
+        description = "Add morphs to this category of custom morphs",
+        default = "Shapes"
+        )
+
+class CustomEnums:
+    custom : EnumProperty(
+        items = G.getActiveCategories,
+        name = "Category")
+
+class DeleteShapekeysBool:
+    deleteShapekeys : BoolProperty(
+        name = "Delete Shapekeys",
+        description = "Delete both drivers and shapekeys",
+        default = True
+    )
+
+
+class DazSelectGroup(bpy.types.PropertyGroup):
+    text : StringProperty()
+    category : StringProperty()
+    index : IntProperty()
+    select : BoolProperty()
+
+    def __lt__(self, other):
+        return (self.text < other.text)
+
+#-------------------------------------------------------------
 #   Morph selector
 #-------------------------------------------------------------
 
@@ -204,7 +243,15 @@ class DAZ_OT_SelectNone(bpy.types.Operator):
         return {'PASS_THROUGH'}
 
 
-class Selector(B.Selection):
+class Selector():
+    selection : CollectionProperty(type = DazSelectGroup)
+
+    filter : StringProperty(
+        name = "Filter",
+        description = "Show only items containing this string",
+        default = ""
+        )
+
     defaultSelect = False
     columnWidth = 180
     ncols = 6
@@ -310,7 +357,10 @@ class Selector(B.Selection):
         return self.invokeDialog(context)
 
 
-class StandardSelector(Selector, B.StandardAllEnums):
+class StandardSelector(Selector):
+    morphset : EnumProperty(
+        items = G.getMorphEnums,
+        name = "Type")
 
     allSets = theStandardMorphSets
 
@@ -342,7 +392,7 @@ class StandardSelector(Selector, B.StandardAllEnums):
         return Selector.invoke(self, context, event)
 
 
-class CustomSelector(Selector, B.CustomEnums):
+class CustomSelector(Selector, CustomEnums):
 
     def selectCondition(self, item):
         return (self.custom == "All" or item.category == self.custom)
@@ -487,11 +537,14 @@ class DAZ_OT_Update(DazOperator):
         setupMorphPaths(context.scene, True)
 
 
-class DAZ_OT_SelectAllMorphs(DazOperator, B.TypeString, B.ValueBool):
+class DAZ_OT_SelectAllMorphs(DazOperator):
     bl_idname = "daz.select_all_morphs"
     bl_label = "Select All"
     bl_description = "Select/Deselect all morphs in this section"
     bl_options = {'UNDO'}
+
+    type : StringProperty()
+    value : BoolProperty()
 
     def run(self, context):
         scn = context.scene
@@ -1096,13 +1149,47 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, B.DazImageFile, MultiFile, B.CustomOptions, IsMeshArmature):
+class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile, IsMeshArmature):
     bl_idname = "daz.import_custom_morphs"
     bl_label = "Import Custom Morphs"
     bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
 
     morphset = "Custom"
+
+    catname : StringProperty(
+        name = "Category",
+        default = "Shapes")
+
+    driverType : EnumProperty(
+        items = [
+            ('SLIDER', "Slider", "Morphs driven by sliders (rig properties)"),
+            ('JCM', "JCM", "Corrective morphs driven by bone rotations"),
+            ('EITHER', "Either", "Morphs driven by either bone rotations or otherwise by sliders"),
+            ('BOTH', "Both",  "Morphs driven by both bone rotations and rig properties"),
+            ('NONE', "None", "No drivers for shapekeys")],
+        name = "Driver Type",
+        description = "Preferred driver type",
+        default = 'SLIDER')
+
+    useSkeysCats : BoolProperty(
+        name = "Add Shapekeys To Categories",
+        description = "Add imported shapekeys to a category",
+        default = False)
+
+    strength : FloatProperty(
+        name = "Strength",
+        description = "Multiply morphs with this value",
+        default = 1.0)
+
+    treatHD : EnumProperty(
+        items = [('ERROR', "Error", "Raise error"),
+                 ('CREATE', "Create Shapekey", "Create empty shapekeys"),
+                 ('ACTIVE', "Active Shapekey", "Drive active shapekey")],
+        name = "Treat HD Mismatch",
+        description = "How to deal with vertex count mismatch for HD morphs",
+        default = 'ERROR'
+    )
 
     def draw(self, context):
         self.layout.prop(self, "driverType")
@@ -1211,7 +1298,7 @@ def removeFromCategory(ob, props, catname):
 #   Rename category
 #------------------------------------------------------------------------
 
-class DAZ_OT_RenameCategory(DazPropsOperator, B.CustomEnums, B.CategoryString, IsMeshArmature):
+class DAZ_OT_RenameCategory(DazPropsOperator, CustomEnums, CategoryString, IsMeshArmature):
     bl_idname = "daz.rename_category"
     bl_label = "Rename Category"
     bl_description = "Rename selected category"
@@ -1259,7 +1346,7 @@ def removeFromPropGroup(pgs, prop):
         pgs.remove(n)
 
 
-class DAZ_OT_RemoveCategories(DazOperator, Selector, IsMeshArmature, B.DeleteShapekeysBool):
+class DAZ_OT_RemoveCategories(DazOperator, Selector, IsMeshArmature, DeleteShapekeysBool):
     bl_idname = "daz.remove_categories"
     bl_label = "Remove Categories"
     bl_description = "Remove selected categories and associated drivers"
@@ -1372,7 +1459,9 @@ def removeDrivingProps(rig, props):
 #   Select and unselect all
 #------------------------------------------------------------------------
 
-class Activator(B.MorphsetString, B.UseMesh):
+class Activator(MorphsetString):
+    useMesh : BoolProperty(default=False)
+
     def run(self, context):
         if self.useMesh:
             ob = context.object
@@ -1544,7 +1633,7 @@ def clearShapes(ob, category, scn, frame):
             autoKeyShape(skeys, morph, scn, frame)
 
 
-class DAZ_OT_ClearMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
+class DAZ_OT_ClearMorphs(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.clear_morphs"
     bl_label = "Clear Morphs"
     bl_description = "Set all morphs of specified type to zero"
@@ -1558,7 +1647,7 @@ class DAZ_OT_ClearMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
             updateDrivers(rig)
 
 
-class DAZ_OT_ClearShapes(DazOperator, B.MorphsetString, IsMesh):
+class DAZ_OT_ClearShapes(DazOperator, MorphsetString, IsMesh):
     bl_idname = "daz.clear_shapes"
     bl_label = "Clear Shapes"
     bl_description = "Set all shapekeys values of specified type to zero"
@@ -1569,11 +1658,13 @@ class DAZ_OT_ClearShapes(DazOperator, B.MorphsetString, IsMesh):
         clearShapes(context.object, self.category, scn, scn.frame_current)
 
 
-class DAZ_OT_UpdateMorphs(DazOperator, B.KeyString, B.MorphsetString, IsMeshArmature):
+class DAZ_OT_UpdateMorphs(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.update_morphs"
     bl_label = "Update Morphs For Version 1.5"
     bl_description = "Update morphs for the new morph system in version 1.5"
     bl_options = {'UNDO'}
+
+    key : StringProperty()
 
     morphsets = {"DzU" : "Units",
                  "DzE" : "Expressions",
@@ -1669,7 +1760,7 @@ def addKeySet(rig, morphset, scn, frame):
                 aks.paths.add(rig.id_data, path)
 
 
-class DAZ_OT_AddKeysets(DazOperator, B.MorphsetString, IsMeshArmature):
+class DAZ_OT_AddKeysets(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.add_keyset"
     bl_label = "Keyset"
     bl_description = "Add category morphs to active custom keying set, or make new one"
@@ -1686,7 +1777,7 @@ class DAZ_OT_AddKeysets(DazOperator, B.MorphsetString, IsMeshArmature):
 #   Set morph keys
 #------------------------------------------------------------------
 
-class DAZ_OT_KeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
+class DAZ_OT_KeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.key_morphs"
     bl_label = "Set Keys"
     bl_description = "Set keys for all morphs of specified type at current frame"
@@ -1720,7 +1811,7 @@ class DAZ_OT_KeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
                     keyProp(rig, key, frame)
 
 
-class DAZ_OT_KeyShapes(DazOperator, B.MorphsetString, IsMesh):
+class DAZ_OT_KeyShapes(DazOperator, MorphsetString, IsMesh):
     bl_idname = "daz.key_shapes"
     bl_label = "Set Keys"
     bl_description = "Set keys for all shapes of specified type at current frame"
@@ -1744,7 +1835,7 @@ class DAZ_OT_KeyShapes(DazOperator, B.MorphsetString, IsMesh):
 #   Remove morph keys
 #------------------------------------------------------------------
 
-class DAZ_OT_UnkeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
+class DAZ_OT_UnkeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.unkey_morphs"
     bl_label = "Remove Keys"
     bl_description = "Remove keys from all morphs of specified type at current frame"
@@ -1778,7 +1869,7 @@ class DAZ_OT_UnkeyMorphs(DazOperator, B.MorphsetString, IsMeshArmature):
                     unkeyProp(rig, key, frame)
 
 
-class DAZ_OT_UnkeyShapes(DazOperator, B.MorphsetString, IsMesh):
+class DAZ_OT_UnkeyShapes(DazOperator, MorphsetString, IsMesh):
     bl_idname = "daz.unkey_shapes"
     bl_label = "Remove Keys"
     bl_description = "Remove keys from all shapekeys of specified type at current frame"
@@ -1853,11 +1944,26 @@ class DAZ_OT_UpdatePropLimits(DazPropsOperator, IsMeshArmature):
 #   Remove all morph drivers
 #------------------------------------------------------------------
 
-class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, B.MorphSets, IsMeshArmature):
+class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, IsMeshArmature):
     bl_idname = "daz.remove_all_shapekey_drivers"
     bl_label = "Remove All Shapekey Drivers"
     bl_description = "Remove all shapekey drivers"
     bl_options = {'UNDO'}
+
+    useStandard : BoolProperty(
+        name = "Standard Morphs",
+        description = "Remove drivers to all standard morphs",
+        default = True)
+
+    useCustom : BoolProperty(
+        name = "Custom Morphs",
+        description = "Remove drivers to all custom morphs",
+        default = True)
+
+    useJCM : BoolProperty(
+        name = "JCMs",
+        description = "Remove drivers to all JCMs",
+        default = False)
 
     def draw(self, context):
         self.layout.prop(self, "useStandard")
@@ -1933,7 +2039,7 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, B.MorphSets, IsMeshArmat
 #   Remove specific morphs
 #-------------------------------------------------------------
 
-class MorphRemover(B.DeleteShapekeysBool):
+class MorphRemover(DeleteShapekeysBool):
     def run(self, context):
         rig = getRigFromObject(context.object)
         scn = context.scene
@@ -2112,11 +2218,16 @@ class AddRemoveDriver:
         return self.invokeDialog(context)
 
 
-class DAZ_OT_AddShapeToCategory(DazOperator, AddRemoveDriver, Selector, B.CustomEnums, B.CategoryString, IsMesh):
+class DAZ_OT_AddShapeToCategory(DazOperator, AddRemoveDriver, Selector, CustomEnums, CategoryString, IsMesh):
     bl_idname = "daz.add_shape_to_category"
     bl_label = "Add Shapekey To Category"
     bl_description = "Add selected shapekeys to mesh category"
     bl_options = {'UNDO'}
+
+    makenew : BoolProperty(
+        name = "New Category",
+        description = "Create a new category",
+        default = False)
 
     def draw(self, context):
         self.layout.prop(self, "makenew")
@@ -2149,7 +2260,7 @@ class DAZ_OT_AddShapeToCategory(DazOperator, AddRemoveDriver, Selector, B.Custom
         return ""
 
 
-class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, B.CategoryString, IsMesh):
+class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, CategoryString, IsMesh):
     bl_idname = "daz.add_shapekey_drivers"
     bl_label = "Add Shapekey Drivers"
     bl_description = "Add rig drivers to shapekeys"
@@ -2271,11 +2382,14 @@ def getRigFromObject(ob, useMesh=False):
         return ob
 
 
-class DAZ_OT_ToggleAllCats(DazOperator, B.UseOpenBool, B.UseMesh, IsMeshArmature):
+class DAZ_OT_ToggleAllCats(DazOperator, IsMeshArmature):
     bl_idname = "daz.toggle_all_cats"
     bl_label = "Toggle All Categories"
     bl_description = "Toggle all morph categories on and off"
     bl_options = {'UNDO'}
+
+    useMesh : BoolProperty(default=False)
+    useOpen : BoolProperty()
 
     def run(self, context):
         rig = getRigFromObject(context.object, self.useMesh)
@@ -2342,11 +2456,13 @@ def pinShape(ob, scn, key, category, frame):
         autoKeyShape(skeys, key, scn, frame)
 
 
-class DAZ_OT_PinProp(DazOperator, B.KeyString, B.MorphsetString, IsMeshArmature):
+class DAZ_OT_PinProp(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.pin_prop"
     bl_label = ""
     bl_description = "Pin property"
     bl_options = {'UNDO'}
+
+    key : StringProperty()
 
     def run(self, context):
         rig = getRigFromObject(context.object)
@@ -2356,11 +2472,13 @@ class DAZ_OT_PinProp(DazOperator, B.KeyString, B.MorphsetString, IsMeshArmature)
         updateDrivers(rig)
 
 
-class DAZ_OT_PinShape(DazOperator, B.KeyString, B.MorphsetString, IsMesh):
+class DAZ_OT_PinShape(DazOperator, MorphsetString, IsMesh):
     bl_idname = "daz.pin_shape"
     bl_label = ""
     bl_description = "Pin shapekey value"
     bl_options = {'UNDO'}
+
+    key : StringProperty()
 
     def run(self, context):
         ob = context.object
@@ -2371,7 +2489,7 @@ class DAZ_OT_PinShape(DazOperator, B.KeyString, B.MorphsetString, IsMesh):
 #   Load Moho
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LoadMoho(DazOperator, B.DatFile, B.SingleFile):
+class DAZ_OT_LoadMoho(DazOperator, DatFile, SingleFile):
     bl_idname = "daz.load_moho"
     bl_label = "Load Moho"
     bl_description = "Load Moho (.dat) file"
@@ -2549,7 +2667,7 @@ class DAZ_OT_MeshToShape(DazOperator, IsMesh):
 #-------------------------------------------------------------
 
 classes = [
-    B.DazSelectGroup,
+    DazSelectGroup,
     B.DazActiveGroup,
     B.DazCategory,
 
@@ -2625,7 +2743,7 @@ def initialize():
         name = "New Name",
         default = "Name")
 
-    bpy.types.Scene.DazSelector = CollectionProperty(type = B.DazSelectGroup)
+    bpy.types.Scene.DazSelector = CollectionProperty(type = DazSelectGroup)
     bpy.types.Object.DazPropNames = CollectionProperty(type = B.DazTextGroup)
 
 

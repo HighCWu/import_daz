@@ -27,7 +27,7 @@
 
 
 import bpy
-from bpy.props import *
+
 import math
 import os
 from mathutils import *
@@ -295,11 +295,29 @@ def applyBoneChildren(context, rig):
 
 from .fix import ConstraintStore, BendTwists, Fixer
 
-class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, B.MHX, IsArmature):
+class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, IsArmature):
     bl_idname = "daz.convert_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
     bl_options = {'UNDO'}
+
+    addTweakBones : BoolProperty(
+        name = "Tweak Bones",
+        description = "Add tweak bones",
+        default = True
+    )
+
+    useLegacy : BoolProperty(
+        name = "Legacy Bone Names",
+        description = "Use root/hips rather than hip/pelvis",
+        default = False
+    )
+
+    useKeepRig : BoolProperty(
+        name = "Keep DAZ Rig",
+        description = "Keep existing armature and meshes in a new collection",
+        default = False
+    )
 
     BendTwists = [
         ("thigh.L", "shin.L"),
@@ -1452,11 +1470,20 @@ def makeGizmos(gnames, parent, hidden):
 
 from .morphing import Selector
 
-class DAZ_OT_ConvertMhxActions(DazOperator, Selector, B.MHXConvertAction):
+class DAZ_OT_ConvertMhxActions(DazOperator, Selector):
     bl_idname = "daz.convert_mhx_actions"
     bl_label = "Convert MHX Actions"
     bl_description = "Convert actions between legacy MHX (root/hips) and modern MHX (hip/pelvis)"
     bl_options = {'UNDO'}
+
+    direction : EnumProperty(
+        items = [
+            ('MODERN', "Legacy => Modern", "Convert from legacy MHX (root/hips) to modern MHX (hip/pelvis)"),
+            ('LEGACY', "Modern => Legacy", "Convert from modern MHX (hip/pelvis) to legacy MHX (root/hips)"),
+        ],
+        name = "Direction",
+        default = 'MODERN'
+    )
 
     def draw(self, context):
         self.layout.prop(self, "direction")

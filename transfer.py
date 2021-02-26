@@ -102,10 +102,22 @@ class FastMatcher:
         self.match = (tris, w, offsets)
 
 #----------------------------------------------------------
+#   Threshold
+#----------------------------------------------------------
+
+class ThresholdFloat:
+    threshold : FloatProperty(
+        name = "Threshold",
+        description = "Minimum vertex weight to keep",
+        min = 0.0, max = 1.0,
+        precision = 4,
+        default = 1e-3)
+
+#----------------------------------------------------------
 #   Vertex group transfer
 #----------------------------------------------------------
 
-class DAZ_OT_TransferVertexGroups(DazPropsOperator, FastMatcher, IsMesh, B.ThresholdFloat):
+class DAZ_OT_TransferVertexGroups(DazPropsOperator, FastMatcher, IsMesh, ThresholdFloat):
     bl_idname = "daz.transfer_vertex_groups"
     bl_label = "Transfer Vertex Groups"
     bl_description = "Transfer vertex groups from active to selected"
@@ -161,7 +173,43 @@ class DAZ_OT_CopyVertexGroupsByNumber(DazOperator, IsMesh):
 #   Morphs transfer
 #----------------------------------------------------------
 
-class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
+class TransferOptions:
+    transferMethod : EnumProperty(
+        items = [('NEAREST', "Nearest Face", "Transfer morphs from nearest source face.\nUse to transfer shapekeys to clothes"),
+                 ('BODY', "Body", "Only transfer vertices as long as they match exactly.\nUse to transfer shapekeys from body to merged mesh"),
+                 ('GEOGRAFT', "Geograft", "Transfer morphs to nearest target vertex.\nUse to transfer shapekeys from geograft to merged mesh"),
+                 ('LEGACY', "Legacy", "Transfer using Blender's data transfer modifier.\nVery slow but works in general")],
+        name = "Transfer Method",
+        description = "Method used to transfer morphs",
+        default = 'NEAREST')
+
+    useDriver : BoolProperty(
+        name = "Use Driver",
+        description = "Transfer both shapekeys and drivers",
+        default = True)
+
+    useVendorMorphs : BoolProperty(
+        name = "Use Vendor Morphs",
+        description = "Use customized morphs provided by vendor,\notherwise always auto-transfer morphs",
+        default = True)
+
+    useOverwrite : BoolProperty(
+        name = "Overwrite Existing Shapekeys",
+        description = "Overwrite existing shapekeys or create new ones",
+        default = True)
+
+    useSelectedOnly : BoolProperty(
+        name = "Selected Verts Only",
+        description = "Only copy to selected vertices",
+        default = False)
+
+    ignoreRigidity : BoolProperty(
+        name = "Ignore Rigidity Groups",
+        description = "Ignore rigidity groups when auto-transfer morphs.\nMorphs may differ from DAZ Studio.",
+        default = False)
+
+
+class MorphTransferer(Selector, FastMatcher, TransferOptions):
     @classmethod
     def poll(self, context):
         ob = context.object
@@ -609,11 +657,63 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
 #   Mix Shapekeys
 #----------------------------------------------------------
 
-class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
+class DAZ_OT_MixShapekeys(DazOperator):
     bl_idname = "daz.mix_shapekeys"
     bl_label = "Mix Shapekeys"
     bl_description = "Mix shapekeys"
     bl_options = {'UNDO'}
+
+    shape1 : EnumProperty(
+        items = G.shapekeyItems1,
+        name = "Shapekey 1",
+        description = "First shapekey")
+
+    shape2 : EnumProperty(
+        items = G.shapekeyItems2,
+        name = "Shapekey 2",
+        description = "Second shapekey")
+
+    factor1 : FloatProperty(
+        name = "Factor 1",
+        description = "First factor",
+        default = 1.0)
+
+    factor2 : FloatProperty(
+        name = "Factor 2",
+        description = "Second factor",
+        default = 1.0)
+
+    allSimilar : BoolProperty(
+        name = "Mix All Similar",
+        description = "Mix all shapekeys with similar names",
+        default = False)
+
+    overwrite : BoolProperty(
+        name = "Overwrite First",
+        description = "Overwrite the first shapekey",
+        default = True)
+
+    delete : BoolProperty(
+        name = "Delete Merged",
+        description = "Delete unused shapekeys after merge",
+        default = True)
+
+    newName : StringProperty(
+        name = "New shapekey",
+        description = "Name of new shapekey",
+        default = "Shapekey")
+
+    filter1 : StringProperty(
+        name = "Filter 1",
+        description = "Show only items containing this string",
+        default = ""
+        )
+
+    filter2 : StringProperty(
+        name = "Filter 2",
+        description = "Show only items containing this string",
+        default = ""
+        )
 
     @classmethod
     def poll(self, context):
@@ -735,7 +835,7 @@ def findVertexGroups(ob):
     return vnames,weights
 
 
-class DAZ_OT_PruneVertexGroups(DazPropsOperator, B.ThresholdFloat, IsMesh):
+class DAZ_OT_PruneVertexGroups(DazPropsOperator, ThresholdFloat, IsMesh):
     bl_idname = "daz.prune_vertex_groups"
     bl_label = "Prune Vertex Groups"
     bl_description = "Remove vertices and groups with weights below threshold"

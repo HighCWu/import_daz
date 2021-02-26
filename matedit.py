@@ -28,11 +28,12 @@
 
 import bpy
 import os
-from bpy.props import *
+
 from .error import *
 from .utils import *
 from .material import WHITE, isWhite
 from collections import OrderedDict
+from .fileutils import SingleFile, ImageFile
 
 # ---------------------------------------------------------------------
 #   material.py
@@ -146,6 +147,38 @@ TweakableChannels = OrderedDict([
 # ---------------------------------------------------------------------
 #   Mini material editor
 # ---------------------------------------------------------------------
+
+class EditSlotGroup(bpy.types.PropertyGroup):
+    ncomps : IntProperty(default = 0)
+
+    color : FloatVectorProperty(
+        name = "Color",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (1,1,1,1)
+    )
+
+    vector : FloatVectorProperty(
+        name = "Vector",
+        size = 3,
+        min = 0.0,
+        max = 1.0,
+        default = (0,0,0)
+    )
+
+    number : FloatProperty(default = 0.0, precision=4)
+    new : BoolProperty()
+
+
+class ShowGroup(bpy.types.PropertyGroup):
+    show : BoolProperty(default = False)
+
+
+class LaunchEditor:
+    shows : CollectionProperty(type = ShowGroup)
+
 
 def printItem(string, item):
     print(string, "<Factor %s %.4f (%.4f %.4f %.4f %.4f) %s>" % (item.key, item.value, item.color[0], item.color[1], item.color[2], item.color[3], item.new))
@@ -379,7 +412,7 @@ class DAZ_OT_ChangeTweakType(bpy.types.Operator, ChannelSetter):
 #   Launch button
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, B.LaunchEditor, IsMesh):
+class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, LaunchEditor, IsMesh):
     bl_idname = "daz.launch_editor"
     bl_label = "Launch Material Editor"
     bl_description = "Edit materials of selected meshes"
@@ -504,7 +537,7 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, B.LaunchEditor, IsMes
 #   Make Decal
 # ---------------------------------------------------------------------
 
-class DAZ_OT_MakeDecal(DazOperator, B.ImageFile, B.SingleFile, B.LaunchEditor, IsMesh):
+class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh):
     bl_idname = "daz.make_decal"
     bl_label = "Make Decal"
     bl_description = "Add a decal to the active material"
@@ -536,7 +569,7 @@ class DAZ_OT_MakeDecal(DazOperator, B.ImageFile, B.SingleFile, B.LaunchEditor, I
                 item = self.shows.add()
                 item.name = key
                 item.show = False
-        return B.SingleFile.invoke(self, context, event)
+        return SingleFile.invoke(self, context, event)
 
 
     def run(self, context):
@@ -791,8 +824,8 @@ class DAZ_OT_ReplaceShells(DazPropsOperator, ShellRemover, IsMesh):
 #----------------------------------------------------------
 
 classes = [
-    B.EditSlotGroup,
-    B.ShowGroup,
+    EditSlotGroup,
+    ShowGroup,
     DAZ_OT_LaunchEditor,
     DAZ_OT_ChangeTweakType,
     DAZ_OT_ResetMaterial,
@@ -806,8 +839,8 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.types.Material.DazSlots = CollectionProperty(type = B.EditSlotGroup)
-    bpy.types.Object.DazSlots = CollectionProperty(type = B.EditSlotGroup)
+    bpy.types.Material.DazSlots = CollectionProperty(type = EditSlotGroup)
+    bpy.types.Object.DazSlots = CollectionProperty(type = EditSlotGroup)
     bpy.types.Object.DazAffectedMaterials = CollectionProperty(type = B.DazActiveGroup)
     bpy.types.Scene.DazFloats = CollectionProperty(type = B.DazFloatGroup)
 

@@ -494,11 +494,31 @@ class BendTwists:
 #   Add IK goals
 #-------------------------------------------------------------
 
-class DAZ_OT_AddIkGoals(DazPropsOperator, B.AddIkGoals, IsArmature):
+class DAZ_OT_AddIkGoals(DazPropsOperator, IsArmature):
     bl_idname = "daz.add_ik_goals"
     bl_label = "Add IK goals"
     bl_description = "Add IK goals"
     bl_options = {'UNDO'}
+
+    usePoleTargets : BoolProperty(
+        name = "Pole Targets",
+        description = "Add pole targets to the IK chains",
+        default = False)
+
+    hideBones : BoolProperty(
+        name = "Hide Bones",
+        description = "Hide all bones in the IK chains",
+        default = False)
+
+    lockBones : BoolProperty(
+        name = "Lock Bones",
+        description = "Lock all bones in the IK chains",
+        default = False)
+
+    disableBones : BoolProperty(
+        name = "Disable Bones",
+        description = "Disable all bones in the IK chains",
+        default = False)
 
     def draw(self, context):
         self.layout.prop(self, "usePoleTargets")
@@ -662,11 +682,13 @@ class DAZ_OT_AddWinder(DazOperator, IsArmature):
 #   Add To Group
 #-------------------------------------------------------------
 
-class DAZ_OT_AddToGroup(DazPropsOperator, B.NameString):
+class DAZ_OT_AddToGroup(DazPropsOperator):
     bl_idname = "daz.add_to_group"
     bl_label = "Add To Group"
     bl_description = "Add all selected objects to group"
     bl_options = {'UNDO'}
+
+    name : StringProperty()
 
     def draw(self, context):
         self.layout.prop(self, "name", text="Group")
@@ -684,11 +706,13 @@ class DAZ_OT_AddToGroup(DazPropsOperator, B.NameString):
 #   Remove from groups
 #-------------------------------------------------------------
 
-class DAZ_OT_RemoveFromGroups(DazPropsOperator, B.NameString):
+class DAZ_OT_RemoveFromGroups(DazPropsOperator):
     bl_idname = "daz.remove_from_groups"
     bl_label = "Remove From Group(s)"
     bl_description = "Remove selected objects from group (or all groups if none given)"
     bl_options = {'UNDO'}
+
+    name : StringProperty()
 
     def draw(self, context):
         self.layout.prop(self, "name", text="Group")

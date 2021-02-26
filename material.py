@@ -27,7 +27,7 @@
 
 
 import bpy
-from bpy.props import *
+
 import os
 import copy
 import math
@@ -37,7 +37,7 @@ from .asset import Asset
 from .channels import Channels
 from .utils import *
 from .error import *
-from .fileutils import MultiFile
+from .fileutils import MultiFile, ImageFile
 from mathutils import Vector, Matrix
 
 WHITE = Vector((1.0,1.0,1.0))
@@ -862,11 +862,16 @@ def isBlack(color):
 #   Save local textures
 #-------------------------------------------------------------
 
-class DAZ_OT_SaveLocalTextures(DazPropsOperator, B.KeepDirsBool):
+class DAZ_OT_SaveLocalTextures(DazPropsOperator):
     bl_idname = "daz.save_local_textures"
     bl_label = "Save Local Textures"
     bl_description = "Copy textures to the textures subfolder in the blend file's directory"
     bl_options = {'UNDO'}
+
+    keepdirs : BoolProperty(
+        name = "Keep Directories",
+        description = "Keep the directory tree from Daz Studio, otherwise flatten the directory structure",
+        default = True)
 
     @classmethod
     def poll(self, context):
@@ -1192,11 +1197,21 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
 #   Copy materials
 # ---------------------------------------------------------------------
 
-class DAZ_OT_CopyMaterials(DazPropsOperator, IsMesh, B.CopyMaterials):
+class DAZ_OT_CopyMaterials(DazPropsOperator, IsMesh):
     bl_idname = "daz.copy_materials"
     bl_label = "Copy Materials"
     bl_description = "Copy materials from active mesh to selected meshes"
     bl_options = {'UNDO'}
+
+    useMatchNames : BoolProperty(
+        name = "Match Names",
+        description = "Match materials based on names rather than material number",
+        default = False)
+
+    errorMismatch : BoolProperty(
+        name = "Error On Mismatch",
+        description = "Raise an error if the number of source and target materials are different",
+        default = True)
 
     def draw(self, context):
         self.layout.prop(self, "useMatchNames")
@@ -1261,7 +1276,23 @@ class DAZ_OT_CopyMaterials(DazPropsOperator, IsMesh, B.CopyMaterials):
 #   Resize textures
 # ---------------------------------------------------------------------
 
-class ChangeResolution(B.ResizeOptions):
+class ChangeResolution():
+    steps : IntProperty(
+        name = "Steps",
+        description = "Resize original images with this number of steps",
+        min = 0, max = 8,
+        default = 2)
+
+    resizeAll : BoolProperty(
+        name = "Resize All",
+        description = "Resize all textures of the selected meshes",
+        default = True)
+
+    overwrite : BoolProperty(
+        name = "Overwrite Files",
+        description = "Overwrite the original image files.",
+        default = False)
+
     def __init__(self):
         self.filenames = []
         self.images = {}
@@ -1433,7 +1464,7 @@ class DAZ_OT_ChangeResolution(DazOperator, ChangeResolution):
         self.replaceTextures(context)
 
 
-class DAZ_OT_ResizeTextures(DazOperator, B.ImageFile, MultiFile, ChangeResolution):
+class DAZ_OT_ResizeTextures(DazOperator, ImageFile, MultiFile, ChangeResolution):
     bl_idname = "daz.resize_textures"
     bl_label = "Resize Textures"
     bl_description = (

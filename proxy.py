@@ -877,11 +877,17 @@ class MakeProxy(IsMesh):
             raise DazError(msg)
 
 
-class DAZ_OT_MakeQuickProxy(MakeProxy, DazPropsOperator, B.IterationsInt):
+class DAZ_OT_MakeQuickProxy(MakeProxy, DazPropsOperator):
     bl_idname = "daz.make_quick_proxy"
     bl_label = "Make Quick Low-poly"
     bl_description = "Replace all selected meshes by low-poly versions, using a quick algorithm that does not preserve UV seams"
     bl_options = {'UNDO'}
+
+    iterations : IntProperty(
+        name = "Iterations",
+        description = "Number of iterations when ",
+        min = 0, max = 10,
+        default = 2)
 
     def makeProxy(self, ob, context, errors):
         scn = context.scene
@@ -1047,12 +1053,19 @@ class DAZ_OT_FindSeams(DazOperator, IsMesh):
 #   Select random strands
 #-------------------------------------------------------------
 
-class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
+class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh):
     bl_idname = "daz.select_random_strands"
     bl_label = "Select Random Strands"
     bl_description = ("Select random subset of strands selected in UV space.\n" +
                       "Useful for reducing the number of strands before making particle hair")
     bl_options = {'UNDO'}
+
+    fraction : FloatProperty(
+        name = "Fraction",
+        description = "Fraction of strands to select",
+        min = 0.0, max = 1.0,
+        default = 0.5)
+
 
     def draw(self, context):
         self.layout.prop(self, "fraction")
@@ -1077,11 +1090,17 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh, B.FractionFloat):
 #   Select strands by width
 #-------------------------------------------------------------
 
-class DAZ_OT_SelectStrandsByWidth(DazPropsOperator, IsMesh, B.WidthFloat):
+class DAZ_OT_SelectStrandsByWidth(DazPropsOperator, IsMesh):
     bl_idname = "daz.select_strands_by_width"
     bl_label = "Select Strands By Width"
     bl_description = "Select strands no wider than threshold"
     bl_options = {'UNDO'}
+
+    width : FloatProperty(
+        name = "Width",
+        description = "Max allowed width (mm)",
+        min = 0.1, max = 10,
+        default = 1.0)
 
     def draw(self, context):
         self.layout.prop(self, "width")
@@ -1450,11 +1469,30 @@ def addMannequin(ob, context, rig, coll, mangrp, headType):
     return nobs
 
 
-class DAZ_OT_AddMannequin(DazPropsOperator, IsMesh, B.Mannequin):
+class DAZ_OT_AddMannequin(DazPropsOperator, IsMesh):
     bl_idname = "daz.add_mannequin"
     bl_label = "Add Mannequins"
     bl_description = "Add mannequins to selected meshes. Don't change rig after this."
     bl_options = {'UNDO'}
+
+    headType : EnumProperty(
+        items = [('SOLID', "Solid", "Solid head"),
+                 ('JAW', "Jaw", "Head with jaws and eyes"),
+                 ('FULL', "Full", "Head with all face bones"),
+                 ],
+        name = "Head Type",
+        description = "How to make the mannequin head",
+        default = 'JAW')
+
+    useGroup : BoolProperty(
+        name = "Add To Collection",
+        description = "Add mannequin to collection",
+        default = True)
+
+    group : StringProperty(
+        name = "Collection",
+        description = "Add mannequin to this collection",
+        default = "Mannequin")
 
     def draw(self, context):
         self.layout.prop(self, "headType")
@@ -1494,7 +1532,14 @@ class DAZ_OT_AddPush(DazOperator, IsMesh):
 #   Make deflection
 #-------------------------------------------------------------
 
-class DAZ_OT_MakeDeflection(DazPropsOperator, B.Offset, IsMesh):
+class Offset:
+    offset : FloatProperty(
+        name = "Offset (mm)",
+        description = "Offset the surface from the character mesh",
+        default = 5.0)
+
+
+class DAZ_OT_MakeDeflection(DazPropsOperator, Offset, IsMesh):
     bl_idname = "daz.make_deflection"
     bl_label = "Make Deflection"
     bl_description = "Make a deflection object"
@@ -1577,8 +1622,6 @@ classes = [
 ]
 
 def initialize():
-    from bpy.props import BoolProperty, EnumProperty, StringProperty
-
     bpy.types.Object.DazMannequin = BoolProperty(default = False)
 
     for cls in classes:
