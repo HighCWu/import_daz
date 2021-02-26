@@ -1255,25 +1255,20 @@ classes = [
     DAZ_OT_UDimsFromTextures,
     DAZ_OT_LoadUV,
     DAZ_OT_LimitVertexGroups,
-    B.DazIntGroup,
-    B.DazFloatGroup,
-    B.DazPairGroup,
-    B.DazRigidityGroup,
-    B.DazStringStringGroup,
-    B.DazTextGroup,
 ]
 
 def initialize():
+    from .propgroups import DazIntGroup, DazFloatGroup, DazPairGroup, DazRigidityGroup, DazStringStringGroup, DazTextGroup
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = B.DazRigidityGroup)
-    bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = B.DazPairGroup)
-    bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = B.DazIntGroup)
-    bpy.types.Mesh.DazMatNums = CollectionProperty(type = B.DazIntGroup)
+    bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = DazRigidityGroup)
+    bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = DazPairGroup)
+    bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = DazIntGroup)
+    bpy.types.Mesh.DazMatNums = CollectionProperty(type = DazIntGroup)
     bpy.types.Mesh.DazVertexCount = IntProperty(default=0)
-    bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = B.DazStringStringGroup)
-    bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = B.DazTextGroup)
+    bpy.types.Mesh.DazMaterialSets = CollectionProperty(type = DazStringStringGroup)
+    bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = DazTextGroup)
     bpy.types.Object.DazMultires = BoolProperty(default=False)
     bpy.types.Mesh.DazHairType = StringProperty(default = 'SHEET')
 

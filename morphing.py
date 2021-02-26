@@ -35,6 +35,7 @@ from .error import *
 from .utils import *
 from . import utils
 from .fileutils import SingleFile, MultiFile, DazImageFile, DatFile
+from .propgroups import DazTextGroup
 
 #-------------------------------------------------------------
 #   Morph sets
@@ -209,6 +210,24 @@ class DazSelectGroup(bpy.types.PropertyGroup):
 
     def __lt__(self, other):
         return (self.text < other.text)
+
+
+if bpy.app.version < (2,90,0):
+    class DazCategory(bpy.types.PropertyGroup):
+        custom : StringProperty()
+        morphs : CollectionProperty(type = DazTextGroup)
+        active : BoolProperty(default=False)
+
+    class DazActiveGroup(bpy.types.PropertyGroup):
+        active : BoolProperty(default=True)
+else:
+    class DazCategory(bpy.types.PropertyGroup):
+        custom : StringProperty()
+        morphs : CollectionProperty(type = DazTextGroup)
+        active : BoolProperty(default=False, override={'LIBRARY_OVERRIDABLE'})
+
+    class DazActiveGroup(bpy.types.PropertyGroup):
+        active : BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'})
 
 #-------------------------------------------------------------
 #   Morph selector
@@ -2668,8 +2687,8 @@ class DAZ_OT_MeshToShape(DazOperator, IsMesh):
 
 classes = [
     DazSelectGroup,
-    B.DazActiveGroup,
-    B.DazCategory,
+    DazActiveGroup,
+    DazCategory,
 
     DAZ_OT_SelectAll,
     DAZ_OT_SelectNone,
@@ -2726,14 +2745,14 @@ def initialize():
 
     bpy.types.Object.DazMorphPrefixes = BoolProperty(default = True)
     for morphset in theMorphSets:
-        setattr(bpy.types.Object, "Daz"+morphset, CollectionProperty(type = B.DazTextGroup))
+        setattr(bpy.types.Object, "Daz"+morphset, CollectionProperty(type = DazTextGroup))
 
     if bpy.app.version < (2,90,0):
-        bpy.types.Object.DazActivated = CollectionProperty(type = B.DazActiveGroup)
-        bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory)
+        bpy.types.Object.DazActivated = CollectionProperty(type = DazActiveGroup)
+        bpy.types.Object.DazMorphCats = CollectionProperty(type = DazCategory)
     else:
-        bpy.types.Object.DazActivated = CollectionProperty(type = B.DazActiveGroup, override={'LIBRARY_OVERRIDABLE'})
-        bpy.types.Object.DazMorphCats = CollectionProperty(type = B.DazCategory, override={'LIBRARY_OVERRIDABLE'})
+        bpy.types.Object.DazActivated = CollectionProperty(type = DazActiveGroup, override={'LIBRARY_OVERRIDABLE'})
+        bpy.types.Object.DazMorphCats = CollectionProperty(type = DazCategory, override={'LIBRARY_OVERRIDABLE'})
 
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],
@@ -2744,7 +2763,7 @@ def initialize():
         default = "Name")
 
     bpy.types.Scene.DazSelector = CollectionProperty(type = DazSelectGroup)
-    bpy.types.Object.DazPropNames = CollectionProperty(type = B.DazTextGroup)
+    bpy.types.Object.DazPropNames = CollectionProperty(type = DazTextGroup)
 
 
 def uninitialize():

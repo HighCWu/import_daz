@@ -1001,8 +1001,13 @@ class DAZ_OT_EnableDrivers(DazOperator):
 #   Initialize
 #----------------------------------------------------------
 
+class DazDriverGroup(bpy.types.PropertyGroup):
+    index : IntProperty()
+    expression : StringProperty()
+    channel : StringProperty()
+
 classes = [
-    B.DazDriverGroup,
+    DazDriverGroup,
 
     DAZ_OT_RestoreDrivers,
     DAZ_OT_RemoveUnusedDrivers,
@@ -1018,7 +1023,7 @@ def initialize():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.Object.DazDriversDisabled = BoolProperty(default=False)
-    bpy.types.Object.DazDisabledDrivers = CollectionProperty(type = B.DazDriverGroup)
+    bpy.types.Object.DazDisabledDrivers = CollectionProperty(type = DazDriverGroup)
 
 
 def uninitialize():

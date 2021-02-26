@@ -836,13 +836,16 @@ classes = [
 ]
 
 def initialize():
+    from .propgroups import DazFloatGroup
+    from .morphing import DazActiveGroup
+
     for cls in classes:
         bpy.utils.register_class(cls)
 
     bpy.types.Material.DazSlots = CollectionProperty(type = EditSlotGroup)
     bpy.types.Object.DazSlots = CollectionProperty(type = EditSlotGroup)
-    bpy.types.Object.DazAffectedMaterials = CollectionProperty(type = B.DazActiveGroup)
-    bpy.types.Scene.DazFloats = CollectionProperty(type = B.DazFloatGroup)
+    bpy.types.Object.DazAffectedMaterials = CollectionProperty(type = DazActiveGroup)
+    bpy.types.Scene.DazFloats = CollectionProperty(type = DazFloatGroup)
 
     from .globvars import getActiveMaterial
     bpy.types.Object.DazActiveMaterial = EnumProperty(

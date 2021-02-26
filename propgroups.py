@@ -29,6 +29,44 @@ import bpy
 from .utils import *
 from .error import *
 
+#-------------------------------------------------------------
+#   Property groups
+#-------------------------------------------------------------
+
+class DazIntGroup(bpy.types.PropertyGroup):
+    a : IntProperty()
+
+class DazFloatGroup(bpy.types.PropertyGroup):
+    f : FloatProperty()
+
+class DazPairGroup(bpy.types.PropertyGroup):
+    a : IntProperty()
+    b : IntProperty()
+
+class DazStringStringGroup(bpy.types.PropertyGroup):
+    names : CollectionProperty(type = bpy.types.PropertyGroup)
+
+class DazKeys(bpy.types.PropertyGroup):
+    keys : CollectionProperty(type = StringProperty)
+
+
+class DazTextGroup(bpy.types.PropertyGroup):
+    text : StringProperty()
+
+    def __lt__(self, other):
+        return (self.text < other.text)
+
+#-------------------------------------------------------------
+#   Rigidity groups
+#-------------------------------------------------------------
+
+class DazRigidityGroup(bpy.types.PropertyGroup):
+    id : StringProperty()
+    rotation_mode : StringProperty()
+    scale_modes : StringProperty()
+    reference_vertices : CollectionProperty(type = DazIntGroup)
+    mask_vertices : CollectionProperty(type = DazIntGroup)
+    use_transform_bones_for_scale : BoolProperty()
 
 #-------------------------------------------------------------
 #   Property groups, for drivers
@@ -323,6 +361,12 @@ def updateHandler(scn):
 
 
 classes = [
+    DazIntGroup,
+    DazFloatGroup,
+    DazPairGroup,
+    DazRigidityGroup,
+    DazStringStringGroup,
+    DazTextGroup,
     DazMorphGroup,
     DAZ_OT_InspectPropGroups,
     DAZ_OT_InspectPropDependencies,
