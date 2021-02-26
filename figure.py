@@ -79,8 +79,8 @@ class FigureInstance(Instance):
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='EDIT')
         for eb in rig.data.edit_bones:
-            eb.head = Mult2(mat, eb.head)
-            eb.tail = Mult2(mat, eb.tail)
+            eb.head = mat @ eb.head
+            eb.tail = mat @ eb.tail
         bpy.ops.object.mode_set(mode='OBJECT')
 
 

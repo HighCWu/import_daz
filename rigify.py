@@ -866,7 +866,7 @@ class Rigify:
 
         scn = context.scene
         gen = context.object
-        coll = getCollection(context)
+        coll = context.collection
         print("Fix generated rig", gen.name)
 
         setActiveObject(context, rig)

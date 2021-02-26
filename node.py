@@ -407,22 +407,22 @@ class Instance(Accessor, Channels):
         par = self.parent
         if par:
             coffset = self.cpoint - self.parent.cpoint
-            self.wtrans = Mult2(par.wmat, coffset + trans)
-            self.wrot = Mult4(par.wrot, orient, lrot, orient.inverted())
-            oscale = Mult3(orient, self.lscale, orient.inverted())
+            self.wtrans = par.wmat @ (coffset + trans)
+            self.wrot = par.wrot @ orient @ lrot @ orient.inverted()
+            oscale = orient @ self.lscale @ orient.inverted()
             if True:  # self.inherits_scale:
-                self.wscale = Mult2(par.wscale, oscale)
+                self.wscale = par.wscale @ oscale
             else:
-                self.wscale = Mult3(par.wscale, par.lscale.inverted(), oscale)
+                self.wscale = par.wscale @ par.lscale.inverted() @ oscale
         else:
             self.wtrans = self.cpoint + trans
-            self.wrot = Mult3(orient, lrot, orient.inverted())
-            self.wscale = Mult3(orient, self.lscale, orient.inverted())
+            self.wrot = orient @ lrot @ orient.inverted()
+            self.wscale = orient @ self.lscale @ orient.inverted()
 
         transmat = Matrix.Translation(self.wtrans)
-        self.wmat = Mult3(transmat, self.wrot, self.wscale)
+        self.wmat = transmat @ self.wrot @ self.wscale
         if GS.zup:
-            self.worldmat = Mult3(self.RXP, self.wmat, self.RXN)
+            self.worldmat = self.RXP @ self.wmat @ self.RXN
         else:
             self.worldmat = self.wmat
 
@@ -471,10 +471,10 @@ class Instance(Accessor, Channels):
         # global_rotation = parent.global_rotation * orientation * rotation * (orientation)-1
         self.wsmat = wsmat
         if self.parent:
-            lsmat = Mult2(self.parent.wsmat.inverted(), self.wsmat)
+            lsmat = self.parent.wsmat.inverted() @ self.wsmat
         else:
             lsmat = self.wsmat
-        return Mult3(orient.inverted(), lsmat, orient)
+        return orient.inverted() @ lsmat @ orient
 
 
 def transformDuplis():
@@ -796,7 +796,7 @@ def getTransformMatrices(pb):
         rmat = Matrix()
 
     if GS.zup:
-        bmat = Mult2(Matrix.Rotation(-90*D, 4, 'X'), pb.bone.matrix_local)
+        bmat = Matrix.Rotation(-90*D, 4, 'X') @ pb.bone.matrix_local
     else:
         bmat = pb.bone.matrix_local
 
@@ -805,16 +805,16 @@ def getTransformMatrices(pb):
 
 def getTransformMatrix(pb):
     dmat,bmat,rmat = getTransformMatrices(pb)
-    tmat = Mult2(dmat.inverted(), bmat)
+    tmat = dmat.inverted() @ bmat
     return tmat.to_3x3()
 
 
 def getBoneMatrix(tfm, pb, test=False):
     from .transform import roundMatrix
     dmat,bmat,rmat = getTransformMatrices(pb)
-    wmat = Mult4(dmat, tfm.getRotMat(pb), tfm.getScaleMat(), dmat.inverted())
-    wmat = Mult4(rmat.inverted(), tfm.getTransMat(), rmat, wmat)
-    mat = Mult3(bmat.inverted(), wmat, bmat)
+    wmat = dmat @ tfm.getRotMat(pb) @ tfm.getScaleMat() @ dmat.inverted()
+    wmat = rmat.inverted() @ tfm.getTransMat() @ rmat @ wmat
+    mat = bmat.inverted() @ wmat @ bmat
     roundMatrix(mat, 1e-4)
 
     if test:

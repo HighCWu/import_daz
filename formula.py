@@ -513,7 +513,7 @@ def convertDualVector(uvec, pb, invert):
         smat.invert()
     nvec = Vector((0,0,0))
     for i in range(3):
-        mat = Mult3(smat, Units[i], smat.inverted())
+        mat = smat @ Units[i] @ smat.inverted()
         euler = mat.to_euler(pb.DazRotMode)
         nvec[i] = uvec.dot(Vector(euler))
     return nvec/D
@@ -527,12 +527,12 @@ def convertDualMatrix(umat, pbDriver, pbDriven):
     nmat.zero()
 
     for i in range(3):
-        imat = Mult3(tmat, Units[i], tmat.inverted())
+        imat = tmat @ Units[i] @ tmat.inverted()
         ivec = Vector(imat.to_euler(pbDriven.DazRotMode))
         for j in range(3):
-            jmat = Mult3(smat, Units[j], smat.inverted())
+            jmat = smat @ Units[j] @ smat.inverted()
             jvec = Vector(jmat.to_euler(pbDriver.DazRotMode))
-            nmat[i][j] = ivec.dot(Mult2(umat, jvec))
+            nmat[i][j] = ivec.dot(umat @ jvec)
     return nmat
 
 #-------------------------------------------------------------

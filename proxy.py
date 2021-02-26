@@ -1328,7 +1328,7 @@ def addMannequins(self, context):
     # Create group/collection
     mangrp = None
     scn = context.scene
-    coll = getCollection(context)
+    coll = context.collection
     if not self.useGroup:
         pass
     elif bpy.app.version <= (2,80,0):

@@ -551,7 +551,7 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, B.AddIkGoals, IsArmature):
             goal = rig.pose.bones[bname+"Goal"]
             goal.rotation_mode = pb.rotation_mode
             goal.bone.use_local_location = True
-            goal.matrix_basis = Mult2(rmat.inverted(), pb.matrix)
+            goal.matrix_basis = rmat.inverted() @ pb.matrix
             csCube = makeCustomShape("CS_Cube", "Cube", scale=1.5)
             goal.custom_shape = csCube
 
@@ -559,7 +559,7 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, B.AddIkGoals, IsArmature):
                 pole = rig.pose.bones[polename]
                 pole.rotation_mode = pb.rotation_mode
                 pole.bone.use_local_location = True
-                pole.matrix_basis = Mult2(rmat.inverted(), pb.matrix)
+                pole.matrix_basis = rmat.inverted() @ pb.matrix
                 pole.custom_shape = csCube
 
             cns = pb.constraints.new('IK')

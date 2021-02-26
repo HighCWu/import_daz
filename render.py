@@ -180,7 +180,7 @@ class WorldTree(CyclesTree):
                 mat2 = Euler((0,-orz*D,0)).to_matrix()
                 mat3 = Euler((orx*D,0,0)).to_matrix()
                 mat4 = Euler((0,0,ory*D)).to_matrix()
-                mat = Mult4(mat1, mat2, mat3, mat4)
+                mat = mat1 @ mat2 @ mat3 @ mat4
                 self.addMapping(mat.to_euler())
 
             color = WHITE

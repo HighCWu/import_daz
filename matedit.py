@@ -557,7 +557,7 @@ class DAZ_OT_MakeDecal(DazOperator, B.ImageFile, B.SingleFile, B.LaunchEditor, I
         tree.nodes = mat.node_tree.nodes
         tree.links = mat.node_tree.links
 
-        coll = getCollection(context)
+        coll = context.collection
         empty = bpy.data.objects.new(fname, None)
         coll.objects.link(empty)
 

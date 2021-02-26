@@ -359,7 +359,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
             self.propRow(box, pb, "DazRotMode")
             self.propRow(box, pb, "DazLocLocks")
             self.propRow(box, pb, "DazRotLocks")
-            mat = Mult2(ob.matrix_world, pb.matrix)
+            mat = ob.matrix_world @ pb.matrix
             loc,quat,scale = mat.decompose()
             self.vecRow(box, factor*loc, "Location")
             self.vecRow(box, Vector(quat.to_euler())/D, "Rotation")
@@ -426,7 +426,7 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.rotate_bones")
 
         layout.separator()
-        split = splitLayout(layout, 0.6)
+        split = layout.split(factor=0.6)
         icon = 'CHECKBOX_HLT' if ob.DazLocLocks else 'CHECKBOX_DEHLT'
         layout.operator("daz.toggle_loc_locks", icon=icon, emboss=False)
         icon = 'CHECKBOX_HLT' if ob.DazRotLocks else 'CHECKBOX_DEHLT'
@@ -486,7 +486,7 @@ class DAZ_PT_Morphs:
 
 
     def preamble(self, layout, rig):
-        split = splitLayout(layout, 0.25)
+        split = layout.split(factor=0.25)
         split.operator("daz.prettify")
         self.activateLayout(split, "", rig)
         split.operator("daz.disable_drivers")
@@ -505,7 +505,7 @@ class DAZ_PT_Morphs:
 
 
     def keyLayout(self, layout, category):
-        split = splitLayout(layout, 0.25)
+        split = layout.split(factor=0.25)
         op = split.operator("daz.add_keyset", text="", icon='KEYINGSET')
         op.morphset = self.morphset
         op.category = category
@@ -542,7 +542,7 @@ class DAZ_PT_Morphs:
         key = morph.name
         if key not in rig.keys():
             return
-        row = splitLayout(layout, 0.8)
+        row = layout.split(factor=0.8)
         row.prop(rig, '["%s"]' % key, text=morph.text)
         self.showBool(row, rig, key)
         op = row.operator("daz.pin_prop", icon='UNPINNED')
@@ -672,7 +672,7 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
 
 
     def drawBox(self, box, cat, scn, ob, filter):
-        split = splitLayout(box, 0.5)
+        split = box.split(factor=0.5)
         self.activateLayout(split, cat.name, ob)
         self.keyLayout(box, cat.name)
         for morph in cat.morphs:
@@ -698,7 +698,7 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
 
 
     def preamble(self, layout, ob):
-        split = splitLayout(layout, 0.333)
+        split = layout.split(factor=0.333)
         split.operator("daz.prettify")
         self.activateLayout(split, "", ob)
         self.keyLayout(layout, "")
@@ -715,7 +715,7 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
 
 
     def keyLayout(self, layout, category):
-        split = splitLayout(layout, 0.333)
+        split = layout.split(factor=0.333)
         op = split.operator("daz.key_shapes", text="", icon='KEY_HLT')
         op.category = category
         op = split.operator("daz.unkey_shapes", text="", icon='KEY_DEHLT')
@@ -728,7 +728,7 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
         skeys = ob.data.shape_keys
         if skeys is None:
             return
-        split = splitLayout(box, 0.5)
+        split = box.split(factor=0.5)
         self.activateLayout(split, cat.name, ob)
         self.keyLayout(box, cat.name)
         for morph in cat.morphs:
@@ -740,7 +740,7 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
 
     def displayProp(self, morph, category, ob, skey, layout, scn):
         key = morph.name
-        row = splitLayout(layout, 0.8)
+        row = layout.split(factor=0.8)
         row.prop(skey, "value", text=morph.text)
         self.showBool(row, ob, key)
         op = row.operator("daz.pin_shape", icon='UNPINNED')
@@ -773,15 +773,15 @@ class DAZ_PT_SimpleRig(bpy.types.Panel):
         layout = self.layout
         layout.separator()
         layout.label(text="IK Influence")
-        split = splitLayout(layout, 0.2)
+        split = layout.split(factor=0.2)
         split.label(text="")
         split.label(text="Left")
         split.label(text="Right")
-        split = splitLayout(layout, 0.2)
+        split = layout.split(factor=0.2)
         split.label(text="Arm")
         split.prop(rig, "DazArmIK_L", text="")
         split.prop(rig, "DazArmIK_R", text="")
-        split = splitLayout(layout, 0.2)
+        split = layout.split(factor=0.2)
         split.label(text="Leg")
         split.prop(rig, "DazLegIK_L", text="")
         split.prop(rig, "DazLegIK_R", text="")
@@ -1014,7 +1014,7 @@ class DAZ_PT_Visibility(bpy.types.Panel):
                 rig = ob.parent
             else:
                 return
-        split = splitLayout(self.layout, 0.3333)
+        split = self.layout.split(factor=0.3333)
         split.operator("daz.prettify")
         split.operator("daz.show_all_vis")
         split.operator("daz.hide_all_vis")

@@ -50,9 +50,6 @@ if True:
         ob.hide_set(value)
         ob.hide_viewport = value
 
-    def getCollection(context):
-        return context.collection
-
     def getSelectedObjects(context):
         return [ob for ob in context.scene.collection.all_objects
                 if ob.select_get() and not (ob.hide_get() or ob.hide_viewport)]
@@ -125,24 +122,6 @@ if True:
         return ok
 
 
-    def printActive(name, context):
-        coll = context.collection
-        print(name, context.object, coll)
-        sel = [ob for ob in coll.objects if ob.select_get()]
-        print("  ", sel)
-
-    def Mult2(x, y):
-        return x @ y
-
-    def Mult3(x, y, z):
-        return x @ y @ z
-
-    def Mult4(x, y, z, u):
-        return x @ y @ z @ u
-
-    def splitLayout(layout, factor):
-        return layout.split(factor=factor)
-
     def selectObjects(context, objects):
         if context.object:
             try:
@@ -168,9 +147,6 @@ if True:
     def updateObject(context, ob):
         dg = context.evaluated_depsgraph_get()
         return ob.evaluated_get(dg)
-
-    def colorToVector(color):
-        return color
 
 #-------------------------------------------------------------
 #   Overridable properties

@@ -207,7 +207,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
     def draw(self, context):
         from .panel import showBox
         scn = context.scene
-        split = splitLayout(self.layout, 0.4)
+        split = self.layout.split(factor=0.4)
         col = split.column()
         box = col.box()
         box.label(text = "DAZ Studio Root Directories")

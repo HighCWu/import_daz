@@ -263,7 +263,7 @@ class FrameConverter:
             orient,xyz = getOrientation(char, parname, rig)
             if orient:
                 parmat = Euler(Vector(orient)*D, 'XYZ').to_matrix()
-                transmats[bname] = Mult2(restmats[bname], parmat.inverted())
+                transmats[bname] = restmats[bname] @ parmat.inverted()
         if orient is None:
             transmats[bname] = Matrix().to_3x3()
 
@@ -273,7 +273,7 @@ class FrameConverter:
         nvecs = {}
         for t,vec in vecs.items():
             mat = Euler(vec*D, xyz).to_matrix()
-            nmat = Mult3(amat, mat, bmat)
+            nmat = amat @ mat @ bmat
             nvecs[t] = Vector(nmat.to_euler(nxyz))/D
         return vectorsToFrames(nvecs)
 
@@ -844,7 +844,7 @@ class AnimatorBase(B.AnimatorFile, MultiFile, FrameConverter, B.AffectOptions, B
                 pb = rig.pose.bones[master]
                 wmat = rig.matrix_world.copy()
                 setWorldMatrix(rig, self.worldMatrix)
-                pb.matrix_basis = Mult2(self.worldMatrix.inverted(), wmat)
+                pb.matrix_basis = self.worldMatrix.inverted() @ wmat
 
 
     def findDrivers(self, rig):

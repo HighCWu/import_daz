@@ -348,7 +348,7 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
                     smat[n][n] = scale
 
             for n,vn in enumerate(maskverts):
-                skey.data[vn].co = Mult2(smat, (ob.data.vertices[vn].co - xcenter)) + ycenter
+                skey.data[vn].co = smat @ (ob.data.vertices[vn].co - xcenter) + ycenter
 
 
     def ignoreMorph(self, src, trg, hskey):
@@ -626,25 +626,25 @@ class DAZ_OT_MixShapekeys(DazOperator, B.MixShapekeysOptions):
         row.prop(self, "allSimilar")
         row.prop(self, "overwrite")
         row.prop(self, "delete")
-        row = splitLayout(self.layout, 0.2)
+        row = self.layout.split(factor=0.2)
         row.label(text="")
         row.label(text="First")
         row.label(text="Second")
         if self.allSimilar:
-            row = splitLayout(self.layout, 0.2)
+            row = self.layout.split(factor=0.2)
             row.label(text="Factor")
             row.prop(self, "factor1", text="")
             row.prop(self, "factor2", text="")
             return
-        row = splitLayout(self.layout, 0.2)
+        row = self.layout.split(factor=0.2)
         row.label(text="")
         row.prop(self, "filter1", icon='VIEWZOOM', text="")
         row.prop(self, "filter2", icon='VIEWZOOM', text="")
-        row = splitLayout(self.layout, 0.2)
+        row = self.layout.split(factor=0.2)
         row.label(text="Factor")
         row.prop(self, "factor1", text="")
         row.prop(self, "factor2", text="")
-        row = splitLayout(self.layout, 0.2)
+        row = self.layout.split(factor=0.2)
         row.label(text="Shapekey")
         row.prop(self, "shape1", text="")
         row.prop(self, "shape2", text="")

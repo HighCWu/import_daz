@@ -432,7 +432,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, B.Hair):
         for mat in ob.data.materials:
             item = self.colors.add()
             item.name = mat.name
-            item.color = colorToVector(mat.diffuse_color)
+            item.color = mat.diffuse_color
         return DazPropsOperator.invoke(self, context, event)
 
 
@@ -975,7 +975,7 @@ def makeDeflector(pair, rig, bnames, cfg):
                 ob.parent_type = 'BONE'
                 ob.parent_bone = bname
                 pb = rig.pose.bones[bname]
-                ob.matrix_basis = Mult2(pb.matrix.inverted(), ob.matrix_basis)
+                ob.matrix_basis = pb.matrix.inverted() @ ob.matrix_basis
                 ob.matrix_basis.col[3] -= Vector((0,pb.bone.length,0,0))
                 break
 

@@ -196,9 +196,9 @@ def loadBonePose(pb, pose):
         rmat = pb.bone.matrix_local.to_3x3()
         if pb.parent:
             par = pb.parent
-            rmat = Mult2(par.bone.matrix_local.to_3x3().inverted(), rmat)
-            mat = Mult2(par.matrix.to_3x3().inverted(), mat)
-        bmat = Mult2(rmat.inverted(), mat)
+            rmat = par.bone.matrix_local.to_3x3().inverted() @ rmat
+            mat = par.matrix.to_3x3().inverted() @ mat
+        bmat = rmat.inverted() @ mat
         pb.matrix_basis = bmat.to_4x4()
         for n in range(3):
             if pb.lock_rotation[n]:

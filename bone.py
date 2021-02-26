@@ -424,7 +424,7 @@ class BoneInstance(Instance):
                     self.isPosed = True
                 omat = omat.to_4x4()
                 if GS.zup:
-                    omat = Mult2(self.RX, omat)
+                    omat = self.RX @ omat
                 flip = self.FX
                 if GS.orientMethod == 'DAZ STUDIO':
                     omat,flip = self.flipAxes(omat, xyz)
@@ -433,9 +433,9 @@ class BoneInstance(Instance):
                 #  engetudouiti's fix for posed bones
                 rmat = wsmat.to_4x4()
                 if GS.zup:
-                    rmat = Mult3(self.RX, rmat, self.RX.inverted())
+                    rmat = self.RX @ rmat @ self.RX.inverted()
                 if rmat.determinant() > 1e-4:
-                    omat = Mult2(rmat.inverted(), omat)
+                    omat = rmat.inverted() @ omat
 
                 if GS.orientMethod == 'DAZ UNFLIPPED':
                     omat.col[3][0:3] = head
@@ -521,7 +521,7 @@ class BoneInstance(Instance):
 
         self.testPrint("AXES")
         rmat = euler.to_matrix().to_4x4()
-        omat = Mult2(omat, rmat)
+        omat = omat @ rmat
         return omat, flip
 
 
@@ -530,7 +530,7 @@ class BoneInstance(Instance):
         yaxis = Vector(omat.col[1][0:3])
         if vec.dot(yaxis) < 0:
             self.flipped = self.flopped
-            return Mult2(omat, flip)
+            return omat @ flip
         else:
             return omat
 
