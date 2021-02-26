@@ -78,9 +78,10 @@ class MeshSelection:
     def invoke(self, context, event):
         from .morphing import setSelector
         setSelector(self)
-        pgs = context.scene.DazSelector
+        scn = context.scene
+        pgs = scn.DazSelector
         pgs.clear()
-        for ob in getSceneObjects(context):
+        for ob in scn.collection.all_objects:
             if (ob.type == 'MESH' and
                 ob != context.object):
                 pg = pgs.add()

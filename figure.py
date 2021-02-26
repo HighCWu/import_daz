@@ -125,7 +125,7 @@ class FigureInstance(Instance):
     def selectChildren(self, rig):
         for child in rig.children:
             if child.type == 'ARMATURE':
-                setSelected(child, True)
+                child.select_set(True)
                 self.selectChildren(child)
 
 

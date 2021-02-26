@@ -270,7 +270,7 @@ class DazOperator(bpy.types.Operator):
 
 
     def sequel(self, context):
-        from .utils import setActiveObject, setSelected
+        from .utils import setActiveObject
         wm = bpy.context.window_manager
         wm.progress_update(100)
         wm.progress_end()
@@ -279,7 +279,7 @@ class DazOperator(bpy.types.Operator):
                 setActiveObject(context, self.activeObject)
             for obname in self.selectedObjects:
                 if obname in bpy.data.objects.keys():
-                    setSelected(bpy.data.objects[obname], True)
+                    bpy.data.objects[obname].select_set(True)
             if self.mode:
                 bpy.ops.object.mode_set(mode=self.mode)
         except RuntimeError:

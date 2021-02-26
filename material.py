@@ -883,7 +883,7 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator, B.KeepDirsBool):
             os.makedirs(texpath)
 
         self.images = []
-        for ob in getSceneObjects(context):
+        for ob in context.scene.collection.all_objects:
             if ob.type == 'MESH':
                 for mat in ob.data.materials:
                     if mat:

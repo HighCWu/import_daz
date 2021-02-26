@@ -161,7 +161,7 @@ class GeoNode(Node):
         print("Build HD mesh for %s: %d verts, %d faces" % (ob.name, nverts, len(faces)))
         me.from_pydata(verts, [], faces)
         print("HD mesh %s built" % me.name)
-        uvlayers = getUvTextures(ob.data)
+        uvlayers = ob.data.uv_layers
         addUvs(me, uvlayers[0].name, uvs, uvfaces)
         for f in me.polygons:
             f.material_index = mnums[f.index]
@@ -982,7 +982,7 @@ class Uvset(Asset):
 
 
 def makeNewUvloop(me, name, setActive):
-    uvtex = getUvTextures(me).new()
+    uvtex = me.uv_layers.new()
     uvtex.name = name
     uvloop = me.uv_layers[-1]
     if bpy.app.version < (2,80,0):
@@ -1007,11 +1007,11 @@ def addUvs(me, name, uvs, uvfaces):
 #-------------------------------------------------------------
 
 def pruneUvMaps(ob):
-    if ob.data is None or len(getUvTextures(ob.data)) <= 1:
+    if ob.data is None or len(ob.data.uv_layers) <= 1:
         return
     print("Pruning UV maps")
     uvtexs = {}
-    for uvtex in getUvTextures(ob.data):
+    for uvtex in ob.data.uv_layers:
         uvtexs[uvtex.name] = [uvtex, uvtex.active_render]
     for mat in ob.data.materials:
         if mat.node_tree:
@@ -1024,7 +1024,7 @@ def pruneUvMaps(ob):
                     uvtexs[node.uv_map][1] = True
     for uvtex,used in uvtexs.values():
         if not used:
-            getUvTextures(ob.data).remove(uvtex)
+            ob.data.uv_layers.remove(uvtex)
 
 
 class DAZ_OT_PruneUvMaps(DazOperator, IsMesh):

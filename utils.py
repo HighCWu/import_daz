@@ -35,151 +35,7 @@ from urllib.parse import unquote
 #   Blender 2.8 compatibility
 #-------------------------------------------------------------
 
-if bpy.app.version < (2,80,0):
-
-    from . import buttons27 as B
-
-    Region = "TOOLS"
-    HideViewport = "hide"
-    DrawType = "draw_type"
-    ShowXRay = "show_x_ray"
-
-    def getHideViewport(ob):
-        return ob.hide
-
-    def setHideViewport(ob, value):
-        ob.hide = value
-
-    def getCollection(context):
-        return context.scene
-
-    def getAllCollections():
-        return bpy.data.groups
-
-    def makeNewCollection(gname):
-        return bpy.data.groups.new(name=gname)
-
-    def getSceneObjects(context):
-        return context.scene.objects
-
-    def getSelectedObjects(context):
-        return [ob for ob in context.scene.objects
-                if ob.select and not ob.hide]
-
-    def getSelectedMeshes(context):
-        return [ob for ob in context.scene.objects
-                if ob.select and ob.type == 'MESH' and not ob.hide]
-
-    def getSelectedArmatures(context):
-        return [ob for ob in context.scene.objects
-                if ob.select and ob.type == 'ARMATURE' and not ob.hide]
-
-    def linkObject(context, ob):
-        context.scene.objects.link(ob)
-
-    def getSelected(ob):
-        return ob.select
-
-    def setSelected(ob, value):
-        ob.select = value
-
-    def getActiveObject(context):
-        return context.scene.objects.active
-
-    def setActiveObject(context, ob):
-        try:
-            context.scene.objects.active = ob
-            return True
-        except:
-            return False
-
-    def putOnHiddenLayer(ob):
-        ob.layers = 19*[False] + [True]
-        ob.hide = True
-
-    def createHiddenCollection(context, parent, cname="Hidden"):
-        return context.scene
-
-    def getUvTextures(me):
-        return me.uv_textures
-
-    def inSceneLayer(context, ob):
-        if ob.hide:
-            return False
-        scn = context.scene
-        for n in range(len(scn.layers)):
-            if (ob.layers[n] and scn.layers[n]):
-                return True
-        return False
-
-    def showSceneLayer(context, ob):
-        scn = context.scene
-        for n in range(len(scn.layers)):
-            if ob.layers[n]:
-                scn.layers[n] = True
-                return
-
-
-    def activateObject(context, ob):
-        context.scene.objects.active = ob
-        try:
-            bpy.ops.object.mode_set(mode='OBJECT')
-            ok = True
-        except RuntimeError:
-            print("Could not activate", ob.name)
-            ok = False
-        bpy.ops.object.select_all(action='DESELECT')
-        ob.select = True
-        return ok
-
-
-    def Mult2(x, y):
-        return x * y
-
-    def Mult3(x, y, z):
-        return x * y * z
-
-    def Mult4(x, y, z, u):
-        return x * y * z * u
-
-    def splitLayout(layout, factor):
-        return layout.split(factor)
-
-
-    def selectObjects(context, objects):
-        if context.object:
-            try:
-                bpy.ops.object.mode_set(mode='OBJECT')
-            except RuntimeError:
-                pass
-        bpy.ops.object.select_all(action='DESELECT')
-        for ob in objects:
-            if ob:
-                ob.select = True
-
-    def unlinkAll(ob):
-        for scn in bpy.data.scenes:
-            if ob in scn.objects.values():
-                scn.objects.unlink(ob)
-        for grp in bpy.data.groups:
-            if ob.name in grp.objects:
-                grp.objects.unlink(ob)
-
-    def updateScene(context):
-        scn = context.scene
-        scn.update()
-        scn.frame_current = scn.frame_current
-
-    def updateObject(context, ob):
-        updateScene(context)
-        return ob
-
-    def colorToVector(color):
-        r,g,b = color
-        return Vector((r,g,b,1))
-
-else:
-
+if True:
     from . import buttons28 as B
 
     Region = "UI"
@@ -197,15 +53,6 @@ else:
     def getCollection(context):
         return context.collection
 
-    def getAllCollections():
-        return bpy.data.collections
-
-    def makeNewCollection(gname):
-        return bpy.data.collections.new(name=gname)
-
-    def getSceneObjects(context):
-        return context.scene.collection.all_objects
-
     def getSelectedObjects(context):
         return [ob for ob in context.scene.collection.all_objects
                 if ob.select_get() and not (ob.hide_get() or ob.hide_viewport)]
@@ -220,12 +67,6 @@ else:
 
     def linkObject(context, ob):
         context.scene.collection.objects.link(ob)
-
-    def getSelected(ob):
-        return ob.select_get()
-
-    def setSelected(ob, value):
-        ob.select_set(value)
 
     def getActiveObject(context):
         return context.view_layer.objects.active
@@ -250,9 +91,6 @@ else:
         coll.hide_viewport = True
         coll.hide_render = True
         return coll
-
-    def getUvTextures(me):
-        return me.uv_layers
 
     def inSceneLayer(context, ob):
         if getHideViewport(ob):

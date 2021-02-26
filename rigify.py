@@ -770,7 +770,7 @@ class Rigify:
         meta.DazRigType,hips,head = setupTables(meta)
 
         activateObject(context, rig)
-        setSelected(rig, True)
+        rig.select_set(True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
         if meta.DazRigifyType in ["genesis1", "genesis2"]:
@@ -798,7 +798,7 @@ class Rigify:
 
         # Fit metarig to default DAZ rig
         #setActiveObject(context, meta)
-        #setSelected(meta, True)
+        meta.select_set(True)
         activateObject(context, meta)
         bpy.ops.object.mode_set(mode='EDIT')
         self.fitToDaz(meta, rigifySkel, dazBones)
@@ -876,7 +876,7 @@ class Rigify:
         empty = bpy.data.objects.new("Widgets", None)
         coll.objects.link(empty)
         empty.parent = gen
-        for ob in getSceneObjects(context):
+        for ob in scn.collection.all_objects:
             if ob.parent is None and ob.name[0:4] == "WGT-":
                 ob.parent = empty
 

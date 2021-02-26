@@ -29,7 +29,7 @@
 bl_info = {
     "name": "DAZ (.duf, .dsf) importer",
     "author": "Thomas Larsson",
-    "version": (1,5,1),
+    "version": (1,6,0),
     "blender": (2,91,0),
     "location": "UI > Daz Importer",
     "description": "Import native DAZ files (.duf, .dsf)",
@@ -55,12 +55,9 @@ def importModules():
             importlib.reload(mod)
     else:
         print("\nLoading DAZ")
-        modnames = ["buildnumber", "globvars", "settings", "utils", "error"]
-        if bpy.app.version < (2,80,0):
-            modnames.append("buttons27")
-        else:
-            modnames.append("buttons28")
-        modnames += ["propgroups", "daz", "panel", "fileutils", "load_json", "driver", "asset", "channels", "formula",
+        modnames = ["buildnumber", "globvars", "settings", "utils", "error",
+                    "buttons28",
+                    "propgroups", "daz", "panel", "fileutils", "load_json", "driver", "asset", "channels", "formula",
                     "transform", "node", "figure", "bone", "geometry", "objfile",
                     "fix", "modifier", "morphing", "convert", "material", "internal",
                     "cycles", "cgroup", "pbr", "render", "camera", "light",

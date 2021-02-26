@@ -1179,7 +1179,7 @@ class DAZ_OT_SaveCurrentFrame(DazOperator):
                 for pb in ob.pose.bones:
                     tfm.insertKeys(ob, pb, frame, pb.name, [])
         scn.frame_current += 10
-        for ob in getSceneObjects(context):
+        for ob in scn.collection.all_objects:
             if ob.animation_data:
                 act = ob.animation_data.action
                 if act:

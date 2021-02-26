@@ -727,7 +727,7 @@ def matchesPaths(var, paths, rig):
 
 def updateAll(context):
     updateScene(context)
-    for ob in getSceneObjects(context):
+    for ob in context.scene.collection.all_objects:
         if ob.type == 'ARMATURE':
             updateRig(ob, context)
         updateDrivers(ob)

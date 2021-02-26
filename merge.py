@@ -77,7 +77,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         # Keep extra UVs
         self.keepUv = []
         for ob in [cob] + anatomies:
-            for uvtex in getUvTextures(ob.data):
+            for uvtex in ob.data.uv_layers:
                 if not uvtex.active_render:
                     self.keepUv.append(uvtex.name)
 
@@ -86,7 +86,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
             activateObject(context, aob)
             self.moveGraftVerts(aob, cob)
             getShapekeyDrivers(aob, drivers)
-            for uvtex in getUvTextures(aob.data):
+            for uvtex in aob.data.uv_layers:
                 if uvtex.active_render:
                     anames.append(uvtex.name)
                 else:
@@ -168,7 +168,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         # Select verts on common boundary
         names = []
         for aob in anatomies:
-            setSelected(aob, True)
+            aob.select_set(True)
             names.append(aob.name)
             for pair in aob.data.DazGraftGroup:
                 aob.data.vertices[pair.a].select = True
@@ -271,16 +271,16 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
                     if uvloop.data[n].uv.length > 1e-6:
                         data.uv = uvloop.data[n].uv
                         break
-        for uvtex in list(getUvTextures(me)[1:]):
+        for uvtex in list(me.uv_layers[1:]):
             if uvtex.name not in self.keepUv:
                 try:
-                    getUvTextures(me).remove(uvtex)
+                    me.uv_layers.remove(uvtex)
                 except RuntimeError:
                     print("Cannot remove texture layer '%s'" % uvtex.name)
 
 
     def getUvName(self, me):
-        for uvtex in getUvTextures(me):
+        for uvtex in me.uv_layers:
             if uvtex.active_render:
                 return uvtex.name
         return None
@@ -551,7 +551,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
     def getSubRigs(self, context, rig):
         subrigs = []
         for ob in rig.children:
-            if ob.type == 'ARMATURE' and getSelected(ob):
+            if ob.type == 'ARMATURE' and ob.select_get():
                 subrigs.append(ob)
                 subrigs += self.getSubRigs(context, ob)
         return subrigs
@@ -584,9 +584,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature, B.MergeRigs):
         bpy.ops.object.select_all(action='DESELECT')
         for rig,wmat in zip(rigs, wmats):
             setWorldMatrix(rig, wmat.inverted())
-            setSelected(rig, True)
+            rig.select_set(True)
         for ob in children:
-            setSelected(ob, True)
+            ob.select_set(True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         for rig,wmat in zip(rigs, wmats):
             setWorldMatrix(rig, wmat)
@@ -892,14 +892,14 @@ def applyRestPoses(context, rig, subrigs):
 def applyAllObjectTransforms(rigs):
     bpy.ops.object.select_all(action='DESELECT')
     for rig in rigs:
-        setSelected(rig, True)
+        rig.select_set(True)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     bpy.ops.object.select_all(action='DESELECT')
     try:
         for rig in rigs:
             for ob in rig.children:
                 if ob.type == 'MESH':
-                    setSelected(ob, True)
+                    ob.select_set(True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         return True
     except RuntimeError:

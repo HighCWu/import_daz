@@ -167,7 +167,7 @@ def getMainAsset(filepath, context, btn):
 
 
 def makeRootCollection(grpname, context):
-    root = makeNewCollection(grpname)
+    root = bpy.data.collections.new(name=grpname)
     if bpy.app.version >= (2,80,0):
         context.scene.collection.children.link(root)
     return root

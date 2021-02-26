@@ -832,7 +832,7 @@ class Morph(FormulaAsset):
                 skey.data[vn].co += d2b90(delta[1:])
         else:
             for delta in self.deltas:
-                vn = delta[1]
+                vn = delta[0]
                 skey.data[vn].co += d2b00(delta[1:])
         if strength != 1:
             LS.scale = scale

@@ -220,7 +220,7 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
         activateObject(context, src)
         if not self.findMatch(src, trg):
             return False
-        setSelected(trg, True)
+        trg.select_set(True)
         if not trg.data.shape_keys:
             basic = trg.shape_key_add(name="Basic")
         else:

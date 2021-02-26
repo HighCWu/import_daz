@@ -44,7 +44,7 @@ def showBox(scn, attr, layout):
 
 
 class DAZ_PT_Setup(bpy.types.Panel):
-    bl_label = "Setup (version 1.5.1.%04d)" % BUILD
+    bl_label = "Setup (version 1.6.0.%04d)" % BUILD
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ Importer"

@@ -662,7 +662,7 @@ class Proxifier:
 def getUvData(ob):
     from collections import OrderedDict
 
-    uvtex = getUvTextures(ob.data)
+    uvtex = ob.data.uv_layers
     uvloop = ob.data.uv_layers[0]
     uvdata = OrderedDict()
     m = 0
@@ -938,7 +938,7 @@ class DAZ_OT_Quadify(MakeProxy, DazOperator, IsMesh):
 
 def restoreSelectedObjects(context, meshes, active):
     for ob in meshes:
-        setSelected(ob, True)
+        ob.select_set(True)
     setActiveObject(context, active)
 
 #-------------------------------------------------------------
@@ -1351,9 +1351,9 @@ def addMannequins(self, context):
 
     for ob in getSelectedObjects(context):
         if ob in selected:
-            setSelected(ob, True)
+            ob.select_set(True)
         else:
-            setSelected(ob, False)
+            ob.select_set(False)
     rig.data.layers = oldlayers
 
 
@@ -1524,12 +1524,12 @@ def makeDeflection(context, ob, char, fac):
     me = bpy.data.meshes.new(ob.data.name+"Deflect")
     me.from_pydata(coords, [], faces)
     nob = bpy.data.objects.new(ob.name+"Deflect", me)
-    ncoll = makeNewCollection(ob.name+"Deflect")
+    ncoll = bpy.data.collections.new(name=ob.name+"Deflect")
     ncoll.objects.link(nob)
     if bpy.app.version < (2,80,0):
         context.scene.objects.link(nob)
     else:
-        for coll in getAllCollections():
+        for coll in bpy.data.collections:
             if ob in coll.objects.values():
                 coll.children.link(ncoll)
     nob.hide_render = True
