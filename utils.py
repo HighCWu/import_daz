@@ -38,8 +38,6 @@ from . import globvars as G
 #-------------------------------------------------------------
 
 if True:
-    from . import buttons28 as B
-
     Region = "UI"
     HideViewport = "hide_viewport"
     DrawType = "display_type"
