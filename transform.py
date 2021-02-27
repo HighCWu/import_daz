@@ -50,27 +50,38 @@ class Transform:
         self.trans = None
         self.transProp = None
 
-    def setTrans(self, trans, prop=None):
-        self.trans = Vector(trans)
+    def setTrans(self, trans, prop=None, index=None):
+        if index is None:
+            self.trans = Vector(trans)
+        else:
+            self.trans = Vector((0,0,0))
+            self.trans[index] = trans
         self.transProp = prop
 
     def noRot(self):
         self.rot = None
         self.rotProp = None
 
-    def setRot(self, rot, prop=None):
-        self.rot = Vector(rot)
+    def setRot(self, rot, prop=None, index=None):
+        if index is None:
+            self.rot = Vector(rot)
+        else:
+            self.rot = Vector((0,0,0))
+            self.rot[index] = rot
         self.rotProp = prop
 
     def noScale(self):
         self.scale = None
         self.scaleProp = None
 
-    def setScale(self, scale, addUnit, prop=None):
+    def setScale(self, scale, addUnit, prop=None, index=None):
+        if index is None:
+            self.scale = Vector(scale)
+        else:
+            self.scale = Vector((0,0,0))
+            self.scale[index] = scale
         if addUnit:
             self.scale = Vector(scale) + One
-        else:
-            self.scale = Vector(scale)
         self.scaleProp = prop
 
     def noGeneral(self):

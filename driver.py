@@ -176,7 +176,7 @@ def makeDriver(name, rna, channel, idx, attr, factor, rig):
 
     for n,drv in enumerate(attr.drivers.values()):
         asset = drv[0].asset
-        addDriverVar(fcu, "x%d" % (n+1), asset.name, rig)
+        addDriverVarProp(fcu, "x%d" % (n+1), asset.name, rig)
 
 #-------------------------------------------------------------
 #   Bone drivers
@@ -392,12 +392,12 @@ def combineDrvBones(fcu):
 #   Prop drivers
 #-------------------------------------------------------------
 
-def makePropDriver(prop, rna, channel, rig, expr, idx=-1):
-    rna.driver_remove(channel, idx)
-    fcu = rna.driver_add(channel, idx)
+def makePropDriver(path, rna, channel, rig, expr):
+    rna.driver_remove(channel)
+    fcu = rna.driver_add(channel)
     fcu.driver.type = 'SCRIPTED'
     fcu.driver.expression = expr
-    addDriverVar(fcu, "x", prop, rig)
+    addDriverVar(fcu, "x", path, rig)
 
 
 def makeShapekeyDriver(skeys, sname, value, rig, prop, depends,
@@ -418,7 +418,7 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
                     varstr += "+%s" % varname
                 else:
                     varstr += "+%g*%s" % (factor,varname)
-                addDriverVar(fcu, varname, key, rig)
+                addDriverVarProp(fcu, varname, key, rig)
             return varstr + ")", varname
         else:
             return varname, varname
@@ -440,7 +440,7 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
                 msg = ("Shapekey %s     \nis driven by too many properties" % sname)
                 raise DazError(msg)
             varname = vname
-            addDriverVar(fcu, varname, prop, rig)
+            addDriverVarProp(fcu, varname, prop, rig)
         else:
             #print("Shapekey %s already driven by %s" % (sname, prop))
             return varname
@@ -452,12 +452,12 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
     else:
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
-        addDriverVar(fcu, varname, prop, rig)
+        addDriverVarProp(fcu, varname, prop, rig)
         varstr,varname = getVarString(prop, depends, varname, fcu, rig)
         expr = "%s%s" % (facstr, varstr)
     if mult:
         varname = chr(ord(varname) + 1)
-        addDriverVar(fcu, varname, mult, rig)
+        addDriverVarProp(fcu, varname, mult, rig)
         varstr,varname = getVarString(mult, depends, varname, fcu, rig)
         if expr[0] == "(":
             expr = "%s*%s" % (varstr, expr)
@@ -486,7 +486,7 @@ def addVarToDriver(fcu, rig, prop, factor):
     else:
         facstr = "%g*"
     fcu.driver.expression = expr + ("+%s%s" % (facstr, vname))
-    addDriverVar(fcu, vname, prop, rig)
+    addDriverVarProp(fcu, vname, prop, rig)
 
 
 #-------------------------------------------------------------
@@ -530,15 +530,19 @@ def setBoolProp(rna, prop, value, desc=""):
 #
 #-------------------------------------------------------------
 
-def addDriverVar(fcu, vname, prop, rig):
+def addDriverVar(fcu, vname, path, rig):
     var = fcu.driver.variables.new()
     var.name = vname
     var.type = 'SINGLE_PROP'
     trg = var.targets[0]
     trg.id_type = 'OBJECT'
     trg.id = rig
-    trg.data_path = '["%s"]' % prop
+    trg.data_path = path
     return trg
+
+
+def addDriverVarProp(fcu, vname, prop, rig):
+    addDriverVar(fcu, vname, '["%s"]' % prop, rig)
 
 
 def hasDriverVar(fcu, dname, rig):

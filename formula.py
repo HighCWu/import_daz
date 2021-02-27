@@ -151,51 +151,39 @@ class Formula:
         from .modifier import ChannelAsset
 
         driven = formula["output"].split("#")[-1]
-        bname,channel = driven.split("?")
-        bname = unquote(bname)
+        output,channel = driven.split("?")
+        output = unquote(output)
         if channel == "value":
             if mesh is None:
                 if GS.verbosity > 2:
-                    print("Cannot drive properties", bname)
+                    print("Cannot drive properties", output)
                 return False
             pb = None
         else:
-            bname1 = getTargetName(bname, rig)
-            if bname1 is None:
-                reportError("Missing bone (evalFormula): %s" % bname, trigger=(2,4))
+            output1 = getTargetName(output, rig)
+            if output1 is None:
+                reportError("Missing bone (evalFormula): %s" % output, trigger=(2,4))
                 return False
             else:
-                bname = bname1
-            if bname not in rig.pose.bones.keys():
+                output = output1
+            if output not in rig.pose.bones.keys():
                 return False
-            pb = rig.pose.bones[bname]
+            pb = rig.pose.bones[output]
 
         path,idx,default = parseChannel(channel)
-        if bname not in exprs.keys():
-            exprs[bname] = {}
-        if path not in exprs[bname].keys():
-            value = default
+        if output not in exprs.keys():
+            exprs[output] = {}
+        if path not in exprs[output].keys():
+            exprs[output][path] = {}
+        if idx not in exprs[output][path].keys():
             mult = self.getMultiplyUrl(formula)
-            exprs[bname][path] = {
-                "value" : value,
+            exprs[output][path][idx] = {
+                "factor" : 0,
                 "prop" : None,
                 "bone" : None,
-                "output" : formula["output"],
                 "mult" : mult}
-        elif "stage" in formula.keys():
-            pass
-        elif path == "value":
-            expr = exprs[bname][path]
-            other = {
-                "value" : expr["value"],
-                "prop" : expr["prop"],
-                "bone" : expr["bone"],
-                "output" : formula["output"],
-                "mult" : None}
-            expr["others"].append(other)
-            expr["value"] = default
 
-        expr = exprs[bname][path]
+        expr = exprs[output][path][idx]
         nops = 0
         type = None
         ops = formula["operations"]
@@ -212,7 +200,7 @@ class Formula:
         if type == "value":
             if props is None:
                 return False
-            #print("UUU", bname, expr["prop"], prop)
+            #print("UUU", output, expr["prop"], prop)
             if expr["prop"] and prop != expr["prop"]:
                 expr["mult"] = prop
             else:
@@ -225,11 +213,7 @@ class Formula:
         last = ops[-1]
         op = last["op"]
         if op == "mult" and len(ops) == 3:
-            value = ops[1]["val"]
-            if isinstance(expr["value"], Vector):
-                expr["value"][idx] = value
-            else:
-                expr["value"] = value
+            expr["factor"] = ops[1]["val"]
         elif op == "push" and len(ops) == 1:
             bone,string = last["url"].split(":")
             url,channel = string.split("?")
@@ -244,10 +228,7 @@ class Formula:
             expr["points"] = [ops[n]["val"] for n in range(1,len(ops)-2)]
             expr["comp"] = comp
         else:
-            if useStages:
-                reportError("Unknown formula %s" % ops, trigger=(2,6))
-            else:
-                reportError("Multiple stages? %s %s" % (op, len(ops)), trigger=(5,6))
+            reportError("Unknown formula %s" % ops, trigger=(2,6))
             return False
 
         if "stage" in formula.keys() and len(stages) > 1:
@@ -318,13 +299,13 @@ class Formula:
                 if evalue2 is not None:
                     vectors.append(evalue2)
         if vectors:
-            expr["value"]["value"] = vectors
+            expr["factor"]["value"] = vectors
 
 
     def getExprValue(self, expr, key):
-        if ("value" in expr.keys() and
-            key in expr["value"].keys()):
-            return expr["value"][key]
+        if ("factor" in expr.keys() and
+            key in expr["factor"].keys()):
+            return expr["factor"][key]
         else:
             return None
 
@@ -332,7 +313,6 @@ class Formula:
 def getRefKey(string):
     base = string.split(":",1)[-1]
     return base.rsplit("?",1)
-
 
 #-------------------------------------------------------------
 #   Build bone formula

@@ -593,9 +593,9 @@ class Slider(bpy.types.PropertyGroup):
 #   LoadMorph base class
 #------------------------------------------------------------------
 
-from .formula import PropFormulas, ShapeFormulas
+from .formula import PoseboneDriver
 
-class LoadMorph(PropFormulas, ShapeFormulas):
+class LoadMorph(PoseboneDriver):
 
     useSoftLimits = True
     useShapekeysOnly = False
@@ -613,7 +613,9 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         self.rig, self.mesh, self.char = getFingeredCharacter(bpy.context.object, verbose=verbose)
         if mesh:
             self.mesh = mesh
-        PropFormulas.__init__(self, self.rig)
+        PoseboneDriver.__init__(self, self.rig)
+        self.morphsUsed = []
+        self.alias = {}
 
 
     @classmethod
@@ -630,15 +632,11 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
 
     def getSingleMorph(self, name, filepath, scn):
-        from .modifier import Morph, FormulaAsset, ChannelAsset, addToMorphSet0
         from .load_json import loadJson
         from .files import parseAssetFile
-
-        miss = False
         ob = self.getObject()
         if ob is None:
-            return [],miss
-
+            raise DazError("No object found")
         struct = loadJson(filepath)
         asset = parseAssetFile(struct)
         if asset is None:
@@ -648,11 +646,10 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                     print(msg)
                 else:
                     raise DazError(msg)
-            return [],miss
-
+            return [],True
         skey = self.buildShapekey(asset)
         prop = self.buildFormulas(asset)
-        return [prop],miss
+        return [prop],False
 
 
     def buildShapekey(self, asset, useBuild=True):
@@ -683,7 +680,11 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                              strength=self.strength)
         skey,_,sname = asset.rna
         prop = unquote(skey.name)
-        self.alias[asset.name] = prop
+        self.alias[prop] = skey.name
+        skey.name = prop
+        self.addNewProp(prop)
+        from .driver import makePropDriver
+        makePropDriver('sliders["%s"].value' % prop, skey, "value", self.rig, "x")
         return skey
 
 
@@ -697,41 +698,71 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         props = {}
         asset.evalFormulas(exprs, props, self.rig, self.mesh)
         for prop in props.keys():
-            if prop not in LS.morphsUsed:
-                self.addNewProp(prop, asset)
-        for output,expr in exprs.items():
-            for key in expr.keys():
-                if key == "value":
-                    self.makePropFormula(output, expr["value"])
-                elif key == "rotation":
-                    self.makeRotFormula(output, expr["rotation"])
-                elif key == "translation":
-                    self.makeTransFormula(output, expr["translation"])
-                elif key == "scale":
-                    self.makeTransFormula(output, expr["scale"])
+            self.addNewProp(prop)
+        for output,data in exprs.items():
+            print("BB", output, data)
+            for key,data1 in data.items():
+                for idx,expr in data1.items():
+                    if key == "value":
+                        self.makePropFormula(output, idx, expr)
+                    elif key == "rotation":
+                        self.makeRotFormula(output, idx, expr)
+                    elif key == "translation":
+                        self.makeTransFormula(output, idx, expr)
+                    elif key == "scale":
+                        self.makeTransFormula(output, idx, expr)
         return props,False
 
 
-    def addNewProp(self, prop, asset):
+    def addNewProp(self, prop):
+        if prop in self.morphsUsed:
+            return
         from .driver import setFloatProp
         from .modifier import addToMorphSet0
-        LS.morphsUsed.append(prop)
+        self.morphsUsed.append(prop)
         pgs = self.rig.sliders
         if prop in pgs.keys():
             removeFromPropGroup(pgs, prop)
         slider = pgs.add()
         slider.name = prop
         setActivated(self.rig, prop, True)
-        if asset.visible:
-            addToMorphSet0(self.rig, self.morphset, prop)
+        addToMorphSet0(self.rig, self.morphset, prop)
+        print("SLI", prop, slider)
 
 
-    def makePropFormula(self, output, expr):
-        prop = expr["prop"]
-        slider = self.rig.sliders[prop]
-        item = slider.targets.add()
-        item.name = output
-        item.f = expr["value"]
+    def makePropFormula(self, output, idx, expr):
+        print("PPP", output, idx)
+        print(expr)
+        self.addNewProp(output)
+        if expr["prop"]:
+            prop = expr["prop"]
+            slider = self.rig.sliders[prop]
+            item = slider.targets.add()
+            item.name = output
+            item.f = expr["factor"]
+        elif expr["bone"]:
+            from .formula import convertDualVector
+            from .driver import makeSimpleBoneDriver
+            bname = self.getRealBone(expr["bone"])
+            if bname is None:
+                print("Miss", bname)
+                return
+            pb = self.rig.pose.bones[bname]
+            vec = Vector((0,0,0))
+            vec[idx] = expr["factor"]
+            uvec = convertDualVector(vec, pb, False)
+            channel = 'sliders["%s"].value' % output
+            makeSimpleBoneDriver(uvec, self.rig.sliders[output], "value", self.rig, None, bname, -1, 0)
+
+
+    def getRealBone(self, bname):
+        from .bone import getTargetName
+        if (self.rig.data.DazExtraFaceBones or
+            self.rig.data.DazExtraDrivenBones):
+            dname = bname + "Drv"
+            if dname in self.rig.pose.bones.keys():
+                bname = dname
+        return getTargetName(bname, self.rig)
 
 
     def getBoneData(self, bname, expr):
@@ -741,30 +772,29 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         if bname is None:
             return
         pb = self.rig.pose.bones[bname]
-        value = expr["value"]
+        factor = expr["factor"]
         prop = expr["prop"]
         tfm = Transform()
-        return tfm, pb, prop, value
+        return tfm, pb, prop, factor
 
 
-    def makeRotFormula(self, bname, expr):
-        tfm,pb,prop,value = self.getBoneData(bname, expr)
-        tfm.setRot(self.strength*value, prop)
+    def makeRotFormula(self, bname, idx, expr):
+        tfm,pb,prop,factor = self.getBoneData(bname, expr)
+        tfm.setRot(self.strength*factor, prop, index=idx)
+        print("TROT", bname, idx, tfm)
         self.addPoseboneDriver(pb, tfm)
 
 
-    def makeTransFormula(self, bname, expr):
-        tfm,pb,prop,value = self.getBoneData(bname, expr)
-        tfm.setTrans(self.strength*value, prop)
+    def makeTransFormula(self, bname, idx, expr):
+        tfm,pb,prop,factor = self.getBoneData(bname, expr)
+        tfm.setTrans(self.strength*factor, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
 
-    def makeScaleFormula(self, bname, expr):
-        tfm,pb,prop,value = self.getBoneData(bname, expr)
-        tfm.setScale(self.strength*value, prop)
+    def makeScaleFormula(self, bname, idx, expr):
+        tfm,pb,prop,factor = self.getBoneData(bname, expr)
+        tfm.setScale(self.strength*factor, prop, False, index=idx)
         self.addPoseboneDriver(pb, tfm)
-
-
 
 
     def getDrivingObject(self):
@@ -774,54 +804,6 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             return self.mesh
         else:
             return None
-
-
-    def driveShapeWithProp(self, ob, prop, skey, asset, keep):
-        from .driver import makeShapekeyDriver
-        skeys = ob.data.shape_keys
-        min = skey.slider_min if GS.useDazPropLimits else None
-        max = skey.slider_max if GS.useDazPropLimits else None
-        value,mult = self.getShapeMultiplier(skey.name, asset, self.rig, ob)
-
-        if not asset.visible and self.rig:
-            varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, prop, self.depends,
-                min=min, max=max, factor=value, varname="a", keep=keep, mult=mult)
-            self.driveDependents(skeys, skey, prop, value, varname, min, max)
-        else:
-            prop = skey.name
-            if self.rig is None:
-                addToPropGroup(prop, ob, self.morphset, asset)
-            else:
-                varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, prop, self.depends,
-                    min=min, max=max, factor=value, varname="a", keep=keep, mult=mult)
-                addToPropGroup(prop, self.rig, self.morphset, asset)
-                self.driveDependents(skeys, skey, prop, value, varname, min, max)
-        self.taken[prop] = self.built[prop] = True
-
-
-    def driveDependents(self, skeys, skey, prop, value, varname, min, max):
-        from .driver import makeShapekeyDriver
-        if prop in self.depends.keys():
-            for (dep,val) in self.depends[prop]:
-                factor = val*value
-                varname = chr(ord(varname) + 1)
-                varname = makeShapekeyDriver(skeys, skey.name, skey.value, self.rig, dep, self.depends,
-                    min=min, max=max, factor=factor, varname=varname, keep=True)
-                varname = self.driveDependents(skeys, skey, dep, factor, varname, min, max)
-        return varname
-
-
-    def addSubshapes(self, prop):
-        from .driver import addToShapekeyDriver
-        skeys = self.mesh.data.shape_keys
-        if skeys is None:
-            print("addSubshapes no shapekeys", prop)
-            return
-        for factor,morph in self.shapes:
-            sname = morph.getName()
-            if sname not in skeys.key_blocks.keys():
-                skey,ob,sname = self.buildShapekey(morph)
-            addToShapekeyDriver(skeys, sname, self.rig, prop, factor, self.depends)
 
 
     def getActiveShape(self, asset):
@@ -852,11 +834,13 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
         xnamepaths = {
     'bs_EyeLookInLeft_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInLeft_div2.dsf',
-    'bs_EyeLookInRight_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInRight_div2.dsf',
     'EyeLookInLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInLeft.dsf',
+    'EyeLookSide-SideLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideLeft.dsf',
+    }
+        xnamepaths = {
+    'bs_EyeLookInRight_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInRight_div2.dsf',
     'EyeLookInRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInRight.dsf',
     'EyeLookSide-Side': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-Side.dsf',
-    'EyeLookSide-SideLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideLeft.dsf',
     'EyeLookSide-SideRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideRight.dsf'
 }
 
@@ -1580,7 +1564,7 @@ def clearMorphs(rig, morphset, category, scn, frame, force):
     morphs = getRelevantMorphs(rig, morphset, category)
     for morph in morphs:
         if getActivated(rig, rig, morph, force):
-            rig[morph] = 0.0
+            rig.sliders[morph].value = 0.0
             autoKeyProp(rig, morph, scn, frame, force)
 
 
@@ -2364,7 +2348,7 @@ class DAZ_OT_ToggleAllCats(DazOperator, IsMeshArmature):
 #-------------------------------------------------------------
 
 def keyProp(rig, key, frame):
-    rig.keyframe_insert('["%s"]' % key, frame=frame)
+    rig.keyframe_insert('sliders["%s"].value' % key, frame=frame)
 
 
 def keyShape(skeys, key, frame):
@@ -2373,7 +2357,7 @@ def keyShape(skeys, key, frame):
 
 def unkeyProp(rig, key, frame):
     try:
-        rig.keyframe_delete('["%s"]' % key, frame=frame)
+        rig.keyframe_delete('sliders["%s"].value' % key, frame=frame)
     except RuntimeError:
         print("No action to unkey %s" % key)
 
@@ -2406,7 +2390,7 @@ def autoKeyShape(skeys, key, scn, frame):
 def pinProp(rig, scn, key, morphset, category, frame):
     if rig:
         clearMorphs(rig, morphset, category, scn, frame, True)
-        rig[key] = 1.0
+        rig.sliders[key].value = 1.0
         autoKeyProp(rig, key, scn, frame, True)
 
 

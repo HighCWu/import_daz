@@ -157,15 +157,14 @@ class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, SingleGroup, IsArmat
 
 
     def createObjectVisibility(self, rig, ob, obname):
-        from .driver import makePropDriver, setBoolProp
+        from .driver import setBoolProp
         prop = getHidePropName(obname)
         setBoolProp(rig, prop, True, "Show %s" % prop)
-        makePropDriver(prop, ob, HideViewport, rig, expr="not(x)")
-        makePropDriver(prop, ob, "hide_render", rig, expr="not(x)")
+        self.makePropDriver(prop, ob, HideViewport, rig, expr="not(x)")
+        self.makePropDriver(prop, ob, "hide_render", rig, expr="not(x)")
 
 
     def createMaskVisibility(self, rig, ob, obnames):
-        from .driver import makePropDriver
         props = {}
         for obname in obnames:
             modname = getMaskName(obname)
@@ -175,8 +174,8 @@ class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, SingleGroup, IsArmat
             if (mod.type == 'MASK' and
                 mod.name in props.keys()):
                 prop = props[mod.name]
-                makePropDriver(prop, mod, "show_viewport", rig, expr="x")
-                makePropDriver(prop, mod, "show_render", rig, expr="x")
+                self.makePropDriver(prop, mod, "show_viewport", rig, expr="x")
+                self.makePropDriver(prop, mod, "show_render", rig, expr="x")
 
 
     def addCollections(self, context, rig, selected):
@@ -194,6 +193,11 @@ class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, SingleGroup, IsArmat
                 moveToCollection(ob, coll)
         rig.DazVisibilityCollections = True
         print("Visibility collections created")
+
+
+    def makePropDriver(self, prop, rna, channel, rig, expr):
+        from .driver import makePropDriver
+        makePropDriver('["%s"]' % prop, rna, channel, rig, expr)
 
 #------------------------------------------------------------------------
 #   Collections

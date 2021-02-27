@@ -413,7 +413,6 @@ class LocalSettings:
         self.hairMaterialMethod = GS.hairMaterialMethod
         self.useSkullGroup = False
 
-        self.morphsUsed = []
         self.usedFeatures = {
             "Bounces" : True,
             "Diffuse" : False,
