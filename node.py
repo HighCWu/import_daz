@@ -177,7 +177,7 @@ class Instance(Accessor, Channels):
                 ref = channel["node"]
                 node = self.getAsset(ref)
                 if node:
-                    self.node2 = node.getInstance(ref)
+                    self.node2 = node.getInstance(ref, None)
             elif channel["type"] == "bool":
                 words = channel["id"].split("_")
                 if (words[0] == "material" and words[1] == "group" and words[-1] == "vis"):
@@ -608,7 +608,7 @@ class Node(Asset, Formula, Channels):
         return Instance(fileref, self, struct)
 
 
-    def getInstance(self, ref, caller=None, strict=True):
+    def getInstance(self, ref, caller, strict=True):
         if caller is None:
             caller = self
         iref = instRef(ref)
