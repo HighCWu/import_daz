@@ -130,12 +130,12 @@ class Formula:
             return None,None,0
 
 
-    def evalFormulas(self, exprs, props, rig, mesh, useBone, useStages=False):
+    def evalFormulas(self, exprs, props, rig, mesh):
         from .modifier import Morph
         success = False
         stages = []
         for formula in self.formulas:
-            if self.evalFormula(formula, exprs, props, rig, mesh, useBone, useStages, stages):
+            if self.evalFormula(formula, exprs, props, rig, mesh, stages):
                 success = True
         if not success:
             if not self.formulas:
@@ -146,7 +146,7 @@ class Formula:
         return True
 
 
-    def evalFormula(self, formula, exprs, props, rig, mesh, useBone, useStages, stages):
+    def evalFormula(self, formula, exprs, props, rig, mesh, stages):
         from .bone import getTargetName
         from .modifier import ChannelAsset
 
@@ -154,7 +154,7 @@ class Formula:
         bname,channel = driven.split("?")
         bname = unquote(bname)
         if channel == "value":
-            if useBone and mesh is None:
+            if mesh is None:
                 if GS.verbosity > 2:
                     print("Cannot drive properties", bname)
                 return False
@@ -174,11 +174,10 @@ class Formula:
         if bname not in exprs.keys():
             exprs[bname] = {}
         if path not in exprs[bname].keys():
-            value = self.getDefaultValue(useBone, pb, default)
+            value = default
             mult = self.getMultiplyUrl(formula)
             exprs[bname][path] = {
                 "value" : value,
-                "others" : [],
                 "prop" : None,
                 "bone" : None,
                 "output" : formula["output"],
@@ -194,7 +193,7 @@ class Formula:
                 "output" : formula["output"],
                 "mult" : None}
             expr["others"].append(other)
-            expr["value"] = self.getDefaultValue(useBone, pb, default)
+            expr["value"] = default
 
         expr = exprs[bname][path]
         nops = 0
@@ -227,18 +226,11 @@ class Formula:
         op = last["op"]
         if op == "mult" and len(ops) == 3:
             value = ops[1]["val"]
-            addToStruct(LS.morphUses, url, driven, value)
-            addToStruct(LS.morphUsed, driven, url, value)
-            if not useBone:
-                if isinstance(expr["value"], Vector):
-                    expr["value"][idx] = value
-                else:
-                    expr["value"] = value
-            elif pb is None:
-                expr["value"][comp] = value
+            if isinstance(expr["value"], Vector):
+                expr["value"][idx] = value
             else:
-                expr["value"][idx][comp] = value
-        elif op == "push" and len(ops) == 1 and useStages:
+                expr["value"] = value
+        elif op == "push" and len(ops) == 1:
             bone,string = last["url"].split(":")
             url,channel = string.split("?")
             asset = self.getAsset(url)
@@ -265,7 +257,7 @@ class Formula:
                 exprs1 = {}
                 props1 = {}
                 if isinstance(asset, Formula):
-                    asset.evalFormulas(exprs1, props1, rig, mesh, useBone)
+                    asset.evalFormulas(exprs1, props1, rig, mesh)
                 elif isinstance(asset, ChannelAsset):
                     if GS.verbosity > 2:
                         print("Error stage formula: Channel")
@@ -299,19 +291,11 @@ class Formula:
         return None
 
 
-    def getDefaultValue(self, useBone, pb, default):
-        if not useBone:
-            return default
-        elif pb is None:
+    def getDefaultValue(self, pb, default):
+        if pb:
             return Vector((default, default, default))
         else:
-            try:
-                return Matrix((default, default, default))
-            except:
-                pass
-            msg = ("formula.py >> evalFormula()\n Failed to set value with default     \n %s" % default)
-            reportError(msg, trigger=(2,5))
-        return Matrix()
+            return default
 
 
     def multiplyStages(self, exprs, exprlist):
@@ -359,7 +343,7 @@ def buildBoneFormula(asset, rig, pbDriver, errors):
     from .driver import makeSimpleBoneDriver
 
     exprs = {}
-    asset.evalFormulas(exprs, None, rig, None, True)
+    asset.evalFormulas(exprs, None, rig, None)
 
     for driven,expr in exprs.items():
         if driven not in rig.pose.bones.keys():
@@ -387,7 +371,7 @@ class ShapeFormulas:
         exprs = {}
         props = {}
         if (ob and ob.type == 'MESH' and ob.data.shape_keys and
-            asset.evalFormulas(exprs, props, rig, ob, True, useStages=True)):
+            asset.evalFormulas(exprs, props, rig, ob)):
             return exprs, props
         else:
             return {}, {}
@@ -553,7 +537,7 @@ class PoseboneDriver:
         scale -= One
         success = False
         if (tfm.transProp and loc.length > 0.01*self.rig.DazScale):
-            self.setFcurves(pb, "", loc, tfm.transProp, "location")
+            self.setFcurves(pb, "", loc, tfm.transProp, "location", 0)
             success = True
         if tfm.rotProp:
             if Vector(quat.to_euler()).length < 1e-4:
@@ -561,17 +545,17 @@ class PoseboneDriver:
             elif pb.rotation_mode == 'QUATERNION':
                 value = Vector(quat)
                 value[0] = 1.0 - value[0]
-                self.setFcurves(pb, "1.0-", value, tfm.rotProp, "rotation_quaternion")
+                self.setFcurves(pb, "1.0-", value, tfm.rotProp, "rotation_quaternion", 0)
                 success = True
             else:
                 value = mat.to_euler(pb.rotation_mode)
-                self.setFcurves(pb, "", value, tfm.rotProp, "rotation_euler")
+                self.setFcurves(pb, "", value, tfm.rotProp, "rotation_euler", 0)
                 success = True
         if (tfm.scaleProp and scale.length > 1e-4):
-            self.setFcurves(pb, "", scale, tfm.scaleProp, "scale")
+            self.setFcurves(pb, "", scale, tfm.scaleProp, "scale", 1)
             success = True
         elif tfm.generalProp:
-            self.setFcurves(pb, "", scale, tfm.generalProp, "scale")
+            self.setFcurves(pb, "", scale, tfm.generalProp, "scale", 1)
             success = True
         return success
 
@@ -596,7 +580,7 @@ class PoseboneDriver:
                 return []
 
 
-    def setFcurves(self, pb, init, value, prop, channel):
+    def setFcurves(self, pb, init, value, prop, channel, default):
         path = '["%s"]' % prop
         key = channel[0:3].capitalize()
         fcurves = self.getBoneFcurves(pb, channel)
@@ -604,11 +588,11 @@ class PoseboneDriver:
             return
         for fcu in fcurves:
             idx = fcu.array_index
-            self.addCustomDriver(fcu, pb, init, value[idx], prop, key)
+            self.addCustomDriver(fcu, pb, init, value[idx], prop, key, default)
             init = ""
 
 
-    def addCustomDriver(self, fcu, pb, init, value, prop, key):
+    def addCustomDriver(self, fcu, pb, init, value, prop, key, default):
         from .driver import addTransformVar, driverHasVar
         fcu.driver.type = 'SCRIPTED'
         if abs(value) > 1e-4:
@@ -626,7 +610,7 @@ class PoseboneDriver:
                     fcu.driver.expression = drvexpr + "+" + expr
             fcu.driver.use_self = True
             pb.DazDriven = True
-            self.addMorphGroup(pb, fcu.array_index, key, prop, self.default, value)
+            self.addMorphGroup(pb, fcu.array_index, key, prop, default, value)
             if len(fcu.modifiers) > 0:
                 fmod = fcu.modifiers[0]
                 fcu.modifiers.remove(fmod)
@@ -676,7 +660,7 @@ class PropFormulas(PoseboneDriver):
         self.filepath = filepath
         exprs = {}
         props = {}
-        asset.evalFormulas(exprs, props, self.rig, None, False)
+        asset.evalFormulas(exprs, props, self.rig, None)
         if not props:
             if GS.verbosity > 3:
                 print("Cannot evaluate formula")
@@ -761,7 +745,7 @@ class PropFormulas(PoseboneDriver):
     def evalSubAsset(self, asset, subasset, level):
         subexprs = {}
         subprops = {}
-        subasset.evalFormulas(subexprs, subprops, self.rig, None, False)
+        subasset.evalFormulas(subexprs, subprops, self.rig, None)
         subopen = {}
         self.opencode(subexprs, asset, subopen, level+1)
         return (subexprs,subprops,subopen)

@@ -1290,7 +1290,7 @@ classes = [
     DAZ_OT_ListBones,
 ]
 
-def initialize():
+def register():
     bpy.types.Object.DazRigifyType = StringProperty(default="")
     bpy.types.Object.DazRigType = StringProperty(default="")
     bpy.types.Object.DazUseBreasts = BoolProperty(default=False)
@@ -1301,6 +1301,6 @@ def initialize():
         bpy.utils.register_class(cls)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)

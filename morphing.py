@@ -35,7 +35,7 @@ from .error import *
 from .utils import *
 from . import utils
 from .fileutils import SingleFile, MultiFile, DazImageFile, DatFile
-from .propgroups import DazTextGroup
+from .propgroups import DazTextGroup, DazFloatGroup
 
 #-------------------------------------------------------------
 #   Morph sets
@@ -572,15 +572,26 @@ class DAZ_OT_SelectAllMorphs(DazOperator):
             scn["Daz"+name] = self.value
 
 #------------------------------------------------------------------
-#   LoadMorph base class
+#   Slider class
 #------------------------------------------------------------------
 
-theLimitationsMessage = (
-'''
-Not all morphs were loaded correctly
-due to Blender limitations.
-See console for details.
-''')
+class Slider(bpy.types.PropertyGroup):
+    def sliderUpdate(self, context):
+        rig = context.object
+        for target in self.targets:
+            if target.name in rig.sliders:
+                rig.sliders[target.name].value += target.f*(self.value - self.value_k)
+        self.value_k = self.value
+        self.skipUpdate = False
+        return None
+
+    targets : CollectionProperty(type = DazFloatGroup)
+    value : FloatProperty(min=GS.propMin, max=GS.propMax, default=0.0, update=sliderUpdate, subtype='FACTOR')
+    value_k : FloatProperty(min=GS.propMin, max=GS.propMax, default=0.0)
+
+#------------------------------------------------------------------
+#   LoadMorph base class
+#------------------------------------------------------------------
 
 from .formula import PropFormulas, ShapeFormulas
 
@@ -630,7 +641,6 @@ class LoadMorph(PropFormulas, ShapeFormulas):
 
         struct = loadJson(filepath)
         asset = parseAssetFile(struct)
-        props = []
         if asset is None:
             if GS.verbosity > 1:
                 msg = ("Not a morph asset:\n  '%s'" % filepath)
@@ -640,109 +650,121 @@ class LoadMorph(PropFormulas, ShapeFormulas):
                     raise DazError(msg)
             return [],miss
 
-        skey = None
-        prop = None
-        drvprop = None
-        drvvalue = 1.0
-        self.shapes = []
-        isBoneDriven = False
-        if (self.useShapekeys and
-            isinstance(asset, Morph) and
-            self.mesh and
-            asset.deltas):
-            useBuild = True
-            skey = None
-            if asset.vertex_count < 0:
-                print("Vertex count == %d" % asset.vertex_count)
-            elif asset.vertex_count != len(self.mesh.data.vertices):
-                msg = ("Vertex count mismatch:\n  %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
-                if GS.verbosity > 2:
-                    print(msg)
-                if asset.hd_url:
-                    if self.treatHD == 'CREATE':
-                        useBuild = False
-                    elif self.treatHD == 'ACTIVE':
-                        skey,ob,sname = self.getActiveShape(asset)
-                if skey or not useBuild:
-                    pass
-                elif self.suppressError:
-                    return [],miss
-                else:
-                    raise DazError(msg)
-            if skey is None:
-                skey,ob,sname = self.buildShapekey(asset, useBuild)
-            if skey:
-                prop = unquote(skey.name)
-                self.alias[asset.name] = prop
-            if (skey and
-                self.rig and
-                (self.useBoneDrivers or not asset.visible)):
-                removeFromPropGroups(self.rig, prop)
-                isBoneDriven,drvprop,drvvalue = self.buildShapeFormula(asset, scn, self.rig, self.mesh)
-                if isBoneDriven:
-                    addToMorphSet0(self.mesh, "Standardjcms", prop)
-                elif self.useShapekeysOnly:
-                    print("Could not build shape formula (1)", skey.name)
-            if ((not isBoneDriven or self.useDoubleDrivers) and
-                (self.usePropDrivers or self.useSkeysCats)):
-                if drvprop is None:
-                    drvprop = prop
-                self.driveShapeWithProp(ob, drvprop, skey, asset, isBoneDriven)
-                if prop:
-                    props = [prop]
-
-        if self.usePropDrivers and self.rig:
-            if isBoneDriven:
-                pass
-            elif isinstance(asset, FormulaAsset) and asset.formulas:
-                if not self.useShapekeysOnly:
-                    if drvprop == prop or drvprop is None:
-                        prop = asset.clearProp(self.morphset, self.rig)
-                        drvprop = prop
-                        self.taken[prop] = False
-                        fresh = True
-                    else:
-                        asset.id = drvprop
-                        if drvvalue != 1.0:
-                            print("Warn driving value: %s %s %f" % (prop, drvprop, drvvalue))
-                        fresh = False
-                    props = self.buildPropFormula(asset, filepath, fresh)
-                    if not props:
-                        miss = True
-                    elif self.shapes:
-                        self.addSubshapes(prop)
-            elif isinstance(asset, Morph) and asset.deltas:
-                pass
-            elif isinstance(asset, ChannelAsset) and not self.useShapekeysOnly:
-                prop = asset.clearProp(self.morphset, self.rig)
-                self.taken[prop] = False
-                props = []
-                miss = True
-
-        if props:
-            for prop in props:
-                setActivated(self.rig, prop, True)
-            return props,False
-        elif skey:
-            if isBoneDriven:
-                return [],False
-            else:
-                prop = skey.name
-                setActivated(self.mesh, prop, True)
-                return [prop],miss
-        else:
-            return [],miss
+        skey = self.buildShapekey(asset)
+        prop = self.buildFormulas(asset)
+        return [prop],miss
 
 
     def buildShapekey(self, asset, useBuild=True):
-        if asset.rna:
-            return asset.rna
-        asset.buildMorph(self.mesh,
-                         useBuild=useBuild,
-                         useSoftLimits=self.useSoftLimits,
-                         morphset=self.morphset,
-                         strength=self.strength)
-        return asset.rna
+        from .modifier import Morph
+        if not (isinstance(asset, Morph) and
+                self.mesh and
+                asset.deltas):
+            return None
+        useBuild = True
+        if asset.vertex_count < 0:
+            print("Vertex count == %d" % asset.vertex_count)
+        elif asset.vertex_count != len(self.mesh.data.vertices):
+            msg = ("Vertex count mismatch:\n  %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
+            if GS.verbosity > 2:
+                print(msg)
+            if asset.hd_url:
+                if self.treatHD == 'CREATE':
+                    useBuild = False
+                elif self.treatHD == 'ACTIVE':
+                    skey = self.getActiveShape(asset)
+            if useBuild and not skey:
+                return None
+        if not asset.rna:
+            asset.buildMorph(self.mesh,
+                             useBuild=useBuild,
+                             useSoftLimits=self.useSoftLimits,
+                             morphset=self.morphset,
+                             strength=self.strength)
+        skey,_,sname = asset.rna
+        prop = unquote(skey.name)
+        self.alias[asset.name] = prop
+        return skey
+
+
+    def buildFormulas(self, asset):
+        from .formula import Formula
+        if not isinstance(asset, Formula):
+            print("Not a formula", asset)
+            return
+
+        exprs = {}
+        props = {}
+        asset.evalFormulas(exprs, props, self.rig, self.mesh)
+        for prop in props.keys():
+            if prop not in LS.morphsUsed:
+                self.addNewProp(prop, asset)
+        for output,expr in exprs.items():
+            for key in expr.keys():
+                if key == "value":
+                    self.makePropFormula(output, expr["value"])
+                elif key == "rotation":
+                    self.makeRotFormula(output, expr["rotation"])
+                elif key == "translation":
+                    self.makeTransFormula(output, expr["translation"])
+                elif key == "scale":
+                    self.makeTransFormula(output, expr["scale"])
+        return props,False
+
+
+    def addNewProp(self, prop, asset):
+        from .driver import setFloatProp
+        from .modifier import addToMorphSet0
+        LS.morphsUsed.append(prop)
+        pgs = self.rig.sliders
+        if prop in pgs.keys():
+            removeFromPropGroup(pgs, prop)
+        slider = pgs.add()
+        slider.name = prop
+        setActivated(self.rig, prop, True)
+        if asset.visible:
+            addToMorphSet0(self.rig, self.morphset, prop)
+
+
+    def makePropFormula(self, output, expr):
+        prop = expr["prop"]
+        slider = self.rig.sliders[prop]
+        item = slider.targets.add()
+        item.name = output
+        item.f = expr["value"]
+
+
+    def getBoneData(self, bname, expr):
+        from .bone import getTargetName
+        from .transform import Transform
+        bname = getTargetName(bname, self.rig)
+        if bname is None:
+            return
+        pb = self.rig.pose.bones[bname]
+        value = expr["value"]
+        prop = expr["prop"]
+        tfm = Transform()
+        return tfm, pb, prop, value
+
+
+    def makeRotFormula(self, bname, expr):
+        tfm,pb,prop,value = self.getBoneData(bname, expr)
+        tfm.setRot(self.strength*value, prop)
+        self.addPoseboneDriver(pb, tfm)
+
+
+    def makeTransFormula(self, bname, expr):
+        tfm,pb,prop,value = self.getBoneData(bname, expr)
+        tfm.setTrans(self.strength*value, prop)
+        self.addPoseboneDriver(pb, tfm)
+
+
+    def makeScaleFormula(self, bname, expr):
+        tfm,pb,prop,value = self.getBoneData(bname, expr)
+        tfm.setScale(self.strength*value, prop)
+        self.addPoseboneDriver(pb, tfm)
+
+
 
 
     def getDrivingObject(self):
@@ -850,10 +872,6 @@ class LoadMorph(PropFormulas, ShapeFormulas):
         self.suppressError = (npaths > 1)
         passidx = 1
         missing = self.getPass(passidx, list(namepaths.items()), scn)
-        others = self.buildOthers(missing)
-        for prop in others:
-            setActivated(self.rig, prop, True)
-        self.buildUsedMorphs()
         missing = [key for key in missing.keys() if missing[key]]
         if missing:
             print("Failed to load the following %d morphs:\n%s\n" % (len(missing), missing))
@@ -890,81 +908,6 @@ class LoadMorph(PropFormulas, ShapeFormulas):
             else:
                 print("-", name)
         return missing
-
-
-    def printTabs(self):
-        print("USES")
-        for data in LS.morphUses.items():
-            print(data)
-        print("USED")
-        for data in LS.morphUsed.items():
-            print(data)
-
-
-    def buildUsedMorphs(self):
-        return
-        #self.printTabs()
-        if self.mesh:
-            skeys = self.mesh.data.shape_keys
-            if skeys is None:
-                return
-            exprs = {}
-            props = {}
-            varnames = {}
-            for channel in LS.morphUsed.keys():
-                prop = self.getChannelProp(channel)
-                if (prop and
-                    self.isShapeMorph(prop) and
-                    prop in skeys.key_blocks.keys()):
-                    exprs[prop] = ""
-                    props[prop] = {}
-                    varnames[prop] = "J"
-            for channel,used in LS.morphUsed.items():
-                if self.isTransform(channel):
-                    users = []
-                    self.buildUsers(channel, 1, used, users, exprs, props, varnames)
-            for prop in exprs.keys():
-                print("LL", prop, exprs[prop])
-                for data in props[prop].items():
-                    print("  ", data)
-
-
-    def buildUsers(self, channel, val, used, users, exprs, props, varnames):
-        for channel2,val2 in used.items():
-            users.append(channel2)
-            self.buildUses(channel2, val*val2, LS.morphUses[channel2], users, exprs, props, varnames)
-            if channel2 in LS.morphUsed.keys():
-                self.buildUsers(channel2, val*val2, LS.morphUsed[channel2], [], exprs, props, varnames)
-
-
-    def buildUses(self, channel, val, uses, users, exprs, props, varnames):
-        prop = self.getChannelProp(channel)
-        if prop and prop in exprs.keys():
-            for channel2 in users:
-                prop2 = self.getChannelProp(channel2)
-                if prop2 is None:
-                    continue
-                elif prop2 in props[prop].keys():
-                    continue
-                elif self.isShapeMorph(prop2):
-                    continue
-                varname = varnames[prop] = chr(ord(varnames[prop])+1)
-                if val > 0:
-                    sgn = "+"
-                else:
-                    sgn = ""
-                exprs[prop] += "%s%g*%s" % (sgn, val, varname)
-                props[prop][prop2] = varname
-        else:
-            for channel2,val2 in uses.items():
-                if channel2 in LS.morphUses.keys():
-                    uses2 = LS.morphUses[channel2]
-                else:
-                    uses2 = {}
-                #if self.isTransform(channel2):
-                #    val2 = 1
-                #print("LOO", channel, channel2, uses2, val2)
-                self.buildUses(channel2, val*val2, uses2, users, exprs, props, varnames)
 
 
     def isShapeMorph(self, prop):
@@ -2686,6 +2629,7 @@ class DAZ_OT_MeshToShape(DazOperator, IsMesh):
 #-------------------------------------------------------------
 
 classes = [
+    Slider,
     DazSelectGroup,
     DazActiveGroup,
     DazCategory,
@@ -2736,9 +2680,11 @@ classes = [
     DAZ_OT_MeshToShape,
 ]
 
-def initialize():
+def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+
+    bpy.types.Object.sliders = bpy.props.CollectionProperty(type=Slider)
 
     bpy.types.Object.DazCustomMorphs = BoolProperty(default = False)
     bpy.types.Object.DazMeshMorphs = BoolProperty(default = False)
@@ -2766,7 +2712,7 @@ def initialize():
     bpy.types.Object.DazPropNames = CollectionProperty(type = DazTextGroup)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 

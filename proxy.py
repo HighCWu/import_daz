@@ -1621,14 +1621,14 @@ classes = [
     DAZ_OT_MakeDeflection,
 ]
 
-def initialize():
+def register():
     bpy.types.Object.DazMannequin = BoolProperty(default = False)
 
     for cls in classes:
         bpy.utils.register_class(cls)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 

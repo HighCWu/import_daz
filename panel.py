@@ -540,10 +540,11 @@ class DAZ_PT_Morphs:
 
     def displayProp(self, morph, category, rig, layout, scn):
         key = morph.name
-        if key not in rig.keys():
+        if key not in rig.sliders.keys():
             return
         row = layout.split(factor=0.8)
-        row.prop(rig, '["%s"]' % key, text=morph.text)
+        #row.prop(rig, '["%s"]' % key, text=morph.text)
+        row.prop(rig.sliders[key], "value", text=morph.text)
         self.showBool(row, rig, key)
         op = row.operator("daz.pin_prop", icon='UNPINNED')
         op.key = key
@@ -1055,11 +1056,11 @@ classes = [
 ]
 
 
-def initialize():
+def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)

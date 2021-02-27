@@ -835,7 +835,7 @@ classes = [
     DAZ_OT_ReplaceShells,
 ]
 
-def initialize():
+def register():
     from .propgroups import DazFloatGroup
     from .morphing import DazActiveGroup
 
@@ -859,6 +859,6 @@ def initialize():
         description = "Type of materials to tweak")
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)

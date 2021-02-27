@@ -1019,13 +1019,13 @@ classes = [
     DAZ_OT_EnableDrivers,
 ]
 
-def initialize():
+def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.Object.DazDriversDisabled = BoolProperty(default=False)
     bpy.types.Object.DazDisabledDrivers = CollectionProperty(type = DazDriverGroup)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)

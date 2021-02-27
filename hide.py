@@ -416,7 +416,7 @@ classes = [
     DAZ_OT_ToggleVis,
 ]
 
-def initialize():
+def register():
     bpy.types.Object.DazVisibilityDrivers = BoolProperty(default = False)
     bpy.types.Object.DazVisibilityCollections = BoolProperty(default = False)
 
@@ -424,7 +424,7 @@ def initialize():
         bpy.utils.register_class(cls)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 

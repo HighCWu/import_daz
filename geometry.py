@@ -1257,7 +1257,7 @@ classes = [
     DAZ_OT_LimitVertexGroups,
 ]
 
-def initialize():
+def register():
     from .propgroups import DazIntGroup, DazFloatGroup, DazPairGroup, DazRigidityGroup, DazStringStringGroup, DazTextGroup
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -1273,6 +1273,6 @@ def initialize():
     bpy.types.Mesh.DazHairType = StringProperty(default = 'SHEET')
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)

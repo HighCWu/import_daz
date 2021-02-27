@@ -384,7 +384,7 @@ classes = [
 ]
 
 
-def initialize():
+def register():
 
     bpy.types.Scene.DazContentDirs = CollectionProperty(
         type = bpy.types.PropertyGroup,
@@ -718,7 +718,7 @@ def initialize():
         bpy.utils.register_class(cls)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 

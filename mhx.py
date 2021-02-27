@@ -1571,13 +1571,13 @@ classes = [
     DAZ_OT_ReinitMhxProps,
 ]
 
-def initialize():
+def register():
     bpy.types.Object.DazMhxLegacy = BoolProperty(default = True)
     initMhxProps()
     for cls in classes:
         bpy.utils.register_class(cls)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)

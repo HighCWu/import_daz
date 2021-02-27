@@ -1467,7 +1467,7 @@ classes = [
     DAZ_OT_CopyDazProps,
 ]
 
-def initialize():
+def register():
     bpy.types.Object.DazCustomShapes = BoolProperty(default=False)
     bpy.types.Object.DazSimpleIK = BoolProperty(default=False)
     bpy.types.Object.DazArmIK_L = FloatProperty(name="Left Arm IK", default=0.0, precision=3, min=0.0, max=1.0)
@@ -1479,6 +1479,6 @@ def initialize():
         bpy.utils.register_class(cls)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)

@@ -87,9 +87,9 @@ class DazMorphGroup(bpy.types.PropertyGroup, DazMorphGroupProps):
 
     def eval(self, rig):
         if self.simple:
-            return self.factor*(rig[self.name]-self.default)
+            return self.factor*(rig.sliders[self.name].value - self.default)
         else:
-            value = rig[self.name]-self.default
+            value = rig.sliders[self.name].value - self.default
             return (self.factor*(value > 0) + self.factor2*(value < 0))*value
 
     def display(self):
@@ -373,7 +373,7 @@ classes = [
     DAZ_OT_InspectWorldMatrix,
     ]
 
-def initialize():
+def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
@@ -395,6 +395,6 @@ def initialize():
     bpy.app.handlers.load_post.append(updateHandler)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)

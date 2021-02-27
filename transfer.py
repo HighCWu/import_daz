@@ -876,11 +876,11 @@ classes = [
     DAZ_OT_MixShapekeys,
 ]
 
-def initialize():
+def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
 
-def uninitialize():
+def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
