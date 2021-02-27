@@ -453,7 +453,7 @@ class PoseLibOptions:
         default = "PoseLib")
 
 
-class AnimatorBase(MultiFile, FrameConverter, AffectOptions, PoseboneDriver, IsMeshArmature):
+class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, PoseboneDriver, IsMeshArmature):
     filename_ext = ".duf"
     filter_glob : StringProperty(default = G.theDazDefaults + G.theImagedDefaults, options={'HIDDEN'})
     lockMeshes = False
