@@ -90,6 +90,7 @@ class GlobalSettings:
         self.propMax = 1.0
         self.useDazPropLimits = True
         self.useDazPropDefault = True
+        self.usePythonDrivers = True
 
         self.useLockLoc = True
         self.useLimitLoc = True
@@ -138,6 +139,7 @@ class GlobalSettings:
         "DazPropMax" : "propMax",
         "DazUsePropLimits" : "useDazPropLimits",
         "DazUsePropDefault" : "useDazPropDefault",
+        "DazUsePythonDrivers" : "usePythonDrivers",
 
         "DazOrientMethod" : "orientMethod",
         "DazUseLegacyLocks" : "useLegacyLocks",

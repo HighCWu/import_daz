@@ -176,7 +176,7 @@ def makeDriver(name, rna, channel, idx, attr, factor, rig):
 
     for n,drv in enumerate(attr.drivers.values()):
         asset = drv[0].asset
-        addDriverVar(fcu, "x%d" % (n+1), propPath(asset.name), rig)
+        addDriverVar(fcu, "x%d" % (n+1), propRef(asset.name), rig)
 
 #-------------------------------------------------------------
 #   Bone drivers
@@ -415,7 +415,7 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
                     varstr += "+%s" % varname
                 else:
                     varstr += "+%g*%s" % (factor,varname)
-                addDriverVar(fcu, varname, propPath(key), rig)
+                addDriverVar(fcu, varname, propRef(key), rig)
             return varstr + ")", varname
         else:
             return varname, varname
@@ -437,7 +437,7 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
                 msg = ("Shapekey %s     \nis driven by too many properties" % sname)
                 raise DazError(msg)
             varname = vname
-            addDriverVar(fcu, varname, propPath(prop), rig)
+            addDriverVar(fcu, varname, propRef(prop), rig)
         else:
             #print("Shapekey %s already driven by %s" % (sname, prop))
             return varname
@@ -449,12 +449,12 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
     else:
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
-        addDriverVar(fcu, varname, propPath(prop), rig)
+        addDriverVar(fcu, varname, propRef(prop), rig)
         varstr,varname = getVarString(prop, depends, varname, fcu, rig)
         expr = "%s%s" % (facstr, varstr)
     if mult:
         varname = chr(ord(varname) + 1)
-        addDriverVar(fcu, varname, propPath(mult), rig)
+        addDriverVar(fcu, varname, propRef(mult), rig)
         varstr,varname = getVarString(mult, depends, varname, fcu, rig)
         if expr[0] == "(":
             expr = "%s*%s" % (varstr, expr)
@@ -483,7 +483,7 @@ def addVarToDriver(fcu, rig, prop, factor):
     else:
         facstr = "%g*"
     fcu.driver.expression = expr + ("+%s%s" % (facstr, vname))
-    addDriverVar(fcu, vname, propPath(prop), rig)
+    addDriverVar(fcu, vname, propRef(prop), rig)
 
 
 #-------------------------------------------------------------

@@ -278,7 +278,7 @@ def isVector(value):
     return (hasattr(value, "__len__") and len(value) >= 3)
 
 
-def propPath(prop):
+def propRef(prop):
     return '["%s"]' % prop
 
 

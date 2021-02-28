@@ -632,6 +632,7 @@ class LoadMorph(PoseboneDriver):
         self.makeAllMorphs(list(namepaths.items()))
         self.makeSubProps()
         self.makeShapekeyDrivers()
+        self.makeSumDrivers()
         updateDrivers(self.rig)
         updateDrivers(self.mesh)
         finishMain("Folder", folder, t1)
@@ -651,6 +652,7 @@ class LoadMorph(PoseboneDriver):
         self.subprops = {}
         self.bdrivers = {}
         self.mults = {}
+        self.sumdrivers = {}
         namepaths.sort()
         idx = 0
         npaths = len(namepaths)
@@ -673,13 +675,13 @@ class LoadMorph(PoseboneDriver):
     def makeFinalDriver(self, raw, subraws, mults):
         from .driver import addDriverVar
         final = self.getFinalProp(raw)
-        channel = propPath(final)
+        channel = propRef(final)
         self.rig.driver_remove(channel)
         fcu = self.rig.driver_add(channel)
         fcu.driver.type = 'SCRIPTED'
         varname = "a"
         expr = varname
-        addDriverVar(fcu, varname, propPath(raw), self.rig)
+        addDriverVar(fcu, varname, propRef(raw), self.rig)
         for subraw,factor in subraws:
             subfinal = self.getFinalProp(subraw)
             varname = chr(ord(varname) + 1)
@@ -689,14 +691,14 @@ class LoadMorph(PoseboneDriver):
                 expr += "-%s" % varname
             else:
                 expr += "+%g*%s" % (factor, varname)
-            addDriverVar(fcu, varname, propPath(subfinal), self.rig)
+            addDriverVar(fcu, varname, propRef(subfinal), self.rig)
         if mults:
             expr = "(%s)" % expr
             varname = "A"
             for mult in mults:
                 expr += "*%s" % varname
                 multfinal = self.getFinalProp(mult)
-                addDriverVar(fcu, varname, propPath(multfinal), self.rig)
+                addDriverVar(fcu, varname, propRef(multfinal), self.rig)
                 varname = chr(ord(varname) + 1)
         fcu.driver.expression = expr
 
@@ -886,6 +888,41 @@ class LoadMorph(PoseboneDriver):
                 skey = skeys.key_blocks[output]
                 for bname,expr in bdrivers:
                     makeSomeBoneDriver(expr, skey, "value", self.rig, skeys, bname, -1)
+
+
+    def makeSumDrivers(self):
+        from .driver import setFloatProp, addDriverVar
+        print("Making sum drivers")
+        for bname,data in self.sumdrivers.items():
+            print("BNN", bname)
+            for channel,kdata in data.items():
+                print("KNN", channel)
+                for idx,idata in kdata.items():
+                    pb,fcu0,dlist = idata
+                    print("KKK", channel, idx, pb, fcu0)
+                    pb.driver_remove(channel, idx)
+                    sumfcu = pb.driver_add(channel, idx)
+                    sumfcu.driver.type = 'SUM'
+                    print("SS", sumfcu)
+                    for n,data in enumerate(dlist):
+                        value,key,prop,default = data
+                        print(value,key,prop,default)
+                        drvprop = self.getSumDriverName(prop, key, idx)
+                        print("DP", drvprop)
+                        #setFloatProp(self.rig, drvprop, 0, 0, 1)
+                        pb[drvprop] = 0.0
+                        path = propRef(drvprop)
+                        pb.driver_remove(path)
+                        fcu = pb.driver_add(path)
+                        fcu.driver.type = 'SCRIPTED'
+                        fcu.driver.expression = "%g*x-%d" % (value, default)
+                        addDriverVar(fcu, "x", propRef(prop), self.rig)
+                        drvpath = 'pose.bones["%s"]["%s"]' % (pb.name, drvprop)
+                        addDriverVar(sumfcu, "x%.03d" % n, drvpath, self.rig)
+
+
+    def getSumDriverName(self, prop, key, idx):
+        return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
 
 
     def getDrivingObject(self):

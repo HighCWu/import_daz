@@ -382,12 +382,6 @@ def getDrivenComp(vec):
 #-------------------------------------------------------------
 
 class PoseboneDriver:
-    def __init__(self, rig):
-        self.rig = rig
-        self.errors = {}
-        self.default = None
-
-
     def addPoseboneDriver(self, pb, tfm):
         from .node import getBoneMatrix
         mat = getBoneMatrix(tfm, pb)
@@ -401,13 +395,13 @@ class PoseboneDriver:
             if Vector(quat.to_euler()).length < 1e-4:
                 pass
             elif pb.rotation_mode == 'QUATERNION':
-                value = Vector(quat)
-                value[0] = 1.0 - value[0]
-                self.setFcurves(pb, "1.0-", value, tfm.rotProp, "rotation_quaternion", 0)
+                vec = Vector(quat)
+                vec[0] = 1.0 - vec[0]
+                self.setFcurves(pb, "1.0-", vec, tfm.rotProp, "rotation_quaternion", 0)
                 success = True
             else:
-                value = mat.to_euler(pb.rotation_mode)
-                self.setFcurves(pb, "", value, tfm.rotProp, "rotation_euler", 0)
+                euler = mat.to_euler(pb.rotation_mode)
+                self.setFcurves(pb, "", euler, tfm.rotProp, "rotation_euler", 0)
                 success = True
         if (tfm.scaleProp and scale.length > 1e-4):
             self.setFcurves(pb, "", scale, tfm.scaleProp, "scale", 1)
@@ -438,40 +432,53 @@ class PoseboneDriver:
                 return []
 
 
-    def setFcurves(self, pb, init, value, prop, channel, default):
-        path = '["%s"]' % prop
+    def setFcurves(self, pb, init, vec, prop, channel, default):
         key = channel[0:3].capitalize()
         fcurves = self.getBoneFcurves(pb, channel)
         if len(fcurves) == 0:
             return
         for fcu in fcurves:
             idx = fcu.array_index
-            self.addCustomDriver(fcu, pb, init, value[idx], prop, key, default)
-            init = ""
+            value = vec[idx]
+            if abs(value) > 1e-4:
+                if GS.usePythonDrivers:
+                    self.addPythonDriver(fcu, init, value, key)
+                else:
+                    self.addSumDriver(pb, idx, channel, fcu, (value, key, prop, default))
+                pb.DazDriven = True
+                self.addMorphGroup(pb, idx, key, prop, default, value)
+                if len(fcu.modifiers) > 0:
+                    fmod = fcu.modifiers[0]
+                    fcu.modifiers.remove(fmod)
 
 
-    def addCustomDriver(self, fcu, pb, init, value, prop, key, default):
+    def addPythonDriver(self, fcu, init, value, key):
         from .driver import addTransformVar, driverHasVar
         fcu.driver.type = 'SCRIPTED'
-        if abs(value) > 1e-4:
-            expr = 'evalMorphs%s%d(self)' % (key, fcu.array_index)
-            drvexpr = fcu.driver.expression[len(init):]
-            if drvexpr in ["0.000", "-0.000"]:
-                if init:
-                    fcu.driver.expression = init + "+" + expr
-                else:
-                    fcu.driver.expression = expr
-            elif expr not in drvexpr:
-                if init:
-                    fcu.driver.expression = init + "(" + drvexpr + "+" + expr + ")"
-                else:
-                    fcu.driver.expression = drvexpr + "+" + expr
+        expr = 'evalMorphs%s%d(self)' % (key, fcu.array_index)
+        drvexpr = fcu.driver.expression[len(init):]
+        if drvexpr in ["0.000", "-0.000"]:
+            if init:
+                fcu.driver.expression = init + "+" + expr
+            else:
+                fcu.driver.expression = expr
+        elif expr not in drvexpr:
+            if init:
+                fcu.driver.expression = init + "(" + drvexpr + "+" + expr + ")"
+            else:
+                fcu.driver.expression = drvexpr + "+" + expr
             fcu.driver.use_self = True
-            pb.DazDriven = True
-            self.addMorphGroup(pb, fcu.array_index, key, prop, default, value)
-            if len(fcu.modifiers) > 0:
-                fmod = fcu.modifiers[0]
-                fcu.modifiers.remove(fmod)
+
+
+    def addSumDriver(self, pb, idx, channel, fcu, data):
+        bname = pb.name
+        if bname not in self.sumdrivers.keys():
+            self.sumdrivers[bname] = {}
+        if channel not in self.sumdrivers[bname].keys():
+            self.sumdrivers[bname][channel] = {}
+        if idx not in self.sumdrivers[bname][channel].keys():
+            self.sumdrivers[bname][channel][idx] = (pb, fcu, [])
+        self.sumdrivers[bname][channel][idx][2].append(data)
 
 
     def clearProp(self, pgs, prop, idx):
