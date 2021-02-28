@@ -656,7 +656,6 @@ class FormulaAsset(Formula, ChannelAsset):
     def build(self, context, inst):
         if not LS.useMorph:
             return
-        Formula.prebuild(self, context, inst)
         Formula.build(self, context, inst)
 
 
@@ -743,7 +742,7 @@ class Morph(FormulaAsset):
         if len(self.deltas) == 0:
             print("Morph without deltas: %s" % self.name)
             return self
-        Formula.prebuild(self, context, inst)
+        Formula.build(self, context, inst)
         Modifier.build(self, context)
 
         if isinstance(inst, FigureInstance):

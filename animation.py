@@ -34,7 +34,6 @@ from .error import *
 from .utils import *
 from .transform import Transform
 from .globvars import theDazExtensions
-from .formula import PoseboneDriver
 from .fileutils import MultiFile
 
 #-------------------------------------------------------------
@@ -453,7 +452,7 @@ class PoseLibOptions:
         default = "PoseLib")
 
 
-class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, PoseboneDriver, IsMeshArmature):
+class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsMeshArmature):
     filename_ext = ".duf"
     filter_glob : StringProperty(default = G.theDazDefaults + G.theImagedDefaults, options={'HIDDEN'})
     lockMeshes = False
@@ -480,7 +479,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, Pos
 
 
     def invoke(self, context, event):
-        PoseboneDriver.__init__(self, context.object)
         return MultiFile.invoke(self, context, event)
 
 
