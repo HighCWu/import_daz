@@ -233,6 +233,8 @@ class Formula:
             return False
 
         if "stage" in formula.keys() and len(stages) > 1:
+            print("STAGE", formula)
+            halt
             exprlist = []
             proplist = []
             for asset,bone,channel in stages:
@@ -257,7 +259,6 @@ class Formula:
 
             if formula["stage"] == "mult":
                 self.multiplyStages(exprs, exprlist)
-                #self.multiplyStages(props, proplist)
 
         return True
 

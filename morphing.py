@@ -650,6 +650,7 @@ class LoadMorph(PoseboneDriver):
         self.shapekeys = {}
         self.subprops = {}
         self.bdrivers = {}
+        self.mults = {}
         namepaths.sort()
         idx = 0
         npaths = len(namepaths)
@@ -663,10 +664,13 @@ class LoadMorph(PoseboneDriver):
     def makeSubProps(self):
         print("Making subprops")
         for raw, subraws in self.subprops.items():
-            self.makeFinalDriver(raw, subraws)
+            mults = []
+            if raw in self.mults.keys():
+                mults = self.mults[raw]
+            self.makeFinalDriver(raw, subraws, mults)
 
 
-    def makeFinalDriver(self, raw, subraws):
+    def makeFinalDriver(self, raw, subraws, mults):
         from .driver import addDriverVar
         final = self.getFinalProp(raw)
         channel = propPath(final)
@@ -686,6 +690,14 @@ class LoadMorph(PoseboneDriver):
             else:
                 expr += "+%g*%s" % (factor, varname)
             addDriverVar(fcu, varname, propPath(subfinal), self.rig)
+        if mults:
+            expr = "(%s)" % expr
+            varname = "A"
+            for mult in mults:
+                expr += "*%s" % varname
+                multfinal = self.getFinalProp(mult)
+                addDriverVar(fcu, varname, propPath(multfinal), self.rig)
+                varname = chr(ord(varname) + 1)
         fcu.driver.expression = expr
 
 
@@ -796,6 +808,12 @@ class LoadMorph(PoseboneDriver):
             self.addNewProp(output)
             prop = expr["prop"]
             self.subprops[output].append((prop, expr["factor"]))
+        if expr["mult"]:
+            if output not in self.mults.keys():
+                self.mults[output] = []
+            mult = expr["mult"]
+            self.mults[output].append(mult)
+            self.addNewProp(mult)
         if expr["bone"]:
             bname = self.getRealBone(expr["bone"])
             if bname:
@@ -803,7 +821,7 @@ class LoadMorph(PoseboneDriver):
                     self.bdrivers[output] = []
                 self.bdrivers[output].append((bname, expr))
             else:
-                print("Miss", bname)
+                print("Missing bone:", expr["bone"])
 
 
     def getRealBone(self, bname):
@@ -831,6 +849,9 @@ class LoadMorph(PoseboneDriver):
 
 
     def getFinalProp(self, prop):
+        if len(prop) < 2:
+            print("SING", prop)
+            halt
         return "%s(fin)" % prop
 
 
