@@ -298,21 +298,30 @@ def getRefKey(string):
 
 def buildBoneFormula(asset, rig, errors):
 
-    def buildChannel(exprs, pbDriven, channel, default):
-        from .driver import makeSimpleBoneDriver
+    def buildChannel(exprs, pb, channel, default):
+        from .driver import makeSimpleBoneDriver, makeTermDriver, addDriverVar
         for idx,expr in exprs.items():
+            if not GS.usePythonDrivers:
+                sumfcu = pb.driver_add(channel, idx)
+                sumfcu.driver.type = 'SUM'
             factor = expr["factor"]
             driver = expr["bone"]
             comp = expr["comp"]
             if factor and driver in rig.pose.bones.keys():
                 pbDriver = rig.pose.bones[driver]
-                if pbDriver.parent == pbDriven:
-                    print("Dependency loop: %s %s" % (pbDriver.name, pbDriven.name))
+                if pbDriver.parent == pb:
+                    print("Dependency loop: %s %s" % (pbDriver.name, pb.name))
                 else:
                     uvec = getBoneVector(factor*D, comp, pbDriver)
-                    dvec = getBoneVector(1, idx, pbDriven)
+                    dvec = getBoneVector(1, idx, pb)
                     idx2,sign,x = getDrivenComp(dvec)
-                    makeSimpleBoneDriver(sign*uvec, pbDriven, "rotation_euler", rig, None, driver, idx2)
+                    if GS.usePythonDrivers:
+                        makeSimpleBoneDriver(sign*uvec, pb, "rotation_euler", rig, None, driver, idx2)
+                    else:
+                        path2 = 'pose.bones["%s"].rotation_euler' % driver
+                        path = makeTermDriver(rig, pb, "rotation_euler", idx2, path2, uvec[idx2], 0, 0)
+                        addDriverVar(sumfcu, "a", path, rig)
+
 
     exprs = {}
     asset.evalFormulas(exprs, None, rig, None)
@@ -439,35 +448,35 @@ class PoseboneDriver:
             return
         for fcu in fcurves:
             idx = fcu.array_index
-            value = vec[idx]
-            if abs(value) > 1e-4:
+            factor = vec[idx]
+            if abs(factor) > 1e-4:
                 if GS.usePythonDrivers:
-                    self.addPythonDriver(fcu, init, value, key)
+                    self.addPythonDriver(fcu, init, factor, key)
                 else:
-                    self.addSumDriver(pb, idx, channel, fcu, (value, key, prop, default))
+                    self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, 0, default))
                 pb.DazDriven = True
-                self.addMorphGroup(pb, idx, key, prop, default, value)
-                if len(fcu.modifiers) > 0:
-                    fmod = fcu.modifiers[0]
-                    fcu.modifiers.remove(fmod)
+                self.addMorphGroup(pb, idx, key, prop, default, factor)
 
 
-    def addPythonDriver(self, fcu, init, value, key):
+    def addPythonDriver(self, fcu, init, factor, key):
         from .driver import addTransformVar, driverHasVar
         fcu.driver.type = 'SCRIPTED'
         expr = 'evalMorphs%s%d(self)' % (key, fcu.array_index)
         drvexpr = fcu.driver.expression[len(init):]
         if drvexpr in ["0.000", "-0.000"]:
             if init:
-                fcu.driver.expression = init + "+" + expr
+                fcu.driver.expression = "%s+%s" % (init, expr)
             else:
                 fcu.driver.expression = expr
         elif expr not in drvexpr:
             if init:
-                fcu.driver.expression = init + "(" + drvexpr + "+" + expr + ")"
+                fcu.driver.expression = "%s(%s+%s)" % (init, drvexpr, expr)
             else:
-                fcu.driver.expression = drvexpr + "+" + expr
+                fcu.driver.expression = "%s+%s" % (drvexpr, expr)
             fcu.driver.use_self = True
+        if len(fcu.modifiers) > 0:
+            fmod = fcu.modifiers[0]
+            fcu.modifiers.remove(fmod)
 
 
     def addSumDriver(self, pb, idx, channel, fcu, data):

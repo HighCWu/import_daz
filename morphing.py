@@ -891,38 +891,30 @@ class LoadMorph(PoseboneDriver):
 
 
     def makeSumDrivers(self):
-        from .driver import setFloatProp, addDriverVar
+        def getTermDriverName(prop, key, idx):
+            return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
+
+        from .driver import addDriverVar, makeTermDriver
         print("Making sum drivers")
         for bname,data in self.sumdrivers.items():
-            print("BNN", bname)
             for channel,kdata in data.items():
-                print("KNN", channel)
                 for idx,idata in kdata.items():
                     pb,fcu0,dlist = idata
-                    print("KKK", channel, idx, pb, fcu0)
-                    pb.driver_remove(channel, idx)
-                    sumfcu = pb.driver_add(channel, idx)
-                    sumfcu.driver.type = 'SUM'
-                    print("SS", sumfcu)
+                    if fcu0 and fcu0.driver.type == 'SUM':
+                        for var in fcu0.driver.variables:
+                            if var.name[0] == self.prefix:
+                                fcu0.driver.variables.remove(var)
+                        sumfcu = fcu0
+                    else:
+                        sumfcu = pb.driver_add(channel, idx)
+                        sumfcu.driver.type = 'SUM'
                     for n,data in enumerate(dlist):
-                        value,key,prop,default = data
-                        print(value,key,prop,default)
-                        drvprop = self.getSumDriverName(prop, key, idx)
-                        print("DP", drvprop)
-                        #setFloatProp(self.rig, drvprop, 0, 0, 1)
+                        key,prop,factor1,factor2,default = data
+                        drvprop = getTermDriverName(prop, key, idx)
                         pb[drvprop] = 0.0
                         path = propRef(drvprop)
-                        pb.driver_remove(path)
-                        fcu = pb.driver_add(path)
-                        fcu.driver.type = 'SCRIPTED'
-                        fcu.driver.expression = "%g*x-%d" % (value, default)
-                        addDriverVar(fcu, "x", propRef(prop), self.rig)
-                        drvpath = 'pose.bones["%s"]["%s"]' % (pb.name, drvprop)
-                        addDriverVar(sumfcu, "x%.03d" % n, drvpath, self.rig)
-
-
-    def getSumDriverName(self, prop, key, idx):
-        return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
+                        path2 = makeTermDriver(self.rig, pb, path, -1, propRef(prop), factor1, factor2, default)
+                        addDriverVar(sumfcu, "%s%.03d" % (self.prefix, n), path2, self.rig)
 
 
     def getDrivingObject(self):
@@ -1050,6 +1042,7 @@ class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMe
     bl_description = "Import selected face unit morphs"
     bl_options = {'UNDO'}
 
+    prefix = "u"
     morphset = "Units"
 
 
@@ -1059,6 +1052,7 @@ class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs
     bl_description = "Import selected expression morphs"
     bl_options = {'UNDO'}
 
+    prefix = "e"
     morphset = "Expressions"
 
 
@@ -1068,6 +1062,7 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, Is
     bl_description = "Import selected viseme morphs"
     bl_options = {'UNDO'}
 
+    prefix = "v"
     morphset = "Visemes"
 
 
@@ -1077,9 +1072,8 @@ class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMes
     bl_description = "Import selected FACS unit morphs"
     bl_options = {'UNDO'}
 
+    prefix = "f"
     morphset = "Facs"
-    useBoneDrivers = False
-    useDoubleDrivers = False
 
 
 class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
@@ -1088,6 +1082,7 @@ class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMo
     bl_description = "Import selected FACS expression morphs"
     bl_options = {'UNDO'}
 
+    prefix = "g"
     morphset = "Facsexpr"
 
 
@@ -1097,6 +1092,7 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs,
     bl_description = "Import selected body morphs"
     bl_options = {'UNDO'}
 
+    prefix = "y"
     morphset = "Body"
 
 
@@ -1106,6 +1102,7 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMes
     bl_description = "Import selected joint corrective morphs"
     bl_options = {'UNDO'}
 
+    prefix = "j"
     morphset = "Standardjcms"
 
     useShapekeysOnly = True
@@ -1120,6 +1117,7 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
     bl_description = "Import selected flexion morphs"
     bl_options = {'UNDO'}
 
+    prefix = "x"
     morphset = "Flexions"
 
     useShapekeysOnly = True
@@ -1137,6 +1135,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
     bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
 
+    prefix = "c"
     morphset = "Custom"
 
     catname : StringProperty(
