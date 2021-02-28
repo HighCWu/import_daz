@@ -324,7 +324,7 @@ def buildBoneFormula(asset, rig, errors):
                 else:
                     uvec = getBoneVector(factor*D, comp, pbDriver)
                     dvec = getBoneVector(1, idx, pbDriven)
-                    idx2,sign = getDrivenComp(dvec)
+                    idx2,sign,x = getDrivenComp(dvec)
                     makeSimpleBoneDriver(sign*uvec, pbDriven, "rotation_euler", rig, None, driver, idx2)
 
     exprs = {}
@@ -387,9 +387,8 @@ def getBoneVector(factor, comp, pb):
 
 def getDrivenComp(vec):
     for n,x in enumerate(vec):
-        if abs(x) > 1e-5:
-            return n, (1 if x >= 0 else -1)
-    return 0
+        if abs(x) > 0.1:
+            return n, (1 if x >= 0 else -1), x
 
 #-------------------------------------------------------------
 #   class PoseboneDriver
