@@ -176,13 +176,12 @@ class Formula:
         if path not in exprs[output].keys():
             exprs[output][path] = {}
         if idx not in exprs[output][path].keys():
-            mult = self.getMultiplyUrl(formula)
             exprs[output][path][idx] = {
                 "factor" : 0,
                 "prop" : None,
                 "bone" : None,
                 "comp" : -1,
-                "mult" : mult}
+                "mult" : None}
 
         expr = exprs[output][path][idx]
         nops = 0
@@ -190,21 +189,18 @@ class Formula:
         ops = formula["operations"]
 
         # URL
-        struct = ops[0]
-        if "url" not in struct.keys():
-            print("UU", struct)
+        first = ops[0]
+        if "url" not in first.keys():
+            print("UU", first)
             return False
-        url = struct["url"].split("#")[-1]
+        url = first["url"].split("#")[-1]
         prop,type = url.split("?")
         prop = unquote(prop)
         path,comp,default = parseChannel(type)
         if type == "value":
             if props is None:
                 return False
-            #print("UUU", output, expr["prop"], prop)
-            if expr["prop"] and prop != expr["prop"]:
-                expr["mult"] = prop
-            else:
+            if expr["prop"] is None:
                 expr["prop"] = prop
             props[prop] = True
         else:
@@ -214,8 +210,11 @@ class Formula:
         # Main operation
         last = ops[-1]
         op = last["op"]
-        if op == "mult" and len(ops) == 3:
-            expr["factor"] = ops[1]["val"]
+        if op == "mult":
+            if len(ops) == 3:
+                expr["factor"] = ops[1]["val"]
+            elif len(ops) == 1:
+                expr["mult"] = prop
         elif op == "push" and len(ops) == 1:
             bone,string = last["url"].split(":")
             url,channel = string.split("?")
@@ -232,7 +231,7 @@ class Formula:
             reportError("Unknown formula %s" % ops, trigger=(2,6))
             return False
 
-        if "stage" in formula.keys() and len(stages) > 1:
+        if "stage" in formula.keys() and len(ops) > 1:
             print("STAGE", formula)
             halt
             exprlist = []
@@ -261,17 +260,6 @@ class Formula:
                 self.multiplyStages(exprs, exprlist)
 
         return True
-
-
-    def getMultiplyUrl(self, formula):
-        if ("stage" in formula.keys() and
-            "operations" in formula.keys()):
-            ops = formula["operations"]
-            if (formula["stage"] == "mult" and
-                len(ops) == 1 and
-                "url" in ops[0].keys()):
-                return ops[0]["url"]
-        return None
 
 
     def getDefaultValue(self, pb, default):
@@ -321,110 +309,36 @@ def getRefKey(string):
 #   For bone drivers
 #-------------------------------------------------------------
 
-def buildBoneFormula(asset, rig, pbDriver, errors):
-    from .driver import makeSimpleBoneDriver
+def buildBoneFormula(asset, rig, errors):
 
-    exprs = {}
-    asset.evalFormulas(exprs, None, rig, None)
-
-    for driven,expr in exprs.items():
-        if driven not in rig.pose.bones.keys():
-            continue
-        pbDriven = rig.pose.bones[driven]
-        if ("rotation" in expr.keys()):
-            rot = expr["rotation"]["value"]
-            driver = expr["rotation"]["bone"]
-            if rot and driver in rig.pose.bones.keys():
+    def buildChannel(exprs, pbDriven, channel, default):
+        from .driver import makeSimpleBoneDriver
+        for idx,expr in exprs.items():
+            factor = expr["factor"]
+            driver = expr["bone"]
+            comp = expr["comp"]
+            if factor and driver in rig.pose.bones.keys():
                 pbDriver = rig.pose.bones[driver]
                 if pbDriver.parent == pbDriven:
                     print("Dependency loop: %s %s" % (pbDriver.name, pbDriven.name))
                 else:
-                    umat = convertDualMatrix(rot, pbDriver, pbDriven)
-                    for idx in range(3):
-                        makeSimpleBoneDriver(umat[idx], pbDriven, "rotation_euler", rig, None, driver, idx, False)
+                    uvec = getBoneVector(factor*D, comp, pbDriver)
+                    dvec = getBoneVector(1, idx, pbDriven)
+                    idx2,sign = getDrivenComp(dvec)
+                    makeSimpleBoneDriver(sign*uvec, pbDriven, "rotation_euler", rig, None, driver, idx2)
+
+    exprs = {}
+    asset.evalFormulas(exprs, None, rig, None)
+    for driven,expr in exprs.items():
+        if driven not in rig.pose.bones.keys():
+            continue
+        pb = rig.pose.bones[driven]
+        if "rotation" in expr.keys():
+            buildChannel(expr["rotation"], pb, "rotation_euler", Zero)
 
 #-------------------------------------------------------------
-#   Build shape formula
-#   For corrective shapekeys
+#   Build bone driver
 #-------------------------------------------------------------
-
-class ShapeFormulas:
-    def getShapeExprsProps(self, asset, rig, ob):
-        exprs = {}
-        props = {}
-        if (ob and ob.type == 'MESH' and ob.data.shape_keys and
-            asset.evalFormulas(exprs, props, rig, ob)):
-            return exprs, props
-        else:
-            return {}, {}
-
-
-    def getShapeMultiplier(self, sname, asset, rig, ob):
-        exprs,props = self.getShapeExprsProps(asset, rig, ob)
-        if (exprs and
-            sname in exprs.keys() and
-            "value" in exprs[sname].keys()):
-            expr = exprs[sname]["value"]
-            mult = None
-            if "mult" in expr.keys():
-                url = expr["mult"]
-                if url:
-                    mult = unquote( url.split("#")[-1].split("?")[0] )
-            return 1.0, mult
-        return 1.0, None
-
-
-    def buildShapeFormula(self, asset, scn, rig, ob):
-        exprs,props = self.getShapeExprsProps(asset, rig, ob)
-        if not exprs:
-            return False,None,1
-
-        from .modifier import addToMorphSet
-        success = True
-        skey = None
-        prop = None
-        value = 1.0
-        skeys = ob.data.shape_keys
-        for key,expr in exprs.items():
-            sname = asset.getName()
-            if sname in rig.data.bones.keys():
-                continue
-            if asset.visible:
-                addToMorphSet(rig, ob, self.morphset, sname, self.usePropDrivers, asset)
-            if sname not in skeys.key_blocks.keys():
-                print("No such shapekey:", sname)
-                return False,None,1.0
-            skey = ob.data.shape_keys.key_blocks[sname]
-            if "value" in expr.keys():
-                ok,prop,value = self.buildSingleShapeFormula(expr["value"], rig, skeys, skey, asset, 0)
-                success = (success and ok)
-                for n,other in enumerate(expr["value"]["others"]):
-                    ok,_,_ = self.buildSingleShapeFormula(other, rig, skeys, skey, asset, n+1)
-                    success = (success and ok)
-        return success,prop,value
-
-
-    def buildSingleShapeFormula(self, expr, rig, skeys, skey, asset):
-        from .bone import BoneAlternatives
-
-        bname = expr["bone"]
-        if bname is None:
-            if not asset.visible:
-                return False, expr["prop"], expr["value"][0]
-            elif not self.usePropDrivers:
-                msg =('No bone to drive shapekey %s' % skey.name)
-                if GS.verbosity > 2:
-                    print(msg)
-            return False, None, 1.0
-        if bname not in rig.pose.bones.keys():
-            if bname in BoneAlternatives.keys():
-                bname = BoneAlternatives[bname]
-            else:
-                reportError("Missing bone (buildSingleShapeFormula): %s" % bname, trigger=(2,4))
-                return False, None, 1.0
-        makeSomeBoneDriver(expr, skey, "value", rig, skeys, bname, -1)
-        return True, None, 1.0
-
 
 def makeSomeBoneDriver(expr, rna, channel, rig, skeys, bname, idx):
     from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
@@ -438,12 +352,12 @@ def makeSomeBoneDriver(expr, rna, channel, rig, skeys, bname, idx):
         halt
         uvecs = []
         for factor in expr["factor"]:
-            uvec = convertDualVector(factor, comp, pb)
+            uvec = getBoneVector(factor, comp, pb)
             uvecs.append(uvec)
         makeProductBoneDriver(uvecs, rna, channel, rig, skeys, bname, idx)
     else:
         factor = expr["factor"]
-        uvec = convertDualVector(factor, comp, pb)
+        uvec = getBoneVector(factor, comp, pb)
         makeSimpleBoneDriver(uvec, rna, channel, rig, skeys, bname, idx)
 
 
@@ -454,7 +368,7 @@ def getSplinePoints(expr, pb, comp):
         points.reverse()
 
     diff = points[n-1][0] - points[0][0]
-    uvec = convertDualVector(1/diff, comp, pb)
+    uvec = getBoneVector(1/diff, comp, pb)
     xys = []
     for k in range(n):
         x = points[k][0]/diff
@@ -463,40 +377,19 @@ def getSplinePoints(expr, pb, comp):
     return uvec, xys
 
 
-Units = [
-    Euler((1,0,0)).to_matrix(),
-    Euler((0,1,0)).to_matrix(),
-    Euler((0,0,1)).to_matrix()
-]
-
-def convertDualVector(factor, idx, pb):
+def getBoneVector(factor, comp, pb):
     from .node import getTransformMatrix
-    smat = getTransformMatrix(pb)
+    tmat = getTransformMatrix(pb)
     uvec = Vector((0,0,0))
-    uvec[idx] = factor
-    nvec = Vector((0,0,0))
-    for i in range(3):
-        mat = smat @ Units[i] @ smat.inverted()
-        euler = mat.to_euler(pb.DazRotMode)
-        nvec[i] = uvec.dot(Vector(euler))
-    return nvec/D
+    uvec[comp] = factor/D
+    return uvec @ tmat
 
 
-def convertDualMatrix(umat, pbDriver, pbDriven):
-    from .node import getTransformMatrix
-    smat = getTransformMatrix(pbDriver)
-    tmat = getTransformMatrix(pbDriven)
-    nmat = Matrix().to_3x3()
-    nmat.zero()
-
-    for i in range(3):
-        imat = tmat @ Units[i] @ tmat.inverted()
-        ivec = Vector(imat.to_euler(pbDriven.DazRotMode))
-        for j in range(3):
-            jmat = smat @ Units[j] @ smat.inverted()
-            jvec = Vector(jmat.to_euler(pbDriver.DazRotMode))
-            nmat[i][j] = ivec.dot(umat @ jvec)
-    return nmat
+def getDrivenComp(vec):
+    for n,x in enumerate(vec):
+        if abs(x) > 1e-5:
+            return n, (1 if x >= 0 else -1)
+    return 0
 
 #-------------------------------------------------------------
 #   class PoseboneDriver
