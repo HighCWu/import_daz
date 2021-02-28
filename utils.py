@@ -278,6 +278,10 @@ def isVector(value):
     return (hasattr(value, "__len__") and len(value) >= 3)
 
 
+def propPath(prop):
+    return '["%s"]' % prop
+
+
 def addToStruct(struct, key, prop, value):
     if key not in struct.keys():
         struct[key] = {}

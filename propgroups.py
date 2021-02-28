@@ -87,9 +87,9 @@ class DazMorphGroup(bpy.types.PropertyGroup, DazMorphGroupProps):
 
     def eval(self, rig):
         if self.simple:
-            return self.factor*(rig.sliders[self.name].value - self.default)
+            return self.factor*(rig[self.name] - self.default)
         else:
-            value = rig.sliders[self.name].value - self.default
+            value = rig[self.name] - self.default
             return (self.factor*(value > 0) + self.factor2*(value < 0))*value
 
     def display(self):

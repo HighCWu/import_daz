@@ -572,56 +572,121 @@ class DAZ_OT_SelectAllMorphs(DazOperator):
             scn["Daz"+name] = self.value
 
 #------------------------------------------------------------------
-#   Slider class
-#------------------------------------------------------------------
-
-class Slider(bpy.types.PropertyGroup):
-    def sliderUpdate(self, context):
-        rig = context.object
-        for target in self.targets:
-            if target.name in rig.sliders:
-                rig.sliders[target.name].value += target.f*(self.value - self.value_k)
-        self.value_k = self.value
-        self.skipUpdate = False
-        return None
-
-    targets : CollectionProperty(type = DazFloatGroup)
-    value : FloatProperty(min=GS.propMin, max=GS.propMax, default=0.0, update=sliderUpdate, subtype='FACTOR')
-    value_k : FloatProperty(min=GS.propMin, max=GS.propMax, default=0.0)
-
-#------------------------------------------------------------------
 #   LoadMorph base class
 #------------------------------------------------------------------
 
 from .formula import PoseboneDriver
 
 class LoadMorph(PoseboneDriver):
-
-    useSoftLimits = True
-    useShapekeysOnly = False
-    useShapekeys = True
-    suppressError = False
-    usePropDrivers = True
-    useSkeysCats = False
-    useBoneDrivers = False
-    useDoubleDrivers = False
-    maxRecursionDepth = 5
     morphset = None
 
-    def __init__(self, mesh=None, verbose=True):
+    def __init__(self, mesh=None):
         from .finger import getFingeredCharacter
-        self.rig, self.mesh, self.char = getFingeredCharacter(bpy.context.object, verbose=verbose)
+        self.rig, self.mesh, self.char = getFingeredCharacter(bpy.context.object)
         if mesh:
             self.mesh = mesh
-        PoseboneDriver.__init__(self, self.rig)
-        self.morphsUsed = []
-        self.alias = {}
 
 
     @classmethod
     def poll(self, context):
         ob = context.object
         return (ob and ob.DazId)
+
+
+    def getAllMorphs(self, namepaths, context):
+        import time
+        from .asset import clearAssets
+        from .main import finishMain
+        from .propgroups import clearDependecies
+
+        if self.mesh:
+            ob = self.mesh
+        elif self.rig:
+            ob = self.rig
+        else:
+            raise DazError("Neither mesh nor rig selected")
+        scn = context.scene
+        LS.forMorphLoad(ob, scn)
+        clearDependecies()
+
+        xnamepaths = {
+    'bs_EyeLookInLeft_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInLeft_div2.dsf',
+    'EyeLookInLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInLeft.dsf',
+    'EyeLookSide-SideLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideLeft.dsf',
+    }
+        xnamepaths = {
+    'bs_EyeLookInRight_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInRight_div2.dsf',
+    'EyeLookInRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInRight.dsf',
+    'EyeLookSide-Side': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-Side.dsf',
+    'EyeLookSide-SideRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideRight.dsf'
+    }
+        print(namepaths)
+
+        self.errors = {}
+        t1 = time.perf_counter()
+        if namepaths:
+            path = list(namepaths.values())[0]
+            folder = os.path.dirname(path)
+        else:
+            raise DazError("No morphs selected")
+        self.makeAllMorphs(list(namepaths.items()))
+        self.makeSubProps()
+        self.makeShapekeyDrivers()
+        updateDrivers(self.rig)
+        updateDrivers(self.mesh)
+        finishMain("Folder", folder, t1)
+        if self.errors:
+            msg = "Morphs loaded with errors.\n  "
+            for err,props in self.errors.items():
+                msg += "\n%s:    \n" % err
+                for prop in props:
+                    msg += "    %s\n" % prop
+            raise DazError(msg, warning=True)
+
+
+    def makeAllMorphs(self, namepaths):
+        print("Making morphs")
+        self.alias = {}
+        self.shapekeys = {}
+        self.subprops = {}
+        self.bdrivers = {}
+        namepaths.sort()
+        idx = 0
+        npaths = len(namepaths)
+        for name,path in namepaths:
+            showProgress(idx, npaths)
+            idx += 1
+            char = self.makeSingleMorph(name, path)
+            print(char, name)
+
+
+    def makeSubProps(self):
+        print("Making subprops")
+        for raw, subraws in self.subprops.items():
+            self.makeFinalDriver(raw, subraws)
+
+
+    def makeFinalDriver(self, raw, subraws):
+        from .driver import addDriverVar
+        final = self.getFinalProp(raw)
+        channel = propPath(final)
+        self.rig.driver_remove(channel)
+        fcu = self.rig.driver_add(channel)
+        fcu.driver.type = 'SCRIPTED'
+        varname = "a"
+        expr = varname
+        addDriverVar(fcu, varname, propPath(raw), self.rig)
+        for subraw,factor in subraws:
+            subfinal = self.getFinalProp(subraw)
+            varname = chr(ord(varname) + 1)
+            if factor == 1:
+                expr += "+%s" % varname
+            elif factor == -1:
+                expr += "-%s" % varname
+            else:
+                expr += "+%g*%s" % (factor, varname)
+            addDriverVar(fcu, varname, propPath(subfinal), self.rig)
+        fcu.driver.expression = expr
 
 
     def getObject(self):
@@ -631,7 +696,7 @@ class LoadMorph(PoseboneDriver):
             return self.mesh
 
 
-    def getSingleMorph(self, name, filepath, scn):
+    def makeSingleMorph(self, name, filepath):
         from .load_json import loadJson
         from .files import parseAssetFile
         ob = self.getObject()
@@ -646,10 +711,12 @@ class LoadMorph(PoseboneDriver):
                     print(msg)
                 else:
                     raise DazError(msg)
-            return [],True
+            return " -"
         skey = self.buildShapekey(asset)
-        prop = self.buildFormulas(asset)
-        return [prop],False
+        if skey:
+            self.shapekeys[skey.name] = skey
+        self.makeFormulas(asset)
+        return " *"
 
 
     def buildShapekey(self, asset, useBuild=True):
@@ -675,20 +742,17 @@ class LoadMorph(PoseboneDriver):
         if not asset.rna:
             asset.buildMorph(self.mesh,
                              useBuild=useBuild,
-                             useSoftLimits=self.useSoftLimits,
+                             useSoftLimits=False,
                              morphset=self.morphset,
                              strength=self.strength)
         skey,_,sname = asset.rna
         prop = unquote(skey.name)
         self.alias[prop] = skey.name
         skey.name = prop
-        self.addNewProp(prop)
-        from .driver import makePropDriver
-        makePropDriver('sliders["%s"].value' % prop, skey, "value", self.rig, "x")
         return skey
 
 
-    def buildFormulas(self, asset):
+    def makeFormulas(self, asset):
         from .formula import Formula
         if not isinstance(asset, Formula):
             print("Not a formula", asset)
@@ -700,7 +764,6 @@ class LoadMorph(PoseboneDriver):
         for prop in props.keys():
             self.addNewProp(prop)
         for output,data in exprs.items():
-            print("BB", output, data)
             for key,data1 in data.items():
                 for idx,expr in data1.items():
                     if key == "value":
@@ -714,45 +777,33 @@ class LoadMorph(PoseboneDriver):
         return props,False
 
 
-    def addNewProp(self, prop):
-        if prop in self.morphsUsed:
-            return
+    def addNewProp(self, raw):
+        final = self.getFinalProp(raw)
+        if raw in self.subprops.keys():
+            return final
         from .driver import setFloatProp
         from .modifier import addToMorphSet0
-        self.morphsUsed.append(prop)
-        pgs = self.rig.sliders
-        if prop in pgs.keys():
-            removeFromPropGroup(pgs, prop)
-        slider = pgs.add()
-        slider.name = prop
-        setActivated(self.rig, prop, True)
-        addToMorphSet0(self.rig, self.morphset, prop)
-        print("SLI", prop, slider)
+        self.subprops[raw] = []
+        setFloatProp(self.rig, raw, 0, 0, 1)
+        setActivated(self.rig, raw, True)
+        addToMorphSet0(self.rig, self.morphset, raw)
+        setFloatProp(self.rig, final, 0)
+        return final
 
 
     def makePropFormula(self, output, idx, expr):
-        print("PPP", output, idx)
-        print(expr)
-        self.addNewProp(output)
         if expr["prop"]:
+            self.addNewProp(output)
             prop = expr["prop"]
-            slider = self.rig.sliders[prop]
-            item = slider.targets.add()
-            item.name = output
-            item.f = expr["factor"]
-        elif expr["bone"]:
-            from .formula import convertDualVector
-            from .driver import makeSimpleBoneDriver
+            self.subprops[output].append((prop, expr["factor"]))
+        if expr["bone"]:
             bname = self.getRealBone(expr["bone"])
-            if bname is None:
+            if bname:
+                if output not in self.bdrivers.keys():
+                    self.bdrivers[output] = []
+                self.bdrivers[output].append((bname, expr))
+            else:
                 print("Miss", bname)
-                return
-            pb = self.rig.pose.bones[bname]
-            vec = Vector((0,0,0))
-            vec[idx] = expr["factor"]
-            uvec = convertDualVector(vec, pb, False)
-            channel = 'sliders["%s"].value' % output
-            makeSimpleBoneDriver(uvec, self.rig.sliders[output], "value", self.rig, None, bname, -1, 0)
 
 
     def getRealBone(self, bname):
@@ -773,15 +824,19 @@ class LoadMorph(PoseboneDriver):
             return
         pb = self.rig.pose.bones[bname]
         factor = expr["factor"]
-        prop = expr["prop"]
+        raw = expr["prop"]
+        final = self.addNewProp(raw)
         tfm = Transform()
-        return tfm, pb, prop, factor
+        return tfm, pb, final, factor
+
+
+    def getFinalProp(self, prop):
+        return "%s(fin)" % prop
 
 
     def makeRotFormula(self, bname, idx, expr):
         tfm,pb,prop,factor = self.getBoneData(bname, expr)
         tfm.setRot(self.strength*factor, prop, index=idx)
-        print("TROT", bname, idx, tfm)
         self.addPoseboneDriver(pb, tfm)
 
 
@@ -795,6 +850,21 @@ class LoadMorph(PoseboneDriver):
         tfm,pb,prop,factor = self.getBoneData(bname, expr)
         tfm.setScale(self.strength*factor, prop, False, index=idx)
         self.addPoseboneDriver(pb, tfm)
+
+
+    def makeShapekeyDrivers(self):
+        from .formula import makeSomeBoneDriver
+        if self.mesh is None:
+            return
+        skeys = self.mesh.data.shape_keys
+        if skeys is None:
+            return
+        print("Making shapekey drivers")
+        for output,bdrivers in self.bdrivers.items():
+            if output in skeys.key_blocks.keys():
+                skey = skeys.key_blocks[output]
+                for bname,expr in bdrivers:
+                    makeSomeBoneDriver(expr, skey, "value", self.rig, skeys, bname, -1)
 
 
     def getDrivingObject(self):
@@ -815,99 +885,8 @@ class LoadMorph(PoseboneDriver):
             skey.name = sname
         return skey, ob, sname
 
-
-    def getAllMorphs(self, namepaths, context):
-        import time
-        from .asset import clearAssets
-        from .main import finishMain
-        from .propgroups import clearDependecies
-
-        scn = context.scene
-        if self.mesh:
-            ob = self.mesh
-        elif self.rig:
-            ob = self.rig
-        else:
-            raise DazError("Neither mesh nor rig selected")
-        LS.forMorphLoad(ob, scn)
-        clearDependecies()
-
-        xnamepaths = {
-    'bs_EyeLookInLeft_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInLeft_div2.dsf',
-    'EyeLookInLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInLeft.dsf',
-    'EyeLookSide-SideLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideLeft.dsf',
-    }
-        xnamepaths = {
-    'bs_EyeLookInRight_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInRight_div2.dsf',
-    'EyeLookInRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInRight.dsf',
-    'EyeLookSide-Side': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-Side.dsf',
-    'EyeLookSide-SideRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideRight.dsf'
-}
-
-        self.errors = {}
-        t1 = time.perf_counter()
-        self.props = []
-        if namepaths:
-            path = list(namepaths.values())[0]
-            folder = os.path.dirname(path)
-        else:
-            raise DazError("No morphs selected")
-        npaths = len(namepaths)
-        self.suppressError = (npaths > 1)
-        passidx = 1
-        missing = self.getPass(passidx, list(namepaths.items()), scn)
-        missing = [key for key in missing.keys() if missing[key]]
-        if missing:
-            print("Failed to load the following %d morphs:\n%s\n" % (len(missing), missing))
-        updateDrivers(self.rig)
-        updateDrivers(self.mesh)
-        finishMain("Folder", folder, t1)
-        if self.errors:
-            msg = "Morphs loaded with errors.\n  "
-            for err,props in self.errors.items():
-                msg += "\n%s:    \n" % err
-                for prop in props:
-                    msg += "    %s\n" % prop
-            raise DazError(msg, warning=True)
-
-
-    def getPass(self, passidx, namepaths, scn):
-        print("--- Pass %d ---" % passidx)
-        namepaths.sort()
-        missing = {}
-        idx = 0
-        npaths = len(namepaths)
-        for name,path in namepaths:
-            showProgress(idx, npaths)
-            idx += 1
-            props,miss = self.getSingleMorph(name, path, scn)
-            if props:
-                print("*", name)
-                self.props += props
-            elif miss:
-                print("?", name)
-                missing[name] = True
-            elif self.useBoneDrivers:
-                print("!", name)
-            else:
-                print("-", name)
-        return missing
-
-
-    def isShapeMorph(self, prop):
-        return (prop.startswith("facs_bs") or prop.startswith("facs_cbs"))
-
-
     def isTransform(self, channel):
         return (channel[-2:] in ["/x", "/y", "/z"])
-
-
-    def getChannelProp(self, channel):
-        words = channel.split("?")
-        if len(words) == 2 and words[1] == "value":
-            return words[0]
-        else:
-            return None
 
 #------------------------------------------------------------------
 #   Load typed morphs base class
@@ -950,7 +929,6 @@ class LoadAllMorphs(LoadMorph):
     def run(self, context):
         scn = context.scene
         setupMorphPaths(scn, False)
-        self.usePropDrivers = (not self.useShapekeysOnly)
         self.rig.DazMorphPrefixes = False
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
@@ -1564,7 +1542,7 @@ def clearMorphs(rig, morphset, category, scn, frame, force):
     morphs = getRelevantMorphs(rig, morphset, category)
     for morph in morphs:
         if getActivated(rig, rig, morph, force):
-            rig.sliders[morph].value = 0.0
+            rig[morph] = 0.0
             autoKeyProp(rig, morph, scn, frame, force)
 
 
@@ -2348,7 +2326,7 @@ class DAZ_OT_ToggleAllCats(DazOperator, IsMeshArmature):
 #-------------------------------------------------------------
 
 def keyProp(rig, key, frame):
-    rig.keyframe_insert('sliders["%s"].value' % key, frame=frame)
+    rig.keyframe_insert('["%s"]' % key, frame=frame)
 
 
 def keyShape(skeys, key, frame):
@@ -2357,7 +2335,7 @@ def keyShape(skeys, key, frame):
 
 def unkeyProp(rig, key, frame):
     try:
-        rig.keyframe_delete('sliders["%s"].value' % key, frame=frame)
+        rig.keyframe_delete('["%s"]' % key, frame=frame)
     except RuntimeError:
         print("No action to unkey %s" % key)
 
@@ -2390,7 +2368,7 @@ def autoKeyShape(skeys, key, scn, frame):
 def pinProp(rig, scn, key, morphset, category, frame):
     if rig:
         clearMorphs(rig, morphset, category, scn, frame, True)
-        rig.sliders[key].value = 1.0
+        rig[key] = 1.0
         autoKeyProp(rig, key, scn, frame, True)
 
 
@@ -2613,7 +2591,6 @@ class DAZ_OT_MeshToShape(DazOperator, IsMesh):
 #-------------------------------------------------------------
 
 classes = [
-    Slider,
     DazSelectGroup,
     DazActiveGroup,
     DazCategory,
@@ -2667,8 +2644,6 @@ classes = [
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-
-    bpy.types.Object.sliders = bpy.props.CollectionProperty(type=Slider)
 
     bpy.types.Object.DazCustomMorphs = BoolProperty(default = False)
     bpy.types.Object.DazMeshMorphs = BoolProperty(default = False)

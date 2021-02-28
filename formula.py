@@ -181,6 +181,7 @@ class Formula:
                 "factor" : 0,
                 "prop" : None,
                 "bone" : None,
+                "comp" : -1,
                 "mult" : mult}
 
         expr = exprs[output][path][idx]
@@ -191,7 +192,7 @@ class Formula:
         # URL
         struct = ops[0]
         if "url" not in struct.keys():
-            print("UU", url)
+            print("UU", struct)
             return False
         url = struct["url"].split("#")[-1]
         prop,type = url.split("?")
@@ -208,6 +209,7 @@ class Formula:
             props[prop] = True
         else:
             expr["bone"] = prop
+        expr["comp"] = comp
 
         # Main operation
         last = ops[-1]
@@ -226,7 +228,6 @@ class Formula:
                     print(msg)
         elif op == "spline_tcb":
             expr["points"] = [ops[n]["val"] for n in range(1,len(ops)-2)]
-            expr["comp"] = comp
         else:
             reportError("Unknown formula %s" % ops, trigger=(2,6))
             return False
@@ -402,7 +403,7 @@ class ShapeFormulas:
         return success,prop,value
 
 
-    def buildSingleShapeFormula(self, expr, rig, skeys, skey, asset, drvnum):
+    def buildSingleShapeFormula(self, expr, rig, skeys, skey, asset):
         from .bone import BoneAlternatives
 
         bname = expr["bone"]
@@ -420,42 +421,37 @@ class ShapeFormulas:
             else:
                 reportError("Missing bone (buildSingleShapeFormula): %s" % bname, trigger=(2,4))
                 return False, None, 1.0
-        makeSomeBoneDriver(expr, skey, "value", rig, skeys, bname, -1, drvnum)
+        makeSomeBoneDriver(expr, skey, "value", rig, skeys, bname, -1)
         return True, None, 1.0
 
 
-def makeSomeBoneDriver(expr, rna, channel, rig, skeys, bname, idx, drvnum):
+def makeSomeBoneDriver(expr, rna, channel, rig, skeys, bname, idx):
     from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
-    if bname not in rig.pose.bones:
-        reportError("Missing bone (makeSomeBoneDriver): %s" % bname, trigger=(2,4))
-        return
     pb = rig.pose.bones[bname]
-    if "comp" in expr.keys():
-        uvec,xys = getSplinePoints(expr, pb)
-        makeSplineBoneDriver(uvec, xys, rna, channel, rig, skeys, bname, idx, drvnum)
-    elif isinstance(expr["value"], list):
+    comp = expr["comp"]
+    if "points" in expr.keys():
+        uvec,xys = getSplinePoints(expr, pb, comp)
+        makeSplineBoneDriver(uvec, xys, rna, channel, rig, skeys, bname, idx)
+    elif isinstance(expr["factor"], list):
         uvecs = []
-        for vec in expr["value"]:
-            uvec = convertDualVector(vec, pb, False)
+        for factor in expr["factor"]:
+            uvec = convertDualVector(factor, comp, pb)
             uvecs.append(uvec)
-        makeProductBoneDriver(uvecs, rna, channel, rig, skeys, bname, idx, drvnum)
+        makeProductBoneDriver(uvecs, rna, channel, rig, skeys, bname, idx)
     else:
-        vec = expr["value"]
-        uvec = convertDualVector(vec, pb, False)
-        makeSimpleBoneDriver(uvec, rna, channel, rig, skeys, bname, idx, drvnum)
+        factor = expr["factor"]
+        uvec = convertDualVector(factor, comp, pb)
+        makeSimpleBoneDriver(uvec, rna, channel, rig, skeys, bname, idx)
 
 
-def getSplinePoints(expr, pb):
-    j = expr["comp"]
+def getSplinePoints(expr, pb, comp):
     points = expr["points"]
     n = len(points)
     if (points[0][0] > points[n-1][0]):
         points.reverse()
 
     diff = points[n-1][0] - points[0][0]
-    vec = Vector((0,0,0))
-    vec[j] = 1/diff
-    uvec = convertDualVector(vec, pb, False)
+    uvec = convertDualVector(1/diff, comp, pb)
     xys = []
     for k in range(n):
         x = points[k][0]/diff
@@ -470,11 +466,11 @@ Units = [
     Euler((0,0,1)).to_matrix()
 ]
 
-def convertDualVector(uvec, pb, invert):
+def convertDualVector(factor, idx, pb):
     from .node import getTransformMatrix
     smat = getTransformMatrix(pb)
-    if invert:
-        smat.invert()
+    uvec = Vector((0,0,0))
+    uvec[idx] = factor
     nvec = Vector((0,0,0))
     for i in range(3):
         mat = smat @ Units[i] @ smat.inverted()

@@ -176,22 +176,18 @@ def makeDriver(name, rna, channel, idx, attr, factor, rig):
 
     for n,drv in enumerate(attr.drivers.values()):
         asset = drv[0].asset
-        addDriverVarProp(fcu, "x%d" % (n+1), asset.name, rig)
+        addDriverVar(fcu, "x%d" % (n+1), propPath(asset.name), rig)
 
 #-------------------------------------------------------------
 #   Bone drivers
 #-------------------------------------------------------------
 
-def makeDriverString(vec, drvnum):
-    def varnames(drvnum):
-        return [chr(ord("A")+3*drvnum),
-                chr(ord("B")+3*drvnum),
-                chr(ord("C")+3*drvnum)]
-
+def makeDriverString(vec):
     string = ""
     first = True
     vars = []
-    for j,comp in enumerate(varnames(drvnum)):
+    varnames = ["A", "B", "C"]
+    for j,comp in enumerate(varnames):
         x = vec[j]
         if abs(x) > 5e-4:
             xx = getMult(x, comp)
@@ -210,25 +206,25 @@ def makeDriverString(vec, drvnum):
         return "", []
 
 
-def makeSimpleBoneDriver(vec, rna, channel, rig, skeys, bname, idx, drvnum):
-    string,vars = makeDriverString(vec, drvnum)
+def makeSimpleBoneDriver(vec, rna, channel, rig, skeys, bname, idx):
+    string,vars = makeDriverString(vec)
     if string:
-        makeBoneDriver(string, vars, rna, channel, rig, skeys, bname, idx, drvnum)
+        makeBoneDriver(string, vars, rna, channel, rig, skeys, bname, idx)
 
 
-def makeProductBoneDriver(vecs, rna, channel, rig, skeys, bname, idx, drvnum):
+def makeProductBoneDriver(vecs, rna, channel, rig, skeys, bname, idx):
     string = ""
     vars = []
     for vec in vecs:
-        string1,vars1 = makeDriverString(vec, drvnum)
+        string1,vars1 = makeDriverString(vec)
         if string1:
             vars += vars1
             string += ("*min(1,max(0,%s))" % string1)
     if string:
-        makeBoneDriver(string[1:], vars, rna, channel, rig, skeys, bname, idx, drvnum)
+        makeBoneDriver(string[1:], vars, rna, channel, rig, skeys, bname, idx)
 
 
-def makeSplineBoneDriver(uvec, points, rna, channel, rig, skeys, bname, idx, drvnum):
+def makeSplineBoneDriver(uvec, points, rna, channel, rig, skeys, bname, idx):
     n = len(points)
     xi,yi = points[0]
     string = "[%s if x< %s" % (getPrint(yi), getPrint(xi))
@@ -255,7 +251,7 @@ def makeSplineBoneDriver(uvec, points, rna, channel, rig, skeys, bname, idx, drv
             msg += "%s         \n" % (string[30*n, 30*(n+1)])
         raise DazError(msg)
 
-    makeBoneDriver(string, vars, rna, channel, rig, skeys, bname, idx, drvnum)
+    makeBoneDriver(string, vars, rna, channel, rig, skeys, bname, idx)
 
 
 def getPrint(x):
@@ -284,18 +280,11 @@ def getSign(u):
         return "+", u
 
 
-def makeBoneDriver(string, vars, rna, channel, rig, skeys, bname, idx, drvnum):
-    if drvnum == 0:
-        rna.driver_remove(channel, idx)
-        fcu = rna.driver_add(channel, idx)
-        fcu.driver.type = 'SCRIPTED'
-        expr = string
-    else:
-        fcu = getShapekeyDriver(skeys, rna.name)
-        if string[0] == "-":
-            expr = "%s%s" % (fcu.driver.expression, string)
-        else:
-            expr = "%s+%s" % (fcu.driver.expression, string)
+def makeBoneDriver(string, vars, rna, channel, rig, skeys, bname, idx):
+    rna.driver_remove(channel, idx)
+    fcu = rna.driver_add(channel, idx)
+    fcu.driver.type = 'SCRIPTED'
+    expr = string
     fcu.driver.expression = expr
     ttypes = ["ROT_X", "ROT_Y", "ROT_Z"]
     for j,vname in vars:
@@ -418,7 +407,7 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
                     varstr += "+%s" % varname
                 else:
                     varstr += "+%g*%s" % (factor,varname)
-                addDriverVarProp(fcu, varname, key, rig)
+                addDriverVar(fcu, varname, propPath(key), rig)
             return varstr + ")", varname
         else:
             return varname, varname
@@ -440,7 +429,7 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
                 msg = ("Shapekey %s     \nis driven by too many properties" % sname)
                 raise DazError(msg)
             varname = vname
-            addDriverVarProp(fcu, varname, prop, rig)
+            addDriverVar(fcu, varname, propPath(prop), rig)
         else:
             #print("Shapekey %s already driven by %s" % (sname, prop))
             return varname
@@ -452,12 +441,12 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
     else:
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
-        addDriverVarProp(fcu, varname, prop, rig)
+        addDriverVar(fcu, varname, propPath(prop), rig)
         varstr,varname = getVarString(prop, depends, varname, fcu, rig)
         expr = "%s%s" % (facstr, varstr)
     if mult:
         varname = chr(ord(varname) + 1)
-        addDriverVarProp(fcu, varname, mult, rig)
+        addDriverVar(fcu, varname, propPath(mult), rig)
         varstr,varname = getVarString(mult, depends, varname, fcu, rig)
         if expr[0] == "(":
             expr = "%s*%s" % (varstr, expr)
@@ -486,7 +475,7 @@ def addVarToDriver(fcu, rig, prop, factor):
     else:
         facstr = "%g*"
     fcu.driver.expression = expr + ("+%s%s" % (facstr, vname))
-    addDriverVarProp(fcu, vname, prop, rig)
+    addDriverVar(fcu, vname, propPath(prop), rig)
 
 
 #-------------------------------------------------------------
@@ -539,10 +528,6 @@ def addDriverVar(fcu, vname, path, rig):
     trg.id = rig
     trg.data_path = path
     return trg
-
-
-def addDriverVarProp(fcu, vname, prop, rig):
-    addDriverVar(fcu, vname, '["%s"]' % prop, rig)
 
 
 def hasDriverVar(fcu, dname, rig):
