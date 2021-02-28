@@ -433,6 +433,8 @@ def makeSomeBoneDriver(expr, rna, channel, rig, skeys, bname, idx):
         uvec,xys = getSplinePoints(expr, pb, comp)
         makeSplineBoneDriver(uvec, xys, rna, channel, rig, skeys, bname, idx)
     elif isinstance(expr["factor"], list):
+        print("FOO", expr)
+        halt
         uvecs = []
         for factor in expr["factor"]:
             uvec = convertDualVector(factor, comp, pb)

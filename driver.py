@@ -225,33 +225,41 @@ def makeProductBoneDriver(vecs, rna, channel, rig, skeys, bname, idx):
 
 
 def makeSplineBoneDriver(uvec, points, rna, channel, rig, skeys, bname, idx):
+    # Only make spline for one component
+    #[1 if x< -1.983 else -x-0.983 if x< -0.983  else 0 for x in [+0.988*A]][0]
+    #1 if A< -1.983/0.988 else -0.988*A-0.983 if x< -0.983/0.988  else 0
+    nmax = -1
+    umax = -1
+    for n in range(3):
+        if abs(uvec[n]) > umax:
+            nmax = n
+            umax = uvec[n]
+    n = nmax
+    vars = ["A","B","C"]
+    var = vars[n]
+    lt = ("<" if umax > 0 else ">")
+
     n = len(points)
     xi,yi = points[0]
-    string = "[%s if x< %s" % (getPrint(yi), getPrint(xi))
-    vars = []
+    string = "%s if %s%s %s" % (getPrint(yi), var, lt, getPrint(xi/umax))
     for i in range(1, n):
         xj,yj = points[i]
         kij = (yj-yi)/(xj-xi)
-        zs,zi = getSign(yi - kij*xi)
+        zs,zi = getSign((yi - kij*xi)/umax)
         zstring = ""
         if abs(zi) > 5e-4:
             zstring = ("%s%s" % (zs, getPrint(zi)))
-        string += (" else %s%s if x< %s " % (getMult(kij, "x"), zstring, getPrint(xj)))
+        string += (" else %s%s if %s%s %s " % (getMult(kij*umax, var), zstring, var, lt, getPrint(xj)))
         xi,yi = xj,yj
-    string += " else %s for x in [" % getPrint(yj)
-    for i,comp in enumerate(["A","B","C"]):
-        us,ui = getSign(uvec[i])
-        if abs(ui) > 5e-4:
-            string += "%s%s*%s" % (us, getPrint(ui), comp)
-            vars.append((i,comp))
-    string += "]][0]     "
+    string += " else %s" % getPrint(yj)
+
     if len(string) > 254:
         msg = "String driver too long:\n"
         for n in range(5):
             msg += "%s         \n" % (string[30*n, 30*(n+1)])
         raise DazError(msg)
 
-    makeBoneDriver(string, vars, rna, channel, rig, skeys, bname, idx)
+    makeBoneDriver(string, enumerate(vars), rna, channel, rig, skeys, bname, idx)
 
 
 def getPrint(x):
