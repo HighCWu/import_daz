@@ -798,10 +798,10 @@ class LoadMorph(PoseboneDriver):
         from .driver import setFloatProp
         from .modifier import addToMorphSet0
         self.subprops[raw] = []
-        setFloatProp(self.rig, raw, 0, 0, 1)
+        setFloatProp(self.rig, raw, 0.0, -1.0, 1.0)
         setActivated(self.rig, raw, True)
         addToMorphSet0(self.rig, self.morphset, raw)
-        setFloatProp(self.rig, final, 0)
+        self.rig[final] = 0.0
         return final
 
 
@@ -911,6 +911,7 @@ class LoadMorph(PoseboneDriver):
         from .driver import addDriverVar, Driver
         print("Making sum drivers")
         for bname,data in self.sumdrivers.items():
+            print(" +", bname)
             for channel,kdata in data.items():
                 for idx,idata in kdata.items():
                     pb,fcu0,dlist = idata

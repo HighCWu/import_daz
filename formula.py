@@ -406,81 +406,80 @@ class PoseboneDriver:
         scale -= One
         success = False
         if (tfm.transProp and loc.length > 0.01*self.rig.DazScale):
-            self.setFcurves(pb, "", loc, tfm.transProp, "location", 0)
+            self.setFcurves(pb, loc, tfm.transProp, "location", 0)
             success = True
         if tfm.rotProp:
             if Vector(quat.to_euler()).length < 1e-4:
                 pass
             elif pb.rotation_mode == 'QUATERNION':
                 vec = Vector(quat)
-                vec[0] = 1.0 - vec[0]
-                self.setFcurves(pb, "1.0-", vec, tfm.rotProp, "rotation_quaternion", 0)
+                self.setFcurves(pb, vec, tfm.rotProp, "rotation_quaternion", 0)
                 success = True
             else:
                 euler = mat.to_euler(pb.rotation_mode)
-                self.setFcurves(pb, "", euler, tfm.rotProp, "rotation_euler", 0)
+                self.setFcurves(pb, euler, tfm.rotProp, "rotation_euler", 0)
                 success = True
         if (tfm.scaleProp and scale.length > 1e-4):
-            self.setFcurves(pb, "", scale, tfm.scaleProp, "scale", 1)
+            self.setFcurves(pb, scale, tfm.scaleProp, "scale", 1)
             success = True
         elif tfm.generalProp:
-            self.setFcurves(pb, "", scale, tfm.generalProp, "scale", 1)
+            self.setFcurves(pb, scale, tfm.generalProp, "scale", 1)
             success = True
         return success
 
 
-    def getBoneFcurves(self, pb, channel):
-        if channel[0] == "[":
-            dot = ""
-        else:
-            dot = "."
-        path = 'pose.bones["%s"]%s%s' % (pb.name, dot, channel)
-        fcurves = []
-        if self.rig.animation_data:
-            for fcu in self.rig.animation_data.drivers:
-                if path == fcu.data_path:
-                    fcurves.append((fcu.array_index, fcu))
-        if fcurves:
-            return [data[1] for data in fcurves]
-        else:
-            try:
-                return pb.driver_add(channel)
-            except TypeError:
-                return []
+    def setFcurves(self, pb, vec, prop, channel, default):
+        def getBoneFcurves(pb, channel):
+            if channel[0] == "[":
+                dot = ""
+            else:
+                dot = "."
+            path = 'pose.bones["%s"]%s%s' % (pb.name, dot, channel)
+            fcurves = {}
+            if self.rig.animation_data:
+                for fcu in self.rig.animation_data.drivers:
+                    if path == fcu.data_path:
+                        fcurves[fcu.array_index] = fcu
+            return fcurves
 
-
-    def setFcurves(self, pb, init, vec, prop, channel, default):
         key = channel[0:3].capitalize()
-        fcurves = self.getBoneFcurves(pb, channel)
-        if len(fcurves) == 0:
-            return
-        for fcu in fcurves:
-            idx = fcu.array_index
-            factor = vec[idx]
-            if abs(factor) > 1e-4:
-                if GS.usePythonDrivers:
-                    self.addPythonDriver(fcu, init, factor, key)
+        fcurves = getBoneFcurves(pb, channel)
+        if GS.usePythonDrivers:
+            for idx,factor in enumerate(vec):
+                if abs(factor) < 1e-4:
+                    continue
+                if idx in fcurves.keys():
+                    fcu = fcurves[idx]
                 else:
-                    self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, 0, default))
+                    fcu = pb.driver_add(channel, idx)
+                self.addPythonDriver(fcu, factor, key)
+                pb.DazDriven = True
+                self.addMorphGroup(pb, idx, key, prop, default, factor)
+        else:
+            for idx,factor in enumerate(vec):
+                if abs(factor) < 1e-4:
+                    continue
+                fcu = None
+                if idx in fcurves.keys():
+                    fcu = fcurves[idx]
+                self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, 0, default))
                 pb.DazDriven = True
                 self.addMorphGroup(pb, idx, key, prop, default, factor)
 
 
-    def addPythonDriver(self, fcu, init, factor, key):
+    def addPythonDriver(self, fcu, factor, key):
         from .driver import addTransformVar, driverHasVar
         fcu.driver.type = 'SCRIPTED'
         expr = 'evalMorphs%s%d(self)' % (key, fcu.array_index)
-        drvexpr = fcu.driver.expression[len(init):]
-        if drvexpr in ["0.000", "-0.000"]:
-            if init:
-                fcu.driver.expression = "%s+%s" % (init, expr)
-            else:
-                fcu.driver.expression = expr
+        drvexpr = fcu.driver.expression.copy()
+        try:
+            f = float(drvexpr)
+        except RuntimeError:
+            f = 1.0
+        if f == 0.0:
+            fcu.driver.expression = expr
         elif expr not in drvexpr:
-            if init:
-                fcu.driver.expression = "%s(%s+%s)" % (init, drvexpr, expr)
-            else:
-                fcu.driver.expression = "%s+%s" % (drvexpr, expr)
+            fcu.driver.expression = "%s+%s" % (drvexpr, expr)
             fcu.driver.use_self = True
         if len(fcu.modifiers) > 0:
             fmod = fcu.modifiers[0]
