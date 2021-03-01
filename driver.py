@@ -109,6 +109,9 @@ class Driver:
             fcu = rna.driver_add(channel, self.array_index)
         else:
             fcu = rna.driver_add(channel)
+        self.fill(fcu)
+
+    def fill(self, fcu):
         drv = fcu.driver
         drv.type = self.type
         drv.use_self = self.use_self
@@ -384,38 +387,6 @@ def combineDrvBones(fcu):
                 trg2.bone_target = trg.bone_target[:-3]
                 expr = fcu.driver.expression.replace("*%s" % var.name, "*(%s+%s)" % (var.name, var2.name))
                 fcu.driver.expression = expr
-
-
-#-------------------------------------------------------------
-#   Prop drivers
-#-------------------------------------------------------------
-
-def makeTermDriver(rig, pb, path, idx, path2, factor1, factor2, default):
-    def getTermDriverExpr(varname, factor1, factor2, default):
-        if default > 0:
-            term = "(%s+%g)" % (varname, default)
-        elif default < 0:
-            term = "(%s-%g)" % (varname, default)
-        else:
-            term = varname
-        if factor2:
-            return "(%g if %s > 0 else %g)*%s" % (factor1, term, factor2, term)
-        elif factor1 == 1:
-            return term
-        else:
-            return "%g*%s" % (factor1, term)
-
-    pb.driver_remove(path)
-    fcu = pb.driver_add(path, idx)
-    print("KK", pb, path, idx, fcu)
-    fcu.driver.type = 'SCRIPTED'
-    fcu.driver.expression = getTermDriverExpr("x", factor1, factor2, default)
-    addDriverVar(fcu, "x", path2, rig)
-    if idx < 0:
-        comp = ""
-    else:
-        comp = "[%d]" % idx
-    return 'pose.bones["%s"].%s%s' % (pb.name, path, comp)
 
 #-------------------------------------------------------------
 #   Prop drivers

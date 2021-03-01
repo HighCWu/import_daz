@@ -894,26 +894,58 @@ class LoadMorph(PoseboneDriver):
         def getTermDriverName(prop, key, idx):
             return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
 
-        from .driver import addDriverVar, makeTermDriver
+        def getTermDriverExpr(varname, factor1, factor2, default):
+            if default > 0:
+                term = "(%s+%g)" % (varname, default)
+            elif default < 0:
+                term = "(%s-%g)" % (varname, default)
+            else:
+                term = varname
+            if factor2:
+                return "(%g if %s > 0 else %g)*%s" % (factor1, term, factor2, term)
+            elif factor1 == 1:
+                return term
+            else:
+                return "%g*%s" % (factor1, term)
+
+        from .driver import addDriverVar, Driver
         print("Making sum drivers")
         for bname,data in self.sumdrivers.items():
             for channel,kdata in data.items():
                 for idx,idata in kdata.items():
                     pb,fcu0,dlist = idata
-                    if fcu0 and fcu0.driver.type == 'SUM':
-                        for var in fcu0.driver.variables:
-                            if var.name[0] == self.prefix:
-                                fcu0.driver.variables.remove(var)
-                        sumfcu = fcu0
+                    if fcu0:
+                        if fcu0.driver.type == 'SUM':
+                            for var in fcu0.driver.variables:
+                                if var.name[0] == self.prefix:
+                                    fcu0.driver.variables.remove(var)
+                            sumfcu = fcu0
+                        else:
+                            prop0 = "origo:%d" % idx
+                            pb[prop0] = 0.0
+                            fcu = pb.driver_add(propRef(prop0))
+                            driver = Driver(fcu0, True)
+                            driver.fill(fcu)
+                            pb.driver_remove(channel, idx)
+                            sumfcu = pb.driver_add(channel, idx)
+                            sumfcu.driver.type = 'SUM'
+                            path0 = 'pose.bones["%s"]["%s"]' % (pb.name, prop0)
+                            addDriverVar(sumfcu, "x", path0, self.rig)
                     else:
                         sumfcu = pb.driver_add(channel, idx)
                         sumfcu.driver.type = 'SUM'
+
                     for n,data in enumerate(dlist):
                         key,prop,factor1,factor2,default = data
                         drvprop = getTermDriverName(prop, key, idx)
                         pb[drvprop] = 0.0
                         path = propRef(drvprop)
-                        path2 = makeTermDriver(self.rig, pb, path, -1, propRef(prop), factor1, factor2, default)
+                        pb.driver_remove(path)
+                        fcu = pb.driver_add(path)
+                        fcu.driver.type = 'SCRIPTED'
+                        fcu.driver.expression = getTermDriverExpr("x", factor1, factor2, default)
+                        addDriverVar(fcu, "x", propRef(prop), self.rig)
+                        path2 = 'pose.bones["%s"]%s' % (pb.name, path)
                         addDriverVar(sumfcu, "%s%.03d" % (self.prefix, n), path2, self.rig)
 
 

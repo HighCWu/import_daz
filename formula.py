@@ -90,7 +90,7 @@ class Formula:
             op = struct["op"]
             if op == "push":
                 if "url" in struct.keys():
-                    ref,key = getRefKey(struct["url"])
+                    ref,key = self.getRefKey(struct["url"])
                     if ref is None or key != "value":
                         return None,None,0
                     asset = self.getAsset(ref)
@@ -110,7 +110,7 @@ class Formula:
                 reportError("Unknown formula %s %s" % (op, struct.items()), trigger=(1,5), force=True)
 
         if len(stack) == 1:
-            ref,key = getRefKey(formula["output"])
+            ref,key = self.getRefKey(formula["output"])
             return ref,key,stack[0]
         else:
             raise DazError("Stack error %s" % stack)
@@ -157,7 +157,7 @@ class Formula:
                 return False
             pb = rig.pose.bones[output]
 
-        path,idx,default = parseChannel(channel)
+        path,idx,default = self.parseChannel(channel)
         if output not in exprs.keys():
             exprs[output] = {}
         if path not in exprs[output].keys():
@@ -183,7 +183,7 @@ class Formula:
         url = first["url"].split("#")[-1]
         prop,type = url.split("?")
         prop = unquote(prop)
-        path,comp,default = parseChannel(type)
+        path,comp,default = self.parseChannel(type)
         if type == "value":
             if props is None:
                 return False
@@ -279,6 +279,23 @@ class Formula:
             expr["factor"]["value"] = vectors
 
 
+    def parseChannel(self, channel):
+        if channel == "value":
+            return channel, 0, 0.0
+        elif channel  == "general_scale":
+            return channel, 0, 1.0
+        attr,comp = channel.split("/")
+        idx = getIndex(comp)
+        if attr in ["rotation", "translation", "scale", "center_point", "end_point"]:
+            default = Vector((0,0,0))
+        elif attr in ["orientation"]:
+            return None, 0, Vector()
+        else:
+            msg = ("Unknown attribute: %s" % attr)
+            reportError(msg)
+        return attr, idx, default
+
+
     def getExprValue(self, expr, key):
         if ("factor" in expr.keys() and
             key in expr["factor"].keys()):
@@ -287,9 +304,9 @@ class Formula:
             return None
 
 
-def getRefKey(string):
-    base = string.split(":",1)[-1]
-    return base.rsplit("?",1)
+    def getRefKey(self, string):
+        base = string.split(":",1)[-1]
+        return base.rsplit("?",1)
 
 #-------------------------------------------------------------
 #   Build bone formula
@@ -299,11 +316,8 @@ def getRefKey(string):
 def buildBoneFormula(asset, rig, errors):
 
     def buildChannel(exprs, pb, channel, default):
-        from .driver import makeSimpleBoneDriver, makeTermDriver, addDriverVar
+        from .driver import makeSimpleBoneDriver
         for idx,expr in exprs.items():
-            if not GS.usePythonDrivers:
-                sumfcu = pb.driver_add(channel, idx)
-                sumfcu.driver.type = 'SUM'
             factor = expr["factor"]
             driver = expr["bone"]
             comp = expr["comp"]
@@ -313,15 +327,9 @@ def buildBoneFormula(asset, rig, errors):
                     print("Dependency loop: %s %s" % (pbDriver.name, pb.name))
                 else:
                     uvec = getBoneVector(factor*D, comp, pbDriver)
-                    dvec = getBoneVector(1, idx, pb)
+                    dvec = getBoneVector(D, idx, pb)
                     idx2,sign,x = getDrivenComp(dvec)
-                    if GS.usePythonDrivers:
-                        makeSimpleBoneDriver(sign*uvec, pb, "rotation_euler", rig, None, driver, idx2)
-                    else:
-                        path2 = 'pose.bones["%s"].rotation_euler' % driver
-                        path = makeTermDriver(rig, pb, "rotation_euler", idx2, path2, uvec[idx2], 0, 0)
-                        addDriverVar(sumfcu, "a", path, rig)
-
+                    makeSimpleBoneDriver(sign*uvec, pb, "rotation_euler", rig, None, driver, idx2)
 
     exprs = {}
     asset.evalFormulas(exprs, None, rig, None)
@@ -511,54 +519,3 @@ class PoseboneDriver:
 #   Eval formulas
 #   For all kinds of drivers
 #-------------------------------------------------------------
-
-def parseChannel(channel):
-    if channel == "value":
-        return channel, 0, 0.0
-    elif channel  == "general_scale":
-        return channel, 0, 1.0
-    attr,comp = channel.split("/")
-    idx = getIndex(comp)
-    if attr in ["rotation", "translation", "scale", "center_point", "end_point"]:
-        default = Vector((0,0,0))
-    elif attr in ["orientation"]:
-        return None, 0, Vector()
-    else:
-        msg = ("Unknown attribute: %s" % attr)
-        reportError(msg)
-    return attr, idx, default
-
-
-def removeInitFromExpr(var, expr, init):
-    import re
-    expr = expr[len(init):]
-    string = expr.replace("+"," +").replace("-"," -")
-    words = re.split(' ', string[1:-6])
-    nwords = [word for word in words if (word and var not in word)]
-    return "".join(nwords)
-
-
-def getDriverVar(path, drv):
-    n1 = ord('A')-1
-    for var in drv.variables:
-        trg = var.targets[0]
-        if trg.data_path == path:
-            return var.name, False
-        n = ord(var.name[0])
-        if n > n1:
-            n1 = n
-    if n1 == ord('Z'):
-        var = "a"
-    elif n1 == ord('z'):
-        var = None
-    else:
-        var = chr(n1+1)
-    return var,True
-
-
-def deleteRigProperty(rig, prop):
-    if prop in rig.keys():
-        del rig[prop]
-    if hasattr(bpy.types.Object, prop):
-        delattr(bpy.types.Object, prop)
-
