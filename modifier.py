@@ -265,7 +265,7 @@ class ChannelAsset(Modifier):
         self.prop = self.getName()
 
 
-    def setupProp(self, morphset, rig, usePropDrivers):
+    def setupProp(self, morphset, rig):
         self.setupQuick(morphset, rig)
         prop = unquote(self.name)
         if prop in rig.DazPropNames.keys():
@@ -274,7 +274,7 @@ class ChannelAsset(Modifier):
             pg = rig.DazPropNames.add()
         pg.name = prop
         pg.text = self.prop
-        addToMorphSet(rig, None, morphset, self.prop, usePropDrivers, self)
+        addToMorphSet(rig, morphset, self.prop, self)
 
 
     def initProp(self, ob, prop):
@@ -334,31 +334,7 @@ def getCanonicalKey(key):
     return key
 
 
-def addToMorphSet(rig, ob, morphset, prop, usePropDrivers, asset):
-    from .driver import setFloatProp
-    from .morphing import theJCMMorphSets
-    if morphset is None:
-        return
-    if usePropDrivers:
-        if (rig is None or
-            prop in rig.data.bones.keys()):
-            return
-        if rig.type != 'ARMATURE':
-            raise RuntimeError("BUG. Not armature: %s" % rig)
-        if prop not in rig.keys():
-            if asset:
-                asset.initProp(rig, prop)
-            else:
-                setFloatProp(rig, prop, 0.0)
-        return addToMorphSet0(rig, morphset, prop, asset)
-    elif ob:
-        return addToMorphSet0(ob, morphset, prop, asset)
-
-    else:
-        return None
-
-
-def addToMorphSet0(ob, morphset, prop, asset=None):
+def addToMorphSet(ob, morphset, prop, asset=None):
     pg = getattr(ob, "Daz"+morphset)
     if prop in pg.keys():
         item = pg[prop]
@@ -804,11 +780,12 @@ class Morph(FormulaAsset):
                    useBuild=True,
                    useSoftLimits=False,
                    morphset=None,
-                   usePropDrivers=False,
                    strength=1):
         #sname = unquote(self.name)
         sname = self.getName()
-        addToMorphSet(ob.parent, ob, morphset, sname, usePropDrivers, self)
+        rig = ob.parent
+        if rig:
+            addToMorphSet(rig, morphset, sname, self)
         skey = addShapekey(ob, sname)
         if useSoftLimits:
             skey.slider_min = self.min if self.min is not None and GS.useDazPropLimits else GS.propMin

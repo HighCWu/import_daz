@@ -650,8 +650,8 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
         return keys
 
     def addToMorphSet(self, ob, prop):
-        from .modifier import addToMorphSet0
-        addToMorphSet0(ob, "Standardjcms", prop)
+        from .modifier import addToMorphSet
+        addToMorphSet(ob, "Standardjcms", prop)
 
 #----------------------------------------------------------
 #   Mix Shapekeys

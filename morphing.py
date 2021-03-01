@@ -799,11 +799,11 @@ class LoadMorph(PoseboneDriver):
         if raw in self.subprops.keys():
             return final
         from .driver import setFloatProp
-        from .modifier import addToMorphSet0
+        from .modifier import addToMorphSet
         self.subprops[raw] = []
         setFloatProp(self.rig, raw, 0.0, -1.0, 1.0)
         setActivated(self.rig, raw, True)
-        addToMorphSet0(self.rig, self.morphset, raw)
+        addToMorphSet(self.rig, self.morphset, raw)
         self.rig[final] = 0.0
         return final
 
@@ -854,7 +854,7 @@ class LoadMorph(PoseboneDriver):
 
 
     def getFinalProp(self, prop):
-        assert(len(prop) >= 2)
+        assert(len(prop) >= 1)
         return "%s(fin)" % prop
 
 
@@ -919,7 +919,7 @@ class LoadMorph(PoseboneDriver):
                     if fcu0:
                         if fcu0.driver.type == 'SUM':
                             for var in fcu0.driver.variables:
-                                if var.name[0] == self.prefix:
+                                if var.name.startswith(self.prefix):
                                     fcu0.driver.variables.remove(var)
                             sumfcu = fcu0
                         else:
@@ -949,15 +949,6 @@ class LoadMorph(PoseboneDriver):
                         addDriverVar(fcu, "x", propRef(prop), self.rig)
                         path2 = 'pose.bones["%s"]%s' % (pb.name, path)
                         addDriverVar(sumfcu, "%s%.03d" % (self.prefix, n), path2, self.rig)
-
-
-    def getDrivingObject(self):
-        if self.usePropDrivers:
-            return self.rig
-        elif self.useSkeysCats:
-            return self.mesh
-        else:
-            return None
 
 
     def getActiveShape(self, asset):
@@ -1141,8 +1132,6 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMes
 
     useShapekeysOnly = True
     useSoftLimits = False
-    usePropDrivers = False
-    useBoneDrivers = True
 
 
 class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
@@ -1151,13 +1140,11 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
     bl_description = "Import selected flexion morphs"
     bl_options = {'UNDO'}
 
-    prefix = "x"
+    prefix = "k"
     morphset = "Flexions"
 
     useShapekeysOnly = True
     useSoftLimits = False
-    usePropDrivers = False
-    useBoneDrivers = True
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -1169,23 +1156,16 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
     bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
 
-    prefix = "c"
     morphset = "Custom"
 
     catname : StringProperty(
         name = "Category",
         default = "Shapes")
 
-    driverType : EnumProperty(
-        items = [
-            ('SLIDER', "Slider", "Morphs driven by sliders (rig properties)"),
-            ('JCM', "JCM", "Corrective morphs driven by bone rotations"),
-            ('EITHER', "Either", "Morphs driven by either bone rotations or otherwise by sliders"),
-            ('BOTH', "Both",  "Morphs driven by both bone rotations and rig properties"),
-            ('NONE', "None", "No drivers for shapekeys")],
-        name = "Driver Type",
-        description = "Preferred driver type",
-        default = 'SLIDER')
+    usePropDrivers : BoolProperty(
+        name = "Use Property Drivers",
+        description = "Drive shapekeys with rig properties",
+        default = True)
 
     useSkeysCats : BoolProperty(
         name = "Add Shapekeys To Categories",
@@ -1207,13 +1187,13 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
     )
 
     def draw(self, context):
-        self.layout.prop(self, "driverType")
-        if self.driverType == 'NONE':
+        self.layout.prop(self, "usePropDrivers")
+        if self.usePropDrivers:
+            self.layout.prop(self, "catname")
+        else:
             self.layout.prop(self, "useSkeysCats")
             if self.useSkeysCats:
                 self.layout.prop(self, "catname")
-        elif self.driverType != 'JCM':
-            self.layout.prop(self, "catname")
         self.layout.prop(self, "strength")
         self.layout.prop(self, "treatHD")
 
@@ -1229,40 +1209,22 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
     def run(self, context):
         from .driver import setBoolProp
         ob = context.object
-        if self.driverType == 'SLIDER':
-            self.usePropDrivers = True
-            self.useBoneDrivers = False
-            self.useDoubleDrivers = False
-        elif self.driverType == 'JCM':
-            self.usePropDrivers = False
-            self.useBoneDrivers = True
-            self.useDoubleDrivers = False
-        elif self.driverType == 'EITHER':
-            self.usePropDrivers = True
-            self.useBoneDrivers = True
-            self.useDoubleDrivers = False
-        elif self.driverType == 'BOTH':
-            self.usePropDrivers = True
-            self.useBoneDrivers = True
-            self.useDoubleDrivers = True
-        elif self.driverType == 'NONE':
-            self.usePropDrivers = False
-            self.useBoneDrivers = False
-            self.useDoubleDrivers = False
-            if self.useSkeysCats:
-                if ob.type == 'MESH':
-                    self.rig = None
-                else:
-                    raise DazError("Active object must be a mesh to use panel shapekeys")
+        if (not self.usePropDrivers and
+            self.useSkeysCats):
+            if ob.type == 'MESH':
+                self.rig = None
+            else:
+                raise DazError("Active object must be a mesh to use panel shapekeys")
 
+        self.prefix = "_%s_" % self.catname
         namepaths = self.getNamePaths()
         self.getAllMorphs(namepaths, context)
-        if self.props:
+        if self.subprops:
             if self.usePropDrivers:
-                addToCategories(self.rig, self.props, self.catname)
+                addToCategories(self.rig, self.subprops, self.catname)
                 self.rig.DazCustomMorphs = True
             elif self.useSkeysCats:
-                addToCategories(ob, self.props, self.catname)
+                addToCategories(ob, self.subprops, self.catname)
                 ob.DazMeshMorphs = True
         if self.errors:
             raise DazError(theLimitationsMessage)

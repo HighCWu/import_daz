@@ -470,16 +470,16 @@ class PoseboneDriver:
         from .driver import addTransformVar, driverHasVar
         fcu.driver.type = 'SCRIPTED'
         expr = 'evalMorphs%s%d(self)' % (key, fcu.array_index)
-        drvexpr = fcu.driver.expression.copy()
+        drvexpr = fcu.driver.expression
         try:
             f = float(drvexpr)
-        except RuntimeError:
+        except ValueError:
             f = 1.0
         if f == 0.0:
             fcu.driver.expression = expr
         elif expr not in drvexpr:
             fcu.driver.expression = "%s+%s" % (drvexpr, expr)
-            fcu.driver.use_self = True
+        fcu.driver.use_self = True
         if len(fcu.modifiers) > 0:
             fmod = fcu.modifiers[0]
             fcu.modifiers.remove(fmod)
