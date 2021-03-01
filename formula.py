@@ -118,7 +118,6 @@ class Formula:
 
 
     def evalFormulas(self, exprs, props, rig, mesh):
-        from .modifier import Morph
         success = False
         stages = []
         for formula in self.formulas:

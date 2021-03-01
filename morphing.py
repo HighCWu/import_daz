@@ -612,9 +612,9 @@ class LoadMorph(PoseboneDriver):
         xnamepaths = {
     'bs_EyeLookInLeft_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInLeft_div2.dsf',
     'EyeLookInLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInLeft.dsf',
-    'EyeLookSide-SideLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideLeft.dsf',
     }
         xnamepaths = {
+    'EyeLookSide-SideLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideLeft.dsf',
     'bs_EyeLookInRight_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInRight_div2.dsf',
     'EyeLookInRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInRight.dsf',
     'EyeLookSide-Side': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-Side.dsf',
@@ -631,7 +631,7 @@ class LoadMorph(PoseboneDriver):
             raise DazError("No morphs selected")
         self.makeAllMorphs(list(namepaths.items()))
         self.makeSubProps()
-        self.makeShapekeyDrivers()
+        #self.makeShapekeyDrivers()
         self.makeSumDrivers()
         updateDrivers(self.rig)
         updateDrivers(self.mesh)
@@ -726,15 +726,14 @@ class LoadMorph(PoseboneDriver):
                 else:
                     raise DazError(msg)
             return " -"
-        skey = self.buildShapekey(asset)
-        if skey:
-            self.shapekeys[skey.name] = skey
+        self.buildShapekey(asset)
         self.makeFormulas(asset)
         return " *"
 
 
     def buildShapekey(self, asset, useBuild=True):
         from .modifier import Morph
+        from .driver import makePropDriver
         if not (isinstance(asset, Morph) and
                 self.mesh and
                 asset.deltas):
@@ -760,9 +759,13 @@ class LoadMorph(PoseboneDriver):
                              morphset=self.morphset,
                              strength=self.strength)
         skey,_,sname = asset.rna
-        prop = unquote(skey.name)
-        self.alias[prop] = skey.name
-        skey.name = prop
+        if skey:
+            prop = unquote(skey.name)
+            self.alias[prop] = skey.name
+            skey.name = prop
+            final = self.addNewProp(prop)
+            makePropDriver(propRef(final), skey, "value", self.rig, "x")
+            self.shapekeys[prop] = skey
         return skey
 
 
@@ -851,9 +854,7 @@ class LoadMorph(PoseboneDriver):
 
 
     def getFinalProp(self, prop):
-        if len(prop) < 2:
-            print("SING", prop)
-            halt
+        assert(len(prop) >= 2)
         return "%s(fin)" % prop
 
 

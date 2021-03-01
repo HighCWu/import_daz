@@ -197,7 +197,7 @@ class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, SingleGroup, IsArmat
 
     def makePropDriver(self, prop, rna, channel, rig, expr):
         from .driver import makePropDriver
-        makePropDriver('["%s"]' % prop, rna, channel, rig, expr)
+        makePropDriver(propRef(prop), rna, channel, rig, expr)
 
 #------------------------------------------------------------------------
 #   Collections
