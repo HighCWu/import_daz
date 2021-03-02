@@ -76,10 +76,10 @@ def safeOpen(filepath, rw, dirMustExist=False, fileMustExist=False, mustOpen=Fal
 
 def getFolders(ob, scn, subdirs):
     if ob is None:
-        return None
+        return []
     fileref = ob.DazUrl.split("#")[0]
     if len(fileref) < 2:
-        return None
+        return []
     reldir = os.path.dirname(fileref)
     folders = []
     for basedir in GS.getDazPaths():
@@ -89,36 +89,6 @@ def getFolders(ob, scn, subdirs):
             if os.path.exists(folder):
                 folders.append(folder)
     return folders
-
-
-"""
-import winreg
-
-def subkeys(key):
-    i = 0
-    while True:
-        try:
-            subkey = winreg.EnumKey(key, i)
-            yield subkey
-            i+=1
-        except WindowsError as e:
-            break
-
-def traverse_registry_tree(fp, hkey, keypath, tabs=0):
-    try:
-        key = winreg.OpenKey(hkey, keypath, 0, winreg.KEY_READ)
-    except PermissionError:
-        return
-    for subkeyname in subkeys(key):
-        fp.write("  "*tabs + subkeyname + "\n")
-        subkeypath = "%s\\%s" % (keypath, subkeyname)
-        traverse_registry_tree(fp, hkey, subkeypath, tabs+1)
-
-keypath = r"SOFTWARE\\Microsoft\\Windows"
-
-with safeOpen("/home/hkeys.txt", "w") as fp:
-    traverse_registry_tree(fp, winreg.HKEY_LOCAL_MACHINE, keypath)
-"""
 
 #-------------------------------------------------------------
 #   Active file paths used from python
