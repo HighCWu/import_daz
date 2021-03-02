@@ -76,10 +76,10 @@ def safeOpen(filepath, rw, dirMustExist=False, fileMustExist=False, mustOpen=Fal
 
 def getFolders(ob, scn, subdirs):
     if ob is None:
-        return None
+        return []
     fileref = ob.DazUrl.split("#")[0]
     if len(fileref) < 2:
-        return None
+        return []
     reldir = os.path.dirname(fileref)
     folders = []
     for basedir in GS.getDazPaths():
