@@ -438,7 +438,8 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
         if first:
             if ord(vname) > ord("z"):
                 msg = ("Shapekey %s     \nis driven by too many properties" % sname)
-                raise DazError(msg)
+                reportError(msg, trigger=(2,4))
+                return varname
             varname = vname
             addDriverVar(fcu, varname, prop, rig)
         else:
