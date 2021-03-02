@@ -111,7 +111,7 @@ class FileAsset(Asset):
                             inst = geonode.makeInstance(self.fileref, nstruct)
                             self.instances[inst.id] = inst
                             self.nodes.append((geonode, inst))
-                    else:
+                    elif asset:
                         inst = asset.makeInstance(self.fileref, nstruct)
                         self.instances[inst.id] = inst
                         self.nodes.append((asset, inst))
