@@ -262,31 +262,28 @@ def updateDrivers(ob):
 def instRef(ref):
     return ref.rsplit("#",1)[-1]
 
-
 def tolower(url):
     if not GS.caseSensitivePaths:
         return url.lower()
     else:
         return url
 
-
 def clamp(value):
     return min(1, max(0, value))
-
 
 def isVector(value):
     return (hasattr(value, "__len__") and len(value) >= 3)
 
-
 def propRef(prop):
     return '["%s"]' % prop
 
+def nextLetter(char):
+    return chr(ord(char) + 1)
 
 def addToStruct(struct, key, prop, value):
     if key not in struct.keys():
         struct[key] = {}
     struct[key][prop] = value
-
 
 def averageColor(value):
     if isVector(value):
@@ -294,7 +291,6 @@ def averageColor(value):
         return (x+y+z)/3
     else:
         return value
-
 
 Zero = Vector((0,0,0))
 One = Vector((1,1,1))

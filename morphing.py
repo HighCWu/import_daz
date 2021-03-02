@@ -579,6 +579,8 @@ from .formula import PoseboneDriver
 
 class LoadMorph(PoseboneDriver):
     morphset = None
+    usePropDrivers = True
+    useMeshCats = False
 
     def __init__(self, mesh=None):
         from .finger import getFingeredCharacter
@@ -605,22 +607,10 @@ class LoadMorph(PoseboneDriver):
             ob = self.rig
         else:
             raise DazError("Neither mesh nor rig selected")
-        scn = context.scene
-        LS.forMorphLoad(ob, scn)
+        LS.forMorphLoad(ob, context.scene)
+        if not self.usePropDrivers:
+            self.rig = None
         clearDependecies()
-
-        xnamepaths = {
-    'bs_EyeLookInLeft_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInLeft_div2.dsf',
-    'EyeLookInLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInLeft.dsf',
-    }
-        xnamepaths = {
-    'EyeLookSide-SideLeft': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideLeft.dsf',
-    'bs_EyeLookInRight_div2': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_bs_EyeLookInRight_div2.dsf',
-    'EyeLookInRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookInRight.dsf',
-    'EyeLookSide-Side': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-Side.dsf',
-    'EyeLookSide-SideRight': 'C:/Users/Public/Documents/My DAZ 3D Library\\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_ctrl_EyeLookSide-SideRight.dsf'
-    }
-        print(namepaths)
 
         self.errors = {}
         t1 = time.perf_counter()
@@ -630,11 +620,11 @@ class LoadMorph(PoseboneDriver):
         else:
             raise DazError("No morphs selected")
         self.makeAllMorphs(list(namepaths.items()))
-        self.makeSubProps()
-        #self.makeShapekeyDrivers()
-        self.makeSumDrivers()
-        updateDrivers(self.rig)
-        updateDrivers(self.mesh)
+        if self.rig:
+            self.buildDrivers()
+            self.buildSumDrivers()
+            updateDrivers(self.rig)
+            updateDrivers(self.mesh)
         finishMain("Folder", folder, t1)
         if self.errors:
             msg = "Morphs loaded with errors.\n  "
@@ -644,13 +634,15 @@ class LoadMorph(PoseboneDriver):
                     msg += "    %s\n" % prop
             raise DazError(msg, warning=True)
 
+    #------------------------------------------------------------------
+    #   Make all morphs
+    #------------------------------------------------------------------
 
     def makeAllMorphs(self, namepaths):
         print("Making morphs")
         self.alias = {}
+        self.drivers = {}
         self.shapekeys = {}
-        self.subprops = {}
-        self.bdrivers = {}
         self.mults = {}
         self.sumdrivers = {}
         namepaths.sort()
@@ -662,60 +654,13 @@ class LoadMorph(PoseboneDriver):
             char = self.makeSingleMorph(name, path)
             print(char, name)
 
-
-    def makeSubProps(self):
-        print("Making subprops")
-        for raw, subraws in self.subprops.items():
-            mults = []
-            if raw in self.mults.keys():
-                mults = self.mults[raw]
-            self.makeFinalDriver(raw, subraws, mults)
-
-
-    def makeFinalDriver(self, raw, subraws, mults):
-        from .driver import addDriverVar
-        final = self.getFinalProp(raw)
-        channel = propRef(final)
-        self.rig.driver_remove(channel)
-        fcu = self.rig.driver_add(channel)
-        fcu.driver.type = 'SCRIPTED'
-        varname = "a"
-        expr = varname
-        addDriverVar(fcu, varname, propRef(raw), self.rig)
-        for subraw,factor in subraws:
-            subfinal = self.getFinalProp(subraw)
-            varname = chr(ord(varname) + 1)
-            if factor == 1:
-                expr += "+%s" % varname
-            elif factor == -1:
-                expr += "-%s" % varname
-            else:
-                expr += "+%g*%s" % (factor, varname)
-            addDriverVar(fcu, varname, propRef(subfinal), self.rig)
-        if mults:
-            expr = "(%s)" % expr
-            varname = "A"
-            for mult in mults:
-                expr += "*%s" % varname
-                multfinal = self.getFinalProp(mult)
-                addDriverVar(fcu, varname, propRef(multfinal), self.rig)
-                varname = chr(ord(varname) + 1)
-        fcu.driver.expression = expr
-
-
-    def getObject(self):
-        if self.rig:
-            return self.rig
-        elif self.mesh:
-            return self.mesh
-
+    #------------------------------------------------------------------
+    #   First pass: collect data
+    #------------------------------------------------------------------
 
     def makeSingleMorph(self, name, filepath):
         from .load_json import loadJson
         from .files import parseAssetFile
-        ob = self.getObject()
-        if ob is None:
-            raise DazError("No object found")
         struct = loadJson(filepath)
         asset = parseAssetFile(struct)
         if asset is None:
@@ -727,7 +672,8 @@ class LoadMorph(PoseboneDriver):
                     raise DazError(msg)
             return " -"
         self.buildShapekey(asset)
-        self.makeFormulas(asset)
+        if self.rig:
+            self.makeFormulas(asset)
         return " *"
 
 
@@ -763,9 +709,10 @@ class LoadMorph(PoseboneDriver):
             prop = unquote(skey.name)
             self.alias[prop] = skey.name
             skey.name = prop
-            final = self.addNewProp(prop)
-            makePropDriver(propRef(final), skey, "value", self.rig, "x")
             self.shapekeys[prop] = skey
+            if self.rig:
+                final = self.addNewProp(prop, asset)
+                makePropDriver(propRef(final), skey, "value", self.rig, "x")
         return skey
 
 
@@ -779,52 +726,51 @@ class LoadMorph(PoseboneDriver):
         props = {}
         asset.evalFormulas(exprs, props, self.rig, self.mesh)
         for prop in props.keys():
-            self.addNewProp(prop)
+            self.addNewProp(prop, asset)
         for output,data in exprs.items():
             for key,data1 in data.items():
                 for idx,expr in data1.items():
                     if key == "value":
-                        self.makePropFormula(output, idx, expr)
+                        self.makeValueFormula(output, expr, asset)
                     elif key == "rotation":
-                        self.makeRotFormula(output, idx, expr)
+                        self.makeRotFormula(output, idx, expr, asset)
                     elif key == "translation":
-                        self.makeTransFormula(output, idx, expr)
+                        self.makeTransFormula(output, idx, expr, asset)
                     elif key == "scale":
-                        self.makeTransFormula(output, idx, expr)
-        return props,False
+                        self.makeTransFormula(output, idx, expr, asset)
 
 
-    def addNewProp(self, raw):
+    def addNewProp(self, raw, asset):
         final = self.getFinalProp(raw)
-        if raw in self.subprops.keys():
+        if raw in self.drivers.keys():
             return final
         from .driver import setFloatProp
         from .modifier import addToMorphSet
-        self.subprops[raw] = []
-        setFloatProp(self.rig, raw, 0.0, -1.0, 1.0)
+        self.drivers[raw] = []
+        setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)
         setActivated(self.rig, raw, True)
         addToMorphSet(self.rig, self.morphset, raw)
         self.rig[final] = 0.0
         return final
 
 
-    def makePropFormula(self, output, idx, expr):
+    def makeValueFormula(self, output, expr, asset):
         if expr["prop"]:
-            self.addNewProp(output)
+            self.addNewProp(output, asset)
             prop = expr["prop"]
-            self.subprops[output].append((prop, expr["factor"]))
+            self.drivers[output].append(("PROP", prop, expr["factor"]))
         if expr["mult"]:
             if output not in self.mults.keys():
                 self.mults[output] = []
             mult = expr["mult"]
             self.mults[output].append(mult)
-            self.addNewProp(mult)
+            self.addNewProp(mult, asset)
         if expr["bone"]:
             bname = self.getRealBone(expr["bone"])
             if bname:
-                if output not in self.bdrivers.keys():
-                    self.bdrivers[output] = []
-                self.bdrivers[output].append((bname, expr))
+                if output not in self.drivers.keys():
+                    self.drivers[output] = []
+                self.drivers[output].append(("BONE", bname, expr))
             else:
                 print("Missing bone:", expr["bone"])
 
@@ -839,7 +785,7 @@ class LoadMorph(PoseboneDriver):
         return getTargetName(bname, self.rig)
 
 
-    def getBoneData(self, bname, expr):
+    def getBoneData(self, bname, expr, asset):
         from .bone import getTargetName
         from .transform import Transform
         bname = getTargetName(bname, self.rig)
@@ -848,7 +794,7 @@ class LoadMorph(PoseboneDriver):
         pb = self.rig.pose.bones[bname]
         factor = expr["factor"]
         raw = expr["prop"]
-        final = self.addNewProp(raw)
+        final = self.addNewProp(raw, asset)
         tfm = Transform()
         return tfm, pb, final, factor
 
@@ -858,40 +804,127 @@ class LoadMorph(PoseboneDriver):
         return "%s(fin)" % prop
 
 
-    def makeRotFormula(self, bname, idx, expr):
-        tfm,pb,prop,factor = self.getBoneData(bname, expr)
+    def makeRotFormula(self, bname, idx, expr, asset):
+        tfm,pb,prop,factor = self.getBoneData(bname, expr, asset)
         tfm.setRot(self.strength*factor, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
 
-    def makeTransFormula(self, bname, idx, expr):
-        tfm,pb,prop,factor = self.getBoneData(bname, expr)
+    def makeTransFormula(self, bname, idx, expr, asset):
+        tfm,pb,prop,factor = self.getBoneData(bname, expr, asset)
         tfm.setTrans(self.strength*factor, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
 
-    def makeScaleFormula(self, bname, idx, expr):
-        tfm,pb,prop,factor = self.getBoneData(bname, expr)
+    def makeScaleFormula(self, bname, idx, expr, asset):
+        tfm,pb,prop,factor = self.getBoneData(bname, expr, asset)
         tfm.setScale(self.strength*factor, prop, False, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
+    #------------------------------------------------------------------
+    #   Second pass: Build the drivers
+    #------------------------------------------------------------------
 
-    def makeShapekeyDrivers(self):
-        from .formula import makeSomeBoneDriver
-        if self.mesh is None:
-            return
-        skeys = self.mesh.data.shape_keys
-        if skeys is None:
-            return
-        print("Making shapekey drivers")
-        for output,bdrivers in self.bdrivers.items():
-            if output in skeys.key_blocks.keys():
-                skey = skeys.key_blocks[output]
-                for bname,expr in bdrivers:
-                    makeSomeBoneDriver(expr, skey, "value", self.rig, skeys, bname, -1)
+    def buildDrivers(self):
+        print("Building drivers")
+        for output,drivers in self.drivers.items():
+            if drivers:
+                dtype = drivers[0][0]
+                if dtype == 'PROP':
+                    self.buildPropDriver(output, drivers)
+                elif dtype == 'BONE':
+                    self.buildBoneDriver(output, drivers)
+            else:
+                self.buildPropDriver(output, drivers)
 
 
-    def makeSumDrivers(self):
+    def buildPropDriver(self, raw, drivers):
+        def multiply(factor, varname):
+            if factor == 1:
+                return "+%s" % varname
+            elif factor == -1:
+                return "-%s" % varname
+            else:
+                return "+%g*%s" % (factor, varname)
+
+        from .driver import addDriverVar
+        mults = []
+        if raw in self.mults.keys():
+            mults = self.mults[raw]
+        final = self.getFinalProp(raw)
+        channel = propRef(final)
+        self.rig.driver_remove(channel)
+        fcu = self.rig.driver_add(channel)
+        fcu.driver.type = 'SCRIPTED'
+        varname = "a"
+        expr = varname
+        addDriverVar(fcu, varname, propRef(raw), self.rig)
+        for dtype,subraw,factor in drivers:
+            if dtype != 'PROP':
+                continue
+            subfinal = self.getFinalProp(subraw)
+            varname = nextLetter(varname)
+            expr += multiply(factor, varname)
+            addDriverVar(fcu, varname, propRef(subfinal), self.rig)
+        if mults:
+            expr = "(%s)" % expr
+            varname = "M"
+            for mult in mults:
+                expr += "*%s" % varname
+                multfinal = self.getFinalProp(mult)
+                addDriverVar(fcu, varname, propRef(multfinal), self.rig)
+                varname = nextLetter(varname)
+        fcu.driver.expression = expr
+
+
+    def buildBoneDriver(self, raw, drivers):
+        def getSplinePoints(expr, pb, comp):
+            points = expr["points"]
+            n = len(points)
+            if (points[0][0] > points[n-1][0]):
+                points.reverse()
+
+            diff = points[n-1][0] - points[0][0]
+            uvec = getBoneVector(1/diff, comp, pb)
+            xys = []
+            for k in range(n):
+                x = points[k][0]/diff
+                y = points[k][1]
+                xys.append((x, y))
+            return uvec, xys
+
+        _,bname,expr = drivers[0]
+        final = self.getFinalProp(raw)
+        channel = propRef(final)
+        self.rig.driver_remove(channel)
+        pb = self.rig.pose.bones[bname]
+        rna = self.rig
+        comp = expr["comp"]
+
+        from .driver import makeSplineBoneDriver, makeProductBoneDriver, makeSimpleBoneDriver
+        from .formula import getBoneVector
+        if "points" in expr.keys():
+            uvec,xys = getSplinePoints(expr, pb, comp)
+            makeSplineBoneDriver(uvec, xys, rna, channel, -1, self.rig, bname)
+        elif isinstance(expr["factor"], list):
+            print("FOO", expr)
+            halt
+            uvecs = []
+            for factor in expr["factor"]:
+                uvec = getBoneVector(factor, comp, pb)
+                uvecs.append(uvec)
+            makeProductBoneDriver(uvecs, rna, channel, -1, self.rig, bname)
+        else:
+            factor = expr["factor"]
+            uvec = getBoneVector(factor, comp, pb)
+            makeSimpleBoneDriver(uvec, rna, channel, -1, self.rig, bname)
+
+    #------------------------------------------------------------------
+    #   Build sum drivers
+    #   For Xin's non-python drivers
+    #------------------------------------------------------------------
+
+    def buildSumDrivers(self):
         def getTermDriverName(prop, key, idx):
             return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
 
@@ -910,7 +943,7 @@ class LoadMorph(PoseboneDriver):
                 return "%g*%s" % (factor1, term)
 
         from .driver import addDriverVar, Driver
-        print("Making sum drivers")
+        print("Building sum drivers")
         for bname,data in self.sumdrivers.items():
             print(" +", bname)
             for channel,kdata in data.items():
@@ -960,9 +993,6 @@ class LoadMorph(PoseboneDriver):
             skey.name = sname
         return skey, ob, sname
 
-    def isTransform(self, channel):
-        return (channel[-2:] in ["/x", "/y", "/z"])
-
 #------------------------------------------------------------------
 #   Load typed morphs base class
 #------------------------------------------------------------------
@@ -976,12 +1006,10 @@ class LoadAllMorphs(LoadMorph):
         if self.mesh is None and rigIsMesh:
             if self.rig.DazRig == "genesis3":
                 self.char = "Genesis3-female"
-                self.mesh = self.rig
-                addDrivers = True
+                #self.mesh = self.rig
             elif self.rig.DazRig == "genesis8":
                 self.char = "Genesis8-female"
-                self.mesh = self.rig
-                addDrivers = True
+                #self.mesh = self.rig
         if not self.char:
             from .error import invokeErrorMessage
             msg = ("Can not add morphs to this mesh:\n %s" % ob.name)
@@ -1163,13 +1191,13 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
         default = "Shapes")
 
     usePropDrivers : BoolProperty(
-        name = "Use Property Drivers",
+        name = "Use Rig Property Drivers",
         description = "Drive shapekeys with rig properties",
         default = True)
 
-    useSkeysCats : BoolProperty(
-        name = "Add Shapekeys To Categories",
-        description = "Add imported shapekeys to a category",
+    useMeshCats : BoolProperty(
+        name = "Use Mesh Categories",
+        description = "Mesh categories",
         default = False)
 
     strength : FloatProperty(
@@ -1191,8 +1219,8 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
         if self.usePropDrivers:
             self.layout.prop(self, "catname")
         else:
-            self.layout.prop(self, "useSkeysCats")
-            if self.useSkeysCats:
+            self.layout.prop(self, "useMeshCats")
+            if self.useMeshCats:
                 self.layout.prop(self, "catname")
         self.layout.prop(self, "strength")
         self.layout.prop(self, "treatHD")
@@ -1208,24 +1236,19 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
 
     def run(self, context):
         from .driver import setBoolProp
-        ob = context.object
-        if (not self.usePropDrivers and
-            self.useSkeysCats):
-            if ob.type == 'MESH':
-                self.rig = None
-            else:
-                raise DazError("Active object must be a mesh to use panel shapekeys")
-
         self.prefix = "_%s_" % self.catname
         namepaths = self.getNamePaths()
         self.getAllMorphs(namepaths, context)
-        if self.subprops:
-            if self.usePropDrivers:
-                addToCategories(self.rig, self.subprops, self.catname)
-                self.rig.DazCustomMorphs = True
-            elif self.useSkeysCats:
-                addToCategories(ob, self.subprops, self.catname)
-                ob.DazMeshMorphs = True
+        if self.usePropDrivers and self.drivers:
+            props = []
+            for key,drivers in self.drivers.items():
+                if not drivers or drivers[0][0] == 'PROP':
+                    props.append(key)
+            addToCategories(self.rig, props, self.catname)
+            self.rig.DazCustomMorphs = True
+        elif self.useMeshCats and self.shapekeys:
+            addToCategories(self.mesh, self.shapekeys, self.catname)
+            self.mesh.DazMeshMorphs = True
         if self.errors:
             raise DazError(theLimitationsMessage)
 

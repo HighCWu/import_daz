@@ -784,7 +784,7 @@ class Morph(FormulaAsset):
         #sname = unquote(self.name)
         sname = self.getName()
         rig = ob.parent
-        if rig:
+        if rig and morphset:
             addToMorphSet(rig, morphset, sname, self)
         skey = addShapekey(ob, sname)
         if useSoftLimits:

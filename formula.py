@@ -328,7 +328,7 @@ def buildBoneFormula(asset, rig, errors):
                     uvec = getBoneVector(factor*D, comp, pbDriver)
                     dvec = getBoneVector(D, idx, pb)
                     idx2,sign,x = getDrivenComp(dvec)
-                    makeSimpleBoneDriver(sign*uvec, pb, "rotation_euler", rig, None, driver, idx2)
+                    makeSimpleBoneDriver(sign*uvec, pb, "rotation_euler", idx2, rig, driver)
 
     exprs = {}
     asset.evalFormulas(exprs, None, rig, None)
@@ -338,46 +338,6 @@ def buildBoneFormula(asset, rig, errors):
         pb = rig.pose.bones[driven]
         if "rotation" in expr.keys():
             buildChannel(expr["rotation"], pb, "rotation_euler", Zero)
-
-#-------------------------------------------------------------
-#   Build bone driver
-#-------------------------------------------------------------
-
-def makeSomeBoneDriver(expr, rna, channel, rig, skeys, bname, idx):
-    from .driver import makeSimpleBoneDriver, makeProductBoneDriver, makeSplineBoneDriver
-    pb = rig.pose.bones[bname]
-    comp = expr["comp"]
-    if "points" in expr.keys():
-        uvec,xys = getSplinePoints(expr, pb, comp)
-        makeSplineBoneDriver(uvec, xys, rna, channel, rig, skeys, bname, idx)
-    elif isinstance(expr["factor"], list):
-        print("FOO", expr)
-        halt
-        uvecs = []
-        for factor in expr["factor"]:
-            uvec = getBoneVector(factor, comp, pb)
-            uvecs.append(uvec)
-        makeProductBoneDriver(uvecs, rna, channel, rig, skeys, bname, idx)
-    else:
-        factor = expr["factor"]
-        uvec = getBoneVector(factor, comp, pb)
-        makeSimpleBoneDriver(uvec, rna, channel, rig, skeys, bname, idx)
-
-
-def getSplinePoints(expr, pb, comp):
-    points = expr["points"]
-    n = len(points)
-    if (points[0][0] > points[n-1][0]):
-        points.reverse()
-
-    diff = points[n-1][0] - points[0][0]
-    uvec = getBoneVector(1/diff, comp, pb)
-    xys = []
-    for k in range(n):
-        x = points[k][0]/diff
-        y = points[k][1]
-        xys.append((x, y))
-    return uvec, xys
 
 
 def getBoneVector(factor, comp, pb):

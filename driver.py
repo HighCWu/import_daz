@@ -127,7 +127,7 @@ class Driver:
                 return var.name,False
             elif ord(var.name) > ord(varname):
                 varname = var.name
-        return chr(ord(varname)+1),True
+        return nextLetter(varname),True
 
 
 class Variable:
@@ -209,13 +209,13 @@ def makeDriverString(vec):
         return "", []
 
 
-def makeSimpleBoneDriver(vec, rna, channel, rig, skeys, bname, idx):
+def makeSimpleBoneDriver(vec, rna, channel, idx, rig, bname):
     string,vars = makeDriverString(vec)
     if string:
-        makeBoneDriver(string, vars, rna, channel, rig, skeys, bname, idx)
+        makeBoneDriver(string, vars, rna, channel, idx, rig, bname)
 
 
-def makeProductBoneDriver(vecs, rna, channel, rig, skeys, bname, idx):
+def makeProductBoneDriver(vecs, rna, channel, idx, rig, bname):
     string = ""
     vars = []
     for vec in vecs:
@@ -224,10 +224,10 @@ def makeProductBoneDriver(vecs, rna, channel, rig, skeys, bname, idx):
             vars += vars1
             string += ("*min(1,max(0,%s))" % string1)
     if string:
-        makeBoneDriver(string[1:], vars, rna, channel, rig, skeys, bname, idx)
+        makeBoneDriver(string[1:], vars, rna, channel, idx, rig, bname)
 
 
-def makeSplineBoneDriver(uvec, points, rna, channel, rig, skeys, bname, idx):
+def makeSplineBoneDriver(uvec, points, rna, channel, idx, rig, bname):
     # Only make spline for one component
     #[1 if x< -1.983 else -x-0.983 if x< -0.983  else 0 for x in [+0.988*A]][0]
     #1 if A< -1.983/0.988 else -0.988*A-0.983 if x< -0.983/0.988  else 0
@@ -262,7 +262,7 @@ def makeSplineBoneDriver(uvec, points, rna, channel, rig, skeys, bname, idx):
             msg += "%s         \n" % (string[30*n, 30*(n+1)])
         raise DazError(msg)
 
-    makeBoneDriver(string, enumerate(vars), rna, channel, rig, skeys, bname, idx)
+    makeBoneDriver(string, enumerate(vars), rna, channel, idx, rig, bname)
 
 
 def getPrint(x):
@@ -291,7 +291,7 @@ def getSign(u):
         return "+", u
 
 
-def makeBoneDriver(string, vars, rna, channel, rig, skeys, bname, idx):
+def makeBoneDriver(string, vars, rna, channel, idx, rig, bname):
     rna.driver_remove(channel, idx)
     fcu = rna.driver_add(channel, idx)
     fcu.driver.type = 'SCRIPTED'
@@ -413,7 +413,7 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
         if prop in depends.keys():
             varstr = "(%s" % varname
             for key,factor in depends[prop]:
-                varname = chr(ord(varname)+1)
+                varname = nextLetter(varname)
                 if factor == 1.0:
                     varstr += "+%s" % varname
                 else:
@@ -456,7 +456,7 @@ def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
         varstr,varname = getVarString(prop, depends, varname, fcu, rig)
         expr = "%s%s" % (facstr, varstr)
     if mult:
-        varname = chr(ord(varname) + 1)
+        varname = nextLetter(varname)
         addDriverVar(fcu, varname, propRef(mult), rig)
         varstr,varname = getVarString(mult, depends, varname, fcu, rig)
         if expr[0] == "(":
@@ -516,6 +516,7 @@ def setFloatProp(rna, prop, value, min=None, max=None):
     rna[prop] = value
     setPropMinMax(rna, prop, min, max)
     setOverridable(rna, prop)
+    setPropMinMax(rna, prop, min, max)
 
 
 def setBoolProp(rna, prop, value, desc=""):
