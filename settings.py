@@ -61,6 +61,8 @@ class GlobalSettings:
         self.verbosity = 2
         self.useDump = False
         self.zup = True
+        self.usePythonDrivers = True
+
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
         self.viewportColors = 'GUESS'
@@ -90,7 +92,6 @@ class GlobalSettings:
         self.propMax = 1.0
         self.useDazPropLimits = True
         self.useDazPropDefault = True
-        self.usePythonDrivers = True
 
         self.useLockLoc = True
         self.useLimitLoc = True

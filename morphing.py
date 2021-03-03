@@ -611,6 +611,8 @@ class LoadMorph(PoseboneDriver):
         if not self.usePropDrivers:
             self.rig = None
         clearDependecies()
+        if not GS.usePythonDrivers and self.rig and self.morphset:
+            self.removeMorphset()
 
         namepaths = self.pathsToDebug(namepaths)
 
@@ -843,13 +845,21 @@ class LoadMorph(PoseboneDriver):
         print("Building drivers")
         for output,drivers in self.drivers.items():
             if drivers:
-                dtype = drivers[0][0]
-                if dtype == 'PROP':
+                if self.isDriverType('BONE', drivers):
+                    for dtype,bname,expr in drivers:
+                        if dtype == 'BONE':
+                            self.buildBoneDriver(output, bname, expr)
+                elif self.isDriverType('PROP', drivers):
                     self.buildPropDriver(output, drivers)
-                elif dtype == 'BONE':
-                    self.buildBoneDriver(output, drivers)
             else:
                 self.buildPropDriver(output, drivers)
+
+
+    def isDriverType(self, dtype, drivers):
+        for driver in drivers:
+            if driver[0] == dtype:
+                return True
+        return False
 
 
     def buildPropDriver(self, raw, drivers):
@@ -866,9 +876,8 @@ class LoadMorph(PoseboneDriver):
         if raw in self.mults.keys():
             mults = self.mults[raw]
         final = self.getFinalProp(raw)
-        channel = propRef(final)
-        self.rig.driver_remove(channel)
-        fcu = self.rig.driver_add(channel)
+        self.rig.driver_remove(propRef(final))
+        fcu = self.rig.driver_add(propRef(final))
         fcu.driver.type = 'SCRIPTED'
         varname = "a"
         expr = varname
@@ -891,7 +900,7 @@ class LoadMorph(PoseboneDriver):
         fcu.driver.expression = expr
 
 
-    def buildBoneDriver(self, raw, drivers):
+    def buildBoneDriver(self, raw, bname, expr):
         def getSplinePoints(expr, pb, comp):
             points = expr["points"]
             n = len(points)
@@ -907,13 +916,12 @@ class LoadMorph(PoseboneDriver):
                 xys.append((x, y))
             return uvec, xys
 
-        _,bname,expr = drivers[0]
-        final = self.getFinalProp(raw)
-        channel = propRef(final)
-        self.rig.driver_remove(channel)
         pb = self.rig.pose.bones[bname]
         rna = self.rig
         comp = expr["comp"]
+        final = self.getFinalProp(raw)
+        channel = propRef(final)
+        self.rig.driver_remove(channel)
 
         from .driver import makeSplineBoneDriver, makeProductBoneDriver, makeSimpleBoneDriver
         from .formula import getBoneVector
@@ -996,6 +1004,15 @@ class LoadMorph(PoseboneDriver):
                         addDriverVar(fcu, "x", propRef(prop), self.rig)
                         path2 = 'pose.bones["%s"]%s' % (pb.name, path)
                         addDriverVar(sumfcu, "%s%.03d" % (self.prefix, n), path2, self.rig)
+
+
+    def removeMorphset(self):
+        print("Removing morph set:", self.morphset)
+        pgs = getattr(self.rig, "Daz"+self.morphset)
+        for raw in pgs.keys():
+            if raw in self.rig.keys():
+                del self.rig[raw]
+        pgs.clear()
 
 
     def getActiveShape(self, asset):
@@ -1275,6 +1292,16 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
             name = os.path.splitext(os.path.basename(path))[0]
             namepaths[name] = path
         return namepaths
+
+
+    def removeMorphset(self):
+        print("Removing category:", self.catname)
+        if self.catname in self.rig.DazMorphCats.keys():
+            cat = self.rig.DazMorphCats[self.catname]
+            for raw in cat.morphs.keys():
+                if raw in self.rig.keys():
+                    del self.rig[raw]
+            cat.morphs.clear()
 
 #------------------------------------------------------------------------
 #   Categories
