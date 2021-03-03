@@ -61,7 +61,7 @@ class GlobalSettings:
         self.verbosity = 2
         self.useDump = False
         self.zup = True
-        self.usePythonDrivers = True
+        self.usePythonDrivers = False
 
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
