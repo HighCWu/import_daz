@@ -199,7 +199,7 @@ class Formula:
         else:
             expr["bone"] = prop
         expr["comp"] = comp
-        self.evalMainOper(opers[-1], opers, expr, props)
+        self.evalMainOper(opers, expr, props)
         return True
 
 
@@ -214,7 +214,11 @@ class Formula:
         return prop,type,comp
 
 
-    def evalMainOper(self, oper, opers, expr, props):
+    def evalMainOper(self, opers, expr, props):
+        if len(opers) == 1:
+            expr["factor"] = 1
+            return
+        oper = opers[-1]
         op = oper["op"]
         if op == "mult":
             expr["factor"] = opers[1]["val"]
@@ -222,7 +226,7 @@ class Formula:
             expr["points"] = [opers[n]["val"] for n in range(1,len(opers)-2)]
         else:
             reportError("Unknown formula %s" % opers, trigger=(2,6))
-            return False
+            return
 
 
     def parseChannel(self, channel):

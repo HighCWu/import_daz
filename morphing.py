@@ -840,6 +840,8 @@ class LoadMorph(PoseboneDriver):
 
 
     def makeScaleFormula(self, bname, idx, expr, asset):
+        return
+        # DS and Blender seem to inherit scale differently
         tfm,pb,prop,factor = self.getBoneData(bname, expr, asset)
         tfm.setScale(self.strength*factor, True, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
