@@ -103,21 +103,34 @@ class Driver:
         for var in drv.variables:
             self.variables.append(Variable(var))
 
-    def create(self, rna):
-        channel = self.data_path.rsplit(".")[-1]
+    def create(self, rna, fixDrv=False):
+        words = self.data_path.split('"')
+        if words[0] == "pose.bones[" and len(words) == 5:
+            bname = words[1]
+            channel = words[3]
+            self.data_path = self.data_path.replace(bname, bname+"Drv")
+            self.array_index = -1
+            channel = propRef(channel)
+        else:
+            words = self.data_path.rsplit(".",1)
+            if len(words) == 2:
+                channel = words[1]
+            else:
+                raise RuntimeError("BUG: Cannot create channel\n%s" % self.data_path)
+
         if self.array_index >= 0:
             fcu = rna.driver_add(channel, self.array_index)
         else:
             fcu = rna.driver_add(channel)
-        self.fill(fcu)
+        self.fill(fcu, fixDrv)
 
-    def fill(self, fcu):
+    def fill(self, fcu, fixDrv=False):
         drv = fcu.driver
         drv.type = self.type
         drv.use_self = self.use_self
         drv.expression = self.expression
         for var in self.variables:
-            var.create(drv.variables.new())
+            var.create(drv.variables.new(), fixDrv)
         return fcu
 
     def getNextVar(self, prop):
@@ -136,10 +149,10 @@ class Variable:
         self.name = var.name
         self.target = Target(var.targets[0])
 
-    def create(self, var):
+    def create(self, var, fixDrv):
         var.name = self.name
         var.type = self.type
-        self.target.create(var.targets[0])
+        self.target.create(var.targets[0], fixDrv)
 
 
 class Target:
@@ -155,11 +168,17 @@ class Target:
         else:
             self.name = words[0]
 
-    def create(self, trg):
+    def create(self, trg, fixDrv):
         trg.id = self.id
         trg.bone_target = self.bone_target
         trg.transform_type = self.transform_type
         trg.transform_space = self.transform_space
+        if fixDrv:
+            words = self.data_path.split('"')
+            if (words[0] == "pose.bones[" and
+                words[1][:-3] != "Drv"):
+                words[1] += "Drv"
+                self.data_path = '"'.join(words)
         trg.data_path = self.data_path
 
 #-------------------------------------------------------------
@@ -368,25 +387,6 @@ def changeDriverTarget(fcu, oldtarg, newtarg):
         for targ in var.targets:
             if targ.id == oldtarg:
                 targ.id = newtarg
-
-
-def combineDrvBones(fcu):
-    varnames = dict([(var.name,True) for var in fcu.driver.variables])
-    for var in fcu.driver.variables:
-        vname2 = var.name+"2"
-        if vname2 in varnames.keys():
-            continue
-        for trg in var.targets:
-            if trg.bone_target[-3:] == "Drv":
-                var2 = fcu.driver.variables.new()
-                var2.name = vname2
-                var2.type = var.type
-                target2 = Target(trg)
-                trg2 = var2.targets[0]
-                target2.create(trg2)
-                trg2.bone_target = trg.bone_target[:-3]
-                expr = fcu.driver.expression.replace("*%s" % var.name, "*(%s+%s)" % (var.name, var2.name))
-                fcu.driver.expression = expr
 
 #-------------------------------------------------------------
 #   Prop drivers
@@ -621,54 +621,70 @@ def isNumber(string):
         return False
 
 
-def getAllBoneDrivers(rig, bones):
+def getAllBoneSumDrivers(rig, bnames):
+    from collections import OrderedDict
+    boneFcus = OrderedDict()
+    sumFcus = OrderedDict()
     if rig.animation_data is None:
-        return {}
-    fcus = {}
+        return boneFcus, sumFcus
     for fcu in rig.animation_data.drivers:
-        words = fcu.data_path.split('"')
+        words = fcu.data_path.split('"', 2)
         if (words[0] == "pose.bones[" and
-            words[1] in bones and
-            len(words) == 3):
+            words[1] in bnames):
             bname = words[1]
-            if bname not in fcus.keys():
-                fcus[bname] = []
-            fcus[bname].append(fcu)
-    return fcus
+        else:
+            if words[0] != "[":
+                print("MISS", words)
+            continue
+        if fcu.driver.type == 'SCRIPTED':
+            if bname not in boneFcus.keys():
+                boneFcus[bname] = []
+            boneFcus[bname].append(fcu)
+        elif fcu.driver.type == 'SUM':
+            if bname not in sumFcus.keys():
+                sumFcus[bname] = []
+            sumFcus[bname].append(fcu)
+    return boneFcus, sumFcus
 
 
-def storeBoneDrivers(rig, bones):
-    fcus = getAllBoneDrivers(rig, bones)
-    drivers = {}
-    for bname in fcus.keys():
-        drivers[bname] = []
-        for fcu in fcus[bname]:
-            drivers[bname].append(Driver(fcu, True))
-    removeDriverFCurves(flatten(fcus.values()), rig)
-    return drivers
+def storeRemoveBoneSumDrivers(rig, bones):
+    def store(fcus, rig):
+        drivers = {}
+        for bname in fcus.keys():
+            drivers[bname] = []
+            for fcu in fcus[bname]:
+                drivers[bname].append(Driver(fcu, True))
+        return drivers
+
+    boneFcus, sumFcus = getAllBoneSumDrivers(rig, bones)
+    boneDrivers = store(boneFcus, rig)
+    sumDrivers = store(sumFcus, rig)
+    removeDriverFCurves(boneFcus.values(), rig)
+    removeDriverFCurves(sumFcus.values(), rig)
+    return boneDrivers, sumDrivers
 
 
-def flatten(lists):
-    flat = []
-    for list in lists:
-        flat.extend(list)
-    return flat
-
-
-def restoreBoneDrivers(rig, drivers, suffix):
+def restoreBoneSumDrivers(rig, drivers, suffix, fixDrv):
     for bname,bdrivers in drivers.items():
         pb = rig.pose.bones[bname+suffix]
         for driver in bdrivers:
-            driver.create(pb)
+            driver.create(pb, fixDrv=fixDrv)
 
 
 def removeBoneDrivers(rig, bones):
-    fcus = getAllBoneDrivers(rig, bones)
-    removeDriverFCurves(flatten(fcus.values()), rig)
+    boneFcus, sumFcus = getAllBoneSumDrivers(rig, bones)
+    removeDriverFCurves(boneFcus.values(), rig)
+    removeDriverFCurves(sumFcus.values(), rig)
 
 
 def removeDriverFCurves(fcus, rig):
-    for fcu in fcus:
+    def flatten(lists):
+        flat = []
+        for list in lists:
+            flat.extend(list)
+        return flat
+
+    for fcu in flatten(fcus):
         try:
             rig.driver_remove(fcu.data_path, fcu.array_index)
         except TypeError:

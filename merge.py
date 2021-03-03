@@ -1016,7 +1016,7 @@ NewParent = {
 
 
 def reparentToes(rig, context):
-    from .driver import removeBoneDrivers
+    from .driver import removeBoneSumDrivers
     setActiveObject(context, rig)
     toenames = []
     bpy.ops.object.mode_set(mode='EDIT')
@@ -1031,7 +1031,7 @@ def reparentToes(rig, context):
                     eb.parent = parb
                     toenames.append(eb.name)
     bpy.ops.object.mode_set(mode='OBJECT')
-    removeBoneDrivers(rig, toenames)
+    removeBoneSumDrivers(rig, toenames)
 
 
 class DAZ_OT_ReparentToes(DazOperator, IsArmature):
@@ -1045,13 +1045,13 @@ class DAZ_OT_ReparentToes(DazOperator, IsArmature):
 
 
 def mergeBonesAndVgroups(rig, mergers, parents, context):
-    from .driver import removeBoneDrivers
+    from .driver import removeBoneSumDrivers
 
     activateObject(context, rig)
 
     bpy.ops.object.mode_set(mode='OBJECT')
     for bones in mergers.values():
-        removeBoneDrivers(rig, bones)
+        removeBoneSumDrivers(rig, bones)
 
     bpy.ops.object.mode_set(mode='EDIT')
     for bname,pname in parents.items():

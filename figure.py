@@ -436,7 +436,29 @@ class ExtraBones:
 
 
     def addExtraBones(self, rig):
-        from .driver import getBoneDrivers, getShapekeyDriver, combineDrvBones, storeBoneDrivers, restoreBoneDrivers
+        def correctDriver(fcu):
+            if fcu.driver.type == 'SCRIPTED':
+                combineDrvBones(fcu)
+
+        def combineDrvBones(fcu):
+            varnames = dict([(var.name,True) for var in fcu.driver.variables])
+            for var in fcu.driver.variables:
+                vname2 = var.name+"2"
+                if vname2 in varnames.keys():
+                    continue
+                for trg in var.targets:
+                    if trg.bone_target[-3:] == "Drv":
+                        var2 = fcu.driver.variables.new()
+                        var2.name = vname2
+                        var2.type = var.type
+                        target2 = Target(trg)
+                        trg2 = var2.targets[0]
+                        target2.create(trg2)
+                        trg2.bone_target = trg.bone_target[:-3]
+                        expr = fcu.driver.expression.replace("*%s" % var.name, "*(%s+%s)" % (var.name, var2.name))
+                        fcu.driver.expression = expr
+
+        from .driver import getBoneDrivers, getShapekeyDriver, storeRemoveBoneSumDrivers, restoreBoneSumDrivers, removeDriverFCurves
         from .fix import ConstraintStore
         if getattr(rig.data, self.attr):
             msg = "Rig %s already has extra %s bones" % (rig.name, self.type)
@@ -447,16 +469,16 @@ class ExtraBones:
             raise DazError("Cannot add extra bones to Rigify rig")
         drivenLayers = 31*[False] + [True]
 
-        bones = self.getBoneNames(rig)
-        drivers = storeBoneDrivers(rig, bones)
+        bnames = self.getBoneNames(rig)
+        boneDrivers, sumDrivers = storeRemoveBoneSumDrivers(rig, bnames)
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname in bones:
+        for bname in bnames:
             eb = rig.data.edit_bones[bname]
             eb.name = bname+"Drv"
         bpy.ops.object.mode_set(mode='OBJECT')
 
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname in bones:
+        for bname in bnames:
             eb = rig.data.edit_bones.new(bname)
             par = rig.data.edit_bones[bname+"Drv"]
             eb.head = par.head
@@ -469,42 +491,41 @@ class ExtraBones:
             par.use_deform = False
         bpy.ops.object.mode_set(mode='OBJECT')
 
+        for bname in bnames:
+            if (bname not in rig.pose.bones.keys() or
+                bname+"Drv" not in rig.pose.bones.keys()):
+                del bnames[bname]
+
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname in bones:
-            if bname+"Drv" in rig.data.edit_bones.keys():
-                eb = rig.data.edit_bones[bname+"Drv"]
-                for cb in eb.children:
-                    if cb.name != bname:
-                        cb.parent = rig.data.edit_bones[bname]
+        for bname in bnames:
+            eb = rig.data.edit_bones[bname+"Drv"]
+            for cb in eb.children:
+                if cb.name != bname:
+                    cb.parent = rig.data.edit_bones[bname]
+
+        bpy.ops.object.mode_set(mode='POSE')
+        restoreBoneSumDrivers(rig, boneDrivers, "Drv", False)
+        restoreBoneSumDrivers(rig, sumDrivers, "Drv", True)
+        for pb in rig.pose.bones:
+            for fcu in getBoneDrivers(rig, pb):
+                correctDriver(fcu)
 
         store = ConstraintStore()
-        bpy.ops.object.mode_set(mode='POSE')
-        for bname in bones:
-            if (bname in rig.pose.bones.keys() and
-                bname+"Drv" in rig.pose.bones.keys()):
-                pb = rig.pose.bones[bname]
-                par = rig.pose.bones[bname+"Drv"]
-                pb.rotation_mode = par.rotation_mode
-                pb.lock_location = par.lock_location
-                pb.lock_rotation = par.lock_rotation
-                pb.lock_scale = par.lock_scale
-                pb.custom_shape = par.custom_shape
-                par.custom_shape = None
-                pb.DazRotLocks = par.DazRotLocks
-                pb.DazLocLocks = par.DazLocLocks
-                copyBoneInfo(par, pb)
-                store.storeConstraints(par.name, par)
-                store.removeConstraints(par)
-                store.restoreConstraints(par.name, pb)
-
-
-        restoreBoneDrivers(rig, drivers, "Drv")
-
-        for pb in rig.pose.bones:
-            fcus = getBoneDrivers(rig, pb)
-            if fcus:
-                for fcu in fcus:
-                    combineDrvBones(fcu)
+        for bname in bnames:
+            pb = rig.pose.bones[bname]
+            par = rig.pose.bones[bname+"Drv"]
+            pb.rotation_mode = par.rotation_mode
+            pb.lock_location = par.lock_location
+            pb.lock_rotation = par.lock_rotation
+            pb.lock_scale = par.lock_scale
+            pb.custom_shape = par.custom_shape
+            par.custom_shape = None
+            pb.DazRotLocks = par.DazRotLocks
+            pb.DazLocLocks = par.DazLocLocks
+            copyBoneInfo(par, pb)
+            store.storeConstraints(par.name, par)
+            store.removeConstraints(par)
+            store.restoreConstraints(par.name, pb)
 
         setattr(rig.data, self.attr, True)
         updateDrivers(rig)
@@ -514,7 +535,7 @@ class ExtraBones:
             if ob.type == 'MESH':
                 for vgrp in ob.vertex_groups:
                     if (vgrp.name[-3:] == "Drv" and
-                        vgrp.name[:-3] in bones):
+                        vgrp.name[:-3] in bnames):
                         vgrp.name = vgrp.name[:-3]
 
         for ob in rig.children:
@@ -524,7 +545,7 @@ class ExtraBones:
                     for skey in skeys.key_blocks[1:]:
                         fcu = getShapekeyDriver(skeys, skey.name)
                         if fcu:
-                            combineDrvBones(fcu)
+                            correctDriver(fcu)
             updateDrivers(ob)
 
 

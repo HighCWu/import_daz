@@ -637,6 +637,9 @@ class LoadMorph(PoseboneDriver):
                 for prop in props:
                     msg += "    %s\n" % prop
             raise DazError(msg, warning=True)
+        if self.ecr and GS.verbosity >= 3:
+            msg = "Found morphs that want to\nchange the rest pose"
+            raise DazError(msg, warning=True)
 
 
     def pathsToDebug(self, namepaths):
@@ -657,6 +660,8 @@ class LoadMorph(PoseboneDriver):
     def makeAllMorphs(self, namepaths):
         print("Making morphs")
         self.alias = {}
+        self.visible = {}
+        self.ecr = False
         self.drivers = {}
         self.shapekeys = {}
         self.mults = {}
@@ -754,6 +759,8 @@ class LoadMorph(PoseboneDriver):
                         self.makeTransFormula(output, idx, expr, asset)
                     elif key == "scale":
                         self.makeTransFormula(output, idx, expr, asset)
+                    elif key in ["center_point", "end_point"]:
+                        self.ecr = True
 
 
     def addNewProp(self, raw, asset):
@@ -763,9 +770,11 @@ class LoadMorph(PoseboneDriver):
         from .driver import setFloatProp
         from .modifier import addToMorphSet
         self.drivers[raw] = []
-        setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)
-        setActivated(self.rig, raw, True)
-        addToMorphSet(self.rig, self.morphset, raw)
+        self.visible[raw] = asset.visible
+        if asset.visible:
+            setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)
+            setActivated(self.rig, raw, True)
+            addToMorphSet(self.rig, self.morphset, raw)
         self.rig[final] = 0.0
         return final
 
@@ -793,18 +802,21 @@ class LoadMorph(PoseboneDriver):
 
     def getRealBone(self, bname):
         from .bone import getTargetName
-        if (self.rig.data.DazExtraFaceBones or
-            self.rig.data.DazExtraDrivenBones):
-            dname = bname + "Drv"
-            if dname in self.rig.pose.bones.keys():
-                bname = dname
         return getTargetName(bname, self.rig)
 
 
+    def getDrivenBone(self, bname):
+        bname = self.getRealBone(bname)
+        if bname:
+            dname = bname + "Drv"
+            if dname in self.rig.pose.bones.keys():
+                return dname
+        return bname
+
+
     def getBoneData(self, bname, expr, asset):
-        from .bone import getTargetName
         from .transform import Transform
-        bname = getTargetName(bname, self.rig)
+        bname = self.getDrivenBone(bname)
         if bname is None:
             return
         pb = self.rig.pose.bones[bname]
@@ -880,24 +892,26 @@ class LoadMorph(PoseboneDriver):
         fcu = self.rig.driver_add(propRef(final))
         fcu.driver.type = 'SCRIPTED'
         varname = "a"
-        expr = varname
-        addDriverVar(fcu, varname, propRef(raw), self.rig)
+        string = ""
+        if self.visible[raw]:
+            string = varname
+            addDriverVar(fcu, varname, propRef(raw), self.rig)
         for dtype,subraw,factor in drivers:
             if dtype != 'PROP':
                 continue
             subfinal = self.getFinalProp(subraw)
             varname = nextLetter(varname)
-            expr += multiply(factor, varname)
+            string += multiply(factor, varname)
             addDriverVar(fcu, varname, propRef(subfinal), self.rig)
         if mults:
-            expr = "(%s)" % expr
+            string = "(%s)" % string
             varname = "M"
             for mult in mults:
-                expr += "*%s" % varname
+                string += "*%s" % varname
                 multfinal = self.getFinalProp(mult)
                 addDriverVar(fcu, varname, propRef(multfinal), self.rig)
                 varname = nextLetter(varname)
-        fcu.driver.expression = expr
+        fcu.driver.expression = string
 
 
     def buildBoneDriver(self, raw, bname, expr):

@@ -115,6 +115,7 @@ class FACSImporter(SingleFile, ActionOptions):
 
         self.setupBones(rig)
         self.scale = rig.DazScale
+        warned = []
         for t in self.bskeys.keys():
             frame = self.getFrame(t)
             self.setBoneFrame(t, frame)
@@ -123,8 +124,9 @@ class FACSImporter(SingleFile, ActionOptions):
                 if prop in rig.keys():
                     rig[prop] = value
                     rig.keyframe_insert('["%s"]' % prop, frame=frame, group="FACS")
-                else:
+                elif bshape not in warned:
                     print("MISS", bshape, prop)
+                    warned.append(bshape)
 
 
     def setupBones(self, rig):
