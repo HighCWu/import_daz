@@ -939,7 +939,7 @@ class Bone(Node):
         return BoneInstance(fileref, self, struct)
 
 
-    def getInstance(self, ref, caller=None, strict=True):
+    def getInstance(self, ref, caller=None):
         iref = instRef(ref)
         if iref in self.instances.keys():
             return self.instances[iref]

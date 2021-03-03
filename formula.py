@@ -77,7 +77,7 @@ class Formula:
             if isinstance(asset, Morph):
                 pass
             elif isinstance(asset, Node):
-                inst = asset.getInstance(ref, self.caller, False)
+                inst = asset.getInstance(ref, self.caller)
                 if inst:
                     inst.formulate(key, value)
 

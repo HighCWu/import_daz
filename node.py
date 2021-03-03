@@ -608,7 +608,7 @@ class Node(Asset, Formula, Channels):
         return Instance(fileref, self, struct)
 
 
-    def getInstance(self, ref, caller=None, strict=True):
+    def getInstance(self, ref, caller=None):
         if caller is None:
             caller = self
         iref = instRef(ref)
@@ -620,8 +620,7 @@ class Node(Asset, Formula, Channels):
         else:
             msg = ("Node: Did not find instance %s in %s" % (iref, caller))
             insts = caller.instances
-        if strict:
-            reportError(msg, insts, trigger=(2,3))
+            reportError(msg, insts, trigger=(2,4))
         return None
 
 
