@@ -119,9 +119,8 @@ class Formula:
 
     def evalFormulas(self, exprs, props, rig, mesh):
         success = False
-        stages = []
         for formula in self.formulas:
-            if self.evalFormula(formula, exprs, props, rig, mesh, stages):
+            if self.evalFormula(formula, exprs, props, rig, mesh):
                 success = True
         if not success:
             if not self.formulas:
@@ -132,7 +131,7 @@ class Formula:
         return True
 
 
-    def evalFormula(self, formula, exprs, props, rig, mesh, stages):
+    def evalFormula(self, formula, exprs, props, rig, mesh):
         from .bone import getTargetName
         from .modifier import ChannelAsset
 
@@ -168,21 +167,29 @@ class Formula:
                 "bone" : None,
                 "comp" : -1,
                 "mult" : None}
-
         expr = exprs[output][path][idx]
-        nops = 0
-        type = None
-        ops = formula["operations"]
+        if "stage" in formula.keys():
+            self.evalStage(formula, expr, props)
+        else:
+            self.evalOperations(formula, expr, props)
 
-        # URL
-        first = ops[0]
-        if "url" not in first.keys():
-            print("UU", first)
+
+    def evalStage(self, formula, expr, props):
+        if formula["stage"] != "mult":
             return False
-        url = first["url"].split("#")[-1]
-        prop,type = url.split("?")
-        prop = unquote(prop)
-        path,comp,default = self.parseChannel(type)
+        opers = formula["operations"]
+        prop,type,comp = self.evalUrl(opers[0])
+        if type == "value":
+            if props is None:
+                return False
+            expr["mult"] = prop
+            return True
+        return False
+
+
+    def evalOperations(self, formula, expr, props):
+        opers = formula["operations"]
+        prop,type,comp = self.evalUrl(opers[0])
         if type == "value":
             if props is None:
                 return False
@@ -192,90 +199,30 @@ class Formula:
         else:
             expr["bone"] = prop
         expr["comp"] = comp
-
-        # Main operation
-        last = ops[-1]
-        op = last["op"]
-        if op == "mult":
-            if len(ops) == 3:
-                expr["factor"] = ops[1]["val"]
-            elif len(ops) == 1:
-                expr["mult"] = prop
-        elif op == "push" and len(ops) == 1:
-            bone,string = last["url"].split(":")
-            url,channel = string.split("?")
-            asset = self.getAsset(url)
-            if asset:
-                stages.append((asset,bone,channel))
-            else:
-                msg = ("Cannot push asset:\n'%s'    " % last["url"])
-                if GS.verbosity > 1:
-                    print(msg)
-        elif op == "spline_tcb":
-            expr["points"] = [ops[n]["val"] for n in range(1,len(ops)-2)]
-        else:
-            reportError("Unknown formula %s" % ops, trigger=(2,6))
-            return False
-
-        if "stage" in formula.keys() and len(ops) > 1:
-            print("STAGE", formula)
-            halt
-            exprlist = []
-            proplist = []
-            for asset,bone,channel in stages:
-                exprs1 = {}
-                props1 = {}
-                if isinstance(asset, Formula):
-                    asset.evalFormulas(exprs1, props1, rig, mesh)
-                elif isinstance(asset, ChannelAsset):
-                    if GS.verbosity > 2:
-                        print("Error stage formula: Channel")
-                elif GS.verbosity > 1:
-                    msg = "Error when evaluating stage formula"
-                    #raise DazError(msg + ".\nWhere you trying to import flexions?")
-                    print(msg)
-                    print(asset)
-                if exprs1:
-                    expr1 = list(exprs1.values())[0]
-                    exprlist.append(expr1)
-                if props1:
-                    prop1 = list(props1.values())[0]
-                    proplist.append(prop1)
-
-            if formula["stage"] == "mult":
-                self.multiplyStages(exprs, exprlist)
-
+        self.evalMainOper(opers[-1], opers, expr, props)
         return True
 
 
-    def getDefaultValue(self, pb, default):
-        if pb:
-            return Vector((default, default, default))
+    def evalUrl(self, oper):
+        if "url" not in oper.keys():
+            print(oper)
+            raise RuntimeError("BUG: Operation without URL")
+        url = oper["url"].split("#")[-1]
+        prop,type = url.split("?")
+        prop = unquote(prop)
+        path,comp,default = self.parseChannel(type)
+        return prop,type,comp
+
+
+    def evalMainOper(self, oper, opers, expr, props):
+        op = oper["op"]
+        if op == "mult":
+            expr["factor"] = opers[1]["val"]
+        elif op == "spline_tcb":
+            expr["points"] = [opers[n]["val"] for n in range(1,len(opers)-2)]
         else:
-            return default
-
-
-    def multiplyStages(self, exprs, exprlist):
-        if not exprlist:
-            return
-        key = list(exprs.keys())[0]
-        expr = exprs[key]
-        bone = self.getExprValue(expr, "bone")
-        evalue = self.getExprValue(expr, "value")
-        vectors = []
-        for expr2 in exprlist:
-            bone2 = self.getExprValue(expr2, "bone")
-            if bone2 is None:
-                continue
-            if bone is None:
-                bone = bone2
-                expr = exprs[key] = expr2
-            if bone2 == bone:
-                evalue2 = self.getExprValue(expr2, "value")
-                if evalue2 is not None:
-                    vectors.append(evalue2)
-        if vectors:
-            expr["factor"]["value"] = vectors
+            reportError("Unknown formula %s" % opers, trigger=(2,6))
+            return False
 
 
     def parseChannel(self, channel):

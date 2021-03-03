@@ -612,6 +612,8 @@ class LoadMorph(PoseboneDriver):
             self.rig = None
         clearDependecies()
 
+        namepaths = self.pathsToDebug(namepaths)
+
         self.errors = {}
         t1 = time.perf_counter()
         if namepaths:
@@ -633,6 +635,18 @@ class LoadMorph(PoseboneDriver):
                 for prop in props:
                     msg += "    %s\n" % prop
             raise DazError(msg, warning=True)
+
+
+    def pathsToDebug(self, namepaths):
+        return namepaths
+        namepaths = {
+      "cbs_EBL_ESL_div2" : "C:/Users/Public/Documents/My DAZ 3D Library\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_cbs_EBL_ESL_div2.dsf",
+      "cbs_EyeBlinkLeft_div2" : "C:/Users/Public/Documents/My DAZ 3D Library\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_cbs_EyeBlinkLeft_div2.dsf",
+      "EyeBlinkLeft" : "C:/Users/Public/Documents/My DAZ 3D Library\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_jnt_EyeBlinkLeft.dsf",
+        }
+        for key,value in namepaths.items():
+            print('     "%s" : "%s",' % (key, value))
+        return namepaths
 
     #------------------------------------------------------------------
     #   Make all morphs
