@@ -277,6 +277,23 @@ def isVector(value):
 def propRef(prop):
     return '["%s"]' % prop
 
+def finalProp(prop):
+    assert(len(prop) >= 1)
+    return "%s(fin)" % prop
+
+def isDrvBone(string):
+    return (string[-3:] == "Drv")
+
+def drvBone(string):
+    if isDrvBone(string):
+        return string
+    return string + "Drv"
+
+def baseBone(string):
+    if isDrvBone(string):
+        return string[:-3]
+    return string
+
 def nextLetter(char):
     return chr(ord(char) + 1)
 

@@ -618,7 +618,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         if self.affectSelectedOnly:
             return pb.bone.select
         elif (pb.parent and
-              pb.parent.name[-3:] == "Drv" and
+              isDrvName(pb.parent.name) and
               not self.affectDrivenBones):
             return False
         elif (pb.name == self.getMasterBone(rig) and

@@ -81,7 +81,7 @@ class Transform:
             self.scale = Vector((0,0,0))
             self.scale[index] = scale
         if addUnit:
-            self.scale = Vector(scale) + One
+            self.scale += One
         self.scaleProp = prop
 
     def noGeneral(self):

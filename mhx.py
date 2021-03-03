@@ -1229,7 +1229,7 @@ def getBoneLayer(pb, rig):
         return L_HEAD, False
     elif "tongue" in lname:
         return L_HEAD, False
-    elif (pb.name[-3:] == "Drv" or
+    elif (isDrvBone(pb.name) or
         isBoneDriven(rig, pb) or
         pb.name in facerigs):
         return L_HELP, False
@@ -1237,7 +1237,7 @@ def getBoneLayer(pb, rig):
         par = pb.parent
         if par.name in facerigs:
             return L_FACE, True
-        elif (par.name[-3:] == "Drv" and
+        elif (isDrvBone(par.name) and
               par.parent and
               par.parent.name in facerigs):
             return L_FACE, True

@@ -309,7 +309,6 @@ class PoseboneDriver:
         from .node import getBoneMatrix
         mat = getBoneMatrix(tfm, pb)
         loc,quat,scale = mat.decompose()
-        scale -= One
         success = False
         if (tfm.transProp and loc.length > 0.01*self.rig.DazScale):
             self.setFcurves(pb, loc, tfm.transProp, "location", 0)
@@ -363,7 +362,7 @@ class PoseboneDriver:
                 self.addMorphGroup(pb, idx, key, prop, default, factor)
         else:
             for idx,factor in enumerate(vec):
-                if abs(factor) < 1e-4:
+                if abs(factor-default) < 1e-4:
                     continue
                 fcu = None
                 if idx in fcurves.keys():
@@ -394,6 +393,8 @@ class PoseboneDriver:
 
     def addSumDriver(self, pb, idx, channel, fcu, data):
         bname = pb.name
+        if drvBone(bname) in self.rig.data.bones.keys():
+            bname = drvBone(bname)
         if bname not in self.sumdrivers.keys():
             self.sumdrivers[bname] = {}
         if channel not in self.sumdrivers[bname].keys():

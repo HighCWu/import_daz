@@ -758,13 +758,13 @@ class LoadMorph(PoseboneDriver):
                     elif key == "translation":
                         self.makeTransFormula(output, idx, expr, asset)
                     elif key == "scale":
-                        self.makeTransFormula(output, idx, expr, asset)
+                        self.makeScaleFormula(output, idx, expr, asset)
                     elif key in ["center_point", "end_point"]:
                         self.ecr = True
 
 
     def addNewProp(self, raw, asset):
-        final = self.getFinalProp(raw)
+        final = finalProp(raw)
         if raw in self.drivers.keys():
             return final
         from .driver import setFloatProp
@@ -808,7 +808,7 @@ class LoadMorph(PoseboneDriver):
     def getDrivenBone(self, bname):
         bname = self.getRealBone(bname)
         if bname:
-            dname = bname + "Drv"
+            dname = drvBone(bname)
             if dname in self.rig.pose.bones.keys():
                 return dname
         return bname
@@ -827,11 +827,6 @@ class LoadMorph(PoseboneDriver):
         return tfm, pb, final, factor
 
 
-    def getFinalProp(self, prop):
-        assert(len(prop) >= 1)
-        return "%s(fin)" % prop
-
-
     def makeRotFormula(self, bname, idx, expr, asset):
         tfm,pb,prop,factor = self.getBoneData(bname, expr, asset)
         tfm.setRot(self.strength*factor, prop, index=idx)
@@ -846,7 +841,7 @@ class LoadMorph(PoseboneDriver):
 
     def makeScaleFormula(self, bname, idx, expr, asset):
         tfm,pb,prop,factor = self.getBoneData(bname, expr, asset)
-        tfm.setScale(self.strength*factor, prop, False, index=idx)
+        tfm.setScale(self.strength*factor, True, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
     #------------------------------------------------------------------
@@ -887,7 +882,7 @@ class LoadMorph(PoseboneDriver):
         mults = []
         if raw in self.mults.keys():
             mults = self.mults[raw]
-        final = self.getFinalProp(raw)
+        final = finalProp(raw)
         self.rig.driver_remove(propRef(final))
         fcu = self.rig.driver_add(propRef(final))
         fcu.driver.type = 'SCRIPTED'
@@ -899,7 +894,7 @@ class LoadMorph(PoseboneDriver):
         for dtype,subraw,factor in drivers:
             if dtype != 'PROP':
                 continue
-            subfinal = self.getFinalProp(subraw)
+            subfinal = finalProp(subraw)
             varname = nextLetter(varname)
             string += multiply(factor, varname)
             addDriverVar(fcu, varname, propRef(subfinal), self.rig)
@@ -908,7 +903,7 @@ class LoadMorph(PoseboneDriver):
             varname = "M"
             for mult in mults:
                 string += "*%s" % varname
-                multfinal = self.getFinalProp(mult)
+                multfinal = finalProp(mult)
                 addDriverVar(fcu, varname, propRef(multfinal), self.rig)
                 varname = nextLetter(varname)
         fcu.driver.expression = string
@@ -933,7 +928,7 @@ class LoadMorph(PoseboneDriver):
         pb = self.rig.pose.bones[bname]
         rna = self.rig
         comp = expr["comp"]
-        final = self.getFinalProp(raw)
+        final = finalProp(raw)
         channel = propRef(final)
         self.rig.driver_remove(channel)
 

@@ -441,20 +441,21 @@ class ExtraBones:
                 combineDrvBones(fcu)
 
         def combineDrvBones(fcu):
+            from .driver import Target
             varnames = dict([(var.name,True) for var in fcu.driver.variables])
             for var in fcu.driver.variables:
                 vname2 = var.name+"2"
                 if vname2 in varnames.keys():
                     continue
                 for trg in var.targets:
-                    if trg.bone_target[-3:] == "Drv":
+                    if isDrvBone(trg.bone_target):
                         var2 = fcu.driver.variables.new()
                         var2.name = vname2
                         var2.type = var.type
                         target2 = Target(trg)
                         trg2 = var2.targets[0]
                         target2.create(trg2)
-                        trg2.bone_target = trg.bone_target[:-3]
+                        trg2.bone_target = baseBone(trg.bone_target)
                         expr = fcu.driver.expression.replace("*%s" % var.name, "*(%s+%s)" % (var.name, var2.name))
                         fcu.driver.expression = expr
 
@@ -474,13 +475,13 @@ class ExtraBones:
         bpy.ops.object.mode_set(mode='EDIT')
         for bname in bnames:
             eb = rig.data.edit_bones[bname]
-            eb.name = bname+"Drv"
+            eb.name = drvBone(bname)
         bpy.ops.object.mode_set(mode='OBJECT')
 
         bpy.ops.object.mode_set(mode='EDIT')
         for bname in bnames:
             eb = rig.data.edit_bones.new(bname)
-            par = rig.data.edit_bones[bname+"Drv"]
+            par = rig.data.edit_bones[drvBone(bname)]
             eb.head = par.head
             eb.tail = par.tail
             eb.roll = par.roll
@@ -493,19 +494,19 @@ class ExtraBones:
 
         for bname in bnames:
             if (bname not in rig.pose.bones.keys() or
-                bname+"Drv" not in rig.pose.bones.keys()):
+                drvBone(bname) not in rig.pose.bones.keys()):
                 del bnames[bname]
 
         bpy.ops.object.mode_set(mode='EDIT')
         for bname in bnames:
-            eb = rig.data.edit_bones[bname+"Drv"]
+            eb = rig.data.edit_bones[drvBone(bname)]
             for cb in eb.children:
                 if cb.name != bname:
                     cb.parent = rig.data.edit_bones[bname]
 
         bpy.ops.object.mode_set(mode='POSE')
-        restoreBoneSumDrivers(rig, boneDrivers, "Drv", False)
-        restoreBoneSumDrivers(rig, sumDrivers, "Drv", True)
+        restoreBoneSumDrivers(rig, boneDrivers, False)
+        restoreBoneSumDrivers(rig, sumDrivers, True)
         for pb in rig.pose.bones:
             for fcu in getBoneDrivers(rig, pb):
                 correctDriver(fcu)
@@ -513,7 +514,7 @@ class ExtraBones:
         store = ConstraintStore()
         for bname in bnames:
             pb = rig.pose.bones[bname]
-            par = rig.pose.bones[bname+"Drv"]
+            par = rig.pose.bones[drvBone(bname)]
             pb.rotation_mode = par.rotation_mode
             pb.lock_location = par.lock_location
             pb.lock_rotation = par.lock_rotation
@@ -534,9 +535,10 @@ class ExtraBones:
         for ob in rig.children:
             if ob.type == 'MESH':
                 for vgrp in ob.vertex_groups:
-                    if (vgrp.name[-3:] == "Drv" and
-                        vgrp.name[:-3] in bnames):
-                        vgrp.name = vgrp.name[:-3]
+                    if isDrvBone(vgrp.name):
+                        vgname = baseBone(vgrp.name)
+                        if vgname in bnames:
+                            vgrp.name = vgname
 
         for ob in rig.children:
             if ob.type == 'MESH':
@@ -568,20 +570,16 @@ class DAZ_OT_SetAddExtraFaceBones(DazOperator, ExtraBones, IsArmature):
         ]
         keys = rig.pose.bones.keys()
         facebones = [bname for bname in inface
-            if bname in keys and bname+"Drv" not in keys]
-        if "upperFaceRig" in keys:
-            facebones += [pb.name for pb in rig.pose.bones
-                if pb.name+"Drv" not in keys and
-                    pb.name[-3:] != "Drv" and
-                    pb.parent and
-                    pb.parent.name == "upperFaceRig" and
-                    not isBoneDriven(rig, pb)]
-        if "lowerFaceRig" in keys:
-            facebones += [pb.name for pb in rig.pose.bones
-                if pb.name+"Drv" not in keys and
-                    pb.name[-3:] != "Drv" and
-                    pb.parent and
-                    pb.parent.name == "lowerFaceRig"]
+            if bname in keys and drvBone(bname) not in keys]
+        for anchor in ["upperFaceRig", "lowerFaceRig"]:
+            if anchor in keys:
+                for pb in rig.pose.bones:
+                    if (not isDrvBone(pb.name) and
+                        drvBone(pb.name) not in keys and
+                        pb.parent and
+                        pb.parent.name == anchor and
+                        not isBoneDriven(rig, pb)):
+                        facebones.append(pb.name)
         return facebones
 
 
@@ -599,8 +597,8 @@ class DAZ_OT_MakeAllBonesPosable(DazOperator, ExtraBones, IsArmature):
         exclude = ["lMetatarsals", "rMetatarsals"]
         return [pb.name for pb in rig.pose.bones
                 if isBoneDriven(rig, pb) and
-                pb.name[-3:] != "Drv" and
-                pb.name+"Drv" not in rig.pose.bones.keys() and
+                not isDrvBone(pb.name) and
+                drvBone(pb.name) not in rig.pose.bones.keys() and
                 pb.name not in exclude]
 
 #-------------------------------------------------------------

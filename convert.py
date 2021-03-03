@@ -181,14 +181,14 @@ def modifySkeleton(rig, skel):
 def getBoneName(bname, bones):
     if bname in bones.keys():
         return bname
-    elif (bname[-3:] == "Drv" and
-          bname[:-3] in bones.keys()):
-        return bname[:-3]
+    elif isDrvName(bname):
+        bname = baseName(bname)
+        if bname in bones.keys():
+            return bname
     elif (bname[-4:] == "Copy" and
           bname[:-4] in bones.keys()):
         return bname[:-4]
-    else:
-        return None
+    return None
 
 
 def loadBonePose(pb, pose):

@@ -62,7 +62,7 @@ def isFaceBoneDriven(rig, pb):
         return True
     else:
         par = pb.parent
-        return (par and par.name[-3:] == "Drv" and isBoneDriven(rig, par))
+        return (par and isDrvBone(par.name) and isBoneDriven(rig, par))
 
 
 def getShapekeyDriver(skeys, sname):
@@ -108,7 +108,7 @@ class Driver:
         if words[0] == "pose.bones[" and len(words) == 5:
             bname = words[1]
             channel = words[3]
-            self.data_path = self.data_path.replace(bname, bname+"Drv")
+            self.data_path = self.data_path.replace(bname, drvBone(bname))
             self.array_index = -1
             channel = propRef(channel)
         else:
@@ -149,7 +149,7 @@ class Variable:
         self.name = var.name
         self.target = Target(var.targets[0])
 
-    def create(self, var, fixDrv):
+    def create(self, var, fixDrv=False):
         var.name = self.name
         var.type = self.type
         self.target.create(var.targets[0], fixDrv)
@@ -168,16 +168,15 @@ class Target:
         else:
             self.name = words[0]
 
-    def create(self, trg, fixDrv):
+    def create(self, trg, fixDrv=False):
         trg.id = self.id
         trg.bone_target = self.bone_target
         trg.transform_type = self.transform_type
         trg.transform_space = self.transform_space
         if fixDrv:
             words = self.data_path.split('"')
-            if (words[0] == "pose.bones[" and
-                words[1][:-3] != "Drv"):
-                words[1] += "Drv"
+            if words[0] == "pose.bones[":
+                words[1] = drvBone(words[1])
                 self.data_path = '"'.join(words)
         trg.data_path = self.data_path
 
@@ -629,9 +628,10 @@ def getAllBoneSumDrivers(rig, bnames):
         return boneFcus, sumFcus
     for fcu in rig.animation_data.drivers:
         words = fcu.data_path.split('"', 2)
-        if (words[0] == "pose.bones[" and
-            words[1] in bnames):
-            bname = words[1]
+        if words[0] == "pose.bones[":
+            bname = baseBone(words[1])
+            if bname not in bnames:
+                continue
         else:
             if words[0] != "[":
                 print("MISS", words)
@@ -664,9 +664,9 @@ def storeRemoveBoneSumDrivers(rig, bones):
     return boneDrivers, sumDrivers
 
 
-def restoreBoneSumDrivers(rig, drivers, suffix, fixDrv):
+def restoreBoneSumDrivers(rig, drivers, fixDrv):
     for bname,bdrivers in drivers.items():
-        pb = rig.pose.bones[bname+suffix]
+        pb = rig.pose.bones[drvBone(bname)]
         for driver in bdrivers:
             driver.create(pb, fixDrv=fixDrv)
 
