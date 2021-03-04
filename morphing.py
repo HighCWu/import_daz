@@ -821,10 +821,31 @@ class LoadMorph(PoseboneDriver):
             return
         pb = self.rig.pose.bones[bname]
         factor = expr["factor"]
+        if "points" in expr.keys():
+            factor = self.cheatSplineTCB(expr["points"], factor)
         raw = expr["prop"]
         final = self.addNewProp(raw, asset)
         tfm = Transform()
         return tfm, pb, final, factor
+
+
+    def cheatSplineTCB(self, points, factor):
+        x0 = y0 = None
+        for n,point in enumerate(points):
+            x,y = point[0:2]
+            if x == 0 and y == 0:
+                x0 = x
+                y0 = y
+                n0 = n
+                break
+        if x0 is None:
+            return factor
+        if n0 == 0:
+            x1,y1 = points[-1][0:2]
+        else:
+            x1,y1 = points[0][0:2]
+        factor = (y1-y0)/(x1-x0)
+        return factor
 
 
     def makeRotFormula(self, bname, idx, expr, asset):
