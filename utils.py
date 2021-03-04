@@ -169,7 +169,7 @@ else:
         return bpy.props.FloatProperty(default=default, description=description, precision=precision, min=min, max=max, override={'LIBRARY_OVERRIDABLE'})
 
     def setOverridable(rna, attr):
-        rna.property_overridable_library_set('["%s"]' % attr, True)
+        rna.property_overridable_library_set(propRef(attr), True)
 
 
 def setattrOVR(rna, attr, value):
@@ -278,7 +278,6 @@ def propRef(prop):
     return '["%s"]' % prop
 
 def finalProp(prop):
-    assert(len(prop) >= 1)
     return "%s(fin)" % prop
 
 def isDrvBone(string):

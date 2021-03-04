@@ -659,7 +659,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 if prop.lower() in lprops:
                     rig[prop] = 0.0
                     if self.insertKeys:
-                        rig.keyframe_insert('["%s"]' % prop, frame=frame, group=prop)
+                        rig.keyframe_insert(propRef(prop), frame=frame, group=prop)
 
 
     KnownRigs = [
@@ -732,7 +732,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                             if key:
                                 setFloatProp(rig, key, value)
                                 if self.insertKeys:
-                                    rig.keyframe_insert('["%s"]' % key, frame=n+offset, group="Morphs")
+                                    rig.keyframe_insert(propRef(key), frame=n+offset, group="Morphs")
 
                 for (bname, tfm, value) in twists:
                     self.transformBone(rig, bname, tfm, value, n, offset, True)

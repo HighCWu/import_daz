@@ -441,7 +441,7 @@ class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper):
         self.rig.data.layers[onLayer] = True
         self.rig.data.layers[offLayer] = False
         self.rig[prop] = value
-        path = ('["%s"]' % prop)
+        path = (propRef(prop))
         if self.isKeyed(None, path):
             self.rig.keyframe_insert(path, frame=scn.frame_current)
         updatePose()

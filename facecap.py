@@ -123,7 +123,7 @@ class FACSImporter(SingleFile, ActionOptions):
                 prop = self.FacsTable[bshape]
                 if prop in rig.keys():
                     rig[prop] = value
-                    rig.keyframe_insert('["%s"]' % prop, frame=frame, group="FACS")
+                    rig.keyframe_insert(propRef(prop), frame=frame, group="FACS")
                 elif bshape not in warned:
                     print("MISS", bshape, prop)
                     warned.append(bshape)

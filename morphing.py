@@ -581,6 +581,7 @@ class LoadMorph(PoseboneDriver):
     morphset = None
     usePropDrivers = True
     useMeshCats = False
+    showHidden = False
 
     def __init__(self, mesh=None):
         from .finger import getFingeredCharacter
@@ -770,8 +771,8 @@ class LoadMorph(PoseboneDriver):
         from .driver import setFloatProp
         from .modifier import addToMorphSet
         self.drivers[raw] = []
-        self.visible[raw] = asset.visible
-        if asset.visible:
+        visible = self.visible[raw] = (asset.visible or self.showHidden)
+        if visible:
             setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)
             setActivated(self.rig, raw, True)
             addToMorphSet(self.rig, self.morphset, raw)
@@ -1106,8 +1107,16 @@ class LoadAllMorphs(LoadMorph):
 class StandardMorphSelector(Selector):
     strength = 1
 
+    showHidden : BoolProperty(
+        name = "Show Hidden Morphs",
+        description = "Display hidden sliders",
+        default = False)
+
     def draw(self, context):
         Selector.draw(self, context)
+
+    def drawExtra(self, context):
+        self.layout.prop(self, "showHidden")
 
 
     def getActiveMorphFiles(self, context):
@@ -1454,7 +1463,7 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsMeshArmature, DeleteShape
             for pg in cat.morphs:
                 if pg.name in rig.keys():
                     rig[pg.name] = 0.0
-                path = ('["%s"]' % pg.name)
+                path = propRef(pg.name)
                 keep = removePropDrivers(rig, path, rig)
                 for ob in rig.children:
                     if ob.type == 'MESH':
@@ -2119,7 +2128,7 @@ class MorphRemover(DeleteShapekeysBool):
         if rig:
             props = self.getSelectedProps(scn)
             print("Remove", props)
-            paths = ['["%s"]' % prop for prop in props]
+            paths = [propRef(prop) for prop in props]
             for ob in rig.children:
                 if ob.type == 'MESH' and ob.data.shape_keys:
                     self.removeShapekeyDrivers(ob, paths, props, rig)
@@ -2475,7 +2484,7 @@ class DAZ_OT_ToggleAllCats(DazOperator, IsMeshArmature):
 #-------------------------------------------------------------
 
 def keyProp(rig, key, frame):
-    rig.keyframe_insert('["%s"]' % key, frame=frame)
+    rig.keyframe_insert(propRef(key), frame=frame)
 
 
 def keyShape(skeys, key, frame):
@@ -2484,7 +2493,7 @@ def keyShape(skeys, key, frame):
 
 def unkeyProp(rig, key, frame):
     try:
-        rig.keyframe_delete('["%s"]' % key, frame=frame)
+        rig.keyframe_delete(propRef(key), frame=frame)
     except RuntimeError:
         print("No action to unkey %s" % key)
 
@@ -2498,7 +2507,7 @@ def unkeyShape(skeys, key, frame):
 
 def getPropFCurves(rig, key):
     if rig.animation_data and rig.animation_data.action:
-        path = '["%s"]' % key
+        path = propRef(key)
         return [fcu for fcu in rig.animation_data.action.fcurves if path == fcu.data_path]
     return []
 

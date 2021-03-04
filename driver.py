@@ -542,7 +542,7 @@ def addDriverVar(fcu, vname, path, rig):
 
 
 def hasDriverVar(fcu, dname, rig):
-    path = '["%s"]' % dname
+    path = propRef(dname)
     for var in fcu.driver.variables:
         trg = var.targets[0]
         if trg.id == rig and trg.data_path == path:
@@ -788,7 +788,7 @@ class DAZ_OT_RestoreDrivers(DazOperator, IsMesh):
                     trg = var.targets[0]
                     trg.id_type = 'OBJECT'
                     trg.id = rig
-                    trg.data_path = '["%s"]' % sname
+                    trg.data_path = propRef(sname)
 
 #----------------------------------------------------------
 #   Remove unused drivers
