@@ -611,7 +611,7 @@ class LoadMorph(PoseboneDriver):
         if not self.usePropDrivers:
             self.rig = None
         clearDependecies()
-        if not GS.usePythonDrivers and self.rig and self.morphset:
+        if not GS.useCustomDrivers and self.rig and self.morphset:
             self.removeMorphset()
 
         namepaths = self.pathsToDebug(namepaths)

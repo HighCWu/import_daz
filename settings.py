@@ -61,7 +61,7 @@ class GlobalSettings:
         self.verbosity = 2
         self.useDump = False
         self.zup = True
-        self.usePythonDrivers = False
+        self.useCustomDrivers = False
 
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
@@ -140,7 +140,7 @@ class GlobalSettings:
         "DazPropMax" : "propMax",
         "DazUsePropLimits" : "useDazPropLimits",
         "DazUsePropDefault" : "useDazPropDefault",
-        "DazUsePythonDrivers" : "usePythonDrivers",
+        "DazUseCustomDrivers" : "useCustomDrivers",
 
         "DazOrientMethod" : "orientMethod",
         "DazUseLegacyLocks" : "useLegacyLocks",

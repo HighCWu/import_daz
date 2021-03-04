@@ -353,7 +353,7 @@ class PoseboneDriver:
 
         key = channel[0:3].capitalize()
         fcurves = getBoneFcurves(pb, channel)
-        if GS.usePythonDrivers:
+        if GS.useCustomDrivers:
             for idx,factor in enumerate(vec):
                 if abs(factor) < 1e-4:
                     continue

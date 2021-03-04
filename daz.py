@@ -287,7 +287,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazDump")
         box.prop(scn, "DazZup")
         box.prop(scn, "DazCaseSensitivePaths")
-        box.prop(scn, "DazUsePythonDrivers")
+        box.prop(scn, "DazUseCustomDrivers")
 
         box = col.box()
         box.label(text = "Meshes")
@@ -626,7 +626,7 @@ def register():
         name = "Case-Sensitive Paths",
         description = "Convert URLs to lowercase. Works best on Windows.")
 
-    bpy.types.Scene.DazUsePythonDrivers = BoolProperty(
+    bpy.types.Scene.DazUseCustomDrivers = BoolProperty(
         name = "Python Drivers",
         description = "Drivers use slow python drivers")
 
