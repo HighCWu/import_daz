@@ -776,7 +776,7 @@ class LoadMorph(PoseboneDriver):
             setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)
             setActivated(self.rig, raw, True)
             addToMorphSet(self.rig, self.morphset, raw)
-        self.rig[final] = 0.0
+        setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
         return final
 
 
