@@ -542,11 +542,15 @@ class DAZ_PT_Morphs:
         key = morph.name
         if key not in rig.keys():
             return
-        split = layout.split(factor=0.85)
-        split2 = split.split(factor=0.8)
-        split2.prop(rig, propRef(key), text=morph.text)
-        split2.prop(rig, propRef(finalProp(key)), text="")
-        row = split.row()
+        if GS.showFinalMorphs:
+            split = layout.split(factor=0.85)
+            split2 = split.split(factor=0.8)
+            split2.prop(rig, propRef(key), text=morph.text)
+            split2.prop(rig, propRef(finalProp(key)), text="")
+            row = split.row()
+        else:
+            row = layout.split(factor=0.8)
+            row.prop(rig, propRef(key), text=morph.text)
         self.showBool(row, rig, key)
         op = row.operator("daz.pin_prop", icon='UNPINNED')
         op.key = key

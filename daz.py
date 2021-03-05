@@ -284,16 +284,17 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "General")
         box.prop(scn, "DazUnitScale")
         box.prop(scn, "DazVerbosity")
-        box.prop(scn, "DazDump")
-        box.prop(scn, "DazZup")
         box.prop(scn, "DazCaseSensitivePaths")
         box.prop(scn, "DazUseCustomDrivers")
 
         box = col.box()
-        box.label(text = "Meshes")
-        box.prop(scn, "DazBuildHighdef")
-        box.prop(scn, "DazMultires")
-        box.prop(scn, "DazUseInstancing")
+        box.label(text = "Debugging")
+        box.prop(scn, "DazZup")
+        box.prop(scn, "DazDump")
+        box.prop(scn, "DazShowHiddenMorphs")
+        box.prop(scn, "DazShowFinalMorphs")
+        box.prop(scn, "DazPruneNodes")
+        box.prop(scn, "DazMergeShells")
 
         box = col.box()
         box.label(text = "Properties")
@@ -316,6 +317,12 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseLegacyLocks")
 
         box = col.box()
+        box.label(text = "Meshes")
+        box.prop(scn, "DazBuildHighdef")
+        box.prop(scn, "DazMultires")
+        box.prop(scn, "DazUseInstancing")
+
+        box = col.box()
         box.label(text = "Simulation")
         box.prop(scn, "DazInfluence")
         box.prop(scn, "DazSimulation")
@@ -327,8 +334,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazHairMaterialMethod")
         box.separator()
         box.prop(scn, "DazViewportColor")
-        box.prop(scn, "DazMergeShells")
-        box.prop(scn, "DazPruneNodes")
         box.prop(scn, "DazUseEnvironment")
         box.prop(scn, "DazReuseMaterials")
         box.prop(scn, "DazLimitBump")
@@ -436,6 +441,15 @@ def register():
         name = "DAZ Property Defaults",
         description = "Use the default values from DAZ files as default slider values.")
 
+    bpy.types.Scene.DazShowHiddenMorphs = BoolProperty(
+        name = "Show Hidden Morphs",
+        description = "Create properties for hidden morphs,\nso they can be displayed in the UI",
+        default = False)
+
+    bpy.types.Scene.DazShowFinalMorphs = BoolProperty(
+        name = "Show Final Morphs",
+        description = "Display both raw and final morph values",
+        default = False)
 
     # Object properties
 

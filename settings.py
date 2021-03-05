@@ -62,6 +62,8 @@ class GlobalSettings:
         self.useDump = False
         self.zup = True
         self.useCustomDrivers = False
+        self.showHiddenMorphs = False
+        self.showFinalMorphs = False
 
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
@@ -109,19 +111,25 @@ class GlobalSettings:
 
 
     SceneTable = {
+        # General
         "DazUnitScale" : "unitScale",
         "DazVerbosity" : "verbosity",
-        "DazDump" : "useDump",
-        "DazZup" : "zup",
         "DazErrorPath" : "errorPath",
         "DazCaseSensitivePaths" : "caseSensitivePaths",
 
+        # Debugging
+        "DazDump" : "useDump",
+        "DazZup" : "zup",
+        "DazShowHiddenMorphs" : "showHiddenMorphs",
+        "DazShowFinalMorphs" : "showFinalMorphs",
+        "DazMergeShells" : "mergeShells",
+        "DazPruneNodes" : "pruneNodes",
+
+        # Materials
         "DazMaterialMethod" : "materialMethod",
         "DazRefractiveMethod" : "refractiveMethod",
         "DazHairMaterialMethod" : "hairMaterialMethod",
         "DazViewportColor" : "viewportColors",
-        "DazMergeShells" : "mergeShells",
-        "DazPruneNodes" : "pruneNodes",
         "DazUseEnvironment" : "useEnvironment",
         "DazReuseMaterials" : "reuseMaterials",
         "DazLimitBump" : "limitBump",
@@ -136,12 +144,14 @@ class GlobalSettings:
         "DazDiffuseRoughness" : "diffuseRoughness",
         "DazSpecularRoughness" : "specularRoughness",
 
+        # Properties
         "DazPropMin" : "propMin",
         "DazPropMax" : "propMax",
         "DazUsePropLimits" : "useDazPropLimits",
         "DazUsePropDefault" : "useDazPropDefault",
         "DazUseCustomDrivers" : "useCustomDrivers",
 
+        # Rigging
         "DazOrientMethod" : "orientMethod",
         "DazUseLegacyLocks" : "useLegacyLocks",
         "DazUseQuaternions" : "useQuaternions",
@@ -151,9 +161,12 @@ class GlobalSettings:
         "DazUseLockRot" : "useLockRot",
         "DazUseLimitRot" : "useLimitRot",
 
+        # Meshes
         "DazUseInstancing" : "useInstancing",
         "DazBuildHighdef" : "buildHighdef",
         "DazMultires" : "useMultires",
+
+        # Simulation
         "DazInfluence" : "useInfluence",
         "DazSimulation" : "useSimulation",
     }

@@ -581,7 +581,6 @@ class LoadMorph(PoseboneDriver):
     morphset = None
     usePropDrivers = True
     useMeshCats = False
-    showHidden = False
 
     def __init__(self, mesh=None):
         from .finger import getFingeredCharacter
@@ -771,7 +770,7 @@ class LoadMorph(PoseboneDriver):
         from .driver import setFloatProp
         from .modifier import addToMorphSet
         self.drivers[raw] = []
-        visible = self.visible[raw] = (asset.visible or self.showHidden)
+        visible = self.visible[raw] = (asset.visible or GS.showHiddenMorphs)
         if visible:
             setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)
             setActivated(self.rig, raw, True)
@@ -1107,16 +1106,8 @@ class LoadAllMorphs(LoadMorph):
 class StandardMorphSelector(Selector):
     strength = 1
 
-    showHidden : BoolProperty(
-        name = "Show Hidden Morphs",
-        description = "Display hidden sliders",
-        default = False)
-
     def draw(self, context):
         Selector.draw(self, context)
-
-    def drawExtra(self, context):
-        self.layout.prop(self, "showHidden")
 
 
     def getActiveMorphFiles(self, context):
