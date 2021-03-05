@@ -62,7 +62,7 @@ def importModules():
                     "cycles", "cgroup", "pbr", "render", "camera", "light",
                     "guess", "animation", "files", "main", "finger",
                     "matedit", "tables", "proxy", "rigify", "merge", "hide",
-                    "mhx", "layers", "fkik", "hair", "transfer", "dforce"]
+                    "mhx", "layers", "fkik", "hair", "transfer", "dforce", "hdmorphs"]
         if bpy.app.version >= (2,82,0):
             modnames += ["udim", "facecap"]
         anchor = os.path.basename(__file__[0:-12])
@@ -123,6 +123,7 @@ def register():
     if bpy.app.version >= (2,82,0):
         udim.register()
         facecap.register()
+    hdmorphs.register()
 
     if bpy.app.version < (2,80,0):
         bpy.types.INFO_MT_file_import.append(menu_func_import)
@@ -163,6 +164,7 @@ def unregister():
     if bpy.app.version >= (2,82,0):
         udim.unregister()
         facecap.unregister()
+    hdmorphs.unregister()
 
     if bpy.app.version < (2,80,0):
         bpy.types.INFO_MT_file_import.remove(menu_func_import)

@@ -58,9 +58,18 @@ for file in os.listdir(theRestPoseFolder):
 #   hair.py
 #-------------------------------------------------------------
 
-def getActiveMaterial(scn, context):
+def getMaterialEnums(scn, context):
     ob = context.object
     return [(mat.name, mat.name, mat.name) for mat in ob.data.materials]
+
+
+def getShapeEnums(scn, context):
+    skeys = context.object.data.shape_keys
+    if skeys is None:
+        return []
+    enums = [(sname,sname,sname) for sname in skeys.key_blocks.keys()[1:]]
+    enums.sort()
+    return enums
 
 #-------------------------------------------------------------
 #   hide.py

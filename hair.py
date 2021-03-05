@@ -178,7 +178,7 @@ class HairOptions:
         default = True)
 
     activeMaterial : EnumProperty(
-        items = G.getActiveMaterial,
+        items = G.getMaterialEnums,
         name = "Material",
         description = "Material to use as hair material")
 

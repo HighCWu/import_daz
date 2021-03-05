@@ -573,7 +573,6 @@ class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh)
 
 
     def run(self, context):
-        from .cycles import CyclesTree
         from .cgroup import DecalGroup
 
         img = bpy.data.images.load(self.filepath)
@@ -585,10 +584,7 @@ class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh)
 
         fname = os.path.splitext(os.path.basename(self.filepath))[0]
         ob = context.object
-        mat = ob.data.materials[ob.active_material_index]
-        tree = CyclesTree(None)
-        tree.nodes = mat.node_tree.nodes
-        tree.links = mat.node_tree.links
+        tree = getTree(ob, ob.active_material_index)
 
         coll = context.collection
         empty = bpy.data.objects.new(fname, None)
@@ -597,7 +593,7 @@ class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh)
         for item in self.shows:
             if item.show:
                 nodeType,slot,cname = self.channels[item.name]
-                fromSocket, toSocket = self.getFromToSockets(tree, nodeType, slot)
+                fromSocket, toSocket = getFromToSockets(tree, nodeType, slot)
                 if toSocket is None:
                     print("Channel %s not found" % item.name)
                     continue
@@ -610,16 +606,28 @@ class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh)
                 else:
                     tree.links.new(node.outputs["Color"], toSocket)
 
+# ---------------------------------------------------------------------
+#   Utilities
+# ---------------------------------------------------------------------
 
-    def getFromToSockets(self, tree, nodeType, slot):
-        for link in tree.links.values():
-            if link.to_node and link.to_node.type == nodeType:
-                if link.to_socket == link.to_node.inputs[slot]:
-                    return link.from_socket, link.to_socket
-        for node in tree.nodes.values():
-            if node.type == nodeType:
-                return None, node.inputs[slot]
-        return None, None
+def getTree(ob, mindex):
+    from .cycles import CyclesTree
+    mat = ob.data.materials[mindex]
+    tree = CyclesTree(None)
+    tree.nodes = mat.node_tree.nodes
+    tree.links = mat.node_tree.links
+    return tree
+
+
+def getFromToSockets(tree, nodeType, slot):
+    for link in tree.links.values():
+        if link.to_node and link.to_node.type == nodeType:
+            if link.to_socket == link.to_node.inputs[slot]:
+                return link.from_socket, link.to_socket
+    nodes = tree.getNodes(nodeType)
+    if nodes:
+        return None, nodes[0].inputs[slot]
+    return None, None
 
 # ---------------------------------------------------------------------
 #   Reset button
@@ -847,9 +855,9 @@ def register():
     bpy.types.Object.DazAffectedMaterials = CollectionProperty(type = DazActiveGroup)
     bpy.types.Scene.DazFloats = CollectionProperty(type = DazFloatGroup)
 
-    from .globvars import getActiveMaterial
+    from .globvars import getMaterialEnums
     bpy.types.Object.DazActiveMaterial = EnumProperty(
-        items = getActiveMaterial,
+        items = getMaterialEnums,
         name = "Active Material",
         description = "Material actually being edited")
 

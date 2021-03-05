@@ -792,7 +792,7 @@ class LoadMorph(PoseboneDriver):
             self.rig[raw] = 0.0
             self.rig[final] = 0.0
         if asset:
-            visible = (asset.visible or GS.loadHiddenMorphs)
+            visible = (asset.visible or GS.useMakeHiddenSliders)
             self.visible[raw] = visible
             if visible:
                 setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)

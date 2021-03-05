@@ -62,7 +62,7 @@ class GlobalSettings:
         self.useDump = False
         self.zup = True
         self.useCustomDrivers = False
-        self.loadHiddenMorphs = False
+        self.useMakeHiddenSliders = False
         self.showFinalMorphs = False
 
         self.materialMethod = 'BSDF'
@@ -120,7 +120,7 @@ class GlobalSettings:
         # Debugging
         "DazDump" : "useDump",
         "DazZup" : "zup",
-        "DazLoadHiddenMorphs" : "loadHiddenMorphs",
+        "DazMakeHiddenSliders" : "useMakeHiddenSliders",
         "DazShowFinalMorphs" : "showFinalMorphs",
         "DazMergeShells" : "mergeShells",
         "DazPruneNodes" : "pruneNodes",

@@ -1409,6 +1409,14 @@ class CyclesTree:
         else:
             return tex2
 
+
+    def getNodes(self, nodeType):
+        nodes = []
+        for node in self.nodes.values():
+            if node.type == nodeType:
+                nodes.append(node)
+        return nodes
+
 #-------------------------------------------------------------
 #   Utilities
 #-------------------------------------------------------------
