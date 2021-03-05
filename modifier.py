@@ -259,45 +259,6 @@ class ChannelAsset(Modifier):
             self.value = struct["channel"]["current_value"]
 
 
-    def setupQuick(self, morphset, rig):
-        self.morphset = morphset
-        self.rig = rig
-        self.prop = self.getName()
-
-
-    def setupProp(self, morphset, rig):
-        self.setupQuick(morphset, rig)
-        prop = unquote(self.name)
-        if prop in rig.DazPropNames.keys():
-            pg = rig.DazPropNames[prop]
-        else:
-            pg = rig.DazPropNames.add()
-        pg.name = prop
-        pg.text = self.prop
-        addToMorphSet(rig, morphset, self.prop, self)
-
-
-    def initProp(self, ob, prop):
-        from .driver import setFloatProp
-        if prop is None:
-            prop = self.prop
-        if GS.useDazPropLimits:
-            value = self.value
-            min = self.min
-            max = self.max
-        else:
-            value = 0.0
-            min = max = None
-        setFloatProp(ob, prop, value, min=min, max=max)
-        return prop,value
-
-
-    def clearProp(self, morphset, rig):
-        self.setupProp(morphset, rig, False)
-        prop,_value = self.initProp(rig, None)
-        return prop
-
-
 def stripPrefix(prop):
     lprop = prop.lower()
     for prefix in [
@@ -779,13 +740,9 @@ class Morph(FormulaAsset):
     def buildMorph(self, ob,
                    useBuild=True,
                    useSoftLimits=False,
-                   morphset=None,
                    strength=1):
-        #sname = unquote(self.name)
         sname = self.getName()
         rig = ob.parent
-        if rig and morphset:
-            addToMorphSet(rig, morphset, sname, self)
         skey = addShapekey(ob, sname)
         if useSoftLimits:
             skey.slider_min = self.min if self.min is not None and GS.useDazPropLimits else GS.propMin

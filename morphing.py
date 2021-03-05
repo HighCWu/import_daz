@@ -700,7 +700,7 @@ class LoadMorph(PoseboneDriver):
 
     def buildShapekey(self, asset, useBuild=True):
         from .modifier import Morph
-        from .driver import makePropDriver
+        from .driver import makePropDriver, setFloatProp
         if not (isinstance(asset, Morph) and
                 self.mesh and
                 asset.deltas):
@@ -723,7 +723,6 @@ class LoadMorph(PoseboneDriver):
             asset.buildMorph(self.mesh,
                              useBuild=useBuild,
                              useSoftLimits=False,
-                             morphset=self.morphset,
                              strength=self.strength)
         skey,_,sname = asset.rna
         if skey:
@@ -732,7 +731,9 @@ class LoadMorph(PoseboneDriver):
             skey.name = prop
             self.shapekeys[prop] = skey
             if self.rig:
-                final = self.addNewProp(prop, asset)
+                #final = self.addNewProp(prop, asset)
+                final = finalProp(prop)
+                setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
                 makePropDriver(propRef(final), skey, "value", self.rig, "x")
         return skey
 
@@ -746,8 +747,9 @@ class LoadMorph(PoseboneDriver):
         exprs = {}
         props = {}
         asset.evalFormulas(exprs, props, self.rig, self.mesh)
-        for prop in props.keys():
-            self.addNewProp(prop, asset)
+        #print("PROPS", props.keys(), asset.visible)
+        #for prop in props.keys():
+        #    self.addNewProp(prop, asset)
         for output,data in exprs.items():
             for key,data1 in data.items():
                 for idx,expr in data1.items():
