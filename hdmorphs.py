@@ -57,17 +57,18 @@ class LoadMap:
         self.layout.prop(self, "shapekey")
         self.layout.prop(self, "material")
 
-    def getTexture(self, ob):
+    def getTexture(self, ob, col):
         from .matedit import getTree
         img = bpy.data.images.load(self.filepath)
         img.name = os.path.splitext(os.path.basename(self.filepath))[0]
+        img.colorspace_settings.name = "Non-Color"
         tree = getTree(ob, self.material)
         nodes = tree.getNodes("TEX_COORD")
         if nodes:
             texco = nodes[0]
         else:
             texco = tree.addNode("ShaderNodeTexCoord", col=1)
-        tex = tree.addTextureNode(5, img, img.name, "NONE")
+        tex = tree.addTextureNode(col, img, img.name, "NONE")
         tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
         return tree, tex
 
@@ -78,25 +79,54 @@ class LoadMap:
 class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, SingleFile, ImageFile):
     bl_idname = "daz.load_hd_vector_disp"
     bl_label = "Load HD Vector Disp"
-    bl_description = "Load vector displacement map to active morph"
+    bl_description = "Load vector displacement map to morph"
     bl_options = {'UNDO'}
 
     def run(self, context):
+        from .driver import makePropDriver
         ob = context.object
-        skeys = ob.data.shape_keys
-        scn = context.scene
-        print("HD Vector", self.filepath)
-        print("SHS", self.shapekey)
-        print("MAT", self.material)
-        tree,tex = self.getTexture(ob)
+        tree,tex = self.getTexture(ob, 5)
 
         disp = tree.addNode("ShaderNodeVectorDisplacement", col=6, label=self.shapekey)
         disp.inputs["Midlevel"].default_value = 0.5
         disp.inputs["Scale"].default_value = ob.DazScale
         tree.links.new(tex.outputs["Color"], disp.inputs["Vector"])
+        path = 'data.shape_keys.key_blocks["%s"].value' % self.shapekey
+        makePropDriver(path, disp.inputs["Scale"], "default_value", ob, "%g*x" % ob.DazScale)
 
         for node in tree.getNodes("OUTPUT_MATERIAL"):
             tree.links.new(disp.outputs["Displacement"], node.inputs["Displacement"])
+
+#-------------------------------------------------------------
+#   Load HD Normal Map
+#-------------------------------------------------------------
+
+class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, SingleFile, ImageFile):
+    bl_idname = "daz.load_hd_normal_map"
+    bl_label = "Load HD Normal Map"
+    bl_description = "Load normal map to morph"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        from .driver import makePropDriver
+        ob = context.object
+        tree,tex = self.getTexture(ob, -1)
+
+        normal = tree.addNode("ShaderNodeNormalMap", col=0, label=self.shapekey)
+        normal.space = "TANGENT"
+        normal.inputs["Strength"].default_value = 1
+        tree.links.new(tex.outputs["Color"], normal.inputs["Color"])
+        path = 'data.shape_keys.key_blocks["%s"].value' % self.shapekey
+        makePropDriver(path, normal.inputs["Strength"], "default_value", ob, "x")
+
+        nodes = tree.getNodes("BUMP")
+        if nodes:
+            bump = nodes[0]
+            tree.links.new(normal.outputs["Normal"], bump.inputs["Normal"])
+        else:
+            for node in tree.nodes:
+                if "Normal" in node.inputs.keys():
+                    tree.links.new(normal.outputs["Normal"], normal.inputs["Normal"])
 
 #-------------------------------------------------------------
 #   Initialize
@@ -104,6 +134,7 @@ class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, SingleFile, ImageFile):
 
 classes = [
     DAZ_OT_LoadHDVectorDisp,
+    DAZ_OT_LoadHDNormalMap,
 ]
 
 def register():

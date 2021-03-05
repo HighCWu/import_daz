@@ -218,7 +218,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
                 box.operator("daz.add_driven_value_nodes")
                 box.separator()
             box.operator("daz.load_hd_vector_disp")
-            #box.operator("daz.load_hd_normal_map")
+            box.operator("daz.load_hd_normal_map")
             box.separator()
             box.operator("daz.load_uv")
             box.operator("daz.prune_uv_maps")
