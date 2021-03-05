@@ -754,8 +754,8 @@ class LoadMorph(PoseboneDriver):
             skey.name = prop
             self.shapekeys[prop] = skey
             if self.rig:
-                final = self.addNewProp(prop, asset, hidden=True)
-                setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
+                final = self.addNewProp(prop, None)
+                #setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
                 makePropDriver(propRef(final), skey, "value", self.rig, "x")
         return skey
 
@@ -766,11 +766,8 @@ class LoadMorph(PoseboneDriver):
             print("Not a formula", asset)
             return
 
-        exprs = {}
-        props = {}
-        asset.evalFormulas(exprs, props, self.rig, self.mesh)
-        for prop in props.keys():
-            self.addNewProp(prop, asset)
+        exprs = asset.evalFormulas(self.rig, self.mesh)
+        self.addNewProp(asset.getName(), asset)
         for output,data in exprs.items():
             for key,data1 in data.items():
                 for idx,expr in data1.items():
@@ -786,23 +783,22 @@ class LoadMorph(PoseboneDriver):
                         self.ecr = True
 
 
-    def addNewProp(self, raw, asset, hidden=False):
+    def addNewProp(self, raw, asset):
         from .driver import setFloatProp
         final = finalProp(raw)
-        if raw in self.drivers.keys():
-            if hidden:
-                self.removeFromMorphSet(raw)
-                if GS.loadHiddenMorphs:
-                    self.addToMorphSet(raw, None, True)
-            return final
-        self.drivers[raw] = []
-        visible = ((asset.visible and not hidden) or GS.loadHiddenMorphs)
-        self.visible[raw] = visible
-        if visible:
-            setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)
-            setActivated(self.rig, raw, True)
-            self.addToMorphSet(raw, asset, False)
-        setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
+        if raw not in self.drivers.keys():
+            self.drivers[raw] = []
+            self.visible[raw] = False
+            self.rig[raw] = 0.0
+            self.rig[final] = 0.0
+        if asset:
+            visible = (asset.visible or GS.loadHiddenMorphs)
+            self.visible[raw] = visible
+            if visible:
+                setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)
+                setActivated(self.rig, raw, True)
+                self.addToMorphSet(raw, asset, False)
+            setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
         return final
 
 
@@ -817,7 +813,7 @@ class LoadMorph(PoseboneDriver):
 
     def makeValueFormula(self, output, expr, asset):
         if expr["prop"]:
-            self.addNewProp(output, asset)
+            self.addNewProp(output, None)
             prop = expr["prop"]
             self.drivers[output].append(("PROP", prop, expr["factor"]))
         if expr["mult"]:
@@ -825,7 +821,7 @@ class LoadMorph(PoseboneDriver):
                 self.mults[output] = []
             mult = expr["mult"]
             self.mults[output].append(mult)
-            self.addNewProp(mult, asset)
+            self.addNewProp(mult, None)
         if expr["bone"]:
             bname = self.getRealBone(expr["bone"])
             if bname:
@@ -860,7 +856,7 @@ class LoadMorph(PoseboneDriver):
         if "points" in expr.keys():
             factor = self.cheatSplineTCB(expr["points"], factor)
         raw = expr["prop"]
-        final = self.addNewProp(raw, asset)
+        final = self.addNewProp(raw, None)
         tfm = Transform()
         return tfm, pb, final, factor
 

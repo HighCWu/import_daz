@@ -117,21 +117,17 @@ class Formula:
             return None,None,0
 
 
-    def evalFormulas(self, exprs, props, rig, mesh):
+    def evalFormulas(self, rig, mesh):
         success = False
+        exprs = {}
         for formula in self.formulas:
-            if self.evalFormula(formula, exprs, props, rig, mesh):
-                success = True
-        if not success:
-            if not self.formulas:
-                return False
-            if GS.verbosity > 3:
-                print("Could not parse formulas", self.formulas)
-            return False
-        return True
+            self.evalFormula(formula, exprs, rig, mesh)
+        if not exprs and GS.verbosity > 3:
+            print("Could not parse formulas", self.formulas)
+        return exprs
 
 
-    def evalFormula(self, formula, exprs, props, rig, mesh):
+    def evalFormula(self, formula, exprs, rig, mesh):
         from .bone import getTargetName
         from .modifier import ChannelAsset
 
@@ -169,38 +165,29 @@ class Formula:
                 "mult" : None}
         expr = exprs[output][path][idx]
         if "stage" in formula.keys():
-            self.evalStage(formula, expr, props)
+            self.evalStage(formula, expr)
         else:
-            self.evalOperations(formula, expr, props)
+            self.evalOperations(formula, expr)
 
 
-    def evalStage(self, formula, expr, props):
-        if formula["stage"] != "mult":
-            return False
+    def evalStage(self, formula, expr):
+        if formula["stage"] == "mult":
+            opers = formula["operations"]
+            prop,type,comp = self.evalUrl(opers[0])
+            if type == "value":
+                expr["mult"] = prop
+
+
+    def evalOperations(self, formula, expr):
         opers = formula["operations"]
         prop,type,comp = self.evalUrl(opers[0])
         if type == "value":
-            if props is None:
-                return False
-            expr["mult"] = prop
-            return True
-        return False
-
-
-    def evalOperations(self, formula, expr, props):
-        opers = formula["operations"]
-        prop,type,comp = self.evalUrl(opers[0])
-        if type == "value":
-            if props is None:
-                return False
             if expr["prop"] is None:
                 expr["prop"] = prop
-            props[prop] = True
         else:
             expr["bone"] = prop
         expr["comp"] = comp
-        self.evalMainOper(opers, expr, props)
-        return True
+        self.evalMainOper(opers, expr)
 
 
     def evalUrl(self, oper):
@@ -214,7 +201,7 @@ class Formula:
         return prop,type,comp
 
 
-    def evalMainOper(self, opers, expr, props):
+    def evalMainOper(self, opers, expr):
         if len(opers) == 1:
             expr["factor"] = 1
             return
@@ -281,8 +268,7 @@ def buildBoneFormula(asset, rig, errors):
                     idx2,sign,x = getDrivenComp(dvec)
                     makeSimpleBoneDriver(sign*uvec, pb, "rotation_euler", idx2, rig, driver)
 
-    exprs = {}
-    asset.evalFormulas(exprs, None, rig, None)
+    exprs = asset.evalFormulas(rig, None)
     for driven,expr in exprs.items():
         if driven not in rig.pose.bones.keys():
             continue
