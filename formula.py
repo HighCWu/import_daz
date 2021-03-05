@@ -353,30 +353,31 @@ class PoseboneDriver:
 
         key = channel[0:3].capitalize()
         fcurves = getBoneFcurves(pb, channel)
+        idx,factor = self.getMaxFactor(vec, default)
         if GS.useCustomDrivers:
-            for idx,factor in enumerate(vec):
-                if abs(factor) < 1e-4:
-                    continue
-                if idx in fcurves.keys():
-                    fcu = fcurves[idx]
-                else:
-                    fcu = pb.driver_add(channel, idx)
-                self.addPythonDriver(fcu, factor, key)
-                pb.DazDriven = True
-                self.addMorphGroup(pb, idx, key, prop, default, factor)
+            if idx in fcurves.keys():
+                fcu = fcurves[idx]
+            else:
+                fcu = pb.driver_add(channel, idx)
+            self.addCustomDriver(fcu, factor, key)
         else:
-            for idx,factor in enumerate(vec):
-                if abs(factor-default) < 1e-4:
-                    continue
+            if idx in fcurves.keys():
+                fcu = fcurves[idx]
+            else:
                 fcu = None
-                if idx in fcurves.keys():
-                    fcu = fcurves[idx]
-                self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, 0, default))
-                pb.DazDriven = True
-                self.addMorphGroup(pb, idx, key, prop, default, factor)
+            self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, 0, default))
+        pb.DazDriven = True
+        self.addMorphGroup(pb, idx, key, prop, default, factor)
 
 
-    def addPythonDriver(self, fcu, factor, key):
+    def getMaxFactor(self, vec, default):
+        vals = [(abs(factor-default), idx, factor) for idx,factor in enumerate(vec)]
+        vals.sort()
+        _,idx,factor = vals[-1]
+        return idx, factor
+
+
+    def addCustomDriver(self, fcu, factor, key):
         from .driver import addTransformVar, driverHasVar
         fcu.driver.type = 'SCRIPTED'
         expr = 'evalMorphs%s%d(self)' % (key, fcu.array_index)
@@ -424,8 +425,3 @@ class PoseboneDriver:
         if prop not in self.rig.keys():
             from .driver import setFloatProp
             setFloatProp(self.rig, prop, 0.0)
-
-#-------------------------------------------------------------
-#   Eval formulas
-#   For all kinds of drivers
-#-------------------------------------------------------------

@@ -641,8 +641,8 @@ def register():
         description = "Convert URLs to lowercase. Works best on Windows.")
 
     bpy.types.Scene.DazUseCustomDrivers = BoolProperty(
-        name = "Python Drivers",
-        description = "Drivers use slow python drivers")
+        name = "Custom Drivers",
+        description = "Drivers use slow custom drivers (deprecated)")
 
     bpy.types.Scene.DazUseInstancing = BoolProperty(
         name = "Use Instancing",
