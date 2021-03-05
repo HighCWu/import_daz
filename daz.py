@@ -291,7 +291,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Debugging")
         box.prop(scn, "DazZup")
         box.prop(scn, "DazDump")
-        box.prop(scn, "DazShowHiddenMorphs")
+        box.prop(scn, "DazLoadHiddenMorphs")
         box.prop(scn, "DazShowFinalMorphs")
         box.prop(scn, "DazPruneNodes")
         box.prop(scn, "DazMergeShells")
@@ -441,8 +441,8 @@ def register():
         name = "DAZ Property Defaults",
         description = "Use the default values from DAZ files as default slider values.")
 
-    bpy.types.Scene.DazShowHiddenMorphs = BoolProperty(
-        name = "Show Hidden Morphs",
+    bpy.types.Scene.DazLoadHiddenMorphs = BoolProperty(
+        name = "Load Hidden Morphs",
         description = "Create properties for hidden morphs,\nso they can be displayed in the UI",
         default = False)
 

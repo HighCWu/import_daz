@@ -295,19 +295,23 @@ def getCanonicalKey(key):
     return key
 
 
-def addToMorphSet(ob, morphset, prop, asset=None):
+def addToMorphSet(ob, morphset, prop, asset=None, hidden=False):
     pg = getattr(ob, "Daz"+morphset)
     if prop in pg.keys():
         item = pg[prop]
     else:
         item = pg.add()
     item.name = prop
-    if asset is None:
-        item.text = getCanonicalKey(prop)
-    elif asset.visible:
-        item.text = asset.label
+    if asset:
+        label = asset.label
+        visible = asset.visible
     else:
-        item.text = "[%s]" % getCanonicalKey(prop)
+        label = getCanonicalKey(prop)
+        visible = True
+    if hidden or not visible:
+        item.text = "[%s]" % label
+    else:
+        item.text = label
     return prop
 
 
@@ -739,14 +743,10 @@ class Morph(FormulaAsset):
 
     def buildMorph(self, ob,
                    useBuild=True,
-                   useSoftLimits=False,
                    strength=1):
         sname = self.getName()
         rig = ob.parent
         skey = addShapekey(ob, sname)
-        if useSoftLimits:
-            skey.slider_min = self.min if self.min is not None and GS.useDazPropLimits else GS.propMin
-            skey.slider_max = self.max if self.max is not None and GS.useDazPropLimits else GS.propMax
         skey.value = self.value
         self.rna = (skey, ob, sname)
         if useBuild:

@@ -612,7 +612,7 @@ class LoadMorph(PoseboneDriver):
             self.rig = None
         clearDependecies()
         if not GS.useCustomDrivers and self.rig and self.morphset:
-            self.removeMorphset()
+            self.removeMorphSet()
 
         namepaths = self.pathsToDebug(namepaths)
 
@@ -682,6 +682,7 @@ class LoadMorph(PoseboneDriver):
     def makeSingleMorph(self, name, filepath):
         from .load_json import loadJson
         from .files import parseAssetFile
+        from .modifier import Alias
         struct = loadJson(filepath)
         asset = parseAssetFile(struct)
         if asset is None:
@@ -692,6 +693,8 @@ class LoadMorph(PoseboneDriver):
                 else:
                     raise DazError(msg)
             return " -"
+        elif isinstance(asset, Alias):
+            return " _"
         self.buildShapekey(asset)
         if self.rig:
             self.makeFormulas(asset)
@@ -722,7 +725,6 @@ class LoadMorph(PoseboneDriver):
         if not asset.rna:
             asset.buildMorph(self.mesh,
                              useBuild=useBuild,
-                             useSoftLimits=False,
                              strength=self.strength)
         skey,_,sname = asset.rna
         if skey:
@@ -731,8 +733,7 @@ class LoadMorph(PoseboneDriver):
             skey.name = prop
             self.shapekeys[prop] = skey
             if self.rig:
-                #final = self.addNewProp(prop, asset)
-                final = finalProp(prop)
+                final = self.addNewProp(prop, asset, hidden=True)
                 setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
                 makePropDriver(propRef(final), skey, "value", self.rig, "x")
         return skey
@@ -747,7 +748,6 @@ class LoadMorph(PoseboneDriver):
         exprs = {}
         props = {}
         asset.evalFormulas(exprs, props, self.rig, self.mesh)
-        #print("PROPS", props.keys(), asset.visible)
         #for prop in props.keys():
         #    self.addNewProp(prop, asset)
         for output,data in exprs.items():
@@ -765,20 +765,34 @@ class LoadMorph(PoseboneDriver):
                         self.ecr = True
 
 
-    def addNewProp(self, raw, asset):
+    def addNewProp(self, raw, asset, hidden=False):
+        from .driver import setFloatProp
         final = finalProp(raw)
         if raw in self.drivers.keys():
+            if hidden:
+                self.removeFromMorphSet(raw)
+                if GS.loadHiddenMorphs:
+                    self.addToMorphSet(raw, None, True)
             return final
-        from .driver import setFloatProp
-        from .modifier import addToMorphSet
         self.drivers[raw] = []
-        visible = self.visible[raw] = (asset.visible or GS.showHiddenMorphs)
+        visible = ((asset.visible and not hidden) or GS.loadHiddenMorphs)
+        self.visible[raw] = visible
         if visible:
             setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)
             setActivated(self.rig, raw, True)
-            addToMorphSet(self.rig, self.morphset, raw)
+            self.addToMorphSet(raw, asset, False)
         setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
         return final
+
+
+    def addToMorphSet(self, prop, asset, hidden):
+        from .modifier import addToMorphSet
+        addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden)
+
+
+    def removeFromMorphSet(self, prop):
+        pg = getattr(self.rig, "Daz"+self.morphset)
+        removeFromPropGroup(pg, prop)
 
 
     def makeValueFormula(self, output, expr, asset):
@@ -1040,7 +1054,7 @@ class LoadMorph(PoseboneDriver):
                         addDriverVar(sumfcu, "%s%.03d" % (self.prefix, n), path2, self.rig)
 
 
-    def removeMorphset(self):
+    def removeMorphSet(self):
         print("Removing morph set:", self.morphset)
         pgs = getattr(self.rig, "Daz"+self.morphset)
         for raw in pgs.keys():
@@ -1223,9 +1237,6 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMes
     prefix = "j"
     morphset = "Standardjcms"
 
-    useShapekeysOnly = True
-    useSoftLimits = False
-
 
 class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
     bl_idname = "daz.import_flexions"
@@ -1235,9 +1246,6 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
 
     prefix = "k"
     morphset = "Flexions"
-
-    useShapekeysOnly = True
-    useSoftLimits = False
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -1305,14 +1313,10 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
         namepaths = self.getNamePaths()
         self.getAllMorphs(namepaths, context)
         if self.usePropDrivers and self.drivers:
-            props = []
-            for key,drivers in self.drivers.items():
-                if not drivers or drivers[0][0] == 'PROP':
-                    props.append(key)
-            addToCategories(self.rig, props, self.catname)
             self.rig.DazCustomMorphs = True
         elif self.useMeshCats and self.shapekeys:
-            addToCategories(self.mesh, self.shapekeys, self.catname)
+            props = self.shapekeys.keys()
+            addToCategories(self.mesh, props, self.catname)
             self.mesh.DazMeshMorphs = True
         if self.errors:
             raise DazError(theLimitationsMessage)
@@ -1328,7 +1332,9 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
         return namepaths
 
 
-    def removeMorphset(self):
+    def removeMorphSet(self):
+        if self.rig is None:
+            return
         print("Removing category:", self.catname)
         if self.catname in self.rig.DazMorphCats.keys():
             cat = self.rig.DazMorphCats[self.catname]
@@ -1336,6 +1342,41 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
                 if raw in self.rig.keys():
                     del self.rig[raw]
             cat.morphs.clear()
+
+
+    def addToMorphSet(self, prop, asset, hidden):
+        from .modifier import getCanonicalKey
+        if self.rig is None:
+            return
+        cats = self.rig.DazMorphCats
+        if self.catname not in cats.keys():
+            cat = cats.add()
+            cat.name = self.catname
+        else:
+            cat = cats[self.catname]
+        if prop not in cat.morphs.keys():
+            item = cat.morphs.add()
+            item.name = prop
+        else:
+            item = cat.morphs[prop]
+        if asset:
+            label = asset.label
+            visible = asset.visible
+        else:
+            label = getCanonicalKey(prop)
+            visible = True
+        if hidden or not visible:
+            item.text = "[%s]" % label
+        else:
+            item.text = label
+
+
+    def removeFromMorphSet(self, prop):
+        if self.rig is None:
+            return
+        if self.catname in self.rig.DazMorphCats.keys():
+            cat = self.rig.DazMorphCats[self.catname]
+            removeFromPropGroup(cat.morphs, prop)
 
 #------------------------------------------------------------------------
 #   Categories
@@ -1345,6 +1386,7 @@ def addToCategories(ob, props, catname):
     from .driver import setBoolProp
     from .modifier import getCanonicalKey
 
+    print("ADDDD", props, catname)
     if props and ob is not None:
         cats = dict([(cat.name,cat) for cat in ob.DazMorphCats])
         if catname not in cats.keys():
@@ -1409,7 +1451,6 @@ def removeFromPropGroups(rig, prop, keep=False):
             if prop in ob.keys():
                 ob[prop] = 0
                 del ob[prop]
-
 
 def removeFromPropGroup(pgs, prop):
     idxs = []
@@ -1564,21 +1605,6 @@ def getActivated(ob, rna, key, force=False):
     else:
         pg = getActivateGroup(ob, key)
         return pg.active
-
-
-def addToPropGroup(prop, ob, morphset, asset=None):
-    from .modifier import getCanonicalKey
-    pg = getattr(ob, "Daz"+morphset)
-    if prop not in pg.keys():
-        item = pg.add()
-        item.name = prop
-        if asset is None:
-            item.text = getCanonicalKey(prop)
-        elif asset.visible:
-            item.text = asset.label
-        else:
-            item.text = "[%s]" % getCanonicalKey(prop)
-        setActivated(ob, prop, True)
 
 
 def getExistingActivateGroup(rig, key):
