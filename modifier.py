@@ -295,26 +295,6 @@ def getCanonicalKey(key):
     return key
 
 
-def addToMorphSet(ob, morphset, prop, asset=None, hidden=False):
-    pg = getattr(ob, "Daz"+morphset)
-    if prop in pg.keys():
-        item = pg[prop]
-    else:
-        item = pg.add()
-    item.name = prop
-    if asset:
-        label = asset.label
-        visible = asset.visible
-    else:
-        label = getCanonicalKey(prop)
-        visible = True
-    if hidden or not visible:
-        item.text = "[%s]" % label
-    else:
-        item.text = label
-    return prop
-
-
 class Alias(ChannelAsset):
 
     def __init__(self, fileref):

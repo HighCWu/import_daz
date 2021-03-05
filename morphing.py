@@ -172,6 +172,27 @@ def getMorphs(ob, morphset, category=None, activeOnly=False):
                     mdict[key] = skeys.key_blocks[key].value
     return mdict
 
+
+def addToMorphSet(ob, morphset, prop, asset=None, hidden=False):
+    from .modifier import getCanonicalKey
+    pg = getattr(ob, "Daz"+morphset)
+    if prop in pg.keys():
+        item = pg[prop]
+    else:
+        item = pg.add()
+    item.name = prop
+    if asset and asset.name == prop:
+        label = asset.label
+        visible = asset.visible
+    else:
+        label = getCanonicalKey(prop)
+        visible = True
+    if hidden or not visible:
+        item.text = "[%s]" % label
+    else:
+        item.text = label
+    return prop
+
 #-------------------------------------------------------------
 #   Classes
 #-------------------------------------------------------------
@@ -748,8 +769,8 @@ class LoadMorph(PoseboneDriver):
         exprs = {}
         props = {}
         asset.evalFormulas(exprs, props, self.rig, self.mesh)
-        #for prop in props.keys():
-        #    self.addNewProp(prop, asset)
+        for prop in props.keys():
+            self.addNewProp(prop, asset)
         for output,data in exprs.items():
             for key,data1 in data.items():
                 for idx,expr in data1.items():
@@ -786,7 +807,6 @@ class LoadMorph(PoseboneDriver):
 
 
     def addToMorphSet(self, prop, asset, hidden):
-        from .modifier import addToMorphSet
         addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden)
 
 
@@ -1359,7 +1379,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile,
             item.name = prop
         else:
             item = cat.morphs[prop]
-        if asset:
+        if asset and asset.name == prop:
             label = asset.label
             visible = asset.visible
         else:
