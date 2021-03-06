@@ -67,7 +67,7 @@ class LoadMap:
 
     def draw(self, context):
         self.layout.prop(self, "material")
-        self.layout.prop(self, "shapeFromName")
+        #self.layout.prop(self, "shapeFromName")
         if not self.shapeFromName:
             self.layout.prop(self, "shapekey")
         self.layout.prop(self, "tile")
@@ -127,7 +127,6 @@ class VectorDispGroup(CyclesGroup):
         from .driver import makePropDriver
         sum = None
         for ob,skey,filepath in args:
-            print("ADNO", skey.name)
             img = bpy.data.images.load(filepath)
             img.name = os.path.splitext(os.path.basename(filepath))[0]
             img.colorspace_settings.name = "Non-Color"
@@ -143,14 +142,12 @@ class VectorDispGroup(CyclesGroup):
 
             if sum is None:
                 sum = disp
-                print("FIRST", sum)
             else:
                 add = self.addNode("ShaderNodeVectorMath", col=3)
                 add.operation = 'ADD'
                 self.links.new(sum.outputs[0], add.inputs[0])
                 self.links.new(disp.outputs[0], add.inputs[1])
                 sum = add
-                print("LAT", sum)
         self.links.new(sum.outputs[0], self.outputs.inputs["Displacement"])
 
 
@@ -165,7 +162,6 @@ class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, MultiFile, ImageFile):
     def run(self, context):
         ob = context.object
         args = self.getArgs(ob)
-        print("AA", args)
         tree,texco = self.getTree(ob, 5)
         disp = tree.addGroup(VectorDispGroup, "DAZ HD Vector Disp", col=6, args=args, force=True)
         tree.links.new(texco.outputs["UV"], disp.inputs["UV"])
@@ -176,23 +172,62 @@ class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, MultiFile, ImageFile):
 #   Load HD Normal Map
 #-------------------------------------------------------------
 
+class NormalMapGroup(CyclesGroup):
+
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["UV"]
+        self.outsockets += ["Normal"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 4)
+        self.group.inputs.new("NodeSocketVector", "UV")
+        self.group.outputs.new("NodeSocketVector", "Normal")
+
+
+    def addNodes(self, args):
+        from .driver import makePropDriver
+        sum = None
+        for ob,skey,filepath in args:
+            img = bpy.data.images.load(filepath)
+            img.name = os.path.splitext(os.path.basename(filepath))[0]
+            img.colorspace_settings.name = "Non-Color"
+            tex = self.addTextureNode(1, img, img.name, "NONE")
+            self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
+
+            normal = self.addNode("ShaderNodeNormalMap", col=2, label=skey.name)
+            normal.space = "TANGENT"
+            normal.inputs["Strength"].default_value = 1
+            self.links.new(tex.outputs["Color"], normal.inputs["Color"])
+            path = 'data.shape_keys.key_blocks["%s"].value' % skey.name
+            makePropDriver(path, normal.inputs["Strength"], "default_value", ob, "x")
+
+            if sum is None:
+                sum = normal
+            else:
+                add = self.addNode("ShaderNodeVectorMath", col=3)
+                add.operation = 'ADD'
+                self.links.new(sum.outputs[0], add.inputs[0])
+                self.links.new(normal.outputs[0], add.inputs[1])
+                sum = add
+        self.links.new(sum.outputs[0], self.outputs.inputs["Normal"])
+
+
 class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, MultiFile, ImageFile):
     bl_idname = "daz.load_hd_normal_map"
     bl_label = "Load HD Normal Map"
     bl_description = "Load normal map to morph"
     bl_options = {'UNDO'}
 
-    def run(self, context):
-        from .driver import makePropDriver
-        ob = context.object
-        tree,tex = self.getTexture(ob, -1)
+    type = "mrNM"
 
-        normal = tree.addNode("ShaderNodeNormalMap", col=0, label=self.shapekey)
-        normal.space = "TANGENT"
-        normal.inputs["Strength"].default_value = 1
-        tree.links.new(tex.outputs["Color"], normal.inputs["Color"])
-        path = 'data.shape_keys.key_blocks["%s"].value' % self.shapekey
-        makePropDriver(path, normal.inputs["Strength"], "default_value", ob, "x")
+    def run(self, context):
+        ob = context.object
+        args = self.getArgs(ob)
+        tree,texco = self.getTree(ob, 5)
+        normal = tree.addGroup(NormalMapGroup, "DAZ HD Normal Map", col=0, args=args, force=True)
+        tree.links.new(texco.outputs["UV"], normal.inputs["UV"])
 
         nodes = tree.getNodes("BUMP")
         if nodes:
