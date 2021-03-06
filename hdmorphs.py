@@ -130,7 +130,7 @@ class VectorDispGroup(CyclesGroup):
             img = bpy.data.images.load(filepath)
             img.name = os.path.splitext(os.path.basename(filepath))[0]
             img.colorspace_settings.name = "Non-Color"
-            tex = self.addTextureNode(1, img, img.name, "NONE")
+            tex = self.addTextureNode(1, img, skey.name, "NONE")
             self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
 
             disp = self.addNode("ShaderNodeVectorDisplacement", col=2, label=skey.name)
@@ -167,6 +167,8 @@ class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, MultiFile, ImageFile):
         tree.links.new(texco.outputs["UV"], disp.inputs["UV"])
         for node in tree.getNodes("OUTPUT_MATERIAL"):
             tree.links.new(disp.outputs["Displacement"], node.inputs["Displacement"])
+        if GS.pruneNodes:
+            tree.prune()
 
 #-------------------------------------------------------------
 #   Load HD Normal Map
@@ -189,11 +191,12 @@ class NormalMapGroup(CyclesGroup):
     def addNodes(self, args):
         from .driver import makePropDriver
         sum = None
+        nmorphs = len(args)
         for ob,skey,filepath in args:
             img = bpy.data.images.load(filepath)
             img.name = os.path.splitext(os.path.basename(filepath))[0]
             img.colorspace_settings.name = "Non-Color"
-            tex = self.addTextureNode(1, img, img.name, "NONE")
+            tex = self.addTextureNode(1, img, skey.name, "NONE")
             self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
 
             normal = self.addNode("ShaderNodeNormalMap", col=2, label=skey.name)
@@ -201,7 +204,7 @@ class NormalMapGroup(CyclesGroup):
             normal.inputs["Strength"].default_value = 1
             self.links.new(tex.outputs["Color"], normal.inputs["Color"])
             path = 'data.shape_keys.key_blocks["%s"].value' % skey.name
-            makePropDriver(path, normal.inputs["Strength"], "default_value", ob, "x")
+            makePropDriver(path, normal.inputs["Strength"], "default_value", ob, "%d*x" % nmorphs)
 
             if sum is None:
                 sum = normal
@@ -211,7 +214,13 @@ class NormalMapGroup(CyclesGroup):
                 self.links.new(sum.outputs[0], add.inputs[0])
                 self.links.new(normal.outputs[0], add.inputs[1])
                 sum = add
-        self.links.new(sum.outputs[0], self.outputs.inputs["Normal"])
+        if nmorphs == 1:
+            self.links.new(sum.outputs[0], self.outputs.inputs["Normal"])
+        else:
+            node = self.addNode("ShaderNodeVectorMath", col=4)
+            node.operation = 'NORMALIZE'
+            self.links.new(sum.outputs[0], node.inputs[0])
+            self.links.new(node.outputs[0], self.outputs.inputs["Normal"])
 
 
 class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, MultiFile, ImageFile):
@@ -237,6 +246,8 @@ class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, MultiFile, ImageFile):
             for node in tree.nodes:
                 if "Normal" in node.inputs.keys():
                     tree.links.new(normal.outputs["Normal"], normal.inputs["Normal"])
+        if GS.pruneNodes:
+            tree.prune()
 
 #-------------------------------------------------------------
 #   Initialize
