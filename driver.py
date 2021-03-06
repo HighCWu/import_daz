@@ -509,13 +509,20 @@ def truncateProp(prop):
 
 def setFloatProp(rna, prop, value, min=None, max=None):
     value = float(value)
-    min = float(min) if min is not None and GS.useDazPropLimits else GS.propMin
-    max = float(max) if max is not None and GS.useDazPropLimits else GS.propMax
     prop = truncateProp(prop)
     rna[prop] = value
-    setPropMinMax(rna, prop, min, max)
-    setOverridable(rna, prop)
-    setPropMinMax(rna, prop, min, max)
+    if min is not None:
+        if GS.useDazPropLimits:
+            min = float(min)
+            max = float(max)
+        else:
+            min = GS.propMin
+            max = GS.propMax
+        setPropMinMax(rna, prop, min, max)
+        setOverridable(rna, prop)
+        setPropMinMax(rna, prop, min, max)
+    else:
+        setOverridable(rna, prop)
 
 
 def setBoolProp(rna, prop, value, desc=""):

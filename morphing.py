@@ -703,16 +703,10 @@ class LoadMorph(PoseboneDriver):
     def makeSingleMorph(self, name, filepath):
         from .load_json import loadJson
         from .files import parseAssetFile
-        from .modifier import Alias
+        from .modifier import Alias, ChannelAsset
         struct = loadJson(filepath)
         asset = parseAssetFile(struct)
-        if asset is None:
-            if GS.verbosity > 1:
-                msg = ("Not a morph asset:\n  '%s'" % filepath)
-                if self.suppressError:
-                    print(msg)
-                else:
-                    raise DazError(msg)
+        if not isinstance(asset, ChannelAsset):
             return " -"
         elif isinstance(asset, Alias):
             return " _"
@@ -755,30 +749,27 @@ class LoadMorph(PoseboneDriver):
             self.shapekeys[prop] = skey
             if self.rig:
                 final = self.addNewProp(prop, None)
-                #setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
                 makePropDriver(propRef(final), skey, "value", self.rig, "x")
         return skey
 
 
     def makeFormulas(self, asset):
         from .formula import Formula
-        if not isinstance(asset, Formula):
-            print("Not a formula", asset)
-            return
-
-        exprs = asset.evalFormulas(self.rig, self.mesh)
         self.addNewProp(asset.getName(), asset)
+        if not isinstance(asset, Formula):
+            return
+        exprs = asset.evalFormulas(self.rig, self.mesh)
         for output,data in exprs.items():
             for key,data1 in data.items():
                 for idx,expr in data1.items():
                     if key == "value":
-                        self.makeValueFormula(output, expr, asset)
+                        self.makeValueFormula(output, expr)
                     elif key == "rotation":
-                        self.makeRotFormula(output, idx, expr, asset)
+                        self.makeRotFormula(output, idx, expr)
                     elif key == "translation":
-                        self.makeTransFormula(output, idx, expr, asset)
+                        self.makeTransFormula(output, idx, expr)
                     elif key == "scale":
-                        self.makeScaleFormula(output, idx, expr, asset)
+                        self.makeScaleFormula(output, idx, expr)
                     elif key in ["center_point", "end_point"]:
                         self.ecr = True
 
@@ -794,11 +785,11 @@ class LoadMorph(PoseboneDriver):
         if asset:
             visible = (asset.visible or GS.useMakeHiddenSliders)
             self.visible[raw] = visible
+            setFloatProp(self.rig, raw, 0.0)
+            setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
             if visible:
-                setFloatProp(self.rig, raw, 0.0, asset.min, asset.max)
                 setActivated(self.rig, raw, True)
                 self.addToMorphSet(raw, asset, False)
-            setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
         return final
 
 
@@ -811,7 +802,7 @@ class LoadMorph(PoseboneDriver):
         removeFromPropGroup(pg, prop)
 
 
-    def makeValueFormula(self, output, expr, asset):
+    def makeValueFormula(self, output, expr):
         if expr["prop"]:
             self.addNewProp(output, None)
             prop = expr["prop"]
@@ -846,7 +837,7 @@ class LoadMorph(PoseboneDriver):
         return bname
 
 
-    def getBoneData(self, bname, expr, asset):
+    def getBoneData(self, bname, expr):
         from .transform import Transform
         bname = self.getDrivenBone(bname)
         if bname is None:
@@ -880,22 +871,22 @@ class LoadMorph(PoseboneDriver):
         return factor
 
 
-    def makeRotFormula(self, bname, idx, expr, asset):
-        tfm,pb,prop,factor = self.getBoneData(bname, expr, asset)
+    def makeRotFormula(self, bname, idx, expr):
+        tfm,pb,prop,factor = self.getBoneData(bname, expr)
         tfm.setRot(self.strength*factor, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
 
-    def makeTransFormula(self, bname, idx, expr, asset):
-        tfm,pb,prop,factor = self.getBoneData(bname, expr, asset)
+    def makeTransFormula(self, bname, idx, expr):
+        tfm,pb,prop,factor = self.getBoneData(bname, expr)
         tfm.setTrans(self.strength*factor, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
 
-    def makeScaleFormula(self, bname, idx, expr, asset):
+    def makeScaleFormula(self, bname, idx, expr):
         return
         # DS and Blender seem to inherit scale differently
-        tfm,pb,prop,factor = self.getBoneData(bname, expr, asset)
+        tfm,pb,prop,factor = self.getBoneData(bname, expr)
         tfm.setScale(self.strength*factor, True, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
