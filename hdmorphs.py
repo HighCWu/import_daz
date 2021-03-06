@@ -30,14 +30,26 @@ import bpy
 
 from .error import *
 from .utils import *
-from .globvars import getMaterialEnums, getShapeEnums
-from .fileutils import SingleFile, ImageFile
+from .globvars import getMaterialEnums, getShapeEnums, theImageExtensions
+from .fileutils import SingleFile, MultiFile, ImageFile
+from .cgroup import CyclesGroup
 
 #-------------------------------------------------------------
 #   Load HD Vector Displacement Map
 #-------------------------------------------------------------
 
 class LoadMap:
+    shapeFromName : BoolProperty(
+        name = "Shapekey From Filename",
+        description = "Use the filename to deduce the shapekey",
+        default = True)
+
+    tile : IntProperty(
+        name = "Tile",
+        description = "Only load textures in this tile",
+        min = 1001, max = 1009,
+        default = 1001)
+
     shapekey: EnumProperty(
         items = getShapeEnums,
         name = "Shapekey",
@@ -46,7 +58,7 @@ class LoadMap:
     material: EnumProperty(
         items = getMaterialEnums,
         name = "Material",
-        description = "Material that texture is added to")
+        description = "Material that textures are added to")
 
     @classmethod
     def poll(self, context):
@@ -54,46 +66,109 @@ class LoadMap:
         return (ob and ob.type == 'MESH' and ob.data.shape_keys)
 
     def draw(self, context):
-        self.layout.prop(self, "shapekey")
         self.layout.prop(self, "material")
+        self.layout.prop(self, "shapeFromName")
+        if not self.shapeFromName:
+            self.layout.prop(self, "shapekey")
+        self.layout.prop(self, "tile")
 
-    def getTexture(self, ob, col):
+
+    def getArgs(self, ob):
+        from .fileutils import getMultiFiles
+        filepaths = getMultiFiles(self, theImageExtensions)
+        skeys = ob.data.shape_keys
+        shapes = dict([(skey.name.lower(), skey) for skey in skeys.key_blocks])
+        args = []
+        for filepath in filepaths:
+            fname = os.path.splitext(os.path.basename(filepath))[0]
+            words = fname.rsplit("-", 3)
+            if len(words) != 4:
+                print("Wrong file name: %s" % fname)
+            elif words[1] != self.type:
+                print("Not a %s file: %s" % (self.type, fname))
+            elif not words[2].isdigit() or int(words[2]) != self.tile:
+                print("Wrong tile %s != %d: %s" % (words[2], self.tile, fname))
+            else:
+                sname = words[0].rstrip("_dhdm")
+                if sname in shapes.keys():
+                    args.append((ob, shapes[sname], filepath))
+        return args
+
+
+    def getTree(self, ob, col):
         from .matedit import getTree
-        img = bpy.data.images.load(self.filepath)
-        img.name = os.path.splitext(os.path.basename(self.filepath))[0]
-        img.colorspace_settings.name = "Non-Color"
         tree = getTree(ob, self.material)
         nodes = tree.getNodes("TEX_COORD")
         if nodes:
             texco = nodes[0]
         else:
             texco = tree.addNode("ShaderNodeTexCoord", col=1)
-        tex = tree.addTextureNode(col, img, img.name, "NONE")
-        tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
-        return tree, tex
+        return tree, texco
 
 #-------------------------------------------------------------
 #   Load HD Vector Displacement Map
 #-------------------------------------------------------------
 
-class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, SingleFile, ImageFile):
+class VectorDispGroup(CyclesGroup):
+
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["UV"]
+        self.outsockets += ["Displacement"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 4)
+        self.group.inputs.new("NodeSocketVector", "UV")
+        self.group.outputs.new("NodeSocketVector", "Displacement")
+
+
+    def addNodes(self, args):
+        from .driver import makePropDriver
+        sum = None
+        for ob,skey,filepath in args:
+            print("ADNO", skey.name)
+            img = bpy.data.images.load(filepath)
+            img.name = os.path.splitext(os.path.basename(filepath))[0]
+            img.colorspace_settings.name = "Non-Color"
+            tex = self.addTextureNode(1, img, img.name, "NONE")
+            self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
+
+            disp = self.addNode("ShaderNodeVectorDisplacement", col=2, label=skey.name)
+            disp.inputs["Midlevel"].default_value = 0.5
+            disp.inputs["Scale"].default_value = ob.DazScale
+            self.links.new(tex.outputs["Color"], disp.inputs["Vector"])
+            path = 'data.shape_keys.key_blocks["%s"].value' % skey.name
+            makePropDriver(path, disp.inputs["Scale"], "default_value", ob, "%g*x" % ob.DazScale)
+
+            if sum is None:
+                sum = disp
+                print("FIRST", sum)
+            else:
+                add = self.addNode("ShaderNodeVectorMath", col=3)
+                add.operation = 'ADD'
+                self.links.new(sum.outputs[0], add.inputs[0])
+                self.links.new(disp.outputs[0], add.inputs[1])
+                sum = add
+                print("LAT", sum)
+        self.links.new(sum.outputs[0], self.outputs.inputs["Displacement"])
+
+
+class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, MultiFile, ImageFile):
     bl_idname = "daz.load_hd_vector_disp"
     bl_label = "Load HD Vector Disp"
     bl_description = "Load vector displacement map to morph"
     bl_options = {'UNDO'}
 
+    type = "VDISP"
+
     def run(self, context):
-        from .driver import makePropDriver
         ob = context.object
-        tree,tex = self.getTexture(ob, 5)
-
-        disp = tree.addNode("ShaderNodeVectorDisplacement", col=6, label=self.shapekey)
-        disp.inputs["Midlevel"].default_value = 0.5
-        disp.inputs["Scale"].default_value = ob.DazScale
-        tree.links.new(tex.outputs["Color"], disp.inputs["Vector"])
-        path = 'data.shape_keys.key_blocks["%s"].value' % self.shapekey
-        makePropDriver(path, disp.inputs["Scale"], "default_value", ob, "%g*x" % ob.DazScale)
-
+        args = self.getArgs(ob)
+        print("AA", args)
+        tree,texco = self.getTree(ob, 5)
+        disp = tree.addGroup(VectorDispGroup, "DAZ HD Vector Disp", col=6, args=args, force=True)
+        tree.links.new(texco.outputs["UV"], disp.inputs["UV"])
         for node in tree.getNodes("OUTPUT_MATERIAL"):
             tree.links.new(disp.outputs["Displacement"], node.inputs["Displacement"])
 
@@ -101,7 +176,7 @@ class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, SingleFile, ImageFile):
 #   Load HD Normal Map
 #-------------------------------------------------------------
 
-class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, SingleFile, ImageFile):
+class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, MultiFile, ImageFile):
     bl_idname = "daz.load_hd_normal_map"
     bl_label = "Load HD Normal Map"
     bl_description = "Load normal map to morph"
