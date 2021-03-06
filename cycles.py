@@ -1409,17 +1409,17 @@ class CyclesTree:
         else:
             return tex2
 
-
-    def getNodes(self, nodeType):
-        nodes = []
-        for node in self.nodes.values():
-            if node.type == nodeType:
-                nodes.append(node)
-        return nodes
-
 #-------------------------------------------------------------
 #   Utilities
 #-------------------------------------------------------------
+
+def findNodes(self, nodeType):
+    nodes = []
+    for node in self.nodes.values():
+        if node.type == nodeType:
+            nodes.append(node)
+    return nodes
+
 
 def findNode(tree, ntypes):
     if isinstance(ntypes, list):
@@ -1433,25 +1433,17 @@ def findNode(tree, ntypes):
     return None
 
 
+def findLinksFrom(tree, ntype):
+    links = []
+    for link in tree.links:
+        if link.from_node.type == ntype:
+            links.append(link)
+    return links
+
+
 def findLinksTo(tree, ntype):
     links = []
     for link in tree.links:
         if link.to_node.type == ntype:
             links.append(link)
     return links
-
-
-def isEyeMaterial(mat):
-    mname = mat.name.lower()
-    for string in ["sclera"]:
-        if string in mname:
-            return True
-    return False
-
-
-def areEqualTexs(tex1, tex2):
-    if tex1 == tex2:
-        return True
-    if tex1.type == 'TEX_IMAGE' and tex2.type == 'TEX_IMAGE':
-        return (tex1.image == tex2.image)
-    return False

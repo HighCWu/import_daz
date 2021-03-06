@@ -620,11 +620,12 @@ def getTree(ob, mindex):
 
 
 def getFromToSockets(tree, nodeType, slot):
+    from .cycles import findNodes
     for link in tree.links.values():
         if link.to_node and link.to_node.type == nodeType:
             if link.to_socket == link.to_node.inputs[slot]:
                 return link.from_socket, link.to_socket
-    nodes = tree.getNodes(nodeType)
+    nodes = findNodes(tree, nodeType)
     if nodes:
         return None, nodes[0].inputs[slot]
     return None, None

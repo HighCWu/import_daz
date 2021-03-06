@@ -97,8 +97,9 @@ class LoadMap:
 
     def getTree(self, ob, col):
         from .matedit import getTree
+        from .cycles import findNodes
         tree = getTree(ob, self.material)
-        nodes = tree.getNodes("TEX_COORD")
+        nodes = findNodes(tree, "TEX_COORD")
         if nodes:
             texco = nodes[0]
         else:
@@ -153,19 +154,20 @@ class VectorDispGroup(CyclesGroup):
 
 class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, MultiFile, ImageFile):
     bl_idname = "daz.load_hd_vector_disp"
-    bl_label = "Load HD Vector Disp"
+    bl_label = "Load HD Morph Vector Disp Maps"
     bl_description = "Load vector displacement map to morph"
     bl_options = {'UNDO'}
 
     type = "VDISP"
 
     def run(self, context):
+        from .cycles import findNodes
         ob = context.object
         args = self.getArgs(ob)
         tree,texco = self.getTree(ob, 5)
         disp = tree.addGroup(VectorDispGroup, "DAZ HD Vector Disp", col=6, args=args, force=True)
         tree.links.new(texco.outputs["UV"], disp.inputs["UV"])
-        for node in tree.getNodes("OUTPUT_MATERIAL"):
+        for node in findNodes(tree, "OUTPUT_MATERIAL"):
             tree.links.new(disp.outputs["Displacement"], node.inputs["Displacement"])
         if GS.pruneNodes:
             tree.prune()
@@ -178,20 +180,25 @@ class NormalMapGroup(CyclesGroup):
 
     def __init__(self):
         CyclesGroup.__init__(self)
-        self.insockets += ["UV"]
+        self.insockets += ["Color", "UV"]
         self.outsockets += ["Normal"]
 
 
     def create(self, node, name, parent):
         CyclesGroup.create(self, node, name, parent, 4)
+        self.group.inputs.new("NodeSocketColor", "Color")
         self.group.inputs.new("NodeSocketVector", "UV")
         self.group.outputs.new("NodeSocketVector", "Normal")
 
 
     def addNodes(self, args):
         from .driver import makePropDriver
-        sum = None
-        nmorphs = len(args)
+        ntexs = len(args)+1
+        sum = self.addNode("ShaderNodeNormalMap", col=2, label="Input Normal")
+        sum.space = "TANGENT"
+        sum.inputs["Strength"].default_value = ntexs
+        self.links.new(self.inputs.outputs["Color"], sum.inputs["Color"])
+
         for ob,skey,filepath in args:
             img = bpy.data.images.load(filepath)
             img.name = os.path.splitext(os.path.basename(filepath))[0]
@@ -204,28 +211,23 @@ class NormalMapGroup(CyclesGroup):
             normal.inputs["Strength"].default_value = 1
             self.links.new(tex.outputs["Color"], normal.inputs["Color"])
             path = 'data.shape_keys.key_blocks["%s"].value' % skey.name
-            makePropDriver(path, normal.inputs["Strength"], "default_value", ob, "%d*x" % nmorphs)
+            makePropDriver(path, normal.inputs["Strength"], "default_value", ob, "%d*x" % ntexs)
 
-            if sum is None:
-                sum = normal
-            else:
-                add = self.addNode("ShaderNodeVectorMath", col=3)
-                add.operation = 'ADD'
-                self.links.new(sum.outputs[0], add.inputs[0])
-                self.links.new(normal.outputs[0], add.inputs[1])
-                sum = add
-        if nmorphs == 1:
-            self.links.new(sum.outputs[0], self.outputs.inputs["Normal"])
-        else:
-            node = self.addNode("ShaderNodeVectorMath", col=4)
-            node.operation = 'NORMALIZE'
-            self.links.new(sum.outputs[0], node.inputs[0])
-            self.links.new(node.outputs[0], self.outputs.inputs["Normal"])
+            add = self.addNode("ShaderNodeVectorMath", col=3)
+            add.operation = 'ADD'
+            self.links.new(sum.outputs[0], add.inputs[0])
+            self.links.new(normal.outputs[0], add.inputs[1])
+            sum = add
+
+        node = self.addNode("ShaderNodeVectorMath", col=4)
+        node.operation = 'NORMALIZE'
+        self.links.new(sum.outputs[0], node.inputs[0])
+        self.links.new(node.outputs[0], self.outputs.inputs["Normal"])
 
 
 class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, MultiFile, ImageFile):
     bl_idname = "daz.load_hd_normal_map"
-    bl_label = "Load HD Normal Map"
+    bl_label = "Load HD Morph Normal Maps"
     bl_description = "Load normal map to morph"
     bl_options = {'UNDO'}
 
@@ -235,19 +237,41 @@ class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, MultiFile, ImageFile):
         ob = context.object
         args = self.getArgs(ob)
         tree,texco = self.getTree(ob, 5)
+        tolinks = self.getToLinks(tree)
+        fromlinks = self.getFromLinks(tree)
         normal = tree.addGroup(NormalMapGroup, "DAZ HD Normal Map", col=0, args=args, force=True)
+        normal.inputs["Color"].default_value = (0.5, 0.5, 1, 1)
         tree.links.new(texco.outputs["UV"], normal.inputs["UV"])
-
-        nodes = tree.getNodes("BUMP")
-        if nodes:
-            bump = nodes[0]
-            tree.links.new(normal.outputs["Normal"], bump.inputs["Normal"])
-        else:
-            for node in tree.nodes:
-                if "Normal" in node.inputs.keys():
-                    tree.links.new(normal.outputs["Normal"], normal.inputs["Normal"])
+        for link in tolinks:
+            if link.from_socket.name == "Color":
+                tree.links.new(link.from_socket, normal.inputs["Color"])
+                break
+        for link in fromlinks:
+            tree.links.new(normal.outputs["Normal"], link.to_socket)
         if GS.pruneNodes:
             tree.prune()
+
+
+    def getFromLinks(self, tree):
+        from .cycles import findLinksFrom
+        fromlinks = []
+        for link in findLinksFrom(tree, "NORMAL_MAP"):
+            fromlinks.append(link)
+        for link in findLinksFrom(tree, "GROUP"):
+            if link.from_node.name.startswith("DAZ HD Normal Map"):
+                fromlinks.append(link)
+        return fromlinks
+
+
+    def getToLinks(self, tree):
+        from .cycles import findLinksTo
+        tolinks = []
+        for link in findLinksTo(tree, "NORMAL_MAP"):
+            tolinks.append(link)
+        for link in findLinksTo(tree, "GROUP"):
+            if link.to_node.name.startswith("DAZ HD Normal Map"):
+                tolinks.append(link)
+        return tolinks
 
 #-------------------------------------------------------------
 #   Initialize
