@@ -234,6 +234,7 @@ class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, MultiFile, ImageFile):
     type = "mrNM"
 
     def run(self, context):
+        from .cycles import findNode, findNodes
         ob = context.object
         args = self.getArgs(ob)
         tree,texco = self.getTree(ob, 5)
@@ -246,8 +247,19 @@ class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, MultiFile, ImageFile):
             if link.from_socket.name == "Color":
                 tree.links.new(link.from_socket, normal.inputs["Color"])
                 break
-        for link in fromlinks:
-            tree.links.new(normal.outputs["Normal"], link.to_socket)
+
+        if fromlinks:
+            for link in fromlinks:
+                tree.links.new(normal.outputs["Normal"], link.to_socket)
+        else:
+            bump = findNode(tree, "BUMP")
+            if bump:
+                tree.links.new(normal.outputs["Normal"], bump.inputs["Normal"])
+            else:
+                for node in tree.nodes:
+                    if "Normal" in node.inputs.keys():
+                        tree.links.new(normal.outputs["Normal"], node.inputs["Normal"])
+
         if GS.pruneNodes:
             tree.prune()
 
