@@ -534,10 +534,10 @@ class DAZ_OT_BakeMaps(DazPropsOperator, MapOperator):
 class AddMap:
     def addNormalMap(self, tree, tex, location):
         from .cycles import findLinksTo
+        from .hdmorphs import MixNormalTextureGroup
         links = findLinksTo(tree, 'NORMAL_MAP')
         if links:
-            node = tree.nodes.new(type="ShaderNodeMixRGB")
-            node.blend_type = 'OVERLAY'
+            node = tree.addGroup(MixNormalTextureGroup, "DAZ Mix Normal Texture", col=0)
             node.location = location
             node.inputs["Fac"].default_value = 1
             link = links[0]
@@ -563,16 +563,6 @@ class AddMap:
         if normal:
             tree.links.new(normal.outputs["Normal"], disp.inputs["Normal"])
         self.linkSlot(tree, disp, "Displacement")
-
-
-    def findTexco(self, tree):
-        from .cycles import findNode
-        node = findNode(tree, 'TEX_COORD')
-        if node:
-            return node
-        node = tree.nodes.new(type="ShaderNodeTexCoord")
-        node.location = (-300,250)
-        return node
 
 
     def linkSlot(self, tree, normal, slot):
@@ -675,13 +665,14 @@ class DAZ_OT_LoadMaps(DazPropsOperator, MapOperator, AddMap):
 
 
     def loadMap(self, mat, img):
-        tree = mat.node_tree
-        self.texco = self.findTexco(tree)
-        tex = self.addTexture(tree, img, (-600,250))
+        from .cycles import XSIZE, YSIZE, findTexco, findTree
+        tree = findTree(mat)
+        self.texco = findTexco(tree, 1)
+        tex = self.addTexture(tree, img, (-3*XSIZE,2*YSIZE))
         if self.bakeType == 'NORMALS':
-            self.addNormalMap(tree, tex, (-300,250))
+            self.addNormalMap(tree, tex, (-2*XSIZE,2*YSIZE))
         elif self.bakeType == 'DISPLACEMENT':
-            self.addDispMap(tree, tex, (-300,0))
+            self.addDispMap(tree, tex, (5*XSIZE,-2*YSIZE))
         if self.usePrune:
             from .material import pruneNodeTree
             pruneNodeTree(tree)
@@ -699,18 +690,19 @@ class DAZ_OT_AddNormalMaps(DazOperator, AddMap, ImageFile, MultiFile, IsMesh):
     def run(self, context):
         from .fileutils import getMultiFiles
         from .globvars import theImageExtensions
+        from .cycles import findTree, findTexco, XSIZE, YSIZE
 
         filepaths = getMultiFiles(self, theImageExtensions)
         ob = context.object
         mat = ob.data.materials[ob.active_material_index]
-        tree = mat.node_tree
-        self.texco = self.findTexco(tree)
+        tree = findTree(mat)
+        self.texco = findTexco(tree, 1)
         for n,filepath in enumerate(filepaths):
             img = bpy.data.images.load(filepath)
             img.filepath = filepath
             img.colorspace_settings.name = "Non-Color"
-            tex = self.addTexture(tree, img, (-600, -250*n))
-            self.addNormalMap(tree, tex, (-300, -250*n))
+            tex = self.addTexture(tree, img, (-2*XSIZE, YSIZE*(1-n)))
+            self.addNormalMap(tree, tex, (-XSIZE, YSIZE*(1-n)))
 
 #----------------------------------------------------------
 #   Initialize

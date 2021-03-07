@@ -1413,9 +1413,25 @@ class CyclesTree:
 #   Utilities
 #-------------------------------------------------------------
 
-def findNodes(self, nodeType):
+def findTree(mat):
+    from .cycles import CyclesTree
+    tree = CyclesTree(None)
+    tree.nodes = mat.node_tree.nodes
+    tree.links = mat.node_tree.links
+    return tree
+
+
+def findTexco(tree, col):
+    nodes = findNodes(tree, "TEX_COORD")
+    if nodes:
+        return nodes[0]
+    else:
+        return tree.addNode("ShaderNodeTexCoord", col)
+
+
+def findNodes(tree, nodeType):
     nodes = []
-    for node in self.nodes.values():
+    for node in tree.nodes.values():
         if node.type == nodeType:
             nodes.append(node)
     return nodes

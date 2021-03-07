@@ -55,18 +55,12 @@ class LoadMap:
         name = "Shapekey",
         description = "Drive texture with this shapekey")
 
-    material: EnumProperty(
-        items = getMaterialEnums,
-        name = "Material",
-        description = "Material that textures are added to")
-
     @classmethod
     def poll(self, context):
         ob = context.object
         return (ob and ob.type == 'MESH' and ob.data.shape_keys)
 
     def draw(self, context):
-        self.layout.prop(self, "material")
         #self.layout.prop(self, "shapeFromName")
         if not self.shapeFromName:
             self.layout.prop(self, "shapekey")
@@ -96,18 +90,6 @@ class LoadMap:
         for _,sname,_,_ in args:
             print(" *", sname)
         return args
-
-
-    def getTree(self, ob, col):
-        from .matedit import getTree
-        from .cycles import findNodes
-        tree = getTree(ob, self.material)
-        nodes = findNodes(tree, "TEX_COORD")
-        if nodes:
-            texco = nodes[0]
-        else:
-            texco = tree.addNode("ShaderNodeTexCoord", col=1)
-        return tree, texco
 
 #-------------------------------------------------------------
 #   Load HD Vector Displacement Map
@@ -159,16 +141,17 @@ class VectorDispGroup(CyclesGroup):
 class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, MultiFile, ImageFile):
     bl_idname = "daz.load_hd_vector_disp"
     bl_label = "Load HD Morph Vector Disp Maps"
-    bl_description = "Load vector displacement map to morph"
+    bl_description = "Load morph vector displacement map to active material"
     bl_options = {'UNDO'}
 
     type = "VDISP"
 
     def run(self, context):
-        from .cycles import findNodes
+        from .cycles import findNodes, findTree, findTexco
         ob = context.object
         args = self.getArgs(ob)
-        tree,texco = self.getTree(ob, 5)
+        tree = findTree(ob.data.materials[ob.active_material_index])
+        texco = findTexco(tree, 5)
         disp = tree.addGroup(VectorDispGroup, "DAZ HD Vector Disp", col=6, args=args, force=True)
         tree.links.new(texco.outputs["UV"], disp.inputs["UV"])
         for node in findNodes(tree, "OUTPUT_MATERIAL"):
@@ -180,152 +163,92 @@ class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, MultiFile, ImageFile):
 #   Load HD Normal Map
 #-------------------------------------------------------------
 
-class LocalNormalGroup(CyclesGroup):
+class MixNormalTextureGroup(CyclesGroup):
 
     def __init__(self):
         CyclesGroup.__init__(self)
-        self.insockets += ["Strength", "Color", "Normal"]
-        self.outsockets += ["Normal"]
-
-
-    def create(self, node, name, parent):
-        CyclesGroup.create(self, node, name, parent, 2)
-        self.group.inputs.new("NodeSocketFloat", "Strength")
-        self.group.inputs.new("NodeSocketColor", "Color")
-        self.group.inputs.new("NodeSocketVector", "Normal")
-        self.group.outputs.new("NodeSocketVector", "Normal")
-
-
-    def addNodes(self, args):
-        normal = self.addNode("ShaderNodeNormalMap", col=1)
-        normal.space = "TANGENT"
-        normal.inputs["Strength"].default_value = 1
-        self.links.new(self.inputs.outputs["Strength"], normal.inputs["Strength"])
-        self.links.new(self.inputs.outputs["Color"], normal.inputs["Color"])
-
-        sub = self.addNode("ShaderNodeVectorMath", col=1)
-        sub.operation = 'SUBTRACT'
-        self.links.new(normal.outputs[0], sub.inputs[0])
-        self.links.new(self.inputs.outputs["Normal"], sub.inputs[1])
-
-        #scale = self.addNode("ShaderNodeVectorMath", col=1)
-        #scale.operation = 'SCALE'
-        #self.links.new(sub.outputs[0], scale.inputs[0])
-        #self.links.new(self.inputs.outputs["Strength"], scale.inputs[1])
-
-        self.links.new(sub.outputs[0], self.outputs.inputs["Normal"])
-
-
-class NormalMapGroup(CyclesGroup):
-
-    def __init__(self):
-        CyclesGroup.__init__(self)
-        self.insockets += ["Color", "UV"]
-        self.outsockets += ["Normal"]
+        self.insockets += ["Fac", "Color1", "Color2"]
+        self.outsockets += ["Color"]
 
 
     def create(self, node, name, parent):
         CyclesGroup.create(self, node, name, parent, 4)
-        self.group.inputs.new("NodeSocketColor", "Color")
-        self.group.inputs.new("NodeSocketVector", "UV")
-        self.group.outputs.new("NodeSocketVector", "Normal")
+        self.group.inputs.new("NodeSocketFloat", "Fac")
+        self.group.inputs.new("NodeSocketColor", "Color1")
+        self.group.inputs.new("NodeSocketColor", "Color2")
+        self.group.outputs.new("NodeSocketVector", "Color")
 
 
     def addNodes(self, args):
-        from .driver import makePropDriver
-        sum = self.addNode("ShaderNodeNormalMap", 0)
-        sum.space = "TANGENT"
-        sum.inputs["Strength"].default_value = 1
-        self.links.new(self.inputs.outputs["Color"], sum.inputs["Color"])
+        mix = self.addNode("ShaderNodeMixRGB", 1)
+        mix.blend_type = 'OVERLAY'
+        self.links.new(self.inputs.outputs["Fac"], mix.inputs["Fac"])
+        self.links.new(self.inputs.outputs["Color1"], mix.inputs["Color1"])
+        self.links.new(self.inputs.outputs["Color2"], mix.inputs["Color2"])
+        self.links.new(mix.outputs["Color"], self.outputs.inputs["Color"])
 
-        geo = self.addNode("ShaderNodeNewGeometry", 0)
+
+class NormalAdder:
+    def addNormalTextures(self, tree, texco, args):
+        from .driver import makePropDriver
+        from .cycles import findNode, findLinksTo, YSIZE
+
+        normal = findNode(tree, "NORMAL_MAP")
+        socket = None
+        if normal is None:
+            tree.ycoords[1] -= 3*YSIZE
+            normal = tree.addNode("ShaderNodeNormalMap", col=1)
+        else:
+            links = findLinksTo(tree, "NORMAL_MAP")
+            if links:
+                socket = links[0].from_socket
+
+        bump = findNode(tree, "BUMP")
+        if bump:
+            tree.links.new(normal.outputs["Normal"], bump.inputs["Normal"])
+        else:
+            for node in tree.nodes:
+                if "Normal" in node.inputs.keys():
+                    tree.links.new(normal.outputs["Normal"], node.inputs["Normal"])
 
         for ob,sname,skey,filepath in args:
             img = bpy.data.images.load(filepath)
             img.name = os.path.splitext(os.path.basename(filepath))[0]
             img.colorspace_settings.name = "Non-Color"
-            tex = self.addTextureNode(1, img, sname, "NONE")
-            self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
+            tex = tree.addTextureNode(-1, img, sname, "NONE")
+            tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
 
-            normal = self.addGroup(LocalNormalGroup, "DAZ Local Normal", col=2)
-            normal.inputs["Strength"].default_value = 1
-            self.links.new(tex.outputs["Color"], normal.inputs["Color"])
-            self.links.new(geo.outputs["Normal"], normal.inputs["Normal"])
+            mix = tree.addGroup(MixNormalTextureGroup, "DAZ Mix Normal Texture", col=0)
+            mix.inputs["Fac"].default_value = 1
+            mix.inputs["Color1"].default_value = (0.5,0.5,1,1)
+            if socket:
+                tree.links.new(socket, mix.inputs["Color1"])
+            tree.links.new(tex.outputs["Color"], mix.inputs["Color2"])
             if skey:
                 path = 'data.shape_keys.key_blocks["%s"].value' % sname
-                makePropDriver(path, normal.inputs["Strength"], "default_value", ob, "x")
-
-            add = self.addNode("ShaderNodeVectorMath", 3)
-            add.operation = 'ADD'
-            self.links.new(sum.outputs[0], add.inputs[0])
-            self.links.new(normal.outputs[0], add.inputs[1])
-            sum = add
-
-        fix = self.addNode("ShaderNodeVectorMath", 4)
-        fix.operation = 'NORMALIZE'
-        self.links.new(sum.outputs[0], fix.inputs[0])
-        self.links.new(fix.outputs[0], self.outputs.inputs["Normal"])
+                makePropDriver(path, mix.inputs["Fac"], "default_value", ob, "x")
+            socket = mix.outputs["Color"]
+        tree.links.new(socket, normal.inputs["Color"])
 
 
-class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, MultiFile, ImageFile):
+class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, NormalAdder, MultiFile, ImageFile):
     bl_idname = "daz.load_hd_normal_map"
     bl_label = "Load HD Morph Normal Maps"
-    bl_description = "Load normal map to morph"
+    bl_description = "Load morph normal maps to active material"
     bl_options = {'UNDO'}
 
     type = "mrNM"
 
     def run(self, context):
-        from .cycles import findNode, findNodes
+        from .cycles import findTree, findTexco, YSIZE
         ob = context.object
         args = self.getArgs(ob)
-        tree,texco = self.getTree(ob, 5)
-        tolinks = self.getToLinks(tree)
-        fromlinks = self.getFromLinks(tree)
-        normal = tree.addGroup(NormalMapGroup, "DAZ HD Normal Map", col=0, args=args, force=True)
-        normal.inputs["Color"].default_value = (0.5, 0.5, 1, 1)
-        tree.links.new(texco.outputs["UV"], normal.inputs["UV"])
-        for link in tolinks:
-            if link.from_socket.name == "Color":
-                tree.links.new(link.from_socket, normal.inputs["Color"])
-                break
-
-        if fromlinks:
-            for link in fromlinks:
-                tree.links.new(normal.outputs["Normal"], link.to_socket)
-        else:
-            bump = findNode(tree, "BUMP")
-            if bump:
-                tree.links.new(normal.outputs["Normal"], bump.inputs["Normal"])
-            else:
-                for node in tree.nodes:
-                    if "Normal" in node.inputs.keys():
-                        tree.links.new(normal.outputs["Normal"], node.inputs["Normal"])
-
+        tree = findTree(ob.data.materials[ob.active_material_index])
+        texco = findTexco(tree, 1)
+        tree.ycoords[-1] = tree.ycoords[0] = YSIZE
+        self.addNormalTextures(tree, texco, args)
         if GS.pruneNodes:
             tree.prune()
-
-
-    def getFromLinks(self, tree):
-        from .cycles import findLinksFrom
-        fromlinks = []
-        for link in findLinksFrom(tree, "NORMAL_MAP"):
-            fromlinks.append(link)
-        for link in findLinksFrom(tree, "GROUP"):
-            if link.from_node.name.startswith("DAZ HD Normal Map"):
-                fromlinks.append(link)
-        return fromlinks
-
-
-    def getToLinks(self, tree):
-        from .cycles import findLinksTo
-        tolinks = []
-        for link in findLinksTo(tree, "NORMAL_MAP"):
-            tolinks.append(link)
-        for link in findLinksTo(tree, "GROUP"):
-            if link.to_node.name.startswith("DAZ HD Normal Map"):
-                tolinks.append(link)
-        return tolinks
 
 #-------------------------------------------------------------
 #   Initialize

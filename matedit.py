@@ -574,6 +574,7 @@ class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh)
 
     def run(self, context):
         from .cgroup import DecalGroup
+        from .cycles import findTree
 
         img = bpy.data.images.load(self.filepath)
         if img is None:
@@ -584,7 +585,8 @@ class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh)
 
         fname = os.path.splitext(os.path.basename(self.filepath))[0]
         ob = context.object
-        tree = getTree(ob, ob.active_material_index)
+        mat = ob.materials[ob.active_material_index]
+        tree = findTree(mat)
 
         coll = context.collection
         empty = bpy.data.objects.new(fname, None)
@@ -609,15 +611,6 @@ class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh)
 # ---------------------------------------------------------------------
 #   Utilities
 # ---------------------------------------------------------------------
-
-def getTree(ob, mindex):
-    from .cycles import CyclesTree
-    mat = ob.data.materials[mindex]
-    tree = CyclesTree(None)
-    tree.nodes = mat.node_tree.nodes
-    tree.links = mat.node_tree.links
-    return tree
-
 
 def getFromToSockets(tree, nodeType, slot):
     from .cycles import findNodes
