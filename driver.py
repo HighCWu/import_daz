@@ -496,7 +496,7 @@ def setPropMinMax(rna, prop, min, max):
     rna_ui = rna.get('_RNA_UI')
     if rna_ui is None:
         rna_ui = rna['_RNA_UI'] = {}
-    rna_ui[prop] = { "min": min, "max": max}
+    rna_ui[prop] = { "min": min, "max": max, "soft_min": min, "soft_max": max}
 
 
 def truncateProp(prop):

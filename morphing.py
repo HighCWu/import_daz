@@ -793,6 +793,12 @@ class LoadMorph(PoseboneDriver):
         return final
 
 
+    def ensureExists(self, raw, final):
+        if raw not in self.drivers.keys():
+            self.rig[raw] = 0.0
+            self.rig[final] = 0.0
+
+
     def addToMorphSet(self, prop, asset, hidden):
         addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden)
 
@@ -943,6 +949,7 @@ class LoadMorph(PoseboneDriver):
             subfinal = finalProp(subraw)
             varname = nextLetter(varname)
             string += multiply(factor, varname)
+            self.ensureExists(subraw, subfinal)
             addDriverVar(fcu, varname, propRef(subfinal), self.rig)
         if mults:
             string = "(%s)" % string
@@ -950,6 +957,7 @@ class LoadMorph(PoseboneDriver):
             for mult in mults:
                 string += "*%s" % varname
                 multfinal = finalProp(mult)
+                self.ensureExists(mult, multfinal)
                 addDriverVar(fcu, varname, propRef(multfinal), self.rig)
                 varname = nextLetter(varname)
         fcu.driver.expression = string
