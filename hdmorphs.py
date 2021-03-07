@@ -91,7 +91,10 @@ class LoadMap:
             else:
                 sname = words[0].rstrip("_dhdm")
                 if sname in shapes.keys():
-                    args.append((ob, shapes[sname], filepath))
+                    skey = shapes[sname]
+                    args.append((ob, skey.name, skey, filepath))
+        for _,sname,_,_ in args:
+            print(" *", sname)
         return args
 
 
@@ -127,19 +130,20 @@ class VectorDispGroup(CyclesGroup):
     def addNodes(self, args):
         from .driver import makePropDriver
         sum = None
-        for ob,skey,filepath in args:
+        for ob,sname,skey,filepath in args:
             img = bpy.data.images.load(filepath)
             img.name = os.path.splitext(os.path.basename(filepath))[0]
             img.colorspace_settings.name = "Non-Color"
-            tex = self.addTextureNode(1, img, skey.name, "NONE")
+            tex = self.addTextureNode(1, img, sname, "NONE")
             self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
 
             disp = self.addNode("ShaderNodeVectorDisplacement", col=2, label=skey.name)
             disp.inputs["Midlevel"].default_value = 0.5
             disp.inputs["Scale"].default_value = ob.DazScale
             self.links.new(tex.outputs["Color"], disp.inputs["Vector"])
-            path = 'data.shape_keys.key_blocks["%s"].value' % skey.name
-            makePropDriver(path, disp.inputs["Scale"], "default_value", ob, "%g*x" % ob.DazScale)
+            if skey:
+                path = 'data.shape_keys.key_blocks["%s"].value' % sname
+                makePropDriver(path, disp.inputs["Scale"], "default_value", ob, "%g*x" % ob.DazScale)
 
             if sum is None:
                 sum = disp
@@ -176,6 +180,42 @@ class DAZ_OT_LoadHDVectorDisp(DazOperator, LoadMap, MultiFile, ImageFile):
 #   Load HD Normal Map
 #-------------------------------------------------------------
 
+class LocalNormalGroup(CyclesGroup):
+
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["Strength", "Color", "Normal"]
+        self.outsockets += ["Normal"]
+
+
+    def create(self, node, name, parent):
+        CyclesGroup.create(self, node, name, parent, 2)
+        self.group.inputs.new("NodeSocketFloat", "Strength")
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketVector", "Normal")
+        self.group.outputs.new("NodeSocketVector", "Normal")
+
+
+    def addNodes(self, args):
+        normal = self.addNode("ShaderNodeNormalMap", col=1)
+        normal.space = "TANGENT"
+        normal.inputs["Strength"].default_value = 1
+        self.links.new(self.inputs.outputs["Strength"], normal.inputs["Strength"])
+        self.links.new(self.inputs.outputs["Color"], normal.inputs["Color"])
+
+        sub = self.addNode("ShaderNodeVectorMath", col=1)
+        sub.operation = 'SUBTRACT'
+        self.links.new(normal.outputs[0], sub.inputs[0])
+        self.links.new(self.inputs.outputs["Normal"], sub.inputs[1])
+
+        #scale = self.addNode("ShaderNodeVectorMath", col=1)
+        #scale.operation = 'SCALE'
+        #self.links.new(sub.outputs[0], scale.inputs[0])
+        #self.links.new(self.inputs.outputs["Strength"], scale.inputs[1])
+
+        self.links.new(sub.outputs[0], self.outputs.inputs["Normal"])
+
+
 class NormalMapGroup(CyclesGroup):
 
     def __init__(self):
@@ -193,36 +233,38 @@ class NormalMapGroup(CyclesGroup):
 
     def addNodes(self, args):
         from .driver import makePropDriver
-        ntexs = len(args)+1
-        sum = self.addNode("ShaderNodeNormalMap", col=2, label="Input Normal")
+        sum = self.addNode("ShaderNodeNormalMap", 0)
         sum.space = "TANGENT"
-        sum.inputs["Strength"].default_value = ntexs
+        sum.inputs["Strength"].default_value = 1
         self.links.new(self.inputs.outputs["Color"], sum.inputs["Color"])
 
-        for ob,skey,filepath in args:
+        geo = self.addNode("ShaderNodeNewGeometry", 0)
+
+        for ob,sname,skey,filepath in args:
             img = bpy.data.images.load(filepath)
             img.name = os.path.splitext(os.path.basename(filepath))[0]
             img.colorspace_settings.name = "Non-Color"
-            tex = self.addTextureNode(1, img, skey.name, "NONE")
+            tex = self.addTextureNode(1, img, sname, "NONE")
             self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
 
-            normal = self.addNode("ShaderNodeNormalMap", col=2, label=skey.name)
-            normal.space = "TANGENT"
+            normal = self.addGroup(LocalNormalGroup, "DAZ Local Normal", col=2)
             normal.inputs["Strength"].default_value = 1
             self.links.new(tex.outputs["Color"], normal.inputs["Color"])
-            path = 'data.shape_keys.key_blocks["%s"].value' % skey.name
-            makePropDriver(path, normal.inputs["Strength"], "default_value", ob, "%d*x" % ntexs)
+            self.links.new(geo.outputs["Normal"], normal.inputs["Normal"])
+            if skey:
+                path = 'data.shape_keys.key_blocks["%s"].value' % sname
+                makePropDriver(path, normal.inputs["Strength"], "default_value", ob, "x")
 
-            add = self.addNode("ShaderNodeVectorMath", col=3)
+            add = self.addNode("ShaderNodeVectorMath", 3)
             add.operation = 'ADD'
             self.links.new(sum.outputs[0], add.inputs[0])
             self.links.new(normal.outputs[0], add.inputs[1])
             sum = add
 
-        node = self.addNode("ShaderNodeVectorMath", col=4)
-        node.operation = 'NORMALIZE'
-        self.links.new(sum.outputs[0], node.inputs[0])
-        self.links.new(node.outputs[0], self.outputs.inputs["Normal"])
+        fix = self.addNode("ShaderNodeVectorMath", 4)
+        fix.operation = 'NORMALIZE'
+        self.links.new(sum.outputs[0], fix.inputs[0])
+        self.links.new(fix.outputs[0], self.outputs.inputs["Normal"])
 
 
 class DAZ_OT_LoadHDNormalMap(DazOperator, LoadMap, MultiFile, ImageFile):
