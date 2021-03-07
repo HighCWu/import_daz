@@ -129,7 +129,7 @@ class DispGroup(CyclesGroup):
             if last is None:
                 last = disp
             else:
-                add = self.addNode("ShaderNodeMath", col=3)
+                add = self.addMathNode()
                 add.operation = 'ADD'
                 self.links.new(last.outputs[0], add.inputs[0])
                 self.links.new(disp.outputs[0], add.inputs[1])
@@ -210,7 +210,7 @@ class MixNormalTextureGroup(CyclesGroup):
 
 
     def create(self, node, name, parent):
-        CyclesGroup.create(self, node, name, parent, 4)
+        CyclesGroup.create(self, node, name, parent, 8)
         self.group.inputs.new("NodeSocketFloat", "Fac")
         self.group.inputs.new("NodeSocketColor", "Color1")
         self.group.inputs.new("NodeSocketColor", "Color2")
@@ -224,6 +224,110 @@ class MixNormalTextureGroup(CyclesGroup):
         self.links.new(self.inputs.outputs["Color1"], mix.inputs["Color1"])
         self.links.new(self.inputs.outputs["Color2"], mix.inputs["Color2"])
         self.links.new(mix.outputs["Color"], self.outputs.inputs["Color"])
+
+    # Cannot link dot product to divide. Blender bug?
+    def addNodes0(self, args):
+        val1 = self.addNode("ShaderNodeValue", 1)
+        val1.outputs[0].default_value = 2
+        vmult1 = self.addNode("ShaderNodeMixRGB", 2)
+        vmult1.blend_type = 'MULTIPLY'
+        vmult1.inputs[0].default_value = 1
+        self.links.new(val1.outputs[0], vmult1.inputs[1])
+        self.links.new(self.inputs.outputs["Color1"], vmult1.inputs[2])
+
+        val2 = self.addNode("ShaderNodeValue", 1)
+        val2.outputs[0].default_value = -1
+        comb1 = self.addNode("ShaderNodeCombineRGB", 2)
+        self.links.new(val2.outputs[0], comb1.inputs[0])
+        self.links.new(val2.outputs[0], comb1.inputs[1])
+        add1 = self.addNode("ShaderNodeMath", 2)
+        add1.operation = 'ADD'
+        self.links.new(val2.outputs[0], add1.inputs[0])
+        self.links.new(self.inputs.outputs["Fac"], add1.inputs[1])
+        self.links.new(add1.outputs[0], comb1.inputs[2])
+
+        val3 = self.addNode("ShaderNodeValue", 1)
+        val3.outputs[0].default_value = -2
+        val4 = self.addNode("ShaderNodeValue", 1)
+        val4.outputs[0].default_value = 2
+        comb2 = self.addNode("ShaderNodeCombineRGB", 2)
+        self.links.new(val3.outputs[0], comb2.inputs[0])
+        self.links.new(val3.outputs[0], comb2.inputs[1])
+        self.links.new(val4.outputs[0], comb2.inputs[2])
+
+        val5 = self.addNode("ShaderNodeValue", 1)
+        val5.outputs[0].default_value = 1
+        val6 = self.addNode("ShaderNodeValue", 1)
+        val6.outputs[0].default_value = -1
+        comb3 = self.addNode("ShaderNodeCombineRGB", 2)
+        self.links.new(val5.outputs[0], comb3.inputs[0])
+        self.links.new(val5.outputs[0], comb3.inputs[1])
+        self.links.new(val6.outputs[0], comb3.inputs[2])
+
+        vadd1 = self.addNode("ShaderNodeMixRGB", 3)
+        vadd1.blend_type = 'ADD'
+        vadd1.inputs[0].default_value = 1
+        self.links.new(vmult1.outputs[0], vadd1.inputs[1])
+        self.links.new(comb1.outputs[0], vadd1.inputs[2])
+
+        vmult2 = self.addNode("ShaderNodeMixRGB", 3)
+        vmult2.blend_type = 'MULTIPLY'
+        vmult2.inputs[0].default_value = 1
+        self.links.new(self.inputs.outputs["Color2"], vmult2.inputs[1])
+        self.links.new(comb2.outputs[0], vmult2.inputs[2])
+
+        vadd2 = self.addNode("ShaderNodeMixRGB", 3)
+        vadd2.blend_type = 'ADD'
+        vadd2.inputs[0].default_value = 1
+        self.links.new(vmult2.outputs[0], vadd2.inputs[1])
+        self.links.new(comb3.outputs[0], vadd2.inputs[2])
+
+        dot = self.addNode("ShaderNodeVectorMath", 4)
+        dot.operation = 'DOT_PRODUCT'
+        self.links.new(vadd1.outputs[0], dot.inputs[0])
+        self.links.new(vadd2.outputs[0], dot.inputs[1])
+
+        sep1 = self.addNode("ShaderNodeSeparateRGB", 4)
+        self.links.new(vadd1.outputs[0], sep1.inputs[0])
+
+        vdiv = self.addNode("ShaderNodeMixRGB", 5)
+        vdiv.blend_type = 'DIVIDE'
+        vdiv.inputs[0].default_value = 1
+        self.links.new(dot.outputs[0], vdiv.inputs[1])
+        self.links.new(comb3.outputs[0], vdiv.inputs[2])
+
+        vmult3 = self.addNode("ShaderNodeMixRGB", 5)
+        vmult3.blend_type = 'MULTIPLY'
+        self.links.new(self.inputs.outputs["Fac"], vmult3.inputs[0])
+        self.links.new(vdiv.outputs[0], vmult3.inputs[1])
+        self.links.new(sep1.outputs[2], vmult3.inputs[2])
+
+        vsub2 = self.addNode("ShaderNodeMixRGB", 5)
+        vsub2.blend_type = 'SUBTRACT'
+        self.links.new(self.inputs.outputs["Fac"], vsub2.inputs[0])
+        self.links.new(vmult3.outputs[0], vsub2.inputs[1])
+        self.links.new(vadd2.outputs[0], vsub2.inputs[2])
+
+        norm = self.addNode("ShaderNodeVectorMath", 6)
+        norm.operation = 'NORMALIZE'
+        self.links.new(vsub2.outputs[0], norm.inputs[0])
+
+        val7 = self.addNode("ShaderNodeValue", 6)
+        val7.outputs[0].default_value = 0.5
+
+        vmult4 = self.addNode("ShaderNodeMixRGB", 7)
+        vmult4.blend_type = 'MULTIPLY'
+        vmult4.inputs[0].default_value = 1
+        self.links.new(norm.outputs[0], vmult4.inputs[1])
+        self.links.new(val7.outputs[0], vmult4.inputs[2])
+
+        vadd4 = self.addNode("ShaderNodeMixRGB", 7)
+        vadd4.blend_type = 'ADD'
+        vadd4.inputs[0].default_value = 1
+        self.links.new(vmult4.outputs[0], vadd4.inputs[1])
+        self.links.new(val7.outputs[0], vadd4.inputs[2])
+
+        self.links.new(vadd4.outputs[0], self.outputs.inputs["Color"])
 
 
 class NormalAdder:
@@ -256,7 +360,7 @@ class NormalAdder:
             tex = tree.addImageTexNode(filepath, sname, -1)
             tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
 
-            mix = tree.addGroup(MixNormalTextureGroup, "DAZ Mix Normal Texture", col=0)
+            mix = tree.addGroup(MixNormalTextureGroup, "DAZ Mix Normal Texture", col=0, force=True)
             mix.inputs["Fac"].default_value = 1
             mix.inputs["Color1"].default_value = (0.5,0.5,1,1)
             if socket:
