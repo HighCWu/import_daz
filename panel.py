@@ -212,13 +212,11 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         box = layout.box()
         if showBox(scn, "DazShowMaterials2", box):
             if bpy.app.version >= (2,82,0):
-                box.operator("daz.bake_normal_disp_maps")
-                box.operator("daz.load_normal_disp_maps")
-                box.operator("daz.add_normal_maps")
-                box.operator("daz.add_driven_value_nodes")
-                box.separator()
-            box.operator("daz.load_hd_vector_disp")
-            box.operator("daz.load_hd_normal_map")
+                box.operator("daz.bake_maps")
+                box.operator("daz.load_baked_maps")
+            box.operator("daz.load_vector_disp")
+            box.operator("daz.load_normal_map")
+            box.operator("daz.add_driven_value_nodes")
             box.separator()
             box.operator("daz.load_uv")
             box.operator("daz.prune_uv_maps")

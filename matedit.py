@@ -585,7 +585,7 @@ class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh)
 
         fname = os.path.splitext(os.path.basename(self.filepath))[0]
         ob = context.object
-        mat = ob.materials[ob.active_material_index]
+        mat = ob.data.materials[ob.active_material_index]
         tree = findTree(mat)
 
         coll = context.collection

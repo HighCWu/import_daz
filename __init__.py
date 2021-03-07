@@ -62,9 +62,10 @@ def importModules():
                     "cycles", "cgroup", "pbr", "render", "camera", "light",
                     "guess", "animation", "files", "main", "finger",
                     "matedit", "tables", "proxy", "rigify", "merge", "hide",
-                    "mhx", "layers", "fkik", "hair", "transfer", "dforce", "hdmorphs"]
+                    "mhx", "layers", "fkik", "hair", "transfer", "dforce",
+                    "hdmorphs", "facecap"]
         if bpy.app.version >= (2,82,0):
-            modnames += ["udim", "facecap"]
+            modnames += ["udim"]
         anchor = os.path.basename(__file__[0:-12])
         theModules = []
         for modname in modnames:
