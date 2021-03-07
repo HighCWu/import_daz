@@ -214,7 +214,7 @@ class MixNormalTextureGroup(CyclesGroup):
         self.group.inputs.new("NodeSocketFloat", "Fac")
         self.group.inputs.new("NodeSocketColor", "Color1")
         self.group.inputs.new("NodeSocketColor", "Color2")
-        self.group.outputs.new("NodeSocketVector", "Color")
+        self.group.outputs.new("NodeSocketColor", "Color")
 
 
     def addNodes(self, args):
