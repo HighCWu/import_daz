@@ -96,10 +96,10 @@ class LoadMaps:
         return args
 
 #-------------------------------------------------------------
-#   Load HD Vector Displacement Map
+#   Scalar and Vector Displacement groups
 #-------------------------------------------------------------
 
-class VectorDispGroup(CyclesGroup):
+class DispGroup(CyclesGroup):
 
     def __init__(self):
         CyclesGroup.__init__(self)
@@ -115,44 +115,72 @@ class VectorDispGroup(CyclesGroup):
 
     def addNodes(self, args):
         from .driver import makePropDriver
-        sum = None
+        last = None
         for ob,sname,skey,filepath in args:
-            img = bpy.data.images.load(filepath)
-            img.name = os.path.splitext(os.path.basename(filepath))[0]
-            img.colorspace_settings.name = "Non-Color"
-            tex = self.addTextureNode(1, img, sname, "NONE")
+            tex = self.addImageTexNode(filepath, sname, 1)
             self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
 
-            disp = self.addNode("ShaderNodeVectorDisplacement", col=2, label=skey.name)
-            disp.inputs["Midlevel"].default_value = 0.5
+            disp = self.addDispNode(sname, tex)
             disp.inputs["Scale"].default_value = ob.DazScale
-            self.links.new(tex.outputs["Color"], disp.inputs["Vector"])
             if skey:
                 path = 'data.shape_keys.key_blocks["%s"].value' % sname
                 makePropDriver(path, disp.inputs["Scale"], "default_value", ob, "%g*x" % ob.DazScale)
 
-            if sum is None:
-                sum = disp
+            if last is None:
+                last = disp
             else:
-                add = self.addNode("ShaderNodeVectorMath", col=3)
+                add = self.addNode("ShaderNodeMath", col=3)
                 add.operation = 'ADD'
-                self.links.new(sum.outputs[0], add.inputs[0])
+                self.links.new(last.outputs[0], add.inputs[0])
                 self.links.new(disp.outputs[0], add.inputs[1])
-                sum = add
-        self.links.new(sum.outputs[0], self.outputs.inputs["Displacement"])
+                last = add
+        if last:
+            self.links.new(last.outputs[0], self.outputs.inputs["Displacement"])
 
 
-class VectorDispAdder:
-    def loadVectorDisp(self, mat):
+class ScalarDispGroup(DispGroup):
+    def addDispNode(self, sname, tex):
+        disp = self.addNode("ShaderNodeDisplacement", col=2, label=sname)
+        disp.inputs["Midlevel"].default_value = 0.5
+        self.links.new(tex.outputs["Color"], disp.inputs["Height"])
+        return disp
+
+    def addMathNode(self):
+        return self.addNode("ShaderNodeVectorMath", col=3)
+
+
+class VectorDispGroup(DispGroup):
+    def addDispNode(self, sname, tex):
+        disp = self.addNode("ShaderNodeVectorDisplacement", col=2, label=sname)
+        disp.inputs["Midlevel"].default_value = 0.5
+        self.links.new(tex.outputs["Color"], disp.inputs["Vector"])
+        return disp
+
+    def addMathNode(self):
+        return self.addNode("ShaderNodeVectorMath", col=3)
+
+
+class DispAdder:
+    def loadDispMaps(self, mat, args):
         from .cycles import findNodes, findTree, findTexco
         tree = findTree(mat)
         texco = findTexco(tree, 5)
-        disp = tree.addGroup(VectorDispGroup, "DAZ HD Vector Disp", col=6, args=args, force=True)
+        disp = self.addDispGroup(tree, args)
         tree.links.new(texco.outputs["UV"], disp.inputs["UV"])
         for node in findNodes(tree, "OUTPUT_MATERIAL"):
             tree.links.new(disp.outputs["Displacement"], node.inputs["Displacement"])
         if self.usePrune:
             tree.prune()
+
+
+class ScalarDispAdder(DispAdder):
+    def addDispGroup(self, tree, args):
+        return tree.addGroup(ScalarDispGroup, "DAZ Scalar Disp", col=6, args=args, force=True)
+
+
+class VectorDispAdder(DispAdder):
+    def addDispGroup(self, tree, args):
+        return tree.addGroup(VectorDispGroup, "DAZ Vector Disp", col=6, args=args, force=True)
 
 
 class DAZ_OT_LoadVectorDisp(DazOperator, LoadMaps, VectorDispAdder, MultiFile, ImageFile, IsMesh):
@@ -167,7 +195,7 @@ class DAZ_OT_LoadVectorDisp(DazOperator, LoadMaps, VectorDispAdder, MultiFile, I
         ob = context.object
         args = self.getArgs(ob)
         mat = ob.data.materials[ob.active_material_index]
-        self.loadVectorDisp(mat)
+        self.loadDispMaps(mat, args)
 
 #-------------------------------------------------------------
 #   Load HD Normal Map
@@ -225,10 +253,7 @@ class NormalAdder:
                     tree.links.new(normal.outputs["Normal"], node.inputs["Normal"])
 
         for ob,sname,skey,filepath in args:
-            img = bpy.data.images.load(filepath)
-            img.name = os.path.splitext(os.path.basename(filepath))[0]
-            img.colorspace_settings.name = "Non-Color"
-            tex = tree.addTextureNode(-1, img, sname, "NONE")
+            tex = tree.addImageTexNode(filepath, sname, -1)
             tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
 
             mix = tree.addGroup(MixNormalTextureGroup, "DAZ Mix Normal Texture", col=0)
@@ -261,10 +286,10 @@ class DAZ_OT_LoadNormalMap(DazOperator, LoadMaps, NormalAdder, MultiFile, ImageF
         self.loadNormalMaps(mat, args, 1)
 
 #----------------------------------------------------------
-#   Normal map
+#   Baking
 #----------------------------------------------------------
 
-class MapOperator:
+class Baker:
     imageSize : EnumProperty(
         items = [("512", "512 x 512", "512 x 512 pixels"),
                  ("1024", "1024 x 1024", "1024 x 1024 pixels"),
@@ -293,9 +318,6 @@ class MapOperator:
         description = "Name used to construct file names",
         default = "")
 
-    storedFolder : StringProperty(default = "")
-    storedName : StringProperty(default = "")
-
 
     def draw(self, context):
         self.layout.prop(self, "imageSize")
@@ -303,6 +325,9 @@ class MapOperator:
         self.layout.prop(self, "subfolder")
         self.layout.prop(self, "basename")
 
+
+    storedFolder : StringProperty(default = "")
+    storedName : StringProperty(default = "")
 
     def setDefaultNames(self, context):
         if self.storedName:
@@ -381,7 +406,7 @@ def getMultires(ob):
 #   Bake maps
 #----------------------------------------------------------
 
-class DAZ_OT_BakeMaps(DazPropsOperator, MapOperator):
+class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
     bl_idname = "daz.bake_maps"
     bl_label = "Bake Maps"
     bl_description = "Bake normal/displacement maps for the selected HD meshes"
@@ -398,18 +423,16 @@ class DAZ_OT_BakeMaps(DazPropsOperator, MapOperator):
         min = 1001, max = 1100,
         default = 1001)
 
+    def draw(self, context):
+        Baker.draw(self, context)
+        self.layout.prop(self, "useSingleTile")
+        if self.useSingleTile:
+            self.layout.prop(self, "tile")
 
     @classmethod
     def poll(self, context):
         ob = context.object
         return (bpy.data.filepath and ob and getMultires(ob))
-
-
-    def draw(self, context):
-        MapOperator.draw(self, context)
-        self.layout.prop(self, "useSingleTile")
-        if self.useSingleTile:
-            self.layout.prop(self, "tile")
 
 
     def prequel(self, context):
@@ -557,7 +580,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, MapOperator):
 #   Load normal/displacement maps
 #----------------------------------------------------------
 
-class DAZ_OT_LoadBakedMaps(DazPropsOperator, MapOperator, LoadMaps, NormalAdder, IsMesh):
+class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, LoadMaps, NormalAdder, ScalarDispAdder, IsMesh):
     bl_idname = "daz.load_baked_maps"
     bl_label = "Load Baked Maps"
     bl_description = "Load baked normal/displacement maps for the selected meshes"
@@ -575,7 +598,7 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, MapOperator, LoadMaps, NormalAdder,
         default = 0.01)
 
     def draw(self, context):
-        MapOperator.draw(self, context)
+        Baker.draw(self, context)
         if self.bakeType == 'DISPLACEMENT':
             self.layout.prop(self, "dispScale")
         self.layout.prop(self, "usePrune")

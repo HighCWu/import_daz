@@ -1176,6 +1176,13 @@ class CyclesTree:
             node.color_space = colorSpace
 
 
+    def addImageTexNode(self, filepath, tname, col):
+        img = bpy.data.images.load(filepath)
+        img.name = os.path.splitext(os.path.basename(filepath))[0]
+        img.colorspace_settings.name = "Non-Color"
+        return self.addTextureNode(col, img, tname, "NONE")
+
+
     def getTexNode(self, key, colorSpace):
         if key in self.texnodes.keys():
             for texnode,colorSpace1 in self.texnodes[key]:
