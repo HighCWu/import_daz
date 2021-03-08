@@ -1401,7 +1401,6 @@ def addToCategories(ob, props, catname):
     from .driver import setBoolProp
     from .modifier import getCanonicalKey
 
-    print("ADDDD", props, catname)
     if props and ob is not None:
         cats = dict([(cat.name,cat) for cat in ob.DazMorphCats])
         if catname not in cats.keys():
@@ -1418,13 +1417,6 @@ def addToCategories(ob, props, catname):
             morph.name = prop
             morph.text = getCanonicalKey(prop)
             setBoolProp(morph, "active", True)
-
-
-def removeFromCategory(ob, props, catname):
-    if catname in ob.DazMorphCats.keys():
-        cat = ob.DazMorphCats[catname]
-        for prop in props:
-            removeFromPropGroup(cat.morphs, prop)
 
 #------------------------------------------------------------------------
 #   Rename category
@@ -2388,10 +2380,16 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, Category
 
 
     def handleShapekey(self, sname, rig, ob):
-        from .driver import makeShapekeyDriver
+        from .driver import getShapekeyDriver, addDriverVar, setFloatProp
         skeys = ob.data.shape_keys
         skey = skeys.key_blocks[sname]
-        makeShapekeyDriver(skeys, sname, skey.value, rig, sname, {})
+        if getShapekeyDriver(skeys, skey.name):
+            raise DazError("Shapekey %s is already driven" % skey.name)
+        setFloatProp(rig, sname, skey.value, GS.propMin, GS.propMax)
+        fcu = skey.driver_add("value")
+        fcu.driver.type = 'SCRIPTED'
+        addDriverVar(fcu, "a", propRef(sname), rig)
+        fcu.driver.expression = "a"
         addToCategories(rig, [sname], self.category)
         rig.DazCustomMorphs = True
 
@@ -2424,9 +2422,9 @@ class DAZ_OT_RemoveShapeFromCategory(DazOperator, AddRemoveDriver, CustomSelecto
             snames.append(skey.name)
         if self.custom == "All":
             for cat in ob.DazMorphCats:
-                removeFromCategory(ob, snames, cat.name)
+                self.removeFromCategory(ob, snames, cat.name)
         else:
-            removeFromCategory(ob, snames, self.custom)
+            self.removeFromCategory(ob, snames, self.custom)
 
 
     def includeShapekey(self, skeys, sname):
@@ -2439,6 +2437,13 @@ class DAZ_OT_RemoveShapeFromCategory(DazOperator, AddRemoveDriver, CustomSelecto
                 if sname == morph.name:
                     return cat.name
         return ""
+
+
+    def removeFromCategory(self, ob, props, catname):
+        if catname in ob.DazMorphCats.keys():
+            cat = ob.DazMorphCats[catname]
+            for prop in props:
+                removeFromPropGroup(cat.morphs, prop)
 
 
 class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, CustomSelector, IsMesh):

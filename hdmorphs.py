@@ -217,7 +217,7 @@ class MixNormalTextureGroup(CyclesGroup):
         self.group.outputs.new("NodeSocketColor", "Color")
 
 
-    def addNodes(self, args):
+    def addNodes0(self, args):
         mix = self.addNode("ShaderNodeMixRGB", 1)
         mix.blend_type = 'OVERLAY'
         self.links.new(self.inputs.outputs["Fac"], mix.inputs["Fac"])
@@ -225,8 +225,7 @@ class MixNormalTextureGroup(CyclesGroup):
         self.links.new(self.inputs.outputs["Color2"], mix.inputs["Color2"])
         self.links.new(mix.outputs["Color"], self.outputs.inputs["Color"])
 
-    # Cannot link dot product to divide. Blender bug?
-    def addNodes0(self, args):
+    def addNodes(self, args):
         val1 = self.addNode("ShaderNodeValue", 1)
         val1.outputs[0].default_value = 2
         vmult1 = self.addNode("ShaderNodeMixRGB", 2)
@@ -293,14 +292,14 @@ class MixNormalTextureGroup(CyclesGroup):
         vdiv = self.addNode("ShaderNodeMixRGB", 5)
         vdiv.blend_type = 'DIVIDE'
         vdiv.inputs[0].default_value = 1
-        self.links.new(dot.outputs[0], vdiv.inputs[1])
-        self.links.new(comb3.outputs[0], vdiv.inputs[2])
+        self.links.new(dot.outputs["Value"], vdiv.inputs[1])
+        self.links.new(sep1.outputs[2], vdiv.inputs[2])
 
         vmult3 = self.addNode("ShaderNodeMixRGB", 5)
         vmult3.blend_type = 'MULTIPLY'
         self.links.new(self.inputs.outputs["Fac"], vmult3.inputs[0])
-        self.links.new(vdiv.outputs[0], vmult3.inputs[1])
-        self.links.new(sep1.outputs[2], vmult3.inputs[2])
+        self.links.new(vadd1.outputs[0], vmult3.inputs[1])
+        self.links.new(vdiv.outputs[0], vmult3.inputs[2])
 
         vsub2 = self.addNode("ShaderNodeMixRGB", 5)
         vsub2.blend_type = 'SUBTRACT'
@@ -318,7 +317,7 @@ class MixNormalTextureGroup(CyclesGroup):
         vmult4 = self.addNode("ShaderNodeMixRGB", 7)
         vmult4.blend_type = 'MULTIPLY'
         vmult4.inputs[0].default_value = 1
-        self.links.new(norm.outputs[0], vmult4.inputs[1])
+        self.links.new(norm.outputs["Vector"], vmult4.inputs[1])
         self.links.new(val7.outputs[0], vmult4.inputs[2])
 
         vadd4 = self.addNode("ShaderNodeMixRGB", 7)

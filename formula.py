@@ -364,7 +364,7 @@ class PoseboneDriver:
 
 
     def addCustomDriver(self, fcu, factor, key):
-        from .driver import addTransformVar, driverHasVar
+        from .driver import addTransformVar
         fcu.driver.type = 'SCRIPTED'
         expr = 'evalMorphs%s%d(self)' % (key, fcu.array_index)
         drvexpr = fcu.driver.expression

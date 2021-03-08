@@ -181,8 +181,8 @@ def modifySkeleton(rig, skel):
 def getBoneName(bname, bones):
     if bname in bones.keys():
         return bname
-    elif isDrvName(bname):
-        bname = baseName(bname)
+    elif isDrvBone(bname):
+        bname = baseBone(bname)
         if bname in bones.keys():
             return bname
     elif (bname[-4:] == "Copy" and

@@ -332,13 +332,6 @@ def addTransformVar(fcu, vname, ttype, rig, bname):
     trg.transform_space = 'LOCAL_SPACE'
 
 
-def driverHasVar(fcu, vname):
-    for var in fcu.driver.variables:
-        if var.name == vname:
-            return True
-    return False
-
-
 def clearBendDrivers(fcus):
     for fcu in fcus:
         if fcu.array_index != 1:
@@ -397,96 +390,6 @@ def makePropDriver(path, rna, channel, rig, expr):
     fcu.driver.type = 'SCRIPTED'
     fcu.driver.expression = expr
     addDriverVar(fcu, "x", path, rig)
-
-
-def makeShapekeyDriver(skeys, sname, value, rig, prop, depends,
-        min=None, max=None, factor=1.0, varname="a", keep=False, mult=None):
-    setFloatProp(rig, prop, value, min=min, max=max)
-    return addToShapekeyDriver(skeys, sname, rig, prop, factor, depends, varname, keep, mult)
-
-
-def addToShapekeyDriver(skeys, sname, rig, prop, factor, depends,
-    varname="a", keep=True, mult=None):
-
-    def getVarString(prop, depends, varname, fcu, rig):
-        if prop in depends.keys():
-            varstr = "(%s" % varname
-            for key,factor in depends[prop]:
-                varname = nextLetter(varname)
-                if factor == 1.0:
-                    varstr += "+%s" % varname
-                else:
-                    varstr += "+%g*%s" % (factor,varname)
-                addDriverVar(fcu, varname, propRef(key), rig)
-            return varstr + ")", varname
-        else:
-            return varname, varname
-
-    skey = skeys.key_blocks[sname]
-    fcu = getShapekeyDriver(skeys, sname)
-    driver = None
-    facstr = ""
-    if factor != 1.0:
-        facstr = "%g*" % factor
-    if fcu:
-        driver = Driver(fcu, False)
-        skey.driver_remove("value")
-    if keep and driver:
-        fcu = driver.create(skey)
-        vname,first = driver.getNextVar(prop)
-        if first:
-            if ord(vname) > ord("z"):
-                msg = ("Shapekey %s     \nis driven by too many properties" % sname)
-                raise DazError(msg)
-            varname = vname
-            addDriverVar(fcu, varname, propRef(prop), rig)
-        else:
-            #print("Shapekey %s already driven by %s" % (sname, prop))
-            return varname
-        expr = driver.expression
-        if expr[-1] == ")":
-            expr = "%s+%s%s)" % (expr[:-1], facstr, varname)
-        else:
-            expr = "%s+%s%s" % (expr, facstr, varname)
-    else:
-        fcu = skey.driver_add("value")
-        fcu.driver.type = 'SCRIPTED'
-        addDriverVar(fcu, varname, propRef(prop), rig)
-        varstr,varname = getVarString(prop, depends, varname, fcu, rig)
-        expr = "%s%s" % (facstr, varstr)
-    if mult:
-        varname = nextLetter(varname)
-        addDriverVar(fcu, varname, propRef(mult), rig)
-        varstr,varname = getVarString(mult, depends, varname, fcu, rig)
-        if expr[0] == "(":
-            expr = "%s*%s" % (varstr, expr)
-        else:
-            expr = "%s*(%s)" % (varstr, expr)
-    if len(expr) < 255:
-        fcu.driver.expression = expr
-    else:
-        msg = ("Driver for shapekey %s is too long" % sname)
-        raise DazError(msg)
-    return varname
-
-
-def addVarToDriver(fcu, rig, prop, factor):
-    if hasDriverVar(fcu, prop, rig):
-        print("Already", prop)
-        return
-    varnames = getAllDriverVars(fcu)
-    n = ord("A")
-    while chr(n) in varnames:
-        n += 1
-    vname = chr(n)
-    expr = fcu.driver.expression
-    if factor == 1.0:
-        facstr = ""
-    else:
-        facstr = "%g*"
-    fcu.driver.expression = expr + ("+%s%s" % (facstr, vname))
-    addDriverVar(fcu, vname, propRef(prop), rig)
-
 
 #-------------------------------------------------------------
 #   Overridable properties

@@ -483,7 +483,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
 
     def getSingleAnimation(self, filepath, context, offset, missing):
-        from .driver import setFloatProp
         from .load_json import loadJson
         if filepath is None:
             return
@@ -618,7 +617,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         if self.affectSelectedOnly:
             return pb.bone.select
         elif (pb.parent and
-              isDrvName(pb.parent.name) and
+              isDrvBone(pb.parent.name) and
               not self.affectDrivenBones):
             return False
         elif (pb.name == self.getMasterBone(rig) and
@@ -675,8 +674,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
     ]
 
     def animateBones(self, context, animations, offset, prop, filepath, missing):
-        from .driver import setFloatProp
-
         rig = context.object
         errors = {}
         for banim,vanim in animations:
@@ -730,7 +727,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                         if self.affectMorphs:
                             key = self.getRigKey(bname, rig, missing)
                             if key:
-                                setFloatProp(rig, key, value)
+                                rig[key] = value
                                 if self.insertKeys:
                                     rig.keyframe_insert(propRef(key), frame=n+offset, group="Morphs")
 
