@@ -217,7 +217,7 @@ class MixNormalTextureGroup(CyclesGroup):
         self.group.outputs.new("NodeSocketColor", "Color")
 
 
-    def addNodes0(self, args):
+    def addNodes(self, args):
         mix = self.addNode("ShaderNodeMixRGB", 1)
         mix.blend_type = 'OVERLAY'
         self.links.new(self.inputs.outputs["Fac"], mix.inputs["Fac"])
@@ -225,7 +225,7 @@ class MixNormalTextureGroup(CyclesGroup):
         self.links.new(self.inputs.outputs["Color2"], mix.inputs["Color2"])
         self.links.new(mix.outputs["Color"], self.outputs.inputs["Color"])
 
-    def addNodes(self, args):
+    def addNodes0(self, args):
         val1 = self.addNode("ShaderNodeValue", 1)
         val1.outputs[0].default_value = 2
         vmult1 = self.addNode("ShaderNodeMixRGB", 2)

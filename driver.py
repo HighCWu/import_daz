@@ -399,7 +399,8 @@ def setPropMinMax(rna, prop, min, max):
     rna_ui = rna.get('_RNA_UI')
     if rna_ui is None:
         rna_ui = rna['_RNA_UI'] = {}
-    rna_ui[prop] = { "min": min, "max": max, "soft_min": min, "soft_max": max}
+    struct = { "min": min, "max": max, "soft_min": min, "soft_max": max}
+    rna_ui[prop] = struct
 
 
 def truncateProp(prop):
@@ -415,12 +416,8 @@ def setFloatProp(rna, prop, value, min=None, max=None):
     prop = truncateProp(prop)
     rna[prop] = value
     if min is not None:
-        if GS.useDazPropLimits:
-            min = float(min)
-            max = float(max)
-        else:
-            min = GS.sliderMin
-            max = GS.sliderMax
+        min = float(min)
+        max = float(max)
         setPropMinMax(rna, prop, min, max)
         setOverridable(rna, prop)
         setPropMinMax(rna, prop, min, max)

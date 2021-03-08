@@ -785,8 +785,14 @@ class LoadMorph(PoseboneDriver):
         if asset:
             visible = (asset.visible or GS.useMakeHiddenSliders)
             self.visible[raw] = visible
-            setFloatProp(self.rig, raw, 0.0, GS.sliderMin, GS.sliderMax)
-            setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
+            if GS.useRawLimits:
+                setFloatProp(self.rig, raw, 0.0, GS.sliderMin, GS.sliderMax)
+            else:
+                setFloatProp(self.rig, raw, 0.0, None, None)
+            if GS.useDazLimits:
+                setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
+            else:
+                setFloatProp(self.rig, final, 0.0, GS.sliderMin, GS.sliderMax)
             if visible:
                 setActivated(self.rig, raw, True)
                 self.addToMorphSet(raw, asset, False)

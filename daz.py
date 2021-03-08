@@ -292,14 +292,13 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazZup")
         box.prop(scn, "DazDump")
         box.prop(scn, "DazMakeHiddenSliders")
-        box.prop(scn, "DazShowFinalMorphs")
         box.prop(scn, "DazPruneNodes")
         box.prop(scn, "DazMergeShells")
 
         box = col.box()
         box.label(text = "Sliders")
-        box.prop(scn, "DazUseSliderLimits")
-        box.prop(scn, "DazUseSliderDefault")
+        box.prop(scn, "DazUseDazLimits")
+        box.prop(scn, "DazUseRawLimits")
         box.prop(scn, "DazSliderMin")
         box.prop(scn, "DazSliderMax")
 
@@ -426,32 +425,27 @@ def register():
 
     bpy.types.Scene.DazSliderMin = FloatProperty(
         name = "Slider Min",
-        description = "Minimum value of \"raw\" sliders that drive morphs",
+        description = "Minimum slider value",
         default = -2.0,
         min = -10.0, max = 0.0)
 
     bpy.types.Scene.DazSliderMax = FloatProperty(
         name = "Slider Max",
-        description = "Maximum value of \"raw\" sliders that drive morphs",
+        description = "Maximum slider value",
         default = 2.0,
         min = 0.0, max = 10.0)
 
-    bpy.types.Scene.DazUseSliderLimits = BoolProperty(
-        name = "DAZ Slider Limits",
+    bpy.types.Scene.DazUseDazLimits = BoolProperty(
+        name = "DAZ Limits",
         description = "Use min and max values from DAZ files for \"final\" sliders if available")
 
-    bpy.types.Scene.DazUseSliderDefault = BoolProperty(
-        name = "DAZ Slider Defaults",
-        description = "Use the default values from DAZ files as default slider values.")
+    bpy.types.Scene.DazUseRawLimits = BoolProperty(
+        name = "Raw Slider Limits",
+        description = "Use min and max values from DAZ files for \"raw\" sliders if available")
 
     bpy.types.Scene.DazMakeHiddenSliders = BoolProperty(
         name = "Make Hidden Sliders",
         description = "Create properties for hidden morphs,\nso they can be displayed in the UI",
-        default = False)
-
-    bpy.types.Scene.DazShowFinalMorphs = BoolProperty(
-        name = "Show Final Morphs",
-        description = "Display both raw and final morph values",
         default = False)
 
     # Object properties

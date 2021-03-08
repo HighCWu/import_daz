@@ -63,7 +63,6 @@ class GlobalSettings:
         self.zup = True
         self.useCustomDrivers = False
         self.useMakeHiddenSliders = False
-        self.showFinalMorphs = False
 
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
@@ -92,8 +91,8 @@ class GlobalSettings:
 
         self.sliderMin = -2.0
         self.sliderMax = 2.0
-        self.useDazPropLimits = True
-        self.useDazPropDefault = True
+        self.useDazLimits = True
+        self.useRawLimits = True
 
         self.useLockLoc = True
         self.useLimitLoc = True
@@ -121,7 +120,6 @@ class GlobalSettings:
         "DazDump" : "useDump",
         "DazZup" : "zup",
         "DazMakeHiddenSliders" : "useMakeHiddenSliders",
-        "DazShowFinalMorphs" : "showFinalMorphs",
         "DazMergeShells" : "mergeShells",
         "DazPruneNodes" : "pruneNodes",
 
@@ -147,8 +145,8 @@ class GlobalSettings:
         # Properties
         "DazSliderMin" : "sliderMin",
         "DazSliderMax" : "sliderMax",
-        "DazUseSliderLimits" : "useDazPropLimits",
-        "DazUseSliderDefault" : "useDazPropDefault",
+        "DazUseDazLimits" : "useDazLimits",
+        "DazUseRawLimits" : "useRawLimits",
         "DazUseCustomDrivers" : "useCustomDrivers",
 
         # Rigging
