@@ -297,11 +297,11 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazMergeShells")
 
         box = col.box()
-        box.label(text = "Properties")
-        box.prop(scn, "DazUsePropLimits")
-        box.prop(scn, "DazUsePropDefault")
-        box.prop(scn, "DazPropMin")
-        box.prop(scn, "DazPropMax")
+        box.label(text = "Sliders")
+        box.prop(scn, "DazUseSliderLimits")
+        box.prop(scn, "DazUseSliderDefault")
+        box.prop(scn, "DazSliderMin")
+        box.prop(scn, "DazSliderMax")
 
         col = split.column()
         box = col.box()
@@ -424,22 +424,24 @@ def register():
         description = "Controls the number of warning messages when loading files",
         min=1, max = 5)
 
-    bpy.types.Scene.DazPropMin = FloatProperty(
-        name = "Property Minima",
-        description = "Minimum value of properties",
+    bpy.types.Scene.DazSliderMin = FloatProperty(
+        name = "Slider Min",
+        description = "Minimum value of \"raw\" sliders that drive morphs",
+        default = -2.0,
         min = -10.0, max = 0.0)
 
-    bpy.types.Scene.DazPropMax = FloatProperty(
-        name = "Property Maxima",
-        description = "Maximum value of properties",
+    bpy.types.Scene.DazSliderMax = FloatProperty(
+        name = "Slider Max",
+        description = "Maximum value of \"raw\" sliders that drive morphs",
+        default = 2.0,
         min = 0.0, max = 10.0)
 
-    bpy.types.Scene.DazUsePropLimits = BoolProperty(
-        name = "DAZ Property Limits",
-        description = "Use the minima and maxima from DAZ files if available")
+    bpy.types.Scene.DazUseSliderLimits = BoolProperty(
+        name = "DAZ Slider Limits",
+        description = "Use min and max values from DAZ files for \"final\" sliders if available")
 
-    bpy.types.Scene.DazUsePropDefault = BoolProperty(
-        name = "DAZ Property Defaults",
+    bpy.types.Scene.DazUseSliderDefault = BoolProperty(
+        name = "DAZ Slider Defaults",
         description = "Use the default values from DAZ files as default slider values.")
 
     bpy.types.Scene.DazMakeHiddenSliders = BoolProperty(

@@ -291,7 +291,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.copy_bone_drivers")
             box.operator("daz.retarget_mesh_drivers")
             box.separator()
-            box.operator("daz.update_prop_limits")
+            box.operator("daz.update_slider_limits")
             box.separator()
             box.operator("daz.create_graft_groups")
             box.separator()

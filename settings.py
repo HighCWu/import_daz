@@ -90,8 +90,8 @@ class GlobalSettings:
         self.diffuseRoughness = 0.3
         self.specularRoughness = 0.3
 
-        self.propMin = -1.0
-        self.propMax = 1.0
+        self.sliderMin = -2.0
+        self.sliderMax = 2.0
         self.useDazPropLimits = True
         self.useDazPropDefault = True
 
@@ -145,10 +145,10 @@ class GlobalSettings:
         "DazSpecularRoughness" : "specularRoughness",
 
         # Properties
-        "DazPropMin" : "propMin",
-        "DazPropMax" : "propMax",
-        "DazUsePropLimits" : "useDazPropLimits",
-        "DazUsePropDefault" : "useDazPropDefault",
+        "DazSliderMin" : "sliderMin",
+        "DazSliderMax" : "sliderMax",
+        "DazUseSliderLimits" : "useDazPropLimits",
+        "DazUseSliderDefault" : "useDazPropDefault",
         "DazUseCustomDrivers" : "useCustomDrivers",
 
         # Rigging

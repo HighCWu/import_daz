@@ -785,7 +785,7 @@ class LoadMorph(PoseboneDriver):
         if asset:
             visible = (asset.visible or GS.useMakeHiddenSliders)
             self.visible[raw] = visible
-            setFloatProp(self.rig, raw, 0.0)
+            setFloatProp(self.rig, raw, 0.0, GS.sliderMin, GS.sliderMax)
             setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
             if visible:
                 setActivated(self.rig, raw, True)
@@ -2001,23 +2001,33 @@ class DAZ_OT_UnkeyShapes(DazOperator, MorphsetString, IsMesh):
 #   Update property limits
 #------------------------------------------------------------------
 
-class DAZ_OT_UpdatePropLimits(DazPropsOperator, IsMeshArmature):
-    bl_idname = "daz.update_prop_limits"
-    bl_label = "Update Property Limits"
-    bl_description = "Update min and max value for properties"
+class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
+    bl_idname = "daz.update_slider_limits"
+    bl_label = "Update Slider Limits"
+    bl_description = "Update slider min and max values"
     bl_options = {'UNDO'}
+
+    min : FloatProperty(
+        name = "Min",
+        description = "Minimum slider value",
+        min = -10.0, max = 0.0)
+
+    max : FloatProperty(
+        name = "Max",
+        description = "Maximum slider value",
+        min = 0.0, max = 10.0)
 
     def draw(self, context):
         scn = context.scene
-        self.layout.prop(scn, "DazPropMin")
-        self.layout.prop(scn, "DazPropMax")
+        self.layout.prop(self, "min")
+        self.layout.prop(self, "max")
 
 
     def run(self, context):
         ob = context.object
         scn = context.scene
-        GS.propMin = scn.DazPropMin
-        GS.propMax = scn.DazPropMax
+        GS.sliderMin = self.min
+        GS.sliderMax = self.max
         rig = getRigFromObject(ob)
         if rig:
             self.updatePropLimits(rig, context)
@@ -2026,8 +2036,8 @@ class DAZ_OT_UpdatePropLimits(DazPropsOperator, IsMeshArmature):
 
 
     def invoke(self, context, event):
-        context.scene.DazPropMin = GS.propMin
-        context.scene.DazPropMax = GS.propMax
+        self.min = GS.sliderMin
+        self.max = GS.sliderMax
         return DazPropsOperator.invoke(self, context, event)
 
 
@@ -2039,14 +2049,14 @@ class DAZ_OT_UpdatePropLimits(DazPropsOperator, IsMeshArmature):
             if ob.type == 'MESH' and ob.data.shape_keys:
                 for skey in ob.data.shape_keys.key_blocks:
                     if skey.name.lower() in props:
-                        skey.slider_min = GS.propMin
-                        skey.slider_max = GS.propMax
+                        skey.slider_min = GS.sliderMin
+                        skey.slider_max = GS.sliderMax
         for prop in rig.keys():
             if prop.lower() in props:
-                setFloatProp(rig, prop, rig[prop], GS.propMin, GS.propMax)
+                setFloatProp(rig, prop, rig[prop], GS.sliderMin, GS.sliderMax)
         updateScene(context)
         updateRig(rig, context)
-        print("Property limits updated")
+        print("Slider limits updated")
 
 #------------------------------------------------------------------
 #   Remove all morph drivers
@@ -2385,7 +2395,7 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, Category
         skey = skeys.key_blocks[sname]
         if getShapekeyDriver(skeys, skey.name):
             raise DazError("Shapekey %s is already driven" % skey.name)
-        setFloatProp(rig, sname, skey.value, GS.propMin, GS.propMax)
+        setFloatProp(rig, sname, skey.value, GS.sliderMin, GS.sliderMax)
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
         addDriverVar(fcu, "a", propRef(sname), rig)
@@ -2821,7 +2831,7 @@ classes = [
     DAZ_OT_UnkeyMorphs,
     DAZ_OT_KeyShapes,
     DAZ_OT_UnkeyShapes,
-    DAZ_OT_UpdatePropLimits,
+    DAZ_OT_UpdateSliderLimits,
     DAZ_OT_RemoveStandardMorphs,
     DAZ_OT_RemoveCustomMorphs,
     DAZ_OT_RemoveJCMs,

@@ -419,8 +419,8 @@ def setFloatProp(rna, prop, value, min=None, max=None):
             min = float(min)
             max = float(max)
         else:
-            min = GS.propMin
-            max = GS.propMax
+            min = GS.sliderMin
+            max = GS.sliderMax
         setPropMinMax(rna, prop, min, max)
         setOverridable(rna, prop)
         setPropMinMax(rna, prop, min, max)
@@ -798,9 +798,9 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
     def getOldData(self, trg, prop):
         from .morphing import getMorphCategory
         if not trg.id:
-            return GS.propMin, GS.propMax, "Shapes"
-        min = GS.propMin
-        max = GS.propMax
+            return GS.sliderMin, GS.sliderMax, "Shapes"
+        min = GS.sliderMin
+        max = GS.sliderMax
         rna_ui = trg.id.get('_RNA_UI')
         if rna_ui and "min" in rna_ui.keys():
             min = rna_ui["min"]
