@@ -578,7 +578,7 @@ def restoreBoneSumDrivers(rig, drivers, fixDrv):
             driver.create(pb, fixDrv=fixDrv)
 
 
-def removeBoneDrivers(rig, bones):
+def removeBoneSumDrivers(rig, bones):
     boneFcus, sumFcus = getAllBoneSumDrivers(rig, bones)
     removeDriverFCurves(boneFcus.values(), rig)
     removeDriverFCurves(sumFcus.values(), rig)
