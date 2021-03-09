@@ -834,7 +834,7 @@ class Rigify:
 
 
     def rigifyMeta(self, context, deleteMeta):
-        from .driver import getBoneDrivers, copyDriver, changeBoneTarget
+        from .driver import getBoneDrivers, getPropDrivers, copyDriver, changeBoneTarget
         from .node import setParent, clearParent
         from .propgroups import copyPropGroups
         from .mhx import unhideAllObjects, getBoneLayer, changeAllTargets
@@ -1046,12 +1046,14 @@ class Rigify:
         # Fix drivers
         assoc = [(rigi,daz) for (daz,rigi,_) in Genesis3Spine]
         assoc += [(rigi,daz) for (rigi,daz) in RigifySkeleton.items()]
+        for fcu in getPropDrivers(rig):
+            copyDriver(fcu, gen, gen)
         for bname, fcus in driven.items():
             if bname in gen.pose.bones.keys():
-                if bname not in gen.pose.bones.keys():
-                    continue
                 pb = gen.pose.bones[bname]
                 copyPropGroups(rig, gen, pb)
+                for fcu in fcus:
+                    self.copyBoneProp(fcu, rig, gen, pb)
                 for fcu in fcus:
                     fcu2 = copyDriver(fcu, pb, gen)
                     changeBoneTarget(fcu2, assoc)
@@ -1076,6 +1078,13 @@ class Rigify:
         bpy.ops.object.mode_set(mode='POSE')
         print("Rigify created")
         return gen
+
+
+    def copyBoneProp(self, fcu, rig, gen, pb):
+        from .driver import splitDataPath
+        bname,prop,channel,idx = splitDataPath(fcu)
+        if prop:
+            self.copyProp(prop, rig.pose.bones[bname], pb)
 
 
     def copyBoneInfo(self, srcname, trgname, rig, gen):

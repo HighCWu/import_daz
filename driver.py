@@ -40,12 +40,20 @@ def isBoneDriven(rig, pb):
 
 
 def getBoneDrivers(rig, pb):
-    fcus = []
     if rig.animation_data:
-        for channel in ["rotation_euler", "rotation_quaternion", "location", "scale"]:
-            path = 'pose.bones["%s"].%s' % (pb.name, channel)
-            fcus += [fcu for fcu in rig.animation_data.drivers if path == fcu.data_path]
-    return fcus
+        path = 'pose.bones["%s"]' % pb.name
+        return [fcu for fcu in rig.animation_data.drivers
+                if fcu.data_path.startswith(path)]
+    else:
+        return []
+
+
+def getPropDrivers(rig):
+    if rig.animation_data:
+        return [fcu for fcu in rig.animation_data.drivers
+                if fcu.data_path[0] == "["]
+    else:
+        return []
 
 
 def getDrivingBone(fcu, rig):
@@ -340,16 +348,27 @@ def clearBendDrivers(fcus):
                 fcu.driver.variables.remove(var)
 
 
+def splitDataPath(fcu):
+    bname = prop = None
+    idx = -1
+    words = fcu.data_path.split('"')
+    if words[0] == "[":
+        prop = words[1]
+        channel = fcu.data_path
+    elif words[0] == "pose.bones[":
+        bname = words[1]
+        if words[2] == "][":
+            prop = words[3]
+            channel = propRef(prop)
+    if prop is None:
+        channel = fcu.data_path.rsplit(".",2)[-1]
+        if channel != "value":
+            idx = fcu.array_index
+    return bname, prop, channel, idx
+
+
 def copyDriver(fcu1, rna2, id=None, channel2=None):
-    channel1 = fcu1.data_path.rsplit(".",2)[-1]
-    if channel1 == "value":
-        idx = -1
-    else:
-        idx = fcu1.array_index
-    words = fcu1.data_path.split('"')
-    if (words[0] == "pose.bones[" and
-        hasattr(rna2, "pose")):
-        rna2 = rna2.pose.bones[words[1]]
+    bname,prop,channel1,idx = splitDataPath(fcu1)
     if channel2 is None:
         channel2 = channel1
     fcu2 = rna2.driver_add(channel2, idx)
