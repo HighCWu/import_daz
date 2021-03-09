@@ -1083,7 +1083,7 @@ class Rigify:
     def copyBoneProp(self, fcu, rig, gen, pb):
         from .driver import splitDataPath
         bname,prop,channel,idx = splitDataPath(fcu)
-        if prop:
+        if prop and bname in rig.pose.bones.keys():
             self.copyProp(prop, rig.pose.bones[bname], pb)
 
 
