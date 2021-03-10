@@ -1245,7 +1245,7 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs,
     bl_description = "Import selected body morphs"
     bl_options = {'UNDO'}
 
-    prefix = "y"
+    prefix = "r"
     morphset = "Body"
 
 

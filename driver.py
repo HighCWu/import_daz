@@ -246,12 +246,12 @@ def makeSplineBoneDriver(uvec, points, rna, channel, idx, rig, bname):
     #[1 if x< -1.983 else -x-0.983 if x< -0.983  else 0 for x in [+0.988*A]][0]
     #1 if A< -1.983/0.988 else -0.988*A-0.983 if x< -0.983/0.988  else 0
 
-    varstr,vars,umax = makeVarsString(vec, rig, bname)
+    var,vars,umax = makeVarsString(uvec, rig, bname)
     lt = ("<" if umax > 0 else ">")
 
     n = len(points)
     xi,yi = points[0]
-    string = "%s if %s%s %s" % (getPrint(yi), varstr, lt, getPrint(xi/umax))
+    string = "%s if %s%s %s" % (getPrint(yi), var, lt, getPrint(xi/umax))
     for i in range(1, n):
         xj,yj = points[i]
         kij = (yj-yi)/(xj-xi)
@@ -259,7 +259,7 @@ def makeSplineBoneDriver(uvec, points, rna, channel, idx, rig, bname):
         zstring = ""
         if abs(zi) > 5e-4:
             zstring = ("%s%s" % (zs, getPrint(zi)))
-        string += (" else %s%s if %s%s %s " % (getMult(kij*umax, varstr), zstring, var, lt, getPrint(xj)))
+        string += (" else %s%s if %s%s %s " % (getMult(kij*umax, var), zstring, var, lt, getPrint(xj)))
         xi,yi = xj,yj
     string += " else %s" % getPrint(yj)
 

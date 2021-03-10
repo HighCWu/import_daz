@@ -456,10 +456,10 @@ class ExtraBones:
                         trg2 = var2.targets[0]
                         target2.create(trg2)
                         trg2.bone_target = baseBone(trg.bone_target)
-                        expr = fcu.driver.expression.replace("*%s" % var.name, "*(%s+%s)" % (var.name, var2.name))
+                        expr = fcu.driver.expression.replace(var.name, "(%s+%s)" % (var.name, var2.name))
                         fcu.driver.expression = expr
 
-        from .driver import getBoneDrivers, getShapekeyDriver, storeRemoveBoneSumDrivers, restoreBoneSumDrivers, removeDriverFCurves
+        from .driver import getBoneDrivers, getPropDrivers, getShapekeyDriver, storeRemoveBoneSumDrivers, restoreBoneSumDrivers, removeDriverFCurves
         from .fix import ConstraintStore
         if getattr(rig.data, self.attr):
             msg = "Rig %s already has extra %s bones" % (rig.name, self.type)
@@ -510,6 +510,8 @@ class ExtraBones:
         for pb in rig.pose.bones:
             for fcu in getBoneDrivers(rig, pb):
                 correctDriver(fcu)
+        for fcu in getPropDrivers(rig):
+            correctDriver(fcu)
 
         store = ConstraintStore()
         for bname in bnames:
