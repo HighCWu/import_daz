@@ -36,6 +36,9 @@ from .error import *
 class DazIntGroup(bpy.types.PropertyGroup):
     a : IntProperty()
 
+class DazBoolGroup(bpy.types.PropertyGroup):
+    t : BoolProperty()
+
 class DazFloatGroup(bpy.types.PropertyGroup):
     f : FloatProperty()
 
@@ -362,6 +365,7 @@ def updateHandler(scn):
 
 classes = [
     DazIntGroup,
+    DazBoolGroup,
     DazFloatGroup,
     DazPairGroup,
     DazRigidityGroup,

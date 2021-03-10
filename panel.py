@@ -214,8 +214,9 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.bake_maps")
                 box.operator("daz.load_baked_maps")
-            box.operator("daz.load_vector_disp")
             box.operator("daz.load_normal_map")
+            box.operator("daz.load_scalar_disp")
+            box.operator("daz.load_vector_disp")
             box.operator("daz.add_driven_value_nodes")
             box.separator()
             box.operator("daz.load_uv")

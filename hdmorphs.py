@@ -33,15 +33,23 @@ from .utils import *
 from .globvars import getMaterialEnums, getShapeEnums, theImageExtensions
 from .fileutils import SingleFile, MultiFile, ImageFile
 from .cgroup import CyclesGroup
+from .propgroups import DazBoolGroup
 
 #-------------------------------------------------------------
 #   Load HD Vector Displacement Map
 #-------------------------------------------------------------
 
-class LoadMaps:
+class LoadMaps(MultiFile, ImageFile, IsMesh):
+    materials : CollectionProperty(type = DazBoolGroup)
+
     useShapeDriver : BoolProperty(
         name = "Shapekey Drivers",
         description = "Drive maps with shapekey values",
+        default = True)
+
+    useShapeFromFile : BoolProperty(
+        name = "Shapekey From Filename",
+        description = "Deduce the driving shapekeys from filenames,\notherwise use the active shapekey.\nOnly works with Xin's naming convention",
         default = True)
 
     tile : IntProperty(
@@ -57,8 +65,35 @@ class LoadMaps:
 
     def draw(self, context):
         self.layout.prop(self, "useShapeDriver")
-        self.layout.prop(self, "tile")
+        if self.useShapeDriver:
+            self.layout.prop(self, "useShapeFromFile")
+            if self.useShapeFromFile:
+                self.layout.prop(self, "tile")
         self.layout.prop(self, "usePrune")
+        self.layout.label(text="Add Maps To Materials:")
+        box = self.layout.box()
+        for item in self.materials:
+            row = box.row()
+            row.prop(item, "t", text="")
+            row.label(text=item.name)
+
+
+    def invoke(self, context, event):
+        self.materials.clear()
+        ob = context.object
+        for n,mat in enumerate(ob.data.materials):
+            item = self.materials.add()
+            item.t = (n == ob.active_material_index)
+            item.name = mat.name
+        return MultiFile.invoke(self, context, event)
+
+
+    def getMaterials(self, ob):
+        mats = []
+        for item in self.materials:
+            if item.t:
+                mats.append(ob.data.materials[item.name])
+        return mats
 
 
     def getArgs(self, ob):
@@ -71,22 +106,19 @@ class LoadMaps:
                 shapes = dict([(skey.name.lower(), skey) for skey in skeys.key_blocks])
             else:
                 raise DazError("No shapekeys found")
+            if not self.useShapeFromFile:
+                idx = ob.active_shape_key_index
+                skey = skeys.key_blocks[idx]
+                if skey is None or idx == 0:
+                    raise DazError("Basic or no shapekey selected")
             for filepath in filepaths:
                 fname = os.path.splitext(os.path.basename(filepath))[0]
-                words = fname.rsplit("-", 3)
-                if len(words) != 4:
-                    print("Wrong file name: %s" % fname)
-                elif words[1] != self.type:
-                    print("Not a %s file: %s" % (self.type, fname))
-                elif not words[2].isdigit() or int(words[2]) != self.tile:
-                    print("Wrong tile %s != %d: %s" % (words[2], self.tile, fname))
+                if self.useShapeFromFile:
+                    arg = self.getArgFromFile(fname, filepath, ob, shapes)
+                    if arg:
+                        args.append(arg)
                 else:
-                    sname = words[0].rstrip("_dhdm")
-                    if sname in shapes.keys():
-                        skey = shapes[sname]
-                        args.append((ob, skey.name, skey, filepath))
-                    else:
-                        args.append((ob, sname, None, filepath))
+                    args.append((ob, fname, skey, filepath))
         else:
             for filepath in filepaths:
                 fname = os.path.splitext(os.path.basename(filepath))[0]
@@ -94,6 +126,26 @@ class LoadMaps:
         for _,sname,_,_ in args:
             print(" *", sname)
         return args
+
+
+    def getArgFromFile(self, fname, filepath, ob, shapes):
+        words = fname.rsplit("-", 3)
+        if len(words) != 4:
+            print("Wrong file name: %s" % fname)
+            return None
+        elif words[1] != self.type:
+            print("Not a %s file: %s" % (self.type, fname))
+            return None
+        elif not words[2].isdigit() or int(words[2]) != self.tile:
+            print("Wrong tile %s != %d: %s" % (words[2], self.tile, fname))
+            return None
+        else:
+            sname = words[0].rstrip("_dhdm")
+            if sname in shapes.keys():
+                skey = shapes[sname]
+                return (ob, skey.name, skey, filepath)
+            else:
+                return (ob, sname, None, filepath)
 
 #-------------------------------------------------------------
 #   Scalar and Vector Displacement groups
@@ -116,14 +168,15 @@ class DispGroup(CyclesGroup):
     def addNodes(self, args):
         from .driver import makePropDriver
         last = None
+        midlevel,args = args
         for ob,sname,skey,filepath in args:
             tex = self.addImageTexNode(filepath, sname, 1)
             self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
 
-            disp = self.addDispNode(sname, tex)
+            disp = self.addDispNode(sname, tex, midlevel)
             disp.inputs["Scale"].default_value = ob.DazScale
             if skey:
-                path = 'data.shape_keys.key_blocks["%s"].value' % sname
+                path = 'data.shape_keys.key_blocks["%s"].value' % skey.name
                 makePropDriver(path, disp.inputs["Scale"], "default_value", ob, "%g*x" % ob.DazScale)
 
             if last is None:
@@ -139,9 +192,9 @@ class DispGroup(CyclesGroup):
 
 
 class ScalarDispGroup(DispGroup):
-    def addDispNode(self, sname, tex):
+    def addDispNode(self, sname, tex, midlevel):
         disp = self.addNode("ShaderNodeDisplacement", col=2, label=sname)
-        disp.inputs["Midlevel"].default_value = 0.5
+        disp.inputs["Midlevel"].default_value = midlevel
         self.links.new(tex.outputs["Color"], disp.inputs["Height"])
         return disp
 
@@ -150,9 +203,9 @@ class ScalarDispGroup(DispGroup):
 
 
 class VectorDispGroup(DispGroup):
-    def addDispNode(self, sname, tex):
+    def addDispNode(self, sname, tex, midlevel):
         disp = self.addNode("ShaderNodeVectorDisplacement", col=2, label=sname)
-        disp.inputs["Midlevel"].default_value = 0.5
+        disp.inputs["Midlevel"].default_value = midlevel
         self.links.new(tex.outputs["Color"], disp.inputs["Vector"])
         return disp
 
@@ -161,11 +214,20 @@ class VectorDispGroup(DispGroup):
 
 
 class DispAdder:
+    midlevel : FloatProperty(
+        name = "Midlevel",
+        description = "Midlevel value for displacement node",
+        min = 0.0, max = 1.0,
+        default = 0.5)
+
+    def draw(self, context):
+        self.layout.prop(self, "midlevel")
+
     def loadDispMaps(self, mat, args):
         from .cycles import findNodes, findTree, findTexco
         tree = findTree(mat)
         texco = findTexco(tree, 5)
-        disp = self.addDispGroup(tree, args)
+        disp = self.addDispGroup(tree, (self.midlevel,args))
         tree.links.new(texco.outputs["UV"], disp.inputs["UV"])
         for node in findNodes(tree, "OUTPUT_MATERIAL"):
             tree.links.new(disp.outputs["Displacement"], node.inputs["Displacement"])
@@ -175,15 +237,36 @@ class DispAdder:
 
 class ScalarDispAdder(DispAdder):
     def addDispGroup(self, tree, args):
+        tree.ycoords[6] = 0
         return tree.addGroup(ScalarDispGroup, "DAZ Scalar Disp", col=6, args=args, force=True)
 
 
 class VectorDispAdder(DispAdder):
     def addDispGroup(self, tree, args):
+        tree.ycoords[6] = 0
         return tree.addGroup(VectorDispGroup, "DAZ Vector Disp", col=6, args=args, force=True)
 
 
-class DAZ_OT_LoadVectorDisp(DazOperator, LoadMaps, VectorDispAdder, MultiFile, ImageFile, IsMesh):
+class DAZ_OT_LoadScalarDisp(DazOperator, LoadMaps, ScalarDispAdder):
+    bl_idname = "daz.load_scalar_disp"
+    bl_label = "Load Scalar Disp Maps"
+    bl_description = "Load scalar displacement map to active material"
+    bl_options = {'UNDO'}
+
+    type = "DISP"
+
+    def draw(self, context):
+        ScalarDispAdder.draw(self, context)
+        LoadMaps.draw(self, context)
+
+    def run(self, context):
+        ob = context.object
+        args = self.getArgs(ob)
+        for mat in self.getMaterials(ob):
+            self.loadDispMaps(mat, args)
+
+
+class DAZ_OT_LoadVectorDisp(DazOperator, LoadMaps, VectorDispAdder):
     bl_idname = "daz.load_vector_disp"
     bl_label = "Load Vector Disp Maps"
     bl_description = "Load vector displacement map to active material"
@@ -191,11 +274,15 @@ class DAZ_OT_LoadVectorDisp(DazOperator, LoadMaps, VectorDispAdder, MultiFile, I
 
     type = "VDISP"
 
+    def draw(self, context):
+        VectorDispAdder.draw(self, context)
+        LoadMaps.draw(self, context)
+
     def run(self, context):
         ob = context.object
         args = self.getArgs(ob)
-        mat = ob.data.materials[ob.active_material_index]
-        self.loadDispMaps(mat, args)
+        for mat in self.getMaterials(ob):
+            self.loadDispMaps(mat, args)
 
 #-------------------------------------------------------------
 #   Load HD Normal Map
@@ -366,7 +453,7 @@ class NormalAdder:
                 tree.links.new(socket, mix.inputs["Color1"])
             tree.links.new(tex.outputs["Color"], mix.inputs["Color2"])
             if skey:
-                path = 'data.shape_keys.key_blocks["%s"].value' % sname
+                path = 'data.shape_keys.key_blocks["%s"].value' % skey.name
                 makePropDriver(path, mix.inputs["Fac"], "default_value", ob, "x")
             socket = mix.outputs["Color"]
         tree.links.new(socket, normal.inputs["Color"])
@@ -374,7 +461,7 @@ class NormalAdder:
             tree.prune()
 
 
-class DAZ_OT_LoadNormalMap(DazOperator, LoadMaps, NormalAdder, MultiFile, ImageFile, IsMesh):
+class DAZ_OT_LoadNormalMap(DazOperator, LoadMaps, NormalAdder):
     bl_idname = "daz.load_normal_map"
     bl_label = "Load Normal Maps"
     bl_description = "Load normal maps to active material"
@@ -385,8 +472,8 @@ class DAZ_OT_LoadNormalMap(DazOperator, LoadMaps, NormalAdder, MultiFile, ImageF
     def run(self, context):
         ob = context.object
         args = self.getArgs(ob)
-        mat = ob.data.materials[ob.active_material_index]
-        self.loadNormalMaps(mat, args, 1)
+        for mat in self.getMaterials(ob):
+            self.loadNormalMaps(mat, args, 1)
 
 #----------------------------------------------------------
 #   Baking
@@ -683,22 +770,22 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
 #   Load normal/displacement maps
 #----------------------------------------------------------
 
-class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, LoadMaps, NormalAdder, ScalarDispAdder, IsMesh):
+class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, NormalAdder, ScalarDispAdder, IsMesh):
     bl_idname = "daz.load_baked_maps"
     bl_label = "Load Baked Maps"
     bl_description = "Load baked normal/displacement maps for the selected meshes"
     bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (bpy.data.filepath and ob)
 
     dispScale : FloatProperty(
         name = "Displacement Scale",
         description = "Displacement scale",
         min = 0.001, max = 10,
         default = 0.01)
+
+    usePrune : BoolProperty(
+        name = "Prune Node Tree",
+        description = "Prune the node tree",
+        default = True)
 
     def draw(self, context):
         Baker.draw(self, context)
@@ -750,6 +837,7 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, LoadMaps, NormalAdder, Scala
 #-------------------------------------------------------------
 
 classes = [
+    DAZ_OT_LoadScalarDisp,
     DAZ_OT_LoadVectorDisp,
     DAZ_OT_LoadNormalMap,
     DAZ_OT_BakeMaps,
