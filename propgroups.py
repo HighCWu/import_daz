@@ -195,6 +195,13 @@ def evalMorphsSca2(pb):
     return sum([pg.eval(rig) for pg in pb.DazScaProps2])
 
 
+from mathutils import Matrix
+
+def Daz_eul_conv(raw_bn):
+    drv_bn = raw_bn.parent
+    fin_mtb = drv_bn.matrix_basis @ raw_bn.matrix_basis
+    return fin_mtb.to_euler(drv_bn.rotation_mode)
+
 #-------------------------------------------------------------
 #   Copy prop groups
 #-------------------------------------------------------------
@@ -361,6 +368,9 @@ def updateHandler(scn):
     bpy.app.driver_namespace["evalMorphsSca0"] = evalMorphsSca0
     bpy.app.driver_namespace["evalMorphsSca1"] = evalMorphsSca1
     bpy.app.driver_namespace["evalMorphsSca2"] = evalMorphsSca2
+
+    global Daz_eul_conv
+    bpy.app.driver_namespace["Daz_eul_conv"] = Daz_eul_conv
 
 
 classes = [

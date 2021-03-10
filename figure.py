@@ -444,20 +444,27 @@ class ExtraBones:
             from .driver import Target
             varnames = dict([(var.name,True) for var in fcu.driver.variables])
             for var in fcu.driver.variables:
-                vname2 = var.name+"2"
-                if vname2 in varnames.keys():
-                    continue
                 for trg in var.targets:
-                    if isDrvBone(trg.bone_target):
-                        var2 = fcu.driver.variables.new()
-                        var2.name = vname2
-                        var2.type = var.type
-                        target2 = Target(trg)
-                        trg2 = var2.targets[0]
-                        target2.create(trg2)
-                        trg2.bone_target = baseBone(trg.bone_target)
-                        expr = fcu.driver.expression.replace(var.name, "(%s+%s)" % (var.name, var2.name))
-                        fcu.driver.expression = expr
+                    if (isDrvBone(trg.bone_target) and
+                        trg.transform_type[0:3] == "ROT"):
+                        comp = trg.transform_type[-1]
+                        bname = baseBone(trg.bone_target)
+                        path = 'pose.bones["%s"]["fin_eul_%d"]' % (bname, ord(comp) - ord('X'))
+                        var.type = 'SINGLE_PROP'
+                        trg.data_path = path
+                        trg.bone_target = ""
+
+        def addFinalDriver(rig, bname):
+            from .driver import addDriverVar
+            pb = rig.pose.bones[bname]
+            for n in range(3):
+                prop = "fin_eul_%d" % n
+                pb[prop] = 0.0
+                fcu = pb.driver_add(propRef(prop))
+                fcu.driver.type = 'SCRIPTED'
+                fcu.driver.expression = "degrees(Daz_eul_conv(self)[%d])" % n
+                fcu.driver.use_self = True
+
 
         from .driver import getBoneDrivers, getPropDrivers, getShapekeyDriver, storeRemoveBoneSumDrivers, restoreBoneSumDrivers, removeDriverFCurves
         from .fix import ConstraintStore
@@ -481,15 +488,15 @@ class ExtraBones:
         bpy.ops.object.mode_set(mode='EDIT')
         for bname in bnames:
             eb = rig.data.edit_bones.new(bname)
-            par = rig.data.edit_bones[drvBone(bname)]
-            eb.head = par.head
-            eb.tail = par.tail
-            eb.roll = par.roll
-            eb.parent = par
-            eb.layers = list(par.layers)
-            par.layers = drivenLayers
+            db = rig.data.edit_bones[drvBone(bname)]
+            eb.head = db.head
+            eb.tail = db.tail
+            eb.roll = db.roll
+            eb.parent = db
+            eb.layers = list(db.layers)
+            db.layers = drivenLayers
             eb.use_deform = True
-            par.use_deform = False
+            db.use_deform = False
         bpy.ops.object.mode_set(mode='OBJECT')
 
         for bname in bnames:
@@ -499,14 +506,17 @@ class ExtraBones:
 
         bpy.ops.object.mode_set(mode='EDIT')
         for bname in bnames:
-            eb = rig.data.edit_bones[drvBone(bname)]
-            for cb in eb.children:
+            db = rig.data.edit_bones[drvBone(bname)]
+            for cb in db.children:
                 if cb.name != bname:
                     cb.parent = rig.data.edit_bones[bname]
 
         bpy.ops.object.mode_set(mode='POSE')
         restoreBoneSumDrivers(rig, boneDrivers, False)
         restoreBoneSumDrivers(rig, sumDrivers, True)
+        for bname in bnames:
+            addFinalDriver(rig, bname)
+
         for pb in rig.pose.bones:
             for fcu in getBoneDrivers(rig, pb):
                 correctDriver(fcu)
