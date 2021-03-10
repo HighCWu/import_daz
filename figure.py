@@ -449,7 +449,7 @@ class ExtraBones:
                         trg.transform_type[0:3] == "ROT"):
                         comp = trg.transform_type[-1]
                         bname = baseBone(trg.bone_target)
-                        path = 'pose.bones["%s"]["fin_eul_%d"]' % (bname, ord(comp) - ord('X'))
+                        path = 'pose.bones["%s"]["euler(fin)_%d"]' % (bname, ord(comp) - ord('X'))
                         var.type = 'SINGLE_PROP'
                         trg.data_path = path
                         trg.bone_target = ""
@@ -457,12 +457,13 @@ class ExtraBones:
         def addFinalDriver(rig, bname):
             from .driver import addDriverVar
             pb = rig.pose.bones[bname]
+            xyz = pb.parent.rotation_mode
             for n in range(3):
-                prop = "fin_eul_%d" % n
+                prop = "euler(fin)_%d" % n
                 pb[prop] = 0.0
                 fcu = pb.driver_add(propRef(prop))
                 fcu.driver.type = 'SCRIPTED'
-                fcu.driver.expression = "degrees(Daz_eul_conv(self)[%d])" % n
+                fcu.driver.expression = "(self.parent.matrix_basis@self.matrix_basis).to_euler('%s')[%d]" % (xyz, n)
                 fcu.driver.use_self = True
 
 
