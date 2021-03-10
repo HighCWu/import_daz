@@ -438,21 +438,41 @@ class ExtraBones:
     def addExtraBones(self, rig):
         def correctDriver(fcu):
             if fcu.driver.type == 'SCRIPTED':
-                combineDrvBones(fcu)
+                varnames = dict([(var.name,True) for var in fcu.driver.variables])
+                for var in fcu.driver.variables:
+                    for trg in var.targets:
+                        if isDrvBone(trg.bone_target):
+                            if GS.combineDrvMatrices:
+                                combineDrvMatrix(fcu, var, trg, varnames)
+                            else:
+                                combineDrvSimple(fcu, var, trg, varnames)
 
-        def combineDrvBones(fcu):
+        def combineDrvSimple(fcu, var, trg, varnames):
             from .driver import Target
-            varnames = dict([(var.name,True) for var in fcu.driver.variables])
-            for var in fcu.driver.variables:
-                for trg in var.targets:
-                    if (isDrvBone(trg.bone_target) and
-                        trg.transform_type[0:3] == "ROT"):
-                        comp = trg.transform_type[-1]
-                        bname = baseBone(trg.bone_target)
-                        path = 'pose.bones["%s"]["euler(fin)_%d"]' % (bname, ord(comp) - ord('X'))
-                        var.type = 'SINGLE_PROP'
-                        trg.data_path = path
-                        trg.bone_target = ""
+            vname2 = var.name+"2"
+            if vname2 in varnames.keys():
+                return
+            var2 = fcu.driver.variables.new()
+            var2.name = vname2
+            var2.type = var.type
+            target2 = Target(trg)
+            trg2 = var2.targets[0]
+            target2.create(trg2)
+            trg2.bone_target = baseBone(trg.bone_target)
+            expr = fcu.driver.expression.replace(var.name, "(%s+%s)" % (var.name, var2.name))
+            fcu.driver.expression = expr
+
+        def combineDrvMatrix(fcu, var, trg, varnames):
+            if (trg.transform_type[0:3] == "ROT" and
+                GS.combineDrvMatrices):
+                comp = trg.transform_type[-1]
+                bname = baseBone(trg.bone_target)
+                path = 'pose.bones["%s"]["euler(fin)_%d"]' % (bname, ord(comp) - ord('X'))
+                var.type = 'SINGLE_PROP'
+                trg.data_path = path
+                trg.bone_target = ""
+            else:
+                combineDrvSimple(fcu, var, trg, varnames)
 
         def addFinalDriver(rig, bname):
             from .driver import addDriverVar
@@ -515,8 +535,9 @@ class ExtraBones:
         bpy.ops.object.mode_set(mode='POSE')
         restoreBoneSumDrivers(rig, boneDrivers, False)
         restoreBoneSumDrivers(rig, sumDrivers, True)
-        for bname in bnames:
-            addFinalDriver(rig, bname)
+        if GS.combineDrvMatrices:
+            for bname in bnames:
+                addFinalDriver(rig, bname)
 
         for pb in rig.pose.bones:
             for fcu in getBoneDrivers(rig, pb):

@@ -301,6 +301,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseRawLimits")
         box.prop(scn, "DazSliderMin")
         box.prop(scn, "DazSliderMax")
+        box.prop(scn, "DazCombineDrvMatrices")
 
         col = split.column()
         box = col.box()
@@ -442,6 +443,10 @@ def register():
     bpy.types.Scene.DazUseRawLimits = BoolProperty(
         name = "Raw Slider Limits",
         description = "Use min and max values from DAZ files for \"raw\" sliders if available")
+
+    bpy.types.Scene.DazCombineDrvMatrices = BoolProperty(
+        name = "Combine Driver Matrices",
+        description = "Combine rotation drivers by multiplying matrices\ninstead of adding euler angles")
 
     bpy.types.Scene.DazMakeHiddenSliders = BoolProperty(
         name = "Make Hidden Sliders",
