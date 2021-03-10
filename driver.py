@@ -225,8 +225,9 @@ def makeVarsString(uvec, rig, bname):
 
 
 def makeSimpleBoneDriver(vec, rna, channel, idx, rig, bname):
-    varstr,vars,umax = makeVarsString(vec, rig, bname)
-    makeBoneDriver(varstr, vars, rna, channel, idx, rig)
+    var,vars,umax = makeVarsString(vec, rig, bname)
+    string = getMult(umax, var)
+    makeBoneDriver(string, vars, rna, channel, idx, rig)
 
 
 def makeProductBoneDriver(vecs, rna, channel, idx, rig, bname):
