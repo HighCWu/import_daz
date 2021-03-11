@@ -93,7 +93,7 @@ class GlobalSettings:
         self.sliderMax = 2.0
         self.useDazLimits = True
         self.useRawLimits = True
-        self.combineDrvMatrices = True
+        self.useApproxDrvCombine = False
 
         self.useLockLoc = True
         self.useLimitLoc = True
@@ -148,7 +148,7 @@ class GlobalSettings:
         "DazSliderMax" : "sliderMax",
         "DazUseDazLimits" : "useDazLimits",
         "DazUseRawLimits" : "useRawLimits",
-        "DazCombineDrvMatrices" : "combineDrvMatrices",
+        "DazUseApproxDrvCombine" : "useApproxDrvCombine",
         "DazUseCustomDrivers" : "useCustomDrivers",
 
         # Rigging

@@ -442,10 +442,10 @@ class ExtraBones:
                 for var in fcu.driver.variables:
                     for trg in var.targets:
                         if isDrvBone(trg.bone_target):
-                            if GS.combineDrvMatrices:
-                                combineDrvMatrix(fcu, var, trg, varnames)
-                            else:
+                            if GS.useApproxDrvCombine:
                                 combineDrvSimple(fcu, var, trg, varnames)
+                            else:
+                                combineDrvFinBone(fcu, var, trg, varnames)
 
         def combineDrvSimple(fcu, var, trg, varnames):
             from .driver import Target
@@ -462,30 +462,57 @@ class ExtraBones:
             expr = fcu.driver.expression.replace(var.name, "(%s+%s)" % (var.name, var2.name))
             fcu.driver.expression = expr
 
-        def combineDrvMatrix(fcu, var, trg, varnames):
+        def combineDrvFinBone(fcu, var, trg, varnames):
             if (trg.transform_type[0:3] == "ROT" and
-                GS.combineDrvMatrices):
+                not GS.useApproxDrvCombine):
                 comp = trg.transform_type[-1]
                 bname = baseBone(trg.bone_target)
-                path = 'pose.bones["%s"]["euler(fin)_%d"]' % (bname, ord(comp) - ord('X'))
                 var.type = 'SINGLE_PROP'
-                trg.data_path = path
+                prop = "euler(fin)_%s" % comp
+                trg.data_path = 'pose.bones["%s"]["%s"]' % (bname, prop)
                 trg.bone_target = ""
             else:
                 combineDrvSimple(fcu, var, trg, varnames)
 
-        def addFinalDriver(rig, bname):
-            from .driver import addDriverVar
+        def addFinBoneDriver(rig, bname):
+            from .driver import addTransformVar
             pb = rig.pose.bones[bname]
-            xyz = pb.parent.rotation_mode
+            db = pb.parent
+            fb = rig.pose.bones[finBone(bname)]
+            xyz = db.rotation_mode
+            cns = fb.constraints.new('COPY_TRANSFORMS')
+            cns.target = rig
+            cns.subtarget = bname
+            cns.target_space = 'POSE'
+            cns.owner_space = 'POSE'
+            cns.influence = 1.0
             for n in range(3):
-                prop = "euler(fin)_%d" % n
+                var = chr(ord("X")+n)
+                prop = "euler(fin)_%s" % var
                 pb[prop] = 0.0
                 fcu = pb.driver_add(propRef(prop))
                 fcu.driver.type = 'SCRIPTED'
-                fcu.driver.expression = "(self.parent.matrix_basis@self.matrix_basis).to_euler('%s')[%d]" % (xyz, n)
-                fcu.driver.use_self = True
+                fcu.driver.expression = var
+                ttype = "ROT_%s" % var
+                addTransformVar(fcu, var, ttype, rig, finBone(bname))
 
+        def copyEditBone(db, rig, bname):
+            eb = rig.data.edit_bones.new(bname)
+            eb.head = db.head
+            eb.tail = db.tail
+            eb.roll = db.roll
+            eb.layers = list(db.layers)
+            eb.use_deform = db.use_deform
+            return eb
+
+        def copyPoseBone(db, pb):
+            pb.rotation_mode = db.rotation_mode
+            pb.lock_location = db.lock_location
+            pb.lock_rotation = db.lock_rotation
+            pb.lock_scale = db.lock_scale
+            pb.custom_shape = db.custom_shape
+            pb.DazRotLocks = db.DazRotLocks
+            pb.DazLocLocks = db.DazLocLocks
 
         from .driver import getBoneDrivers, getPropDrivers, getShapekeyDriver, storeRemoveBoneSumDrivers, restoreBoneSumDrivers, removeDriverFCurves
         from .fix import ConstraintStore
@@ -497,6 +524,7 @@ class ExtraBones:
         if rig.DazRig[0:6] == "rigify":
             raise DazError("Cannot add extra bones to Rigify rig")
         drivenLayers = 31*[False] + [True]
+        finalLayers = 30*[False] + [True,False]
 
         bnames = self.getBoneNames(rig)
         boneDrivers, sumDrivers = storeRemoveBoneSumDrivers(rig, bnames)
@@ -508,15 +536,15 @@ class ExtraBones:
 
         bpy.ops.object.mode_set(mode='EDIT')
         for bname in bnames:
-            eb = rig.data.edit_bones.new(bname)
             db = rig.data.edit_bones[drvBone(bname)]
-            eb.head = db.head
-            eb.tail = db.tail
-            eb.roll = db.roll
+            eb = copyEditBone(db, rig, bname)
             eb.parent = db
-            eb.layers = list(db.layers)
+            if not GS.useApproxDrvCombine:
+                fb = copyEditBone(db, rig, finBone(bname))
+                fb.parent = db.parent
+                fb.layers = finalLayers
+                fb.use_deform = False
             db.layers = drivenLayers
-            eb.use_deform = True
             db.use_deform = False
         bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -533,34 +561,29 @@ class ExtraBones:
                     cb.parent = rig.data.edit_bones[bname]
 
         bpy.ops.object.mode_set(mode='POSE')
+        store = ConstraintStore()
+        for bname in bnames:
+            pb = rig.pose.bones[bname]
+            db = rig.pose.bones[drvBone(bname)]
+            fb = rig.pose.bones[finBone(bname)]
+            copyPoseBone(db, pb)
+            copyPoseBone(db, fb)
+            db.custom_shape = None
+            copyBoneInfo(db, pb)
+            store.storeConstraints(db.name, db)
+            store.removeConstraints(db)
+            store.restoreConstraints(db.name, pb)
+
         restoreBoneSumDrivers(rig, boneDrivers, False)
         restoreBoneSumDrivers(rig, sumDrivers, True)
-        if GS.combineDrvMatrices:
+        if not GS.useApproxDrvCombine:
             for bname in bnames:
-                addFinalDriver(rig, bname)
-
+                addFinBoneDriver(rig, bname)
         for pb in rig.pose.bones:
             for fcu in getBoneDrivers(rig, pb):
                 correctDriver(fcu)
         for fcu in getPropDrivers(rig):
             correctDriver(fcu)
-
-        store = ConstraintStore()
-        for bname in bnames:
-            pb = rig.pose.bones[bname]
-            par = rig.pose.bones[drvBone(bname)]
-            pb.rotation_mode = par.rotation_mode
-            pb.lock_location = par.lock_location
-            pb.lock_rotation = par.lock_rotation
-            pb.lock_scale = par.lock_scale
-            pb.custom_shape = par.custom_shape
-            par.custom_shape = None
-            pb.DazRotLocks = par.DazRotLocks
-            pb.DazLocLocks = par.DazLocLocks
-            copyBoneInfo(par, pb)
-            store.storeConstraints(par.name, par)
-            store.removeConstraints(par)
-            store.restoreConstraints(par.name, pb)
 
         setattr(rig.data, self.attr, True)
         updateDrivers(rig)

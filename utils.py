@@ -283,13 +283,19 @@ def finalProp(prop):
 def isDrvBone(string):
     return (string[-3:] == "Drv")
 
+def isFinBone(string):
+    return (string[-3:] == "Fin")
+
 def drvBone(string):
     if isDrvBone(string):
         return string
     return string + "Drv"
 
+def finBone(string):
+    return string + "Fin"
+
 def baseBone(string):
-    if isDrvBone(string):
+    if (string[-3:] in ["Drv","Fin"]):
         return string[:-3]
     return string
 

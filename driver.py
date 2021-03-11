@@ -312,12 +312,14 @@ def makeBoneDriver(string, vars, rna, channel, idx, rig):
 
 
 def addTransformVar(fcu, vname, ttype, rig, bname):
+    pb = rig.pose.bones[bname]
     var = fcu.driver.variables.new()
     var.type = 'TRANSFORMS'
     var.name = vname
     trg = var.targets[0]
     trg.id = rig
     trg.bone_target = bname
+    trg.rotation_mode = pb.rotation_mode
     trg.transform_type = ttype
     trg.transform_space = 'LOCAL_SPACE'
 
