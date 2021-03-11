@@ -281,22 +281,24 @@ def finalProp(prop):
     return "%s(fin)" % prop
 
 def isDrvBone(string):
-    return (string[-3:] == "Drv")
+    return (string[-3:] == "Drv" or string[-5:] == "(drv)")
 
 def isFinBone(string):
-    return (string[-3:] == "Fin")
+    return (string[-5:] == "(fin)")
 
 def drvBone(string):
     if isDrvBone(string):
         return string
-    return string + "Drv"
+    return string + "(drv)"
 
 def finBone(string):
-    return string + "Fin"
+    return string + "(fin)"
 
 def baseBone(string):
     if (string[-3:] in ["Drv","Fin"]):
         return string[:-3]
+    elif (string[-5:] in ["(drv)", "(fin)"]):
+        return string[:-5]
     return string
 
 def nextLetter(char):

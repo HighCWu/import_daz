@@ -479,12 +479,11 @@ class ExtraBones:
         def addFinBoneDriver(rig, bname):
             from .driver import addTransformVar
             pb = rig.pose.bones[bname]
-            db = pb.parent
             fb = rig.pose.bones[finBone(bname)]
-            xyz = db.rotation_mode
-            cns = fb.constraints.new('COPY_TRANSFORMS')
+            cns = fb.constraints.new('COPY_ROTATION')
             cns.target = rig
             cns.subtarget = bname
+            cns.euler_order = pb.parent.rotation_mode
             cns.target_space = 'POSE'
             cns.owner_space = 'POSE'
             cns.influence = 1.0
