@@ -465,8 +465,10 @@ class ExtraBones:
         def combineDrvFinBone(fcu, var, trg, varnames):
             if (trg.transform_type[0:3] == "ROT" and
                 not GS.useApproxDrvCombine):
-                comp = trg.transform_type[-1]
                 bname = baseBone(trg.bone_target)
+                trg.bone_target = finBone(bname)
+                return
+                comp = trg.transform_type[-1]
                 var.type = 'SINGLE_PROP'
                 prop = "euler(fin)_%s" % comp
                 trg.data_path = 'pose.bones["%s"]["%s"]' % (bname, prop)
@@ -486,6 +488,7 @@ class ExtraBones:
             cns.target_space = 'POSE'
             cns.owner_space = 'POSE'
             cns.influence = 1.0
+            return
             for n in range(3):
                 var = chr(ord("X")+n)
                 prop = "euler(fin)_%s" % var

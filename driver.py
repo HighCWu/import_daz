@@ -215,12 +215,16 @@ def makeVarsString(uvec, rig, bname):
     vals = [(abs(x), n, x) for n,x in enumerate(uvec)]
     vals.sort()
     _,n,umax = vals[-1]
-    vars = [(n, "A", bname)]
-    string = "A"
-    drvname = drvBone(bname)
-    if drvname in rig.pose.bones.keys():
-        string = "(A+B)"
-        vars.append((n, "B", drvname))
+    if drvBone(bname) in rig.pose.bones.keys():
+        if GS.useApproxDrvCombine:
+            string = "(A+A2)"
+            vars = [(n, "A", bname), (n, "A2", drvBone(bname))]
+        else:
+            string = "A"
+            vars = [(n, "A", finBone(bname))]
+    else:
+        string = "A"
+        vars = [(n, "A", bname)]
     return string, vars, umax
 
 
