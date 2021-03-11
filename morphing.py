@@ -775,7 +775,7 @@ class LoadMorph(PoseboneDriver):
 
 
     def addNewProp(self, raw, asset):
-        from .driver import setFloatProp
+        from .driver import setFloatProp, setBoolProp
         final = finalProp(raw)
         if raw not in self.drivers.keys():
             self.drivers[raw] = []
@@ -785,18 +785,39 @@ class LoadMorph(PoseboneDriver):
         if asset:
             visible = (asset.visible or GS.useMakeHiddenSliders)
             self.visible[raw] = visible
-            if GS.useRawLimits:
-                setFloatProp(self.rig, raw, 0.0, GS.sliderMin, GS.sliderMax)
+            if asset.type == "bool":
+                setBoolProp(self.rig, raw, asset.value)
+                setBoolProp(self.rig, final, asset.value)
+            elif asset.type == "float":
+                if GS.useRawLimits:
+                    setFloatProp(self.rig, raw, 0.0, GS.sliderMin, GS.sliderMax)
+                else:
+                    setFloatProp(self.rig, raw, 0.0, None, None)
+                if GS.useDazLimits:
+                    setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
+                else:
+                    setFloatProp(self.rig, final, 0.0, GS.sliderMin, GS.sliderMax)
             else:
-                setFloatProp(self.rig, raw, 0.0, None, None)
-            if GS.useDazLimits:
-                setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
-            else:
-                setFloatProp(self.rig, final, 0.0, GS.sliderMin, GS.sliderMax)
+                print("Unknown asset type:", asset.type)
+                raise RuntimeError("BUG")
             if visible:
                 setActivated(self.rig, raw, True)
                 self.addToMorphSet(raw, asset, False)
         return final
+
+
+    def multiplyMults(self, fcu, string):
+        from .driver import addDriverVar
+        if self.mult:
+           string = "(%s)" % string
+           varname = "M"
+           for mult in self.mult:
+               string += "*%s" % varname
+               multfinal = finalProp(mult)
+               self.ensureExists(mult, multfinal)
+               addDriverVar(fcu, varname, propRef(multfinal), self.rig)
+               varname = nextLetter(varname)
+        return string
 
 
     def ensureExists(self, raw, final):
@@ -937,9 +958,9 @@ class LoadMorph(PoseboneDriver):
                 return "+%g*%s" % (factor, varname)
 
         from .driver import addDriverVar
-        mults = []
+        self.mult = []
         if raw in self.mults.keys():
-            mults = self.mults[raw]
+            self.mult = self.mults[raw]
         final = finalProp(raw)
         self.rig.driver_remove(propRef(final))
         fcu = self.rig.driver_add(propRef(final))
@@ -957,15 +978,7 @@ class LoadMorph(PoseboneDriver):
             string += multiply(factor, varname)
             self.ensureExists(subraw, subfinal)
             addDriverVar(fcu, varname, propRef(subfinal), self.rig)
-        if mults:
-            string = "(%s)" % string
-            varname = "M"
-            for mult in mults:
-                string += "*%s" % varname
-                multfinal = finalProp(mult)
-                self.ensureExists(mult, multfinal)
-                addDriverVar(fcu, varname, propRef(multfinal), self.rig)
-                varname = nextLetter(varname)
+        string = self.multiplyMults(fcu, string)
         fcu.driver.expression = string
 
 
@@ -985,6 +998,10 @@ class LoadMorph(PoseboneDriver):
                 xys.append((x, y))
             return uvec, xys
 
+        self.mult = []
+        if raw in self.mults.keys():
+            self.mult = self.mults[raw]
+
         pb = self.rig.pose.bones[bname]
         rna = self.rig
         comp = expr["comp"]
@@ -996,7 +1013,7 @@ class LoadMorph(PoseboneDriver):
         from .formula import getBoneVector
         if "points" in expr.keys():
             uvec,xys = getSplinePoints(expr, pb, comp)
-            makeSplineBoneDriver(uvec, xys, rna, channel, -1, self.rig, bname)
+            makeSplineBoneDriver(uvec, xys, rna, channel, -1, self.rig, bname, self)
         elif isinstance(expr["factor"], list):
             print("FOO", expr)
             halt
@@ -1004,11 +1021,11 @@ class LoadMorph(PoseboneDriver):
             for factor in expr["factor"]:
                 uvec = getBoneVector(factor, comp, pb)
                 uvecs.append(uvec)
-            makeProductBoneDriver(uvecs, rna, channel, -1, self.rig, bname)
+            makeProductBoneDriver(uvecs, rna, channel, -1, self.rig, bname, self)
         else:
             factor = expr["factor"]
             uvec = getBoneVector(factor, comp, pb)
-            makeSimpleBoneDriver(uvec, rna, channel, -1, self.rig, bname)
+            makeSimpleBoneDriver(uvec, rna, channel, -1, self.rig, bname, self)
 
     #------------------------------------------------------------------
     #   Build sum drivers

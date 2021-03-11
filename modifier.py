@@ -105,7 +105,7 @@ class Modifier(Asset):
 
 
     def __repr__(self):
-        return ("<Modifier %s %s>" % (self.id, self.type))
+        return ("<Modifier %s>" % (self.id))
 
 
     def preprocess(self, inst):
@@ -118,7 +118,7 @@ class Modifier(Asset):
 
 class DForm(Modifier):
     def __repr__(self):
-        return ("<Dform %s %s>" % (self.id, self.type))
+        return ("<Dform %s>" % (self.id))
 
 #-------------------------------------------------------------
 #   Extra
@@ -230,7 +230,7 @@ class ChannelAsset(Modifier):
     def __init__(self, fileref):
         Modifier.__init__(self, fileref)
         self.classType = ChannelAsset
-        self.type = "channel"
+        self.type = "float"
         self.value = 0
         self.min = None
         self.max = None
@@ -250,6 +250,8 @@ class ChannelAsset(Modifier):
                     self.min = value
                 elif key == "max":
                     self.max = value
+                elif key == "type":
+                    self.type = value
 
 
     def update(self, struct):
@@ -301,7 +303,6 @@ class Alias(ChannelAsset):
         ChannelAsset.__init__(self, fileref)
         self.alias = None
         self.parent = None
-        self.type = "alias"
         self.value = 0.0
 
     def __repr__(self):
@@ -334,7 +335,6 @@ class SkinBinding(Modifier):
         self.classType = SkinBinding
         self.parent = None
         self.skin = None
-        self.type = "skin_binding"
 
     def __repr__(self):
         return ("<SkinBinding %s>" % (self.id))
@@ -594,7 +594,6 @@ class Morph(FormulaAsset):
     def __init__(self, fileref):
         FormulaAsset.__init__(self, fileref)
         self.classType = Morph
-        self.type = "morph"
         self.vertex_count = 0
         self.deltas = []
         self.hd_url = None

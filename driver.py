@@ -228,13 +228,13 @@ def makeVarsString(uvec, rig, bname):
     return string, vars, umax
 
 
-def makeSimpleBoneDriver(vec, rna, channel, idx, rig, bname):
+def makeSimpleBoneDriver(vec, rna, channel, idx, rig, bname, caller=None):
     var,vars,umax = makeVarsString(vec, rig, bname)
     string = getMult(umax, var)
-    makeBoneDriver(string, vars, rna, channel, idx, rig)
+    makeBoneDriver(string, vars, rna, channel, idx, rig, caller)
 
 
-def makeProductBoneDriver(vecs, rna, channel, idx, rig, bname):
+def makeProductBoneDriver(vecs, rna, channel, idx, rig, bname, caller):
     string = ""
     vars = []
     for vec in vecs:
@@ -243,10 +243,10 @@ def makeProductBoneDriver(vecs, rna, channel, idx, rig, bname):
             vars += vars1
             string += ("*min(1,max(0,%s))" % string1)
     if string:
-        makeBoneDriver(string, vars, rna, channel, idx, rig)
+        makeBoneDriver(string, vars, rna, channel, idx, rig, caller)
 
 
-def makeSplineBoneDriver(uvec, points, rna, channel, idx, rig, bname):
+def makeSplineBoneDriver(uvec, points, rna, channel, idx, rig, bname, caller):
     # Only make spline for one component
     #[1 if x< -1.983 else -x-0.983 if x< -0.983  else 0 for x in [+0.988*A]][0]
     #1 if A< -1.983/0.988 else -0.988*A-0.983 if x< -0.983/0.988  else 0
@@ -274,7 +274,7 @@ def makeSplineBoneDriver(uvec, points, rna, channel, idx, rig, bname):
             msg += "%s         \n" % (string[30*n, 30*(n+1)])
         raise DazError(msg)
 
-    makeBoneDriver(string, vars, rna, channel, idx, rig)
+    makeBoneDriver(string, vars, rna, channel, idx, rig, caller)
 
 
 def getPrint(x):
@@ -303,11 +303,14 @@ def getSign(u):
         return "+", u
 
 
-def makeBoneDriver(string, vars, rna, channel, idx, rig):
+def makeBoneDriver(string, vars, rna, channel, idx, rig, caller):
     rna.driver_remove(channel, idx)
     fcu = rna.driver_add(channel, idx)
     fcu.driver.type = 'SCRIPTED'
-    expr = string
+    if caller:
+        expr = caller.multiplyMults(fcu, string)
+    else:
+        expr = string
     fcu.driver.expression = expr
     ttypes = ["ROT_X", "ROT_Y", "ROT_Z"]
     for j,vname,bname in vars:
@@ -439,6 +442,7 @@ def setBoolProp(rna, prop, value, desc=""):
     rna[prop] = value
     setPropMinMax(rna, prop, 0, 1)
     setOverridable(rna, prop)
+    setPropMinMax(rna, prop, 0, 1)
 
 #-------------------------------------------------------------
 #
