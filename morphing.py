@@ -33,9 +33,9 @@ from bpy_extras.io_utils import ImportHelper
 from mathutils import Vector
 from .error import *
 from .utils import *
-from . import utils
 from .fileutils import SingleFile, MultiFile, DazImageFile, DatFile
 from .propgroups import DazTextGroup, DazFloatGroup
+from .load_morph import LoadMorph
 
 #-------------------------------------------------------------
 #   Morph sets
@@ -593,17 +593,11 @@ class DAZ_OT_SelectAllMorphs(DazOperator):
             scn["Daz"+name] = self.value
 
 #------------------------------------------------------------------
-#   LoadMorph base class
+#   Load typed morphs base class
 #------------------------------------------------------------------
 
-from .formula import PoseboneDriver
-
-class LoadMorph(PoseboneDriver):
-    morphset = None
-    usePropDrivers = True
-    useMeshCats = False
-
-    def __init__(self, mesh=None):
+class MorphLoader(LoadMorph):
+    def __init__(self, rig=None, mesh=None):
         from .finger import getFingeredCharacter
         self.rig, self.mesh, self.char = getFingeredCharacter(bpy.context.object)
         if mesh:
@@ -632,10 +626,6 @@ class LoadMorph(PoseboneDriver):
         if not self.usePropDrivers:
             self.rig = None
         clearDependecies()
-        if not GS.useCustomDrivers and self.rig and self.morphset:
-            self.removeMorphSet()
-
-        namepaths = self.pathsToDebug(namepaths)
 
         self.errors = {}
         t1 = time.perf_counter()
@@ -644,12 +634,7 @@ class LoadMorph(PoseboneDriver):
             folder = os.path.dirname(path)
         else:
             raise DazError("No morphs selected")
-        self.makeAllMorphs(list(namepaths.items()))
-        if self.rig:
-            self.buildDrivers()
-            self.buildSumDrivers()
-            updateDrivers(self.rig)
-            updateDrivers(self.mesh)
+        self.loadAllMorphs(list(namepaths.items()))
         finishMain("Folder", folder, t1)
         if self.errors:
             msg = "Morphs loaded with errors.\n  "
@@ -662,459 +647,11 @@ class LoadMorph(PoseboneDriver):
             msg = "Found morphs that want to\nchange the rest pose"
             raise DazError(msg, warning=True)
 
-
-    def pathsToDebug(self, namepaths):
-        return namepaths
-        namepaths = {
-      "cbs_EBL_ESL_div2" : "C:/Users/Public/Documents/My DAZ 3D Library\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_cbs_EBL_ESL_div2.dsf",
-      "cbs_EyeBlinkLeft_div2" : "C:/Users/Public/Documents/My DAZ 3D Library\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_cbs_EyeBlinkLeft_div2.dsf",
-      "EyeBlinkLeft" : "C:/Users/Public/Documents/My DAZ 3D Library\data/DAZ 3D/Genesis 8/Female 8_1/Morphs/DAZ 3D/FACS/facs_jnt_EyeBlinkLeft.dsf",
-        }
-        for key,value in namepaths.items():
-            print('     "%s" : "%s",' % (key, value))
-        return namepaths
-
-    #------------------------------------------------------------------
-    #   Make all morphs
-    #------------------------------------------------------------------
-
-    def makeAllMorphs(self, namepaths):
-        print("Making morphs")
-        self.alias = {}
-        self.visible = {}
-        self.ecr = False
-        self.drivers = {}
-        self.shapekeys = {}
-        self.mults = {}
-        self.sumdrivers = {}
-        namepaths.sort()
-        idx = 0
-        npaths = len(namepaths)
-        for name,path in namepaths:
-            showProgress(idx, npaths)
-            idx += 1
-            char = self.makeSingleMorph(name, path)
-            print(char, name)
-
-    #------------------------------------------------------------------
-    #   First pass: collect data
-    #------------------------------------------------------------------
-
-    def makeSingleMorph(self, name, filepath):
-        from .load_json import loadJson
-        from .files import parseAssetFile
-        from .modifier import Alias, ChannelAsset
-        struct = loadJson(filepath)
-        asset = parseAssetFile(struct)
-        if not isinstance(asset, ChannelAsset):
-            return " -"
-        elif isinstance(asset, Alias):
-            return " _"
-        self.buildShapekey(asset)
-        if self.rig:
-            self.makeFormulas(asset)
-        return " *"
-
-
-    def buildShapekey(self, asset, useBuild=True):
-        from .modifier import Morph
-        from .driver import makePropDriver, setFloatProp
-        if not (isinstance(asset, Morph) and
-                self.mesh and
-                asset.deltas):
-            return None
-        useBuild = True
-        if asset.vertex_count < 0:
-            print("Vertex count == %d" % asset.vertex_count)
-        elif asset.vertex_count != len(self.mesh.data.vertices):
-            msg = ("Vertex count mismatch:\n  %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
-            if GS.verbosity > 2:
-                print(msg)
-            if asset.hd_url:
-                if self.treatHD == 'CREATE':
-                    useBuild = False
-                elif self.treatHD == 'ACTIVE':
-                    skey = self.getActiveShape(asset)
-            if useBuild and not skey:
-                return None
-        if not asset.rna:
-            asset.buildMorph(self.mesh,
-                             useBuild=useBuild,
-                             strength=self.strength)
-        skey,_,sname = asset.rna
-        if skey:
-            prop = unquote(skey.name)
-            self.alias[prop] = skey.name
-            skey.name = prop
-            self.shapekeys[prop] = skey
-            if self.rig:
-                final = self.addNewProp(prop, None)
-                makePropDriver(propRef(final), skey, "value", self.rig, "x")
-        return skey
-
-
-    def makeFormulas(self, asset):
-        from .formula import Formula
-        self.addNewProp(asset.getName(), asset)
-        if not isinstance(asset, Formula):
-            return
-        exprs = asset.evalFormulas(self.rig, self.mesh)
-        for output,data in exprs.items():
-            for key,data1 in data.items():
-                for idx,expr in data1.items():
-                    if key == "value":
-                        self.makeValueFormula(output, expr)
-                    elif key == "rotation":
-                        self.makeRotFormula(output, idx, expr)
-                    elif key == "translation":
-                        self.makeTransFormula(output, idx, expr)
-                    elif key == "scale":
-                        self.makeScaleFormula(output, idx, expr)
-                    elif key in ["center_point", "end_point"]:
-                        self.ecr = True
-
-
-    def addNewProp(self, raw, asset):
-        from .driver import setFloatProp, setBoolProp
-        final = finalProp(raw)
-        if raw not in self.drivers.keys():
-            self.drivers[raw] = []
-            self.visible[raw] = False
-            self.rig[raw] = 0.0
-            self.rig[final] = 0.0
-        if asset:
-            visible = (asset.visible or GS.useMakeHiddenSliders)
-            self.visible[raw] = visible
-            if asset.type == "bool":
-                setBoolProp(self.rig, raw, asset.value)
-                setBoolProp(self.rig, final, asset.value)
-            elif asset.type == "float":
-                if GS.useRawLimits:
-                    setFloatProp(self.rig, raw, 0.0, GS.sliderMin, GS.sliderMax)
-                else:
-                    setFloatProp(self.rig, raw, 0.0, None, None)
-                if GS.useDazLimits:
-                    setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
-                else:
-                    setFloatProp(self.rig, final, 0.0, GS.sliderMin, GS.sliderMax)
-            else:
-                print("Unknown asset type:", asset.type)
-                raise RuntimeError("BUG")
-            if visible:
-                setActivated(self.rig, raw, True)
-                self.addToMorphSet(raw, asset, False)
-        return final
-
-
-    def multiplyMults(self, fcu, string):
-        from .driver import addDriverVar
-        if self.mult:
-           string = "(%s)" % string
-           varname = "M"
-           for mult in self.mult:
-               string += "*%s" % varname
-               multfinal = finalProp(mult)
-               self.ensureExists(mult, multfinal)
-               addDriverVar(fcu, varname, propRef(multfinal), self.rig)
-               varname = nextLetter(varname)
-        return string
-
-
-    def ensureExists(self, raw, final):
-        if raw not in self.drivers.keys():
-            self.rig[raw] = 0.0
-            self.rig[final] = 0.0
-
-
-    def addToMorphSet(self, prop, asset, hidden):
-        addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden)
-
-
-    def removeFromMorphSet(self, prop):
-        pg = getattr(self.rig, "Daz"+self.morphset)
-        removeFromPropGroup(pg, prop)
-
-
-    def makeValueFormula(self, output, expr):
-        if expr["prop"]:
-            self.addNewProp(output, None)
-            prop = expr["prop"]
-            self.drivers[output].append(("PROP", prop, expr["factor"]))
-        if expr["mult"]:
-            if output not in self.mults.keys():
-                self.mults[output] = []
-            mult = expr["mult"]
-            self.mults[output].append(mult)
-            self.addNewProp(mult, None)
-        if expr["bone"]:
-            bname = self.getRealBone(expr["bone"])
-            if bname:
-                if output not in self.drivers.keys():
-                    self.drivers[output] = []
-                self.drivers[output].append(("BONE", bname, expr))
-            else:
-                print("Missing bone:", expr["bone"])
-
-
-    def getRealBone(self, bname):
-        from .bone import getTargetName
-        return getTargetName(bname, self.rig)
-
-
-    def getDrivenBone(self, bname):
-        bname = self.getRealBone(bname)
-        if bname:
-            dname = drvBone(bname)
-            if dname in self.rig.pose.bones.keys():
-                return dname
-        return bname
-
-
-    def getBoneData(self, bname, expr):
-        from .transform import Transform
-        bname = self.getDrivenBone(bname)
-        if bname is None:
-            return
-        pb = self.rig.pose.bones[bname]
-        factor = expr["factor"]
-        if "points" in expr.keys():
-            factor = self.cheatSplineTCB(expr["points"], factor)
-        raw = expr["prop"]
-        final = self.addNewProp(raw, None)
-        tfm = Transform()
-        return tfm, pb, final, factor
-
-
-    def cheatSplineTCB(self, points, factor):
-        x0 = y0 = None
-        for n,point in enumerate(points):
-            x,y = point[0:2]
-            if x == 0 and y == 0:
-                x0 = x
-                y0 = y
-                n0 = n
-                break
-        if x0 is None:
-            return factor
-        if n0 == 0:
-            x1,y1 = points[-1][0:2]
-        else:
-            x1,y1 = points[0][0:2]
-        factor = (y1-y0)/(x1-x0)
-        return factor
-
-
-    def makeRotFormula(self, bname, idx, expr):
-        tfm,pb,prop,factor = self.getBoneData(bname, expr)
-        tfm.setRot(self.strength*factor, prop, index=idx)
-        self.addPoseboneDriver(pb, tfm)
-
-
-    def makeTransFormula(self, bname, idx, expr):
-        tfm,pb,prop,factor = self.getBoneData(bname, expr)
-        tfm.setTrans(self.strength*factor, prop, index=idx)
-        self.addPoseboneDriver(pb, tfm)
-
-
-    def makeScaleFormula(self, bname, idx, expr):
-        return
-        # DS and Blender seem to inherit scale differently
-        tfm,pb,prop,factor = self.getBoneData(bname, expr)
-        tfm.setScale(self.strength*factor, True, prop, index=idx)
-        self.addPoseboneDriver(pb, tfm)
-
-    #------------------------------------------------------------------
-    #   Second pass: Build the drivers
-    #------------------------------------------------------------------
-
-    def buildDrivers(self):
-        print("Building drivers")
-        for output,drivers in self.drivers.items():
-            if drivers:
-                if self.isDriverType('BONE', drivers):
-                    for dtype,bname,expr in drivers:
-                        if dtype == 'BONE':
-                            self.buildBoneDriver(output, bname, expr)
-                elif self.isDriverType('PROP', drivers):
-                    self.buildPropDriver(output, drivers)
-            else:
-                self.buildPropDriver(output, drivers)
-
-
-    def isDriverType(self, dtype, drivers):
-        for driver in drivers:
-            if driver[0] == dtype:
-                return True
-        return False
-
-
-    def buildPropDriver(self, raw, drivers):
-        def multiply(factor, varname):
-            if factor == 1:
-                return "+%s" % varname
-            elif factor == -1:
-                return "-%s" % varname
-            else:
-                return "+%g*%s" % (factor, varname)
-
-        from .driver import addDriverVar
-        self.mult = []
-        if raw in self.mults.keys():
-            self.mult = self.mults[raw]
-        final = finalProp(raw)
-        self.rig.driver_remove(propRef(final))
-        fcu = self.rig.driver_add(propRef(final))
-        fcu.driver.type = 'SCRIPTED'
-        varname = "a"
-        string = ""
-        if self.visible[raw]:
-            string = varname
-            addDriverVar(fcu, varname, propRef(raw), self.rig)
-        for dtype,subraw,factor in drivers:
-            if dtype != 'PROP':
-                continue
-            subfinal = finalProp(subraw)
-            varname = nextLetter(varname)
-            string += multiply(factor, varname)
-            self.ensureExists(subraw, subfinal)
-            addDriverVar(fcu, varname, propRef(subfinal), self.rig)
-        string = self.multiplyMults(fcu, string)
-        fcu.driver.expression = string
-
-
-    def buildBoneDriver(self, raw, bname, expr):
-        def getSplinePoints(expr, pb, comp):
-            points = expr["points"]
-            n = len(points)
-            if (points[0][0] > points[n-1][0]):
-                points.reverse()
-
-            diff = points[n-1][0] - points[0][0]
-            uvec = getBoneVector(1/diff, comp, pb)
-            xys = []
-            for k in range(n):
-                x = points[k][0]/diff
-                y = points[k][1]
-                xys.append((x, y))
-            return uvec, xys
-
-        self.mult = []
-        if raw in self.mults.keys():
-            self.mult = self.mults[raw]
-
-        pb = self.rig.pose.bones[bname]
-        rna = self.rig
-        comp = expr["comp"]
-        final = finalProp(raw)
-        channel = propRef(final)
-        self.rig.driver_remove(channel)
-
-        from .driver import makeSplineBoneDriver, makeProductBoneDriver, makeSimpleBoneDriver
-        from .formula import getBoneVector
-        if "points" in expr.keys():
-            uvec,xys = getSplinePoints(expr, pb, comp)
-            makeSplineBoneDriver(uvec, xys, rna, channel, -1, self.rig, bname, self)
-        elif isinstance(expr["factor"], list):
-            print("FOO", expr)
-            halt
-            uvecs = []
-            for factor in expr["factor"]:
-                uvec = getBoneVector(factor, comp, pb)
-                uvecs.append(uvec)
-            makeProductBoneDriver(uvecs, rna, channel, -1, self.rig, bname, self)
-        else:
-            factor = expr["factor"]
-            uvec = getBoneVector(factor, comp, pb)
-            makeSimpleBoneDriver(uvec, rna, channel, -1, self.rig, bname, self)
-
-    #------------------------------------------------------------------
-    #   Build sum drivers
-    #   For Xin's non-python drivers
-    #------------------------------------------------------------------
-
-    def buildSumDrivers(self):
-        def getTermDriverName(prop, key, idx):
-            return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
-
-        def getTermDriverExpr(varname, factor1, factor2, default):
-            if default > 0:
-                term = "(%s+%g)" % (varname, default)
-            elif default < 0:
-                term = "(%s-%g)" % (varname, default)
-            else:
-                term = varname
-            if factor2:
-                return "(%g if %s > 0 else %g)*%s" % (factor1, term, factor2, term)
-            elif factor1 == 1:
-                return term
-            else:
-                return "%g*%s" % (factor1, term)
-
-        from .driver import addDriverVar, Driver
-        print("Building sum drivers")
-        for bname,data in self.sumdrivers.items():
-            print(" +", bname)
-            for channel,kdata in data.items():
-                for idx,idata in kdata.items():
-                    pb,fcu0,dlist = idata
-                    if fcu0:
-                        if fcu0.driver.type == 'SUM':
-                            for var in fcu0.driver.variables:
-                                if var.name.startswith(self.prefix):
-                                    fcu0.driver.variables.remove(var)
-                            sumfcu = fcu0
-                        else:
-                            prop0 = "origo:%d" % idx
-                            pb[prop0] = 0.0
-                            fcu = pb.driver_add(propRef(prop0))
-                            driver = Driver(fcu0, True)
-                            driver.fill(fcu)
-                            pb.driver_remove(channel, idx)
-                            sumfcu = pb.driver_add(channel, idx)
-                            sumfcu.driver.type = 'SUM'
-                            path0 = 'pose.bones["%s"]["%s"]' % (pb.name, prop0)
-                            addDriverVar(sumfcu, "x", path0, self.rig)
-                    else:
-                        sumfcu = pb.driver_add(channel, idx)
-                        sumfcu.driver.type = 'SUM'
-
-                    for n,data in enumerate(dlist):
-                        key,prop,factor1,factor2,default = data
-                        drvprop = getTermDriverName(prop, key, idx)
-                        pb[drvprop] = 0.0
-                        path = propRef(drvprop)
-                        pb.driver_remove(path)
-                        fcu = pb.driver_add(path)
-                        fcu.driver.type = 'SCRIPTED'
-                        fcu.driver.expression = getTermDriverExpr("x", factor1, factor2, default)
-                        addDriverVar(fcu, "x", propRef(prop), self.rig)
-                        path2 = 'pose.bones["%s"]%s' % (pb.name, path)
-                        addDriverVar(sumfcu, "%s%.03d" % (self.prefix, n), path2, self.rig)
-
-
-    def removeMorphSet(self):
-        print("Removing morph set:", self.morphset)
-        pgs = getattr(self.rig, "Daz"+self.morphset)
-        for raw in pgs.keys():
-            if raw in self.rig.keys():
-                del self.rig[raw]
-        pgs.clear()
-
-
-    def getActiveShape(self, asset):
-        ob = self.mesh
-        sname = asset.name
-        skey = None
-        if ob.data.shape_keys:
-            skey = ob.data.shape_keys.key_blocks[ob.active_shape_key_index]
-            skey.name = sname
-        return skey, ob, sname
-
 #------------------------------------------------------------------
-#   Load typed morphs base class
+#   Load standard morphs
 #------------------------------------------------------------------
 
-class LoadAllMorphs(LoadMorph):
+class StandardMorphLoader(MorphLoader):
     suppressError = True
     ignoreHD = False
 
@@ -1135,6 +672,15 @@ class LoadAllMorphs(LoadMorph):
         return True
 
 
+    def addToMorphSet(self, prop, asset, hidden):
+        addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden)
+
+
+    def removeFromMorphSet(self, prop):
+        pg = getattr(self.rig, "Daz"+self.morphset)
+        removeFromPropGroup(pg, prop)
+
+
     def getMorphFiles(self):
         try:
             return theMorphFiles[self.char][self.morphset]
@@ -1150,8 +696,19 @@ class LoadAllMorphs(LoadMorph):
         scn = context.scene
         setupMorphPaths(scn, False)
         self.rig.DazMorphPrefixes = False
+        if not GS.useCustomDrivers and self.rig and self.morphset:
+            self.removeMorphSet()
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
+
+
+    def removeMorphSet(self):
+        print("Removing morph set:", self.morphset)
+        pgs = getattr(self.rig, "Daz"+self.morphset)
+        for raw in pgs.keys():
+            if raw in self.rig.keys():
+                del self.rig[raw]
+        pgs.clear()
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -1206,7 +763,7 @@ class StandardMorphSelector(Selector):
         return self.invokeDialog(context)
 
 
-class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
     bl_idname = "daz.import_units"
     bl_label = "Import Units"
     bl_description = "Import selected face unit morphs"
@@ -1216,7 +773,7 @@ class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMe
     morphset = "Units"
 
 
-class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
     bl_idname = "daz.import_expressions"
     bl_label = "Import Expressions"
     bl_description = "Import selected expression morphs"
@@ -1226,7 +783,7 @@ class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs
     morphset = "Expressions"
 
 
-class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
     bl_idname = "daz.import_visemes"
     bl_label = "Import Visemes"
     bl_description = "Import selected viseme morphs"
@@ -1236,7 +793,7 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, LoadAllMorphs, Is
     morphset = "Visemes"
 
 
-class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
     bl_idname = "daz.import_facs"
     bl_label = "Import FACS Units"
     bl_description = "Import selected FACS unit morphs"
@@ -1246,7 +803,7 @@ class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMes
     morphset = "Facs"
 
 
-class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
     bl_idname = "daz.import_facs_expressions"
     bl_label = "Import FACS Expressions"
     bl_description = "Import selected FACS expression morphs"
@@ -1256,7 +813,7 @@ class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, LoadAllMo
     morphset = "Facsexpr"
 
 
-class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMeshArmature):
+class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
     bl_idname = "daz.import_body_morphs"
     bl_label = "Import Body Morphs"
     bl_description = "Import selected body morphs"
@@ -1266,7 +823,7 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, LoadAllMorphs,
     morphset = "Body"
 
 
-class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
+class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMesh):
     bl_idname = "daz.import_jcms"
     bl_label = "Import JCMs"
     bl_description = "Import selected joint corrective morphs"
@@ -1276,7 +833,7 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMes
     morphset = "Standardjcms"
 
 
-class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, IsMesh):
+class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMesh):
     bl_idname = "daz.import_flexions"
     bl_label = "Import Flexions"
     bl_description = "Import selected flexion morphs"
@@ -1289,7 +846,7 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, LoadAllMorphs, I
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class DAZ_OT_ImportCustomMorphs(DazOperator, LoadMorph, DazImageFile, MultiFile, IsMeshArmature):
+class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFile, IsMeshArmature):
     bl_idname = "daz.import_custom_morphs"
     bl_label = "Import Custom Morphs"
     bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"

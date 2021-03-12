@@ -610,7 +610,7 @@ class BoneInstance(Instance):
 
 
     def buildFormulas(self, rig, hide):
-        from .formula import buildBoneFormula
+        from .load_morph import buildBoneFormula
         if (self.node.formulas and
             self.name in rig.pose.bones.keys()):
             pb = rig.pose.bones[self.name]
