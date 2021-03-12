@@ -37,6 +37,7 @@ from .utils import *
 class LoadMorph:
     morphset = None
     usePropDrivers = True
+    useMults = True
 
     def __init__(self, rig, mesh):
         self.rig = rig
@@ -185,7 +186,7 @@ class LoadMorph:
 
     def multiplyMults(self, fcu, string):
         from .driver import addDriverVar
-        if self.mult:
+        if self.mult and self.useMults:
            string = "(%s)" % string
            varname = "M"
            for mult in self.mult:

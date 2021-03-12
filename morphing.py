@@ -831,6 +831,7 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader,
 
     prefix = "j"
     morphset = "Standardjcms"
+    useMults = False
 
 
 class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMesh):
