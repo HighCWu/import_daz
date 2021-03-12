@@ -277,6 +277,9 @@ def isVector(value):
 def propRef(prop):
     return '["%s"]' % prop
 
+def unPath(path):
+    return path[2:-2]
+
 def finalProp(prop):
     return "%s(fin)" % prop
 

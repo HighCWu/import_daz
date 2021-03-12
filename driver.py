@@ -358,8 +358,14 @@ def hasDriverVar(fcu, dname, rig):
     return False
 
 
-def getAllDriverVars(fcu):
-    return [var.name for var in fcu.driver.variables]
+def getDriverPaths(fcu, rig):
+    paths = {}
+    for var in fcu.driver.variables:
+        trg = var.targets[0]
+        if trg.id == rig:
+            paths[var.name] = trg.data_path
+    return paths
+
 
 
 def replaceDriverBone(assoc, rna, path):

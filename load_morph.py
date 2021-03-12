@@ -42,6 +42,7 @@ class LoadMorph:
     def __init__(self, rig, mesh):
         self.rig = rig
         self.mesh = mesh
+        self.mult = []
 
     def loadAllMorphs(self, namepaths):
         self.makeAllMorphs(namepaths)
@@ -58,6 +59,7 @@ class LoadMorph:
     def makeAllMorphs(self, namepaths):
         print("Making morphs")
         self.alias = {}
+        self.primary = {}
         self.visible = {}
         self.ecr = False
         self.drivers = {}
@@ -158,11 +160,13 @@ class LoadMorph:
         if raw not in self.drivers.keys():
             self.drivers[raw] = []
             self.visible[raw] = False
+            self.primary[raw] = False
             self.rig[raw] = 0.0
             self.rig[final] = 0.0
         if asset:
             visible = (asset.visible or GS.useMakeHiddenSliders)
             self.visible[raw] = visible
+            self.primary[raw] = True
             if asset.type == "bool":
                 setBoolProp(self.rig, raw, asset.value)
                 setBoolProp(self.rig, final, asset.value)
@@ -450,17 +454,21 @@ class LoadMorph:
             else:
                 return "+%g*%s" % (factor, varname)
 
-        from .driver import addDriverVar
+        from .driver import addDriverVar, getRnaDriver
         self.mult = []
         if raw in self.mults.keys():
             self.mult = self.mults[raw]
         final = finalProp(raw)
+        if not self.primary[raw]:
+            fcu = getRnaDriver(self.rig, propRef(final), 'SINGLE_PROP')
+            if fcu and fcu.driver.type == 'SCRIPTED':
+                self.analyzeFcurve(fcu, raw)
         self.rig.driver_remove(propRef(final))
         fcu = self.rig.driver_add(propRef(final))
         fcu.driver.type = 'SCRIPTED'
         varname = "a"
         string = ""
-        if True or self.visible[raw]:
+        if self.visible[raw] or not self.primary[raw]:
             string = varname
             addDriverVar(fcu, varname, propRef(raw), self.rig)
         for dtype,subraw,factor in drivers:
@@ -473,6 +481,19 @@ class LoadMorph:
             addDriverVar(fcu, varname, propRef(subfinal), self.rig)
         string = self.multiplyMults(fcu, string)
         fcu.driver.expression = string
+
+
+    def analyzeFcurve(self, fcu, raw):
+        # (a+b+c+..)*M*N*...
+        from .driver import getDriverPaths
+        paths = getDriverPaths(fcu, self.rig)
+        self.mult = []
+        words = fcu.driver.expression.rsplit(")*", 1)
+        if len(words) == 2:
+            mvars = words[1].split("*")
+            for mvar in mvars:
+                if mvar in paths.keys():
+                    self.mult.append(baseBone(unPath(paths[mvar])))
 
 
     def buildBoneDriver(self, raw, bname, expr):
@@ -682,7 +703,6 @@ class LoadMorph:
 def buildBoneFormula(asset, rig, errors):
 
     def buildChannel(exprs, pb, channel, default):
-        from .driver import makeSimpleBoneDriver
         lm = LoadMorph(rig, None)
         for idx,expr in exprs.items():
             factor = expr["factor"]
