@@ -455,7 +455,7 @@ class LoadMorph:
         fcu.driver.type = 'SCRIPTED'
         varname = "a"
         string = ""
-        if self.visible[raw]:
+        if True or self.visible[raw]:
             string = varname
             addDriverVar(fcu, varname, propRef(raw), self.rig)
         for dtype,subraw,factor in drivers:
