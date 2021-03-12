@@ -297,10 +297,10 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
         box = col.box()
         box.label(text = "Sliders")
-        box.prop(scn, "DazUseDazLimits")
-        box.prop(scn, "DazUseRawLimits")
-        box.prop(scn, "DazSliderMin")
-        box.prop(scn, "DazSliderMax")
+        box.prop(scn, "DazFinalLimits")
+        box.prop(scn, "DazRawLimits")
+        box.prop(scn, "DazCustomMin")
+        box.prop(scn, "DazCustomMax")
         box.prop(scn, "DazUseApproxDrvCombine")
 
         col = split.column()
@@ -424,25 +424,31 @@ def register():
         description = "Controls the number of warning messages when loading files",
         min=1, max = 5)
 
-    bpy.types.Scene.DazSliderMin = FloatProperty(
-        name = "Slider Min",
-        description = "Minimum slider value",
+    bpy.types.Scene.DazCustomMin = FloatProperty(
+        name = "Custom Min",
+        description = "Custom minimum",
         default = -2.0,
         min = -10.0, max = 0.0)
 
-    bpy.types.Scene.DazSliderMax = FloatProperty(
-        name = "Slider Max",
-        description = "Maximum slider value",
+    bpy.types.Scene.DazCustomMax = FloatProperty(
+        name = "Custom Max",
+        description = "Custom maximum",
         default = 2.0,
         min = 0.0, max = 10.0)
 
-    bpy.types.Scene.DazUseDazLimits = BoolProperty(
-        name = "DAZ Limits",
-        description = "Use min and max values from DAZ files for \"final\" sliders if available")
+    enums = [('DAZ', "DAZ", "Use min and max values from DAZ files if available"),
+             ('CUSTOM', "Custom", "Use min and max values from custom sliders"),
+             ('NONE', "None", "Don't limit sliders")]
 
-    bpy.types.Scene.DazUseRawLimits = BoolProperty(
-        name = "Raw Slider Limits",
-        description = "Use min and max values from DAZ files for \"raw\" sliders if available")
+    bpy.types.Scene.DazFinalLimits = EnumProperty(
+        items = enums,
+        name = "Final Limits",
+        description = "Min and max values for \"final\" sliders")
+
+    bpy.types.Scene.DazRawLimits = EnumProperty(
+        items = enums,
+        name = "Raw Limits",
+        description = "Min and max values for \"raw\" sliders")
 
     bpy.types.Scene.DazUseApproxDrvCombine = BoolProperty(
         name = "Combine Drivers Approximately",

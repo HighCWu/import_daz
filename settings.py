@@ -89,10 +89,10 @@ class GlobalSettings:
         self.diffuseRoughness = 0.3
         self.specularRoughness = 0.3
 
-        self.sliderMin = -2.0
-        self.sliderMax = 2.0
-        self.useDazLimits = True
-        self.useRawLimits = True
+        self.customMin = -2.0
+        self.customMax = 2.0
+        self.finalLimits = 'DAZ'
+        self.rawLimits = 'DAZ'
         self.useApproxDrvCombine = False
 
         self.useLockLoc = True
@@ -144,10 +144,10 @@ class GlobalSettings:
         "DazSpecularRoughness" : "specularRoughness",
 
         # Properties
-        "DazSliderMin" : "sliderMin",
-        "DazSliderMax" : "sliderMax",
-        "DazUseDazLimits" : "useDazLimits",
-        "DazUseRawLimits" : "useRawLimits",
+        "DazCustomMin" : "customMin",
+        "DazCustomMax" : "customMax",
+        "DazFinalLimits" : "finalLimits",
+        "DazRawLimits" : "rawLimits",
         "DazUseApproxDrvCombine" : "useApproxDrvCombine",
         "DazUseCustomDrivers" : "useCustomDrivers",
 

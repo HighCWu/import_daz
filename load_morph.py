@@ -152,7 +152,7 @@ class LoadMorph:
 
 
     def addNewProp(self, raw, asset):
-        from .driver import setFloatProp, setBoolProp
+        from .driver import setBoolProp
         from .morphing import setActivated
         final = finalProp(raw)
         if raw not in self.drivers.keys():
@@ -167,14 +167,8 @@ class LoadMorph:
                 setBoolProp(self.rig, raw, asset.value)
                 setBoolProp(self.rig, final, asset.value)
             elif asset.type == "float":
-                if GS.useRawLimits:
-                    setFloatProp(self.rig, raw, 0.0, GS.sliderMin, GS.sliderMax)
-                else:
-                    setFloatProp(self.rig, raw, 0.0, None, None)
-                if GS.useDazLimits:
-                    setFloatProp(self.rig, final, 0.0, asset.min, asset.max)
-                else:
-                    setFloatProp(self.rig, final, 0.0, GS.sliderMin, GS.sliderMax)
+                self.setFloatLimits(raw, GS.rawLimits, asset)
+                self.setFloatLimits(final, GS.finalLimits, asset)
             else:
                 print("Unknown asset type:", asset.type)
                 raise RuntimeError("BUG")
@@ -182,6 +176,16 @@ class LoadMorph:
                 setActivated(self.rig, raw, True)
                 self.addToMorphSet(raw, asset, False)
         return final
+
+
+    def setFloatLimits(self, prop, limits, asset):
+        from .driver import setFloatProp
+        if limits == 'DAZ':
+            setFloatProp(self.rig, prop, 0.0, asset.min, asset.max)
+        elif limits == 'CUSTOM':
+            setFloatProp(self.rig, prop, 0.0, GS.customMin, GS.customMax)
+        else:
+            setFloatProp(self.rig, prop, 0.0, None, None)
 
 
     def multiplyMults(self, fcu, string):

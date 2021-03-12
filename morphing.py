@@ -1607,8 +1607,8 @@ class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
     def run(self, context):
         ob = context.object
         scn = context.scene
-        GS.sliderMin = self.min
-        GS.sliderMax = self.max
+        GS.customMin = self.min
+        GS.customMax = self.max
         rig = getRigFromObject(ob)
         if rig:
             self.updatePropLimits(rig, context)
@@ -1617,8 +1617,8 @@ class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
 
 
     def invoke(self, context, event):
-        self.min = GS.sliderMin
-        self.max = GS.sliderMax
+        self.min = GS.customMin
+        self.max = GS.customMax
         return DazPropsOperator.invoke(self, context, event)
 
 
@@ -1630,11 +1630,11 @@ class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
             if ob.type == 'MESH' and ob.data.shape_keys:
                 for skey in ob.data.shape_keys.key_blocks:
                     if skey.name.lower() in props:
-                        skey.slider_min = GS.sliderMin
-                        skey.slider_max = GS.sliderMax
+                        skey.slider_min = GS.customMin
+                        skey.slider_max = GS.customMax
         for prop in rig.keys():
             if prop.lower() in props:
-                setFloatProp(rig, prop, rig[prop], GS.sliderMin, GS.sliderMax)
+                setFloatProp(rig, prop, rig[prop], GS.customMin, GS.customMax)
         updateScene(context)
         updateRig(rig, context)
         print("Slider limits updated")
@@ -1976,7 +1976,7 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, Category
         skey = skeys.key_blocks[sname]
         if getShapekeyDriver(skeys, skey.name):
             raise DazError("Shapekey %s is already driven" % skey.name)
-        setFloatProp(rig, sname, skey.value, GS.sliderMin, GS.sliderMax)
+        setFloatProp(rig, sname, skey.value, GS.customMin, GS.customMax)
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
         addDriverVar(fcu, "a", propRef(sname), rig)
