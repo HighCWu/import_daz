@@ -605,15 +605,32 @@ def findFileRecursive(folder, tfile):
 #   Transfer buttons
 #----------------------------------------------------------
 
+class DAZ_OT_TransferShapekeys(DazOperator, MorphTransferer):
+    bl_idname = "daz.transfer_shapekeys"
+    bl_label = "Transfer Shapekeys"
+    bl_description = "Transfer all shapekeys from active to selected"
+    bl_options = {'UNDO'}
+
+    usePropDriver = False
+    defaultSelect = True
+
+    def getKeys(self, rig, ob):
+        keys = []
+        for skey in ob.data.shape_keys.key_blocks[1:]:
+            keys.append((skey.name, skey.name, "All"))
+        return keys
+
+    def addToMorphSet(self, ob, prop):
+        pass
+
+
 class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
     bl_idname = "daz.transfer_other_morphs"
     bl_label = "Transfer Other Morphs"
     bl_description = "Transfer all shapekeys except JCMs (bone driven) with drivers from active to selected"
     bl_options = {'UNDO'}
 
-    useBoneDriver = False
     usePropDriver = True
-    useCorrectives = False
     defaultSelect = True
 
     def getKeys(self, rig, ob):
@@ -635,9 +652,7 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
     bl_description = "Transfer JCMs (joint corrective shapekeys) and drivers from active to selected"
     bl_options = {'UNDO'}
 
-    useBoneDriver = True
     usePropDriver = False
-    useCorrectives = True
     defaultSelect = True
 
     def invoke(self, context, event):
@@ -875,6 +890,7 @@ classes = [
     DAZ_OT_CopyVertexGroupsByNumber,
     DAZ_OT_TransferCorrectives,
     DAZ_OT_TransferOtherMorphs,
+    DAZ_OT_TransferShapekeys,
     DAZ_OT_PruneVertexGroups,
     DAZ_OT_MixShapekeys,
 ]

@@ -173,7 +173,7 @@ def getMorphs(ob, morphset, category=None, activeOnly=False):
     return mdict
 
 
-def addToMorphSet(ob, morphset, prop, asset=None, hidden=False):
+def addToMorphSet(ob, morphset, prop, asset=None, hidden=False, hideable=True):
     from .modifier import getCanonicalKey
     pg = getattr(ob, "Daz"+morphset)
     if prop in pg.keys():
@@ -187,7 +187,7 @@ def addToMorphSet(ob, morphset, prop, asset=None, hidden=False):
     else:
         label = getCanonicalKey(prop)
         visible = True
-    if hidden or not visible:
+    if hideable and (hidden or not visible):
         item.text = "[%s]" % label
     else:
         item.text = label
@@ -471,7 +471,7 @@ def getShortformList(item):
 theMorphFiles = {}
 theMorphNames = {}
 
-def getMorphFiles(char, morphset):
+def getAllMorphFiles(char, morphset):
     return list(theMorphFiles[char][morphset].values())
 
 
@@ -579,6 +579,8 @@ class DAZ_OT_Update(DazOperator):
 
     def run(self, context):
         setupMorphPaths(context.scene, True)
+        print(theMorphFiles.items())
+        print("UU", theMorphNames.items())
 
 
 class DAZ_OT_SelectAllMorphs(DazOperator):
@@ -837,6 +839,9 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader,
     morphset = "Jcms"
     useMults = False
 
+    def addToMorphSet(self, prop, asset, hidden):
+        addToMorphSet(self.mesh, self.morphset, prop, asset, hideable=False)
+
 
 class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMesh):
     bl_idname = "daz.import_flexions"
@@ -846,6 +851,10 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoa
 
     prefix = "k"
     morphset = "Flexions"
+    useMults = False
+
+    def addToMorphSet(self, prop, asset, hidden):
+        addToMorphSet(self.mesh, self.morphset, prop, asset, hideable=False)
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -1749,7 +1758,7 @@ class MorphRemover(DeleteShapekeysBool):
         if rig:
             props = self.getSelectedProps(scn)
             print("Remove", props)
-            paths = [propRef(prop) for prop in props]
+            paths = [propRef(finalProp(prop)) for prop in props]
             for ob in rig.children:
                 if ob.type == 'MESH' and ob.data.shape_keys:
                     self.removeShapekeyDrivers(ob, paths, props, rig)

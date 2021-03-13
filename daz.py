@@ -270,50 +270,52 @@ class QuickImportDAZ(DazOperator, DazOptions):
             print("Merge materials")
             bpy.ops.daz.merge_materials()
 
-        if mainChar and mainRig:
+        if mainChar and mainRig and mainMesh:
             from .fileutils import setSelection
-            from .morphing import getMorphFiles, setupMorphPaths
+            from .morphing import getAllMorphFiles, setupMorphPaths
             activateObject(context, mainRig)
             setupMorphPaths(context.scene, False)
             if self.units:
-                mfiles = getMorphFiles(mainChar, "Units")
+                mfiles = getAllMorphFiles(mainChar, "Units")
                 setSelection(mfiles)
                 print("Import face units")
                 bpy.ops.daz.import_units()
             if self.expressions:
-                mfiles = getMorphFiles(mainChar, "Expressions")
+                mfiles = getAllMorphFiles(mainChar, "Expressions")
                 setSelection(mfiles)
                 print("Import expressions")
                 bpy.ops.daz.import_expressions()
             if self.visemes:
-                mfiles = getMorphFiles(mainChar, "Visemes")
+                mfiles = getAllMorphFiles(mainChar, "Visemes")
                 setSelection(mfiles)
                 print("Import visemes")
                 bpy.ops.daz.import_visemes()
             if self.facs:
-                mfiles = getMorphFiles(mainChar, "Facs")
+                mfiles = getAllMorphFiles(mainChar, "Facs")
                 setSelection(mfiles)
                 print("Import FACS")
                 bpy.ops.daz.import_facs()
             if self.jcms:
-                mfiles = getMorphFiles(mainChar, "Jcms")
+                mfiles = getAllMorphFiles(mainChar, "Jcms")
                 setSelection(mfiles)
                 print("Import JCMs")
                 bpy.ops.daz.import_jcms()
-                if geografts:
-                    activateObject(context, mainMesh)
-                    for ob in geografts:
-                        ob.select_set(True)
-                    bpy.ops.daz.transfer_jcms()
-                    activateObject(context, mainRig)
             if self.flexions:
-                mfiles = getMorphFiles(mainChar, "Flexions")
+                mfiles = getAllMorphFiles(mainChar, "Flexions")
                 setSelection(mfiles)
                 print("Import flexions")
                 bpy.ops.daz.import_flexions()
 
         if geografts and self.mergeGeografts:
             activateObject(context, mainMesh)
+            skeys = mainMesh.data.shape_keys
+            if skeys:
+                snames = [skey.name for skey in skeys.key_blocks[1:]]
+                for ob in geografts:
+                    ob.select_set(True)
+                setSelection(snames)
+                bpy.ops.daz.transfer_shapekeys()
+                activateObject(context, mainMesh)
             for ob in geografts:
                 ob.select_set(True)
             print("Merge geografts")
