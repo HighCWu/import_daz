@@ -61,7 +61,7 @@ class GlobalSettings:
         self.verbosity = 2
         self.useDump = False
         self.zup = True
-        self.useCustomDrivers = False
+        self.useCustomDrivers = True
         self.useMakeHiddenSliders = False
 
         self.materialMethod = 'BSDF'
