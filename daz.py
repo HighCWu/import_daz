@@ -296,7 +296,7 @@ class QuickImportDAZ(DazOperator, DazOptions):
                 print("Import FACS")
                 bpy.ops.daz.import_facs()
             if self.jcms:
-                mfiles = getMorphFiles(mainChar, "Standardjcms")
+                mfiles = getMorphFiles(mainChar, "Jcms")
                 setSelection(mfiles)
                 print("Import JCMs")
                 bpy.ops.daz.import_jcms()
@@ -340,13 +340,13 @@ class QuickImportDAZ(DazOperator, DazOptions):
                 bpy.ops.daz.convert_to_rigify(deleteMeta=True)
                 mainRig = context.object
 
-        if mainMesh and self.mannequin != 'NONE':
+        if mainRig and mainMesh and self.mannequin != 'NONE':
             activateObject(context, mainMesh)
             if self.mannequin == 'ALL':
                 for ob in meshes:
                     ob.select_set(True)
             print("Make mannequin")
-            bpy.ops.daz.add_mannequin()
+            bpy.ops.daz.add_mannequin(useGroup=True, group="%s Mannequin" % mainRig.name)
 
         setSilentMode(False)
         if mainRig:

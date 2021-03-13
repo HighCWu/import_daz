@@ -654,7 +654,7 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
 
     def addToMorphSet(self, ob, prop):
         from .morphing import addToMorphSet
-        addToMorphSet(ob, "Standardjcms", prop)
+        addToMorphSet(ob, "Jcms", prop)
 
 #----------------------------------------------------------
 #   Mix Shapekeys

@@ -19,7 +19,7 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 3/Female/Morphs/DAZ 3D/Base Pose/"
 	},
-	"standardjcms" : {
+	"jcms" : {
 		"prefix" : "pjcm",
 		"include" : ["pjcm"],
 		"exclude" : [],

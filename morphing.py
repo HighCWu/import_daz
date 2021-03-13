@@ -43,7 +43,7 @@ from .load_morph import LoadMorph
 
 theStandardMorphSets = ["Units", "Expressions", "Visemes", "Facs", "Facsexpr", "Body"]
 theCustomMorphSets = ["Custom"]
-theJCMMorphSets = ["Standardjcms", "Flexions"]
+theJCMMorphSets = ["Jcms", "Flexions"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
 theMorphEnums = []
 
@@ -124,7 +124,7 @@ def getMorphs(ob, morphset, category=None, activeOnly=False):
     Arguments:
     ?ob: Object (armature or mesh) which owns the morphs
 
-    ?type: Either a string in ["Units", "Expressions", "Visemes", "Facs", "Facsexpr", "Body", "Custom", "Standardjcms", "Flexions"],
+    ?type: Either a string in ["Units", "Expressions", "Visemes", "Facs", "Facsexpr", "Body", "Custom", "Jcms", "Flexions"],
         or a list of such strings, or the keyword "All" signifying all morphset in the list.
 
     ?category (optional): The category name for Custom morphs.
@@ -834,7 +834,7 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader,
     bl_options = {'UNDO'}
 
     prefix = "j"
-    morphset = "Standardjcms"
+    morphset = "Jcms"
     useMults = False
 
 
@@ -1363,7 +1363,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, MorphsetString, IsMeshArmature):
                  "DzE" : "Expressions",
                  "DzV" : "Visemes",
                  "DzP" : "Body",
-                 "DzC" : "Standardjcms",
+                 "DzC" : "Jcms",
                  "DzF" : "Flexions",
                  "DzM" : "Custom",
                  "Mhh" : "Visibility"
