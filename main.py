@@ -159,11 +159,13 @@ def getMainAsset(filepath, context, btn):
         clearErrorMessage()
         handleDazError(context, warning=True, dump=True)
         print(msg)
+        LS.warning = True
         raise DazError(msg, warning=True)
 
     from .material import checkRenderSettings
     msg = checkRenderSettings(context, False)
     if msg:
+        LS.warning = True
         raise DazError(msg, warning=True)
 
 

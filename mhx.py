@@ -297,7 +297,7 @@ def applyBoneChildren(context, rig):
 from .fix import ConstraintStore, BendTwists, Fixer
 
 class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, IsArmature):
-    bl_idname = "daz.convert_mhx"
+    bl_idname = "daz.convert_to_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
     bl_options = {'UNDO'}
@@ -351,9 +351,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     ]
 
     DrivenParents = {
-        "lowerFaceRig" :    "lowerJaw",
-        "lowerTeethDrv" :   "lowerJaw",
-        "tongue01Drv" :     "lowerTeeth",
+        "lowerFaceRig" :        "lowerJaw",
+        drvBone("lowerTeeth") : "lowerJaw",
+        drvBone("tongue01") :   "lowerTeeth",
     }
 
     LegacyNames = {

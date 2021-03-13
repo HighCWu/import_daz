@@ -287,6 +287,9 @@ class Figure(Node):
         amt = self.data = bpy.data.armatures.new(inst.name)
         self.buildObject(context, inst, center)
         rig = self.rna
+        LS.rigs.append(rig)
+        if LS.mainRig is None:
+            LS.mainRig = rig
         setattr(amt, DrawType, 'STICK')
         setattr(rig, ShowXRay, True)
         rig.DazOrientMethod = GS.orientMethod

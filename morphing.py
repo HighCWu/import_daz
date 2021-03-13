@@ -471,6 +471,10 @@ def getShortformList(item):
 theMorphFiles = {}
 theMorphNames = {}
 
+def getMorphFiles(char, morphset):
+    return list(theMorphFiles[char][morphset].values())
+
+
 def setupMorphPaths(scn, force):
     global theMorphFiles, theMorphNames
     from collections import OrderedDict

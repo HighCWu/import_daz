@@ -61,6 +61,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             drawUpdateButton(self, context)
 
         layout.operator("daz.import_daz")
+        layout.operator("daz.quick_import_daz")
         layout.separator()
         layout.operator("daz.global_settings")
 
@@ -142,9 +143,9 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.add_custom_shapes")
             box.operator("daz.add_simple_ik")
             box.separator()
-            box.operator("daz.convert_mhx")
+            box.operator("daz.convert_to_mhx")
             box.separator()
-            box.operator("daz.rigify_daz")
+            box.operator("daz.convert_to_rigify")
             box.operator("daz.create_meta")
             box.operator("daz.rigify_meta")
             box.separator()

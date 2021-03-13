@@ -47,12 +47,7 @@ EnumsHair = [('HAIR_BSDF', "Hair BSDF", "Hair BSDF (Cycles)"),
 #   Import DAZ
 #------------------------------------------------------------------
 
-class ImportDAZ(DazOperator, DazImageFile, SingleFile):
-    """Import a DAZ DUF/DSF File"""
-    bl_idname = "daz.import_daz"
-    bl_label = "Import DAZ File"
-    bl_description = "Import a native DAZ file (*.duf, *.dsf, *.dse)"
-    bl_options = {'PRESET', 'UNDO'}
+class DazOptions(DazImageFile, SingleFile):
 
     skinColor : FloatVectorProperty(
         name = "Skin",
@@ -81,24 +76,12 @@ class ImportDAZ(DazOperator, DazImageFile, SingleFile):
         description = "Mesh fitting method",
         default = 'DBZFILE')
 
-
-    def run(self, context):
-        from .main import getMainAsset
-        getMainAsset(self.filepath, context, self)
-
-
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
     def draw(self, context):
-        layout = self.layout
         box = self.layout.box()
         box.label(text = "Mesh Fitting")
         box.prop(self, "fitMeshes", expand=True)
-        layout.separator()
-        box = layout.box()
+        self.layout.separator()
+        box = self.layout.box()
         box.label(text = "Viewport Color")
         if GS.viewportColors == 'GUESS':
             row = box.row()
@@ -106,9 +89,268 @@ class ImportDAZ(DazOperator, DazImageFile, SingleFile):
             row.prop(self, "clothesColor")
         else:
             box.label(text = GS.viewportColors)
-        layout.separator()
-        box = layout.box()
+
+
+class ImportDAZ(DazOperator, DazOptions):
+    """Import a DAZ DUF/DSF File"""
+    bl_idname = "daz.import_daz"
+    bl_label = "Import DAZ File"
+    bl_description = "Import a native DAZ file (*.duf, *.dsf, *.dse)"
+    bl_options = {'PRESET', 'UNDO'}
+
+    def run(self, context):
+        from .main import getMainAsset
+        getMainAsset(self.filepath, context, self)
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    def draw(self, context):
+        DazOptions.draw(self, context)
+        self.layout.separator()
+        box = self.layout.box()
         box.label(text = "For more options, see Global Settings.")
+
+
+class QuickImportDAZ(DazOperator, DazOptions):
+    bl_idname = "daz.quick_import_daz"
+    bl_label = "Quick Import DAZ File"
+    bl_description = "Import a native DAZ file and perform the most common operations"
+    bl_options = {'UNDO'}
+
+    rigType : EnumProperty(
+        items = [('DAZ', "DAZ", "Original DAZ rig"),
+                 ('CUSTOM', "Custom Shapes", "Original DAZ rig with custom shapes"),
+                 ('MHX', "MHX", "MHX rig"),
+                 ('RIGIFY', "Rigify", "Rigify")],
+        name = "Rig Type",
+        default = 'DAZ')
+
+    mannequin : EnumProperty(
+        items = [('NONE', "None", "Don't make mannequins"),
+                 ('NUDE', "Nude", "Make mannequin for main mesh only"),
+                 ('ALL', "All", "Make mannequin from all meshes")],
+        name = "Mannequin",
+        default = 'NONE')
+
+    mergeRigs : BoolProperty(
+        name = "Merge Rigs",
+        default = True)
+
+    mergeToes : BoolProperty(
+        name = "Merge Toes",
+        default = False)
+
+    mergeGeografts : BoolProperty(
+        name = "Merge Geografts",
+        default = True)
+
+    extraFaceBones : BoolProperty(
+        name = "Extra Face Bones",
+        default = False)
+
+    makeAllBonesPosable : BoolProperty(
+        name = "Make All Bones Posable",
+        default = False)
+
+    units : BoolProperty(
+        name = "Face Units",
+        default = True)
+
+    expressions : BoolProperty(
+        name = "Expresions",
+        default = True)
+
+    visemes : BoolProperty(
+        name = "Visemes",
+        default = True)
+
+    facs : BoolProperty(
+        name = "FACS",
+        default = False)
+
+    jcms : BoolProperty(
+        name = "JCMs",
+        default = False)
+
+    flexions : BoolProperty(
+        name = "Flexions",
+        default = False)
+
+    def draw(self, context):
+        DazOptions.draw(self, context)
+        self.layout.separator()
+        self.layout.prop(self, "rigType")
+        self.layout.prop(self, "mannequin")
+        self.layout.prop(self, "mergeRigs")
+        self.layout.prop(self, "mergeToes")
+        self.layout.prop(self, "mergeGeografts")
+        self.layout.prop(self, "extraFaceBones")
+        self.layout.prop(self, "makeAllBonesPosable")
+        self.layout.prop(self, "units")
+        self.layout.prop(self, "expressions")
+        self.layout.prop(self, "visemes")
+        self.layout.prop(self, "facs")
+        self.layout.prop(self, "jcms")
+        self.layout.prop(self, "flexions")
+
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
+    def run(self, context):
+        from .error import setSilentMode
+        try:
+            bpy.ops.daz.import_daz(
+                filepath = self.filepath,
+                skinColor = self.skinColor,
+                clothesColor = self.clothesColor,
+                fitMeshes = self.fitMeshes)
+        except:
+            if LS.warning:
+                print("Warning:", LS.warning)
+            else:
+                raise DazError("Import failed")
+
+        if not LS.objects:
+            raise DazError("No objects found")
+        setSilentMode(True)
+        mainRig = LS.mainRig
+        mainMesh = LS.mainMesh
+        rigs = LS.rigs
+        geografts = []
+        if mainMesh and self.mergeGeografts:
+            meshes = []
+            for ob in LS.meshes:
+                if ob.data.DazGraftGroup:
+                    geografts.append(ob)
+                else:
+                    meshes.append(ob)
+        else:
+            meshes = LS.meshes
+
+        if mainRig:
+            from .finger import getFingeredCharacter
+            _,_,mainChar = getFingeredCharacter(mainRig)
+        else:
+            mainChar = None
+        if mainChar:
+            print("Main character:", mainChar)
+        else:
+            print("Did not recognize main character")
+
+        empties = []
+        for ob in LS.objects:
+            if ob.type == None:
+                empties.append(ob)
+
+        if mainRig:
+            activateObject(context, mainRig)
+            for rig in rigs:
+                rig.select_set(True)
+            if self.mergeRigs and len(rigs) > 1:
+                print("Merge rigs")
+                bpy.ops.daz.merge_rigs()
+                mainRig = context.object
+                rigs = [mainRig]
+
+            activateObject(context, mainRig)
+            bpy.ops.daz.eliminate_empties()
+            if self.mergeToes:
+                print("Merge toes")
+                bpy.ops.daz.merge_toes()
+
+        if mainMesh:
+            activateObject(context, mainMesh)
+            for ob in meshes:
+                ob.select_set(True)
+            print("Merge materials")
+            bpy.ops.daz.merge_materials()
+
+        if mainChar and mainRig:
+            from .fileutils import setSelection
+            from .morphing import getMorphFiles, setupMorphPaths
+            activateObject(context, mainRig)
+            setupMorphPaths(context.scene, False)
+            if self.units:
+                mfiles = getMorphFiles(mainChar, "Units")
+                setSelection(mfiles)
+                print("Import face units")
+                bpy.ops.daz.import_units()
+            if self.expressions:
+                mfiles = getMorphFiles(mainChar, "Expressions")
+                setSelection(mfiles)
+                print("Import expressions")
+                bpy.ops.daz.import_expressions()
+            if self.visemes:
+                mfiles = getMorphFiles(mainChar, "Visemes")
+                setSelection(mfiles)
+                print("Import visemes")
+                bpy.ops.daz.import_visemes()
+            if self.facs:
+                mfiles = getMorphFiles(mainChar, "Facs")
+                setSelection(mfiles)
+                print("Import FACS")
+                bpy.ops.daz.import_facs()
+            if self.jcms:
+                mfiles = getMorphFiles(mainChar, "Standardjcms")
+                setSelection(mfiles)
+                print("Import JCMs")
+                bpy.ops.daz.import_jcms()
+                if geografts:
+                    activateObject(context, mainMesh)
+                    for ob in geografts:
+                        ob.select_set(True)
+                    bpy.ops.daz.transfer_jcms()
+                    activateObject(context, mainRig)
+            if self.flexions:
+                mfiles = getMorphFiles(mainChar, "Flexions")
+                setSelection(mfiles)
+                print("Import flexions")
+                bpy.ops.daz.import_flexions()
+
+        if geografts and self.mergeGeografts:
+            activateObject(context, mainMesh)
+            for ob in geografts:
+                ob.select_set(True)
+            print("Merge geografts")
+            bpy.ops.daz.merge_geografts()
+
+        if mainRig:
+            activateObject(context, mainRig)
+            if self.extraFaceBones:
+                print("Add extra face bones")
+                bpy.ops.daz.add_extra_face_bones()
+            if self.makeAllBonesPosable:
+                print("Make all bones posable")
+                bpy.ops.daz.make_all_bones_posable()
+
+        if mainRig:
+            activateObject(context, mainRig)
+            if self.rigType == 'CUSTOM':
+                print("Add custom shapes")
+                bpy.ops.daz.add_custom_shapes()
+            elif self.rigType == 'MHX':
+                print("Convert to MHX")
+                bpy.ops.daz.convert_to_mhx()
+            elif self.rigType == 'RIGIFY':
+                bpy.ops.daz.convert_to_rigify(deleteMeta=True)
+                mainRig = context.object
+
+        if mainMesh and self.mannequin != 'NONE':
+            activateObject(context, mainMesh)
+            if self.mannequin == 'ALL':
+                for ob in meshes:
+                    ob.select_set(True)
+            print("Make mannequin")
+            bpy.ops.daz.add_mannequin()
+
+        setSilentMode(False)
+        if mainRig:
+            activateObject(context, mainRig)
 
 #-------------------------------------------------------------
 #   Silent mode
@@ -375,6 +617,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
 classes = [
     ImportDAZ,
+    QuickImportDAZ,
     DAZ_OT_SetSilentMode,
 
     DAZ_OT_AddContentDir,

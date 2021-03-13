@@ -438,6 +438,13 @@ class LocalSettings:
             "Volume" : False,
         }
 
+        self.mainRig = None
+        self.mainMesh = None
+        self.rigs = []
+        self.meshes = []
+        self.objects = []
+        self.warning = False
+
 
     def __repr__(self):
         string = "<Local Settings"

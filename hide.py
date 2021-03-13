@@ -213,9 +213,6 @@ def getRigCollection(rig):
     for coll in bpy.data.collections:
         if rig in coll.objects.values():
             return coll
-            for ob in rig.children:
-                if ob in coll.all_objects.values():
-                    return collection
     return None
 
 

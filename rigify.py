@@ -227,8 +227,6 @@ def setupTables(meta):
     BreastBones = {
     "breast.L" :        "lPectoral",
     "breast.R" :        "rPectoral",
-    #"breastDrv.L" :     "lPectoralDrv",
-    #"breastDrv.R" :     "rPectoralDrv",
     }
     if meta.DazUseBreasts:
         RigifySkeleton = addDicts([RigifySkeleton, BreastBones])
@@ -838,6 +836,7 @@ class Rigify:
         from .node import setParent, clearParent
         from .propgroups import copyPropGroups
         from .mhx import unhideAllObjects, getBoneLayer, changeAllTargets
+        from .hide import getRigCollection
 
         print("Rigify metarig")
         meta = context.object
@@ -882,7 +881,8 @@ class Rigify:
         extras = self.setupExtras(rig, rigifySkel, spineBones)
         if meta.DazUseBreasts:
             for prefix in ["l", "r"]:
-                extras[prefix+"PectoralDrv"] = prefix+"PectoralDrv"
+                dname = drvBone(prefix+"Pectoral")
+                extras[dname] = dname
 
         driven = {}
         for pb in rig.pose.bones:
@@ -939,7 +939,7 @@ class Rigify:
 
         if meta.DazUseBreasts:
             for prefix,suffix in [("l", ".L"), ("r", ".R")]:
-                db = gen.data.edit_bones[prefix + "PectoralDrv"]
+                db = gen.data.edit_bones[drvBone(prefix + "Pectoral")]
                 eb = gen.data.edit_bones["breast" + suffix]
                 db.parent = eb.parent
                 eb.parent = db
@@ -1068,6 +1068,13 @@ class Rigify:
         setattr(gen, ShowXRay, True)
         gen.DazRig = meta.DazRigType
         name = rig.name
+        coll = getRigCollection(rig)
+        if coll:
+            coll.objects.link(gen)
+            coll.objects.link(meta)
+            if gen.name in scn.collection.objects:
+                scn.collection.objects.unlink(gen)
+                scn.collection.objects.unlink(meta)
         activateObject(context, rig)
         deleteObjects(context, [rig])
         if deleteMeta:
@@ -1190,8 +1197,8 @@ class Meta:
     )
 
 
-class DAZ_OT_RigifyDaz(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
-    bl_idname = "daz.rigify_daz"
+class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
+    bl_idname = "daz.convert_to_rigify"
     bl_label = "Convert To Rigify"
     bl_description = "Convert active rig to rigify"
     bl_options = {'UNDO'}
@@ -1293,7 +1300,7 @@ class DAZ_OT_ListBones(DazOperator, IsArmature):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_RigifyDaz,
+    DAZ_OT_ConvertToRigify,
     DAZ_OT_CreateMeta,
     DAZ_OT_RigifyMetaRig,
     DAZ_OT_ListBones,

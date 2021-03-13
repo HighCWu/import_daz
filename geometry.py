@@ -108,6 +108,10 @@ class GeoNode(Node):
     def buildObject(self, context, inst, center):
         Node.buildObject(self, context, inst, center)
         ob = self.rna
+        if ob:
+            LS.meshes.append(ob)
+            if LS.mainMesh is None:
+                LS.mainMesh = ob
         self.storeRna(ob)
 
 

@@ -52,7 +52,7 @@ class FastMatcher:
         ob = self.trihuman = None
         if triangulate:
             ob = bpy.data.objects.new("_TRIHUMAN", src.data.copy())
-            linkObject(context, ob)
+            context.scene.collection.objects.link(ob)
             activateObject(context, ob)
             bpy.ops.object.mode_set(mode='EDIT')
             bpy.ops.mesh.select_all(action='SELECT')
@@ -282,6 +282,9 @@ class MorphTransferer(Selector, FastMatcher, TransferOptions):
         nskeys = len(snames)
         for idx,sname in enumerate(snames):
             showProgress(idx, nskeys)
+            if sname not in hskeys.key_blocks.keys():
+                print(" ? ", sname)
+                continue
             hskey = hskeys.key_blocks[sname]
 
             if self.useDriver:

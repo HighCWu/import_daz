@@ -62,9 +62,6 @@ if True:
         return [ob for ob in context.scene.collection.all_objects
                 if ob.select_get() and ob.type == 'ARMATURE' and not (ob.hide_get() or ob.hide_viewport)]
 
-    def linkObject(context, ob):
-        context.scene.collection.objects.link(ob)
-
     def getActiveObject(context):
         return context.view_layer.objects.active
 
