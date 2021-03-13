@@ -146,6 +146,10 @@ class QuickImportDAZ(DazOperator, DazOptions):
         name = "Merge Geografts",
         default = True)
 
+    mergeLashes : BoolProperty(
+        name = "Merge Lashes",
+        default = True)
+
     extraFaceBones : BoolProperty(
         name = "Extra Face Bones",
         default = False)
@@ -186,6 +190,7 @@ class QuickImportDAZ(DazOperator, DazOptions):
         self.layout.prop(self, "mergeRigs")
         self.layout.prop(self, "mergeToes")
         self.layout.prop(self, "mergeGeografts")
+        self.layout.prop(self, "mergeLashes")
         self.layout.prop(self, "extraFaceBones")
         self.layout.prop(self, "makeAllBonesPosable")
         self.layout.prop(self, "units")
@@ -203,6 +208,7 @@ class QuickImportDAZ(DazOperator, DazOptions):
 
     def run(self, context):
         from .error import setSilentMode
+        from .merge import getLashes
         try:
             bpy.ops.daz.import_daz(
                 filepath = self.filepath,
@@ -221,17 +227,7 @@ class QuickImportDAZ(DazOperator, DazOptions):
         mainRig = LS.mainRig
         mainMesh = LS.mainMesh
         rigs = LS.rigs
-        geografts = []
-        if mainMesh and self.mergeGeografts:
-            meshes = []
-            for ob in LS.meshes:
-                if ob.data.DazGraftGroup:
-                    geografts.append(ob)
-                else:
-                    meshes.append(ob)
-        else:
-            meshes = LS.meshes
-
+        meshes = LS.meshes
         if mainRig:
             from .finger import getFingeredCharacter
             _,_,mainChar = getFingeredCharacter(mainRig)
@@ -262,6 +258,24 @@ class QuickImportDAZ(DazOperator, DazOptions):
             if self.mergeToes:
                 print("Merge toes")
                 bpy.ops.daz.merge_toes()
+
+        geografts = []
+        lashes = []
+        if mainMesh and mainRig:
+            nmeshes = []
+            lmeshes = getLashes(mainRig, mainMesh)
+            for ob in meshes:
+                if ob.data.DazGraftGroup and self.mergeGeografts:
+                    geografts.append(ob)
+                elif ob in lmeshes and self.mergeLashes:
+                    lashes.append(ob)
+                else:
+                    nmeshes.append(ob)
+            meshes = nmeshes
+        print("MM", meshes)
+        print("LL", lashes)
+        print("GG", geografts)
+
 
         if mainMesh:
             activateObject(context, mainMesh)
@@ -306,20 +320,21 @@ class QuickImportDAZ(DazOperator, DazOptions):
                 print("Import flexions")
                 bpy.ops.daz.import_flexions()
 
-        if geografts and self.mergeGeografts:
+        if geografts:
+            self.transferShapes(context, mainMesh, geografts)
             activateObject(context, mainMesh)
-            skeys = mainMesh.data.shape_keys
-            if skeys:
-                snames = [skey.name for skey in skeys.key_blocks[1:]]
-                for ob in geografts:
-                    ob.select_set(True)
-                setSelection(snames)
-                bpy.ops.daz.transfer_shapekeys()
-                activateObject(context, mainMesh)
             for ob in geografts:
                 ob.select_set(True)
             print("Merge geografts")
             bpy.ops.daz.merge_geografts()
+
+        if lashes:
+            self.transferShapes(context, mainMesh, lashes)
+            activateObject(context, mainMesh)
+            for ob in lashes:
+                ob.select_set(True)
+            print("Merge lashes")
+            bpy.ops.daz.merge_lashes()
 
         if mainRig:
             activateObject(context, mainRig)
@@ -353,6 +368,18 @@ class QuickImportDAZ(DazOperator, DazOptions):
         setSilentMode(False)
         if mainRig:
             activateObject(context, mainRig)
+
+
+    def transferShapes(self, context, ob, meshes):
+        from .fileutils import setSelection
+        activateObject(context, ob)
+        skeys = ob.data.shape_keys
+        if skeys:
+            snames = [skey.name for skey in skeys.key_blocks[1:]]
+            for mesh in meshes:
+                mesh.select_set(True)
+            setSelection(snames)
+            bpy.ops.daz.transfer_shapekeys()
 
 #-------------------------------------------------------------
 #   Silent mode

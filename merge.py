@@ -400,33 +400,73 @@ class DAZ_OT_MergeUVLayers(DazPropsOperator, IsMesh):
         self.layout.prop(self, "layer1")
         self.layout.prop(self, "layer2")
 
-
     def run(self, context):
-        me = context.object.data
         keepIdx = int(self.layer1)
         mergeIdx = int(self.layer2)
         if keepIdx == mergeIdx:
             raise DazError("Keep and merge UV layers are equal")
-        keepLayer = me.uv_layers[keepIdx]
-        mergeLayer = me.uv_layers[mergeIdx]
-        for n,data in enumerate(mergeLayer.data):
-            if data.uv.length > 1e-6:
-                keepLayer.data[n].uv = data.uv
-
-        for mat in me.materials:
-            if mat.use_nodes:
-                replaceNodeNames(mat, mergeLayer.name, keepLayer.name)
-
-        if bpy.app.version < (2,80,0):
-            me.uv_textures.active_index = keepIdx
-            me.uv_textures.remove(me.uv_textures[mergeIdx])
-        else:
-            me.uv_layers.active_index = keepIdx
-            me.uv_layers.remove(mergeLayer)
+        mergeUVLayers(context.object.data, keepIdx, mergeIdx)
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
         print("UV layers joined")
+
+
+def mergeUVLayers(me, keepIdx, mergeIdx):
+    keepLayer = me.uv_layers[keepIdx]
+    mergeLayer = me.uv_layers[mergeIdx]
+    for n,data in enumerate(mergeLayer.data):
+        if data.uv.length > 1e-6:
+            keepLayer.data[n].uv = data.uv
+    for mat in me.materials:
+        if mat.use_nodes:
+            replaceNodeNames(mat, mergeLayer.name, keepLayer.name)
+    me.uv_layers.active_index = keepIdx
+    me.uv_layers.remove(mergeLayer)
+
+#-------------------------------------------------------------
+#   Merge lashes
+#-------------------------------------------------------------
+
+class DAZ_OT_MergeLashes(DazOperator, IsMesh):
+    bl_idname = "daz.merge_lashes"
+    bl_label = "Merge Lashes"
+    bl_description = "Merge eyelashes and other facial hair to mesh"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        from .morphing import getRigFromObject
+        ob = context.object
+        rig = getRigFromObject(ob)
+        if rig is None:
+           raise DazError("No rig found")
+        meshes = getLashes(rig, ob)
+        activateObject(context, ob)
+        nlayers = len(ob.data.uv_layers)
+        for mesh in meshes:
+            mesh.select_set(True)
+        bpy.ops.object.join()
+        idxs = list(range(nlayers, len(ob.data.uv_layers)))
+        idxs.reverse()
+        for idx in idxs:
+            mergeUVLayers(ob.data, 0, idx)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        print("Lashes merged")
+
+
+def getLashes(rig, ob):
+    from .figure import getAnchoredBoneNames
+    bnames = getAnchoredBoneNames(rig, ["upperFaceRig", "lowerFaceRig"])
+    meshes = []
+    for mesh in rig.children:
+        if mesh != ob:
+            for bname in bnames:
+                if bname in mesh.vertex_groups.keys():
+                    meshes.append(mesh)
+                    break
+    return meshes
 
 #-------------------------------------------------------------
 #   Get selected rigs
@@ -1160,6 +1200,7 @@ classes = [
     DAZ_OT_MergeGeografts,
     DAZ_OT_CreateGraftGroups,
     DAZ_OT_MergeUVLayers,
+    DAZ_OT_MergeLashes,
     DAZ_OT_CopyPoses,
     DAZ_OT_MergeRigs,
     DAZ_OT_EliminateEmpties,

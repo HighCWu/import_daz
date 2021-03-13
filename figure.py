@@ -623,7 +623,6 @@ class DAZ_OT_SetAddExtraFaceBones(DazOperator, ExtraBones, IsArmature):
     attr = "DazExtraFaceBones"
 
     def getBoneNames(self, rig):
-        from .driver import isBoneDriven
         inface = [
             "lEye", "rEye",
             "lowerJaw", "upperTeeth", "lowerTeeth", "lowerFaceRig",
@@ -631,18 +630,26 @@ class DAZ_OT_SetAddExtraFaceBones(DazOperator, ExtraBones, IsArmature):
             "tongue05", "tongue06", "tongueBase", "tongueTip",
         ]
         keys = rig.pose.bones.keys()
-        facebones = [bname for bname in inface
-            if bname in keys and drvBone(bname) not in keys]
-        for anchor in ["upperFaceRig", "lowerFaceRig"]:
-            if anchor in keys:
-                for pb in rig.pose.bones:
-                    if (not isDrvBone(pb.name) and
-                        drvBone(pb.name) not in keys and
-                        pb.parent and
-                        pb.parent.name == anchor and
-                        not isBoneDriven(rig, pb)):
-                        facebones.append(pb.name)
-        return facebones
+        bnames = [bname for bname in inface
+                  if bname in keys and drvBone(bname) not in keys]
+        bnames += getAnchoredBoneNames(rig, ["upperFaceRig", "lowerFaceRig"])
+        return bnames
+
+
+def getAnchoredBoneNames(rig, anchors):
+    from .driver import isBoneDriven
+    bnames = []
+    keys = rig.pose.bones.keys()
+    for anchor in anchors:
+        if anchor in keys:
+            for pb in rig.pose.bones:
+                if (not isDrvBone(pb.name) and
+                    drvBone(pb.name) not in keys and
+                    pb.parent and
+                    pb.parent.name == anchor and
+                    not isBoneDriven(rig, pb)):
+                    bnames.append(pb.name)
+    return bnames
 
 
 class DAZ_OT_MakeAllBonesPosable(DazOperator, ExtraBones, IsArmature):
