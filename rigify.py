@@ -377,6 +377,24 @@ def addDicts(structs):
 
 
 class Rigify:
+    useAutoAlign : BoolProperty(
+        name = "Auto Align Hand/Foot",
+        description = "Auto align hand and foot (Rigify parameter)",
+        default = False
+    )
+
+    useCustomLayers : BoolProperty(
+        name = "Custom Layers",
+        description = "Display layers for face and custom bones.\nNot for Rigify legacy",
+        default = True
+    )
+
+    useKeepRig : BoolProperty(
+        name = "Keep DAZ Rig",
+        description = "Keep existing armature and meshes in a new collection",
+        default = False
+    )
+
     GroupBones = [("Face ", R_FACE, 2, 6),
                   ("Face (detail) ", R_DETAIL, 2, 3),
                   ("Custom ", R_CUSTOM, 13, 6)]
@@ -831,7 +849,7 @@ class Rigify:
         return meta
 
 
-    def rigifyMeta(self, context, deleteMeta):
+    def rigifyMeta(self, context):
         from .driver import getBoneDrivers, getPropDrivers, copyDriver
         from .node import setParent, clearParent
         from .propgroups import copyPropGroups
@@ -1065,7 +1083,7 @@ class Rigify:
                 scn.collection.objects.unlink(meta)
         activateObject(context, rig)
         deleteObjects(context, [rig])
-        if deleteMeta:
+        if self.useDeleteMeta:
             activateObject(context, meta)
             deleteObjects(context, [meta])
         activateObject(context, gen)
@@ -1165,33 +1183,13 @@ class Rigify:
 #  Buttons
 #-------------------------------------------------------------
 
-class Meta:
-    useAutoAlign : BoolProperty(
-        name = "Auto Align Hand/Foot",
-        description = "Auto align hand and foot (Rigify parameter)",
-        default = False
-    )
-
-    useCustomLayers : BoolProperty(
-        name = "Custom Layers",
-        description = "Display layers for face and custom bones.\nNot for Rigify legacy",
-        default = True
-    )
-
-    useKeepRig : BoolProperty(
-        name = "Keep DAZ Rig",
-        description = "Keep existing armature and meshes in a new collection",
-        default = False
-    )
-
-
-class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
+class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists):
     bl_idname = "daz.convert_to_rigify"
     bl_label = "Convert To Rigify"
     bl_description = "Convert active rig to rigify"
     bl_options = {'UNDO'}
 
-    deleteMeta : BoolProperty(
+    useDeleteMeta : BoolProperty(
         name = "Delete Metarig",
         description = "Delete intermediate rig after Rigify",
         default = False
@@ -1204,7 +1202,7 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
 
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
-        self.layout.prop(self, "deleteMeta")
+        self.layout.prop(self, "useDeleteMeta")
         self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "useKeepRig")
 
@@ -1218,26 +1216,28 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
             from .mhx import saveExistingRig
             saveExistingRig(context)
         self.createMeta(context)
-        gen = self.rigifyMeta(context, self.deleteMeta)
+        gen = self.rigifyMeta(context)
         t2 = time.perf_counter()
         print("DAZ rig %s successfully rigified in %.3f seconds" % (rname, t2-t1))
 
 
-class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
+class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists):
     bl_idname = "daz.create_meta"
     bl_label = "Create Metarig"
     bl_description = "Create a metarig from the active rig"
     bl_options = {'UNDO'}
 
+    useAutoAlign = False
+    useDeleteMeta = False
+
+    def draw(self, context):
+        self.layout.prop(self, "useCustomLayers")
+        self.layout.prop(self, "useKeepRig")
+
     @classmethod
     def poll(self, context):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and not ob.DazRigifyType)
-
-    def draw(self, context):
-        self.layout.prop(self, "useAutoAlign")
-        self.layout.prop(self, "useCustomLayers")
-        self.layout.prop(self, "useKeepRig")
 
     def run(self, context):
         if self.useKeepRig:
@@ -1246,18 +1246,25 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
         self.createMeta(context)
 
 
-class DAZ_OT_RigifyMetaRig(DazOperator, Rigify, Fixer, BendTwists):
+class DAZ_OT_RigifyMetaRig(DazPropsOperator, Rigify, Fixer, BendTwists):
     bl_idname = "daz.rigify_meta"
     bl_label = "Rigify Metarig"
     bl_description = "Convert metarig to rigify"
     bl_options = {'UNDO'}
+
+    useKeepRig = False
+    useDeleteMeta = False
+
+    def draw(self, context):
+        self.layout.prop(self, "useAutoAlign")
+        self.layout.prop(self, "useCustomLayers")
 
     @classmethod
     def poll(self, context):
         return (context.object and context.object.DazRigifyType)
 
     def run(self, context):
-        self.rigifyMeta(context, False)
+        self.rigifyMeta(context)
 
 #-------------------------------------------------------------
 #   List bones
