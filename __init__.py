@@ -91,7 +91,8 @@ from .settings import GS
 #----------------------------------------------------------
 
 def menu_func_import(self, context):
-    self.layout.operator(daz.ImportDAZ.bl_idname, text="DAZ Native (.duf, .dsf)")
+    self.layout.operator(daz.ImportDAZ.bl_idname, text="DAZ (.duf, .dsf)")
+    self.layout.operator(daz.EasyImportDAZ.bl_idname, text="Easy DAZ (.duf, .dsf)")
 
 def register():
     if panel.UseAddonUpdater:

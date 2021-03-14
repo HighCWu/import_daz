@@ -92,10 +92,10 @@ class DazOptions(DazImageFile, SingleFile):
 
 
 class ImportDAZ(DazOperator, DazOptions):
-    """Import a DAZ DUF/DSF File"""
+    """Load a DAZ File"""
     bl_idname = "daz.import_daz"
     bl_label = "Import DAZ"
-    bl_description = "Import a native DAZ file (*.duf, *.dsf, *.dse)"
+    bl_description = "Load a native DAZ file"
     bl_options = {'PRESET', 'UNDO'}
 
     def run(self, context):
@@ -114,9 +114,10 @@ class ImportDAZ(DazOperator, DazOptions):
 
 
 class EasyImportDAZ(DazOperator, DazOptions):
+    """Load a DAZ File and perform the most common opertations"""
     bl_idname = "daz.easy_import_daz"
     bl_label = "Easy Import DAZ"
-    bl_description = "Import a native DAZ file and perform the most common operations"
+    bl_description = "Load a native DAZ file and perform the most common operations"
     bl_options = {'UNDO'}
 
     rigType : EnumProperty(
@@ -167,7 +168,7 @@ class EasyImportDAZ(DazOperator, DazOptions):
         default = True)
 
     expressions : BoolProperty(
-        name = "Expresions",
+        name = "Expressions",
         default = True)
 
     visemes : BoolProperty(
