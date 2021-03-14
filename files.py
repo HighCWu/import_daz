@@ -92,9 +92,9 @@ class FileAsset(Asset):
                 asset = self.parseTypedAsset(mstruct, Images)
 
         if LS.useMaterials and "material_library" in struct.keys():
-            from .material import getRenderMaterial
+            from .cycles import CyclesMaterial
             for mstruct in struct["material_library"]:
-                asset = self.parseTypedAsset(mstruct, getRenderMaterial(mstruct, None))
+                asset = self.parseTypedAsset(mstruct, CyclesMaterial)
 
         if "scene" in struct.keys():
             scene = struct["scene"]
@@ -118,13 +118,13 @@ class FileAsset(Asset):
 
             if LS.useMaterials and "materials" in scene.keys():
                 for mstruct in scene["materials"]:
-                    from .material import getRenderMaterial
+                    from .cycles import CyclesMaterial
                     from copy import deepcopy
                     if "url" in mstruct.keys():
                         base = self.getAsset(mstruct["url"])
                     else:
                         base = None
-                    asset = getRenderMaterial(mstruct, base)(self.fileref)
+                    asset = CyclesMaterial(self.fileref)
                     asset.parse(mstruct)
                     if base:
                         asset.channels = deepcopy(base.channels)

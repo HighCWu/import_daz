@@ -261,10 +261,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.separator()
             box.operator("daz.add_ik_goals")
             box.operator("daz.add_winder")
-            if bpy.app.version < (2,80,0):
-                box.separator()
-                box.operator("daz.add_to_group")
-                box.operator("daz.remove_from_groups")
             box.separator()
             box.operator("daz.update_rig_version")
             box.operator("daz.convert_mhx_actions")

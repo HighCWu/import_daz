@@ -633,12 +633,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseDisplacement")
         box.prop(scn, "DazUseEmission")
         box.prop(scn, "DazUseReflection")
-        if bpy.app.version < (2,80,0):
-            box.separator()
-            box.prop(scn, "DazDiffuseShader")
-            box.prop(scn, "DazSpecularShader")
-            box.prop(scn, "DazDiffuseRoughness")
-            box.prop(scn, "DazSpecularRoughness")
 
         row = self.layout.row()
         row.operator("daz.load_root_paths")
@@ -980,7 +974,7 @@ def register():
 
     bpy.types.Scene.DazUseDisplacement = BoolProperty(
         name = "Displacement",
-        description = "Use displacement maps. Affects internal renderer only")
+        description = "Use displacement maps")
 
     bpy.types.Scene.DazUseEmission = BoolProperty(
         name = "Emission",
@@ -988,39 +982,7 @@ def register():
 
     bpy.types.Scene.DazUseReflection = BoolProperty(
         name = "Reflection",
-        description = "Use reflection maps. Affects internal renderer only")
-
-    bpy.types.Scene.DazDiffuseRoughness = FloatProperty(
-        name = "Diffuse Roughness",
-        description = "Default diffuse roughness",
-        min = 0, max = 1.0)
-
-    bpy.types.Scene.DazSpecularRoughness = FloatProperty(
-        name = "Specular Roughness",
-        description = "Default specular roughness",
-        min = 0, max = 1.0)
-
-    bpy.types.Scene.DazDiffuseShader = EnumProperty(
-        items = [
-            ('FRESNEL', "Fresnel", ""),
-            ('MINNAERT', "Minnaert", ""),
-            ('TOON', "Toon", ""),
-            ('OREN_NAYAR', "Oren-Nayar", ""),
-            ('LAMBERT', "Lambert", "")
-        ],
-        name = "Diffuse Shader",
-        description = "Diffuse shader (Blender Internal)")
-
-    bpy.types.Scene.DazSpecularShader = EnumProperty(
-        items = [
-            ('WARDISO', "WardIso", ""),
-            ('TOON', "Toon", ""),
-            ('BLINN', "Blinn", ""),
-            ('PHONG', "Phong", ""),
-            ('COOKTORR', "CookTorr", "")
-        ],
-        name = "Specular Shader",
-        description = "Specular shader (Blender Internal)")
+        description = "Use reflection maps")
 
     bpy.types.Material.DazRenderEngine = StringProperty(default='NONE')
     bpy.types.Material.DazShader = StringProperty(default='NONE')

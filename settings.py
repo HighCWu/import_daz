@@ -80,10 +80,6 @@ class GlobalSettings:
         self.useEnvironment = True
         self.reuseMaterials = False
         self.hairMaterialMethod = 'HAIR_BSDF'
-        self.diffuseShader = 'OREN_NAYAR'
-        self.specularShader = 'BLINN'
-        self.diffuseRoughness = 0.3
-        self.specularRoughness = 0.3
 
         self.customMin = -2.0
         self.customMax = 2.0
@@ -134,10 +130,6 @@ class GlobalSettings:
         "DazUseDisplacement" : "useDisplacement",
         "DazUseEmission" : "useEmission",
         "DazUseReflection" : "useReflection",
-        "DazDiffuseShader" : "diffuseShader",
-        "DazSpecularShader" : "specularShader",
-        "DazDiffuseRoughness" : "diffuseRoughness",
-        "DazSpecularRoughness" : "specularRoughness",
 
         # Properties
         "DazCustomMin" : "customMin",

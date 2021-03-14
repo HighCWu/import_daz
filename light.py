@@ -31,7 +31,6 @@ import math
 from .node import Node, Instance
 from .utils import *
 from .cycles import CyclesMaterial, CyclesTree
-from .internal import InternalMaterial
 from .material import Material, WHITE, BLACK
 from .error import reportError
 
@@ -129,10 +128,7 @@ class Light(Node):
             lamp.shadow_soft_size = height/2
             self.twosided = False
 
-        if GS.materialMethod == 'INTERNAL':
-            self.setInternalProps(lamp)
-        else:
-            self.setCyclesProps(lamp)
+        self.setCyclesProps(lamp)
         self.data = lamp
         Node.build(self, context, inst)
         inst.material.build(context)
@@ -142,30 +138,6 @@ class Light(Node):
         for attr,op,value in getMinLightSettings():
             if hasattr(lamp, attr):
                 setattr(lamp, attr, value)
-
-
-    def setInternalProps(self, lamp):
-        for key,value in self.info.items():
-            if key == "intensity":
-                lamp.energy = value
-            elif key == "shadow_type":
-                if value == "none":
-                    lamp.cycles.cast_shadow = False
-                else:
-                    lamp.cycles.case_shadow = True
-            elif key == "shadow_softness":
-                lamp.shadow_buffer_soft = value
-            elif key == "shadow_bias":
-                #lamp.shadow_buffer_bias = value
-                print("Lamp %s shadow bias: %s" % (lamp.name, value))
-            elif key == "falloff_angle":
-                if hasattr(lamp, "spot_size"):
-                    lamp.spot_size = value*D
-            elif key == "falloff_exponent":
-                if hasattr(lamp, "distance"):
-                    lamp.distance = value
-            else:
-                print("Unknown lamp prop", key)
 
 
     def postTransform(self):
@@ -192,10 +164,7 @@ class Light(Node):
 class LightInstance(Instance):
     def __init__(self, fileref, node, struct):
         Instance.__init__(self, fileref, node, struct)
-        if GS.materialMethod == 'INTERNAL':
-            self.material = InternalLightMaterial(fileref, self)
-        else:
-            self.material = CyclesLightMaterial(fileref, self)
+        self.material = CyclesLightMaterial(fileref, self)
         self.fluxFactor = 1
 
 
@@ -221,17 +190,6 @@ class LightInstance(Instance):
             value = self.getValue(["Decay"], 2)
             dtypes = ['CONSTANT', 'INVERSE_LINEAR', 'INVERSE_SQUARE']
             lamp.falloff_type = dtypes[value]
-
-#-------------------------------------------------------------
-#   InternalLightMaterial
-#-------------------------------------------------------------
-
-class InternalLightMaterial(InternalMaterial):
-    def __init__(self, fileref, inst):
-        InternalMaterial.__init__(self, fileref)
-        self.name = inst.name
-        self.channels = inst.channels
-        self.instance = inst
 
 #-------------------------------------------------------------
 #   Cycles Light Material

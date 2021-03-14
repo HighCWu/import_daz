@@ -538,24 +538,6 @@ def addUdimTree(tree, udim, vdim):
 #   Textures
 #-------------------------------------------------------------
 
-def getRenderMaterial(struct, base):
-    from .cycles import CyclesMaterial
-    from .internal import InternalMaterial
-
-    if isinstance(base, CyclesMaterial):
-        return CyclesMaterial
-    elif isinstance(base, InternalMaterial):
-        return InternalMaterial
-
-    if GS.materialMethod == 'INTERNAL':
-        return InternalMaterial
-    else:
-        return CyclesMaterial
-
-#-------------------------------------------------------------
-#   Textures
-#-------------------------------------------------------------
-
 class Map:
     def __init__(self, map, ismask):
         self.url = None
@@ -1595,9 +1577,6 @@ def checkRenderSettings(context, force):
     lightSettings = {
         "Bounces" : getMinLightSettings(),
     }
-
-    if GS.materialMethod == 'INTERNAL':
-        return
 
     scn = context.scene
     handle = GS.handleRenderSettings

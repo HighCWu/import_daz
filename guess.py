@@ -113,10 +113,10 @@ def setDiffuse(mat, color):
     mat.diffuse_color = color[0:len(mat.diffuse_color)]
 
 
-def guessMaterialColor(mat, method, choose, enforce):
+def guessMaterialColor(mat, choose, enforce):
     from random import random
     if (mat is None or
-        not hasDiffuseTexture(mat, method, enforce)):
+        not hasDiffuseTexture(mat, enforce)):
         return
 
     elif choose == 'RANDOM':
@@ -145,7 +145,7 @@ def guessMaterialColor(mat, method, choose, enforce):
             setDiffuse(mat, LS.clothesColor)
 
 
-def hasDiffuseTexture(mat, method, enforce):
+def hasDiffuseTexture(mat, enforce):
     from .material import isWhite
     if mat.node_tree:
         color = (1,1,1,1)
@@ -235,11 +235,8 @@ class DAZ_OT_ChangeSkinColor(DazPropsOperator, ColorChanger, IsMesh):
     def changeMeshColor(self, ob, scn):
         LS.skinColor = self.color
         LS.clothesColor = self.color
-        method = 'CYCLES'
-        if scn.render.engine in ['BLENDER_RENDER', 'BLENDER_GAME']:
-            method == 'INTERNAL'
         for mat in ob.data.materials:
-            guessMaterialColor(mat, method, 'GUESS', True)
+            guessMaterialColor(mat, 'GUESS', True)
 
 #----------------------------------------------------------
 #   Initialize

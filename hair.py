@@ -1390,64 +1390,7 @@ class DAZ_OT_ConnectHair(DazOperator, IsHair):
 #------------------------------------------------------------------------
 
 def buildHairMaterial(mname, color, context, force=False):
-    if LS.hairMaterialMethod == 'INTERNAL':
-        return buildHairMaterialInternal(mname, list(color[0:3]), force)
-    else:
-        return buildHairMaterialCycles(mname, list(color[0:3]), context, force)
-
-# ---------------------------------------------------------------------
-#   Blender Internal
-# ---------------------------------------------------------------------
-
-def buildHairMaterialInternal(mname, rgb, force):
-    mat = bpy.data.materials.new(mname)
-
-    mat.diffuse_color = rgb
-    mat.diffuse_intensity = 0.1
-    mat.specular_color = rgb
-
-    mat.use_transparency = True
-    mat.transparency_method = 'MASK'
-    mat.alpha = 1.0
-    mat.specular_alpha = 0.0
-
-    mat.use_diffuse_ramp = True
-    mat.diffuse_ramp_blend = 'MIX'
-    mat.diffuse_ramp_factor = 1
-    mat.diffuse_ramp_input = 'SHADER'
-
-    mat.use_specular_ramp = True
-    mat.specular_ramp_blend = 'MIX'
-    mat.specular_ramp_factor = 1
-    mat.specular_ramp_input = 'SHADER'
-
-    defaultRamp(mat.diffuse_ramp, rgb)
-    defaultRamp(mat.specular_ramp, rgb)
-
-    mat.strand.root_size = 2
-    mat.strand.tip_size = 1
-    mat.strand.width_fade = 1
-    return mat
-
-
-def defaultRamp(ramp, rgb):
-    ramp.interpolation = 'LINEAR'
-    ramp.elements.new(0.1)
-    ramp.elements.new(0.2)
-    for n,data in enumerate([
-        (0, rgb+[0]),
-        (0.07, rgb+[1]),
-        (0.6, rgb+[1]),
-        (1.0, rgb+[0])
-        ]):
-        elt = ramp.elements[n]
-        elt.position, elt.color = data
-
-#-------------------------------------------------------------
-#   Hair material
-#-------------------------------------------------------------
-
-def buildHairMaterialCycles(mname, color, context, force):
+    color = list(color[0:3])
     hmat = HairMaterial(mname, color)
     hmat.force = force
     hmat.build(context, color)
