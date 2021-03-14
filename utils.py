@@ -197,6 +197,23 @@ def setWorldMatrix(ob, wmat):
     if (Vector(ob.scale) - One).length < 1e-6:
         ob.scale = One
 
+
+def getRigParent(ob):
+    par = ob.parent
+    while par and par.type != 'ARMATURE':
+        par = par.parent
+    return par
+
+
+def getMeshChildren(rig):
+    meshes = []
+    for ob in rig.children:
+        if ob.type == 'MESH':
+            meshes.append(ob)
+        else:
+            meshes += getMeshChildren(ob)
+    return meshes
+
 #-------------------------------------------------------------
 #   Updating
 #-------------------------------------------------------------

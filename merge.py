@@ -437,7 +437,7 @@ class DAZ_OT_MergeLashes(DazOperator, IsMesh):
     def run(self, context):
         from .morphing import getRigFromObject
         ob = context.object
-        rig = getRigFromObject(ob)
+        rig = getRigParent(ob)
         if rig is None:
            raise DazError("No rig found")
         meshes = getLashes(rig, ob)
@@ -460,7 +460,7 @@ def getLashes(rig, ob):
     from .figure import getAnchoredBoneNames
     bnames = getAnchoredBoneNames(rig, ["upperFaceRig", "lowerFaceRig"])
     meshes = []
-    for mesh in rig.children:
+    for mesh in getMeshChildren(rig):
         if mesh != ob:
             for bname in bnames:
                 if bname in mesh.vertex_groups.keys():
