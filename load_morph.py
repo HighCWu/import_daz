@@ -581,7 +581,7 @@ class LoadMorph:
     def makeSplineBoneDriver(self, uvec, points, rna, channel, idx, bname):
         # Only make spline for one component
         #[1 if x< -1.983 else -x-0.983 if x< -0.983  else 0 for x in [+0.988*A]][0]
-        #1 if A< -1.983/0.988 else -0.988*A-0.983 if x< -0.983/0.988  else 0
+        #1 if A< -1.983/0.988 else -0.988*A-0.983 if A< -0.983/0.988  else 0
 
         var,vars,umax = self.makeVarsString(uvec, bname)
         lt = ("<" if umax > 0 else ">")
@@ -595,8 +595,8 @@ class LoadMorph:
             zs,zi = getSign((yi - kij*xi)/umax)
             zstring = ""
             if abs(zi) > 5e-4:
-                zstring = ("%s%s" % (zs, getPrint(zi)))
-            string += (" else %s%s if %s%s %s " % (getMult(kij*umax, var), zstring, var, lt, getPrint(xj)))
+                zstring = ("%s%s" % (zs, getPrint(zi*umax)))
+            string += (" else %s%s if %s%s %s " % (getMult(kij*umax, var), zstring, var, lt, getPrint(xj/umax)))
             xi,yi = xj,yj
         string += " else %s" % getPrint(yj)
 
