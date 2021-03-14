@@ -151,9 +151,16 @@ class Fixer:
 
 
     def fixBoneDrivers(self, rig, assoc):
-        if rig.animation_data:
-            for fcu in rig.animation_data.drivers:
-                self.changeBoneTarget(fcu, assoc)
+        def changeTargets(ob):
+            if ob.animation_data:
+                for fcu in ob.animation_data.drivers:
+                    self.changeBoneTarget(fcu, assoc)
+
+        changeTargets(rig)
+        for ob in rig.children:
+            changeTargets(ob)
+            if ob.type == 'MESH' and ob.data.shape_keys:
+                changeTargets(ob.data.shape_keys)
 
 
     def changeBoneTarget(self, fcu, assoc):

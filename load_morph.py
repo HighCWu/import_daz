@@ -89,9 +89,9 @@ class LoadMorph:
             return " -"
         elif isinstance(asset, Alias):
             return " _"
-        self.buildShapekey(asset)
+        sname = self.buildShapekey(asset)
         if self.rig:
-            self.makeFormulas(asset)
+            self.makeFormulas(asset, sname)
         return " *"
 
 
@@ -126,15 +126,16 @@ class LoadMorph:
             self.alias[prop] = skey.name
             skey.name = prop
             self.shapekeys[prop] = skey
-            if self.rig:
-                final = self.addNewProp(prop, None)
-                makePropDriver(propRef(final), skey, "value", self.rig, "x")
-        return skey
+            #if self.rig:
+            #    final = self.addNewProp(prop)
+            #    makePropDriver(propRef(final), skey, "value", self.rig, "x")
+            return prop
+        return None
 
 
-    def makeFormulas(self, asset):
+    def makeFormulas(self, asset, sname):
         from .formula import Formula
-        self.addNewProp(asset.getName(), asset)
+        self.addNewProp(asset.getName(), asset, sname)
         if not isinstance(asset, Formula):
             return
         exprs = asset.evalFormulas(self.rig, self.mesh)
@@ -153,7 +154,7 @@ class LoadMorph:
                         self.ecr = True
 
 
-    def addNewProp(self, raw, asset):
+    def addNewProp(self, raw, asset=None, sname=None):
         from .driver import setBoolProp
         from .morphing import setActivated
         final = finalProp(raw)
@@ -161,12 +162,14 @@ class LoadMorph:
             self.drivers[raw] = []
             self.visible[raw] = False
             self.primary[raw] = False
-            self.rig[raw] = 0.0
-            self.rig[final] = 0.0
+            #self.rig[raw] = 0.0
+            #self.rig[final] = 0.0
         if asset:
             visible = (asset.visible or GS.useMakeHiddenSliders)
             self.visible[raw] = visible
             self.primary[raw] = True
+            if sname:
+                return final
             if asset.type == "bool":
                 setBoolProp(self.rig, raw, asset.value)
                 setBoolProp(self.rig, final, asset.value)
@@ -192,29 +195,9 @@ class LoadMorph:
             setFloatProp(self.rig, prop, 0.0, None, None)
 
 
-    def multiplyMults(self, fcu, string):
-        from .driver import addDriverVar
-        if self.mult and self.useMults:
-           string = "(%s)" % string
-           varname = "M"
-           for mult in self.mult:
-               string += "*%s" % varname
-               multfinal = finalProp(mult)
-               self.ensureExists(mult, multfinal)
-               addDriverVar(fcu, varname, propRef(multfinal), self.rig)
-               varname = nextLetter(varname)
-        return string
-
-
-    def ensureExists(self, raw, final):
-        if raw not in self.drivers.keys():
-            self.rig[raw] = 0.0
-            self.rig[final] = 0.0
-
-
     def makeValueFormula(self, output, expr):
         if expr["prop"]:
-            self.addNewProp(output, None)
+            self.addNewProp(output)
             prop = expr["prop"]
             self.drivers[output].append(("PROP", prop, expr["factor"]))
         if expr["mult"]:
@@ -222,7 +205,7 @@ class LoadMorph:
                 self.mults[output] = []
             mult = expr["mult"]
             self.mults[output].append(mult)
-            self.addNewProp(mult, None)
+            self.addNewProp(mult)
         if expr["bone"]:
             bname = self.getRealBone(expr["bone"])
             if bname:
@@ -257,7 +240,7 @@ class LoadMorph:
         if "points" in expr.keys():
             factor = self.cheatSplineTCB(expr["points"], factor)
         raw = expr["prop"]
-        final = self.addNewProp(raw, None)
+        final = self.addNewProp(raw)
         tfm = Transform()
         return tfm, pb, final, factor
 
@@ -459,6 +442,8 @@ class LoadMorph:
         if raw in self.mults.keys():
             self.mult = self.mults[raw]
         final = finalProp(raw)
+        if final not in self.rig.keys():
+            self.rig[final] = 0.0
         if not self.primary[raw]:
             fcu = getRnaDriver(self.rig, propRef(final), 'SINGLE_PROP')
             if fcu and fcu.driver.type == 'SCRIPTED':
@@ -496,6 +481,26 @@ class LoadMorph:
                     self.mult.append(baseBone(unPath(paths[mvar])))
 
 
+    def multiplyMults(self, fcu, string):
+        from .driver import addDriverVar
+        if self.mult and self.useMults:
+           string = "(%s)" % string
+           varname = "M"
+           for mult in self.mult:
+               string += "*%s" % varname
+               multfinal = finalProp(mult)
+               self.ensureExists(mult, multfinal)
+               addDriverVar(fcu, varname, propRef(multfinal), self.rig)
+               varname = nextLetter(varname)
+        return string
+
+
+    def ensureExists(self, raw, final):
+        if raw not in self.drivers.keys():
+            self.rig[raw] = 0.0
+            self.rig[final] = 0.0
+
+
     def buildBoneDriver(self, raw, bname, expr):
         def getSplinePoints(expr, pb, comp):
             points = expr["points"]
@@ -517,12 +522,15 @@ class LoadMorph:
             self.mult = self.mults[raw]
 
         pb = self.rig.pose.bones[bname]
-        rna = self.rig
-        comp = expr["comp"]
-        final = finalProp(raw)
-        channel = propRef(final)
-        self.rig.driver_remove(channel)
+        if raw in self.shapekeys.keys():
+            rna = self.mesh.data.shape_keys
+            channel = 'key_blocks["%s"].value' % raw
+        else:
+            rna = self.rig
+            channel = propRef(finalProp(raw))
 
+        self.rig.driver_remove(channel)
+        comp = expr["comp"]
         if "points" in expr.keys():
             uvec,xys = getSplinePoints(expr, pb, comp)
             self.makeSplineBoneDriver(uvec, xys, rna, channel, -1, bname)
