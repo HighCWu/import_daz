@@ -367,39 +367,6 @@ def getDriverPaths(fcu, rig):
     return paths
 
 
-
-def replaceDriverBone(assoc, rna, path):
-    for fcu in rna.animation_data.drivers:
-        if fcu.data_path.startswith(path):
-            changeBoneTarget(fcu, assoc)
-
-
-def changeBoneTarget(fcu, assoc):
-    for var in fcu.driver.variables:
-        if var.type == 'TRANSFORMS':
-            for trg in var.targets:
-                trg.bone_target = newBoneTarget(trg.bone_target, assoc)
-
-
-def newBoneTarget(bname, assoc):
-    for new,old in assoc:
-        if old == bname:
-            return new
-    return bname
-
-
-def checkDriverBone(rig, rna, path, idx=-1):
-    for fcu in rna.animation_data.drivers:
-        if (path == fcu.data_path and
-            (idx == -1 or idx == fcu.array_index)):
-            for var in fcu.driver.variables:
-                if var.type == 'TRANSFORMS':
-                    for trg in var.targets:
-                        if trg.bone_target not in rig.data.bones.keys():
-                            pass
-                            #print("  ", trg.bone_target)
-
-
 def getShapekeyDrivers(ob, drivers={}):
     if (ob.data.shape_keys is None or
         ob.data.shape_keys.animation_data is None):

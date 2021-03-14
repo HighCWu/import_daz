@@ -151,31 +151,22 @@ class Fixer:
 
 
     def fixBoneDrivers(self, rig, assoc):
-        from .driver import replaceDriverBone
         if rig.animation_data:
-            for pb in rig.pose.bones:
-                replaceDriverBone(assoc, rig, 'pose.bones["%s"]' % pb.name)
+            for fcu in rig.animation_data.drivers:
+                self.changeBoneTarget(fcu, assoc)
 
 
-    def fixCorrectives(self, rig, jcms):
-        from .driver import getShapekeyDriver, replaceDriverBone
-        for ob in rig.children:
-            if ob.type == 'MESH':
-                skeys = ob.data.shape_keys
-                if skeys and skeys.animation_data:
-                    for skey in skeys.key_blocks[1:]:
-                        replaceDriverBone(jcms, skeys, 'key_blocks["%s"]' % (skey.name))
+    def changeBoneTarget(self, fcu, assoc):
+        def newBoneTarget(bname, assoc):
+            for new,old in assoc:
+                if old == bname:
+                    return new
+            return bname
 
-
-    def checkCorrectives(self, rig):
-        return
-        from .driver import getShapekeyDriver, checkDriverBone
-        for ob in rig.children:
-            if ob.type == 'MESH' and ob.data.shape_keys:
-                skeys = ob.data.shape_keys
-                for skey in skeys.key_blocks[1:]:
-                    if getShapekeyDriver(skeys, skey.name):
-                        checkDriverBone(rig, skeys, 'key_blocks["%s"].value' % (skey.name))
+        for var in fcu.driver.variables:
+            for trg in var.targets:
+                if var.type == 'TRANSFORMS':
+                    trg.bone_target = newBoneTarget(trg.bone_target, assoc)
 
 #-------------------------------------------------------------
 #   Constraints class

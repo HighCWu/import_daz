@@ -832,7 +832,7 @@ class Rigify:
 
 
     def rigifyMeta(self, context, deleteMeta):
-        from .driver import getBoneDrivers, getPropDrivers, copyDriver, changeBoneTarget
+        from .driver import getBoneDrivers, getPropDrivers, copyDriver
         from .node import setParent, clearParent
         from .propgroups import copyPropGroups
         from .mhx import unhideAllObjects, getBoneLayer, changeAllTargets
@@ -1045,12 +1045,11 @@ class Rigify:
                     self.copyBoneProp(fcu, rig, gen, pb)
                 for fcu in fcus:
                     fcu2 = copyDriver(fcu, pb, gen)
-                    changeBoneTarget(fcu2, assoc)
+                    self.changeBoneTarget(fcu2, assoc)
 
         # Fix correctives
         self.Correctives = [("ORG-"+rigi,daz) for (rigi,daz) in assoc]
-        self.fixCorrectives(gen, self.Correctives)
-        self.checkCorrectives(gen)
+        self.fixBoneDrivers(gen, self.Correctives)
 
         #Clean up
         setattr(gen.data, DrawType, 'STICK')
