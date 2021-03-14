@@ -94,7 +94,7 @@ class DazOptions(DazImageFile, SingleFile):
 class ImportDAZ(DazOperator, DazOptions):
     """Import a DAZ DUF/DSF File"""
     bl_idname = "daz.import_daz"
-    bl_label = "Import DAZ File"
+    bl_label = "Import DAZ"
     bl_description = "Import a native DAZ file (*.duf, *.dsf, *.dse)"
     bl_options = {'PRESET', 'UNDO'}
 
@@ -113,9 +113,9 @@ class ImportDAZ(DazOperator, DazOptions):
         box.label(text = "For more options, see Global Settings.")
 
 
-class QuickImportDAZ(DazOperator, DazOptions):
-    bl_idname = "daz.quick_import_daz"
-    bl_label = "Quick Import DAZ File"
+class EasyImportDAZ(DazOperator, DazOptions):
+    bl_idname = "daz.easy_import_daz"
+    bl_label = "Easy Import DAZ"
     bl_description = "Import a native DAZ file and perform the most common operations"
     bl_options = {'UNDO'}
 
@@ -158,6 +158,10 @@ class QuickImportDAZ(DazOperator, DazOptions):
         name = "Make All Bones Posable",
         default = False)
 
+    convertHair : BoolProperty(
+        name = "Convert Hair",
+        default = False)
+
     units : BoolProperty(
         name = "Face Units",
         default = True)
@@ -193,6 +197,7 @@ class QuickImportDAZ(DazOperator, DazOptions):
         self.layout.prop(self, "mergeLashes")
         self.layout.prop(self, "extraFaceBones")
         self.layout.prop(self, "makeAllBonesPosable")
+        self.layout.prop(self, "convertHair")
         self.layout.prop(self, "units")
         self.layout.prop(self, "expressions")
         self.layout.prop(self, "visemes")
@@ -228,6 +233,8 @@ class QuickImportDAZ(DazOperator, DazOptions):
         mainMesh = LS.mainMesh
         rigs = LS.rigs
         meshes = LS.meshes
+        hdmeshes = LS.hdmeshes
+        hairs = LS.hairs
         if mainRig:
             from .finger import getFingeredCharacter
             _,_,mainChar = getFingeredCharacter(mainRig)
@@ -275,6 +282,8 @@ class QuickImportDAZ(DazOperator, DazOptions):
         print("MM", meshes)
         print("LL", lashes)
         print("GG", geografts)
+        print("HH", hairs)
+        print("DD", hdmeshes)
 
 
         if mainMesh:
@@ -344,6 +353,14 @@ class QuickImportDAZ(DazOperator, DazOptions):
             if self.makeAllBonesPosable:
                 print("Make all bones posable")
                 bpy.ops.daz.make_all_bones_posable()
+
+        if hairs and mainMesh and self.convertHair:
+            activateObject(context, mainMesh)
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+            for hair in hairs:
+                activateObject(context, hair)
+                mainMesh.select_set(True)
+                bpy.ops.daz.make_hair(strandType='TUBE')
 
         if mainRig:
             activateObject(context, mainRig)
@@ -646,7 +663,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
 classes = [
     ImportDAZ,
-    QuickImportDAZ,
+    EasyImportDAZ,
     DAZ_OT_SetSilentMode,
 
     DAZ_OT_AddContentDir,

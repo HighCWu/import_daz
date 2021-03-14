@@ -443,6 +443,8 @@ class LocalSettings:
         self.rigs = []
         self.meshes = []
         self.objects = []
+        self.hairs = []
+        self.hdmeshes = []
         self.warning = False
 
 

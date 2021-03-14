@@ -109,9 +109,12 @@ class GeoNode(Node):
         Node.buildObject(self, context, inst, center)
         ob = self.rna
         if ob:
-            LS.meshes.append(ob)
-            if LS.mainMesh is None:
-                LS.mainMesh = ob
+            if inst.isStrandHair:
+                LS.hairs.append(ob)
+            else:
+                LS.meshes.append(ob)
+                if LS.mainMesh is None:
+                    LS.mainMesh = ob
         self.storeRna(ob)
 
 
@@ -126,6 +129,7 @@ class GeoNode(Node):
             me = self.buildHDMesh(ob)
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
             self.hdobject = inst.hdobject = hdob
+            LS.hdmeshes.append(hdob)
             self.addHDMaterials(ob.data.materials, "")
             center = Vector((0,0,0))
             self.arrangeObject(hdob, inst, context, center)
