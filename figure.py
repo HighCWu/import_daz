@@ -129,7 +129,6 @@ class FigureInstance(Instance):
 
     def poseRig(self, context):
         from .bone import BoneInstance
-        Instance.poseRig(self, context)
         rig = self.rna
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='POSE')
@@ -187,7 +186,6 @@ class FigureInstance(Instance):
 
 
     def addLSRig(self, rig):
-        print("LSR", rig.name, self.parent, rig.parent)
         if (LS.rigname is None or
             not isinstance(self.parent, FigureInstance)):
             LS.rigname = rig.name

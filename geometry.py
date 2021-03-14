@@ -113,7 +113,6 @@ class GeoNode(Node):
 
 
     def addLSMesh(self, ob, inst, rigname):
-        print("LSME", ob.name, rigname)
         if self.assigned:
             return
         elif inst.isStrandHair:

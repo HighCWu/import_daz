@@ -100,7 +100,8 @@ class Instance(Accessor, Channels):
 
         Accessor.__init__(self, fileref)
         self.node = node
-        self.index = len(node.instances)
+        self.index = node.ninstances
+        node.ninstances += 1
         self.figure = None
         self.id = normalizeRef(struct["id"])
         self.id = self.getSelfId()
@@ -537,6 +538,7 @@ class Node(Asset, Formula, Channels):
         Channels.__init__(self)
         self.classType = Node
         self.instances = {}
+        self.ninstances = 0
         self.count = 0
         self.data = None
         self.center = None

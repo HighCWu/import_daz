@@ -55,7 +55,7 @@ class DBZInfo:
                 restdata,transforms,center = self.rigs[name][inst.index]
                 takenfigs[name].append(inst.id)
             else:
-                print("Cannot fit %s" % name)
+                print("Cannot fit %s" % name, inst.index, len(self.rigs[name]))
                 return
         else:
             print("No fitting info for figure %s" % name)

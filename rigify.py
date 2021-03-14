@@ -849,7 +849,7 @@ class Rigify:
             raise DazError("Original rig not found")
         unhideAllObjects(context, rig)
         if not inSceneLayer(context, rig):
-            showSceneLayer(context, rig)
+            context.collection.objects.link(rig)
 
         bpy.ops.object.mode_set(mode='POSE')
         for pb in meta.pose.bones:

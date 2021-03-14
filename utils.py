@@ -100,11 +100,6 @@ def inCollection(layer, ob):
             return True
     return False
 
-def showSceneLayer(context, ob):
-    coll = context.collection
-    coll.objects.link(ob)
-
-
 def activateObject(context, ob):
     context.view_layer.objects.active = ob
     try:
