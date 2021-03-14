@@ -162,15 +162,13 @@ class LoadMorph:
             self.drivers[raw] = []
             self.visible[raw] = False
             self.primary[raw] = False
-            #self.rig[raw] = 0.0
-            #self.rig[final] = 0.0
         if asset:
             visible = (asset.visible or GS.useMakeHiddenSliders)
             self.visible[raw] = visible
             self.primary[raw] = True
-            if sname:
+            if sname and not visible:
                 return final
-            if asset.type == "bool":
+            elif asset.type == "bool":
                 setBoolProp(self.rig, raw, asset.value)
                 setBoolProp(self.rig, final, asset.value)
             elif asset.type == "float":
@@ -441,21 +439,21 @@ class LoadMorph:
         self.mult = []
         if raw in self.mults.keys():
             self.mult = self.mults[raw]
-        final = finalProp(raw)
-        if final not in self.rig.keys():
-            self.rig[final] = 0.0
+        rna,channel = self.getDrivenChannel(raw)
         if not self.primary[raw]:
-            fcu = getRnaDriver(self.rig, propRef(final), 'SINGLE_PROP')
+            fcu = getRnaDriver(rna, channel, 'SINGLE_PROP')
             if fcu and fcu.driver.type == 'SCRIPTED':
                 self.analyzeFcurve(fcu, raw)
-        self.rig.driver_remove(propRef(final))
-        fcu = self.rig.driver_add(propRef(final))
+        rna.driver_remove(channel)
+        fcu = rna.driver_add(channel)
         fcu.driver.type = 'SCRIPTED'
         varname = "a"
         string = ""
         if self.visible[raw] or not self.primary[raw]:
             string = varname
             addDriverVar(fcu, varname, propRef(raw), self.rig)
+            if raw not in self.rig.keys():
+                self.rig[raw] = 0.0
         for dtype,subraw,factor in drivers:
             if dtype != 'PROP':
                 continue
@@ -466,6 +464,19 @@ class LoadMorph:
             addDriverVar(fcu, varname, propRef(subfinal), self.rig)
         string = self.multiplyMults(fcu, string)
         fcu.driver.expression = string
+
+
+    def getDrivenChannel(self, raw):
+        if raw in self.shapekeys.keys():
+            rna = self.mesh.data.shape_keys
+            channel = 'key_blocks["%s"].value' % raw
+        else:
+            rna = self.rig
+            final = finalProp(raw)
+            if final not in self.rig.keys():
+                self.rig[final] = 0.0
+            channel = propRef(final)
+        return rna, channel
 
 
     def analyzeFcurve(self, fcu, raw):
@@ -522,14 +533,8 @@ class LoadMorph:
             self.mult = self.mults[raw]
 
         pb = self.rig.pose.bones[bname]
-        if raw in self.shapekeys.keys():
-            rna = self.mesh.data.shape_keys
-            channel = 'key_blocks["%s"].value' % raw
-        else:
-            rna = self.rig
-            channel = propRef(finalProp(raw))
-
-        self.rig.driver_remove(channel)
+        rna,channel = self.getDrivenChannel(raw)
+        rna.driver_remove(channel)
         comp = expr["comp"]
         if "points" in expr.keys():
             uvec,xys = getSplinePoints(expr, pb, comp)
