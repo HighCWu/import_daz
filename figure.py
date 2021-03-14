@@ -186,6 +186,19 @@ class FigureInstance(Instance):
                 clearBendDrivers(fcus)
 
 
+    def addLSRig(self, rig):
+        print("LSR", rig.name, self.parent, rig.parent)
+        if (LS.rigname is None or
+            not isinstance(self.parent, FigureInstance)):
+            LS.rigname = rig.name
+            LS.rigs[LS.rigname] = []
+            LS.meshes[LS.rigname] = []
+            LS.objects[LS.rigname] = []
+            LS.hairs[LS.rigname] = []
+            LS.hdmeshes[LS.rigname] = []
+        LS.rigs[LS.rigname].append(rig)
+
+
     def setupPlanes(self):
         if self.node.rigtype not in PlanesUsed.keys():
             return
@@ -287,15 +300,14 @@ class Figure(Node):
         amt = self.data = bpy.data.armatures.new(inst.name)
         self.buildObject(context, inst, center)
         rig = self.rna
-        LS.rigs.append(rig)
-        if LS.mainRig is None:
-            LS.mainRig = rig
+        inst.addLSRig(rig)
         setattr(amt, DrawType, 'STICK')
         setattr(rig, ShowXRay, True)
         rig.DazOrientMethod = GS.orientMethod
-        for geo in inst.geometries:
-            geo.parent = geo.figure = self
-            geo.rna.parent = rig
+        for geonode in inst.geometries:
+            geonode.parent = geonode.figure = self
+            geonode.rna.parent = rig
+            geonode.addLSMesh(geonode.rna, inst, LS.rigname)
 
         center = inst.attributes["center_point"]
         inst.setupPlanes()

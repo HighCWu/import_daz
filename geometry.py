@@ -79,6 +79,7 @@ class GeoNode(Node):
         self.morphsValues = {}
         self.shstruct = {}
         self.push = 0
+        self.assigned = False
 
 
     def __repr__(self):
@@ -108,14 +109,18 @@ class GeoNode(Node):
     def buildObject(self, context, inst, center):
         Node.buildObject(self, context, inst, center)
         ob = self.rna
-        if ob:
-            if inst.isStrandHair:
-                LS.hairs.append(ob)
-            else:
-                LS.meshes.append(ob)
-                if LS.mainMesh is None:
-                    LS.mainMesh = ob
         self.storeRna(ob)
+
+
+    def addLSMesh(self, ob, inst, rigname):
+        print("LSME", ob.name, rigname)
+        if self.assigned:
+            return
+        elif inst.isStrandHair:
+            LS.hairs[rigname].append(ob)
+        else:
+            LS.meshes[rigname].append(ob)
+        self.assigned = True
 
 
     def subtractCenter(self, ob, inst, center):
@@ -129,7 +134,7 @@ class GeoNode(Node):
             me = self.buildHDMesh(ob)
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
             self.hdobject = inst.hdobject = hdob
-            LS.hdmeshes.append(hdob)
+            LS.hdmeshes[LS.rigname].append(hdob)
             self.addHDMaterials(ob.data.materials, "")
             center = Vector((0,0,0))
             self.arrangeObject(hdob, inst, context, center)
@@ -253,6 +258,7 @@ class GeoNode(Node):
         hdob = self.hdobject
         if ob:
             pruneUvMaps(ob)
+            self.addLSMesh(ob, inst, None)
         if hdob and hdob != ob:
             self.buildHighDef(context, inst)
         if self.dforce:

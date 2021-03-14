@@ -139,6 +139,10 @@ class EasyImportDAZ(DazOperator, DazOptions):
         name = "Merge Rigs",
         default = True)
 
+    mergeMaterials : BoolProperty(
+        name = "Merge Materials",
+        default = True)
+
     mergeToes : BoolProperty(
         name = "Merge Toes",
         default = False)
@@ -165,15 +169,15 @@ class EasyImportDAZ(DazOperator, DazOptions):
 
     units : BoolProperty(
         name = "Face Units",
-        default = True)
+        default = False)
 
     expressions : BoolProperty(
         name = "Expressions",
-        default = True)
+        default = False)
 
     visemes : BoolProperty(
         name = "Visemes",
-        default = True)
+        default = False)
 
     facs : BoolProperty(
         name = "FACS",
@@ -192,6 +196,7 @@ class EasyImportDAZ(DazOperator, DazOptions):
         self.layout.separator()
         self.layout.prop(self, "rigType")
         self.layout.prop(self, "mannequin")
+        self.layout.prop(self, "mergeMaterials")
         self.layout.prop(self, "mergeRigs")
         self.layout.prop(self, "mergeToes")
         self.layout.prop(self, "mergeGeografts")
@@ -214,7 +219,6 @@ class EasyImportDAZ(DazOperator, DazOptions):
 
     def run(self, context):
         from .error import setSilentMode
-        from .merge import getLashes
         try:
             bpy.ops.daz.import_daz(
                 filepath = self.filepath,
@@ -230,12 +234,32 @@ class EasyImportDAZ(DazOperator, DazOptions):
         if not LS.objects:
             raise DazError("No objects found")
         setSilentMode(True)
-        mainRig = LS.mainRig
-        mainMesh = LS.mainMesh
-        rigs = LS.rigs
-        meshes = LS.meshes
-        hdmeshes = LS.hdmeshes
-        hairs = LS.hairs
+        self.rigs = LS.rigs
+        self.meshes = LS.meshes
+        self.objects = LS.objects
+        self.hdmeshes = LS.hdmeshes
+        self.hairs = LS.hairs
+        print("MMM", self.meshes.items())
+        for rigname in self.rigs.keys():
+            self.treatRig(context, rigname)
+        setSilentMode(False)
+
+
+    def treatRig(self, context, rigname):
+        from .merge import getLashes
+        rigs = self.rigs[rigname]
+        meshes = self.meshes[rigname]
+        objects = self.objects[rigname]
+        hdmeshes = self.hdmeshes[rigname]
+        hairs = self.hairs[rigname]
+        if len(rigs) > 0:
+            mainRig = rigs[0]
+        else:
+            mainRig = None
+        if len(meshes) > 0:
+            mainMesh = meshes[0]
+        else:
+            mainMesh = None
         if mainRig:
             from .finger import getFingeredCharacter
             _,_,mainChar = getFingeredCharacter(mainRig)
@@ -247,32 +271,16 @@ class EasyImportDAZ(DazOperator, DazOptions):
             print("Did not recognize main character")
 
         empties = []
-        for ob in LS.objects:
+        for ob in objects:
             if ob.type == None:
                 empties.append(ob)
-
-        if mainRig:
-            activateObject(context, mainRig)
-            for rig in rigs:
-                rig.select_set(True)
-            if self.mergeRigs and len(rigs) > 1:
-                print("Merge rigs")
-                bpy.ops.daz.merge_rigs()
-                mainRig = context.object
-                rigs = [mainRig]
-
-            activateObject(context, mainRig)
-            bpy.ops.daz.eliminate_empties()
-            if self.mergeToes:
-                print("Merge toes")
-                bpy.ops.daz.merge_toes()
 
         geografts = []
         lashes = []
         if mainMesh and mainRig:
-            nmeshes = []
+            nmeshes = [mainMesh]
             lmeshes = getLashes(mainRig, mainMesh)
-            for ob in meshes:
+            for ob in meshes[1:]:
                 if ob.data.DazGraftGroup and self.mergeGeografts:
                     geografts.append(ob)
                 elif ob in lmeshes and self.mergeLashes:
@@ -286,10 +294,30 @@ class EasyImportDAZ(DazOperator, DazOptions):
         print("HH", hairs)
         print("DD", hdmeshes)
 
+        if mainRig:
+            # Merge rigs
+            activateObject(context, mainRig)
+            for rig in rigs[1:]:
+                rig.select_set(True)
+            if self.mergeRigs and len(rigs) > 1:
+                print("Merge rigs")
+                bpy.ops.daz.merge_rigs()
+                mainRig = context.object
+                rigs = [mainRig]
+
+            # Eliminate empties
+            activateObject(context, mainRig)
+            bpy.ops.daz.eliminate_empties()
+
+            # Merge toes
+            if self.mergeToes:
+                print("Merge toes")
+                bpy.ops.daz.merge_toes()
 
         if mainMesh:
+            # Merge materials
             activateObject(context, mainMesh)
-            for ob in meshes:
+            for ob in meshes[1:]:
                 ob.select_set(True)
             print("Merge materials")
             bpy.ops.daz.merge_materials()
@@ -330,6 +358,7 @@ class EasyImportDAZ(DazOperator, DazOptions):
                 print("Import flexions")
                 bpy.ops.daz.import_flexions()
 
+        # Merge geografts
         if geografts:
             self.transferShapes(context, mainMesh, geografts)
             activateObject(context, mainMesh)
@@ -338,6 +367,7 @@ class EasyImportDAZ(DazOperator, DazOptions):
             print("Merge geografts")
             bpy.ops.daz.merge_geografts()
 
+        # Merge lashes
         if lashes:
             self.transferShapes(context, mainMesh, lashes)
             activateObject(context, mainMesh)
@@ -348,13 +378,16 @@ class EasyImportDAZ(DazOperator, DazOptions):
 
         if mainRig:
             activateObject(context, mainRig)
+            # Add extra face bones
             if self.extraFaceBones:
                 print("Add extra face bones")
                 bpy.ops.daz.add_extra_face_bones()
+            # Make all bones posable
             if self.makeAllBonesPosable:
                 print("Make all bones posable")
                 bpy.ops.daz.make_all_bones_posable()
 
+        # Convert hairs
         if hairs and mainMesh and self.convertHair:
             activateObject(context, mainMesh)
             bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
@@ -363,6 +396,7 @@ class EasyImportDAZ(DazOperator, DazOptions):
                 mainMesh.select_set(True)
                 bpy.ops.daz.make_hair(strandType='TUBE')
 
+        # Change rig
         if mainRig:
             activateObject(context, mainRig)
             if self.rigType == 'CUSTOM':
@@ -375,6 +409,7 @@ class EasyImportDAZ(DazOperator, DazOptions):
                 bpy.ops.daz.convert_to_rigify(deleteMeta=True)
                 mainRig = context.object
 
+        # Make mannequin
         if mainRig and mainMesh and self.mannequin != 'NONE':
             activateObject(context, mainMesh)
             if self.mannequin == 'ALL':
@@ -383,7 +418,6 @@ class EasyImportDAZ(DazOperator, DazOptions):
             print("Make mannequin")
             bpy.ops.daz.add_mannequin(useGroup=True, group="%s Mannequin" % mainRig.name)
 
-        setSilentMode(False)
         if mainRig:
             activateObject(context, mainRig)
 

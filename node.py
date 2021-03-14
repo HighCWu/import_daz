@@ -685,7 +685,7 @@ class Node(Asset, Formula, Channels):
         else:
             ob = bpy.data.objects.new(inst.name, self.data)
         self.rna = inst.rna = ob
-        LS.objects.append(ob)
+        LS.objects[LS.rigname].append(ob)
         self.arrangeObject(ob, inst, context, center)
         self.subdivideObject(ob, inst, context)
 

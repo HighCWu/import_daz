@@ -426,13 +426,12 @@ class LocalSettings:
             "Volume" : False,
         }
 
-        self.mainRig = None
-        self.mainMesh = None
-        self.rigs = []
-        self.meshes = []
-        self.objects = []
-        self.hairs = []
-        self.hdmeshes = []
+        self.rigname = None
+        self.rigs = { None : [] }
+        self.meshes = { None : [] }
+        self.objects = { None : [] }
+        self.hairs = { None : [] }
+        self.hdmeshes = { None : [] }
         self.warning = False
 
 
