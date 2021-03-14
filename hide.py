@@ -121,8 +121,7 @@ class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, SingleGroup, IsArmat
         self.layout.prop(self, "singleGroup")
         if self.singleGroup:
             self.layout.prop(self, "groupName")
-        if bpy.app.version >= (2,80,0):
-            self.layout.prop(self, "useCollections")
+        self.layout.prop(self, "useCollections")
         MeshSelection.draw(self, context)
 
 

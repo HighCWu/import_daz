@@ -1348,18 +1348,7 @@ def addMannequins(self, context):
     mangrp = None
     scn = context.scene
     coll = context.collection
-    if not self.useGroup:
-        pass
-    elif bpy.app.version <= (2,80,0):
-        for grp in bpy.data.groups:
-            if grp.name == self.group:
-                mangrp = grp
-                break
-        if mangrp is None:
-            mangrp = bpy.data.groups.new(self.group)
-        if rig.name not in mangrp.objects.keys():
-            mangrp.objects.link(rig)
-    else:
+    if self.useGroup:
         from .hide import getRigCollection, createSubCollection
         rigcoll = getRigCollection(rig)
         coll = createSubCollection(rigcoll, self.group)
@@ -1571,12 +1560,9 @@ def makeDeflection(context, ob, char, fac):
     nob = bpy.data.objects.new(ob.name+"Deflect", me)
     ncoll = bpy.data.collections.new(name=ob.name+"Deflect")
     ncoll.objects.link(nob)
-    if bpy.app.version < (2,80,0):
-        context.scene.objects.link(nob)
-    else:
-        for coll in bpy.data.collections:
-            if ob in coll.objects.values():
-                coll.children.link(ncoll)
+    for coll in bpy.data.collections:
+        if ob in coll.objects.values():
+            coll.children.link(ncoll)
     nob.hide_render = True
     setActiveObject(context, nob)
 

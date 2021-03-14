@@ -211,7 +211,7 @@ class Instance(Accessor, Channels):
 
 
     def preprocess2(self, context):
-        if self.isGroupNode and bpy.app.version >= (2,80,0):
+        if self.isGroupNode:
             coll = bpy.data.collections.new(name=self.label)
             self.collection.children.link(coll)
             self.collection = coll
@@ -318,16 +318,13 @@ class Instance(Accessor, Channels):
 
     def makeNewRefgroup(self, context, ob):
         refname = ob.name + " REF"
-        if bpy.app.version < (2,80,0):
-            refgroup = bpy.data.groups.new(name=refname)
-        else:
-            refgroup = bpy.data.collections.new(name=refname)
-            if LS.refGroups is None:
-                LS.refGroups = bpy.data.collections.new(name=LS.collection.name + " REFS")
-                context.scene.collection.children.link(LS.refGroups)
-            LS.refGroups.children.link(refgroup)
-            layer = findLayerCollection(context.view_layer.layer_collection, refgroup)
-            layer.exclude = True
+        refgroup = bpy.data.collections.new(name=refname)
+        if LS.refGroups is None:
+            LS.refGroups = bpy.data.collections.new(name=LS.collection.name + " REFS")
+            context.scene.collection.children.link(LS.refGroups)
+        LS.refGroups.children.link(refgroup)
+        layer = findLayerCollection(context.view_layer.layer_collection, refgroup)
+        layer.exclude = True
 
         obname = ob.name
         ob.name = refname
@@ -341,30 +338,18 @@ class Instance(Accessor, Channels):
 
 
     def getInstanceGroup(self, ob):
-        if bpy.app.version < (2,80,0):
-            if ob.dupli_type == 'GROUP':
-                for ob1 in ob.dupli_group.objects:
-                    group = self.getInstanceGroup(ob1)
-                    if group:
-                        return group
-                return ob.dupli_group
-        else:
-            if ob.instance_type == 'COLLECTION':
-                for ob1 in ob.instance_collection.objects:
-                    group = self.getInstanceGroup(ob1)
-                    if group:
-                        return group
-                return ob.instance_collection
+        if ob.instance_type == 'COLLECTION':
+            for ob1 in ob.instance_collection.objects:
+                group = self.getInstanceGroup(ob1)
+                if group:
+                    return group
+            return ob.instance_collection
         return None
 
 
     def duplicate(self, empty, group):
-        if bpy.app.version < (2,80,0):
-            empty.dupli_type = 'GROUP'
-            empty.dupli_group = group
-        else:
-            empty.instance_type = 'COLLECTION'
-            empty.instance_collection = group
+        empty.instance_type = 'COLLECTION'
+        empty.instance_collection = group
 
 
     def poseRig(self, context):
@@ -486,10 +471,7 @@ def transformDuplis():
         ob.parent = None
         ob.matrix_world = Matrix()
         inst.collection.objects.link(empty)
-        if bpy.app.version < (2,80,0):
-            putOnHiddenLayer(ob)
-        else:
-            unlinkAll(ob)
+        unlinkAll(ob)
         refgroup.objects.link(ob)
 
 
@@ -497,8 +479,6 @@ def addToRefgroup(ob, refgroup, inst):
     if ob.name in inst.collection.objects:
         inst.collection.objects.unlink(ob)
     if ob.name not in refgroup.objects:
-        if bpy.app.version < (2,80,0):
-            putOnHiddenLayer(ob)
         try:
             refgroup.objects.link(ob)
         except RuntimeError:
@@ -525,12 +505,8 @@ def checkDependency(empty, ob):
 
 
 def getDupli(empty):
-    if bpy.app.version < (2,80,0):
-        if empty.dupli_type == 'GROUP':
-            return empty.dupli_group
-    else:
-        if empty.instance_type == 'COLLECTION':
-            return empty.instance_collection
+    if empty.instance_type == 'COLLECTION':
+        return empty.instance_collection
     return None
 
 
@@ -727,8 +703,6 @@ class Node(Asset, Formula, Channels):
         ob.DazRotMode = self.rotation_order
         ob.DazMorphPrefixes = False
         inst.collection.objects.link(ob)
-        if bpy.app.version < (2,80,0):
-            context.scene.objects.link(ob)
         ob.DazId = self.id
         ob.DazUrl = unquote(self.url)
         ob.DazScene = LS.scene

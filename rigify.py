@@ -1032,17 +1032,6 @@ class Rigify:
 
                 changeAllTargets(ob, rig, gen)
 
-        # Add generated rig to group
-        group = None
-        if bpy.app.version <= (2,80,0):
-            for grp in bpy.data.groups:
-                if rig.name in grp.objects:
-                    group = grp
-                    break
-            print("Group: %s" % group)
-        if group:
-            group.objects.link(gen)
-
         # Fix drivers
         assoc = [(rigi,daz) for (daz,rigi,_) in Genesis3Spine]
         assoc += [(rigi,daz) for (rigi,daz) in RigifySkeleton.items()]
@@ -1217,9 +1206,8 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
         self.layout.prop(self, "deleteMeta")
-        if bpy.app.version >= (2,80,0):
-            self.layout.prop(self, "useCustomLayers")
-            self.layout.prop(self, "useKeepRig")
+        self.layout.prop(self, "useCustomLayers")
+        self.layout.prop(self, "useKeepRig")
 
     def run(self, context):
         import time
@@ -1250,8 +1238,7 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists, Meta):
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
         self.layout.prop(self, "useCustomLayers")
-        if bpy.app.version >= (2,80,0):
-            self.layout.prop(self, "useKeepRig")
+        self.layout.prop(self, "useKeepRig")
 
     def run(self, context):
         if self.useKeepRig:

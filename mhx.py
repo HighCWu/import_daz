@@ -364,8 +364,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     def draw(self, context):
         self.layout.prop(self, "addTweakBones")
         self.layout.prop(self, "useLegacy")
-        if bpy.app.version >= (2,80,0):
-            self.layout.prop(self, "useKeepRig")
+        self.layout.prop(self, "useKeepRig")
 
 
     def run(self, context):

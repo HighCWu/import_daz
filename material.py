@@ -179,8 +179,6 @@ class Material(Asset, Channels):
         self.storeRna(mat)
         mat.DazRenderEngine = scn.render.engine
         mat.DazShader = self.shader
-        if bpy.app.version < (2,80,0):
-            mat.game_settings.alpha_blend = 'CLIP'
         if self.uv_set:
             self.uv_sets[self.uv_set.name] = self.uv_set
         geonode = self.geometry
@@ -894,8 +892,6 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator):
                     if mat:
                         if mat.use_nodes:
                             self.saveNodesInTree(mat.node_tree)
-                        elif bpy.app.version < (2,80,0):
-                            self.saveTextureSlots(mat)
                 for psys in ob.particle_systems:
                     self.saveTextureSlots(psys.settings)
                 ob.DazLocalTextures = True
@@ -1001,8 +997,7 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
             "texture_slots", "node_tree",
             "name", "name_full", "active_texture",
         ]
-        if bpy.app.version >= (2,80,0):
-            deadMatProps.append("diffuse_color")
+        deadMatProps.append("diffuse_color")
         matProps = self.getRelevantProps(mat1, deadMatProps)
         if not self.haveSameAttrs(mat1, mat2, matProps, mname1, mname2):
             return False
@@ -1610,14 +1605,10 @@ def checkRenderSettings(context, force):
         handle = "UPDATE"
     msg = ""
     msg += checkSettings(scn.cycles, renderSettingsCycles, handle, "Cycles Settings", force)
-    if bpy.app.version >= (2,80,0):
-        msg += checkSettings(scn.eevee, renderSettingsEevee, handle, "Eevee Settings", force)
-        msg += checkSettings(scn.render, renderSettingsRender, handle, "Render Settings", force)
+    msg += checkSettings(scn.eevee, renderSettingsEevee, handle, "Eevee Settings", force)
+    msg += checkSettings(scn.render, renderSettingsRender, handle, "Render Settings", force)
 
-    if bpy.app.version < (2,80,0):
-        lamps = [ob for ob in scn.objects if ob.type == "LAMP"]
-    else:
-        lamps = [ob for ob in scn.collection.all_objects if ob.type == "LIGHT"]
+    lamps = [ob for ob in scn.collection.all_objects if ob.type == "LIGHT"]
     handle = GS.handleLightSettings
     if force:
         handle = "UPDATE"

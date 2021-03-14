@@ -305,9 +305,6 @@ class HairSystem:
 
         if self.vertexGroup:
             psys.vertex_group_density = self.vertexGroup
-        elif bpy.app.version < (2,80,0):
-            vgrp = createSkullGroup(ob, 'TOP')
-            psys.vertex_group_density = vgrp.name
 
         pset = psys.settings
         pset.type = 'HAIR'
@@ -582,8 +579,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
         box.prop(self, "nViewStep")
         box.prop(self, "nRenderStep")
         box.prop(self, "childRadius")
-        if bpy.app.version >= (2,80,0):
-            box.prop(self, "strandShape")
+        box.prop(self, "strandShape")
         box.prop(self, "rootRadius")
         box.prop(self, "tipRadius")
 
@@ -1095,23 +1091,13 @@ def createSkullGroup(hum, skullType):
 
 
 def updateHair(context, ob, psys):
-    if bpy.app.version < (2,80,0):
-        bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
-        bpy.ops.object.mode_set(mode='OBJECT')
-        return psys
-    else:
-        dg = context.evaluated_depsgraph_get()
-        return ob.evaluated_get(dg).particle_systems.active
+    dg = context.evaluated_depsgraph_get()
+    return ob.evaluated_get(dg).particle_systems.active
 
 
 def updateHairs(context, ob):
-    if bpy.app.version < (2,80,0):
-        bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
-        bpy.ops.object.mode_set(mode='OBJECT')
-        return psys
-    else:
-        dg = context.evaluated_depsgraph_get()
-        return ob.evaluated_get(dg).particle_systems
+    dg = context.evaluated_depsgraph_get()
+    return ob.evaluated_get(dg).particle_systems
 
 
 def printPsys(psys):

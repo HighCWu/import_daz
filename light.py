@@ -94,45 +94,38 @@ class Light(Node):
         width = inst.getValue(["Width"], 0) * LS.scale
 
         # [ "Point", "Rectangle", "Disc", "Sphere", "Cylinder" ]
-        if bpy.app.version < (2,80,0):
-            bpydatalamps = bpy.data.lamps
-        else:
-            bpydatalamps = bpy.data.lights
         if lgeo == 1:
-            lamp = bpydatalamps.new(self.name, "AREA")
+            lamp = bpy.data.lights.new(self.name, "AREA")
             lamp.shape = 'RECTANGLE'
             lamp.size = width
             lamp.size_y = height
-        elif lgeo == 2 and bpy.app.version >= (2,80,0):
-            lamp = bpydatalamps.new(self.name, "AREA")
+        elif lgeo == 2:
+            lamp = bpy.data.lights.new(self.name, "AREA")
             lamp.shape = 'DISK'
             lamp.size = height
         elif lgeo > 1:
-            lamp = bpydatalamps.new(self.name, "POINT")
+            lamp = bpy.data.lights.new(self.name, "POINT")
             lamp.shadow_soft_size = height/2
             self.twosided = False
         elif self.type == 'POINT':
-            lamp = bpydatalamps.new(self.name, "POINT")
+            lamp = bpy.data.lights.new(self.name, "POINT")
             lamp.shadow_soft_size = 0
-            if bpy.app.version < (2,80,0):
-                inst.fluxFactor = 5
-            else:
-                inst.fluxFactor = 3
+            inst.fluxFactor = 3
             self.twosided = False
         elif self.type == 'SPOT':
-            lamp = bpydatalamps.new(self.name, "SPOT")
+            lamp = bpy.data.lights.new(self.name, "SPOT")
             lamp.shadow_soft_size = height/2
             self.twosided = False
         elif self.type == 'DIRECTIONAL':
-            lamp = bpydatalamps.new(self.name, "SUN")
+            lamp = bpy.data.lights.new(self.name, "SUN")
             lamp.shadow_soft_size = height/2
             self.twosided = False
         elif self.type == 'light':
-            lamp = bpydatalamps.new(self.name, "AREA")
+            lamp = bpy.data.lights.new(self.name, "AREA")
         else:
             msg = ("Unknown light type: %s" % self.type)
             reportError(msg, trigger=(1,3))
-            lamp = bpydatalamps.new(self.name, "SPOT")
+            lamp = bpy.data.lights.new(self.name, "SPOT")
             lamp.shadow_soft_size = height/2
             self.twosided = False
 
@@ -156,16 +149,10 @@ class Light(Node):
             if key == "intensity":
                 lamp.energy = value
             elif key == "shadow_type":
-                if bpy.app.version < (2,80,0):
-                    if value == "none":
-                        lamp.shadow_method = 'NOSHADOW'
-                    else:
-                        lamp.shadow_method = 'RAY_SHADOW'
+                if value == "none":
+                    lamp.cycles.cast_shadow = False
                 else:
-                    if value == "none":
-                        lamp.cycles.cast_shadow = False
-                    else:
-                        lamp.cycles.case_shadow = True
+                    lamp.cycles.case_shadow = True
             elif key == "shadow_softness":
                 lamp.shadow_buffer_soft = value
             elif key == "shadow_bias":
@@ -215,25 +202,10 @@ class LightInstance(Instance):
     def buildChannels(self, context):
         Instance.buildChannels(self, context)
         lamp = self.rna.data
-        if bpy.app.version < (2,80,0):
-            if self.getValue(["Cast Shadows"], 0):
-                lamp.shadow_method = 'RAY_SHADOW'
-            else:
-                lamp.shadow_method = 'NOSHADOW'
-            value = self.getValue(["Shadow Type"], 0)
-            stypes = ['NOSHADOW', 'BUFFER_SHADOW', 'RAY_SHADOW']
-            lamp.shadow_method = stypes[value]
+        if self.getValue(["Cast Shadows"], 0):
+            lamp.cycles.cast_shadow = True
         else:
-            if self.getValue(["Cast Shadows"], 0):
-                lamp.cycles.cast_shadow = True
-            else:
-                lamp.cycles.cast_shadow = False
-
-        if bpy.app.version < (2,80,0):
-            value = self.getValue(["Illumination"], 3)
-            # [ "Off", "Diffuse Only", "Specular Only", "On" ]
-            lamp.use_diffuse = (value in [1,3])
-            lamp.use_specular = (value in [2,3])
+            lamp.cycles.cast_shadow = False
 
         lamp.color = self.getValue(["Color"], WHITE)
         flux = self.getValue(["Flux"], 15000)
@@ -294,10 +266,7 @@ class LightTree(CyclesTree):
         emit = self.addNode("ShaderNodeEmission", 1)
         emit.inputs["Color"].default_value[0:3] = color
         emit.inputs["Strength"].default_value = self.material.instance.fluxFactor
-        if bpy.app.version < (2,80,0):
-            output = self.addNode("ShaderNodeOutputLamp", 2)
-        else:
-            output = self.addNode("ShaderNodeOutputLight", 2)
+        output = self.addNode("ShaderNodeOutputLight", 2)
         self.links.new(emit.outputs[0], output.inputs["Surface"])
 
 

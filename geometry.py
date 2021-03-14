@@ -340,12 +340,8 @@ def shiftMesh(ob, mat):
     from .node import isUnitMatrix
     if isUnitMatrix(mat):
         return
-    if bpy.app.version < (2,80,0):
-        for v in ob.data.vertices:
-            v.co = mat * v.co
-    else:
-        for v in ob.data.vertices:
-            v.co = mat @ v.co
+    for v in ob.data.vertices:
+        v.co = mat @ v.co
 
 
 def isEmpty(vgrp, ob):
@@ -994,10 +990,7 @@ def makeNewUvloop(me, name, setActive):
     uvtex = me.uv_layers.new()
     uvtex.name = name
     uvloop = me.uv_layers[-1]
-    if bpy.app.version < (2,80,0):
-        uvtex.active_render = setActive
-    else:
-        uvloop.active_render = setActive
+    uvloop.active_render = setActive
     if setActive:
         me.uv_layers.active_index = len(me.uv_layers) - 1
     return uvloop

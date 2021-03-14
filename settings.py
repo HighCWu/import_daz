@@ -50,11 +50,7 @@ class GlobalSettings:
         ]
         self.cloudDirs = []
         self.errorPath = self.fixPath("~/Documents/daz_importer_errors.txt")
-        if bpy.app.version < (2,80,0):
-            path = "~/import-daz-settings-27x.json"
-        else:
-            path = "~/import-daz-settings-28x.json"
-        self.settingsPath = self.fixPath(path)
+        self.settingsPath = self.fixPath("~/import-daz-settings-28x.json")
         self.rootPath = self.fixPath("~/import-daz-paths.json")
 
         self.unitScale = 0.01

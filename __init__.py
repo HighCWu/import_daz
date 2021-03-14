@@ -59,7 +59,7 @@ def importModules():
                     "propgroups", "daz", "panel", "fileutils", "load_json", "driver", "asset", "channels", "formula",
                     "transform", "node", "figure", "bone", "geometry", "objfile",
                     "fix", "modifier", "load_morph", "morphing", "convert",
-                    "material", "internal", "cycles", "cgroup", "pbr", "render", "camera", "light",
+                    "material", "cycles", "cgroup", "pbr", "render", "camera", "light",
                     "guess", "animation", "files", "main", "finger",
                     "matedit", "tables", "proxy", "rigify", "merge", "hide",
                     "mhx", "layers", "fkik", "hair", "transfer", "dforce",
@@ -126,10 +126,7 @@ def register():
         facecap.register()
     hdmorphs.register()
 
-    if bpy.app.version < (2,80,0):
-        bpy.types.INFO_MT_file_import.append(menu_func_import)
-    else:
-        bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 
     settings.GS.loadDefaults()
 
@@ -167,10 +164,7 @@ def unregister():
         facecap.unregister()
     hdmorphs.unregister()
 
-    if bpy.app.version < (2,80,0):
-        bpy.types.INFO_MT_file_import.remove(menu_func_import)
-    else:
-        bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 
 
 if __name__ == "__main__":

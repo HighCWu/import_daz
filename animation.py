@@ -299,15 +299,10 @@ class HideOperator(DazOperator):
 
         self.layerColls = []
         self.obhides = []
-        if bpy.app.version < (2,80,0):
-            for ob in context.scene.objects:
-                self.obhides.append((ob, ob.hide))
-                ob.hide = False
-        else:
-            for ob in context.scene.collection.all_objects:
-                self.obhides.append((ob, ob.hide_get()))
-                ob.hide_set(False)
-            self.hideLayerColls(rig, context.view_layer.layer_collection)
+        for ob in context.scene.collection.all_objects:
+            self.obhides.append((ob, ob.hide_get()))
+            ob.hide_set(False)
+        self.hideLayerColls(rig, context.view_layer.layer_collection)
 
 
     def hideLayerColls(self, rig, layer):
@@ -331,14 +326,10 @@ class HideOperator(DazOperator):
         rig.data.layers = self.boneLayers
         if self.simpleIK:
             self.simpleIK.restoreProps(rig)
-        if bpy.app.version < (2,80,0):
-            for ob,hide in self.obhides:
-                ob.hide = hide
-        else:
-            for layer in self.layerColls:
-                layer.exclude = False
-            for ob,hide in self.obhides:
-                ob.hide_set(hide)
+        for layer in self.layerColls:
+            layer.exclude = False
+        for ob,hide in self.obhides:
+            ob.hide_set(hide)
 
 #-------------------------------------------------------------
 #   AnimatorBase class

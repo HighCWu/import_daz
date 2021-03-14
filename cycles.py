@@ -123,30 +123,25 @@ class CyclesMaterial(Material):
 
     def setTransSettings(self, useRefraction, useBlend):
         LS.usedFeatures["Transparent"] = True
-        if bpy.app.version >= (2,80,0):
-            mat = self.rna
-            if useBlend:
-                mat.blend_method = 'BLEND'
-                mat.show_transparent_back = False
-            else:
-                mat.blend_method = 'HASHED'
-            mat.use_screen_refraction = useRefraction
-            if hasattr(mat, "transparent_shadow_method"):
-                mat.transparent_shadow_method = 'HASHED'
-            else:
-                mat.shadow_method = 'HASHED'
+        mat = self.rna
+        if useBlend:
+            mat.blend_method = 'BLEND'
+            mat.show_transparent_back = False
+        else:
+            mat.blend_method = 'HASHED'
+        mat.use_screen_refraction = useRefraction
+        if hasattr(mat, "transparent_shadow_method"):
+            mat.transparent_shadow_method = 'HASHED'
+        else:
+            mat.shadow_method = 'HASHED'
 
 #-------------------------------------------------------------
 #   Cycles node tree
 #-------------------------------------------------------------
 
 NCOLUMNS = 20
-if bpy.app.version < (2,80,0):
-    XSIZE = 250
-    YSIZE = 250
-else:
-    XSIZE = 300
-    YSIZE = 250
+XSIZE = 300
+YSIZE = 250
 
 
 class CyclesTree:
@@ -864,8 +859,6 @@ class CyclesTree:
 
 
     def setRoughness(self, node, slot, roughness, roughtex, square=True):
-        if square and bpy.app.version < (2,80,0):
-            roughness = roughness * roughness
         node.inputs[slot].default_value = roughness
         if roughtex:
             tex = self.multiplyScalarTex(roughness, roughtex)
@@ -1070,8 +1063,7 @@ class CyclesTree:
     def buildOutput(self):
         self.column += 1
         output = self.addNode("ShaderNodeOutputMaterial")
-        if bpy.app.version >= (2,80,0):
-            output.target = 'ALL'
+        output.target = 'ALL'
         if self.cycles:
             self.links.new(self.getCyclesSocket(), output.inputs["Surface"])
         if self.volume and not self.useCutout:
@@ -1084,7 +1076,7 @@ class CyclesTree:
             for lie in self.liegroups:
                 self.links.new(node.outputs[0], lie.inputs["Alpha"])
 
-        if bpy.app.version >= (2,80,0) and (self.volume or self.eevee):
+        if self.volume or self.eevee:
             output.target = 'CYCLES'
             outputEevee = self.addNode("ShaderNodeOutputMaterial")
             outputEevee.target = 'EEVEE'

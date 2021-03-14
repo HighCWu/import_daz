@@ -89,35 +89,13 @@ class CameraInstance(Instance):
             elif key == "focal_length" :
                 camera.lens = value
             elif key == "depth_of_field" :
-                self.setDOF(camera, value)
+                camera.dof.use_dof = value
             elif key == "focal_distance" :
-                self.setFocusDist(camera, value)
+                camera.dof.focus_distance = value * LS.scale
             elif key == "fstop" :
-                self.setFStop(camera, value)
+                camera.dof.aperture_fstop = value
             else:
                 print("Unknown camera prop: '%s' %s" % (key, value))
-
-
-    def setDOF(self, camera, value):
-        if bpy.app.version < (2,80,0):
-            pass
-        else:
-            camera.dof.use_dof = value
-
-
-    def setFocusDist(self, camera, value):
-        if bpy.app.version < (2,80,0):
-            camera.dof_distance = value * LS.scale
-        else:
-            camera.dof.focus_distance = value * LS.scale
-
-
-    def setFStop(self, camera, value):
-        if bpy.app.version < (2,80,0):
-            camera.gpu_dof.fstop = value
-            camera.cycles.aperture_fstop = value
-        else:
-            camera.dof.aperture_fstop = value
 
 
     def buildChannels(self, context):
@@ -135,25 +113,18 @@ class CameraInstance(Instance):
             elif key == "Focal Length":
                 camera.lens = value         # in mm
             elif key == "DOF":
-                self.setDOF(camera, value)
+                camera.dof.use_dof = value
             elif key == "Depth of Field":
-                self.setFocusDist(camera, value)
+                camera.dof.focus_distance = value * LS.scale
             elif key == "Frame Width":
                 # https://bitbucket.org/Diffeomorphic/import-daz/issues/75/better-cameras
                 camera.sensor_height = value
             elif key == "Aspect Ratio":
                 self.aspectRatio = value[1]/value[0]
             elif key == "Aperture Blades":
-                if bpy.app.version < (2,80,0):
-                    camera.gpu_dof.blades = value
-                    camera.cycles.aperture_blades = value
-                else:
-                    camera.dof.aperture_blades = value
+                camera.dof.aperture_blades = value
             elif key == "Aperture Blade Rotation":
-                if bpy.app.version < (2,80,0):
-                    camera.cycles.aperture_rotation = value*D
-                else:
-                    camera.dof.aperture_rotation = value*D
+                camera.dof.aperture_rotation = value*D
 
             elif key in ["Point At", "Renderable", "Visible", "Selectable", "Perspective",
                         "Render Priority", "Cast Shadows", "Pixel Size",

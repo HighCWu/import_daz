@@ -603,9 +603,8 @@ class DAZ_PT_FacsUnits(bpy.types.Panel, DAZ_PT_Morphs):
     morphset = "Facs"
 
     def preamble(self, layout, rig):
-        if bpy.app.version >= (2,80,0):
-            layout.operator("daz.import_facecap")
-            layout.operator("daz.import_livelink")
+        layout.operator("daz.import_facecap")
+        layout.operator("daz.import_livelink")
         DAZ_PT_Morphs.preamble(self, layout, rig)
 
 

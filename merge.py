@@ -558,10 +558,7 @@ class DAZ_OT_EliminateEmpties(DazOperator):
     def doEliminate(self, ob):
         if ob.type != 'EMPTY' or getHideViewport(ob):
             return False
-        if bpy.app.version < (2,80,0):
-            return (ob.dupli_type == 'NONE')
-        else:
-            return (ob.instance_type == 'NONE')
+        return (ob.instance_type == 'NONE')
 
 #-------------------------------------------------------------
 #   Merge rigs
@@ -771,24 +768,19 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature):
             return adds, hdadds, removes
 
         mcoll = hdcoll = None
-        if bpy.app.version < (2,80,0):
-            for grp in bpy.data.groups:
-                if rig.name in grp.objects:
-                    adds.append(grp)
-        else:
-            for coll in bpy.data.collections:
-                if rig in coll.objects.values():
-                    if coll.name.endswith("HD"):
-                        if hdcoll is None:
-                            hdcoll = bpy.data.collections.new(name= rig.name + " Meshes_HD")
-                            hdadds = [hdcoll]
-                        coll.children.link(hdcoll)
-                    else:
-                        if mcoll is None:
-                            mcoll = bpy.data.collections.new(name= rig.name + " Meshes")
-                            adds = [mcoll]
-                        coll.children.link(mcoll)
-                    removes.append(coll)
+        for coll in bpy.data.collections:
+            if rig in coll.objects.values():
+                if coll.name.endswith("HD"):
+                    if hdcoll is None:
+                        hdcoll = bpy.data.collections.new(name= rig.name + " Meshes_HD")
+                        hdadds = [hdcoll]
+                    coll.children.link(hdcoll)
+                else:
+                    if mcoll is None:
+                        mcoll = bpy.data.collections.new(name= rig.name + " Meshes")
+                        adds = [mcoll]
+                    coll.children.link(mcoll)
+                removes.append(coll)
         return adds, hdadds, removes
 
 

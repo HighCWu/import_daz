@@ -37,113 +37,112 @@ from . import globvars as G
 #   Blender 2.8 compatibility
 #-------------------------------------------------------------
 
-if True:
-    Region = "UI"
-    HideViewport = "hide_viewport"
-    DrawType = "display_type"
-    ShowXRay = "show_in_front"
+Region = "UI"
+HideViewport = "hide_viewport"
+DrawType = "display_type"
+ShowXRay = "show_in_front"
 
-    def getHideViewport(ob):
-        return (ob.hide_get() or ob.hide_viewport)
+def getHideViewport(ob):
+    return (ob.hide_get() or ob.hide_viewport)
 
-    def setHideViewport(ob, value):
-        ob.hide_set(value)
-        ob.hide_viewport = value
+def setHideViewport(ob, value):
+    ob.hide_set(value)
+    ob.hide_viewport = value
 
-    def getSelectedObjects(context):
-        return [ob for ob in context.scene.collection.all_objects
-                if ob.select_get() and not (ob.hide_get() or ob.hide_viewport)]
+def getSelectedObjects(context):
+    return [ob for ob in context.scene.collection.all_objects
+        if ob.select_get() and not (ob.hide_get() or ob.hide_viewport)]
 
-    def getSelectedMeshes(context):
-        return [ob for ob in context.scene.collection.all_objects
-                if ob.select_get() and ob.type == 'MESH' and not (ob.hide_get() or ob.hide_viewport)]
+def getSelectedMeshes(context):
+    return [ob for ob in context.scene.collection.all_objects
+            if ob.select_get() and ob.type == 'MESH' and not (ob.hide_get() or ob.hide_viewport)]
 
-    def getSelectedArmatures(context):
-        return [ob for ob in context.scene.collection.all_objects
-                if ob.select_get() and ob.type == 'ARMATURE' and not (ob.hide_get() or ob.hide_viewport)]
+def getSelectedArmatures(context):
+    return [ob for ob in context.scene.collection.all_objects
+            if ob.select_get() and ob.type == 'ARMATURE' and not (ob.hide_get() or ob.hide_viewport)]
 
-    def getActiveObject(context):
-        return context.view_layer.objects.active
+def getActiveObject(context):
+    return context.view_layer.objects.active
 
-    def setActiveObject(context, ob):
-        try:
-            context.view_layer.objects.active = ob
-            return True
-        except:
-            return False
-
-    def putOnHiddenLayer(ob):
-        ob.hide_set(True)
-        ob.hide_viewport = True
-        ob.hide_render = True
-
-    def createHiddenCollection(context, parent, cname="Hidden"):
-        coll = bpy.data.collections.new(name=cname)
-        if parent is None:
-            parent = context.collection
-        parent.children.link(coll)
-        coll.hide_viewport = True
-        coll.hide_render = True
-        return coll
-
-    def inSceneLayer(context, ob):
-        if getHideViewport(ob):
-            return False
-        return inCollection(context.view_layer.layer_collection, ob)
-
-    def inCollection(layer, ob):
-        if layer.hide_viewport:
-            return False
-        elif not layer.exclude and ob in layer.collection.objects.values():
-            return True
-        for child in layer.children:
-            if inCollection(child, ob):
-                return True
+def setActiveObject(context, ob):
+    try:
+        context.view_layer.objects.active = ob
+        return True
+    except:
         return False
 
-    def showSceneLayer(context, ob):
-        coll = context.collection
-        coll.objects.link(ob)
+def putOnHiddenLayer(ob):
+    ob.hide_set(True)
+    ob.hide_viewport = True
+    ob.hide_render = True
+
+def createHiddenCollection(context, parent, cname="Hidden"):
+    coll = bpy.data.collections.new(name=cname)
+    if parent is None:
+        parent = context.collection
+    parent.children.link(coll)
+    coll.hide_viewport = True
+    coll.hide_render = True
+    return coll
+
+def inSceneLayer(context, ob):
+    if getHideViewport(ob):
+        return False
+    return inCollection(context.view_layer.layer_collection, ob)
+
+def inCollection(layer, ob):
+    if layer.hide_viewport:
+        return False
+    elif not layer.exclude and ob in layer.collection.objects.values():
+        return True
+    for child in layer.children:
+        if inCollection(child, ob):
+            return True
+    return False
+
+def showSceneLayer(context, ob):
+    coll = context.collection
+    coll.objects.link(ob)
 
 
-    def activateObject(context, ob):
-        context.view_layer.objects.active = ob
+def activateObject(context, ob):
+    context.view_layer.objects.active = ob
+    try:
+        bpy.ops.object.mode_set(mode='OBJECT')
+        ok = True
+    except RuntimeError:
+        print("Could not activate", ob.name)
+        ok = False
+    bpy.ops.object.select_all(action='DESELECT')
+    ob.select_set(True)
+    return ok
+
+
+def selectObjects(context, objects):
+    if context.object:
         try:
             bpy.ops.object.mode_set(mode='OBJECT')
-            ok = True
         except RuntimeError:
-            print("Could not activate", ob.name)
-            ok = False
-        bpy.ops.object.select_all(action='DESELECT')
-        ob.select_set(True)
-        return ok
+            pass
+    bpy.ops.object.select_all(action='DESELECT')
+    for ob in objects:
+        try:
+            ob.select_set(True)
+        except RuntimeError:
+            pass
 
+def unlinkAll(ob):
+    for coll in bpy.data.collections:
+        if ob in coll.objects.values():
+            coll.objects.unlink(ob)
 
-    def selectObjects(context, objects):
-        if context.object:
-            try:
-                bpy.ops.object.mode_set(mode='OBJECT')
-            except RuntimeError:
-                pass
-        bpy.ops.object.select_all(action='DESELECT')
-        for ob in objects:
-            try:
-                ob.select_set(True)
-            except RuntimeError:
-                pass
+def updateScene(context):
+    dg = context.evaluated_depsgraph_get()
+    dg.update()
 
-    def unlinkAll(ob):
-        for coll in bpy.data.collections:
-            if ob in coll.objects.values():
-                coll.objects.unlink(ob)
-
-    def updateScene(context):
-        dg = context.evaluated_depsgraph_get()
-        dg.update()
-
-    def updateObject(context, ob):
-        dg = context.evaluated_depsgraph_get()
-        return ob.evaluated_get(dg)
+def updateObject(context, ob):
+    dg = context.evaluated_depsgraph_get()
+    return ob.evaluated_get(dg)
 
 #-------------------------------------------------------------
 #   Overridable properties
@@ -206,38 +205,14 @@ def updateRig(rig, context):
     ob = context.object
     if ob is None:
         return
-    if bpy.app.version >= (2,80,0):
-        if ob.type == 'MESH' and rig.name in context.view_layer.objects:
-            context.view_layer.objects.active = rig
-            bpy.ops.object.posemode_toggle()
-            bpy.ops.object.posemode_toggle()
-            context.view_layer.objects.active = ob
-        elif ob.type == 'ARMATURE':
-            bpy.ops.object.posemode_toggle()
-            bpy.ops.object.posemode_toggle()
-
-    else:
-        if ob.type == "MESH":
-            context.scene.objects.active = rig
-            if rig.mode == "POSE":
-                pos = rig.pose.bones[0].location[0]
-                rig.pose.bones[0].location[0] = pos + 0
-            elif rig.mode == "OBJECT":
-                bpy.ops.object.posemode_toggle()
-                pos = rig.pose.bones[0].location[0]
-                rig.pose.bones[0].location[0] = pos + 0
-                bpy.ops.object.posemode_toggle()
-            context.scene.objects.active = ob
-
-        elif ob.type == 'ARMATURE':
-            if rig.mode == "POSE":
-                pos = rig.pose.bones[0].location[0]
-                rig.pose.bones[0].location[0] = pos + 0
-            elif rig.mode == "OBJECT":
-                bpy.ops.object.posemode_toggle()
-                pos = rig.pose.bones[0].location[0]
-                rig.pose.bones[0].location[0] = pos + 0
-                bpy.ops.object.posemode_toggle()
+    if ob.type == 'MESH' and rig.name in context.view_layer.objects:
+        context.view_layer.objects.active = rig
+        bpy.ops.object.posemode_toggle()
+        bpy.ops.object.posemode_toggle()
+        context.view_layer.objects.active = ob
+    elif ob.type == 'ARMATURE':
+        bpy.ops.object.posemode_toggle()
+        bpy.ops.object.posemode_toggle()
 
 
 def updateDrivers(ob):

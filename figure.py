@@ -1252,10 +1252,7 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
         rig = context.object
         LS.customShapes = []
         IK = SimpleIK()
-        if bpy.app.version < (2,80,0):
-            coll = None
-        else:
-            coll = context.collection
+        coll = context.collection
 
         csCollar = makeCustomShape("CS_Collar", "CircleX", (0,1,0), (0,0.5,0.1))
         csHand = makeCustomShape("CS_Hand", "CircleX", (0,1,0), (0,0.6,0.5))
