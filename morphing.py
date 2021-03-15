@@ -699,6 +699,10 @@ class StandardMorphLoader(MorphLoader):
         self.rig.DazMorphPrefixes = False
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
+        self.turnOnJCMs()
+
+
+    def turnOnJCMs(self):
         from .driver import setBoolProp
         setBoolProp(self.rig, "JCMs On", True)
         setBoolProp(self.rig, "BaseFlexions", True)
@@ -871,8 +875,8 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
             self.addFiles("Jcms")
         if self.flexions:
             self.addFiles("Flexions")
-        print("MM", self.morphsets.items())
         self.getAllMorphs(self.namepaths, context)
+        self.turnOnJCMs()
 
 
     def addFiles(self, morphset):
@@ -888,7 +892,7 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
                 words = filepath.rsplit("/data",1)
             if len(words) == 2:
                 lpath = "/data" + words[1].lower()
-                print(lpath)
+                #print(lpath)
             else:
                 raise RuntimeError("BUG", filepath)
                 continue

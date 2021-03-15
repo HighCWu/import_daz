@@ -141,9 +141,9 @@ class LoadMorph:
             self.alias[prop] = skey.name
             skey.name = prop
             self.shapekeys[prop] = skey
-            #if self.rig:
-            #    final = self.addNewProp(prop)
-            #    makePropDriver(propRef(final), skey, "value", self.rig, "x")
+            if self.rig:
+                final = self.addNewProp(prop)
+                makePropDriver(dataRef(final), skey, "value", self.rig, "x")
             return prop
         return None
 
@@ -487,14 +487,13 @@ class LoadMorph:
 
 
     def getDrivenChannel(self, raw):
-        if raw in self.shapekeys.keys():
+        if False and raw in self.shapekeys.keys():
             rna = self.mesh.data.shape_keys
             channel = 'key_blocks["%s"].value' % raw
         else:
             rna = self.amt
             final = finalProp(raw)
-            if final not in self.amt.keys():
-                self.amt[final] = 0.0
+            self.ensureExists(raw, final)
             channel = propRef(final)
         return rna, channel
 
@@ -526,9 +525,14 @@ class LoadMorph:
 
 
     def ensureExists(self, raw, final):
-        if raw not in self.drivers.keys():
+        if raw not in self.rig.keys():
             self.rig[raw] = 0.0
+        if final not in self.amt.keys():
             self.amt[final] = 0.0
+            fcu = self.amt.driver_add(propRef(final))
+            fcu.driver.type = 'SCRIPTED'
+            fcu.driver.expression = "x"
+            self.addPathVar(fcu, "x", propRef(raw))
 
 
     def buildBoneDriver(self, raw, bname, expr):
@@ -699,11 +703,11 @@ class LoadMorph:
                             driver.fill(fcu)
                             path0 = 'pose.bones["%s"]["%s"]' % (pb.name, prop0)
                             paths = { path0 : True }
-                        pb.driver_remove(channel, idx)
                     else:
                         paths = {}
 
                     t2 = perf_counter()
+                    pb.driver_remove(channel, idx)
                     sumfcu = pb.driver_add(channel, idx)
                     sumfcu.driver.type = 'SUM'
                     for key,final,factor,default in dlist:
