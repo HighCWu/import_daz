@@ -336,14 +336,14 @@ class LoadMorph:
             else:
                 fcu = pb.driver_add(channel, idx)
             self.addCustomDriver(fcu, factor, key)
+            self.addMorphGroup(pb, idx, key, prop, default, factor)
         else:
             if idx in fcurves.keys():
                 fcu = fcurves[idx]
             else:
                 fcu = None
-            self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, 0, default))
+            self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, default))
         pb.DazDriven = True
-        self.addMorphGroup(pb, idx, key, prop, default, factor)
 
 
     def getMaxFactor(self, vec, default):
@@ -391,12 +391,12 @@ class LoadMorph:
                 return
 
 
-    def addMorphGroup(self, pb, idx, key, prop, default, factor, factor2=None):
+    def addMorphGroup(self, pb, idx, key, prop, default, factor):
         from .propgroups import getPropGroups
         pgs = getPropGroups(pb, key, idx)
         self.clearProp(pgs, prop, idx)
         pg = pgs.add()
-        pg.init(prop, idx, default, factor, factor2)
+        pg.init(prop, idx, default, factor, 0)
         if prop not in self.rig.keys():
             from .driver import setFloatProp
             setFloatProp(self.rig, prop, 0.0)
@@ -643,60 +643,69 @@ class LoadMorph:
         def getTermDriverName(prop, key, idx):
             return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
 
-        def getTermDriverExpr(varname, factor1, factor2, default):
+        def getTermDriverExpr(varname, factor, default):
             if default > 0:
                 term = "(%s+%g)" % (varname, default)
             elif default < 0:
                 term = "(%s-%g)" % (varname, default)
             else:
                 term = varname
-            if factor2:
-                return "(%g if %s > 0 else %g)*%s" % (factor1, term, factor2, term)
-            elif factor1 == 1:
+            if factor == 1:
                 return term
             else:
-                return "%g*%s" % (factor1, term)
+                return "%g*%s" % (factor, term)
+
+        def getAllSumTargets(fcu):
+            targets = [var.targets[0] for var in fcu.driver.variables]
+            return dict([(trg.data_path,True) for trg in targets])
+
 
         from .driver import addDriverVar, Driver
+        from time import perf_counter
         print("Building sum drivers")
-        for bname,data in self.sumdrivers.items():
-            print(" +", bname)
-            for channel,kdata in data.items():
-                for idx,idata in kdata.items():
+        for bname,bdata in self.sumdrivers.items():
+            time1 = time2 = time3 = 0.0
+            for channel,cdata in bdata.items():
+                for idx,idata in cdata.items():
                     pb,fcu0,dlist = idata
+                    t1 = perf_counter()
                     if fcu0:
                         if fcu0.driver.type == 'SUM':
-                            for var in fcu0.driver.variables:
-                                if var.name.startswith(self.prefix):
-                                    fcu0.driver.variables.remove(var)
-                            sumfcu = fcu0
+                            paths = getAllSumTargets(fcu0)
                         else:
                             prop0 = "origo:%d" % idx
                             pb[prop0] = 0.0
                             fcu = pb.driver_add(propRef(prop0))
                             driver = Driver(fcu0, True)
                             driver.fill(fcu)
-                            pb.driver_remove(channel, idx)
-                            sumfcu = pb.driver_add(channel, idx)
-                            sumfcu.driver.type = 'SUM'
                             path0 = 'pose.bones["%s"]["%s"]' % (pb.name, prop0)
-                            addDriverVar(sumfcu, "x", path0, self.rig)
+                            paths = { path0 : True }
+                        pb.driver_remove(channel, idx)
                     else:
-                        sumfcu = pb.driver_add(channel, idx)
-                        sumfcu.driver.type = 'SUM'
+                        paths = {}
 
-                    for n,data in enumerate(dlist):
-                        key,prop,factor1,factor2,default = data
+                    t2 = perf_counter()
+                    sumfcu = pb.driver_add(channel, idx)
+                    sumfcu.driver.type = 'SUM'
+                    for key,prop,factor,default in dlist:
                         drvprop = getTermDriverName(prop, key, idx)
                         pb[drvprop] = 0.0
                         path = propRef(drvprop)
                         pb.driver_remove(path)
                         fcu = pb.driver_add(path)
                         fcu.driver.type = 'SCRIPTED'
-                        fcu.driver.expression = getTermDriverExpr("x", factor1, factor2, default)
+                        fcu.driver.expression = getTermDriverExpr("x", factor, default)
                         addDriverVar(fcu, "x", propRef(prop), self.rig)
                         path2 = 'pose.bones["%s"]%s' % (pb.name, path)
-                        addDriverVar(sumfcu, "%s%.03d" % (self.prefix, n), path2, self.rig)
+                        paths[path2] = True
+                    t3 = perf_counter()
+                    for n,path in enumerate(paths.keys()):
+                        addDriverVar(sumfcu, "t%.03d" % n, path, self.rig)
+                    t4 = perf_counter()
+                    time1 += t2-t1
+                    time2 += t3-t2
+                    time3 += t4-t3
+            print(" + %s %.3f %.3f %.3f" % (bname, time1, time2, time3))
 
 
     def getActiveShape(self, asset):

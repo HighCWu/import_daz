@@ -702,8 +702,8 @@ class StandardMorphLoader(MorphLoader):
         scn = context.scene
         setupMorphPaths(scn, False)
         self.rig.DazMorphPrefixes = False
-        if not GS.useCustomDrivers and self.rig and self.morphset:
-            self.removeMorphSet()
+        #if not GS.useCustomDrivers and self.rig and self.morphset:
+        #    self.removeMorphSet()
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
 
