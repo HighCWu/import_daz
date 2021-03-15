@@ -41,7 +41,7 @@ from .load_morph import LoadMorph
 #   Morph sets
 #-------------------------------------------------------------
 
-theStandardMorphSets = ["Units", "Expressions", "Visemes", "Facs", "Facsexpr", "Body"]
+theStandardMorphSets = ["Standard", "Units", "Expressions", "Visemes", "Facs", "Facsexpr", "Body"]
 theCustomMorphSets = ["Custom"]
 theJCMMorphSets = ["Jcms", "Flexions"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]

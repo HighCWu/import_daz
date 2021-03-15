@@ -568,6 +568,16 @@ class DAZ_PT_Morphs:
         op.category = category
 
 
+class DAZ_PT_Standard(bpy.types.Panel, DAZ_PT_Morphs):
+    bl_label = "Unclassified Standard Morphs"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "DAZ Importer"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    morphset = "Standard"
+
+
 class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Face Units"
     bl_space_type = "VIEW_3D"
@@ -1055,6 +1065,7 @@ classes = [
     DAZ_PT_Advanced,
     DAZ_PT_Utils,
     DAZ_PT_Posing,
+    DAZ_PT_Standard,
     DAZ_PT_Units,
     DAZ_PT_Expressions,
     DAZ_PT_Visemes,
