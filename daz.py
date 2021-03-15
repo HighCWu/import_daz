@@ -113,7 +113,59 @@ class ImportDAZ(DazOperator, DazOptions):
         box.label(text = "For more options, see Global Settings.")
 
 
-class EasyImportDAZ(DazOperator, DazOptions):
+class MorphTypeOptions:
+    units : BoolProperty(
+        name = "Face Units",
+        description = "Import all face units",
+        default = False)
+
+    expressions : BoolProperty(
+        name = "Expressions",
+        description = "Import all expressions",
+        default = False)
+
+    visemes : BoolProperty(
+        name = "Visemes",
+        description = "Import all visemes",
+        default = False)
+
+    facs : BoolProperty(
+        name = "FACS",
+        description = "Import all FACS units",
+        default = False)
+
+    facsexpr : BoolProperty(
+        name = "FACS Expressions",
+        description = "Import all FACS expressions",
+        default = False)
+
+    body : BoolProperty(
+        name = "Body",
+        description = "Import all body morphs",
+        default = False)
+
+    jcms : BoolProperty(
+        name = "JCMs",
+        description = "Import all JCMs",
+        default = False)
+
+    flexions : BoolProperty(
+        name = "Flexions",
+        description = "Import all flexions",
+        default = False)
+
+    def draw(self, context):
+        self.layout.prop(self, "units")
+        self.layout.prop(self, "expressions")
+        self.layout.prop(self, "visemes")
+        self.layout.prop(self, "facs")
+        self.layout.prop(self, "facsexpr")
+        self.layout.prop(self, "body")
+        self.layout.prop(self, "jcms")
+        self.layout.prop(self, "flexions")
+
+
+class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
     """Load a DAZ File and perform the most common opertations"""
     bl_idname = "daz.easy_import_daz"
     bl_label = "Easy Import DAZ"
@@ -167,30 +219,6 @@ class EasyImportDAZ(DazOperator, DazOptions):
         name = "Convert Hair",
         default = False)
 
-    units : BoolProperty(
-        name = "Face Units",
-        default = False)
-
-    expressions : BoolProperty(
-        name = "Expressions",
-        default = False)
-
-    visemes : BoolProperty(
-        name = "Visemes",
-        default = False)
-
-    facs : BoolProperty(
-        name = "FACS",
-        default = False)
-
-    jcms : BoolProperty(
-        name = "JCMs",
-        default = False)
-
-    flexions : BoolProperty(
-        name = "Flexions",
-        default = False)
-
     def draw(self, context):
         DazOptions.draw(self, context)
         self.layout.separator()
@@ -204,12 +232,7 @@ class EasyImportDAZ(DazOperator, DazOptions):
         self.layout.prop(self, "extraFaceBones")
         self.layout.prop(self, "makeAllBonesPosable")
         self.layout.prop(self, "convertHair")
-        self.layout.prop(self, "units")
-        self.layout.prop(self, "expressions")
-        self.layout.prop(self, "visemes")
-        self.layout.prop(self, "facs")
-        self.layout.prop(self, "jcms")
-        self.layout.prop(self, "flexions")
+        MorphTypeOptions.draw(self, context)
 
 
     def invoke(self, context, event):
@@ -219,6 +242,8 @@ class EasyImportDAZ(DazOperator, DazOptions):
 
     def run(self, context):
         from .error import setSilentMode
+        from time import perf_counter
+        time1 = perf_counter()
         try:
             bpy.ops.daz.import_daz(
                 filepath = self.filepath,
@@ -243,6 +268,8 @@ class EasyImportDAZ(DazOperator, DazOptions):
         for rigname in self.rigs.keys():
             self.treatRig(context, rigname)
         setSilentMode(False)
+        time2 = perf_counter()
+        print("File %s loaded in %.3f seconds" % (self.filepath, time2-time1))
 
 
     def treatRig(self, context, rigname):
@@ -323,40 +350,25 @@ class EasyImportDAZ(DazOperator, DazOptions):
             bpy.ops.daz.merge_materials()
 
         if mainChar and mainRig and mainMesh:
-            from .fileutils import setSelection
-            from .morphing import getAllMorphFiles, setupMorphPaths
-            activateObject(context, mainRig)
-            setupMorphPaths(context.scene, False)
-            if self.units:
-                mfiles = getAllMorphFiles(mainChar, "Units")
-                setSelection(mfiles)
-                print("Import face units")
-                bpy.ops.daz.import_units()
-            if self.expressions:
-                mfiles = getAllMorphFiles(mainChar, "Expressions")
-                setSelection(mfiles)
-                print("Import expressions")
-                bpy.ops.daz.import_expressions()
-            if self.visemes:
-                mfiles = getAllMorphFiles(mainChar, "Visemes")
-                setSelection(mfiles)
-                print("Import visemes")
-                bpy.ops.daz.import_visemes()
-            if self.facs:
-                mfiles = getAllMorphFiles(mainChar, "Facs")
-                setSelection(mfiles)
-                print("Import FACS")
-                bpy.ops.daz.import_facs()
-            if self.jcms:
-                mfiles = getAllMorphFiles(mainChar, "Jcms")
-                setSelection(mfiles)
-                print("Import JCMs")
-                bpy.ops.daz.import_jcms()
-            if self.flexions:
-                mfiles = getAllMorphFiles(mainChar, "Flexions")
-                setSelection(mfiles)
-                print("Import flexions")
-                bpy.ops.daz.import_flexions()
+            if (self.units or
+                self.expressions or
+                self.visemes or
+                self.facs or
+                self.facsexpr or
+                self.body or
+                self.jcms or
+                self.flexions):
+                activateObject(context, mainRig)
+                bpy.ops.daz.import_standard_morphs(
+                    units = self.units,
+                    expressions = self.expressions,
+                    visemes = self.visemes,
+                    facs = self.facs,
+                    facsexpr = self.facsexpr,
+                    body = self.body,
+                    jcms = self.jcms,
+                    flexions = self.flexions)
+
 
         # Merge geografts
         if geografts:

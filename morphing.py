@@ -837,55 +837,15 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoa
 #   Import all standard morphs in one bunch, for performance
 #------------------------------------------------------------------------
 
-class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, IsMeshArmature):
+from .daz import MorphTypeOptions
+
+class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTypeOptions, IsMeshArmature):
     bl_idname = "daz.import_standard_morphs"
     bl_label = "Import Standard Morphs"
     bl_description = "Import all standard morphs of selected types.\nDoing this once is faster than loading individual types"
     bl_options = {'UNDO'}
 
-    units : BoolProperty(
-        name = "Face Units",
-        default = False)
-
-    expressions : BoolProperty(
-        name = "Expressions",
-        default = False)
-
-    visemes : BoolProperty(
-        name = "Visemes",
-        default = False)
-
-    facs : BoolProperty(
-        name = "FACS",
-        default = False)
-
-    facsexpr : BoolProperty(
-        name = "FACS Expressions",
-        default = False)
-
-    body : BoolProperty(
-        name = "Body",
-        default = False)
-
-    jcms : BoolProperty(
-        name = "JCMs",
-        default = False)
-
-    flexions : BoolProperty(
-        name = "Flexions",
-        default = False)
-
     strength = 1.0
-
-    def draw(self, context):
-        self.layout.prop(self, "units")
-        self.layout.prop(self, "expressions")
-        self.layout.prop(self, "visemes")
-        self.layout.prop(self, "facs")
-        self.layout.prop(self, "facsexpr")
-        self.layout.prop(self, "body")
-        self.layout.prop(self, "jcms")
-        self.layout.prop(self, "flexions")
 
     def run(self, context):
         if not self.setupCharacter(context, False):
