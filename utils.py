@@ -227,17 +227,17 @@ def updateRig(rig, context):
         bpy.ops.object.posemode_toggle()
 
 
-def updateDrivers(ob):
+def updateDrivers(rna):
     def updateRna(rna):
         if rna and rna.animation_data:
             for fcu in rna.animation_data.drivers:
                 string = str(fcu.driver.expression)
                 fcu.driver.expression = string
 
-    if ob:
-        updateRna(ob)
-        if ob.type == 'MESH':
-            updateRna(ob.data.shape_keys)
+    if rna:
+        updateRna(rna)
+        if isinstance(rna, bpy.types.Object) and rna.type == 'MESH':
+            updateRna(rna.data.shape_keys)
 
 #-------------------------------------------------------------
 #   More utility functions
@@ -260,9 +260,6 @@ def isVector(value):
 
 def propRef(prop):
     return '["%s"]' % prop
-
-def unPath(path):
-    return path[2:-2]
 
 def finalProp(prop):
     return "%s(fin)" % prop

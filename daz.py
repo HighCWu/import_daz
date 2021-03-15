@@ -621,6 +621,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazVerbosity")
         box.prop(scn, "DazCaseSensitivePaths")
         box.prop(scn, "DazUseCustomDrivers")
+        box.prop(scn, "DazUseArmatureDrivers")
 
         box = col.box()
         box.label(text = "Debugging")
@@ -981,6 +982,10 @@ def register():
     bpy.types.Scene.DazUseCustomDrivers = BoolProperty(
         name = "Custom Drivers",
         description = "Drivers use slow custom drivers (deprecated)")
+
+    bpy.types.Scene.DazUseArmatureDrivers = BoolProperty(
+        name = "Armature Drivers",
+        description = "Use armature properties instead of object properties in drivers")
 
     bpy.types.Scene.DazUseInstancing = BoolProperty(
         name = "Use Instancing",

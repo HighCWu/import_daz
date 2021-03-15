@@ -41,9 +41,20 @@ class LoadMorph:
     def __init__(self, rig, mesh):
         self.rig = rig
         self.mesh = mesh
+        self.amt = None
         self.mult = []
 
     def loadAllMorphs(self, namepaths):
+        global dataRef
+        if self.rig:
+            if GS.useArmatureDrivers:
+                self.amt = self.rig.data
+                dataRef = dataPropRef
+            else:
+                self.amt = self.rig
+                dataRef = propRef
+        else:
+            self.amt = None
         self.makeAllMorphs(namepaths)
         if self.rig:
             self.buildDrivers()
@@ -169,10 +180,10 @@ class LoadMorph:
                 return final
             elif asset.type == "bool":
                 setBoolProp(self.rig, raw, asset.value)
-                setBoolProp(self.rig, final, asset.value)
+                setBoolProp(self.amt, final, asset.value)
             elif asset.type == "float":
-                self.setFloatLimits(raw, GS.rawLimits, asset)
-                self.setFloatLimits(final, GS.finalLimits, asset)
+                self.setFloatLimits(self.rig, raw, GS.rawLimits, asset)
+                self.setFloatLimits(self.amt, final, GS.finalLimits, asset)
             else:
                 print("Unknown asset type:", asset.type)
                 raise RuntimeError("BUG")
@@ -182,14 +193,14 @@ class LoadMorph:
         return final
 
 
-    def setFloatLimits(self, prop, limits, asset):
+    def setFloatLimits(self, rna, prop, limits, asset):
         from .driver import setFloatProp
         if limits == 'DAZ':
-            setFloatProp(self.rig, prop, 0.0, asset.min, asset.max)
+            setFloatProp(rna, prop, 0.0, asset.min, asset.max)
         elif limits == 'CUSTOM':
-            setFloatProp(self.rig, prop, 0.0, GS.customMin, GS.customMax)
+            setFloatProp(rna, prop, 0.0, GS.customMin, GS.customMax)
         else:
-            setFloatProp(self.rig, prop, 0.0, None, None)
+            setFloatProp(rna, prop, 0.0, None, None)
 
 
     def makeValueFormula(self, output, expr):
@@ -320,8 +331,8 @@ class LoadMorph:
                 dot = "."
             path = 'pose.bones["%s"]%s%s' % (pb.name, dot, channel)
             fcurves = {}
-            if self.rig.animation_data:
-                for fcu in self.rig.animation_data.drivers:
+            if self.amt.animation_data:
+                for fcu in self.amt.animation_data.drivers:
                     if path == fcu.data_path:
                         fcurves[fcu.array_index] = fcu
             return fcurves
@@ -396,9 +407,9 @@ class LoadMorph:
         self.clearProp(pgs, prop, idx)
         pg = pgs.add()
         pg.init(prop, idx, default, factor, 0)
-        if prop not in self.rig.keys():
+        if prop not in self.amt.keys():
             from .driver import setFloatProp
-            setFloatProp(self.rig, prop, 0.0)
+            setFloatProp(self.amt, prop, 0.0)
 
     #------------------------------------------------------------------
     #   Second pass: Build the drivers
@@ -434,7 +445,7 @@ class LoadMorph:
             else:
                 return "+%g*%s" % (factor, varname)
 
-        from .driver import addDriverVar, getRnaDriver
+        from .driver import getRnaDriver
         self.mult = []
         if raw in self.mults.keys():
             self.mult = self.mults[raw]
@@ -450,7 +461,7 @@ class LoadMorph:
         string = ""
         if self.visible[raw] or not self.primary[raw]:
             string = varname
-            addDriverVar(fcu, varname, propRef(raw), self.rig)
+            self.addPathVar(fcu, varname, propRef(raw))
             if raw not in self.rig.keys():
                 self.rig[raw] = 0.0
         for dtype,subraw,factor in drivers:
@@ -460,9 +471,14 @@ class LoadMorph:
             varname = nextLetter(varname)
             string += multiply(factor, varname)
             self.ensureExists(subraw, subfinal)
-            addDriverVar(fcu, varname, propRef(subfinal), self.rig)
+            self.addPathVar(fcu, varname, dataRef(subfinal))
         string = self.multiplyMults(fcu, string)
         fcu.driver.expression = string
+
+
+    def addPathVar(self, fcu, varname, path):
+        from .driver import addDriverVar
+        addDriverVar(fcu, varname, path, self.rig)
 
 
     def getDrivenChannel(self, raw):
@@ -470,10 +486,10 @@ class LoadMorph:
             rna = self.mesh.data.shape_keys
             channel = 'key_blocks["%s"].value' % raw
         else:
-            rna = self.rig
+            rna = self.amt
             final = finalProp(raw)
-            if final not in self.rig.keys():
-                self.rig[final] = 0.0
+            if final not in self.amt.keys():
+                self.amt[final] = 0.0
             channel = propRef(final)
         return rna, channel
 
@@ -481,7 +497,7 @@ class LoadMorph:
     def analyzeFcurve(self, fcu, raw):
         # (a+b+c+..)*M*N*...
         from .driver import getDriverPaths
-        paths = getDriverPaths(fcu, self.rig)
+        paths = getDriverPaths(fcu, self.amt)
         self.mult = []
         words = fcu.driver.expression.rsplit(")*", 1)
         if len(words) == 2:
@@ -492,7 +508,6 @@ class LoadMorph:
 
 
     def multiplyMults(self, fcu, string):
-        from .driver import addDriverVar
         if self.mult:
            string = "(%s)" % string
            varname = "M"
@@ -500,7 +515,7 @@ class LoadMorph:
                string += "*%s" % varname
                multfinal = finalProp(mult)
                self.ensureExists(mult, multfinal)
-               addDriverVar(fcu, varname, propRef(multfinal), self.rig)
+               self.addPathVar(fcu, varname, dataRef(multfinal))
                varname = nextLetter(varname)
         return string
 
@@ -508,7 +523,7 @@ class LoadMorph:
     def ensureExists(self, raw, final):
         if raw not in self.drivers.keys():
             self.rig[raw] = 0.0
-            self.rig[final] = 0.0
+            self.amt[final] = 0.0
 
 
     def buildBoneDriver(self, raw, bname, expr):
@@ -630,7 +645,7 @@ class LoadMorph:
         fcu.driver.expression = string
         ttypes = ["ROT_X", "ROT_Y", "ROT_Z"]
         for j,vname,bname in vars:
-            addTransformVar(fcu, vname, ttypes[j], self.rig, bname)
+            addTransformVar(fcu, vname, ttypes[j], self.amt, bname)
         return fcu
 
     #------------------------------------------------------------------
@@ -659,7 +674,7 @@ class LoadMorph:
             return dict([(trg.data_path,True) for trg in targets])
 
 
-        from .driver import addDriverVar, Driver
+        from .driver import Driver
         from time import perf_counter
         print("Building sum drivers")
         for bname,bdata in self.sumdrivers.items():
@@ -686,20 +701,20 @@ class LoadMorph:
                     t2 = perf_counter()
                     sumfcu = pb.driver_add(channel, idx)
                     sumfcu.driver.type = 'SUM'
-                    for key,prop,factor,default in dlist:
-                        drvprop = getTermDriverName(prop, key, idx)
+                    for key,final,factor,default in dlist:
+                        drvprop = getTermDriverName(final, key, idx)
                         pb[drvprop] = 0.0
                         path = propRef(drvprop)
                         pb.driver_remove(path)
                         fcu = pb.driver_add(path)
                         fcu.driver.type = 'SCRIPTED'
                         fcu.driver.expression = getTermDriverExpr("x", factor, default)
-                        addDriverVar(fcu, "x", propRef(prop), self.rig)
+                        self.addPathVar(fcu, "x", dataRef(final))
                         path2 = 'pose.bones["%s"]%s' % (pb.name, path)
                         paths[path2] = True
                     t3 = perf_counter()
                     for n,path in enumerate(paths.keys()):
-                        addDriverVar(sumfcu, "t%.03d" % n, path, self.rig)
+                        self.addPathVar(sumfcu, "t%.03d" % n, path)
                     t4 = perf_counter()
                     time1 += t2-t1
                     time2 += t3-t2
@@ -752,6 +767,17 @@ def buildBoneFormula(asset, rig, errors):
 #   Utilities
 #------------------------------------------------------------------
 
+def dataPropRef(prop):
+    return 'data["%s"]' % prop
+
+def unPath(path):
+    if path[0:2] == '["':
+        return path[2:-2]
+    elif path[0:6] == 'data["':
+        return path[6,-2]
+    else:
+        return path
+
 def getBoneVector(factor, comp, pb):
     from .node import getTransformMatrix
     tmat = getTransformMatrix(pb)
@@ -759,19 +785,16 @@ def getBoneVector(factor, comp, pb):
     uvec[comp] = factor/D
     return uvec @ tmat
 
-
 def getDrivenComp(vec):
     for n,x in enumerate(vec):
         if abs(x) > 0.1:
             return n, (1 if x >= 0 else -1), x
-
 
 def getPrint(x):
     string = "%.3f" % x
     while (string[-1] == "0"):
         string = string[:-1]
     return string[:-1] if string[-1] == "." else string
-
 
 def getMult(x, comp):
     xx = getPrint(x)
@@ -783,7 +806,6 @@ def getMult(x, comp):
         return "-" + comp
     else:
         return xx + "*" + comp
-
 
 def getSign(u):
     if u < 0:

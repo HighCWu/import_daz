@@ -438,6 +438,10 @@ class DAZ_PT_Posing(bpy.types.Panel):
         icon = 'CHECKBOX_HLT' if ob.DazRotLimits else 'CHECKBOX_DEHLT'
         layout.operator("daz.toggle_rot_limits", icon=icon, emboss=False)
 
+        if "JCMs On" in ob.keys():
+            layout.separator()
+            layout.prop(ob, propRef("JCMs On"))
+            layout.prop(ob, propRef("BaseFlexions"))
         return
         layout.separator()
         layout.operator("daz.save_current_frame")
@@ -524,13 +528,21 @@ class DAZ_PT_Morphs:
 
     def drawItems(self, scn, rig):
         self.layout.separator()
+        amt = self.getArmature(rig)
         filter = scn.DazFilter.lower()
         pg = getattr(rig, "Daz"+self.morphset)
         items = [(data[1].text, n, data[1]) for n,data in enumerate(pg.items())]
         items.sort()
         for _,_,item in items:
             if filter in item.text.lower():
-                self.displayProp(item, "", rig, self.layout, scn)
+                self.displayProp(item, "", rig, amt, self.layout, scn)
+
+
+    def getArmature(self, rig):
+        if GS.useArmatureDrivers:
+            return rig.data
+        else:
+            return rig
 
 
     def showBool(self, layout, ob, key, text=""):
@@ -540,14 +552,14 @@ class DAZ_PT_Morphs:
             layout.prop(pg, "active", text=text)
 
 
-    def displayProp(self, morph, category, rig, layout, scn):
+    def displayProp(self, morph, category, rig, amt, layout, scn):
         key = morph.name
         if key not in rig.keys():
             return
         split = layout.split(factor=0.85)
         split2 = split.split(factor=0.8)
         split2.prop(rig, propRef(key), text=morph.text)
-        split2.label(text = "%.3f" %rig[finalProp(key)])
+        split2.label(text = "%.3f" % amt[finalProp(key)])
         row = split.row()
         self.showBool(row, rig, key)
         op = row.operator("daz.pin_prop", icon='UNPINNED')
@@ -674,15 +686,15 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     def getRna(self, ob):
         return ob
 
-
-    def drawBox(self, box, cat, scn, ob, filter):
+    def drawBox(self, box, cat, scn, rig, filter):
         split = box.split(factor=0.5)
-        self.activateLayout(split, cat.name, ob)
+        self.activateLayout(split, cat.name, rig)
         self.keyLayout(box, cat.name)
+        amt = self.getArmature(rig)
         for morph in cat.morphs:
-            if (morph.name in ob.keys() and
+            if (morph.name in rig.keys() and
                 filter in morph.text.lower()):
-                self.displayProp(morph, cat.name, ob, box, scn)
+                self.displayProp(morph, cat.name, rig, amt, box, scn)
 
 
 class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
