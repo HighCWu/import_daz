@@ -187,35 +187,35 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
         name = "Mannequin",
         default = 'NONE')
 
-    mergeRigs : BoolProperty(
+    useMergeRigs : BoolProperty(
         name = "Merge Rigs",
         default = True)
 
-    mergeMaterials : BoolProperty(
+    useMergeMaterials : BoolProperty(
         name = "Merge Materials",
         default = True)
 
-    mergeToes : BoolProperty(
+    useMergeToes : BoolProperty(
         name = "Merge Toes",
         default = False)
 
-    mergeGeografts : BoolProperty(
+    useMergeGeografts : BoolProperty(
         name = "Merge Geografts",
         default = True)
 
-    mergeLashes : BoolProperty(
+    useMergeLashes : BoolProperty(
         name = "Merge Lashes",
         default = True)
 
-    extraFaceBones : BoolProperty(
+    useExtraFaceBones : BoolProperty(
         name = "Extra Face Bones",
         default = False)
 
-    makeAllBonesPosable : BoolProperty(
+    useMakeAllBonesPosable : BoolProperty(
         name = "Make All Bones Posable",
         default = False)
 
-    convertHair : BoolProperty(
+    useConvertHair : BoolProperty(
         name = "Convert Hair",
         default = False)
 
@@ -224,14 +224,14 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
         self.layout.separator()
         self.layout.prop(self, "rigType")
         self.layout.prop(self, "mannequin")
-        self.layout.prop(self, "mergeMaterials")
-        self.layout.prop(self, "mergeRigs")
-        self.layout.prop(self, "mergeToes")
-        self.layout.prop(self, "mergeGeografts")
-        self.layout.prop(self, "mergeLashes")
-        self.layout.prop(self, "extraFaceBones")
-        self.layout.prop(self, "makeAllBonesPosable")
-        self.layout.prop(self, "convertHair")
+        self.layout.prop(self, "useMergeMaterials")
+        self.layout.prop(self, "useMergeRigs")
+        self.layout.prop(self, "useMergeToes")
+        self.layout.prop(self, "useMergeGeografts")
+        self.layout.prop(self, "useMergeLashes")
+        self.layout.prop(self, "useExtraFaceBones")
+        self.layout.prop(self, "useMakeAllBonesPosable")
+        self.layout.prop(self, "useConvertHair")
         MorphTypeOptions.draw(self, context)
 
 
@@ -273,7 +273,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
 
 
     def treatRig(self, context, rigname):
-        from .merge import getLashes
         rigs = self.rigs[rigname]
         meshes = self.meshes[rigname]
         objects = self.objects[rigname]
@@ -295,7 +294,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
         if mainChar:
             print("Main character:", mainChar)
         else:
-            print("Did not recognize main character")
+            print("Did not recognize main character", mainMesh)
 
         empties = []
         for ob in objects:
@@ -306,11 +305,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
         lashes = []
         if mainMesh and mainRig:
             nmeshes = [mainMesh]
-            lmeshes = getLashes(mainRig, mainMesh)
+            lmeshes = self.getLashes(mainRig, mainMesh)
             for ob in meshes[1:]:
-                if ob.data.DazGraftGroup and self.mergeGeografts:
+                if ob.data.DazGraftGroup and self.useMergeGeografts:
                     geografts.append(ob)
-                elif ob in lmeshes and self.mergeLashes:
+                elif ob in lmeshes and self.useMergeLashes:
                     lashes.append(ob)
                 else:
                     nmeshes.append(ob)
@@ -326,7 +325,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             activateObject(context, mainRig)
             for rig in rigs[1:]:
                 rig.select_set(True)
-            if self.mergeRigs and len(rigs) > 1:
+            if self.useMergeRigs and len(rigs) > 1:
                 print("Merge rigs")
                 bpy.ops.daz.merge_rigs()
                 mainRig = context.object
@@ -337,7 +336,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             bpy.ops.daz.eliminate_empties()
 
             # Merge toes
-            if self.mergeToes:
+            if self.useMergeToes:
                 print("Merge toes")
                 bpy.ops.daz.merge_toes()
 
@@ -386,21 +385,21 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             for ob in lashes:
                 ob.select_set(True)
             print("Merge lashes")
-            bpy.ops.daz.merge_lashes()
+            self.mergeLashes(mainMesh)
 
         if mainRig:
             activateObject(context, mainRig)
             # Add extra face bones
-            if self.extraFaceBones:
+            if self.useExtraFaceBones:
                 print("Add extra face bones")
                 bpy.ops.daz.add_extra_face_bones()
             # Make all bones posable
-            if self.makeAllBonesPosable:
+            if self.useMakeAllBonesPosable:
                 print("Make all bones posable")
                 bpy.ops.daz.make_all_bones_posable()
 
         # Convert hairs
-        if hairs and mainMesh and self.convertHair:
+        if hairs and mainMesh and self.useConvertHair:
             activateObject(context, mainMesh)
             bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
             for hair in hairs:
@@ -444,6 +443,31 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
                 mesh.select_set(True)
             setSelection(snames)
             bpy.ops.daz.transfer_shapekeys()
+
+
+    def mergeLashes(self, ob):
+        from .merge import mergeUVLayers
+        nlayers = len(ob.data.uv_layers)
+        bpy.ops.object.join()
+        idxs = list(range(nlayers, len(ob.data.uv_layers)))
+        idxs.reverse()
+        for idx in idxs:
+            mergeUVLayers(ob.data, 0, idx)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        print("Lashes merged")
+
+
+    def getLashes(self, rig, ob):
+        meshes = []
+        for mesh in getMeshChildren(rig):
+            if mesh != ob:
+                for vgname in mesh.vertex_groups.keys():
+                    if vgname[1:7] == "Eyelid":
+                        meshes.append(mesh)
+                        break
+        return meshes
 
 #-------------------------------------------------------------
 #   Silent mode

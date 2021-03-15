@@ -41,10 +41,11 @@ class LoadMorph:
     def __init__(self, rig, mesh):
         self.rig = rig
         self.mesh = mesh
-        self.amt = None
+        self.initAmt()
         self.mult = []
 
-    def loadAllMorphs(self, namepaths):
+
+    def initAmt(self):
         global dataRef
         if self.rig:
             if GS.useArmatureDrivers:
@@ -55,6 +56,10 @@ class LoadMorph:
                 dataRef = propRef
         else:
             self.amt = None
+
+
+    def loadAllMorphs(self, namepaths):
+        self.initAmt()
         self.makeAllMorphs(namepaths)
         if self.rig:
             self.buildDrivers()

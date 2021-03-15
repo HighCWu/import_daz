@@ -425,50 +425,6 @@ def mergeUVLayers(me, keepIdx, mergeIdx):
     me.uv_layers.remove(mergeLayer)
 
 #-------------------------------------------------------------
-#   Merge lashes
-#-------------------------------------------------------------
-
-class DAZ_OT_MergeLashes(DazOperator, IsMesh):
-    bl_idname = "daz.merge_lashes"
-    bl_label = "Merge Lashes"
-    bl_description = "Merge eyelashes and other facial hair to mesh"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        from .morphing import getRigFromObject
-        ob = context.object
-        rig = getRigParent(ob)
-        if rig is None:
-           raise DazError("No rig found")
-        meshes = getLashes(rig, ob)
-        activateObject(context, ob)
-        nlayers = len(ob.data.uv_layers)
-        for mesh in meshes:
-            mesh.select_set(True)
-        bpy.ops.object.join()
-        idxs = list(range(nlayers, len(ob.data.uv_layers)))
-        idxs.reverse()
-        for idx in idxs:
-            mergeUVLayers(ob.data, 0, idx)
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
-        print("Lashes merged")
-
-
-def getLashes(rig, ob):
-    from .figure import getAnchoredBoneNames
-    bnames = getAnchoredBoneNames(rig, ["upperFaceRig", "lowerFaceRig"])
-    meshes = []
-    for mesh in getMeshChildren(rig):
-        if mesh != ob:
-            for bname in bnames:
-                if bname in mesh.vertex_groups.keys():
-                    meshes.append(mesh)
-                    break
-    return meshes
-
-#-------------------------------------------------------------
 #   Get selected rigs
 #-------------------------------------------------------------
 
@@ -1192,7 +1148,6 @@ classes = [
     DAZ_OT_MergeGeografts,
     DAZ_OT_CreateGraftGroups,
     DAZ_OT_MergeUVLayers,
-    DAZ_OT_MergeLashes,
     DAZ_OT_CopyPoses,
     DAZ_OT_MergeRigs,
     DAZ_OT_EliminateEmpties,
