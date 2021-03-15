@@ -682,11 +682,6 @@ class StandardMorphLoader(MorphLoader):
         addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden)
 
 
-    def removeFromMorphSet(self, prop):
-        pg = getattr(self.rig, "Daz"+self.morphset)
-        removeFromPropGroup(pg, prop)
-
-
     def getMorphFiles(self):
         try:
             return theMorphFiles[self.char][self.morphset]
@@ -702,19 +697,11 @@ class StandardMorphLoader(MorphLoader):
         scn = context.scene
         setupMorphPaths(scn, False)
         self.rig.DazMorphPrefixes = False
-        #if not GS.useCustomDrivers and self.rig and self.morphset:
-        #    self.removeMorphSet()
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
-
-
-    def removeMorphSet(self):
-        print("Removing morph set:", self.morphset)
-        pgs = getattr(self.rig, "Daz"+self.morphset)
-        for raw in pgs.keys():
-            if raw in self.rig.keys():
-                del self.rig[raw]
-        pgs.clear()
+        from .driver import setBoolProp
+        setBoolProp(self.rig, "JCMs On", True)
+        setBoolProp(self.rig, "BaseFlexions", True)
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -775,7 +762,6 @@ class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, StandardMorphLoader
     bl_description = "Import selected face unit morphs"
     bl_options = {'UNDO'}
 
-    prefix = "u"
     morphset = "Units"
 
 
@@ -785,7 +771,6 @@ class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, StandardMorph
     bl_description = "Import selected expression morphs"
     bl_options = {'UNDO'}
 
-    prefix = "e"
     morphset = "Expressions"
 
 
@@ -795,7 +780,6 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, StandardMorphLoad
     bl_description = "Import selected viseme morphs"
     bl_options = {'UNDO'}
 
-    prefix = "v"
     morphset = "Visemes"
 
 
@@ -805,7 +789,6 @@ class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, StandardMorphLoader,
     bl_description = "Import selected FACS unit morphs"
     bl_options = {'UNDO'}
 
-    prefix = "f"
     morphset = "Facs"
 
 
@@ -815,7 +798,6 @@ class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, StandardM
     bl_description = "Import selected FACS expression morphs"
     bl_options = {'UNDO'}
 
-    prefix = "g"
     morphset = "Facsexpr"
 
 
@@ -825,7 +807,6 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphL
     bl_description = "Import selected body morphs"
     bl_options = {'UNDO'}
 
-    prefix = "r"
     morphset = "Body"
 
 
@@ -835,9 +816,7 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader,
     bl_description = "Import selected joint corrective morphs"
     bl_options = {'UNDO'}
 
-    prefix = "j"
     morphset = "Jcms"
-    useMults = False
 
     def addToMorphSet(self, prop, asset, hidden):
         addToMorphSet(self.mesh, self.morphset, prop, asset, hideable=False)
@@ -849,12 +828,126 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoa
     bl_description = "Import selected flexion morphs"
     bl_options = {'UNDO'}
 
-    prefix = "k"
     morphset = "Flexions"
-    useMults = False
 
     def addToMorphSet(self, prop, asset, hidden):
         addToMorphSet(self.mesh, self.morphset, prop, asset, hideable=False)
+
+#------------------------------------------------------------------------
+#   Import all standard morphs in one bunch, for performance
+#------------------------------------------------------------------------
+
+class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, IsMeshArmature):
+    bl_idname = "daz.import_standard_morphs"
+    bl_label = "Import Standard Morphs"
+    bl_description = "Import all standard morphs of selected types.\nDoing this once is faster than loading individual types"
+    bl_options = {'UNDO'}
+
+    units : BoolProperty(
+        name = "Face Units",
+        default = False)
+
+    expressions : BoolProperty(
+        name = "Expressions",
+        default = False)
+
+    visemes : BoolProperty(
+        name = "Visemes",
+        default = False)
+
+    facs : BoolProperty(
+        name = "FACS",
+        default = False)
+
+    facsexpr : BoolProperty(
+        name = "FACS Expressions",
+        default = False)
+
+    body : BoolProperty(
+        name = "Body",
+        default = False)
+
+    jcms : BoolProperty(
+        name = "JCMs",
+        default = False)
+
+    flexions : BoolProperty(
+        name = "Flexions",
+        default = False)
+
+    strength = 1.0
+
+    def draw(self, context):
+        self.layout.prop(self, "units")
+        self.layout.prop(self, "expressions")
+        self.layout.prop(self, "visemes")
+        self.layout.prop(self, "facs")
+        self.layout.prop(self, "facsexpr")
+        self.layout.prop(self, "body")
+        self.layout.prop(self, "jcms")
+        self.layout.prop(self, "flexions")
+
+    def run(self, context):
+        if not self.setupCharacter(context, False):
+            return
+        scn = context.scene
+        setupMorphPaths(scn, False)
+        self.rig.DazMorphPrefixes = False
+        self.morphsets = {}
+        self.namepaths = {}
+        if self.units:
+            self.addFiles("Units")
+        if self.expressions:
+            self.addFiles("Expressions")
+        if self.visemes:
+            self.addFiles("Visemes")
+        if self.facs:
+            self.addFiles("Facs")
+        if self.facsexpr:
+            self.addFiles("Facsexpr")
+        if self.body:
+            self.addFiles("Body")
+        if self.jcms:
+            self.addFiles("Jcms")
+        if self.flexions:
+            self.addFiles("Flexions")
+        print("MM", self.morphsets.items())
+        self.getAllMorphs(self.namepaths, context)
+
+
+    def addFiles(self, morphset):
+        try:
+            struct = theMorphFiles[self.char][morphset]
+        except KeyError:
+            msg = ("Character %s does not support feature %s" % (self.char, self.morphset))
+            print(msg)
+            return []
+        for key,filepath in struct.items():
+            words = filepath.rsplit("\\data",1)
+            if len(words) == 1:
+                words = filepath.rsplit("/data",1)
+            if len(words) == 2:
+                lpath = "/data" + words[1].lower()
+                print(lpath)
+            else:
+                raise RuntimeError("BUG", filepath)
+                continue
+            self.morphsets[lpath] = morphset
+            self.namepaths[key] = filepath
+
+
+    def addToMorphSet(self, prop, asset, hidden):
+        lpath = unquote(asset.id).split('#')[0]
+        if lpath in self.morphsets.keys():
+            morphset = self.morphsets[lpath]
+        else:
+            morphset = "Standard"
+            print("Missing morphset", lpath)
+        if morphset in ["Jcms", "Flexions"]:
+            addToMorphSet(self.rig, morphset, prop, asset, hideable=False)
+        else:
+            addToMorphSet(self.rig, morphset, prop, asset, hidden=hidden)
+
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -918,7 +1011,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
 
     def run(self, context):
         from .driver import setBoolProp
-        self.prefix = "_%s_" % self.catname
         namepaths = self.getNamePaths()
         self.getAllMorphs(namepaths, context)
         if self.usePropDrivers and self.drivers:
@@ -939,18 +1031,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
             name = os.path.splitext(os.path.basename(path))[0]
             namepaths[name] = path
         return namepaths
-
-
-    def removeMorphSet(self):
-        if self.rig is None:
-            return
-        print("Removing category:", self.catname)
-        if self.catname in self.rig.DazMorphCats.keys():
-            cat = self.rig.DazMorphCats[self.catname]
-            for raw in cat.morphs.keys():
-                if raw in self.rig.keys():
-                    del self.rig[raw]
-            cat.morphs.clear()
 
 
     def addToMorphSet(self, prop, asset, hidden):
@@ -978,14 +1058,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
             item.text = "[%s]" % label
         else:
             item.text = label
-
-
-    def removeFromMorphSet(self, prop):
-        if self.rig is None:
-            return
-        if self.catname in self.rig.DazMorphCats.keys():
-            cat = self.rig.DazMorphCats[self.catname]
-            removeFromPropGroup(cat.morphs, prop)
 
 #------------------------------------------------------------------------
 #   Categories
@@ -2408,6 +2480,7 @@ classes = [
     DAZ_OT_ImportFacsExpressions,
     DAZ_OT_ImportBodyMorphs,
     DAZ_OT_ImportFlexions,
+    DAZ_OT_ImportStandardMorphs,
     DAZ_OT_ImportCustomMorphs,
     DAZ_OT_ImportJCMs,
     DAZ_OT_AddShapeToCategory,

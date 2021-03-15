@@ -113,6 +113,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.import_jcms")
                 box.operator("daz.import_flexions")
                 box.separator()
+                box.operator("daz.import_standard_morphs")
                 box.operator("daz.import_custom_morphs")
                 box.separator()
                 box.label(text="Create low-poly meshes before transfers.")
