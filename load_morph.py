@@ -650,7 +650,7 @@ class LoadMorph:
         fcu.driver.expression = string
         ttypes = ["ROT_X", "ROT_Y", "ROT_Z"]
         for j,vname,bname in vars:
-            addTransformVar(fcu, vname, ttypes[j], self.amt, bname)
+            addTransformVar(fcu, vname, ttypes[j], self.rig, bname)
         return fcu
 
     #------------------------------------------------------------------
