@@ -1068,7 +1068,14 @@ class Rigify:
                     self.changeBoneTarget(fcu2, assoc)
 
         # Fix correctives
-        correctives = [("ORG-"+rigi,daz) for (rigi,daz) in assoc]
+        correctives = []
+        for rname,dname in assoc:
+            if self.isCopyTransformed("ORG-"+rname, gen):
+                correctives.append(("ORG-"+rname, dname))
+            elif self.isCopyTransformed("DEF-"+rname, gen):
+                correctives.append(("DEF-"+rname, dname))
+            else:
+                correctives.append(("ORG-"+rname, dname))
         self.fixBoneDrivers(gen, correctives)
 
         #Clean up
@@ -1115,6 +1122,16 @@ class Rigify:
         trg[prop] = src[prop]
         if prop[0:3] not in ["Daz", "_RN"]:
             setOverridable(trg, prop)
+
+
+    def isCopyTransformed(self, bname, rig):
+        if bname not in rig.pose.bones.keys():
+            return False
+        pb = rig.pose.bones[bname]
+        for cns in pb.constraints:
+            if cns.type == 'COPY_TRANSFORMS':
+                return True
+        return False
 
 
     def getChildren(self, pb):
