@@ -514,6 +514,10 @@ def setupMorphPaths(scn, force):
                 prefixes = struct["prefix"]
             else:
                 prefixes = [struct["prefix"]]
+            if "strip" in struct.keys():
+                strips = struct["strip"]
+            else:
+                strips = prefixes
             folder = struct["path"]
             includes = getShortformList(struct["include"])
             excludes = getShortformList(struct["exclude"])
@@ -531,25 +535,27 @@ def setupMorphPaths(scn, force):
                         fname,ext = os.path.splitext(file)
                         if ext not in [".duf", ".dsf"]:
                             continue
-                        isright,name = isRightType(fname, prefixes, includes, excludes)
+                        isright,name = isRightType(fname, prefixes, strips, includes, excludes)
                         if isright:
-                            #name = getCanonicalKey(name)
                             fname = fname.lower()
-                            fpath = os.path.join(folder, file)
+                            #fpath = os.path.join(folder, file)
                             typeFiles[name] = os.path.join(folderpath, file)
-                            prop = BoolProperty(name=name, default=True)
-                            setattr(bpy.types.Scene, "Daz"+name, prop)
+                            #prop = BoolProperty(name=name, default=True)
+                            #setattr(bpy.types.Scene, "Daz"+name, prop)
                             typeNames[fname] = name
 
 
-def isRightType(fname, prefixes, includes, excludes):
+def isRightType(fname, prefixes, strips, includes, excludes):
     string = fname.lower()
     ok = False
     for prefix in prefixes:
         n = len(prefix)
         if string[0:n] == prefix:
             ok = True
-            name = fname[n:]
+            if prefix in strips:
+                name = fname[n:]
+            else:
+                name = fname
             break
     if not ok:
         return False, fname

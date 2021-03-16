@@ -38,8 +38,9 @@
 		"path" : "data/DAZ 3D/Genesis 8/Female/Morphs/DAZ 3D/Base Flexions/"
 	},
 	"jcms" : {
-		"prefix" : "pjcm",
-		"include" : ["pjcm"],
+		"prefix" : ["pjcm", "lshldr", "rshldr"],
+		"strip" : ["pjcm"],
+		"include" : ["pjcm", "lshldr", "rshldr"],
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 8/Female/Morphs/DAZ 3D/Base Correctives/"
 	},

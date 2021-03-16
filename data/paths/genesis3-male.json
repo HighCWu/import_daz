@@ -20,8 +20,9 @@
 		"path" : "data/DAZ 3D/Genesis 3/Male/Morphs/DAZ 3D/Base Pose/"
 	},
 	"jcms" : {
-		"prefix" : "pjcm",
-		"include" : ["pjcm"],
+		"prefix" : ["pjcm", "lshldr", "rshldr"],
+		"strip" : ["pjcm"],
+		"include" : ["pjcm", "lshldr", "rshldr"],
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 3/Male/Morphs/DAZ 3D/Base Correctives/"
 	},

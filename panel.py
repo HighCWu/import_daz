@@ -645,6 +645,26 @@ class DAZ_PT_BodyMorphs(bpy.types.Panel, DAZ_PT_Morphs):
 
     morphset = "Body"
 
+
+class DAZ_PT_JCMs(bpy.types.Panel, DAZ_PT_Morphs):
+    bl_label = "JCMs"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "DAZ Importer"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    morphset = "Jcms"
+
+
+class DAZ_PT_Flexions(bpy.types.Panel, DAZ_PT_Morphs):
+    bl_label = "Flexions"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "DAZ Importer"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    morphset = "Flexions"
+
 #------------------------------------------------------------------------
 #    Custom panels
 #------------------------------------------------------------------------
@@ -1071,6 +1091,8 @@ classes = [
     DAZ_PT_FacsUnits,
     DAZ_PT_FacsExpressions,
     DAZ_PT_BodyMorphs,
+    DAZ_PT_JCMs,
+    DAZ_PT_Flexions,
     DAZ_PT_CustomMorphs,
     DAZ_PT_CustomMeshMorphs,
     DAZ_PT_SimpleRig,
