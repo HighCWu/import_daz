@@ -1066,8 +1066,8 @@ class Rigify:
                     self.changeBoneTarget(fcu2, assoc)
 
         # Fix correctives
-        self.Correctives = [("ORG-"+rigi,daz) for (rigi,daz) in assoc]
-        self.fixBoneDrivers(gen, self.Correctives)
+        correctives = [("ORG-"+rigi,daz) for (rigi,daz) in assoc]
+        self.fixBoneDrivers(gen, correctives)
 
         #Clean up
         setattr(gen.data, DrawType, 'STICK')

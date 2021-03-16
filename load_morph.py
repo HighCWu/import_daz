@@ -48,12 +48,12 @@ class LoadMorph:
     def initAmt(self):
         global dataRef
         if self.rig:
-            if GS.useArmatureDrivers:
-                self.amt = self.rig.data
-                dataRef = dataPropRef
-            else:
+            if GS.useCustomDrivers:
                 self.amt = self.rig
                 dataRef = propRef
+            else:
+                self.amt = self.rig.data
+                dataRef = dataPropRef
         else:
             self.amt = None
 

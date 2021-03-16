@@ -538,10 +538,10 @@ class DAZ_PT_Morphs:
 
 
     def getArmature(self, rig):
-        if GS.useArmatureDrivers:
-            return rig.data
-        else:
+        if GS.useCustomDrivers:
             return rig
+        else:
+            return rig.data
 
 
     def showBool(self, layout, ob, key, text=""):

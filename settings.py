@@ -58,7 +58,6 @@ class GlobalSettings:
         self.useDump = False
         self.zup = True
         self.useCustomDrivers = True
-        self.useArmatureDrivers = False
         self.useMakeHiddenSliders = False
 
         self.materialMethod = 'BSDF'
@@ -139,7 +138,6 @@ class GlobalSettings:
         "DazRawLimits" : "rawLimits",
         "DazUseApproxDrvCombine" : "useApproxDrvCombine",
         "DazUseCustomDrivers" : "useCustomDrivers",
-        "DazUseArmatureDrivers" : "useArmatureDrivers",
 
         # Rigging
         "DazOrientMethod" : "orientMethod",
