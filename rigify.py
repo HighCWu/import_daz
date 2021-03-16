@@ -1055,6 +1055,8 @@ class Rigify:
         assoc += [(rigi,daz) for (rigi,daz) in RigifySkeleton.items()]
         for fcu in getPropDrivers(rig):
             copyDriver(fcu, gen, gen)
+        for fcu in getPropDrivers(rig.data):
+            copyDriver(fcu, gen.data, gen)
         for bname, fcus in driven.items():
             if bname in gen.pose.bones.keys():
                 pb = gen.pose.bones[bname]

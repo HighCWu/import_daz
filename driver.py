@@ -51,7 +51,7 @@ def getBoneDrivers(rig, pb):
 def getPropDrivers(rig):
     if rig.animation_data:
         return [fcu for fcu in rig.animation_data.drivers
-                if fcu.data_path[0] == "["]
+                if fcu.data_path.startswith(("[", "data["))]
     else:
         return []
 
@@ -241,6 +241,9 @@ def splitDataPath(fcu):
         if words[2] == "][":
             prop = words[3]
             channel = propRef(prop)
+    elif words[0] == "data[":
+        prop = words[1]
+        channel = fcu.data_path
     if prop is None:
         channel = fcu.data_path.rsplit(".",2)[-1]
         if channel != "value":
@@ -261,16 +264,19 @@ def copyDriver(fcu1, rna2, id=None, channel2=None):
         var2 = fcu2.driver.variables.new()
         var2.type = var1.type
         var2.name = var1.name
-        trg1 = var1.targets[0]
-        trg2 = var2.targets[0]
-        if id:
-            trg2.id = id
-        else:
-            trg2.id = trg1.id
-        trg2.bone_target = trg1.bone_target
-        trg2.data_path = trg1.data_path
-        trg2.transform_type = trg1.transform_type
-        trg2.transform_space = trg1.transform_space
+        for n,trg1 in enumerate(var1.targets):
+            if n > 1:
+                trg2 = var2.targets.add()
+            else:
+                trg2 = var2.targets[0]
+            if id:
+                trg2.id = id
+            else:
+                trg2.id = trg1.id
+            trg2.bone_target = trg1.bone_target
+            trg2.data_path = trg1.data_path
+            trg2.transform_type = trg1.transform_type
+            trg2.transform_space = trg1.transform_space
     return fcu2
 
 
