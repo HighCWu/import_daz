@@ -141,6 +141,13 @@ class LoadMorph:
             if self.rig:
                 final = self.addNewProp(prop)
                 makePropDriver(propRef(final), skey, "value", self.amt, "x")
+            pgs = self.mesh.data.DazMorphTypes
+            if prop in pgs.keys():
+                item = pgs[prop]
+            else:
+                item = pgs.add()
+                item.name = prop
+            item.s = self.getMorphSet(asset)
             return prop
         return None
 

@@ -34,7 +34,7 @@ from mathutils import Vector
 from .error import *
 from .utils import *
 from .fileutils import SingleFile, MultiFile, DazImageFile, DatFile
-from .propgroups import DazTextGroup, DazFloatGroup
+from .propgroups import DazTextGroup, DazFloatGroup, DazStringGroup
 from .load_morph import LoadMorph
 
 #-------------------------------------------------------------
@@ -45,7 +45,6 @@ theStandardMorphSets = ["Standard", "Units", "Expressions", "Visemes", "Facs", "
 theCustomMorphSets = ["Custom"]
 theJCMMorphSets = ["Jcms", "Flexions"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
-theMorphEnums = []
 
 
 def getMorphs0(ob, morphset, sets, category):
@@ -210,9 +209,17 @@ class CategoryString:
         default = "Shapes"
         )
 
+
+def getActiveCategories(scn, context):
+    ob = context.object
+    cats = [(cat.name,cat.name,cat.name) for cat in ob.DazMorphCats]
+    cats.sort()
+    return [("All", "All", "All")] + cats
+
+
 class CustomEnums:
     custom : EnumProperty(
-        items = G.getActiveCategories,
+        items = getActiveCategories,
         name = "Category")
 
 class DeleteShapekeysBool:
@@ -397,9 +404,14 @@ class Selector():
         return self.invokeDialog(context)
 
 
+theMorphEnums = []
+
+def getMorphEnums(scn, context):
+    return theMorphEnums
+
 class StandardSelector(Selector):
     morphset : EnumProperty(
-        items = G.getMorphEnums,
+        items = getMorphEnums,
         name = "Type")
 
     allSets = theStandardMorphSets
@@ -451,33 +463,88 @@ class CustomSelector(Selector, CustomEnums):
 
 
 class JCMSelector(Selector):
-    type : EnumProperty(
-            items = [("All", "All", "All"),
-                     ('DRIVEN', "Driven", "Select driven shapekeys"),
-                     ('UNDRIVEN', "Undriven", "Select undriven shapekeys")],
-            name = "Type",
-            description = "Type")
+    morphset : EnumProperty(
+        items = getMorphEnums,
+        name = "Type")
+
+    # For easy import
+    all : BoolProperty(name="All", default=False)
+    jcms : BoolProperty(name="JCMs", default=False)
+    flexions : BoolProperty(name="Flexions", default=False)
+
+    def getSelectedProps(self):
+        if self.all:
+            snames = []
+            for morphs in self.morphs.values():
+                snames += morphs
+            return snames
+        elif self.jcms or self.flexions:
+            snames = []
+            if self.jcms and "Jcms" in self.morphs.keys():
+                snames += self.morphs["Jcms"]
+            if self.flexions and "Flexions" in self.morphs.keys():
+                snames += self.morphs["Flexions"]
+            return snames
+        else:
+            return Selector.getSelectedProps(self)
+
 
     def selectCondition(self, item):
-        return (self.type == "All" or item.category == self.type)
+        return (self.morphset == "All" or item.category == self.morphset)
+
 
     def draw(self, context):
-        self.layout.prop(self, "type", expand=True)
+        self.layout.prop(self, "morphset")
         Selector.draw(self, context)
 
+
     def getKeys(self, rig, ob):
-        from .driver import isDriven
         keys = []
         skeys = ob.data.shape_keys
         for skey in skeys.key_blocks[1:]:
-            if isDriven(skeys, 'key_blocks["%s"].value' % skey.name):
-                dtype = 'DRIVEN'
-            else:
-                dtype = 'UNDRIVEN'
-            keys.append((skey.name, skey.name, dtype))
+            keys.append((skey.name, skey.name, self.types[skey.name]))
         return keys
 
+
+    def setupMorphs(self, context):
+        ob = context.object
+        skeys = ob.data.shape_keys
+        if skeys is None:
+            print("Object %s has no shapekeys")
+            return {'FINISHED'}
+
+        self.morphs = {}
+        self.types = {}
+        self.undriven = []
+        pgs = ob.data.DazMorphTypes
+        for skey in skeys.key_blocks[1:]:
+            if skey.name in pgs.keys():
+                item = pgs[skey.name]
+                if item.s not in self.morphs.keys():
+                    self.morphs[item.s] = []
+                self.morphs[item.s].append(skey.name)
+                self.types[skey.name] = item.s
+            else:
+                self.undriven.append(skey.name)
+                self.types[skey.name] = "Undriven"
+
+
+    def prerun(self, context):
+        if self.all or self.jcms or self.flexions:
+            self.setupMorphs(context)
+
+
     def invoke(self, context, event):
+        self.setupMorphs(context)
+        morphsets = list(self.morphs.keys())
+        morphsets.sort()
+        global theMorphEnums
+        theMorphEnums = [("All", "All", "All")]
+        for morphset in morphsets:
+            theMorphEnums.append((morphset, morphset, morphset))
+        if self.undriven:
+            theMorphEnums.append(("Undriven", "Undriven", "Undriven"))
+        self.morphset = "All"
         return Selector.invoke(self, context, event)
 
 #------------------------------------------------------------------
@@ -651,6 +718,10 @@ class MorphLoader(LoadMorph):
     def poll(self, context):
         ob = context.object
         return (ob and ob.DazId)
+
+
+    def getMorphSet(self, asset):
+        return self.morphset
 
 
     def getAllMorphs(self, namepaths, context):
@@ -937,13 +1008,17 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
             self.namepaths[key] = filepath
 
 
-    def addToMorphSet(self, prop, asset, hidden):
+    def getMorphSet(self, asset):
         lpath = unquote(asset.id).split('#')[0]
         if lpath in self.morphsets.keys():
-            morphset = self.morphsets[lpath]
+            return self.morphsets[lpath]
         else:
-            morphset = "Standard"
             print("Missing morphset", lpath)
+            return "Standard"
+
+
+    def addToMorphSet(self, prop, asset, hidden):
+        morphset = self.getMorphSet(asset)
         if morphset in ["Jcms", "Flexions"]:
             addToMorphSet(self.rig, morphset, prop, asset, hideable=False)
         else:
@@ -2541,6 +2616,7 @@ def register():
         bpy.types.Object.DazActivated = CollectionProperty(type = DazActiveGroup, override={'LIBRARY_OVERRIDABLE'})
         bpy.types.Object.DazMorphCats = CollectionProperty(type = DazCategory, override={'LIBRARY_OVERRIDABLE'})
 
+    bpy.types.Mesh.DazMorphTypes = CollectionProperty(type = DazStringGroup)
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],
         name = "Morph")

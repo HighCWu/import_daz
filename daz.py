@@ -204,10 +204,10 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
         description = "Merge separate toes into a single toe bone",
         default = False)
 
-    useTransferShapes : BoolProperty(
-        name = "Transfer Shapekeys",
-        description = "Transfer shapekeys (JCMs) from character to clothes",
-        default = False)
+    useTransferJCMs : BoolProperty(
+        name = "Transfer JCMs",
+        description = "Transfer JCMs and flexions from character to clothes",
+        default = True)
 
     useMergeGeografts : BoolProperty(
         name = "Merge Geografts",
@@ -242,13 +242,14 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
         self.layout.prop(self, "useMergeMaterials")
         self.layout.prop(self, "useMergeRigs")
         self.layout.prop(self, "useMergeToes")
-        self.layout.prop(self, "useTransferShapes")
         self.layout.prop(self, "useMergeGeografts")
         self.layout.prop(self, "useMergeLashes")
         self.layout.prop(self, "useExtraFaceBones")
         self.layout.prop(self, "useMakeAllBonesPosable")
         self.layout.prop(self, "useConvertHair")
         MorphTypeOptions.draw(self, context)
+        if self.jcms or self.flexions:
+            self.layout.prop(self, "useTransferJCMs")
 
 
     def invoke(self, context, event):
@@ -356,6 +357,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
                 print("Merge toes")
                 bpy.ops.daz.merge_toes()
 
+            # Add extra face bones
+            if self.useExtraFaceBones:
+                print("Add extra face bones")
+                bpy.ops.daz.add_extra_face_bones()
+
         if mainMesh:
             # Merge materials
             activateObject(context, mainMesh)
@@ -403,15 +409,12 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             print("Merge lashes")
             self.mergeLashes(mainMesh)
 
-        if self.useTransferShapes and mainMesh:
+        if ((self.jcms or self.flexions) and
+            self.useTransferJCMs and mainMesh):
             self.transferShapes(context, mainMesh, meshes[1:], True)
 
         if mainRig:
             activateObject(context, mainRig)
-            # Add extra face bones
-            if self.useExtraFaceBones:
-                print("Add extra face bones")
-                bpy.ops.daz.add_extra_face_bones()
             # Make all bones posable
             if self.useMakeAllBonesPosable:
                 print("Make all bones posable")
@@ -461,7 +464,10 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             for mesh in meshes:
                 mesh.select_set(True)
             setSelection(snames)
-            bpy.ops.daz.transfer_shapekeys(useDrivers=useDrivers)
+            if not useDrivers:
+                bpy.ops.daz.transfer_shapekeys(useDrivers=False, all=True)
+            else:
+                bpy.ops.daz.transfer_shapekeys(useDrivers=True, jcms=self.jcms, flexions=self.flexions)
 
 
     def mergeLashes(self, ob):

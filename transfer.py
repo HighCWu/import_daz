@@ -234,6 +234,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher):
 
     def run(self, context):
         import time
+        self.prerun(context)
         t1 = time.perf_counter()
         src = context.object
         if not src.data.shape_keys:

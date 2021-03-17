@@ -83,21 +83,6 @@ def getActiveMesh(scn, context):
     return enums
 
 #-------------------------------------------------------------
-#   morphing.py
-#-------------------------------------------------------------
-
-def getMorphEnums(scn, context):
-    from .morphing import theMorphEnums
-    return theMorphEnums
-
-
-def getActiveCategories(scn, context):
-    ob = context.object
-    cats = [(cat.name,cat.name,cat.name) for cat in ob.DazMorphCats]
-    cats.sort()
-    return [("All", "All", "All")] + cats
-
-#-------------------------------------------------------------
 #   transfer.py
 #-------------------------------------------------------------
 

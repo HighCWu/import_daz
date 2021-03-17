@@ -280,13 +280,13 @@ def copyDriver(fcu1, rna2, ob=None, channel2=None):
             else:
                 trg2 = var2.targets[0]
             if trg1.id_type == 'OBJECT':
-                if id:
+                if ob:
                     trg2.id = ob
                 else:
                     trg2.id = trg1.id
             elif trg1.id_type == 'ARMATURE':
                 trg2.id_type = 'ARMATURE'
-                if id:
+                if ob:
                     trg2.id = ob.data
                 else:
                     trg2.id = trg1.id
