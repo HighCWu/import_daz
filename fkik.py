@@ -76,6 +76,11 @@ def updatePose():
 
 class Snapper:
 
+    def setRig(self, rig):
+        self.rig = rig
+        self.amt = rig.data
+
+
     def matchPoseTranslation(self, pb, src):
         pmat = getPoseMatrix(src.matrix, pb)
         self.insertLocation(pb, pmat)
@@ -242,7 +247,7 @@ class Snapper:
         words = self.data.split()
         prop = words[0]
         oldValue = getattr(self.rig, prop)
-        self.rig[prop] = value
+        self.amt[prop] = value
         ik = int(words[1])
         fk = int(words[2])
         extra = int(words[3])
@@ -267,7 +272,7 @@ class Snapper:
 
     def restoreSnapProp(self, prop, old, context):
         (oldValue, ik, fk, extra, oldIk, oldFk, oldExtra) = old
-        self.rig[prop] = oldValue
+        self.amt[prop] = oldValue
         self.rig.data.layers[ik] = oldIk
         self.rig.data.layers[fk] = oldFk
         self.rig.data.layers[extra] = oldExtra
@@ -293,7 +298,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper):
 
     def run(self, context):
         bpy.ops.object.mode_set(mode='POSE')
-        self.rig = context.object
+        self.setRig(context.object)
         self.auto = context.scene.tool_settings.use_keyframe_insert_auto
         if self.data[:6] == "MhaArm":
             self.snapFkArm(context)
@@ -318,7 +323,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper):
         updatePose()
 
         try:
-            matchHand = self.rig["MhaHandFollowsWrist" + suffix]
+            matchHand = self.amt["MhaHandFollowsWrist" + suffix]
         except KeyError:
             matchHand = True
         if matchHand:
@@ -328,7 +333,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsFk, False)
-        self.rig[prop] = 0.0
+        self.amt[prop] = 0.0
 
 
     def snapFkLeg(self, context):
@@ -356,7 +361,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsFk, False)
-        self.rig[prop] = 0.0
+        self.amt[prop] = 0.0
 
 
 class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper):
@@ -368,7 +373,7 @@ class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper):
 
     def run(self, context):
         bpy.ops.object.mode_set(mode='POSE')
-        self.rig = context.object
+        self.setRig(context.object)
         self.auto = context.scene.tool_settings.use_keyframe_insert_auto
         if self.data[:6] == "MhaArm":
             self.snapIkArm(context)
@@ -393,7 +398,7 @@ class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsIk, False)
-        self.rig[prop] = 1.0
+        self.amt[prop] = 1.0
 
 
     def snapIkLeg(self, context):
@@ -420,7 +425,7 @@ class DAZ_OT_MhxSnapIk2Fk(DazOperator, Snapper):
 
         self.restoreSnapProp(prop, old, context)
         muteConstraints(cnsIk, False)
-        self.rig[prop] = 1.0
+        self.amt[prop] = 1.0
 
 
 class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper):
@@ -432,7 +437,7 @@ class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper):
 
     def run(self, context):
         words = self.toggle.split()
-        self.rig = context.object
+        self.setRig(context.object)
         scn = context.scene
         prop = words[0]
         value = float(words[1])
@@ -440,10 +445,10 @@ class DAZ_OT_MhxToggleFkIk(DazOperator, Snapper):
         offLayer = int(words[3])
         self.rig.data.layers[onLayer] = True
         self.rig.data.layers[offLayer] = False
-        self.rig[prop] = value
+        self.amt[prop] = value
         path = (propRef(prop))
         if self.isKeyed(None, path):
-            self.rig.keyframe_insert(path, frame=scn.frame_current)
+            self.amt.keyframe_insert(path, frame=scn.frame_current)
         updatePose()
 
 
@@ -458,7 +463,7 @@ class DAZ_OT_MhxToggleHints(DazOperator):
             for cns in pb.constraints:
                 if cns.type == 'LIMIT_ROTATION' and cns.name == "Hint":
                     cns.mute = not cns.mute
-        rig["MhaHintsOn"] = not rig.MhaHintsOn
+        rig.data["MhaHintsOn"] = not rig.data.MhaHintsOn
         updatePose()
 
 #----------------------------------------------------------

@@ -222,7 +222,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
     useExtraFaceBones : BoolProperty(
         name = "Extra Face Bones",
         description = "Add an extra layer of face bones, which can be both driven and posed",
-        default = False)
+        default = True)
 
     useMakeAllBonesPosable : BoolProperty(
         name = "Make All Bones Posable",
