@@ -178,55 +178,71 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
                  ('MHX', "MHX", "MHX rig"),
                  ('RIGIFY', "Rigify", "Rigify")],
         name = "Rig Type",
+        description = "Convert the main rig to a more animator-friendly rig",
         default = 'DAZ')
 
-    mannequin : EnumProperty(
+    mannequinType : EnumProperty(
         items = [('NONE', "None", "Don't make mannequins"),
                  ('NUDE', "Nude", "Make mannequin for main mesh only"),
                  ('ALL', "All", "Make mannequin from all meshes")],
-        name = "Mannequin",
+        name = "Mannequin Type",
+        description = "Add mannequin to meshes of this type",
         default = 'NONE')
 
     useMergeRigs : BoolProperty(
         name = "Merge Rigs",
+        description = "Merge all rigs to the main character rig",
         default = True)
 
     useMergeMaterials : BoolProperty(
         name = "Merge Materials",
+        description = "Merge identical materials",
         default = True)
 
     useMergeToes : BoolProperty(
         name = "Merge Toes",
+        description = "Merge separate toes into a single toe bone",
+        default = False)
+
+    useTransferShapes : BoolProperty(
+        name = "Transfer Shapekeys",
+        description = "Transfer shapekeys (JCMs) from character to clothes",
         default = False)
 
     useMergeGeografts : BoolProperty(
         name = "Merge Geografts",
+        description = "Merge selected geografts to active object.\nShapekeys are always transferred first",
         default = True)
 
     useMergeLashes : BoolProperty(
         name = "Merge Lashes",
+        description = "Merge separate eyelash mesh to character.\nShapekeys are always transferred first",
         default = True)
 
     useExtraFaceBones : BoolProperty(
         name = "Extra Face Bones",
+        description = "Add an extra layer of face bones, which can be both driven and posed",
         default = False)
 
     useMakeAllBonesPosable : BoolProperty(
         name = "Make All Bones Posable",
+        description = "Add an extra layer of driven bones, to make them posable",
         default = False)
 
     useConvertHair : BoolProperty(
         name = "Convert Hair",
+        description = "Convert strand-based hair to particle hair",
         default = False)
 
     def draw(self, context):
         DazOptions.draw(self, context)
         self.layout.separator()
         self.layout.prop(self, "rigType")
-        self.layout.prop(self, "mannequin")
+        self.layout.prop(self, "mannequinType")
         self.layout.prop(self, "useMergeMaterials")
         self.layout.prop(self, "useMergeRigs")
         self.layout.prop(self, "useMergeToes")
+        self.layout.prop(self, "useTransferShapes")
         self.layout.prop(self, "useMergeGeografts")
         self.layout.prop(self, "useMergeLashes")
         self.layout.prop(self, "useExtraFaceBones")
@@ -371,7 +387,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
 
         # Merge geografts
         if geografts:
-            self.transferShapes(context, mainMesh, geografts)
+            self.transferShapes(context, mainMesh, geografts, False)
             activateObject(context, mainMesh)
             for ob in geografts:
                 ob.select_set(True)
@@ -380,12 +396,15 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
 
         # Merge lashes
         if lashes:
-            self.transferShapes(context, mainMesh, lashes)
+            self.transferShapes(context, mainMesh, lashes, False)
             activateObject(context, mainMesh)
             for ob in lashes:
                 ob.select_set(True)
             print("Merge lashes")
             self.mergeLashes(mainMesh)
+
+        if self.useTransferShapes and mainMesh:
+            self.transferShapes(context, mainMesh, meshes[1:], True)
 
         if mainRig:
             activateObject(context, mainRig)
@@ -421,9 +440,9 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
                 mainRig = context.object
 
         # Make mannequin
-        if mainRig and mainMesh and self.mannequin != 'NONE':
+        if mainRig and mainMesh and self.mannequinType != 'NONE':
             activateObject(context, mainMesh)
-            if self.mannequin == 'ALL':
+            if self.mannequinType == 'ALL':
                 for ob in meshes:
                     ob.select_set(True)
             print("Make mannequin")
@@ -433,7 +452,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             activateObject(context, mainRig)
 
 
-    def transferShapes(self, context, ob, meshes):
+    def transferShapes(self, context, ob, meshes, useDrivers):
         from .fileutils import setSelection
         activateObject(context, ob)
         skeys = ob.data.shape_keys
@@ -442,7 +461,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             for mesh in meshes:
                 mesh.select_set(True)
             setSelection(snames)
-            bpy.ops.daz.transfer_shapekeys()
+            bpy.ops.daz.transfer_shapekeys(useDrivers=useDrivers)
 
 
     def mergeLashes(self, ob):

@@ -1089,7 +1089,7 @@ def mergeBonesAndVgroups(rig, mergers, parents, context):
 class DAZ_OT_MergeToes(DazOperator, IsArmature):
     bl_idname = "daz.merge_toes"
     bl_label = "Merge Toes"
-    bl_description = "Merge all toes"
+    bl_description = "Merge separate toes into a single toe bone"
     bl_options = {'UNDO'}
 
     def run(self, context):

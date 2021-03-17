@@ -196,8 +196,8 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher):
         description = "Method used to transfer morphs",
         default = 'NEAREST')
 
-    useDriver : BoolProperty(
-        name = "Use Driver",
+    useDrivers : BoolProperty(
+        name = "Transfer Drivers",
         description = "Transfer both shapekeys and drivers",
         default = True)
 
@@ -224,7 +224,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher):
 
     def draw(self, context):
         self.layout.prop(self, "transferMethod", expand=True)
-        self.layout.prop(self, "useDriver")
+        self.layout.prop(self, "useDrivers")
         self.layout.prop(self, "useVendorMorphs")
         self.layout.prop(self, "useOverwrite")
         self.layout.prop(self, "useSelectedOnly")
@@ -293,7 +293,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher):
                 continue
             hskey = hskeys.key_blocks[sname]
 
-            if self.useDriver:
+            if self.useDrivers:
                 fcu = getShapekeyDriver(hskeys, sname)
             else:
                 fcu = None
