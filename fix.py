@@ -154,7 +154,7 @@ class Fixer:
         def changeTargets(rna):
             if rna.animation_data:
                 for fcu in rna.animation_data.drivers:
-                    self.changeBoneTarget(fcu, assoc)
+                    self.changeTarget(fcu, rig, assoc)
 
         changeTargets(rig)
         changeTargets(rig.data)
@@ -164,7 +164,7 @@ class Fixer:
                 changeTargets(ob.data.shape_keys)
 
 
-    def changeBoneTarget(self, fcu, assoc):
+    def changeTarget(self, fcu, rig, assoc):
         def newBoneTarget(bname, assoc):
             for new,old in assoc:
                 if old == bname:
@@ -173,6 +173,10 @@ class Fixer:
 
         for var in fcu.driver.variables:
             for trg in var.targets:
+                if trg.id_type == 'OBJECT':
+                    trg.id = rig
+                elif trg.id_type == 'ARMATURE':
+                    trg.id = rig.data
                 if var.type == 'TRANSFORMS':
                     trg.bone_target = newBoneTarget(trg.bone_target, assoc)
 

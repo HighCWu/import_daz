@@ -46,14 +46,11 @@ class LoadMorph:
 
 
     def initAmt(self):
-        global dpRef
         if self.rig:
             if GS.useCustomDrivers:
                 self.amt = self.rig
-                dpRef = propRef
             else:
                 self.amt = self.rig.data
-                dpRef = dataRef
         else:
             self.amt = None
 
@@ -143,7 +140,7 @@ class LoadMorph:
             self.shapekeys[prop] = skey
             if self.rig:
                 final = self.addNewProp(prop)
-                makePropDriver(dpRef(final), skey, "value", self.rig, "x")
+                makePropDriver(propRef(final), skey, "value", self.amt, "x")
             return prop
         return None
 
@@ -330,14 +327,11 @@ class LoadMorph:
 
     def setFcurves(self, pb, vec, prop, channel, default):
         def getBoneFcurves(pb, channel):
-            if channel[0] == "[":
-                dot = ""
-            else:
-                dot = "."
+            dot = ("" if channel[0] == "[" else ".")
             path = 'pose.bones["%s"]%s%s' % (pb.name, dot, channel)
             fcurves = {}
-            if self.amt.animation_data:
-                for fcu in self.amt.animation_data.drivers:
+            if self.rig.animation_data:
+                for fcu in self.rig.animation_data.drivers:
                     if path == fcu.data_path:
                         fcurves[fcu.array_index] = fcu
             return fcurves
@@ -466,7 +460,7 @@ class LoadMorph:
         string = ""
         if self.visible[raw] or not self.primary[raw]:
             string = varname
-            self.addPathVar(fcu, varname, propRef(raw))
+            self.addPathVar(fcu, varname, self.rig, propRef(raw))
             if raw not in self.rig.keys():
                 self.rig[raw] = 0.0
         for dtype,subraw,factor in drivers:
@@ -476,14 +470,14 @@ class LoadMorph:
             varname = nextLetter(varname)
             string += multiply(factor, varname)
             self.ensureExists(subraw, subfinal)
-            self.addPathVar(fcu, varname, dpRef(subfinal))
+            self.addPathVar(fcu, varname, self.amt, propRef(subfinal))
         string = self.multiplyMults(fcu, string)
         fcu.driver.expression = string
 
 
-    def addPathVar(self, fcu, varname, path):
+    def addPathVar(self, fcu, varname, rna, path):
         from .driver import addDriverVar
-        addDriverVar(fcu, varname, path, self.rig)
+        addDriverVar(fcu, varname, path, rna)
 
 
     def getDrivenChannel(self, raw):
@@ -519,7 +513,7 @@ class LoadMorph:
                string += "*%s" % varname
                multfinal = finalProp(mult)
                self.ensureExists(mult, multfinal)
-               self.addPathVar(fcu, varname, dpRef(multfinal))
+               self.addPathVar(fcu, varname, self.amt, propRef(multfinal))
                varname = nextLetter(varname)
         return string
 
@@ -532,7 +526,7 @@ class LoadMorph:
             fcu = self.amt.driver_add(propRef(final))
             fcu.driver.type = 'SCRIPTED'
             fcu.driver.expression = "x"
-            self.addPathVar(fcu, "x", propRef(raw))
+            self.addPathVar(fcu, "x", self.rig, propRef(raw))
 
 
     def buildBoneDriver(self, raw, bname, expr):
@@ -680,8 +674,7 @@ class LoadMorph:
 
         def getAllSumTargets(fcu):
             targets = [var.targets[0] for var in fcu.driver.variables]
-            return dict([(trg.data_path,True) for trg in targets])
-
+            return dict([(trg.data_path, trg.id_type) for trg in targets])
 
         from .driver import Driver
         from time import perf_counter
@@ -694,7 +687,7 @@ class LoadMorph:
                     t1 = perf_counter()
                     if fcu0:
                         if fcu0.driver.type == 'SUM':
-                            paths = getAllSumTargets(fcu0)
+                            pathids = getAllSumTargets(fcu0)
                         else:
                             prop0 = "origo:%d" % idx
                             pb[prop0] = 0.0
@@ -702,9 +695,9 @@ class LoadMorph:
                             driver = Driver(fcu0, True)
                             driver.fill(fcu)
                             path0 = 'pose.bones["%s"]["%s"]' % (pb.name, prop0)
-                            paths = { path0 : True }
+                            pathids = { path0 : 'OBJECT' }
                     else:
-                        paths = {}
+                        pathids = {}
 
                     t2 = perf_counter()
                     pb.driver_remove(channel, idx)
@@ -718,12 +711,17 @@ class LoadMorph:
                         fcu = pb.driver_add(path)
                         fcu.driver.type = 'SCRIPTED'
                         fcu.driver.expression = getTermDriverExpr("x", factor, default)
-                        self.addPathVar(fcu, "x", dpRef(final))
+                        self.addPathVar(fcu, "x", self.amt, propRef(final))
                         path2 = 'pose.bones["%s"]%s' % (pb.name, path)
-                        paths[path2] = True
+                        pathids[path2] = 'OBJECT'
                     t3 = perf_counter()
-                    for n,path in enumerate(paths.keys()):
-                        self.addPathVar(sumfcu, "t%.03d" % n, path)
+                    for n,data in enumerate(pathids.items()):
+                        path,idtype = data
+                        if idtype == 'OBJECT':
+                            rna = self.rig
+                        else:
+                            rna = self.amt
+                        self.addPathVar(sumfcu, "t%.03d" % n, rna, path)
                     t4 = perf_counter()
                     time1 += t2-t1
                     time2 += t3-t2

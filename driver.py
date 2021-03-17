@@ -59,7 +59,7 @@ def getBoneDrivers(rig, pb):
 def getPropDrivers(rig):
     if rig.animation_data:
         return [fcu for fcu in rig.animation_data.drivers
-                if fcu.data_path.startswith(("[", "data["))]
+                if fcu.data_path[0] == '[']
     else:
         return []
 
@@ -173,6 +173,7 @@ class Variable:
 
 class Target:
     def __init__(self, trg):
+        self.id_type = trg.id_type
         self.id = trg.id
         self.bone_target = trg.bone_target
         self.transform_type = trg.transform_type
@@ -185,6 +186,8 @@ class Target:
             self.name = words[0]
 
     def create(self, trg, fixDrv=False):
+        if self.id_type != 'OBJECT':
+            trg.id_type = self.id_type
         trg.id = self.id
         trg.bone_target = self.bone_target
         trg.transform_type = self.transform_type
@@ -259,14 +262,13 @@ def splitDataPath(fcu):
     return bname, prop, channel, idx
 
 
-def copyDriver(fcu1, rna2, id=None, channel2=None):
+def copyDriver(fcu1, rna2, ob=None, channel2=None):
     bname,prop,channel1,idx = splitDataPath(fcu1)
     if channel2 is None:
         channel2 = channel1
     fcu2 = rna2.driver_add(channel2, idx)
     fcu2.driver.type = fcu1.driver.type
-    if hasattr(fcu1.driver, "use_self"):
-        fcu2.driver.use_self = fcu1.driver.use_self
+    fcu2.driver.use_self = fcu1.driver.use_self
     fcu2.driver.expression = fcu1.driver.expression
     for var1 in fcu1.driver.variables:
         var2 = fcu2.driver.variables.new()
@@ -277,10 +279,17 @@ def copyDriver(fcu1, rna2, id=None, channel2=None):
                 trg2 = var2.targets.add()
             else:
                 trg2 = var2.targets[0]
-            if id:
-                trg2.id = id
-            else:
-                trg2.id = trg1.id
+            if trg1.id_type == 'OBJECT':
+                if id:
+                    trg2.id = ob
+                else:
+                    trg2.id = trg1.id
+            elif trg1.id_type == 'ARMATURE':
+                trg2.id_type = 'ARMATURE'
+                if id:
+                    trg2.id = ob.data
+                else:
+                    trg2.id = trg1.id
             trg2.bone_target = trg1.bone_target
             trg2.data_path = trg1.data_path
             trg2.transform_type = trg1.transform_type
@@ -352,15 +361,24 @@ def setBoolProp(rna, prop, value, desc=""):
 #
 #-------------------------------------------------------------
 
-def addDriverVar(fcu, vname, path, rig):
+def addDriverVar(fcu, vname, path, rna):
     var = fcu.driver.variables.new()
     var.name = vname
     var.type = 'SINGLE_PROP'
     trg = var.targets[0]
-    trg.id_type = 'OBJECT'
-    trg.id = rig
+    trg.id_type = getIdType(rna)
+    trg.id = rna
     trg.data_path = path
     return trg
+
+
+def getIdType(rna):
+    if isinstance(rna, bpy.types.Armature):
+        return 'ARMATURE'
+    elif isinstance(rna, bpy.types.Object):
+        return 'OBJECT'
+    else:
+        raise RuntimeError("BUG addDriverVar", rna)
 
 
 def hasDriverVar(fcu, dname, rig):
@@ -554,37 +572,6 @@ class DAZ_OT_UpdateAll(DazOperator):
     def run(self, context):
         updateAll(context)
 
-#-------------------------------------------------------------
-#   Restore shapekey drivers
-#-------------------------------------------------------------
-
-class DAZ_OT_RestoreDrivers(DazOperator, IsMesh):
-    bl_idname = "daz.restore_shapekey_drivers"
-    bl_label = "Restore Drivers"
-    bl_description = "Restore corrupt shapekey drivers, or change driver target"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        ob = context.object
-        if (ob.data.shape_keys is None or
-            ob.data.shape_keys.animation_data is None):
-            return
-        rig = ob.parent
-        if rig is None:
-            return
-
-        for fcu in ob.data.shape_keys.animation_data.drivers:
-            words = fcu.data_path.split('"')
-            if (words[0] == "key_blocks[" and
-                len(words) == 3 and
-                words[2] == "].value"):
-                sname = words[1]
-                for var in fcu.driver.variables:
-                    trg = var.targets[0]
-                    trg.id_type = 'OBJECT'
-                    trg.id = rig
-                    trg.data_path = propRef(sname)
-
 #----------------------------------------------------------
 #   Remove unused drivers
 #----------------------------------------------------------
@@ -671,7 +658,7 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
                                 props[cat].append(prop)
                                 setFloatProp(rig, prop, 0.0, min, max)
                     for trg in var.targets:
-                        if trg.id_type == 'OBJECT':
+                        if trg.id_type == getIdType(rig):
                             trg.id = rig
             if props:
                 for cat,cprops in props.items():
@@ -729,7 +716,7 @@ def copyBoneDrivers(rig1, rig2):
                 if bname not in rig2.data.bones.keys():
                     print("Missing bone (copyBoneDrivers):", bname)
                     continue
-                copyDriver(fcu, rig2, id=rig2)
+                copyDriver(fcu, rig2, rig2)
 
         for pb1 in rig1.pose.bones:
             if pb1.name in rig2.pose.bones.keys() and pb1.DazDriven:
@@ -821,7 +808,6 @@ class DazDriverGroup(bpy.types.PropertyGroup):
 classes = [
     DazDriverGroup,
 
-    DAZ_OT_RestoreDrivers,
     DAZ_OT_RemoveUnusedDrivers,
     DAZ_OT_RetargetDrivers,
     DAZ_OT_CopyProps,

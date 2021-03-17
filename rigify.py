@@ -1065,7 +1065,7 @@ class Rigify:
                     self.copyBoneProp(fcu, rig, gen, pb)
                 for fcu in fcus:
                     fcu2 = copyDriver(fcu, pb, gen)
-                    self.changeBoneTarget(fcu2, assoc)
+                    self.changeTarget(fcu2, gen, assoc)
 
         # Fix correctives
         correctives = []
