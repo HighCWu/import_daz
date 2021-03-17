@@ -1502,7 +1502,7 @@ class DAZ_OT_ConvertMhxActions(DazOperator, Selector):
                 '"hip"' : '"root"',
                 '"pelvis"' : '"hips"',
             }
-        for item in self.getSelectedItems(context.scene):
+        for item in self.getSelectedItems():
             act = bpy.data.actions[item.name]
             for fcu in act.fcurves:
                 for old,new in replace.items():

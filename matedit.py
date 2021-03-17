@@ -773,7 +773,7 @@ class DAZ_OT_RemoveShells(DazOperator, Selector, ShellRemover, IsMesh):
     columnWidth = 350
 
     def run(self, context):
-        for item in self.getSelectedItems(context.scene):
+        for item in self.getSelectedItems():
             for data in self.shells[item.text].values():
                 for mat,node in data:
                     self.deleteNodes(mat, node)

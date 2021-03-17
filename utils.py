@@ -261,6 +261,9 @@ def isVector(value):
 def propRef(prop):
     return '["%s"]' % prop
 
+def dataRef(prop):
+    return 'data["%s"]' % prop
+
 def finalProp(prop):
     return "%s(fin)" % prop
 

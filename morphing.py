@@ -357,16 +357,16 @@ class Selector():
         return (not self.filter or self.filter.lower() in item.text.lower())
 
 
-    def getSelectedItems(self, scn):
+    def getSelectedItems(self):
         return [item for item in self.selection if item.select and self.isSelected(item)]
 
 
-    def getSelectedProps(self, scn):
+    def getSelectedProps(self):
         from .fileutils import getSelection
         if getSelection():
             return getSelection()
         else:
-            return [item.name for item in self.getSelectedItems(scn)]
+            return [item.name for item in self.getSelectedItems()]
 
 
     def invokeDialog(self, context):
@@ -448,6 +448,37 @@ class CustomSelector(Selector, CustomEnums):
             for item in cat.morphs:
                 keys.append((item.name,item.text,cat.name))
         return keys
+
+
+class JCMSelector(Selector):
+    type : EnumProperty(
+            items = [("All", "All", "All"),
+                     ('DRIVEN', "Driven", "Select driven shapekeys"),
+                     ('UNDRIVEN', "Undriven", "Select undriven shapekeys")],
+            name = "Type",
+            description = "Type")
+
+    def selectCondition(self, item):
+        return (self.type == "All" or item.category == self.type)
+
+    def draw(self, context):
+        self.layout.prop(self, "type", expand=True)
+        Selector.draw(self, context)
+
+    def getKeys(self, rig, ob):
+        from .driver import isDriven
+        keys = []
+        skeys = ob.data.shape_keys
+        for skey in skeys.key_blocks[1:]:
+            if isDriven(skeys, 'key_blocks["%s"].value' % skey.name):
+                dtype = 'DRIVEN'
+            else:
+                dtype = 'UNDRIVEN'
+            keys.append((skey.name, skey.name, dtype))
+        return keys
+
+    def invoke(self, context, event):
+        return Selector.invoke(self, context, event)
 
 #------------------------------------------------------------------
 #   Global lists of morph paths
@@ -733,7 +764,7 @@ class StandardMorphSelector(Selector):
                 text = os.path.splitext(os.path.basename(path))[0]
                 pathdir[text] = path
         else:
-            for item in self.getSelectedItems(context.scene):
+            for item in self.getSelectedItems():
                 pathdir[item.text] = item.name
         return pathdir
 
@@ -1095,6 +1126,7 @@ def removeFromPropGroups(rig, prop, keep=False):
                 ob[prop] = 0
                 del ob[prop]
 
+
 def removeFromPropGroup(pgs, prop):
     idxs = []
     for n,pg in enumerate(pgs):
@@ -1115,7 +1147,7 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsMeshArmature, DeleteShape
         self.layout.prop(self, "deleteShapekeys")
 
     def run(self, context):
-        items = [(item.index, item.name) for item in self.getSelectedItems(context.scene)]
+        items = [(item.index, item.name) for item in self.getSelectedItems()]
         items.sort()
         items.reverse()
         ob = context.object
@@ -1794,29 +1826,51 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, IsMeshArmature):
 #-------------------------------------------------------------
 
 class MorphRemover(DeleteShapekeysBool):
+    def drawExtra(self, context):
+        self.layout.prop(self, "deleteShapekeys")
+
+
     def run(self, context):
+        props = self.getSelectedProps()
+        print("Remove", props)
+        paths = [propRef(finalProp(prop)) for prop in props]
         rig = getRigFromObject(context.object)
-        scn = context.scene
+        self.removeFromMeshes(context.object, rig, paths, props)
         if rig:
-            props = self.getSelectedProps(scn)
-            print("Remove", props)
-            paths = [propRef(finalProp(prop)) for prop in props]
-            for ob in rig.children:
-                if ob.type == 'MESH' and ob.data.shape_keys:
-                    self.removeShapekeyDrivers(ob, paths, props, rig)
-                    if self.deleteShapekeys:
-                        for prop in props:
-                            if prop in ob.data.shape_keys.key_blocks.keys():
-                                skey = ob.data.shape_keys.key_blocks[prop]
-                                ob.shape_key_remove(skey)
             for prop in props:
+                self.removeDriver(rig, propRef(finalProp(prop)))
+                self.removeDriver(rig.data, propRef(finalProp(prop)))
                 removeFromPropGroups(rig, prop)
             self.finishRemove(rig, props)
             updateScene(context)
             updateRig(rig, context)
 
 
-    def removeShapekeyDrivers(self, ob, paths, props, rig):
+    def removeDriver(self, rna, path):
+        from .driver import getRnaDriver
+        if getRnaDriver(rna, path):
+            print("RDR", rna, path)
+            rna.driver_remove(path)
+
+
+    def removeFromMeshes(self, _ob, rig, paths, props):
+        if rig is None:
+            return
+        for ob in rig.children:
+            if ob.type == 'MESH' and ob.data.shape_keys:
+                self.removeFromMesh(ob, rig, paths, props)
+
+
+    def removeFromMesh(self, ob, rig, paths, props):
+        self.removeShapekeyDrivers(ob, rig, paths, props)
+        if self.deleteShapekeys:
+            for prop in props:
+                if prop in ob.data.shape_keys.key_blocks.keys():
+                    skey = ob.data.shape_keys.key_blocks[prop]
+                    ob.shape_key_remove(skey)
+
+
+    def removeShapekeyDrivers(self, ob, rig, paths, props):
         from .driver import removePropDrivers
         removePropDrivers(ob.data.shape_keys, paths, rig, force=True)
 
@@ -1831,9 +1885,6 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, I
     bl_description = "Remove specific standard morphs and their associated drivers"
     bl_options = {'UNDO'}
 
-    def drawExtra(self, context):
-        self.layout.prop(self, "deleteShapekeys")
-
 
 class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMeshArmature):
     bl_idname = "daz.remove_custom_morphs"
@@ -1842,9 +1893,6 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMes
     bl_options = {'UNDO'}
 
     morphset = "Custom"
-
-    def drawExtra(self, context):
-        self.layout.prop(self, "deleteShapekeys")
 
     def finishRemove(self, rig, props):
         for cat in rig.DazMorphCats:
@@ -1859,25 +1907,17 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMes
             removeFromPropGroup(rig.DazMorphCats, catname)
 
 
-class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
+class DAZ_OT_RemoveJCMs(DazOperator, JCMSelector, MorphRemover, IsMesh):
     bl_idname = "daz.remove_jcms"
     bl_label = "Remove JCMs"
     bl_description = "Remove specific JCMs"
     bl_options = {'UNDO'}
 
-    allSets = theJCMMorphSets
-
-    def getKeys(self, rig, ob):
-        skeys = ob.data.shape_keys
-        if skeys:
-            morphs = getMorphList(ob, theJCMMorphSets)
-            return [(item.name, item.text, "All") for item in morphs
-                    if item.name in skeys.key_blocks.keys()]
-        else:
-            return []
+    def removeFromMeshes(self, ob, rig, paths, props):
+        self.removeFromMesh(ob, rig, paths, props)
 
 
-    def removeShapekeyDrivers(self, ob, paths, snames, rig):
+    def removeShapekeyDrivers(self, ob, rig, paths, snames):
         from .driver import getShapekeyDriver
         skeys = ob.data.shape_keys
         for sname in snames:
@@ -1888,7 +1928,6 @@ class DAZ_OT_RemoveJCMs(DazOperator, Selector, MorphRemover, IsMesh):
 
 
     def run(self, context):
-        self.deleteShapekeys = True
         MorphRemover.run(self, context)
 
 #-------------------------------------------------------------
@@ -1925,9 +1964,8 @@ class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, IsMesh):
         if skeys is None:
             raise DazError("Object %s has not shapekeys" % ob.name)
         rig = getRigFromObject(ob)
-        scn = context.scene
         mat = ob.data.materials[ob.active_material_index]
-        props = self.getSelectedProps(scn)
+        props = self.getSelectedProps()
         nprops = len(props)
         for n,prop in enumerate(props):
             skey = skeys.key_blocks[prop]
@@ -1950,7 +1988,7 @@ class AddRemoveDriver:
         ob = context.object
         rig = ob.parent
         if (rig and rig.type == 'ARMATURE'):
-            for sname in self.getSelectedProps(context.scene):
+            for sname in self.getSelectedProps():
                 self.handleShapekey(sname, rig, ob)
             updateDrivers(rig)
 
@@ -2000,7 +2038,7 @@ class DAZ_OT_AddShapeToCategory(DazOperator, AddRemoveDriver, Selector, CustomEn
             raise DazError("Cannot add to all categories")
         else:
             cat = self.custom
-        for sname in self.getSelectedProps(context.scene):
+        for sname in self.getSelectedProps():
             skey = ob.data.shape_keys.key_blocks[sname]
             addToCategories(ob, [sname], cat)
             ob.DazMeshMorphs = True
@@ -2063,7 +2101,7 @@ class DAZ_OT_RemoveShapeFromCategory(DazOperator, AddRemoveDriver, CustomSelecto
     def run(self, context):
         ob = context.object
         snames = []
-        for sname in self.getSelectedProps(context.scene):
+        for sname in self.getSelectedProps():
             skey = ob.data.shape_keys.key_blocks[sname]
             snames.append(skey.name)
         if self.custom == "All":
@@ -2334,7 +2372,7 @@ class MorphsToShapes:
         rig = ob.parent
         if rig is None or rig.type != 'ARMATURE':
             return
-        items = self.getSelectedItems(context.scene)
+        items = self.getSelectedItems()
         nitems = len(items)
         startProgress("Convert morphs to shapekeys")
         for n,item in enumerate(items):

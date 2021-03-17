@@ -35,6 +35,14 @@ from .utils import *
 #   Check if RNA is driven
 #-------------------------------------------------------------
 
+def isDriven(rna, channel):
+    if rna.animation_data:
+        for fcu in rna.animation_data.drivers:
+            if fcu.data_path == channel:
+                return True
+    return False
+
+
 def isBoneDriven(rig, pb):
     return (getBoneDrivers(rig, pb) != [])
 
@@ -81,7 +89,7 @@ def getShapekeyPropDriver(skeys, sname):
     return getRnaDriver(skeys, 'key_blocks["%s"].value' % (sname), 'SINGLE_PROP')
 
 
-def getRnaDriver(rna, path, type):
+def getRnaDriver(rna, path, type=None):
     if rna and rna.animation_data:
         for fcu in rna.animation_data.drivers:
             if path == fcu.data_path:

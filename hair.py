@@ -1298,7 +1298,7 @@ class DAZ_OT_CombineHairs(DazOperator, CombineHair, HairUpdater, Selector, HairO
         psystems = []
         hsystems = {}
         haircount = -1
-        for item in self.getSelectedItems(scn):
+        for item in self.getSelectedItems():
             idx = int(item.name)
             psys = ob.particle_systems[idx]
             psystems.append((idx, psys))

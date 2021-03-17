@@ -46,14 +46,14 @@ class LoadMorph:
 
 
     def initAmt(self):
-        global dataRef
+        global dpRef
         if self.rig:
             if GS.useCustomDrivers:
                 self.amt = self.rig
-                dataRef = propRef
+                dpRef = propRef
             else:
                 self.amt = self.rig.data
-                dataRef = dataPropRef
+                dpRef = dataRef
         else:
             self.amt = None
 
@@ -143,7 +143,7 @@ class LoadMorph:
             self.shapekeys[prop] = skey
             if self.rig:
                 final = self.addNewProp(prop)
-                makePropDriver(dataRef(final), skey, "value", self.rig, "x")
+                makePropDriver(dpRef(final), skey, "value", self.rig, "x")
             return prop
         return None
 
@@ -476,7 +476,7 @@ class LoadMorph:
             varname = nextLetter(varname)
             string += multiply(factor, varname)
             self.ensureExists(subraw, subfinal)
-            self.addPathVar(fcu, varname, dataRef(subfinal))
+            self.addPathVar(fcu, varname, dpRef(subfinal))
         string = self.multiplyMults(fcu, string)
         fcu.driver.expression = string
 
@@ -519,7 +519,7 @@ class LoadMorph:
                string += "*%s" % varname
                multfinal = finalProp(mult)
                self.ensureExists(mult, multfinal)
-               self.addPathVar(fcu, varname, dataRef(multfinal))
+               self.addPathVar(fcu, varname, dpRef(multfinal))
                varname = nextLetter(varname)
         return string
 
@@ -718,7 +718,7 @@ class LoadMorph:
                         fcu = pb.driver_add(path)
                         fcu.driver.type = 'SCRIPTED'
                         fcu.driver.expression = getTermDriverExpr("x", factor, default)
-                        self.addPathVar(fcu, "x", dataRef(final))
+                        self.addPathVar(fcu, "x", dpRef(final))
                         path2 = 'pose.bones["%s"]%s' % (pb.name, path)
                         paths[path2] = True
                     t3 = perf_counter()
@@ -775,9 +775,6 @@ def buildBoneFormula(asset, rig, errors):
 #------------------------------------------------------------------
 #   Utilities
 #------------------------------------------------------------------
-
-def dataPropRef(prop):
-    return 'data["%s"]' % prop
 
 def unPath(path):
     if path[0:2] == '["':

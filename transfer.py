@@ -30,7 +30,7 @@ import bpy
 import numpy as np
 from .error import *
 from .utils import *
-from .morphing import Selector
+from .morphing import JCMSelector
 
 
 class FastMatcher:
@@ -173,7 +173,20 @@ class DAZ_OT_CopyVertexGroupsByNumber(DazOperator, IsMesh):
 #   Morphs transfer
 #----------------------------------------------------------
 
-class TransferOptions:
+class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher):
+    bl_idname = "daz.transfer_shapekeys"
+    bl_label = "Transfer Shapekeys"
+    bl_description = "Transfer shapekeys from active mesh to selected meshes"
+    bl_options = {'UNDO'}
+
+    usePropDriver = True
+    defaultSelect = True
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'MESH' and ob.data.shape_keys)
+
     transferMethod : EnumProperty(
         items = [('NEAREST', "Nearest Face", "Transfer morphs from nearest source face.\nUse to transfer shapekeys to clothes"),
                  ('BODY', "Body", "Only transfer vertices as long as they match exactly.\nUse to transfer shapekeys from body to merged mesh"),
@@ -209,13 +222,6 @@ class TransferOptions:
         default = False)
 
 
-class MorphTransferer(Selector, FastMatcher, TransferOptions):
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH' and ob.data.shape_keys)
-
-
     def draw(self, context):
         self.layout.prop(self, "transferMethod", expand=True)
         self.layout.prop(self, "useDriver")
@@ -223,7 +229,7 @@ class MorphTransferer(Selector, FastMatcher, TransferOptions):
         self.layout.prop(self, "useOverwrite")
         self.layout.prop(self, "useSelectedOnly")
         self.layout.prop(self, "ignoreRigidity")
-        Selector.draw(self, context)
+        JCMSelector.draw(self, context)
 
 
     def run(self, context):
@@ -278,7 +284,7 @@ class MorphTransferer(Selector, FastMatcher, TransferOptions):
             src.active_shape_key_index = 0
         trg.active_shape_key_index = 0
 
-        snames = self.getSelectedProps(scn)
+        snames = self.getSelectedProps()
         nskeys = len(snames)
         for idx,sname in enumerate(snames):
             showProgress(idx, nskeys)
@@ -319,7 +325,6 @@ class MorphTransferer(Selector, FastMatcher, TransferOptions):
                 cskey.slider_min = hskey.slider_min
                 cskey.slider_max = hskey.slider_max
                 cskey.value = hskey.value
-                self.addToMorphSet(trg, sname)
                 if fcu is not None:
                     copyDriver(fcu, cskey)
             else:
@@ -602,76 +607,6 @@ def findFileRecursive(folder, tfile):
     return None
 
 #----------------------------------------------------------
-#   Transfer buttons
-#----------------------------------------------------------
-
-class DAZ_OT_TransferShapekeys(DazOperator, MorphTransferer):
-    bl_idname = "daz.transfer_shapekeys"
-    bl_label = "Transfer Shapekeys"
-    bl_description = "Transfer all shapekeys from active to selected"
-    bl_options = {'UNDO'}
-
-    usePropDriver = False
-    defaultSelect = True
-
-    def getKeys(self, rig, ob):
-        keys = []
-        for skey in ob.data.shape_keys.key_blocks[1:]:
-            keys.append((skey.name, skey.name, "All"))
-        return keys
-
-    def addToMorphSet(self, ob, prop):
-        pass
-
-
-class DAZ_OT_TransferOtherMorphs(DazOperator, MorphTransferer):
-    bl_idname = "daz.transfer_other_morphs"
-    bl_label = "Transfer Other Morphs"
-    bl_description = "Transfer all shapekeys except JCMs (bone driven) with drivers from active to selected"
-    bl_options = {'UNDO'}
-
-    usePropDriver = True
-    defaultSelect = True
-
-    def getKeys(self, rig, ob):
-        from .morphing import getMorphList, theJCMMorphSets
-        jcms = [item.name for item in getMorphList(ob, theJCMMorphSets)]
-        keys = []
-        for skey in ob.data.shape_keys.key_blocks[1:]:
-            if skey.name not in jcms:
-                keys.append((skey.name, skey.name, "All"))
-        return keys
-
-    def addToMorphSet(self, ob, prop):
-        pass
-
-
-class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
-    bl_idname = "daz.transfer_jcms"
-    bl_label = "Transfer JCMs"
-    bl_description = "Transfer JCMs (joint corrective shapekeys) and drivers from active to selected"
-    bl_options = {'UNDO'}
-
-    usePropDriver = False
-    defaultSelect = True
-
-    def invoke(self, context, event):
-        return MorphTransferer.invoke(self, context, event)
-
-    def getKeys(self, rig, ob):
-        from .morphing import getMorphList, theJCMMorphSets
-        jcms = [item.name for item in getMorphList(ob, theJCMMorphSets)]
-        keys = []
-        for skey in ob.data.shape_keys.key_blocks[1:]:
-            if skey.name in jcms:
-                keys.append((skey.name, skey.name, "All"))
-        return keys
-
-    def addToMorphSet(self, ob, prop):
-        from .morphing import addToMorphSet
-        addToMorphSet(ob, "Jcms", prop)
-
-#----------------------------------------------------------
 #   Mix Shapekeys
 #----------------------------------------------------------
 
@@ -888,8 +823,6 @@ class DAZ_OT_PruneVertexGroups(DazPropsOperator, ThresholdFloat, IsMesh):
 classes = [
     DAZ_OT_TransferVertexGroups,
     DAZ_OT_CopyVertexGroupsByNumber,
-    DAZ_OT_TransferCorrectives,
-    DAZ_OT_TransferOtherMorphs,
     DAZ_OT_TransferShapekeys,
     DAZ_OT_PruneVertexGroups,
     DAZ_OT_MixShapekeys,

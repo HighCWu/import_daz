@@ -1148,10 +1148,9 @@ class DAZ_OT_SelectStrandsBySize(DazOperator, IsMesh, Selector):
         Selector.draw(self, context)
 
     def run(self, context):
-        scn = context.scene
         ob = context.object
         prox = Proxifier(ob)
-        for item in self.getSelectedItems(scn):
+        for item in self.getSelectedItems():
             for comp in self.groups[int(item.name)]:
                 prox.selectComp(comp, ob)
 
