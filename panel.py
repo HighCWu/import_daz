@@ -884,16 +884,18 @@ class DAZ_PT_SimpleRig(bpy.types.Panel):
 #    Mhx Layers Panel
 #------------------------------------------------------------------------
 
-class DAZ_PT_MhxLayers(bpy.types.Panel):
+class MhxPanel:
+    @classmethod
+    def poll(cls, context):
+        return (context.object and context.object.DazRig == "mhx")
+
+
+class DAZ_PT_MhxLayers(bpy.types.Panel, MhxPanel):
     bl_label = "MHX Layers"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        return (context.object and context.object.DazRig == "mhx")
 
     def draw(self, context):
         from .layers import MhxLayers, OtherLayers
@@ -921,19 +923,15 @@ class DAZ_PT_MhxLayers(bpy.types.Panel):
 #    Mhx FK/IK switch panel
 #------------------------------------------------------------------------
 
-class DAZ_PT_MhxFKIK(bpy.types.Panel):
+class DAZ_PT_MhxFKIK(bpy.types.Panel, MhxPanel):
     bl_label = "MHX FK/IK Switch"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
-    @classmethod
-    def poll(cls, context):
-        return (context.object and context.object.DazRig == "mhx")
-
     def draw(self, context):
-        rig = context.object
+        amt = context.object.data
         layout = self.layout
 
         row = layout.row()
@@ -944,22 +942,22 @@ class DAZ_PT_MhxFKIK(bpy.types.Panel):
         layout.label(text = "FK/IK switch")
         row = layout.row()
         row.label(text = "Arm")
-        self.toggle(row, rig, "MhaArmIk_L", " 3", " 2")
-        self.toggle(row, rig, "MhaArmIk_R", " 19", " 18")
+        self.toggle(row, amt, "MhaArmIk_L", " 3", " 2")
+        self.toggle(row, amt, "MhaArmIk_R", " 19", " 18")
         row = layout.row()
         row.label(text = "Leg")
-        self.toggle(row, rig, "MhaLegIk_L", " 5", " 4")
-        self.toggle(row, rig, "MhaLegIk_R", " 21", " 20")
+        self.toggle(row, amt, "MhaLegIk_L", " 5", " 4")
+        self.toggle(row, amt, "MhaLegIk_R", " 21", " 20")
 
         layout.label(text = "IK Influence")
         row = layout.row()
         row.label(text = "Arm")
-        row.prop(rig, '["MhaArmIk_L"]', text="")
-        row.prop(rig, '["MhaArmIk_R"]', text="")
+        row.prop(amt, '["MhaArmIk_L"]', text="")
+        row.prop(amt, '["MhaArmIk_R"]', text="")
         row = layout.row()
         row.label(text = "Leg")
-        row.prop(rig, '["MhaLegIk_L"]', text="")
-        row.prop(rig, '["MhaLegIk_R"]', text="")
+        row.prop(amt, '["MhaLegIk_L"]', text="")
+        row.prop(amt, '["MhaLegIk_R"]', text="")
 
         layout.separator()
         layout.label(text = "Snap Arm Bones")
@@ -983,12 +981,12 @@ class DAZ_PT_MhxFKIK(bpy.types.Panel):
         row.operator("daz.snap_ik_fk", text="Snap R IK Leg").data = "MhaLegIk_R 20 21 28"
 
         layout.separator()
-        icon = 'CHECKBOX_HLT' if rig.MhaHintsOn else 'CHECKBOX_DEHLT'
+        icon = 'CHECKBOX_HLT' if amt.MhaHintsOn else 'CHECKBOX_DEHLT'
         layout.operator("daz.toggle_hints", icon=icon, emboss=False)
 
 
-    def toggle(self, row, rig, prop, fk, ik):
-        if getattr(rig, prop) > 0.5:
+    def toggle(self, row, amt, prop, fk, ik):
+        if getattr(amt, prop) > 0.5:
             row.operator("daz.toggle_fk_ik", text="IK").toggle = prop + " 0" + fk + ik
         else:
             row.operator("daz.toggle_fk_ik", text="FK").toggle = prop + " 1" + ik + fk
@@ -997,36 +995,32 @@ class DAZ_PT_MhxFKIK(bpy.types.Panel):
 #    Mhx Properties Panel
 #------------------------------------------------------------------------
 
-class DAZ_PT_MhxProperties(bpy.types.Panel):
+class DAZ_PT_MhxProperties(bpy.types.Panel, MhxPanel):
     bl_label = "MHX Properties"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
-    @classmethod
-    def poll(cls, context):
-        return (context.object and context.object.DazRig == "mhx")
-
     def draw(self, context):
         layout = self.layout
-        ob = context.object
+        amt = context.object.data
         layout.operator("daz.reinit_mhx_props")
-        if "MhaGazeFollowsHead" not in ob.keys():
+        if "MhaGazeFollowsHead" not in amt.keys():
             return
         layout.separator()
-        layout.prop(ob, "MhaGazeFollowsHead", text="Gaze Follows Head")
+        layout.prop(amt, "MhaGazeFollowsHead", text="Gaze Follows Head")
         row = layout.row()
         row.label(text = "Left")
         row.label(text = "Right")
-        props = [key for key in ob.keys() if key[0:3] == "Mha" and key[-1] in ["L", "R"]]
+        props = [key for key in amt.keys() if key[0:3] == "Mha" and key[-1] in ["L", "R"]]
         props.sort()
         while props:
             left,right = props[0:2]
             props = props[2:]
             row = layout.row()
-            row.prop(ob, left, text=left[3:-2])
-            row.prop(ob, right, text=right[3:-2])
+            row.prop(amt, left, text=left[3:-2])
+            row.prop(amt, right, text=right[3:-2])
 
 #------------------------------------------------------------------------
 #   Visibility panels

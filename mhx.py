@@ -249,18 +249,22 @@ def childOf(pb, target, rig, prop=None, expr="x"):
     return cns
 
 
+def setRigProp(rig, prop, value):
+    setattrOVR(rig.data, prop, value)
+
+
 def addDriver(rna, channel, rig, prop, expr):
     from .driver import addDriverVar
     fcu = rna.driver_add(channel)
     fcu.driver.type = 'SCRIPTED'
     if isinstance(prop, str):
         fcu.driver.expression = expr
-        addDriverVar(fcu, "x", prop, rig)
+        addDriverVar(fcu, "x", propRef(prop), rig.data)
     else:
         prop1,prop2 = prop
         fcu.driver.expression = expr
-        addDriverVar(fcu, "x1", prop1, rig)
-        addDriverVar(fcu, "x2", prop2, rig)
+        addDriverVar(fcu, "x1", propRef(prop1), rig.data)
+        addDriverVar(fcu, "x2", propRef(prop2), rig.data)
 
 
 def getPropString(prop, x):
@@ -850,7 +854,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     def addLongFingers(self, rig):
         for suffix,dlayer in [(".L",0), (".R",16)]:
             prop = "MhaFingerControl_" + suffix[1]
-            setattrOVR(rig, prop, True)
+            setRigProp(rig, prop, True)
 
             bpy.ops.object.mode_set(mode='EDIT')
             for m in range(5):
@@ -1052,12 +1056,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             elbowLink = rpbs["elbow.link"+suffix]
 
             prop = "MhaArmHinge_" + suffix[1]
-            setattrOVR(rig, prop, False)
+            setRigProp(rig, prop, False)
             copyTransform(armParent, None, armSocket, rig, prop, "1-x")
             copyLocation(armParent, armSocket, rig, prop, "x")
 
             prop = "MhaArmIk_"+suffix[1]
-            setattrOVR(rig, prop, 0.0)
+            setRigProp(rig, prop, 0.0)
             copyTransform(upper_arm, upper_armFk, upper_armIk, rig, prop)
             copyTransform(forearm, forearmFk, forearmIk, rig, prop)
             copyTransform(hand, handFk, hand0Ik, rig, prop)
@@ -1094,14 +1098,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             toeInv = rpbs["toe.inv.ik"+suffix]
 
             prop = "MhaLegHinge_" + suffix[1]
-            setattrOVR(rig, prop, False)
+            setRigProp(rig, prop, False)
             copyTransform(legParent, None, legSocket, rig, prop, "1-x")
             copyLocation(legParent, legSocket, rig, prop, "x")
 
             prop1 = "MhaLegIk_"+suffix[1]
-            setattrOVR(rig, prop1, 0.0)
+            setRigProp(rig, prop1, 0.0)
             prop2 = "MhaLegIkToAnkle_"+suffix[1]
-            setattrOVR(rig, prop2, False)
+            setRigProp(rig, prop2, False)
 
             footRev.lock_rotation = (False,True,True)
 
@@ -1118,7 +1122,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             cns.influence = 0
 
             prop = "MhaGaze_" + suffix[1]
-            setattrOVR(rig, prop, 0.0)
+            setRigProp(rig, prop, 0.0)
             prefix = suffix[1].lower()
             eye = rpbs[prefix+"Eye"]
             gaze = rpbs["gaze"+suffix]
@@ -1132,7 +1136,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ])
 
         prop = "MhaGazeFollowsHead"
-        setattrOVR(rig, prop, 0.0)
+        setRigProp(rig, prop, 0.0)
         gaze0 = rpbs["gaze0"]
         gaze1 = rpbs["gaze1"]
         copyTransform(gaze1, None, gaze0, rig, prop)
@@ -1530,40 +1534,40 @@ class DAZ_OT_ReinitMhxProps(DazOperator):
 
     def run(self, context):
         initMhxProps()
-        rig = context.object
+        amt = context.object.data
         prop = "MhaGazeFollowsHead"
-        setattrOVR(rig, prop, 0.0)
+        setRigProp(amt, prop, 0.0)
         prop = "MhaHintsOn"
-        setattrOVR(rig, prop, True)
+        setRigProp(amt, prop, True)
         bools = ["MhaArmHinge", "MhaFingerControl", "MhaLegHinge", "MhaLegIkToAnkle"]
         floats = ["MhaArmIk", "MhaGaze", "MhaLegIk"]
         for suffix in ["_L", "_R"]:
             for prop in bools:
-                setattrOVR(rig, prop+suffix, False)
+                setRigProp(amt, prop+suffix, False)
             for prop in floats:
-                setattrOVR(rig, prop+suffix, 0.0)
+                setRigProp(amt, prop+suffix, 0.0)
 
 
 def initMhxProps():
     # MHX Control properties
-    bpy.types.Object.MhaGazeFollowsHead = FloatPropOVR(0.0, min=0.0, max=1.0)
-    bpy.types.Object.MhaHintsOn = BoolPropOVR(True)
+    bpy.types.Armature.MhaGazeFollowsHead = FloatPropOVR(0.0, min=0.0, max=1.0)
+    bpy.types.Armature.MhaHintsOn = BoolPropOVR(True)
 
-    bpy.types.Object.MhaArmHinge_L = BoolPropOVR(False)
-    bpy.types.Object.MhaArmIk_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
-    bpy.types.Object.MhaFingerControl_L = BoolPropOVR(False)
-    bpy.types.Object.MhaGaze_L = FloatPropOVR(0.0, min=0.0, max=1.0)
-    bpy.types.Object.MhaLegHinge_L = BoolPropOVR(False)
-    bpy.types.Object.MhaLegIkToAnkle_L = BoolPropOVR(False)
-    bpy.types.Object.MhaLegIk_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Armature.MhaArmHinge_L = BoolPropOVR(False)
+    bpy.types.Armature.MhaArmIk_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Armature.MhaFingerControl_L = BoolPropOVR(False)
+    bpy.types.Armature.MhaGaze_L = FloatPropOVR(0.0, min=0.0, max=1.0)
+    bpy.types.Armature.MhaLegHinge_L = BoolPropOVR(False)
+    bpy.types.Armature.MhaLegIkToAnkle_L = BoolPropOVR(False)
+    bpy.types.Armature.MhaLegIk_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
 
-    bpy.types.Object.MhaArmHinge_R = BoolPropOVR(False)
-    bpy.types.Object.MhaArmIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
-    bpy.types.Object.MhaFingerControl_R = BoolPropOVR(False)
-    bpy.types.Object.MhaGaze_R = FloatPropOVR(0.0, min=0.0, max=1.0)
-    bpy.types.Object.MhaLegHinge_R = BoolPropOVR(False)
-    bpy.types.Object.MhaLegIkToAnkle_R = BoolPropOVR(False)
-    bpy.types.Object.MhaLegIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Armature.MhaArmHinge_R = BoolPropOVR(False)
+    bpy.types.Armature.MhaArmIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Armature.MhaFingerControl_R = BoolPropOVR(False)
+    bpy.types.Armature.MhaGaze_R = FloatPropOVR(0.0, min=0.0, max=1.0)
+    bpy.types.Armature.MhaLegHinge_R = BoolPropOVR(False)
+    bpy.types.Armature.MhaLegIkToAnkle_R = BoolPropOVR(False)
+    bpy.types.Armature.MhaLegIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
 
 
 classes = [
