@@ -114,6 +114,8 @@ class ImportDAZ(DazOperator, DazOptions):
 
 
 class MorphTypeOptions:
+    drawAll = True
+
     units : BoolProperty(
         name = "Face Units",
         description = "Import all face units",
@@ -160,7 +162,8 @@ class MorphTypeOptions:
         self.layout.prop(self, "visemes")
         self.layout.prop(self, "facs")
         self.layout.prop(self, "facsexpr")
-        self.layout.prop(self, "body")
+        if self.drawAll:
+            self.layout.prop(self, "body")
         self.layout.prop(self, "jcms")
         self.layout.prop(self, "flexions")
 
@@ -172,6 +175,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
     bl_description = "Load a native DAZ file and perform the most common operations"
     bl_options = {'UNDO'}
 
+    drawAll = False
     rigType : EnumProperty(
         items = [('DAZ', "DAZ", "Original DAZ rig"),
                  ('CUSTOM', "Custom Shapes", "Original DAZ rig with custom shapes"),
@@ -245,7 +249,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
         self.layout.prop(self, "useMergeGeografts")
         self.layout.prop(self, "useMergeLashes")
         self.layout.prop(self, "useExtraFaceBones")
-        self.layout.prop(self, "useMakeAllBonesPosable")
+        #self.layout.prop(self, "useMakeAllBonesPosable")
         self.layout.prop(self, "useConvertHair")
         MorphTypeOptions.draw(self, context)
         if self.jcms or self.flexions:
@@ -281,7 +285,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
         self.objects = LS.objects
         self.hdmeshes = LS.hdmeshes
         self.hairs = LS.hairs
-        print("MMM", self.meshes.items())
         for rigname in self.rigs.keys():
             self.treatRig(context, rigname)
         setSilentMode(False)
@@ -331,11 +334,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
                 else:
                     nmeshes.append(ob)
             meshes = nmeshes
-        print("MM", meshes)
-        print("LL", lashes)
-        print("GG", geografts)
-        print("HH", hairs)
-        print("DD", hdmeshes)
 
         if mainRig:
             # Merge rigs

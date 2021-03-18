@@ -150,12 +150,16 @@ class Fixer:
             eb2.roll = eb1.roll
 
 
-    def fixBoneDrivers(self, rig, assoc):
+    def fixBoneDrivers(self, rig, assoc0):
         def changeTargets(rna):
             if rna.animation_data:
+                print("    (%s %d)" % (rna.name, len(rna.animation_data.drivers)))
                 for fcu in rna.animation_data.drivers:
                     self.changeTarget(fcu, rig, assoc)
 
+        assoc = dict([(bname,bname) for bname in rig.data.bones.keys()])
+        for dname,bname in assoc0.items():
+            assoc[dname] = bname
         changeTargets(rig)
         changeTargets(rig.data)
         for ob in rig.children:
@@ -165,12 +169,6 @@ class Fixer:
 
 
     def changeTarget(self, fcu, rig, assoc):
-        def newBoneTarget(bname, assoc):
-            for new,old in assoc:
-                if old == bname:
-                    return new
-            return bname
-
         for var in fcu.driver.variables:
             for trg in var.targets:
                 if trg.id_type == 'OBJECT':
@@ -178,7 +176,7 @@ class Fixer:
                 elif trg.id_type == 'ARMATURE':
                     trg.id = rig.data
                 if var.type == 'TRANSFORMS':
-                    trg.bone_target = newBoneTarget(trg.bone_target, assoc)
+                    trg.bone_target = assoc[trg.bone_target]
 
 #-------------------------------------------------------------
 #   Constraints class

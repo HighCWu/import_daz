@@ -340,14 +340,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         ("upper_arm.R", "forearm.R", Vector((0,1,0))),
     ]
 
-    Correctives = [
-        ("upper_arm-1.L", "upper_armBend.L"),
-        ("forearm-1.L", "forearmBend.L"),
-        ("thigh-1.L", "thighBend.L"),
-        ("upper_arm-1.R", "upper_armBend.R"),
-        ("forearm-1.R", "forearmBend.R"),
-        ("thigh-1.R", "thighBend.R"),
-    ]
+    Correctives = {
+        "upper_armBend.L" : "upper_arm-1.L",
+        "forearmBend.L" : "forearm-1.L",
+        "thighBend.L" : "thigh-1.L",
+        "upper_armBend.R" : "upper_arm-1.R",
+        "forearmBend.R" : "forearm-1.R",
+        "thighBend.R" : "thigh-1.R",
+    }
 
     BreastBones = [
         ("breast.L", "lPectoral", L_LEXTRA),
@@ -518,18 +518,28 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         #   Fix and rename bones of the genesis rig
         #-------------------------------------------------------------
 
+        print("  Fix DAZ rig")
         self.constraints = {}
         rig.data.layers = 32*[True]
         bchildren = applyBoneChildren(context, rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
+            print("  Connect to parent")
             connectToParent(rig)
+            print("  Reparent toes")
             reparentToes(rig, context)
+            print("  Rename bones")
             self.rename2Mhx(rig)
+            print("  Join bend and twist bones")
             self.joinBendTwists(rig, {}, False)
+            print("  Fix knees")
             self.fixKnees(rig)
+            print("  Fix hands")
             self.fixHands(rig)
+            print("  Store all constraints")
             self.storeAllConstraints(rig)
+            print("  Create bend and twist bones")
             self.createBendTwists(rig)
+            print("  Fix bone drivers")
             self.fixBoneDrivers(rig, self.Correctives)
         elif rig.DazRig in ["genesis1", "genesis2"]:
             self.fixPelvis(rig)
@@ -550,21 +560,34 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         #   Add MHX stuff
         #-------------------------------------------------------------
 
+        print("  Constrain bend and twist bones")
         self.constrainBendTwists(rig)
+        print("  Add long fingers")
         self.addLongFingers(rig)
+        print("  Add tweak bones")
         self.addTweaks(rig)
+        print("  Add backbone")
         self.addBack(rig)
+        print("  Setup FK-IK")
         self.setupFkIk(rig)
+        print("  Add layers")
         self.addLayers(rig)
+        print("  Add markers")
         self.addMarkers(rig)
+        print("  Add master bone")
         self.addMaster(rig)
+        print("  Add gizmos")
         self.addGizmos(rig, context)
+        print("  Restore constraints")
         self.restoreAllConstraints(rig)
+        print("  Fix hand constraints")
         self.fixHandConstraints(rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
             self.fixCustomShape(rig, ["head"], 4)
+        print("  Collect deform bones")
         self.collectDeformBones(rig)
         bpy.ops.object.mode_set(mode='POSE')
+        print("  Add bone groups")
         self.addBoneGroups(rig)
         rig["MhxRig"] = "MHX"
         setattr(rig.data, DrawType, 'STICK')
@@ -582,6 +605,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.restoreBoneChildren(bchildren, context, rig)
         updateScene(context)
         updateDrivers(rig)
+        print("MHX rig created")
 
 
     def fixGenesis2Problems(self, rig):
@@ -807,11 +831,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         from .figure import copyBoneInfo
         bpy.ops.object.mode_set(mode='POSE')
         rpbs = rig.pose.bones
-        tweakCorrectives = []
+        tweakCorrectives = {}
         for bname in self.tweakBones:
             if bname and bname in rpbs.keys():
                 tname = self.getTweakBoneName(bname)
-                tweakCorrectives.append((bname, tname))
+                tweakCorrectives[tname] = bname
                 tb = rpbs[tname]
                 pb = getBoneCopy(bname, tb, rpbs)
                 copyBoneInfo(tb, pb)
@@ -819,7 +843,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
         bpy.ops.object.mode_set(mode='OBJECT')
         #self.fixBoneDrivers(rig, tweakCorrectives)
-        #self.fixCorrectives(rig, tweakCorrectives)
 
 
     def getTweakBoneName(self, bname):

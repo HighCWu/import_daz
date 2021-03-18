@@ -686,8 +686,10 @@ class LoadMorph:
         from .driver import Driver
         from time import perf_counter
         print("Building sum drivers")
+        n2tot = n3tot = 0
         for bname,bdata in self.sumdrivers.items():
             time1 = time2 = time3 = 0.0
+            n2 = n3 = 0
             for channel,cdata in bdata.items():
                 for idx,idata in cdata.items():
                     pb,fcu0,dlist = idata
@@ -733,7 +735,15 @@ class LoadMorph:
                     time1 += t2-t1
                     time2 += t3-t2
                     time3 += t4-t3
-            print(" + %s %.3f %.3f %.3f" % (bname, time1, time2, time3))
+                    n2 += len(dlist)
+                    n3 += len(pathids)
+            pad = (" "*(25-len(bname)) if len(bname) < 25 else "")
+            n2tot += n2
+            n3tot += n3
+            ut2 = 1000*time2/n2
+            ut3 = 1000*time3/n3
+            print(" + %s %s %6.3f %6.3f %3d %3d %5.1f %5.1f %4.1f %4.1f" %
+                (bname, pad, time2, time3, n2, n3, ut2, ut3, 1000*ut2/n2tot, 1000*ut3/n3tot))
 
 
     def getActiveShape(self, asset):

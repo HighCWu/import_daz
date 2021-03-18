@@ -1051,8 +1051,13 @@ class Rigify:
                 changeAllTargets(ob, rig, gen)
 
         # Fix drivers
-        assoc = [(rigi,daz) for (daz,rigi,_) in Genesis3Spine]
-        assoc += [(rigi,daz) for (rigi,daz) in RigifySkeleton.items()]
+        assoc = dict([(bname,bname) for bname in rig.data.bones.keys()])
+        for daz,rigi,_ in Genesis3Spine:
+            assoc[daz] = rigi
+        for rigi,daz in RigifySkeleton.items():
+            if isinstance(daz, tuple):
+                daz = daz[0]
+            assoc[daz] = rigi
         for fcu in getPropDrivers(rig):
             copyDriver(fcu, gen, gen)
         for fcu in getPropDrivers(rig.data):
@@ -1068,14 +1073,14 @@ class Rigify:
                     self.changeTarget(fcu2, gen, assoc)
 
         # Fix correctives
-        correctives = []
-        for rname,dname in assoc:
+        correctives = {}
+        for dname,rname in assoc.items():
             if self.isCopyTransformed("ORG-"+rname, gen):
-                correctives.append(("ORG-"+rname, dname))
+                correctives[dname] = "ORG-"+rname
             elif self.isCopyTransformed("DEF-"+rname, gen):
-                correctives.append(("DEF-"+rname, dname))
+                correctives[dname] = "DEF-"+rname
             else:
-                correctives.append(("ORG-"+rname, dname))
+                correctives[dname] = "ORG-"+rname
         self.fixBoneDrivers(gen, correctives)
 
         #Clean up
