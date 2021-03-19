@@ -40,11 +40,11 @@ class FastMatcher:
 
 
     def prepare(self, context, src, triangulate):
-        rig = None
-        for mod in src.modifiers:
-            if mod.type == 'ARMATURE':
-                rig = mod.object
-                break
+        mod = getModifier(src, 'ARMATURE')
+        if mod:
+            rig = mod.object
+        else:
+            rig = None
         if rig:
             self.checkTransforms(rig)
             rig.data.pose_position = 'REST'
@@ -234,7 +234,6 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher):
 
     def run(self, context):
         import time
-        self.prerun(context)
         t1 = time.perf_counter()
         src = context.object
         if not src.data.shape_keys:

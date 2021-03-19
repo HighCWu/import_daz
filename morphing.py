@@ -463,89 +463,53 @@ class CustomSelector(Selector, CustomEnums):
 
 
 class JCMSelector(Selector):
-    morphset : EnumProperty(
-        items = getMorphEnums,
-        name = "Type")
-
-    # For easy import
-    all : BoolProperty(name="All", default=False)
-    jcms : BoolProperty(name="JCMs", default=False)
-    flexions : BoolProperty(name="Flexions", default=False)
-
-    def getSelectedProps(self):
-        if self.all:
-            snames = []
-            for morphs in self.morphs.values():
-                snames += morphs
-            return snames
-        elif self.jcms or self.flexions:
-            snames = []
-            if self.jcms and "Jcms" in self.morphs.keys():
-                snames += self.morphs["Jcms"]
-            if self.flexions and "Flexions" in self.morphs.keys():
-                snames += self.morphs["Flexions"]
-            return snames
-        else:
-            return Selector.getSelectedProps(self)
-
+    bodypart : EnumProperty(
+        items = [("All", "All", "All"),
+                 ("Face", "Face", "Face"),
+                 ("Body", "Body", "Body"),
+                 ("Custom", "Custom", "Custom")],
+        name = "Body part",
+        description = "Part of character that the morphs affect",
+        default = "All")
 
     def selectCondition(self, item):
-        return (self.morphset == "All" or item.category == self.morphset)
-
+        return (self.bodypart == "All" or item.category == self.bodypart)
 
     def draw(self, context):
-        self.layout.prop(self, "morphset")
+        self.layout.prop(self, "bodypart")
         Selector.draw(self, context)
-
 
     def getKeys(self, rig, ob):
         keys = []
         skeys = ob.data.shape_keys
         for skey in skeys.key_blocks[1:]:
-            keys.append((skey.name, skey.name, self.types[skey.name]))
+            keys.append((skey.name, skey.name, self.bodyparts[skey.name]))
         return keys
 
-
-    def setupMorphs(self, context):
+    def invoke(self, context, event):
         ob = context.object
         skeys = ob.data.shape_keys
         if skeys is None:
             print("Object %s has no shapekeys")
             return {'FINISHED'}
-
-        self.morphs = {}
-        self.types = {}
-        self.undriven = []
-        pgs = ob.data.DazMorphTypes
-        for skey in skeys.key_blocks[1:]:
-            if skey.name in pgs.keys():
-                item = pgs[skey.name]
-                if item.s not in self.morphs.keys():
-                    self.morphs[item.s] = []
-                self.morphs[item.s].append(skey.name)
-                self.types[skey.name] = item.s
-            else:
-                self.undriven.append(skey.name)
-                self.types[skey.name] = "Undriven"
-
-
-    def prerun(self, context):
-        if self.all or self.jcms or self.flexions:
-            self.setupMorphs(context)
-
-
-    def invoke(self, context, event):
-        self.setupMorphs(context)
-        morphsets = list(self.morphs.keys())
-        morphsets.sort()
-        global theMorphEnums
-        theMorphEnums = [("All", "All", "All")]
-        for morphset in morphsets:
-            theMorphEnums.append((morphset, morphset, morphset))
-        if self.undriven:
-            theMorphEnums.append(("Undriven", "Undriven", "Undriven"))
-        self.morphset = "All"
+        self.bodyparts = classifyShapekeys(ob, skeys)
         return Selector.invoke(self, context, event)
+
+
+def classifyShapekeys(ob, skeys):
+    morphs = {}
+    bodyparts = {}
+    pgs = ob.data.DazBodyPart
+    for skey in skeys.key_blocks[1:]:
+        if skey.name in pgs.keys():
+            item = pgs[skey.name]
+            if item.s not in morphs.keys():
+                morphs[item.s] = []
+            morphs[item.s].append(skey.name)
+            bodyparts[skey.name] = item.s
+        else:
+            bodyparts[skey.name] = "Custom"
+    return bodyparts
 
 #------------------------------------------------------------------
 #   Global lists of morph paths
@@ -720,8 +684,8 @@ class MorphLoader(LoadMorph):
         return (ob and ob.DazId)
 
 
-    def getMorphSet(self, asset):
-        return self.morphset
+    def getBodyPart(self, context):
+        return self.bodypart
 
 
     def getAllMorphs(self, namepaths, context):
@@ -875,6 +839,7 @@ class DAZ_OT_ImportUnits(DazOperator, StandardMorphSelector, StandardMorphLoader
     bl_options = {'UNDO'}
 
     morphset = "Units"
+    bodypart = "Face"
 
 
 class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
@@ -884,6 +849,7 @@ class DAZ_OT_ImportExpressions(DazOperator, StandardMorphSelector, StandardMorph
     bl_options = {'UNDO'}
 
     morphset = "Expressions"
+    bodypart = "Face"
 
 
 class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
@@ -893,6 +859,7 @@ class DAZ_OT_ImportVisemes(DazOperator, StandardMorphSelector, StandardMorphLoad
     bl_options = {'UNDO'}
 
     morphset = "Visemes"
+    bodypart = "Face"
 
 
 class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
@@ -902,6 +869,7 @@ class DAZ_OT_ImportFacs(DazOperator, StandardMorphSelector, StandardMorphLoader,
     bl_options = {'UNDO'}
 
     morphset = "Facs"
+    bodypart = "Face"
 
 
 class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
@@ -911,6 +879,7 @@ class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, StandardM
     bl_options = {'UNDO'}
 
     morphset = "Facsexpr"
+    bodypart = "Face"
 
 
 class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
@@ -920,6 +889,7 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphL
     bl_options = {'UNDO'}
 
     morphset = "Body"
+    bodypart = "Body"
 
 
 class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMesh):
@@ -929,6 +899,7 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader,
     bl_options = {'UNDO'}
 
     morphset = "Jcms"
+    bodypart = "Body"
 
     def addToMorphSet(self, prop, asset, hidden):
         addToMorphSet(self.mesh, self.morphset, prop, asset, hideable=False)
@@ -941,6 +912,7 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoa
     bl_options = {'UNDO'}
 
     morphset = "Flexions"
+    bodypart = "Body"
 
     def addToMorphSet(self, prop, asset, hidden):
         addToMorphSet(self.mesh, self.morphset, prop, asset, hideable=False)
@@ -958,6 +930,7 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
     bl_options = {'UNDO'}
 
     strength = 1.0
+    morphset = "Standard"
 
     def run(self, context):
         if not self.setupCharacter(context, False):
@@ -966,32 +939,33 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
         setupMorphPaths(scn, False)
         self.rig.DazMorphPrefixes = False
         self.morphsets = {}
+        self.bodyparts = {}
         self.namepaths = {}
         if self.units:
-            self.addFiles("Units")
+            self.addFiles("Units", "Face")
         if self.expressions:
-            self.addFiles("Expressions")
+            self.addFiles("Expressions", "Face")
         if self.visemes:
-            self.addFiles("Visemes")
+            self.addFiles("Visemes", "Face")
         if self.facs:
-            self.addFiles("Facs")
+            self.addFiles("Facs", "Face")
         if self.facsexpr:
-            self.addFiles("Facsexpr")
+            self.addFiles("Facsexpr", "Face")
         if self.body:
-            self.addFiles("Body")
+            self.addFiles("Body", "Body")
         if self.jcms:
-            self.addFiles("Jcms")
+            self.addFiles("Jcms", "Body")
         if self.flexions:
-            self.addFiles("Flexions")
+            self.addFiles("Flexions", "Body")
         self.getAllMorphs(self.namepaths, context)
         self.turnOnJCMs()
 
 
-    def addFiles(self, morphset):
+    def addFiles(self, morphset, bodypart):
         try:
             struct = theMorphFiles[self.char][morphset]
         except KeyError:
-            msg = ("Character %s does not support feature %s" % (self.char, self.morphset))
+            msg = ("Character %s does not support feature %s" % (self.char, morphset))
             print(msg)
             return []
         for key,filepath in struct.items():
@@ -1006,6 +980,7 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
                 continue
             self.morphsets[lpath] = morphset
             self.namepaths[key] = filepath
+            self.bodyparts[lpath] = bodypart
 
 
     def getMorphSet(self, asset):
@@ -1015,6 +990,15 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
         else:
             print("Missing morphset", lpath)
             return "Standard"
+
+
+    def getBodyPart(self, asset):
+        lpath = unquote(asset.id).split('#')[0]
+        if lpath in self.bodyparts.keys():
+            return self.bodyparts[lpath]
+        else:
+            print("Missing bodypart", lpath)
+            return "Custom"
 
 
     def addToMorphSet(self, prop, asset, hidden):
@@ -1051,6 +1035,14 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
         description = "Mesh categories",
         default = False)
 
+    bodypart : EnumProperty(
+        items = [("Face", "Face", "Face"),
+                 ("Body", "Body", "Body"),
+                 ("Custom", "Custom", "Custom")],
+        name = "Body part",
+        description = "Part of character that the morphs affect",
+        default = "Custom")
+
     strength : FloatProperty(
         name = "Strength",
         description = "Multiply morphs with this value",
@@ -1073,6 +1065,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
             self.layout.prop(self, "useMeshCats")
             if self.useMeshCats:
                 self.layout.prop(self, "catname")
+        self.layout.prop(self, "bodypart")
         self.layout.prop(self, "strength")
         self.layout.prop(self, "treatHD")
 
@@ -2460,14 +2453,13 @@ class MorphsToShapes:
                 print("Skip", mname)
                 continue
             if mname:
-                for mod in ob.modifiers:
-                    if mod.type == 'ARMATURE':
-                        rig[key] = 1.0
-                        updateScene(context)
-                        updateRig(rig, context)
-                        self.applyArmature(ob, rig, mod, mname)
-                        rig[key] = 0.0
-                        break
+                mod = getModifier(ob, 'ARMATURE')
+                if mod:
+                    rig[key] = 1.0
+                    updateScene(context)
+                    updateRig(rig, context)
+                    self.applyArmature(ob, rig, mod, mname)
+                    rig[key] = 0.0
         updateScene(context)
         updateRig(rig, context)
         updateDrivers(rig)
@@ -2616,7 +2608,7 @@ def register():
         bpy.types.Object.DazActivated = CollectionProperty(type = DazActiveGroup, override={'LIBRARY_OVERRIDABLE'})
         bpy.types.Object.DazMorphCats = CollectionProperty(type = DazCategory, override={'LIBRARY_OVERRIDABLE'})
 
-    bpy.types.Mesh.DazMorphTypes = CollectionProperty(type = DazStringGroup)
+    bpy.types.Mesh.DazBodyPart = CollectionProperty(type = DazStringGroup)
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],
         name = "Morph")

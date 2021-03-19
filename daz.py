@@ -391,7 +391,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
 
         # Merge geografts
         if geografts:
-            self.transferShapes(context, mainMesh, geografts, False)
+            self.transferShapes(context, mainMesh, geografts, False, "Body")
             activateObject(context, mainMesh)
             for ob in geografts:
                 ob.select_set(True)
@@ -400,7 +400,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
 
         # Merge lashes
         if lashes:
-            self.transferShapes(context, mainMesh, lashes, False)
+            self.transferShapes(context, mainMesh, lashes, False, "Face")
             activateObject(context, mainMesh)
             for ob in lashes:
                 ob.select_set(True)
@@ -409,7 +409,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
 
         if ((self.jcms or self.flexions) and
             self.useTransferJCMs and mainMesh):
-            self.transferShapes(context, mainMesh, meshes[1:], True)
+            self.transferShapes(context, mainMesh, meshes[1:], True, "Body")
 
         if mainRig:
             activateObject(context, mainRig)
@@ -453,19 +453,23 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             activateObject(context, mainRig)
 
 
-    def transferShapes(self, context, ob, meshes, useDrivers):
+    def transferShapes(self, context, ob, meshes, useDrivers, bodypart):
         from .fileutils import setSelection
-        activateObject(context, ob)
+        from .morphing import classifyShapekeys
         skeys = ob.data.shape_keys
-        if skeys:
-            snames = [skey.name for skey in skeys.key_blocks[1:]]
+        if skeys and meshes and getModifier(ob, 'ARMATURE'):
+            bodyparts = classifyShapekeys(ob, skeys)
+            snames = [sname for sname,bpart in bodyparts.items() if bpart == bodypart]
+            if not snames:
+                return
+            activateObject(context, ob)
             for mesh in meshes:
                 mesh.select_set(True)
             setSelection(snames)
             if not useDrivers:
-                bpy.ops.daz.transfer_shapekeys(useDrivers=False, all=True)
+                bpy.ops.daz.transfer_shapekeys(useDrivers=False)
             else:
-                bpy.ops.daz.transfer_shapekeys(useDrivers=True, jcms=self.jcms, flexions=self.flexions)
+                bpy.ops.daz.transfer_shapekeys(useDrivers=True)
 
 
     def mergeLashes(self, ob):

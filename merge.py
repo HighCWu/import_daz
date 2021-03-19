@@ -198,13 +198,12 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         vgrp = cob.vertex_groups.new(name="Graft")
         for vn in selected.keys():
             vgrp.add([vn], 1.0, 'REPLACE')
-        for mod in cob.modifiers:
-            if mod.type == 'MULTIRES':
-                smod = cob.modifiers.new("Graft", 'SMOOTH')
-                smod.factor = 1.0
-                smod.iterations = 10
-                smod.vertex_group = vgrp.name
-                break
+        mod = getModifier(cob, 'MULTIRES')
+        if mod:
+            smod = cob.modifiers.new("Graft", 'SMOOTH')
+            smod.factor = 1.0
+            smod.iterations = 10
+            smod.vertex_group = vgrp.name
 
         # Update cob graft group
         if cob.data.DazGraftGroup and selected:
@@ -766,11 +765,11 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature):
         from .node import reParent
         #reParent(context, ob, rig)
         if ob.parent_type != 'BONE':
-            for mod in ob.modifiers:
-                if mod.type == "ARMATURE":
-                    mod.name = rig.name
-                    mod.object = rig
-                    return
+            mod = getModifier(ob, 'ARMATURE')
+            if mod:
+                mod.name = rig.name
+                mod.object = rig
+                return
             if len(ob.vertex_groups) == 0:
                 print("Mesh with no vertex groups: %s" % ob.name)
             else:
@@ -949,9 +948,9 @@ def setRestPose(ob, rig, context):
         return
 
     if LS.fitFile:
-        for mod in ob.modifiers:
-            if mod.type == 'ARMATURE':
-                mod.object = rig
+        mod = getModifier(ob, 'ARMATURE')
+        if mod:
+            mod.object = rig
     elif len(ob.vertex_groups) == 0:
         print("Mesh with no vertex groups: %s" % ob.name)
     else:

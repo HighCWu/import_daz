@@ -322,6 +322,13 @@ def sorted(seq):
     return slist
 
 
+def getModifier(ob, type):
+    for mod in ob.modifiers:
+        if mod.type == type:
+            return mod
+    return None
+
+
 def hasPoseBones(rig, bnames):
     for bname in bnames:
         if bname not in rig.pose.bones.keys():

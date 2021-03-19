@@ -585,13 +585,6 @@ class Baker:
             m += n
         return tiles
 
-
-def getMultires(ob):
-    for mod in ob.modifiers:
-        if mod.type == 'MULTIRES':
-            return mod
-    return None
-
 #----------------------------------------------------------
 #   Bake maps
 #----------------------------------------------------------
@@ -622,7 +615,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (bpy.data.filepath and ob and getMultires(ob))
+        return (bpy.data.filepath and ob and getModifier(ob, 'MULTIRES'))
 
 
     def prequel(self, context):
@@ -655,7 +648,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
 
     def run(self, context):
         self.storeDefaultNames(context)
-        objects = [ob for ob in getSelectedMeshes(context) if getMultires(ob)]
+        objects = [ob for ob in getSelectedMeshes(context) if getModifier(ob, 'MULTIRES')]
         for ob in objects:
             activateObject(context, ob)
             try:
@@ -684,7 +677,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
 
     def bakeObject(self, context, ob):
         bpy.ops.object.mode_set(mode='OBJECT')
-        mod = getMultires(ob)
+        mod = getModifier(ob, 'MULTIRES')
         if mod is None:
             print("Object %s has no multires modifier" % ob.name)
             return
@@ -805,7 +798,7 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, NormalAdder, ScalarDispAdder
 
 
     def loadObjectMaps(self, ob):
-        mod = getMultires(ob)
+        mod = getModifier(ob, 'MULTIRES')
         if mod:
             mod.show_viewport = mod.show_render = False
         tiles = self.getTiles(ob)

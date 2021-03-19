@@ -1217,11 +1217,10 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
 
     def run(self, context):
         ob = context.object
-        modname = None
-        for mod in ob.modifiers:
-            if mod.type == 'SUBSURF':
-                modname = mod.name
-        if modname is None:
+        mod = getModifier(ob, 'SUBSURF')
+        if mod:
+            modname = mod.name
+        else:
             raise DazError("Object %s\n has no subsurface modifier.    " % ob.name)
 
         startProgress("Apply Subsurf Modifier")
