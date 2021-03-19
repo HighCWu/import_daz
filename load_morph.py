@@ -443,6 +443,32 @@ class LoadMorph:
 
 
     def buildPropDriver(self, raw, drivers):
+        from .driver import getRnaDriver
+        rna,channel = self.getDrivenChannel(raw)
+        if not self.primary[raw]:
+            fcu = getRnaDriver(rna, channel, 'SINGLE_PROP')
+            if fcu and fcu.driver.type == 'SCRIPTED':
+                self.extendPropDriver(fcu, raw, drivers)
+                return
+        rna.driver_remove(channel)
+        fcu = rna.driver_add(channel)
+        fcu.driver.type = 'SCRIPTED'
+        string = ""
+        varname = "a"
+        if self.visible[raw] or not self.primary[raw]:
+            string += varname
+            self.addPathVar(fcu, varname, self.rig, propRef(raw))
+            if raw not in self.rig.keys():
+                self.rig[raw] = 0.0
+        string = self.addDriverVars(fcu, string, varname, raw, drivers, [])
+        self.mult = []
+        if raw in self.mults.keys():
+            self.mult = self.mults[raw]
+        string = self.multiplyMults(fcu, string)
+        fcu.driver.expression = string
+
+
+    def addDriverVars(self, fcu, string, varname, raw, drivers, channels):
         def multiply(factor, varname):
             if factor == 1:
                 return "+%s" % varname
@@ -451,35 +477,34 @@ class LoadMorph:
             else:
                 return "+%g*%s" % (factor, varname)
 
-        from .driver import getRnaDriver
-        self.mult = []
-        if raw in self.mults.keys():
-            self.mult = self.mults[raw]
-        rna,channel = self.getDrivenChannel(raw)
-        if not self.primary[raw]:
-            fcu = getRnaDriver(rna, channel, 'SINGLE_PROP')
-            if fcu and fcu.driver.type == 'SCRIPTED':
-                self.analyzeFcurve(fcu, raw)
-        rna.driver_remove(channel)
-        fcu = rna.driver_add(channel)
-        fcu.driver.type = 'SCRIPTED'
-        varname = "a"
-        string = ""
-        if self.visible[raw] or not self.primary[raw]:
-            string = varname
-            self.addPathVar(fcu, varname, self.rig, propRef(raw))
-            if raw not in self.rig.keys():
-                self.rig[raw] = 0.0
         for dtype,subraw,factor in drivers:
             if dtype != 'PROP':
                 continue
             subfinal = finalProp(subraw)
+            channel = propRef(subfinal)
+            if channel in channels:
+                continue
             varname = nextLetter(varname)
             string += multiply(factor, varname)
             self.ensureExists(subraw, subfinal)
-            self.addPathVar(fcu, varname, self.amt, propRef(subfinal))
-        string = self.multiplyMults(fcu, string)
-        fcu.driver.expression = string
+            self.addPathVar(fcu, varname, self.amt, channel)
+        return string
+
+
+    def extendPropDriver(self, fcu, raw, drivers):
+        string = fcu.driver.expression
+        char = ""
+        while string[-1] == ")":
+            char += ")"
+            string = string[:-1]
+        varname = string[-1]
+        pathids = self.getAllTargets(fcu)
+        string = self.addDriverVars(fcu, string, varname, raw, drivers, pathids.keys())
+        string += char
+        if len(string) > 511:
+            print('Driving expression for "%s" too long' % raw)
+        else:
+            fcu.driver.expression = string
 
 
     def addPathVar(self, fcu, varname, rna, path):
@@ -499,30 +524,19 @@ class LoadMorph:
         return rna, channel
 
 
-    def analyzeFcurve(self, fcu, raw):
-        # (a+b+c+..)*M*N*...
-        from .driver import getDriverPaths
-        paths = getDriverPaths(fcu, self.amt)
-        self.mult = []
-        words = fcu.driver.expression.rsplit(")*", 1)
-        if len(words) == 2:
-            mvars = words[1].split("*")
-            for mvar in mvars:
-                if mvar in paths.keys():
-                    self.mult.append(baseBone(unPath(paths[mvar])))
-
-
     def multiplyMults(self, fcu, string):
         if self.mult:
-           string = "(%s)" % string
-           varname = "M"
-           for mult in self.mult:
-               string += "*%s" % varname
-               multfinal = finalProp(mult)
-               self.ensureExists(mult, multfinal)
-               self.addPathVar(fcu, varname, self.amt, propRef(multfinal))
-               varname = nextLetter(varname)
-        return string
+            varname = "M"
+            mstring = ""
+            for mult in self.mult:
+                mstring += "%s*" % varname
+                multfinal = finalProp(mult)
+                self.ensureExists(mult, multfinal)
+                self.addPathVar(fcu, varname, self.amt, propRef(multfinal))
+                varname = nextLetter(varname)
+            return "%s(%s)" % (mstring, string)
+        else:
+            return string
 
 
     def ensureExists(self, raw, final):
@@ -663,6 +677,11 @@ class LoadMorph:
     #   For Xin's non-python drivers
     #------------------------------------------------------------------
 
+    def getAllTargets(self, fcu):
+        targets = [var.targets[0] for var in fcu.driver.variables]
+        return dict([(trg.data_path, trg.id_type) for trg in targets])
+
+
     def buildSumDrivers(self):
         def getTermDriverName(prop, key, idx):
             return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
@@ -679,10 +698,6 @@ class LoadMorph:
             else:
                 return "%g*%s" % (factor, term)
 
-        def getAllSumTargets(fcu):
-            targets = [var.targets[0] for var in fcu.driver.variables]
-            return dict([(trg.data_path, trg.id_type) for trg in targets])
-
         from .driver import Driver
         from time import perf_counter
         print("Building sum drivers")
@@ -696,7 +711,7 @@ class LoadMorph:
                     t1 = perf_counter()
                     if fcu0:
                         if fcu0.driver.type == 'SUM':
-                            pathids = getAllSumTargets(fcu0)
+                            pathids = self.getAllTargets(fcu0)
                         else:
                             prop0 = "origo:%d" % idx
                             pb[prop0] = 0.0
