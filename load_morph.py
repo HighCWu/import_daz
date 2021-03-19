@@ -724,21 +724,6 @@ class LoadMorph:
 
 
     def buildSumDrivers(self):
-        def getTermDriverName(prop, key, idx):
-            return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
-
-        def getTermDriverExpr(varname, factor, default):
-            if default > 0:
-                term = "(%s+%g)" % (varname, default)
-            elif default < 0:
-                term = "(%s-%g)" % (varname, default)
-            else:
-                term = varname
-            if factor == 1:
-                return term
-            else:
-                return "%g*%s" % (factor, term)
-
         from .driver import Driver
         from time import perf_counter
         print("Building sum drivers")
@@ -765,28 +750,12 @@ class LoadMorph:
                         pathids = {}
 
                     t2 = perf_counter()
+                    fcu,t3 = self.addTmpDriver(pb, idx, dlist, pathids)
+                    sumfcu = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
                     pb.driver_remove(channel, idx)
-                    sumfcu = pb.driver_add(channel, idx)
-                    sumfcu.driver.type = 'SUM'
-                    for key,final,factor,default in dlist:
-                        drvprop = getTermDriverName(final, key, idx)
-                        pb[drvprop] = 0.0
-                        path = propRef(drvprop)
-                        pb.driver_remove(path)
-                        fcu = pb.driver_add(path)
-                        fcu.driver.type = 'SCRIPTED'
-                        fcu.driver.expression = getTermDriverExpr("x", factor, default)
-                        self.addPathVar(fcu, "x", self.amt, propRef(final))
-                        path2 = 'pose.bones["%s"]%s' % (pb.name, path)
-                        pathids[path2] = 'OBJECT'
-                    t3 = perf_counter()
-                    for n,data in enumerate(pathids.items()):
-                        path,idtype = data
-                        if idtype == 'OBJECT':
-                            rna = self.rig
-                        else:
-                            rna = self.amt
-                        self.addPathVar(sumfcu, "t%.03d" % n, rna, path)
+                    sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
+                    sumfcu.array_index = idx
+                    clearTmpDriver(0)
                     t4 = perf_counter()
                     time1 += t2-t1
                     time2 += t3-t2
@@ -800,6 +769,49 @@ class LoadMorph:
             ut3 = 1000*time3/n3
             print(" + %s %s %6.3f %6.3f %3d %3d %5.1f %5.1f %4.1f %4.1f" %
                 (bname, pad, time2, time3, n2, n3, ut2, ut3, 1000*ut2/n2tot, 1000*ut3/n3tot))
+
+
+    def addTmpDriver(self, pb, idx, dlist, pathids):
+        def getTermDriverName(prop, key, idx):
+            return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
+
+        def getTermDriverExpr(varname, factor, default):
+            if default > 0:
+                term = "(%s+%g)" % (varname, default)
+            elif default < 0:
+                term = "(%s-%g)" % (varname, default)
+            else:
+                term = varname
+            if factor == 1:
+                return term
+            else:
+                return "%g*%s" % (factor, term)
+
+        sumfcu = getTmpDriver(0)
+        sumfcu.driver.type = 'SUM'
+        for key,final,factor,default in dlist:
+            drvprop = getTermDriverName(final, key, idx)
+            pb[drvprop] = 0.0
+            path = propRef(drvprop)
+            pb.driver_remove(path)
+            fcu = getTmpDriver(1)
+            fcu.driver.type = 'SCRIPTED'
+            fcu.driver.expression = getTermDriverExpr("x", factor, default)
+            self.addPathVar(fcu, "x", self.amt, propRef(final))
+            pbpath = 'pose.bones["%s"]%s' % (pb.name, path)
+            pathids[pbpath] = 'OBJECT'
+            fcu2 = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
+            fcu2.data_path = pbpath
+            clearTmpDriver(1)
+        t3 = perf_counter()
+        for n,data in enumerate(pathids.items()):
+            path,idtype = data
+            if idtype == 'OBJECT':
+                rna = self.rig
+            else:
+                rna = self.amt
+            self.addPathVar(sumfcu, "t%.03d" % n, rna, path)
+        return sumfcu, t3
 
 
     def getActiveShape(self, asset):
@@ -846,6 +858,25 @@ def buildBoneFormula(asset, rig, errors):
 #------------------------------------------------------------------
 #   Utilities
 #------------------------------------------------------------------
+
+theTmpObject = None
+
+def getTmpDriver(idx):
+    global theTmpObject
+    if theTmpObject is None:
+        theTmpObject = bpy.data.objects.new("Tmp", None)
+    try:
+        theTmpObject.driver_remove("rotation_euler", idx)
+    except ReferenceError:
+        theTmpObject = bpy.data.objects.new("Tmp", None)
+    return theTmpObject.driver_add("rotation_euler", idx)
+
+
+def clearTmpDriver(idx):
+    global theTmpObject
+    if theTmpObject:
+        theTmpObject.driver_remove("rotation_euler", idx)
+
 
 def unPath(path):
     if path[0:2] == '["':
