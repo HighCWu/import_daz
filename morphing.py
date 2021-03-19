@@ -880,6 +880,7 @@ class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, StandardM
 
     morphset = "Facsexpr"
     bodypart = "Face"
+    loadMissed = False
 
 
 class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
@@ -969,18 +970,10 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
             print(msg)
             return []
         for key,filepath in struct.items():
-            words = filepath.rsplit("\\data",1)
-            if len(words) == 1:
-                words = filepath.rsplit("/data",1)
-            if len(words) == 2:
-                lpath = "/data" + words[1].lower()
-                #print(lpath)
-            else:
-                raise RuntimeError("BUG", filepath)
-                continue
-            self.morphsets[lpath] = morphset
+            fileref = self.getFileRef(filepath)
+            self.morphsets[fileref] = morphset
             self.namepaths[key] = filepath
-            self.bodyparts[lpath] = bodypart
+            self.bodyparts[fileref] = bodypart
 
 
     def getMorphSet(self, asset):

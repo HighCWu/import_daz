@@ -131,9 +131,10 @@ class Formula:
         from .bone import getTargetName
         from .modifier import ChannelAsset
 
-        driven = formula["output"].split("#")[-1]
+        words = unquote(formula["output"]).split("#")
+        fileref = words[0].split(":",1)[-1]
+        driven = words[-1]
         output,channel = driven.split("?")
-        output = unquote(output)
         if channel == "value":
             if mesh is None:
                 if GS.verbosity > 2:
@@ -153,7 +154,7 @@ class Formula:
 
         path,idx,default = self.parseChannel(channel)
         if output not in exprs.keys():
-            exprs[output] = {}
+            exprs[output] = {"*fileref" : (fileref, channel)}
         if path not in exprs[output].keys():
             exprs[output][path] = {}
         if idx not in exprs[output][path].keys():

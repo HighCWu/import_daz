@@ -37,6 +37,8 @@ from .utils import *
 class LoadMorph:
     morphset = None
     usePropDrivers = True
+    loadMissed = True
+
 
     def __init__(self, rig, mesh):
         self.rig = rig
@@ -56,8 +58,22 @@ class LoadMorph:
 
 
     def loadAllMorphs(self, namepaths):
+        self.alias = {}
+        self.loaded = []
+        self.referred = {}
+        self.primary = {}
+        self.visible = {}
+        self.ecr = False
+        self.drivers = {}
+        self.shapekeys = {}
+        self.mults = {}
+        self.sumdrivers = {}
         self.initAmt()
+        print("Making morphs")
         self.makeAllMorphs(namepaths)
+        if self.loadMissed:
+            print("Making missing morphs")
+            self.makeMissingMorphs()
         if self.rig:
             self.buildDrivers()
             self.buildSumDrivers()
@@ -69,15 +85,6 @@ class LoadMorph:
     #------------------------------------------------------------------
 
     def makeAllMorphs(self, namepaths):
-        print("Making morphs")
-        self.alias = {}
-        self.primary = {}
-        self.visible = {}
-        self.ecr = False
-        self.drivers = {}
-        self.shapekeys = {}
-        self.mults = {}
-        self.sumdrivers = {}
         namepaths.sort()
         idx = 0
         npaths = len(namepaths)
@@ -97,6 +104,8 @@ class LoadMorph:
         from .modifier import Alias, ChannelAsset
         struct = loadJson(filepath)
         asset = parseAssetFile(struct)
+        fileref = self.getFileRef(filepath)
+        self.loaded.append(fileref)
         if not isinstance(asset, ChannelAsset):
             return " -"
         elif isinstance(asset, Alias):
@@ -160,6 +169,11 @@ class LoadMorph:
         exprs = asset.evalFormulas(self.rig, self.mesh)
         for output,data in exprs.items():
             for key,data1 in data.items():
+                if key == "*fileref":
+                    ref,channel = data1
+                    if channel == "value" and len(ref) > 3:
+                        self.referred[ref.lower()] = True
+                    continue
                 for idx,expr in data1.items():
                     if key == "value":
                         self.makeValueFormula(output, expr)
@@ -171,6 +185,16 @@ class LoadMorph:
                         self.makeScaleFormula(output, idx, expr)
                     elif key in ["center_point", "end_point"]:
                         self.ecr = True
+
+
+    def getFileRef(self, filepath):
+        words = filepath.rsplit("\\data",1)
+        if len(words) == 1:
+            words = filepath.rsplit("/data",1)
+        if len(words) == 2:
+            return "/data%s" % (words[1].lower())
+        else:
+            raise RuntimeError("getFileRef", filepath)
 
 
     def addNewProp(self, raw, asset=None, sname=None):
@@ -418,7 +442,24 @@ class LoadMorph:
             setFloatProp(self.amt, prop, 0.0)
 
     #------------------------------------------------------------------
-    #   Second pass: Build the drivers
+    #   Second pass: Load missing morphs
+    #------------------------------------------------------------------
+
+    def makeMissingMorphs(self):
+        from .asset import getDazPath
+        for fileref in self.loaded:
+            self.referred[fileref] = False
+        namepaths = []
+        for ref,unloaded in self.referred.items():
+            if unloaded:
+                path = getDazPath(ref)
+                if path:
+                    name = ref.rsplit("/",1)[-1]
+                    namepaths.append((name,path))
+        self.makeAllMorphs(namepaths)
+
+    #------------------------------------------------------------------
+    #   Third pass: Build the drivers
     #------------------------------------------------------------------
 
     def buildDrivers(self):
