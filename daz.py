@@ -449,7 +449,10 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             print("Make mannequin")
             bpy.ops.daz.add_mannequin(useGroup=True, group="%s Mannequin" % mainRig.name)
 
+        if mainMesh:
+            mainMesh.update_tag()
         if mainRig:
+            mainRig.update_tag()
             activateObject(context, mainRig)
 
 
@@ -671,7 +674,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUnitScale")
         box.prop(scn, "DazVerbosity")
         box.prop(scn, "DazCaseSensitivePaths")
-        box.prop(scn, "DazUseCustomDrivers")
 
         box = col.box()
         box.label(text = "Debugging")
@@ -1028,10 +1030,6 @@ def register():
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(
         name = "Case-Sensitive Paths",
         description = "Convert URLs to lowercase. Works best on Windows.")
-
-    bpy.types.Scene.DazUseCustomDrivers = BoolProperty(
-        name = "Custom Drivers",
-        description = "Drivers use slow custom drivers (deprecated)")
 
     bpy.types.Scene.DazUseInstancing = BoolProperty(
         name = "Use Instancing",

@@ -524,21 +524,13 @@ class DAZ_PT_Morphs:
 
     def drawItems(self, scn, rig):
         self.layout.separator()
-        amt = self.getArmature(rig)
         filter = scn.DazFilter.lower()
         pg = getattr(rig, "Daz"+self.morphset)
         items = [(data[1].text, n, data[1]) for n,data in enumerate(pg.items())]
         items.sort()
         for _,_,item in items:
             if filter in item.text.lower():
-                self.displayProp(item, "", rig, amt, self.layout, scn)
-
-
-    def getArmature(self, rig):
-        if GS.useCustomDrivers:
-            return rig
-        else:
-            return rig.data
+                self.displayProp(item, "", rig, rig.data, self.layout, scn)
 
 
     def showBool(self, layout, ob, key, text=""):
@@ -716,11 +708,10 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
         split = box.split(factor=0.5)
         self.activateLayout(split, cat.name, rig)
         self.keyLayout(box, cat.name)
-        amt = self.getArmature(rig)
         for morph in cat.morphs:
             if (morph.name in rig.keys() and
                 filter in morph.text.lower()):
-                self.displayProp(morph, cat.name, rig, amt, box, scn)
+                self.displayProp(morph, cat.name, rig, rig.data, box, scn)
 
 
 class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):

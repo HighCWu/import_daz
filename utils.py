@@ -131,14 +131,6 @@ def unlinkAll(ob):
         if ob in coll.objects.values():
             coll.objects.unlink(ob)
 
-def updateScene(context):
-    dg = context.evaluated_depsgraph_get()
-    dg.update()
-
-def updateObject(context, ob):
-    dg = context.evaluated_depsgraph_get()
-    return ob.evaluated_get(dg)
-
 #-------------------------------------------------------------
 #   Overridable properties
 #-------------------------------------------------------------
@@ -213,26 +205,17 @@ def getMeshChildren(rig):
 #   Updating
 #-------------------------------------------------------------
 
-def updateRig(rig, context):
-    ob = context.object
-    if ob is None:
-        return
-    if ob.type == 'MESH' and rig.name in context.view_layer.objects:
-        context.view_layer.objects.active = rig
-        bpy.ops.object.posemode_toggle()
-        bpy.ops.object.posemode_toggle()
-        context.view_layer.objects.active = ob
-    elif ob.type == 'ARMATURE':
-        bpy.ops.object.posemode_toggle()
-        bpy.ops.object.posemode_toggle()
+def updateScene(context):
+    dg = context.evaluated_depsgraph_get()
+    dg.update()
 
+def updateObject(context, ob):
+    dg = context.evaluated_depsgraph_get()
+    return ob.evaluated_get(dg)
 
 def updateDrivers(rna):
-    return
     if rna:
         rna.update_tag()
-        if isinstance(rna, bpy.types.Object) and rna.type == 'MESH':
-            rna.data.shape_keys.update_tag()
 
 #-------------------------------------------------------------
 #   More utility functions

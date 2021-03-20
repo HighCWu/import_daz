@@ -1626,7 +1626,7 @@ class DAZ_OT_KeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
             scn = context.scene
             self.keyMorphs(rig, scn, scn.frame_current)
             updateScene(context)
-            updateRig(rig, context)
+            updateDrivers(rig)
 
 
     def keyMorphs(self, rig, scn, frame):
@@ -1684,7 +1684,7 @@ class DAZ_OT_UnkeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
             scn = context.scene
             self.unkeyMorphs(rig, scn, scn.frame_current)
             updateScene(context)
-            updateRig(rig, context)
+            updateDrivers(rig)
 
 
     def unkeyMorphs(self, rig, scn, frame):
@@ -1784,7 +1784,7 @@ class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
             if prop.lower() in props:
                 setFloatProp(rig, prop, rig[prop], GS.customMin, GS.customMax)
         updateScene(context)
-        updateRig(rig, context)
+        updateDrivers(rig)
         print("Slider limits updated")
 
 #------------------------------------------------------------------
@@ -1845,7 +1845,7 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, IsMeshArmature):
                         self.removeCustom(ob, morphsets)
                     self.removeMorphSets(ob, morphsets)
             updateScene(context)
-            updateRig(rig, context)
+            updateDrivers(rig)
 
 
     def clearPropGroups(self, rig):
@@ -1904,7 +1904,7 @@ class MorphRemover(DeleteShapekeysBool):
                 removeFromPropGroups(rig, prop)
             self.finishRemove(rig, props)
             updateScene(context)
-            updateRig(rig, context)
+            updateDrivers(rig)
 
 
     def removeDriver(self, rna, path):
@@ -2450,11 +2450,11 @@ class MorphsToShapes:
                 if mod:
                     rig[key] = 1.0
                     updateScene(context)
-                    updateRig(rig, context)
+                    updateDrivers(rig)
                     self.applyArmature(ob, rig, mod, mname)
                     rig[key] = 0.0
         updateScene(context)
-        updateRig(rig, context)
+        updateDrivers(rig)
         updateDrivers(rig)
 
 

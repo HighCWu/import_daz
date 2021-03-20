@@ -57,7 +57,6 @@ class GlobalSettings:
         self.verbosity = 2
         self.useDump = False
         self.zup = True
-        self.useCustomDrivers = True
         self.useMakeHiddenSliders = False
 
         self.materialMethod = 'BSDF'
@@ -137,7 +136,6 @@ class GlobalSettings:
         "DazFinalLimits" : "finalLimits",
         "DazRawLimits" : "rawLimits",
         "DazUseApproxDrvCombine" : "useApproxDrvCombine",
-        "DazUseCustomDrivers" : "useCustomDrivers",
 
         # Rigging
         "DazOrientMethod" : "orientMethod",

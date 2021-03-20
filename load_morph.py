@@ -49,10 +49,7 @@ class LoadMorph:
 
     def initAmt(self):
         if self.rig:
-            if GS.useCustomDrivers:
-                self.amt = self.rig
-            else:
-                self.amt = self.rig.data
+            self.amt = self.rig.data
         else:
             self.amt = None
 
@@ -375,19 +372,11 @@ class LoadMorph:
         key = channel[0:3].capitalize()
         fcurves = getBoneFcurves(pb, channel)
         idx,factor = self.getMaxFactor(vec, default)
-        if GS.useCustomDrivers:
-            if idx in fcurves.keys():
-                fcu = fcurves[idx]
-            else:
-                fcu = pb.driver_add(channel, idx)
-            self.addCustomDriver(fcu, factor, key)
-            self.addMorphGroup(pb, idx, key, prop, default, factor)
+        if idx in fcurves.keys():
+            fcu = fcurves[idx]
         else:
-            if idx in fcurves.keys():
-                fcu = fcurves[idx]
-            else:
-                fcu = None
-            self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, default))
+            fcu = None
+        self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, default))
         pb.DazDriven = True
 
 
@@ -396,24 +385,6 @@ class LoadMorph:
         vals.sort()
         _,idx,factor = vals[-1]
         return idx, factor
-
-
-    def addCustomDriver(self, fcu, factor, key):
-        fcu.driver.type = 'SCRIPTED'
-        expr = 'evalMorphs%s%d(self)' % (key, fcu.array_index)
-        drvexpr = fcu.driver.expression
-        try:
-            f = float(drvexpr)
-        except ValueError:
-            f = 1.0
-        if f == 0.0:
-            fcu.driver.expression = expr
-        elif expr not in drvexpr:
-            fcu.driver.expression = "%s+%s" % (drvexpr, expr)
-        fcu.driver.use_self = True
-        if len(fcu.modifiers) > 0:
-            fmod = fcu.modifiers[0]
-            fcu.modifiers.remove(fmod)
 
 
     def addSumDriver(self, pb, idx, channel, fcu, data):
@@ -434,17 +405,6 @@ class LoadMorph:
             if pg.name == prop and pg.index == idx:
                 pgs.remove(n)
                 return
-
-
-    def addMorphGroup(self, pb, idx, key, prop, default, factor):
-        from .propgroups import getPropGroups
-        pgs = getPropGroups(pb, key, idx)
-        self.clearProp(pgs, prop, idx)
-        pg = pgs.add()
-        pg.init(prop, idx, default, factor, 0)
-        if prop not in self.amt.keys():
-            from .driver import setFloatProp
-            setFloatProp(self.amt, prop, 0.0)
 
     #------------------------------------------------------------------
     #   Second pass: Load missing morphs
