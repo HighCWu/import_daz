@@ -75,10 +75,15 @@ class LoadMorph:
             print("Making missing morphs")
             self.makeMissingMorphs()
         if self.rig:
-            self.buildDrivers()
-            self.buildSumDrivers()
-            updateDrivers(self.rig)
-            updateDrivers(self.mesh)
+            createTmpObject()
+            try:
+                self.buildDrivers()
+                self.buildSumDrivers()
+            finally:
+                deleteTmpObject()
+            self.rig.update_tag()
+            if self.mesh:
+                self.mesh.update_tag()
 
     #------------------------------------------------------------------
     #   Make all morphs
@@ -861,21 +866,29 @@ def buildBoneFormula(asset, rig, errors):
 
 theTmpObject = None
 
-def getTmpDriver(idx):
+def createTmpObject():
     global theTmpObject
     if theTmpObject is None:
         theTmpObject = bpy.data.objects.new("Tmp", None)
-    try:
-        theTmpObject.driver_remove("rotation_euler", idx)
-    except ReferenceError:
-        theTmpObject = bpy.data.objects.new("Tmp", None)
+
+
+def deleteTmpObject():
+    global theTmpObject
+    if theTmpObject:
+        bpy.data.objects.remove(theTmpObject)
+        del theTmpObject
+        theTmpObject = None
+
+
+def getTmpDriver(idx):
+    global theTmpObject
+    theTmpObject.driver_remove("rotation_euler", idx)
     return theTmpObject.driver_add("rotation_euler", idx)
 
 
 def clearTmpDriver(idx):
     global theTmpObject
-    if theTmpObject:
-        theTmpObject.driver_remove("rotation_euler", idx)
+    theTmpObject.driver_remove("rotation_euler", idx)
 
 
 def unPath(path):

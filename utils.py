@@ -228,16 +228,11 @@ def updateRig(rig, context):
 
 
 def updateDrivers(rna):
-    def updateRna(rna):
-        if rna and rna.animation_data:
-            for fcu in rna.animation_data.drivers:
-                string = str(fcu.driver.expression)
-                fcu.driver.expression = string
-
+    return
     if rna:
-        updateRna(rna)
+        rna.update_tag()
         if isinstance(rna, bpy.types.Object) and rna.type == 'MESH':
-            updateRna(rna.data.shape_keys)
+            rna.data.shape_keys.update_tag()
 
 #-------------------------------------------------------------
 #   More utility functions
