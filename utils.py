@@ -351,10 +351,12 @@ def endProgress():
     wm.progress_update(100)
     wm.progress_end()
 
-def showProgress(n, total):
+def showProgress(n, total, string=None):
     pct = (100.0*n)/total
     wm = bpy.context.window_manager
     wm.progress_update(int(pct))
+    if string:
+        print(string)
 
 #-------------------------------------------------------------
 #   Coords

@@ -381,6 +381,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         from .merge import reparentToes
         rig = context.object
         scn = context.scene
+        startProgress("Convert %s to MHX" % rig.name)
         if self.useKeepRig:
             saveExistingRig(context)
 
@@ -524,28 +525,28 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         #   Fix and rename bones of the genesis rig
         #-------------------------------------------------------------
 
-        print("  Fix DAZ rig")
+        showProgress(1, 25, "  Fix DAZ rig")
         self.constraints = {}
         rig.data.layers = 32*[True]
         bchildren = applyBoneChildren(context, rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
-            print("  Connect to parent")
+            showProgress(2, 25, "  Connect to parent")
             connectToParent(rig)
-            print("  Reparent toes")
+            showProgress(3, 25, "  Reparent toes")
             reparentToes(rig, context)
-            print("  Rename bones")
+            showProgress(4, 25, "  Rename bones")
             self.rename2Mhx(rig)
-            print("  Join bend and twist bones")
+            showProgress(5, 25, "  Join bend and twist bones")
             self.joinBendTwists(rig, {}, False)
-            print("  Fix knees")
+            showProgress(6, 25, "  Fix knees")
             self.fixKnees(rig)
-            print("  Fix hands")
+            showProgress(7, 25, "  Fix hands")
             self.fixHands(rig)
-            print("  Store all constraints")
+            showProgress(8, 25, "  Store all constraints")
             self.storeAllConstraints(rig)
-            print("  Create bend and twist bones")
+            showProgress(9, 25, "  Create bend and twist bones")
             self.createBendTwists(rig)
-            print("  Fix bone drivers")
+            showProgress(10, 25, "  Fix bone drivers")
             self.fixBoneDrivers(rig, self.Correctives)
         elif rig.DazRig in ["genesis1", "genesis2"]:
             self.fixPelvis(rig)
@@ -566,34 +567,34 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         #   Add MHX stuff
         #-------------------------------------------------------------
 
-        print("  Constrain bend and twist bones")
+        showProgress(11, 25, "  Constrain bend and twist bones")
         self.constrainBendTwists(rig)
-        print("  Add long fingers")
+        showProgress(12, 25, "  Add long fingers")
         self.addLongFingers(rig)
-        print("  Add tweak bones")
+        showProgress(13, 25, "  Add tweak bones")
         self.addTweaks(rig)
-        print("  Add backbone")
+        showProgress(14, 25, "  Add backbone")
         self.addBack(rig)
-        print("  Setup FK-IK")
+        showProgress(15, 25, "  Setup FK-IK")
         self.setupFkIk(rig)
-        print("  Add layers")
+        showProgress(16, 25, "  Add layers")
         self.addLayers(rig)
-        print("  Add markers")
+        showProgress(17, 25, "  Add markers")
         self.addMarkers(rig)
-        print("  Add master bone")
+        showProgress(18, 25, "  Add master bone")
         self.addMaster(rig)
-        print("  Add gizmos")
+        showProgress(19, 25, "  Add gizmos")
         self.addGizmos(rig, context)
-        print("  Restore constraints")
+        showProgress(20, 25, "  Restore constraints")
         self.restoreAllConstraints(rig)
-        print("  Fix hand constraints")
+        showProgress(21, 25, "  Fix hand constraints")
         self.fixHandConstraints(rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
             self.fixCustomShape(rig, ["head"], 4)
-        print("  Collect deform bones")
+        showProgress(22, 25, "  Collect deform bones")
         self.collectDeformBones(rig)
         bpy.ops.object.mode_set(mode='POSE')
-        print("  Add bone groups")
+        showProgress(23, 25, "  Add bone groups")
         self.addBoneGroups(rig)
         rig["MhxRig"] = "MHX"
         setattr(rig.data, DrawType, 'STICK')
@@ -611,7 +612,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.restoreBoneChildren(bchildren, context, rig)
         updateScene(context)
         updateDrivers(rig)
-        print("MHX rig created")
+        showProgress(25, 25, "MHX rig created")
+        endProgress()
 
 
     def fixGenesis2Problems(self, rig):
