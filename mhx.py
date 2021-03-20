@@ -249,7 +249,7 @@ def childOf(pb, target, rig, prop=None, expr="x"):
     return cns
 
 
-def setAmtProp(amt, prop, value):
+def setMhxProp(amt, prop, value):
     from .driver import setFloatProp, setBoolProp
     if isinstance(value, float):
         setFloatProp(amt, prop, value, 0.0, 1.0)
@@ -600,8 +600,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         setattr(rig.data, DrawType, 'STICK')
         T = True
         F = False
-        rig.data.layers = [T,T,F,T, F,T,T,F, F,F,F,F, F,F,F,F,
-                           F,F,F,T, F,T,T,F, F,F,F,F, F,F,F,F]
+        rig.data.layers = [T,T,T,F, T,F,T,F, F,F,F,F, F,F,F,F,
+                           F,F,T,F, T,F,T,F, F,F,F,F, F,F,F,F]
         rig.DazRig = "mhx"
 
         for pb in rig.pose.bones:
@@ -885,7 +885,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     def addLongFingers(self, rig):
         for suffix,dlayer in [(".L",0), (".R",16)]:
             prop = "MhaFingerControl_" + suffix[1]
-            setAmtProp(rig.data, prop, True)
+            setMhxProp(rig.data, prop, True)
 
             bpy.ops.object.mode_set(mode='EDIT')
             for m in range(5):
@@ -981,6 +981,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             foot = setLayer("foot"+suffix, rig, L_HELP)
             toe = setLayer("toe"+suffix, rig, L_HELP)
             foot.tail = toe.head
+            foot.use_connect = False
 
             size = 10*rig.DazScale
             legSocket = makeBone("legSocket"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_LEXTRA+dlayer, thigh.parent)
@@ -1087,12 +1088,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             elbowLink = rpbs["elbow.link"+suffix]
 
             prop = "MhaArmHinge_" + suffix[1]
-            setAmtProp(rig.data, prop, False)
+            setMhxProp(rig.data, prop, False)
             copyTransform(armParent, None, armSocket, rig, prop, "1-x")
             copyLocation(armParent, armSocket, rig, prop, "x")
 
             prop = "MhaArmIk_"+suffix[1]
-            setAmtProp(rig.data, prop, 0.0)
+            setMhxProp(rig.data, prop, 1.0)
             copyTransform(upper_arm, upper_armFk, upper_armIk, rig, prop)
             copyTransform(forearm, forearmFk, forearmIk, rig, prop)
             copyTransform(hand, handFk, hand0Ik, rig, prop)
@@ -1129,14 +1130,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             toeInv = rpbs["toe.inv.ik"+suffix]
 
             prop = "MhaLegHinge_" + suffix[1]
-            setAmtProp(rig.data, prop, False)
+            setMhxProp(rig.data, prop, False)
             copyTransform(legParent, None, legSocket, rig, prop, "1-x")
             copyLocation(legParent, legSocket, rig, prop, "x")
 
             prop1 = "MhaLegIk_"+suffix[1]
-            setAmtProp(rig.data, prop1, 0.0)
+            setMhxProp(rig.data, prop1, 1.0)
             prop2 = "MhaLegIkToAnkle_"+suffix[1]
-            setAmtProp(rig.data, prop2, False)
+            setMhxProp(rig.data, prop2, False)
 
             footRev.lock_rotation = (False,True,True)
 
@@ -1153,7 +1154,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             cns.influence = 0
 
             prop = "MhaGaze_" + suffix[1]
-            setAmtProp(rig.data, prop, 0.0)
+            setMhxProp(rig.data, prop, 0.0)
             prefix = suffix[1].lower()
             eye = rpbs[prefix+"Eye"]
             gaze = rpbs["gaze"+suffix]
@@ -1167,9 +1168,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ])
 
         prop = "MhaHintsOn"
-        setAmtProp(rig.data, prop, True)
+        setMhxProp(rig.data, prop, True)
         prop = "MhaGazeFollowsHead"
-        setAmtProp(rig.data, prop, 0.0)
+        setMhxProp(rig.data, prop, 1.0)
         gaze0 = rpbs["gaze0"]
         gaze1 = rpbs["gaze1"]
         copyTransform(gaze1, None, gaze0, rig, prop)
@@ -1586,9 +1587,9 @@ class DAZ_OT_UpdateMhx(DazOperator):
             if prop in rig.keys():
                 del rig[prop]
         for prop in bools:
-            setAmtProp(rig.data, prop, False)
+            setMhxProp(rig.data, prop, False)
         for prop in floats:
-            setAmtProp(rig.data, prop, 0.0)
+            setMhxProp(rig.data, prop, 1.0)
         self.updateDrivers(rig)
 
     def updateDrivers(self, rig):
