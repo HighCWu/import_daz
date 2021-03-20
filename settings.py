@@ -84,6 +84,7 @@ class GlobalSettings:
         self.customMax = 2.0
         self.finalLimits = 'DAZ'
         self.rawLimits = 'DAZ'
+        self.showFinalProps = False
         self.useApproxDrvCombine = False
 
         self.useLockLoc = True
@@ -136,6 +137,7 @@ class GlobalSettings:
         "DazFinalLimits" : "finalLimits",
         "DazRawLimits" : "rawLimits",
         "DazUseApproxDrvCombine" : "useApproxDrvCombine",
+        "DazShowFinalProps" : "showFinalProps",
 
         # Rigging
         "DazOrientMethod" : "orientMethod",

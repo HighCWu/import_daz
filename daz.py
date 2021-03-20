@@ -689,6 +689,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazRawLimits")
         box.prop(scn, "DazCustomMin")
         box.prop(scn, "DazCustomMax")
+        box.prop(scn, "DazShowFinalProps")
         box.prop(scn, "DazUseApproxDrvCombine")
 
         col = split.column()
@@ -832,6 +833,10 @@ def register():
         items = enums,
         name = "Raw Limits",
         description = "Min and max values for \"raw\" sliders")
+
+    bpy.types.Scene.DazShowFinalProps = BoolProperty(
+        name = "Show Final Sliders",
+        description = "Display the \"final\" slider values")
 
     bpy.types.Scene.DazUseApproxDrvCombine = BoolProperty(
         name = "Combine Drivers Approximately",

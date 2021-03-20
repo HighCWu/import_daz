@@ -690,16 +690,11 @@ class LoadMorph:
 
     def buildSumDrivers(self):
         from .driver import Driver
-        from time import perf_counter
         print("Building sum drivers")
-        n2tot = n3tot = 0
         for bname,bdata in self.sumdrivers.items():
-            time1 = time2 = time3 = 0.0
-            n2 = n3 = 0
             for channel,cdata in bdata.items():
                 for idx,idata in cdata.items():
                     pb,fcu0,dlist = idata
-                    t1 = perf_counter()
                     if fcu0:
                         if fcu0.driver.type == 'SUM':
                             pathids = self.getAllTargets(fcu0)
@@ -714,26 +709,13 @@ class LoadMorph:
                     else:
                         pathids = {}
 
-                    t2 = perf_counter()
                     fcu,t3 = self.addTmpDriver(pb, idx, dlist, pathids)
                     sumfcu = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
                     pb.driver_remove(channel, idx)
                     sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
                     sumfcu.array_index = idx
                     clearTmpDriver(0)
-                    t4 = perf_counter()
-                    time1 += t2-t1
-                    time2 += t3-t2
-                    time3 += t4-t3
-                    n2 += len(dlist)
-                    n3 += len(pathids)
-            pad = (" "*(25-len(bname)) if len(bname) < 25 else "")
-            n2tot += n2
-            n3tot += n3
-            ut2 = 1000*time2/n2
-            ut3 = 1000*time3/n3
-            print(" + %s %s %6.3f %6.3f %3d %3d %5.1f %5.1f %4.1f %4.1f" %
-                (bname, pad, time2, time3, n2, n3, ut2, ut3, 1000*ut2/n2tot, 1000*ut3/n3tot))
+            print(" + %s" % bname)
 
 
     def addTmpDriver(self, pb, idx, dlist, pathids):

@@ -246,7 +246,7 @@ class Snapper:
     def setSnapProp(self, value, context, isIk):
         words = self.data.split()
         prop = words[0]
-        oldValue = getattr(self.rig, prop)
+        oldValue = self.amt[prop]
         self.amt[prop] = value
         ik = int(words[1])
         fk = int(words[2])
@@ -353,7 +353,7 @@ class DAZ_OT_MhxSnapFk2Ik(DazOperator, Snapper):
         self.matchPoseRotation(lolegFk, lolegIk)
         self.matchPoseScale(lolegFk, lolegIk)
         updatePose()
-        if not getattr(self.rig, "MhaLegIkToAnkle" + suffix):
+        if not self.amt["MhaLegIkToAnkle" + suffix]:
             self.matchPoseReverse(footFk, footRev)
             updatePose()
             self.matchPoseReverse(toeFk, toeRev)
@@ -463,7 +463,7 @@ class DAZ_OT_MhxToggleHints(DazOperator):
             for cns in pb.constraints:
                 if cns.type == 'LIMIT_ROTATION' and cns.name == "Hint":
                     cns.mute = not cns.mute
-        rig.data["MhaHintsOn"] = not rig.data.MhaHintsOn
+        rig.data["MhaHintsOn"] = not rig.data["MhaHintsOn"]
         updatePose()
 
 #----------------------------------------------------------
