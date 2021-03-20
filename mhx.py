@@ -1154,7 +1154,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             cns.influence = 0
 
             prop = "MhaGaze_" + suffix[1]
-            setMhxProp(rig.data, prop, 0.0)
+            setMhxProp(rig.data, prop, 1.0)
             prefix = suffix[1].lower()
             eye = rpbs[prefix+"Eye"]
             gaze = rpbs["gaze"+suffix]

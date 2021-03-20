@@ -693,6 +693,7 @@ class MorphLoader(LoadMorph):
         from .asset import clearAssets
         from .main import finishMain
         from .propgroups import clearDependecies
+        from .driver import setBoolProp
 
         if self.mesh:
             ob = self.mesh
@@ -713,6 +714,8 @@ class MorphLoader(LoadMorph):
         else:
             raise DazError("No morphs selected")
         self.loadAllMorphs(list(namepaths.items()))
+        for prop in ["JCMs On", "BaseFlexions"]:
+            setBoolProp(self.rig, prop, True)
         finishMain("Folder", folder, t1)
         if self.errors:
             msg = "Morphs loaded with errors.\n  "
@@ -771,13 +774,6 @@ class StandardMorphLoader(MorphLoader):
         self.rig.DazMorphPrefixes = False
         namepaths = self.getActiveMorphFiles(context)
         self.getAllMorphs(namepaths, context)
-        self.turnOnJCMs()
-
-
-    def turnOnJCMs(self):
-        from .driver import setBoolProp
-        setBoolProp(self.rig, "JCMs On", True)
-        setBoolProp(self.rig, "BaseFlexions", True)
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -959,7 +955,6 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
         if self.flexions:
             self.addFiles("Flexions", "Body")
         self.getAllMorphs(self.namepaths, context)
-        self.turnOnJCMs()
 
 
     def addFiles(self, morphset, bodypart):

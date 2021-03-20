@@ -552,8 +552,8 @@ class LoadMorph:
             self.amt[final] = 0.0
             fcu = self.amt.driver_add(propRef(final))
             fcu.driver.type = 'SCRIPTED'
-            fcu.driver.expression = "x"
-            self.addPathVar(fcu, "x", self.rig, propRef(raw))
+            fcu.driver.expression = "a"
+            self.addPathVar(fcu, "a", self.rig, propRef(raw))
 
 
     def buildBoneDriver(self, raw, bname, expr):
@@ -743,8 +743,8 @@ class LoadMorph:
             pb.driver_remove(path)
             fcu = getTmpDriver(1)
             fcu.driver.type = 'SCRIPTED'
-            fcu.driver.expression = getTermDriverExpr("x", factor, default)
-            self.addPathVar(fcu, "x", self.amt, propRef(final))
+            fcu.driver.expression = getTermDriverExpr("a", factor, default)
+            self.addPathVar(fcu, "a", self.amt, propRef(final))
             pbpath = 'pose.bones["%s"]%s' % (pb.name, path)
             pathids[pbpath] = 'OBJECT'
             fcu2 = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
