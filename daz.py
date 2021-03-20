@@ -215,7 +215,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
 
     useMergeGeografts : BoolProperty(
         name = "Merge Geografts",
-        description = "Merge selected geografts to active object.\nShapekeys are always transferred first",
+        description = "Merge selected geografts to active object.\nDoes not work with nested geografts.\nShapekeys are always transferred first",
         default = True)
 
     useMergeLashes : BoolProperty(
@@ -407,9 +407,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             print("Merge lashes")
             self.mergeLashes(mainMesh)
 
-        if ((self.jcms or self.flexions) and
-            self.useTransferJCMs and mainMesh):
-            self.transferShapes(context, mainMesh, meshes[1:], True, "Body")
+        # Transfer shapekeys to clothes
+        self.transferShapes(context, mainMesh, meshes[1:], True, "Body")
 
         if mainRig:
             activateObject(context, mainRig)
@@ -456,23 +455,42 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
             activateObject(context, mainRig)
 
 
+
     def transferShapes(self, context, ob, meshes, useDrivers, bodypart):
+        if not (self.useTransferJCMs and (self.jcms or self.flexions)):
+            return
+        if not (ob and meshes):
+            return
+
         from .fileutils import setSelection
         from .morphing import classifyShapekeys
         skeys = ob.data.shape_keys
-        if skeys and meshes and getModifier(ob, 'ARMATURE'):
+        if skeys:
             bodyparts = classifyShapekeys(ob, skeys)
             snames = [sname for sname,bpart in bodyparts.items() if bpart == bodypart]
             if not snames:
                 return
             activateObject(context, ob)
+            selected = False
             for mesh in meshes:
-                mesh.select_set(True)
+                if self.useTransferTo(mesh):
+                    mesh.select_set(True)
+                    selected = True
+            if not selected:
+                return
             setSelection(snames)
             if not useDrivers:
                 bpy.ops.daz.transfer_shapekeys(useDrivers=False)
             else:
                 bpy.ops.daz.transfer_shapekeys(useDrivers=True)
+
+
+    def useTransferTo(self, mesh):
+        if not getModifier(mesh, 'ARMATURE'):
+            return False
+        ishair = ("head" in mesh.vertex_groups.keys() and
+                  "lSldrBend" not in mesh.vertex_groups.keys())
+        return not ishair
 
 
     def mergeLashes(self, ob):
