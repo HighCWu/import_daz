@@ -31,6 +31,7 @@ import numpy as np
 from .error import *
 from .utils import *
 from .morphing import JCMSelector
+from .driver import TmpObject
 
 
 class FastMatcher:
@@ -173,7 +174,7 @@ class DAZ_OT_CopyVertexGroupsByNumber(DazOperator, IsMesh):
 #   Morphs transfer
 #----------------------------------------------------------
 
-class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher):
+class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, TmpObject):
     bl_idname = "daz.transfer_shapekeys"
     bl_label = "Transfer Shapekeys"
     bl_description = "Transfer shapekeys from active mesh to selected meshes"
@@ -265,7 +266,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher):
 
 
     def transferMorphs(self, src, trg, context):
-        from .driver import getShapekeyDriver, copyDriver
+        from .driver import getShapekeyDriver
         from .asset import setDazPaths
 
         startProgress("Transfer morphs %s => %s" %(src.name, trg.name))
@@ -326,7 +327,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher):
                 cskey.slider_max = hskey.slider_max
                 cskey.value = hskey.value
                 if fcu is not None:
-                    copyDriver(fcu, cskey)
+                    self.copyDriver(fcu, cskey)
             else:
                 print(" -", sname)
 

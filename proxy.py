@@ -32,6 +32,7 @@ from .error import *
 from .tables import *
 from .utils import *
 from .morphing import Selector
+from .driver import TmpObject
 
 #-------------------------------------------------------------
 #   Make proxy
@@ -178,7 +179,7 @@ class DAZ_OT_FindPolys(DazOperator, IsMeshArmature):
 #   Make faithful proxy
 #-------------------------------------------------------------
 
-class Proxifier:
+class Proxifier(TmpObject):
     def __init__(self, ob):
         self.object = ob
         self.nfaces = len(ob.data.polygons)
@@ -438,8 +439,7 @@ class Proxifier:
                 data = dict([(vn, skey.data[vn].co) for vn in range(self.nverts)])
                 skeys.append((skey.name, skey.value, skey.slider_min, skey.slider_max, data))
 
-        from .driver import getShapekeyDrivers, copyShapeKeyDrivers
-        drivers = getShapekeyDrivers(ob)
+        drivers = self.getShapekeyDrivers(ob)
 
         ob.data = me
         ob.vertex_groups.clear()
@@ -460,7 +460,7 @@ class Proxifier:
                 if nvn >= 0:
                     skey.data[nvn].co = co
 
-        copyShapeKeyDrivers(ob, drivers)
+        self.copyShapeKeyDrivers(ob, drivers)
 
 
     def changeFace(self, vn, fn1, newface):

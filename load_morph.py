@@ -27,14 +27,14 @@
 
 import os
 import bpy
-
+from .driver import TmpObject
 from .utils import *
 
 #------------------------------------------------------------------
 #   LoadMorph base class
 #------------------------------------------------------------------
 
-class LoadMorph:
+class LoadMorph(TmpObject):
     morphset = None
     usePropDrivers = True
     loadMissed = True
@@ -55,6 +55,7 @@ class LoadMorph:
 
 
     def loadAllMorphs(self, namepaths):
+        TmpObject.__init__(self)
         self.alias = {}
         self.loaded = []
         self.referred = {}
@@ -72,12 +73,12 @@ class LoadMorph:
             print("Making missing morphs")
             self.makeMissingMorphs()
         if self.rig:
-            createTmpObject()
+            self.createTmp()
             try:
                 self.buildDrivers()
                 self.buildSumDrivers()
             finally:
-                deleteTmpObject()
+                self.deleteTmp()
             self.rig.update_tag()
             if self.mesh:
                 self.mesh.update_tag()
@@ -605,16 +606,10 @@ class LoadMorph:
         vals.sort()
         _,n,umax = vals[-1]
         if drvBone(bname) in self.rig.pose.bones.keys():
-            if GS.useApproxDrvCombine:
-                string = "(A+A2)"
-                vars = [(n, "A", bname), (n, "A2", drvBone(bname))]
-            else:
-                string = "A"
-                vars = [(n, "A", finBone(bname))]
+            vars = [(n, "A", finBone(bname))]
         else:
-            string = "A"
             vars = [(n, "A", bname)]
-        return string, vars, umax
+        return "A", vars, umax
 
 
     def makeSimpleBoneDriver(self, vec, rna, channel, idx, bname=None):
@@ -714,7 +709,7 @@ class LoadMorph:
                     pb.driver_remove(channel, idx)
                     sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
                     sumfcu.array_index = idx
-                    clearTmpDriver(0)
+                    self.clearTmpDriver(0)
             print(" + %s" % bname)
 
 
@@ -734,14 +729,14 @@ class LoadMorph:
             else:
                 return "%g*%s" % (factor, term)
 
-        sumfcu = getTmpDriver(0)
+        sumfcu = self.getTmpDriver(0)
         sumfcu.driver.type = 'SUM'
         for key,final,factor,default in dlist:
             drvprop = getTermDriverName(final, key, idx)
             pb[drvprop] = 0.0
             path = propRef(drvprop)
             pb.driver_remove(path)
-            fcu = getTmpDriver(1)
+            fcu = self.getTmpDriver(1)
             fcu.driver.type = 'SCRIPTED'
             fcu.driver.expression = getTermDriverExpr("a", factor, default)
             self.addPathVar(fcu, "a", self.amt, propRef(final))
@@ -749,7 +744,7 @@ class LoadMorph:
             pathids[pbpath] = 'OBJECT'
             fcu2 = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
             fcu2.data_path = pbpath
-            clearTmpDriver(1)
+            self.clearTmpDriver(1)
         t3 = perf_counter()
         for n,data in enumerate(pathids.items()):
             path,idtype = data
@@ -805,33 +800,6 @@ def buildBoneFormula(asset, rig, errors):
 #------------------------------------------------------------------
 #   Utilities
 #------------------------------------------------------------------
-
-theTmpObject = None
-
-def createTmpObject():
-    global theTmpObject
-    if theTmpObject is None:
-        theTmpObject = bpy.data.objects.new("Tmp", None)
-
-
-def deleteTmpObject():
-    global theTmpObject
-    if theTmpObject:
-        bpy.data.objects.remove(theTmpObject)
-        del theTmpObject
-        theTmpObject = None
-
-
-def getTmpDriver(idx):
-    global theTmpObject
-    theTmpObject.driver_remove("rotation_euler", idx)
-    return theTmpObject.driver_add("rotation_euler", idx)
-
-
-def clearTmpDriver(idx):
-    global theTmpObject
-    theTmpObject.driver_remove("rotation_euler", idx)
-
 
 def unPath(path):
     if path[0:2] == '["':

@@ -36,6 +36,7 @@ from .utils import *
 from .fileutils import SingleFile, MultiFile, DazImageFile, DatFile
 from .propgroups import DazTextGroup, DazFloatGroup, DazStringGroup
 from .load_morph import LoadMorph
+from .driver import TmpObject
 
 #-------------------------------------------------------------
 #   Morph sets
@@ -1990,7 +1991,7 @@ class DAZ_OT_RemoveJCMs(DazOperator, JCMSelector, MorphRemover, IsMesh):
 #   Add driven value nodes
 #-------------------------------------------------------------
 
-class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, IsMesh):
+class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, TmpObject, IsMesh):
     bl_idname = "daz.add_driven_value_nodes"
     bl_label = "Add Driven Value Nodes"
     bl_description = "Add driven value nodes"
@@ -2014,7 +2015,7 @@ class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, IsMesh):
 
 
     def run(self, context):
-        from .driver import getShapekeyDriver, copyDriver
+        from .driver import getShapekeyDriver
         ob = context.object
         skeys = ob.data.shape_keys
         if skeys is None:
@@ -2031,8 +2032,8 @@ class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, IsMesh):
             node.location = (-1100, 250-250*n)
             if fcu:
                 channel = ('nodes["%s"].outputs[0].default_value' % node.name)
-                copyDriver(fcu, mat.node_tree, channel2=channel)
-
+                fcu2 = mat.node_tree.driver_add(channel)
+                fcu2 = self.copyFcurve(fcu, fcu2)
 
 #-------------------------------------------------------------
 #   Add and remove driver

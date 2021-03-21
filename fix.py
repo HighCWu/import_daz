@@ -31,12 +31,13 @@ import math
 from mathutils import *
 from .error import *
 from .utils import *
+from .driver import TmpObject
 
 #-------------------------------------------------------------
 #   Fixer class
 #-------------------------------------------------------------
 
-class Fixer:
+class Fixer(TmpObject):
 
     def fixPelvis(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
@@ -177,6 +178,22 @@ class Fixer:
                     trg.id = rig.data
                 if var.type == 'TRANSFORMS':
                     trg.bone_target = assoc[trg.bone_target]
+
+
+    def changeAllTargets(self, ob, rig, newrig):
+        if ob.animation_data:
+            for fcu in ob.animation_data.drivers:
+                self.setId(fcu, rig, newrig)
+        if ob.data.animation_data:
+            for fcu in ob.data.animation_data.drivers:
+                self.setId(fcu, rig, newrig)
+        if ob.type == 'MESH':
+            if ob.data.shape_keys and ob.data.shape_keys.animation_data:
+                for fcu in ob.data.shape_keys.animation_data.drivers:
+                    self.setId(fcu, rig, newrig)
+            for mod in ob.modifiers:
+                if mod.type == 'ARMATURE' and mod.object == rig:
+                    mod.object = newrig
 
 #-------------------------------------------------------------
 #   Constraints class

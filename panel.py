@@ -131,7 +131,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.make_udim_materials")
             box.operator("daz.merge_uv_layers")
             box.separator()
-            box.operator("daz.make_all_bones_posable")
+            box.operator("daz.make_all_bones_poseable")
             box.operator("daz.optimize_pose")
             box.operator("daz.apply_rest_pose")
             box.operator("daz.connect_ik_chains")

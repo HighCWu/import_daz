@@ -1345,7 +1345,7 @@ def saveExistingRig(context):
             coll.objects.link(ob)
     if nrig:
         for ob in newObjects:
-            changeAllTargets(ob, rig, nrig)
+            self.changeAllTargets(ob, rig, nrig)
     activateObject(context, rig)
 
 
@@ -1360,23 +1360,6 @@ def findAllSelected(scn, objects):
     for ob in scn.collection.all_objects:
         if ob.select_get() and not getHideViewport(ob):
             objects.append(ob)
-
-
-def changeAllTargets(ob, rig, newrig):
-    from .driver import changeDriverTarget
-    if ob.animation_data:
-        for fcu in ob.animation_data.drivers:
-            changeDriverTarget(fcu, rig, newrig)
-    if ob.data.animation_data:
-        for fcu in ob.data.animation_data.drivers:
-            changeDriverTarget(fcu, rig, newrig)
-    if ob.type == 'MESH':
-        if ob.data.shape_keys and ob.data.shape_keys.animation_data:
-            for fcu in ob.data.shape_keys.animation_data.drivers:
-                changeDriverTarget(fcu, rig, newrig)
-        for mod in ob.modifiers:
-            if mod.type == 'ARMATURE' and mod.object == rig:
-                mod.object = newrig
 
 #-------------------------------------------------------------
 #   Gizmos used by winders

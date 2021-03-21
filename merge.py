@@ -33,20 +33,19 @@ import bpy
 from .utils import *
 from .error import *
 from .material import MaterialMerger
+from .driver import TmpObject
 
 #-------------------------------------------------------------
 #   Merge geografts
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
+class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, TmpObject, IsMesh):
     bl_idname = "daz.merge_geografts"
     bl_label = "Merge Geografts"
     bl_description = "Merge selected geografts to active object"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        from .driver import getShapekeyDrivers, copyShapeKeyDrivers
-
         cob = context.object
         ncverts = len(cob.data.vertices)
 
@@ -85,7 +84,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         for aob in anatomies:
             activateObject(context, aob)
             self.moveGraftVerts(aob, cob)
-            getShapekeyDrivers(aob, drivers)
+            self.getShapekeyDrivers(aob, drivers)
             for uvtex in aob.data.uv_layers:
                 if uvtex.active_render:
                     anames.append(uvtex.name)
@@ -228,7 +227,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, IsMesh):
         #    self.mathits[f.material_index] = True
         #self.mergeMaterials(cob)
 
-        copyShapeKeyDrivers(cob, drivers)
+        self.copyShapeKeyDrivers(cob, drivers)
         updateDrivers(cob)
 
 

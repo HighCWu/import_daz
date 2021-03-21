@@ -31,6 +31,7 @@ from mathutils import *
 from .utils import *
 from .error import *
 from .node import Node, Instance
+from .driver import TmpObject
 
 #-------------------------------------------------------------
 #   FigureInstance
@@ -157,7 +158,7 @@ class FigureInstance(Instance):
 
 
     def fixDependencyLoops(self, rig):
-        from .driver import getBoneDrivers, getDrivingBone, clearBendDrivers
+        from .driver import getBoneDrivers, getDrivingBone
         needfix = {}
         for pb in rig.pose.bones:
             fcus = getBoneDrivers(rig, pb)
@@ -182,7 +183,15 @@ class FigureInstance(Instance):
             bpy.ops.object.mode_set(mode = 'POSE')
             for bname in needfix.keys():
                 fcus = needfix[bname][1]
-                clearBendDrivers(fcus)
+                self.clearBendDrivers(fcus)
+
+
+    def clearBendDrivers(self, fcus):
+        for fcu in fcus:
+            if fcu.array_index != 1:
+                fcu.driver.expression = "0"
+                for var in fcu.driver.variables:
+                    fcu.driver.variables.remove(var)
 
 
     def addLSRig(self, rig):
@@ -435,83 +444,111 @@ def copyBoneInfo(srcpb, trgpb):
         trgpb.DazAltName = srcpb.DazAltName
 
 
-class ExtraBones:
+class ExtraBones(TmpObject):
     def run(self, context):
+        from time import perf_counter
+        t1 = perf_counter()
         rig = context.object
         oldvis = list(rig.data.layers)
         rig.data.layers = 32*[True]
         success = False
+        self.createTmp()
+        self.getTmpDriver(0)
         try:
             self.addExtraBones(rig)
             success = True
         finally:
+            self.deleteTmp()
             rig.data.layers = oldvis
+        t2 = perf_counter()
+        print("%s completed in %.1f seconds" % (self.button, t2-t1))
+
+
+    def correctDriver(self, fcu):
+        if fcu.driver.type == 'SCRIPTED':
+            varnames = dict([(var.name,True) for var in fcu.driver.variables])
+            for var in fcu.driver.variables:
+                for trg in var.targets:
+                    if isDrvBone(trg.bone_target):
+                        self.combineDrvFinBone(fcu, var, trg, varnames)
+
+
+    def combineDrvFinBone(self, fcu, var, trg, varnames):
+        if trg.transform_type[0:3] == "ROT":
+            bname = baseBone(trg.bone_target)
+            trg.bone_target = finBone(bname)
+        else:
+            self.combineDrvSimple(fcu, var, trg, varnames)
+
+
+    def combineDrvSimple(self, fcu, var, trg, varnames):
+        from .driver import Target
+        vname2 = var.name+"2"
+        if vname2 in varnames.keys():
+            return
+        var2 = fcu.driver.variables.new()
+        var2.name = vname2
+        var2.type = var.type
+        target2 = Target(trg)
+        trg2 = var2.targets[0]
+        target2.create(trg2)
+        trg2.bone_target = baseBone(trg.bone_target)
+        expr = fcu.driver.expression.replace(var.name, "(%s+%s)" % (var.name, var2.name))
+        fcu.driver.expression = expr
+
+
+    def addFinBoneDriver(self, rig, bname):
+        from .driver import addTransformVar
+        pb = rig.pose.bones[bname]
+        fb = rig.pose.bones[finBone(bname)]
+        cns = fb.constraints.new('COPY_ROTATION')
+        cns.target = rig
+        cns.subtarget = bname
+        if pb.parent.rotation_mode != 'QUATERNION':
+            cns.euler_order = pb.parent.rotation_mode
+        cns.target_space = 'POSE'
+        cns.owner_space = 'POSE'
+        cns.influence = 1.0
+        return
+        for n in range(3):
+            var = chr(ord("X")+n)
+            prop = "euler(fin)_%s" % var
+            pb[prop] = 0.0
+            fcu = pb.driver_add(propRef(prop))
+            fcu.driver.type = 'SCRIPTED'
+            fcu.driver.expression = var
+            ttype = "ROT_%s" % var
+            addTransformVar(fcu, var, ttype, rig, finBone(bname))
+
+
+    def storeRemoveBoneSumDrivers(self, rig, bones):
+        def store(fcus, rig):
+            from .driver import Driver
+            drivers = {}
+            for bname in fcus.keys():
+                drivers[bname] = []
+                for fcu in fcus[bname]:
+                    drivers[bname].append(Driver(fcu, True))
+            return drivers
+
+        from .driver import removeDriverFCurves, getAllBoneSumDrivers
+        boneFcus, sumFcus = getAllBoneSumDrivers(rig, bones)
+        boneDrivers = store(boneFcus, rig)
+        sumDrivers = store(sumFcus, rig)
+        removeDriverFCurves(boneFcus.values(), rig)
+        removeDriverFCurves(sumFcus.values(), rig)
+        return boneDrivers, sumDrivers
+
+
+    def restoreBoneSumDrivers(self, rig, drivers, fixDrv):
+        for bname,bdrivers in drivers.items():
+            pb = rig.pose.bones[drvBone(bname)]
+            for driver in bdrivers:
+                fcu = driver.create(pb, fixDrv=fixDrv)
+                self.correctDriver(fcu)
 
 
     def addExtraBones(self, rig):
-        def correctDriver(fcu):
-            if fcu.driver.type == 'SCRIPTED':
-                varnames = dict([(var.name,True) for var in fcu.driver.variables])
-                for var in fcu.driver.variables:
-                    for trg in var.targets:
-                        if isDrvBone(trg.bone_target):
-                            if GS.useApproxDrvCombine:
-                                combineDrvSimple(fcu, var, trg, varnames)
-                            else:
-                                combineDrvFinBone(fcu, var, trg, varnames)
-
-        def combineDrvSimple(fcu, var, trg, varnames):
-            from .driver import Target
-            vname2 = var.name+"2"
-            if vname2 in varnames.keys():
-                return
-            var2 = fcu.driver.variables.new()
-            var2.name = vname2
-            var2.type = var.type
-            target2 = Target(trg)
-            trg2 = var2.targets[0]
-            target2.create(trg2)
-            trg2.bone_target = baseBone(trg.bone_target)
-            expr = fcu.driver.expression.replace(var.name, "(%s+%s)" % (var.name, var2.name))
-            fcu.driver.expression = expr
-
-        def combineDrvFinBone(fcu, var, trg, varnames):
-            if (trg.transform_type[0:3] == "ROT" and
-                not GS.useApproxDrvCombine):
-                bname = baseBone(trg.bone_target)
-                trg.bone_target = finBone(bname)
-                return
-                comp = trg.transform_type[-1]
-                var.type = 'SINGLE_PROP'
-                prop = "euler(fin)_%s" % comp
-                trg.data_path = 'pose.bones["%s"]["%s"]' % (bname, prop)
-                trg.bone_target = ""
-            else:
-                combineDrvSimple(fcu, var, trg, varnames)
-
-        def addFinBoneDriver(rig, bname):
-            from .driver import addTransformVar
-            pb = rig.pose.bones[bname]
-            fb = rig.pose.bones[finBone(bname)]
-            cns = fb.constraints.new('COPY_ROTATION')
-            cns.target = rig
-            cns.subtarget = bname
-            if pb.parent.rotation_mode != 'QUATERNION':
-                cns.euler_order = pb.parent.rotation_mode
-            cns.target_space = 'POSE'
-            cns.owner_space = 'POSE'
-            cns.influence = 1.0
-            return
-            for n in range(3):
-                var = chr(ord("X")+n)
-                prop = "euler(fin)_%s" % var
-                pb[prop] = 0.0
-                fcu = pb.driver_add(propRef(prop))
-                fcu.driver.type = 'SCRIPTED'
-                fcu.driver.expression = var
-                ttype = "ROT_%s" % var
-                addTransformVar(fcu, var, ttype, rig, finBone(bname))
-
         def copyEditBone(db, rig, bname):
             eb = rig.data.edit_bones.new(bname)
             eb.head = db.head
@@ -520,6 +557,7 @@ class ExtraBones:
             eb.layers = list(db.layers)
             eb.use_deform = db.use_deform
             return eb
+
 
         def copyPoseBone(db, pb):
             pb.rotation_mode = db.rotation_mode
@@ -530,7 +568,8 @@ class ExtraBones:
             pb.DazRotLocks = db.DazRotLocks
             pb.DazLocLocks = db.DazLocLocks
 
-        from .driver import getBoneDrivers, getPropDrivers, getShapekeyDriver, storeRemoveBoneSumDrivers, restoreBoneSumDrivers, removeDriverFCurves
+
+        from .driver import getBoneDrivers, getPropDrivers, getShapekeyDriver, removeDriverFCurves
         from .fix import ConstraintStore
         if getattr(rig.data, self.attr):
             msg = "Rig %s already has extra %s bones" % (rig.name, self.type)
@@ -542,8 +581,9 @@ class ExtraBones:
         drivenLayers = 31*[False] + [True]
         finalLayers = 30*[False] + [True,False]
 
+        print("Rename bones")
         bnames = self.getBoneNames(rig)
-        boneDrivers, sumDrivers = storeRemoveBoneSumDrivers(rig, bnames)
+        boneDrivers, sumDrivers = self.storeRemoveBoneSumDrivers(rig, bnames)
         bpy.ops.object.mode_set(mode='EDIT')
         for bname in bnames:
             eb = rig.data.edit_bones[bname]
@@ -555,11 +595,10 @@ class ExtraBones:
             db = rig.data.edit_bones[drvBone(bname)]
             eb = copyEditBone(db, rig, bname)
             eb.parent = db
-            if not GS.useApproxDrvCombine:
-                fb = copyEditBone(db, rig, finBone(bname))
-                fb.parent = db.parent
-                fb.layers = finalLayers
-                fb.use_deform = False
+            fb = copyEditBone(db, rig, finBone(bname))
+            fb.parent = db.parent
+            fb.layers = finalLayers
+            fb.use_deform = False
             db.layers = drivenLayers
             db.use_deform = False
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -576,6 +615,7 @@ class ExtraBones:
                 if cb.name != bname:
                     cb.parent = rig.data.edit_bones[bname]
 
+        print("Change constraints")
         bpy.ops.object.mode_set(mode='POSE')
         store = ConstraintStore()
         for bname in bnames:
@@ -590,20 +630,16 @@ class ExtraBones:
             store.removeConstraints(db)
             store.restoreConstraints(db.name, pb)
 
-        restoreBoneSumDrivers(rig, boneDrivers, False)
-        restoreBoneSumDrivers(rig, sumDrivers, True)
-        if not GS.useApproxDrvCombine:
-            for bname in bnames:
-                addFinBoneDriver(rig, bname)
-        for pb in rig.pose.bones:
-            for fcu in getBoneDrivers(rig, pb):
-                correctDriver(fcu)
-        for fcu in getPropDrivers(rig):
-            correctDriver(fcu)
+        print("Restore drivers")
+        for bname in bnames:
+            self.addFinBoneDriver(rig, bname)
+        self.restoreBoneSumDrivers(rig, boneDrivers, False)
+        self.restoreBoneSumDrivers(rig, sumDrivers, True)
 
         setattr(rig.data, self.attr, True)
         updateDrivers(rig)
 
+        print("Update vertex groups")
         bpy.ops.object.mode_set(mode='OBJECT')
         for ob in rig.children:
             if ob.type == 'MESH':
@@ -613,6 +649,7 @@ class ExtraBones:
                         if vgname in bnames:
                             vgrp.name = vgname
 
+        print("Update shapekeys")
         for ob in rig.children:
             if ob.type == 'MESH':
                 skeys = ob.data.shape_keys
@@ -620,7 +657,7 @@ class ExtraBones:
                     for skey in skeys.key_blocks[1:]:
                         fcu = getShapekeyDriver(skeys, skey.name)
                         if fcu:
-                            correctDriver(fcu)
+                            self.correctDriver(fcu)
             updateDrivers(ob)
 
 
@@ -632,6 +669,7 @@ class DAZ_OT_SetAddExtraFaceBones(DazOperator, ExtraBones, IsArmature):
 
     type =  "face"
     attr = "DazExtraFaceBones"
+    button = "Add Extra Face Bones"
 
     def getBoneNames(self, rig):
         inface = [
@@ -663,14 +701,15 @@ def getAnchoredBoneNames(rig, anchors):
     return bnames
 
 
-class DAZ_OT_MakeAllBonesPosable(DazOperator, ExtraBones, IsArmature):
-    bl_idname = "daz.make_all_bones_posable"
-    bl_label = "Make All Bones Posable"
-    bl_description = "Add an extra layer of driven bones, to make them posable"
+class DAZ_OT_MakeAllBonesPoseable(DazOperator, ExtraBones, IsArmature):
+    bl_idname = "daz.make_all_bones_poseable"
+    bl_label = "Make All Bones Poseable"
+    bl_description = "Add an extra layer of driven bones, to make them poseable"
     bl_options = {'UNDO'}
 
     type =  "driven"
     attr = "DazExtraDrivenBones"
+    button = "Make All Bones Poseable"
 
     def getBoneNames(self, rig):
         from .driver import isBoneDriven
@@ -1546,7 +1585,7 @@ classes = [
     DAZ_OT_PrintMatrix,
     DAZ_OT_RotateBones,
     DAZ_OT_SetAddExtraFaceBones,
-    DAZ_OT_MakeAllBonesPosable,
+    DAZ_OT_MakeAllBonesPoseable,
     DAZ_OT_ToggleRotLocks,
     DAZ_OT_ToggleLocLocks,
     DAZ_OT_ToggleRotLimits,

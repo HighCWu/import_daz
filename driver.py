@@ -32,6 +32,125 @@ from .error import *
 from .utils import *
 
 #-------------------------------------------------------------
+#   Temp object for faster drivers
+#-------------------------------------------------------------
+
+class TmpObject:
+    def __init__(self):
+        self.tmp = None
+
+    def createTmp(self):
+        if self.tmp is None:
+            self.tmp = bpy.data.objects.new("Tmp", None)
+
+
+    def deleteTmp(self):
+        if self.tmp:
+            bpy.data.objects.remove(self.tmp)
+            del self.tmp
+            self.tmp = None
+
+
+    def getTmpDriver(self, idx):
+        self.tmp.driver_remove("rotation_euler", idx)
+        return self.tmp.driver_add("rotation_euler", idx)
+
+
+    def clearTmpDriver(self, idx):
+        self.tmp.driver_remove("rotation_euler", idx)
+
+
+    def splitDataPath(self, fcu):
+        bname = prop = None
+        idx = -1
+        words = fcu.data_path.split('"')
+        if words[0] == "[":
+            prop = words[1]
+            channel = fcu.data_path
+        elif words[0] == "pose.bones[":
+            bname = words[1]
+            if words[2] == "][":
+                prop = words[3]
+                channel = propRef(prop)
+        elif words[0] == "data[":
+            prop = words[1]
+            channel = fcu.data_path
+        if prop is None:
+            channel = fcu.data_path.rsplit(".",2)[-1]
+            if channel != "value":
+                idx = fcu.array_index
+        return bname, prop, channel, idx
+
+
+    def getChannel(self, fcu):
+        _bname,_prop,channel,idx = self.splitDataPath(fcu)
+        return channel, idx
+
+
+    def copyDriver(self, fcu, rna):
+        channel,idx = self.getChannel(fcu)
+        fcu2 = rna.driver_add(channel, idx)
+        self.copyFcurve(fcu, fcu2)
+        return fcu2
+
+
+    def copyFcurve(self, fcu1, fcu2):
+        fcu2.driver.type = fcu1.driver.type
+        fcu2.driver.use_self = fcu1.driver.use_self
+        fcu2.driver.expression = fcu1.driver.expression
+        for var1 in fcu1.driver.variables:
+            var2 = fcu2.driver.variables.new()
+            var2.type = var1.type
+            var2.name = var1.name
+            for n,trg1 in enumerate(var1.targets):
+                if n > 1:
+                    trg2 = var2.targets.add()
+                else:
+                    trg2 = var2.targets[0]
+                if trg1.id_type != 'OBJECT':
+                    trg2.id_type = trg1.id_type
+                trg2.id = trg1.id
+                trg2.bone_target = trg1.bone_target
+                trg2.data_path = trg1.data_path
+                trg2.transform_type = trg1.transform_type
+                trg2.transform_space = trg1.transform_space
+
+
+    def setId(self, fcu, old, new):
+        for var in fcu.driver.variables:
+            for trg in var.targets:
+                if trg.id_type == 'OBJECT' and trg.id == old:
+                    trg.id = new
+                elif trg.id_type == 'ARMATURE' and trg.id == old.data:
+                    trg.id = new.data
+
+
+    def getShapekeyDrivers(self, ob, drivers={}):
+        if (ob.data.shape_keys is None or
+            ob.data.shape_keys.animation_data is None):
+            #print(ob, ob.data.shape_keys, ob.data.shape_keys.animation_data)
+            return drivers
+
+        for fcu in ob.data.shape_keys.animation_data.drivers:
+            words = fcu.data_path.split('"')
+            if (words[0] == "key_blocks[" and
+                len(words) == 3 and
+                words[2] == "].value"):
+                drivers[words[1]] = fcu
+
+        return drivers
+
+
+    def copyShapeKeyDrivers(self, ob, drivers):
+        skeys = ob.data.shape_keys
+        for sname,fcu in drivers.items():
+            if (getShapekeyDriver(skeys, sname) or
+                sname not in skeys.key_blocks.keys()):
+                continue
+            skey = skeys.key_blocks[sname]
+            self.copyDriver(fcu, skey)
+
+#-------------------------------------------------------------
 #   Check if RNA is driven
 #-------------------------------------------------------------
 
@@ -119,6 +238,7 @@ class Driver:
         for var in drv.variables:
             self.variables.append(Variable(var))
 
+
     def create(self, rna, fixDrv=False):
         words = self.data_path.split('"')
         if words[0] == "pose.bones[" and len(words) == 5:
@@ -134,11 +254,9 @@ class Driver:
             else:
                 raise RuntimeError("BUG: Cannot create channel\n%s" % self.data_path)
 
-        if self.array_index >= 0:
-            fcu = rna.driver_add(channel, self.array_index)
-        else:
-            fcu = rna.driver_add(channel)
-        self.fill(fcu, fixDrv)
+        fcu = rna.driver_add(channel, self.array_index)
+        return self.fill(fcu, fixDrv)
+
 
     def fill(self, fcu, fixDrv=False):
         drv = fcu.driver
@@ -148,6 +266,7 @@ class Driver:
         for var in self.variables:
             var.create(drv.variables.new(), fixDrv)
         return fcu
+
 
     def getNextVar(self, prop):
         varname = "a"
@@ -230,78 +349,6 @@ def addTransformVar(fcu, vname, ttype, rig, bname):
     trg.rotation_mode = pb.rotation_mode
     trg.transform_type = ttype
     trg.transform_space = 'LOCAL_SPACE'
-
-
-def clearBendDrivers(fcus):
-    for fcu in fcus:
-        if fcu.array_index != 1:
-            fcu.driver.expression = "0"
-            for var in fcu.driver.variables:
-                fcu.driver.variables.remove(var)
-
-
-def splitDataPath(fcu):
-    bname = prop = None
-    idx = -1
-    words = fcu.data_path.split('"')
-    if words[0] == "[":
-        prop = words[1]
-        channel = fcu.data_path
-    elif words[0] == "pose.bones[":
-        bname = words[1]
-        if words[2] == "][":
-            prop = words[3]
-            channel = propRef(prop)
-    elif words[0] == "data[":
-        prop = words[1]
-        channel = fcu.data_path
-    if prop is None:
-        channel = fcu.data_path.rsplit(".",2)[-1]
-        if channel != "value":
-            idx = fcu.array_index
-    return bname, prop, channel, idx
-
-
-def copyDriver(fcu1, rna2, ob=None, channel2=None):
-    bname,prop,channel1,idx = splitDataPath(fcu1)
-    if channel2 is None:
-        channel2 = channel1
-    fcu2 = rna2.driver_add(channel2, idx)
-    fcu2.driver.type = fcu1.driver.type
-    fcu2.driver.use_self = fcu1.driver.use_self
-    fcu2.driver.expression = fcu1.driver.expression
-    for var1 in fcu1.driver.variables:
-        var2 = fcu2.driver.variables.new()
-        var2.type = var1.type
-        var2.name = var1.name
-        for n,trg1 in enumerate(var1.targets):
-            if n > 1:
-                trg2 = var2.targets.add()
-            else:
-                trg2 = var2.targets[0]
-            if trg1.id_type == 'OBJECT':
-                if ob:
-                    trg2.id = ob
-                else:
-                    trg2.id = trg1.id
-            elif trg1.id_type == 'ARMATURE':
-                trg2.id_type = 'ARMATURE'
-                if ob:
-                    trg2.id = ob.data
-                else:
-                    trg2.id = trg1.id
-            trg2.bone_target = trg1.bone_target
-            trg2.data_path = trg1.data_path
-            trg2.transform_type = trg1.transform_type
-            trg2.transform_space = trg1.transform_space
-    return fcu2
-
-
-def changeDriverTarget(fcu, oldtarg, newtarg):
-    for var in fcu.driver.variables:
-        for targ in var.targets:
-            if targ.id == oldtarg:
-                targ.id = newtarg
 
 #-------------------------------------------------------------
 #   Prop drivers
@@ -399,95 +446,12 @@ def getDriverPaths(fcu, rig):
     return paths
 
 
-def getShapekeyDrivers(ob, drivers={}):
-    if (ob.data.shape_keys is None or
-        ob.data.shape_keys.animation_data is None):
-        #print(ob, ob.data.shape_keys, ob.data.shape_keys.animation_data)
-        return drivers
-
-    for fcu in ob.data.shape_keys.animation_data.drivers:
-        words = fcu.data_path.split('"')
-        if (words[0] == "key_blocks[" and
-            len(words) == 3 and
-            words[2] == "].value"):
-            drivers[words[1]] = fcu
-
-    return drivers
-
-
-def copyShapeKeyDrivers(ob, drivers):
-    skeys = ob.data.shape_keys
-    for sname,fcu in drivers.items():
-        if (getShapekeyDriver(skeys, sname) or
-            sname not in skeys.key_blocks.keys()):
-            continue
-        skey = skeys.key_blocks[sname]
-        copyDriver(fcu, skey)
-
-
 def isNumber(string):
     try:
         float(string)
         return True
     except ValueError:
         return False
-
-
-def getAllBoneSumDrivers(rig, bnames):
-    from collections import OrderedDict
-    boneFcus = OrderedDict()
-    sumFcus = OrderedDict()
-    if rig.animation_data is None:
-        return boneFcus, sumFcus
-    for fcu in rig.animation_data.drivers:
-        words = fcu.data_path.split('"', 2)
-        if words[0] == "pose.bones[":
-            bname = baseBone(words[1])
-            if bname not in bnames:
-                continue
-        else:
-            if words[0] != "[":
-                print("MISS", words)
-            continue
-        if fcu.driver.type == 'SCRIPTED':
-            if bname not in boneFcus.keys():
-                boneFcus[bname] = []
-            boneFcus[bname].append(fcu)
-        elif fcu.driver.type == 'SUM':
-            if bname not in sumFcus.keys():
-                sumFcus[bname] = []
-            sumFcus[bname].append(fcu)
-    return boneFcus, sumFcus
-
-
-def storeRemoveBoneSumDrivers(rig, bones):
-    def store(fcus, rig):
-        drivers = {}
-        for bname in fcus.keys():
-            drivers[bname] = []
-            for fcu in fcus[bname]:
-                drivers[bname].append(Driver(fcu, True))
-        return drivers
-
-    boneFcus, sumFcus = getAllBoneSumDrivers(rig, bones)
-    boneDrivers = store(boneFcus, rig)
-    sumDrivers = store(sumFcus, rig)
-    removeDriverFCurves(boneFcus.values(), rig)
-    removeDriverFCurves(sumFcus.values(), rig)
-    return boneDrivers, sumDrivers
-
-
-def restoreBoneSumDrivers(rig, drivers, fixDrv):
-    for bname,bdrivers in drivers.items():
-        pb = rig.pose.bones[drvBone(bname)]
-        for driver in bdrivers:
-            driver.create(pb, fixDrv=fixDrv)
-
-
-def removeBoneSumDrivers(rig, bones):
-    boneFcus, sumFcus = getAllBoneSumDrivers(rig, bones)
-    removeDriverFCurves(boneFcus.values(), rig)
-    removeDriverFCurves(sumFcus.values(), rig)
 
 
 def removeDriverFCurves(fcus, rig):
@@ -550,6 +514,41 @@ def matchesPaths(var, paths, rig):
         return (trg.id == rig and trg.data_path in paths)
     return False
 
+#----------------------------------------------------------
+#   Bone sum drivers
+#----------------------------------------------------------
+
+def getAllBoneSumDrivers(rig, bnames):
+    from collections import OrderedDict
+    boneFcus = OrderedDict()
+    sumFcus = OrderedDict()
+    if rig.animation_data is None:
+        return boneFcus, sumFcus
+    for fcu in rig.animation_data.drivers:
+        words = fcu.data_path.split('"', 2)
+        if words[0] == "pose.bones[":
+            bname = baseBone(words[1])
+            if bname not in bnames:
+                continue
+        else:
+            if words[0] != "[":
+                print("MISS", words)
+            continue
+        if fcu.driver.type == 'SCRIPTED':
+            if bname not in boneFcus.keys():
+                boneFcus[bname] = []
+            boneFcus[bname].append(fcu)
+        elif fcu.driver.type == 'SUM':
+            if bname not in sumFcus.keys():
+                sumFcus[bname] = []
+            sumFcus[bname].append(fcu)
+    return boneFcus, sumFcus
+
+
+def removeBoneSumDrivers(rig, bones):
+    boneFcus, sumFcus = getAllBoneSumDrivers(rig, bones)
+    removeDriverFCurves(boneFcus.values(), rig)
+    removeDriverFCurves(sumFcus.values(), rig)
 
 #----------------------------------------------------------
 #   Update button
@@ -701,28 +700,7 @@ class DAZ_OT_CopyProps(DazOperator, IsObject):
 #   Copy drivers
 #----------------------------------------------------------
 
-def copyBoneDrivers(rig1, rig2):
-    from .propgroups import copyPropGroups
-
-    if rig1.animation_data:
-        struct = {}
-        for fcu in rig1.animation_data.drivers:
-            words = fcu.data_path.split('"')
-            if (len(words) == 3 and
-                words[0] == "pose.bones["):
-                bname = words[1]
-                if bname not in rig2.data.bones.keys():
-                    print("Missing bone (copyBoneDrivers):", bname)
-                    continue
-                copyDriver(fcu, rig2, rig2)
-
-        for pb1 in rig1.pose.bones:
-            if pb1.name in rig2.pose.bones.keys() and pb1.DazDriven:
-                pb2 = rig2.pose.bones[pb1.name]
-                copyPropGroups(rig1, rig2, pb2)
-
-
-class DAZ_OT_CopyBoneDrivers(DazOperator, IsArmature):
+class DAZ_OT_CopyBoneDrivers(DazOperator, TmpObject, IsArmature):
     bl_idname = "daz.copy_bone_drivers"
     bl_label = "Copy Bone Drivers"
     bl_description = "Copy bone drivers from selected rig to active rig"
@@ -732,9 +710,31 @@ class DAZ_OT_CopyBoneDrivers(DazOperator, IsArmature):
         rig = context.object
         for ob in getSelectedArmatures(context):
             if ob != rig:
-                copyBoneDrivers(ob, rig)
+                self.copyBoneDrivers(ob, rig)
                 return
         raise DazError("Need two selected armatures")
+
+
+    def copyBoneDrivers(self, rig1, rig2):
+        from .propgroups import copyPropGroups
+
+        if rig1.animation_data:
+            struct = {}
+            for fcu in rig1.animation_data.drivers:
+                words = fcu.data_path.split('"')
+                if (len(words) == 3 and
+                    words[0] == "pose.bones["):
+                    bname = words[1]
+                    if bname not in rig2.data.bones.keys():
+                        print("Missing bone:", bname)
+                        continue
+                    fcu2 = self.copyDriver(fcu, rig2)
+                    self.setId(fcu2, rig1, rig2)
+
+            for pb1 in rig1.pose.bones:
+                if pb1.name in rig2.pose.bones.keys() and pb1.DazDriven:
+                    pb2 = rig2.pose.bones[pb1.name]
+                    copyPropGroups(rig1, rig2, pb2)
 
 #----------------------------------------------------------
 #   Disable and enable drivers

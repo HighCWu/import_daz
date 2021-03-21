@@ -708,7 +708,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazCustomMin")
         box.prop(scn, "DazCustomMax")
         box.prop(scn, "DazShowFinalProps")
-        box.prop(scn, "DazUseApproxDrvCombine")
 
         col = split.column()
         box = col.box()
@@ -855,10 +854,6 @@ def register():
     bpy.types.Scene.DazShowFinalProps = BoolProperty(
         name = "Show Final Sliders",
         description = "Display the \"final\" slider values")
-
-    bpy.types.Scene.DazUseApproxDrvCombine = BoolProperty(
-        name = "Combine Drivers Approximately",
-        description = "Combine rotation drivers by adding Euler angles\ninstead of using extra bones")
 
     bpy.types.Scene.DazMakeHiddenSliders = BoolProperty(
         name = "Make Hidden Sliders",

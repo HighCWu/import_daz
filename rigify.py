@@ -850,10 +850,10 @@ class Rigify:
 
 
     def rigifyMeta(self, context):
-        from .driver import getBoneDrivers, getPropDrivers, copyDriver
+        from .driver import getBoneDrivers, getPropDrivers
         from .node import setParent, clearParent
         from .propgroups import copyPropGroups
-        from .mhx import unhideAllObjects, getBoneLayer, changeAllTargets
+        from .mhx import unhideAllObjects, getBoneLayer
         from .hide import getRigCollection
 
         print("Rigify metarig")
@@ -1048,7 +1048,7 @@ class Rigify:
                         vgrp = ob.vertex_groups[dname]
                         vgrp.name = rname
 
-                changeAllTargets(ob, rig, gen)
+                self.changeAllTargets(ob, rig, gen)
 
         # Fix drivers
         assoc = dict([(bname,bname) for bname in rig.data.bones.keys()])
@@ -1059,9 +1059,11 @@ class Rigify:
                 daz = daz[0]
             assoc[daz] = rigi
         for fcu in getPropDrivers(rig):
-            copyDriver(fcu, gen, gen)
+            fcu2 = self.copyDriver(fcu, gen)
+            self.setId(fcu2, rig, gen)
         for fcu in getPropDrivers(rig.data):
-            copyDriver(fcu, gen.data, gen)
+            fcu2 = self.copyDriver(fcu, gen.data)
+            self.setId(fcu2, rig, gen)
         for bname, fcus in driven.items():
             if bname in gen.pose.bones.keys():
                 pb = gen.pose.bones[bname]
@@ -1069,7 +1071,8 @@ class Rigify:
                 for fcu in fcus:
                     self.copyBoneProp(fcu, rig, gen, pb)
                 for fcu in fcus:
-                    fcu2 = copyDriver(fcu, pb, gen)
+                    fcu2 = self.copyDriver(fcu, pb)
+                    self.setId(fcu2, rig, gen)
                     self.changeTarget(fcu2, gen, assoc)
 
         # Fix correctives
@@ -1108,8 +1111,7 @@ class Rigify:
 
 
     def copyBoneProp(self, fcu, rig, gen, pb):
-        from .driver import splitDataPath
-        bname,prop,channel,idx = splitDataPath(fcu)
+        bname,prop,channel,idx = self.splitDataPath(fcu)
         if prop and bname in rig.pose.bones.keys():
             self.copyProp(prop, rig.pose.bones[bname], pb)
 
