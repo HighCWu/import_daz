@@ -56,22 +56,6 @@ MhxLayers = [
      (L_RTOE,       'Toes', 'MhxToe')),
 ]
 
-OtherLayers = [
-    ((L_SPINE,      'Spine', 'MhxFKSpine'),
-     (L_HEAD,       'Head', 'MhxHead')),
-    ((L_TWEAK,      'Tweak', 'MhxTweak'),
-     (L_FACE,       'Face', 'MhxFace')),
-    ('Left', 'Right'),
-    ((L_LARMFK,     'Arm', 'MhxFKArm'),
-     (L_RARMFK,     'Arm', 'MhxFKArm')),
-    ((L_LLEGFK,     'Leg', 'MhxFKLeg'),
-     (L_RLEGFK,     'Leg', 'MhxFKLeg')),
-    ((L_LFINGER,    'Fingers', 'MhxFingers'),
-     (L_RFINGER,    'Fingers', 'MhxFingers')),
-    ((L_LTOE,       'Toes', 'MhxToe'),
-     (L_RTOE,       'Toes', 'MhxToe')),
-]
-
 
 class DAZ_OT_MhxEnableAllLayers(DazOperator):
     bl_idname = "daz.pose_enable_all_layers"

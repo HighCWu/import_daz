@@ -45,6 +45,10 @@ class DazFloatGroup(bpy.types.PropertyGroup):
 class DazStringGroup(bpy.types.PropertyGroup):
     s : StringProperty()
 
+class DazStringIntGroup(bpy.types.PropertyGroup):
+    s : StringProperty()
+    i : IntProperty()
+
 class DazPairGroup(bpy.types.PropertyGroup):
     a : IntProperty()
     b : IntProperty()

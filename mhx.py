@@ -34,6 +34,7 @@ from mathutils import *
 from .error import *
 from .utils import *
 from .globvars import NewFaceLayer
+from .propgroups import DazPairGroup
 
 #-------------------------------------------------------------
 #   Bone layers
@@ -318,17 +319,29 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         default = True
     )
 
-    useLegacy : BoolProperty(
-        name = "Legacy Bone Names",
-        description = "Use root/hips rather than hip/pelvis",
-        default = False
-    )
-
     useKeepRig : BoolProperty(
         name = "Keep DAZ Rig",
         description = "Keep existing armature and meshes in a new collection",
         default = False
     )
+
+    boneGroups : CollectionProperty(
+        type = DazPairGroup,
+        name = "Bone Groups")
+
+
+    DefaultBoneGroups = {
+        'Spine':        ("THEME01", (L_MAIN, L_SPINE)),
+        'Left Arm FK':  ("THEME02", (L_LARMFK, L_LHAND, L_LFINGER)),
+        'Right Arm FK': ("THEME04", (L_RARMFK, L_RHAND, L_RFINGER)),
+        'Left Arm IK':  ("THEME03", (L_LARMIK,)),
+        'Right Arm IK': ("THEME11", (L_RARMIK,)),
+        'Left Leg FK':  ("THEME09", (L_LLEGFK, L_LTOE)),
+        'Right Leg FK': ("THEME07", (L_RLEGFK, L_RTOE)),
+        'Left Leg IK':  ("THEME14", (L_LLEGIK,)),
+        'Right Leg IK': ("THEME08", (L_RLEGIK,)),
+        'Face':         ("THEME10", (L_HEAD, L_FACE)),
+    }
 
     BendTwists = [
         ("thigh.L", "shin.L"),
@@ -372,30 +385,38 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     }
 
     def draw(self, context):
-        self.layout.prop(self, "addTweakBones")
-        self.layout.prop(self, "useLegacy")
-        self.layout.prop(self, "useKeepRig")
+        rig = context.object
+        split = self.layout.split(factor=0.4)
+        col = split.column()
+        col.prop(self, "addTweakBones")
+        col.prop(self, "useKeepRig")
+        col = split.column()
+        for bg in rig.pose.bone_groups:
+            row = col.row()
+            row.label(text=bg.name)
+            row.prop(bg, "color_set", text="")
+
+
+    def invoke(self, context, event):
+        rig = context.object
+        if len(rig.pose.bone_groups) != len(self.DefaultBoneGroups):
+            for bg in list(rig.pose.bone_groups):
+                rig.pose.bone_groups.remove(bg)
+            for bgname,data in self.DefaultBoneGroups.items():
+                theme,_layers = data
+                bg = rig.pose.bone_groups.new(name=bgname)
+                bg.color_set = theme
+        return DazPropsOperator.invoke(self, context, event)
 
 
     def run(self, context):
         from .merge import reparentToes
         rig = context.object
+        rig.DazMhxLegacy = False
         scn = context.scene
         startProgress("Convert %s to MHX" % rig.name)
         if self.useKeepRig:
             saveExistingRig(context)
-
-        #-------------------------------------------------------------
-        #   Legacy bone names
-        #-------------------------------------------------------------
-
-        if self.useLegacy:
-            self.hip = "root"
-            self.pelvis = "hips"
-        else:
-            self.hip = "hip"
-            self.pelvis = "pelvis"
-            rig.DazMhxLegacy = False
 
         #-------------------------------------------------------------
         #   MHX skeleton
@@ -403,8 +424,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         #-------------------------------------------------------------
 
         self.skeleton = [
-            (self.hip, "hip", L_MAIN),
-            (self.pelvis, "pelvis", L_SPINE),
+            ("hip", "hip", L_MAIN),
+            ("pelvis", "pelvis", L_SPINE),
 
             ("thigh.L", "lThigh", L_LLEGFK),
             ("thighBend.L", "lThighBend", L_LLEGFK),
@@ -739,7 +760,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         for bname in self.tweakBones:
             if bname is None:
                 continue
-            if bname.startswith((self.pelvis, "chest", "clavicle")):
+            if bname.startswith(("pelvis", "chest", "clavicle")):
                 gizmo = "GZM_Ball025End"
             else:
                 gizmo = "GZM_Ball025"
@@ -763,26 +784,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #-------------------------------------------------------------
 
     def addBoneGroups(self, rig):
-        boneGroups = [
-            ('Spine', 'THEME01', L_SPINE),
-            ('ArmFK.L', 'THEME02', L_LARMFK),
-            ('ArmFK.R', 'THEME03', L_RARMFK),
-            ('ArmIK.L', 'THEME04', L_LARMIK),
-            ('ArmIK.R', 'THEME05', L_RARMIK),
-            ('LegFK.L', 'THEME06', L_LLEGFK),
-            ('LegFK.R', 'THEME07', L_RLEGFK),
-            ('LegIK.L', 'THEME14', L_LLEGIK),
-            ('LegIK.R', 'THEME09', L_RLEGIK),
-            ]
-
-        for bgname,theme,layer in boneGroups:
-            bpy.ops.pose.group_add()
-            bgrp = rig.pose.bone_groups.active
-            bgrp.name = bgname
-            bgrp.color_set = theme
+        for idx,data in enumerate(self.DefaultBoneGroups.values()):
+            _theme,layers = data
+            bgrp = rig.pose.bone_groups[idx]
             for pb in rig.pose.bones.values():
-                if pb.bone.layers[layer]:
-                    pb.bone_group = bgrp
+                for layer in layers:
+                    if pb.bone.layers[layer]:
+                        pb.bone_group = bgrp
 
     #-------------------------------------------------------------
     #   Backbone
@@ -817,7 +825,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.tweakBones = [
             None, "spine", "spine-1", "chest", "chest-1",
             None, "neck", "neck-1",
-            None, self.pelvis,
+            None, "pelvis",
             None, "clavicle.L", None, "forearm.L", None, "shin.L",
             None, "clavicle.R", None, "forearm.R", None, "shin.R"]
 
@@ -944,7 +952,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def setupFkIk(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
-        root = rig.data.edit_bones[self.hip]
+        root = rig.data.edit_bones["hip"]
         head = rig.data.edit_bones["head"]
         for suffix,dlayer in [(".L",0), (".R",16)]:
             upper_arm = setLayer("upper_arm"+suffix, rig, L_HELP)
@@ -1063,7 +1071,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 copyBoneInfo(bone, fkbone)
 
         rpbs = rig.pose.bones
-        for bname in [self.hip, self.pelvis]:
+        for bname in ["hip", "pelvis"]:
             pb = rpbs[bname]
             pb.rotation_mode = 'YZX'
 
@@ -1241,7 +1249,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def addMaster(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
-        root = rig.data.edit_bones[self.hip]
+        root = rig.data.edit_bones["hip"]
         master = makeBone("master", rig, (0,0,0), (0,root.head[2]/5,0), 0, L_MAIN, None)
         for eb in rig.data.edit_bones:
             if eb.parent is None and eb != master:
