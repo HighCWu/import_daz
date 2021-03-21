@@ -195,6 +195,18 @@ class Fixer(DriverUser):
                 if mod.type == 'ARMATURE' and mod.object == rig:
                     mod.object = newrig
 
+
+    def isFaceBone(self, pb):
+        if pb.parent:
+            par = pb.parent
+            if par.name in ["upperFaceRig", "lowerFaceRig"]:
+                return True
+            elif (isDrvBone(par.name) and
+                  par.parent and
+                  par.parent.name in ["upperFaceRig", "lowerFaceRig"]):
+                return True
+        return False
+
 #-------------------------------------------------------------
 #   Constraints class
 #-------------------------------------------------------------
