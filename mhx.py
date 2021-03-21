@@ -617,7 +617,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         showProgress(23, 25, "  Add bone groups")
         self.addBoneGroups(rig)
         rig["MhxRig"] = "MHX"
-        setattr(rig.data, DrawType, 'STICK')
+        setattr(rig.data, DrawType, 'WIRE')
         T = True
         F = False
         rig.data.layers = [T,T,T,F, T,F,T,F, F,F,F,F, F,F,F,F,
@@ -986,7 +986,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
             hand0Ik = deriveBone("hand0.ik"+suffix, hand, rig, L_HELP2, forearmIk)
 
-            size = 5*rig.DazScale
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
             locElbowPt = forearm.head - 5*rig.DazScale*vec
@@ -1001,7 +1000,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             foot.tail = toe.head
             foot.use_connect = False
 
-            size = 10*rig.DazScale
             legSocket = makeBone("legSocket"+suffix, rig, thigh.head, thigh.head+Vector((0,0,size)), 0, L_LEXTRA+dlayer, thigh.parent)
             legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, root)
             thigh.parent = legParent
@@ -1440,8 +1438,8 @@ Gizmos = {
     "toe.rev.R" :       ("GZM_RevToe", 1),
     "ankle.L" :         ("GZM_Ball025", 1),
     "ankle.R" :         ("GZM_Ball025", 1),
-    "knee.pt.ik.L" :    ("GZM_Cube", 0.25),
-    "knee.pt.ik.R" :    ("GZM_Cube", 0.25),
+    "knee.pt.ik.L" :    ("GZM_Cone", 0.25),
+    "knee.pt.ik.R" :    ("GZM_Cone", 0.25),
 
     "toe.marker.L" :     ("GZM_Ball025", 1),
     "ball.marker.L" :    ("GZM_Ball025", 1),
@@ -1465,8 +1463,8 @@ Gizmos = {
     "armSocket.R" :     ("GZM_Cube", 0.25),
     "hand.ik.L" :       ("GZM_HandIK", 1),
     "hand.ik.R" :       ("GZM_HandIK", 1),
-    "elbow.pt.ik.L" :   ("GZM_Cube", 0.25),
-    "elbow.pt.ik.R" :   ("GZM_Cube", 0.25),
+    "elbow.pt.ik.L" :   ("GZM_Cone", 0.25),
+    "elbow.pt.ik.R" :   ("GZM_Cone", 0.25),
 
     # Finger
 
@@ -1500,6 +1498,7 @@ def makeGizmos(gnames, parent, hidden):
     makeEmptyGizmo("GZM_Circle", 'CIRCLE')
     makeEmptyGizmo("GZM_Ball", 'SPHERE')
     makeEmptyGizmo("GZM_Cube", 'CUBE')
+    makeEmptyGizmo("GZM_Cone", 'CONE')
 
     from .load_json import loadJson
     folder = os.path.dirname(__file__)

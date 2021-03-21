@@ -177,7 +177,7 @@ class Snapper:
             d.normalize()
             if d.dot(az) > 0:
                 d = -d
-            p = p0 + 6*pb.bone.length*d
+            p = p0 + 1*pb.bone.length*d
         else:
             p = p0
         gmat = Matrix.Translation(p)
