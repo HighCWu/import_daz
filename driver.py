@@ -239,22 +239,26 @@ class Driver:
             self.variables.append(Variable(var))
 
 
-    def create(self, rna, fixDrv=False):
+    def getChannel(self):
         words = self.data_path.split('"')
         if words[0] == "pose.bones[" and len(words) == 5:
             bname = words[1]
             channel = words[3]
-            self.data_path = self.data_path.replace(bname, drvBone(bname))
+            self.data_path = self.data_path.replace(propRef(bname), propRef(drvBone(bname)))
             self.array_index = -1
-            channel = propRef(channel)
+            return propRef(channel), -1
         else:
             words = self.data_path.rsplit(".",1)
             if len(words) == 2:
                 channel = words[1]
             else:
                 raise RuntimeError("BUG: Cannot create channel\n%s" % self.data_path)
+            return channel, self.array_index
 
-        fcu = rna.driver_add(channel, self.array_index)
+
+    def create(self, rna, fixDrv=False):
+        channel,idx = self.getChannel()
+        fcu = rna.driver_add(channel, idx)
         return self.fill(fcu, fixDrv)
 
 

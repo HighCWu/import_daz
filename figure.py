@@ -453,7 +453,6 @@ class ExtraBones(TmpObject):
         rig.data.layers = 32*[True]
         success = False
         self.createTmp()
-        self.getTmpDriver(0)
         try:
             self.addExtraBones(rig)
             success = True
@@ -464,19 +463,32 @@ class ExtraBones(TmpObject):
         print("%s completed in %.1f seconds" % (self.button, t2-t1))
 
 
-    def correctDriver(self, fcu):
-        if fcu.driver.type == 'SCRIPTED':
-            varnames = dict([(var.name,True) for var in fcu.driver.variables])
-            for var in fcu.driver.variables:
-                for trg in var.targets:
-                    if isDrvBone(trg.bone_target):
-                        self.combineDrvFinBone(fcu, var, trg, varnames)
+    def correctDriver(self, fcu, rig):
+        varnames = dict([(var.name,True) for var in fcu.driver.variables])
+        for var in fcu.driver.variables:
+            for trg in var.targets:
+                if trg.bone_target:
+                    self.combineDrvFinBone(fcu, rig, var, trg, varnames)
+                if trg.data_path:
+                    trg.data_path = self.replaceDrv(trg.data_path)
 
 
-    def combineDrvFinBone(self, fcu, var, trg, varnames):
+    def replaceDrv(self, string):
+        words = string.split('"')
+        if words[0] == "pose.bones[":
+            bname = words[1]
+            if bname in self.bnames:
+                return string.replace(propRef(bname), propRef(drvBone(bname)))
+        return string
+
+
+    def combineDrvFinBone(self, fcu, rig, var, trg, varnames):
         if trg.transform_type[0:3] == "ROT":
             bname = baseBone(trg.bone_target)
-            trg.bone_target = finBone(bname)
+            if finBone(bname) in rig.pose.bones.keys():
+                trg.bone_target = finBone(bname)
+            elif drvBone(bname) in rig.pose.bones.keys():
+                trg.bone_target = drvBone(bname)
         else:
             self.combineDrvSimple(fcu, var, trg, varnames)
 
@@ -509,19 +521,9 @@ class ExtraBones(TmpObject):
         cns.target_space = 'POSE'
         cns.owner_space = 'POSE'
         cns.influence = 1.0
-        return
-        for n in range(3):
-            var = chr(ord("X")+n)
-            prop = "euler(fin)_%s" % var
-            pb[prop] = 0.0
-            fcu = pb.driver_add(propRef(prop))
-            fcu.driver.type = 'SCRIPTED'
-            fcu.driver.expression = var
-            ttype = "ROT_%s" % var
-            addTransformVar(fcu, var, ttype, rig, finBone(bname))
 
 
-    def storeRemoveBoneSumDrivers(self, rig, bones):
+    def storeRemoveBoneSumDrivers(self, rig):
         def store(fcus, rig):
             from .driver import Driver
             drivers = {}
@@ -532,7 +534,7 @@ class ExtraBones(TmpObject):
             return drivers
 
         from .driver import removeDriverFCurves, getAllBoneSumDrivers
-        boneFcus, sumFcus = getAllBoneSumDrivers(rig, bones)
+        boneFcus, sumFcus = getAllBoneSumDrivers(rig, self.bnames)
         boneDrivers = store(boneFcus, rig)
         sumDrivers = store(sumFcus, rig)
         removeDriverFCurves(boneFcus.values(), rig)
@@ -544,8 +546,13 @@ class ExtraBones(TmpObject):
         for bname,bdrivers in drivers.items():
             pb = rig.pose.bones[drvBone(bname)]
             for driver in bdrivers:
-                fcu = driver.create(pb, fixDrv=fixDrv)
-                self.correctDriver(fcu)
+                fcu = self.getTmpDriver(0)
+                driver.fill(fcu)
+                self.correctDriver(fcu, rig)
+                fcu2 = rig.animation_data.drivers.from_existing(src_driver=fcu)
+                fcu2.data_path = driver.data_path.replace(propRef(bname), propRef(drvBone(bname)))
+                fcu2.array_index = driver.array_index
+                self.clearTmpDriver(0)
 
 
     def addExtraBones(self, rig):
@@ -581,17 +588,17 @@ class ExtraBones(TmpObject):
         drivenLayers = 31*[False] + [True]
         finalLayers = 30*[False] + [True,False]
 
-        print("Rename bones")
-        bnames = self.getBoneNames(rig)
-        boneDrivers, sumDrivers = self.storeRemoveBoneSumDrivers(rig, bnames)
+        print("  Rename bones")
+        self.bnames = self.getBoneNames(rig)
+        boneDrivers, sumDrivers = self.storeRemoveBoneSumDrivers(rig)
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname in bnames:
+        for bname in self.bnames:
             eb = rig.data.edit_bones[bname]
             eb.name = drvBone(bname)
         bpy.ops.object.mode_set(mode='OBJECT')
 
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname in bnames:
+        for bname in self.bnames:
             db = rig.data.edit_bones[drvBone(bname)]
             eb = copyEditBone(db, rig, bname)
             eb.parent = db
@@ -603,22 +610,22 @@ class ExtraBones(TmpObject):
             db.use_deform = False
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        for bname in bnames:
+        for bname in self.bnames:
             if (bname not in rig.pose.bones.keys() or
                 drvBone(bname) not in rig.pose.bones.keys()):
-                del bnames[bname]
+                del self.bnames[bname]
 
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname in bnames:
+        for bname in self.bnames:
             db = rig.data.edit_bones[drvBone(bname)]
             for cb in db.children:
                 if cb.name != bname:
                     cb.parent = rig.data.edit_bones[bname]
 
-        print("Change constraints")
+        print("  Change constraints")
         bpy.ops.object.mode_set(mode='POSE')
         store = ConstraintStore()
-        for bname in bnames:
+        for bname in self.bnames:
             pb = rig.pose.bones[bname]
             db = rig.pose.bones[drvBone(bname)]
             fb = rig.pose.bones[finBone(bname)]
@@ -630,26 +637,28 @@ class ExtraBones(TmpObject):
             store.removeConstraints(db)
             store.restoreConstraints(db.name, pb)
 
-        print("Restore drivers")
-        for bname in bnames:
+        print("  Add fin bone drivers")
+        for bname in self.bnames:
             self.addFinBoneDriver(rig, bname)
+        print("  Restore bone drivers")
         self.restoreBoneSumDrivers(rig, boneDrivers, False)
+        print("  Restore sum drivers")
         self.restoreBoneSumDrivers(rig, sumDrivers, True)
-
+        print("  Update drivers")
         setattr(rig.data, self.attr, True)
         updateDrivers(rig)
 
-        print("Update vertex groups")
+        print("  Update vertex groups")
         bpy.ops.object.mode_set(mode='OBJECT')
         for ob in rig.children:
             if ob.type == 'MESH':
                 for vgrp in ob.vertex_groups:
                     if isDrvBone(vgrp.name):
                         vgname = baseBone(vgrp.name)
-                        if vgname in bnames:
+                        if vgname in self.bnames:
                             vgrp.name = vgname
 
-        print("Update shapekeys")
+        print("  Update shapekeys")
         for ob in rig.children:
             if ob.type == 'MESH':
                 skeys = ob.data.shape_keys
@@ -657,7 +666,7 @@ class ExtraBones(TmpObject):
                     for skey in skeys.key_blocks[1:]:
                         fcu = getShapekeyDriver(skeys, skey.name)
                         if fcu:
-                            self.correctDriver(fcu)
+                            self.correctDriver(fcu, rig)
             updateDrivers(ob)
 
 
@@ -695,8 +704,7 @@ def getAnchoredBoneNames(rig, anchors):
                 if (not isDrvBone(pb.name) and
                     drvBone(pb.name) not in keys and
                     pb.parent and
-                    pb.parent.name == anchor and
-                    not isBoneDriven(rig, pb)):
+                    pb.parent.name == anchor):
                     bnames.append(pb.name)
     return bnames
 
