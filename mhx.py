@@ -330,18 +330,18 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         name = "Bone Groups")
 
 
-    DefaultBoneGroups = {
-        'Spine':        ("THEME01", (L_MAIN, L_SPINE)),
-        'Left Arm FK':  ("THEME02", (L_LARMFK, L_LHAND, L_LFINGER)),
-        'Right Arm FK': ("THEME04", (L_RARMFK, L_RHAND, L_RFINGER)),
-        'Left Arm IK':  ("THEME03", (L_LARMIK,)),
-        'Right Arm IK': ("THEME11", (L_RARMIK,)),
-        'Left Leg FK':  ("THEME09", (L_LLEGFK, L_LTOE)),
-        'Right Leg FK': ("THEME07", (L_RLEGFK, L_RTOE)),
-        'Left Leg IK':  ("THEME14", (L_LLEGIK,)),
-        'Right Leg IK': ("THEME08", (L_RLEGIK,)),
-        'Face':         ("THEME10", (L_HEAD, L_FACE)),
-    }
+    DefaultBoneGroups = [
+        ('Spine',        "THEME01", (L_MAIN, L_SPINE)),
+        ('Left Arm FK',  "THEME02", (L_LARMFK, L_LHAND, L_LFINGER)),
+        ('Right Arm FK', "THEME04", (L_RARMFK, L_RHAND, L_RFINGER)),
+        ('Left Arm IK',  "THEME03", (L_LARMIK,)),
+        ('Right Arm IK', "THEME11", (L_RARMIK,)),
+        ('Left Leg FK',  "THEME09", (L_LLEGFK, L_LTOE)),
+        ('Right Leg FK', "THEME07", (L_RLEGFK, L_RTOE)),
+        ('Left Leg IK',  "THEME14", (L_LLEGIK,)),
+        ('Right Leg IK', "THEME08", (L_RLEGIK,)),
+        ('Face',         "THEME10", (L_HEAD, L_FACE)),
+    ]
 
     BendTwists = [
         ("thigh.L", "shin.L"),
@@ -402,8 +402,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         if len(rig.pose.bone_groups) != len(self.DefaultBoneGroups):
             for bg in list(rig.pose.bone_groups):
                 rig.pose.bone_groups.remove(bg)
-            for bgname,data in self.DefaultBoneGroups.items():
-                theme,_layers = data
+            for bgname,theme,_layers in self.DefaultBoneGroups:
                 bg = rig.pose.bone_groups.new(name=bgname)
                 bg.color_set = theme
         return DazPropsOperator.invoke(self, context, event)
@@ -784,8 +783,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #-------------------------------------------------------------
 
     def addBoneGroups(self, rig):
-        for idx,data in enumerate(self.DefaultBoneGroups.values()):
-            _theme,layers = data
+        for idx,data in enumerate(self.DefaultBoneGroups):
+            _bgname,_theme,layers = data
             bgrp = rig.pose.bone_groups[idx]
             for pb in rig.pose.bones.values():
                 for layer in layers:
@@ -990,8 +989,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             size = 5*rig.DazScale
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
-            locElbowPt = forearm.head - 15*rig.DazScale*vec
-            elbowPt = makeBone("elbow.pt.ik"+suffix, rig, locElbowPt, locElbowPt+Vector((0,0,size)), 0, L_LARMIK+dlayer, upper_arm.parent)
+            locElbowPt = forearm.head - 5*rig.DazScale*vec
+            elbowPt = makeBone("elbow.pt.ik"+suffix, rig, locElbowPt, locElbowPt+Vector((0,0,size)), 0, L_LARMIK+dlayer, None)
             elbowLink = makeBone("elbow.link"+suffix, rig, forearm.head, locElbowPt, 0, L_LARMIK+dlayer, upper_armIk)
             elbowLink.hide_select = True
 
@@ -1034,8 +1033,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             vec = thigh.matrix.to_3x3().col[2]
             vec.normalize()
-            locKneePt = shin.head - 15*rig.DazScale*vec
-            kneePt = makeBone("knee.pt.ik"+suffix, rig, locKneePt, locKneePt+Vector((0,0,size)), 0, L_LLEGIK+dlayer, thigh.parent)
+            locKneePt = shin.head - 5*rig.DazScale*vec
+            kneePt = makeBone("knee.pt.ik"+suffix, rig, locKneePt, locKneePt+Vector((0,0,size)), 0, L_LLEGIK+dlayer, None)
             kneePt.layers[L_LEXTRA+dlayer] = True
             kneeLink = makeBone("knee.link"+suffix, rig, shin.head, locKneePt, 0, L_LLEGIK+dlayer, thighIk)
             kneeLink.layers[L_LEXTRA+dlayer] = True
