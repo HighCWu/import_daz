@@ -31,7 +31,7 @@ import numpy as np
 from .error import *
 from .utils import *
 from .morphing import JCMSelector
-from .driver import TmpObject
+from .driver import DriverUser
 
 
 class FastMatcher:
@@ -174,7 +174,7 @@ class DAZ_OT_CopyVertexGroupsByNumber(DazOperator, IsMesh):
 #   Morphs transfer
 #----------------------------------------------------------
 
-class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, TmpObject):
+class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser):
     bl_idname = "daz.transfer_shapekeys"
     bl_label = "Transfer Shapekeys"
     bl_description = "Transfer shapekeys from active mesh to selected meshes"

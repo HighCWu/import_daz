@@ -114,8 +114,6 @@ class ImportDAZ(DazOperator, DazOptions):
 
 
 class MorphTypeOptions:
-    drawAll = True
-
     units : BoolProperty(
         name = "Face Units",
         description = "Import all face units",
@@ -162,8 +160,7 @@ class MorphTypeOptions:
         self.layout.prop(self, "visemes")
         self.layout.prop(self, "facs")
         self.layout.prop(self, "facsexpr")
-        if self.drawAll:
-            self.layout.prop(self, "body")
+        self.layout.prop(self, "body")
         self.layout.prop(self, "jcms")
         self.layout.prop(self, "flexions")
 
@@ -175,7 +172,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
     bl_description = "Load a native DAZ file and perform the most common operations"
     bl_options = {'UNDO'}
 
-    drawAll = False
     rigType : EnumProperty(
         items = [('DAZ', "DAZ", "Original DAZ rig"),
                  ('CUSTOM', "Custom Shapes", "Original DAZ rig with custom shapes"),
@@ -228,10 +224,10 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
         description = "Add an extra layer of face bones, which can be both driven and posed",
         default = True)
 
-    useMakeAllBonesPosable : BoolProperty(
-        name = "Make All Bones Posable",
-        description = "Add an extra layer of driven bones, to make them posable",
-        default = False)
+    useMakeAllBonesPoseable : BoolProperty(
+        name = "Make All Bones Poseable",
+        description = "Add an extra layer of driven bones, to make them poseable",
+        default = True)
 
     useConvertHair : BoolProperty(
         name = "Convert Hair",
@@ -249,7 +245,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
         self.layout.prop(self, "useMergeGeografts")
         self.layout.prop(self, "useMergeLashes")
         self.layout.prop(self, "useExtraFaceBones")
-        #self.layout.prop(self, "useMakeAllBonesPosable")
+        self.layout.prop(self, "useMakeAllBonesPoseable")
         self.layout.prop(self, "useConvertHair")
         MorphTypeOptions.draw(self, context)
         if self.jcms or self.flexions:
@@ -412,10 +408,10 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
 
         if mainRig:
             activateObject(context, mainRig)
-            # Make all bones posable
-            if self.useMakeAllBonesPosable:
-                print("Make all bones posable")
-                bpy.ops.daz.make_all_bones_posable()
+            # Make all bones poseable
+            if self.useMakeAllBonesPoseable:
+                print("Make all bones poseable")
+                bpy.ops.daz.make_all_bones_poseable()
 
         # Convert hairs
         if hairs and mainMesh and self.useConvertHair:

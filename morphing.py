@@ -36,7 +36,7 @@ from .utils import *
 from .fileutils import SingleFile, MultiFile, DazImageFile, DatFile
 from .propgroups import DazTextGroup, DazFloatGroup, DazStringGroup
 from .load_morph import LoadMorph
-from .driver import TmpObject
+from .driver import DriverUser
 
 #-------------------------------------------------------------
 #   Morph sets
@@ -1991,7 +1991,7 @@ class DAZ_OT_RemoveJCMs(DazOperator, JCMSelector, MorphRemover, IsMesh):
 #   Add driven value nodes
 #-------------------------------------------------------------
 
-class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, TmpObject, IsMesh):
+class DAZ_OT_AddDrivenValueNodes(DazOperator, Selector, DriverUser, IsMesh):
     bl_idname = "daz.add_driven_value_nodes"
     bl_label = "Add Driven Value Nodes"
     bl_description = "Add driven value nodes"

@@ -35,7 +35,7 @@ from .utils import *
 #   Temp object for faster drivers
 #-------------------------------------------------------------
 
-class TmpObject:
+class DriverUser:
     def __init__(self):
         self.tmp = None
 
@@ -123,6 +123,21 @@ class TmpObject:
                     trg.id = new
                 elif trg.id_type == 'ARMATURE' and trg.id == old.data:
                     trg.id = new.data
+
+
+    def getBoneTarget(self, fcu):
+        for var in fcu.driver.variables:
+            for trg in var.targets:
+                if trg.bone_target:
+                    return trg.bone_target
+        return None
+
+
+    def setBoneTarget(self, fcu, bname):
+        for var in fcu.driver.variables:
+            for trg in var.targets:
+                if trg.bone_target:
+                    trg.bone_target = bname
 
 
     def getShapekeyDrivers(self, ob, drivers={}):
@@ -704,7 +719,7 @@ class DAZ_OT_CopyProps(DazOperator, IsObject):
 #   Copy drivers
 #----------------------------------------------------------
 
-class DAZ_OT_CopyBoneDrivers(DazOperator, TmpObject, IsArmature):
+class DAZ_OT_CopyBoneDrivers(DazOperator, DriverUser, IsArmature):
     bl_idname = "daz.copy_bone_drivers"
     bl_label = "Copy Bone Drivers"
     bl_description = "Copy bone drivers from selected rig to active rig"

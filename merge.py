@@ -33,13 +33,13 @@ import bpy
 from .utils import *
 from .error import *
 from .material import MaterialMerger
-from .driver import TmpObject
+from .driver import DriverUser
 
 #-------------------------------------------------------------
 #   Merge geografts
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, TmpObject, IsMesh):
+class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
     bl_idname = "daz.merge_geografts"
     bl_label = "Merge Geografts"
     bl_description = "Merge selected geografts to active object"

@@ -32,7 +32,7 @@ from .error import *
 from .tables import *
 from .utils import *
 from .morphing import Selector
-from .driver import TmpObject
+from .driver import DriverUser
 
 #-------------------------------------------------------------
 #   Make proxy
@@ -179,7 +179,7 @@ class DAZ_OT_FindPolys(DazOperator, IsMeshArmature):
 #   Make faithful proxy
 #-------------------------------------------------------------
 
-class Proxifier(TmpObject):
+class Proxifier(DriverUser):
     def __init__(self, ob):
         self.object = ob
         self.nfaces = len(ob.data.polygons)

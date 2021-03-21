@@ -27,14 +27,14 @@
 
 import os
 import bpy
-from .driver import TmpObject
+from .driver import DriverUser
 from .utils import *
 
 #------------------------------------------------------------------
 #   LoadMorph base class
 #------------------------------------------------------------------
 
-class LoadMorph(TmpObject):
+class LoadMorph(DriverUser):
     morphset = None
     usePropDrivers = True
     loadMissed = True
@@ -55,7 +55,7 @@ class LoadMorph(TmpObject):
 
 
     def loadAllMorphs(self, namepaths):
-        TmpObject.__init__(self)
+        DriverUser.__init__(self)
         self.alias = {}
         self.loaded = []
         self.referred = {}

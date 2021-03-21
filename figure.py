@@ -31,7 +31,7 @@ from mathutils import *
 from .utils import *
 from .error import *
 from .node import Node, Instance
-from .driver import TmpObject
+from .driver import DriverUser
 
 #-------------------------------------------------------------
 #   FigureInstance
@@ -444,7 +444,7 @@ def copyBoneInfo(srcpb, trgpb):
         trgpb.DazAltName = srcpb.DazAltName
 
 
-class ExtraBones(TmpObject):
+class ExtraBones(DriverUser):
     def run(self, context):
         from time import perf_counter
         t1 = perf_counter()
@@ -470,14 +470,16 @@ class ExtraBones(TmpObject):
                 if trg.bone_target:
                     self.combineDrvFinBone(fcu, rig, var, trg, varnames)
                 if trg.data_path:
-                    trg.data_path = self.replaceDrv(trg.data_path)
+                    trg.data_path = self.replaceDataPathDrv(trg.data_path)
 
 
-    def replaceDrv(self, string):
+    def replaceDataPathDrv(self, string):
         words = string.split('"')
         if words[0] == "pose.bones[":
             bname = words[1]
-            if bname in self.bnames:
+            if isDrvBone(bname):
+                return string
+            elif bname in self.bnames:
                 return string.replace(propRef(bname), propRef(drvBone(bname)))
         return string
 
@@ -509,7 +511,7 @@ class ExtraBones(TmpObject):
         fcu.driver.expression = expr
 
 
-    def addFinBoneDriver(self, rig, bname):
+    def addFinBone(self, rig, bname):
         from .driver import addTransformVar
         pb = rig.pose.bones[bname]
         fb = rig.pose.bones[finBone(bname)]
@@ -521,6 +523,26 @@ class ExtraBones(TmpObject):
         cns.target_space = 'POSE'
         cns.owner_space = 'POSE'
         cns.influence = 1.0
+
+
+    def updateScriptedDrivers(self, rna):
+        if rna.animation_data:
+            fcus = [fcu for fcu in rna.animation_data.drivers
+                    if fcu.driver.type == 'SCRIPTED']
+            for fcu in fcus:
+                bname = self.getBoneTarget(fcu)
+                if bname is None:
+                    continue
+                bname = baseBone(bname)
+                if bname and bname in self.bnames:
+                    channel = fcu.data_path
+                    fcu2 = self.getTmpDriver(0)
+                    self.copyFcurve(fcu, fcu2)
+                    rna.driver_remove(channel)
+                    self.setBoneTarget(fcu2, finBone(bname))
+                    fcu3 = rna.animation_data.drivers.from_existing(src_driver=fcu2)
+                    fcu3.data_path = channel
+                    self.clearTmpDriver(0)
 
 
     def storeRemoveBoneSumDrivers(self, rig):
@@ -639,11 +661,13 @@ class ExtraBones(TmpObject):
 
         print("  Add fin bone drivers")
         for bname in self.bnames:
-            self.addFinBoneDriver(rig, bname)
+            self.addFinBone(rig, bname)
         print("  Restore bone drivers")
         self.restoreBoneSumDrivers(rig, boneDrivers, False)
         print("  Restore sum drivers")
         self.restoreBoneSumDrivers(rig, sumDrivers, True)
+        print("  Update scripted drivers")
+        self.updateScriptedDrivers(rig.data)
         print("  Update drivers")
         setattr(rig.data, self.attr, True)
         updateDrivers(rig)
@@ -723,8 +747,8 @@ class DAZ_OT_MakeAllBonesPoseable(DazOperator, ExtraBones, IsArmature):
         from .driver import isBoneDriven
         exclude = ["lMetatarsals", "rMetatarsals"]
         return [pb.name for pb in rig.pose.bones
-                if isBoneDriven(rig, pb) and
-                not isDrvBone(pb.name) and
+                if not isDrvBone(pb.name) and
+                isBoneDriven(rig, pb) and
                 drvBone(pb.name) not in rig.pose.bones.keys() and
                 pb.name not in exclude]
 

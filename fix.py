@@ -31,13 +31,13 @@ import math
 from mathutils import *
 from .error import *
 from .utils import *
-from .driver import TmpObject
+from .driver import DriverUser
 
 #-------------------------------------------------------------
 #   Fixer class
 #-------------------------------------------------------------
 
-class Fixer(TmpObject):
+class Fixer(DriverUser):
 
     def fixPelvis(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
