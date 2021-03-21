@@ -503,7 +503,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
     def prepareRig(self, rig):
         self.setupRigProps(rig)
-
         if rig.DazRig == "rigify":
             for bname in ["hand.ik.L", "hand.ik.R",
                           "foot.ik.L", "foot.ik.R"]:
@@ -523,11 +522,10 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 pb = rig.pose.bones["torso"]
                 pb["neck_follow"] = 1.0
                 pb["head_follow"] = 1.0
-        elif rig.DazRig == "mhx":
-            for pname in ["MhaArmIk_L", "MhaArmIk_R", "MhaLegIk_L", "MhaLegIk_R"]:
-                if (self.affectBones and self.checkSelectedChain(pname, rig)):
-                    rig[pname] = 0.0
-
+        elif rig.MhxRig or rig.DazRig == "mhx":
+            from .mhx import setToFk
+            if self.affectBones:
+                self.boneLayers = setToFk(rig, self.boneLayers)
 
     FKChains = {
         "hand.ik" : ["upper_arm.fk", "forearm.fk", "hand.fk"],

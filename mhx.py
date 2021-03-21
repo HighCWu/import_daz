@@ -616,7 +616,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         bpy.ops.object.mode_set(mode='POSE')
         showProgress(23, 25, "  Add bone groups")
         self.addBoneGroups(rig)
-        rig["MhxRig"] = "MHX"
+        rig.MhxRig = True
         setattr(rig.data, DrawType, 'WIRE')
         T = True
         F = False
@@ -1570,6 +1570,23 @@ class DAZ_OT_ConvertMhxActions(DazOperator, Selector):
         return self.invokeDialog(context)
 
 #-------------------------------------------------------------
+#   Set all limbs to FK.
+#   Used by load pose etc.
+#-------------------------------------------------------------
+
+def setToFk(rig, layers):
+    for pname in ["MhaArmIk_L", "MhaArmIk_R", "MhaLegIk_L", "MhaLegIk_R"]:
+        if pname in rig.keys():
+            rig[pname] = 0.0
+        if pname in rig.data.keys():
+            rig.data[pname] = 0.0
+    for layer in [L_LARMFK, L_RARMFK, L_LLEGFK, L_RLEGFK]:
+        layers[layer] = True
+    for layer in [L_LARMIK, L_RARMIK, L_LLEGIK, L_RLEGIK]:
+        layers[layer] = False
+    return layers
+
+#-------------------------------------------------------------
 #   Update MHX rig for armature properties
 #-------------------------------------------------------------
 
@@ -1649,6 +1666,7 @@ classes = [
 
 def register():
     bpy.types.Object.DazMhxLegacy = BoolProperty(default = True)
+    bpy.types.Object.MhxRig = BoolProperty(default = False)
     initMhxProps()
     for cls in classes:
         bpy.utils.register_class(cls)
