@@ -343,8 +343,7 @@ class LoadMorph(DriverUser):
             if Vector(quat.to_euler()).length < 1e-4:
                 pass
             elif pb.rotation_mode == 'QUATERNION':
-                vec = Vector(quat)
-                self.setFcurves(pb, vec, tfm.rotProp, "rotation_quaternion", 0)
+                self.setFcurves(pb, quat, tfm.rotProp, "rotation_quaternion", 0)
                 success = True
             else:
                 euler = mat.to_euler(pb.rotation_mode)
@@ -383,6 +382,8 @@ class LoadMorph(DriverUser):
 
     def getMaxFactor(self, vec, default):
         vals = [(abs(factor-default), idx, factor) for idx,factor in enumerate(vec)]
+        if len(vals) == 4:
+            vals = vals[1:]
         vals.sort()
         _,idx,factor = vals[-1]
         return idx, factor
