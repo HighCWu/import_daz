@@ -61,6 +61,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             drawUpdateButton(self, context)
 
         layout.operator("daz.import_daz")
+        layout.separator()
         layout.operator("daz.easy_import_daz")
         layout.separator()
         layout.operator("daz.global_settings")

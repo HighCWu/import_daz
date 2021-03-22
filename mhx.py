@@ -398,24 +398,27 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
     def invoke(self, context, event):
-        rig = context.object
+        self.createBoneGroups(context.object)
+        return DazPropsOperator.invoke(self, context, event)
+
+
+    def createBoneGroups(self, rig):
         if len(rig.pose.bone_groups) != len(self.DefaultBoneGroups):
             for bg in list(rig.pose.bone_groups):
                 rig.pose.bone_groups.remove(bg)
             for bgname,theme,_layers in self.DefaultBoneGroups:
                 bg = rig.pose.bone_groups.new(name=bgname)
                 bg.color_set = theme
-        return DazPropsOperator.invoke(self, context, event)
 
 
     def run(self, context):
         from .merge import reparentToes
         rig = context.object
         rig.DazMhxLegacy = False
-        scn = context.scene
         startProgress("Convert %s to MHX" % rig.name)
         if self.useKeepRig:
             saveExistingRig(context)
+        self.createBoneGroups(rig)
 
         #-------------------------------------------------------------
         #   MHX skeleton
