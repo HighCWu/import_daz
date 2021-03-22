@@ -770,6 +770,7 @@ class Rigify:
         bpy.ops.transform.resize(value=(100*scale, 100*scale, 100*scale))
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
 
+        print("  Fix metarig")
         meta = context.object
         cns = meta.constraints.new('COPY_SCALE')
         cns.name = "Rigify Source"
@@ -788,6 +789,7 @@ class Rigify:
         rig.select_set(True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
+        print("  Fix bones")
         if meta.DazRigifyType in ["genesis1", "genesis2"]:
             self.fixPelvis(rig)
             self.fixCarpals(rig)
@@ -807,11 +809,14 @@ class Rigify:
             deleteObjects(context, [meta])
             raise DazError("Cannot rigify %s %s" % (meta.DazRigifyType, rig.name))
 
+        print("  Connect to parent")
         connectToParent(rig)
+        print("  Setup DAZ skeleton")
         rigifySkel, spineBones, dazSkel = self.setupDazSkeleton(meta)
         dazBones = self.getDazBones(rig)
 
         # Fit metarig to default DAZ rig
+        print("  Fit to DAZ")
         #setActiveObject(context, meta)
         meta.select_set(True)
         activateObject(context, meta)
@@ -835,11 +840,14 @@ class Rigify:
                 eb.use_connect = True
 
         self.fitSpine(meta, spineBones, dazBones)
+        print("  Reparent bones")
         self.reparentBones(meta, MetaParents)
+        print("  Add props to rigify")
         connect,disconnect = self.addRigifyProps(meta)
         if self.useCustomLayers:
             self.setupGroupBones(meta)
 
+        print("  Set connected")
         bpy.ops.object.mode_set(mode='EDIT')
         self.setConnected(meta, connect, disconnect)
         self.recalcRoll(meta)
@@ -850,6 +858,14 @@ class Rigify:
 
 
     def rigifyMeta(self, context):
+        self.createTmp()
+        try:
+            self.rigifyMeta1(context)
+        finally:
+            self.deleteTmp()
+
+
+    def rigifyMeta1(self, context):
         from .driver import getBoneDrivers, getPropDrivers
         from .node import setParent, clearParent
         from .propgroups import copyPropGroups
@@ -885,10 +901,12 @@ class Rigify:
         coll = context.collection
         print("Fix generated rig", gen.name)
 
+        print("  Setup DAZ Skeleton")
         setActiveObject(context, rig)
         rigifySkel, spineBones, dazSkel = self.setupDazSkeleton(meta)
         dazBones = self.getDazBones(rig)
 
+        print("  Parent widgets")
         empty = bpy.data.objects.new("Widgets", None)
         coll.objects.link(empty)
         empty.parent = gen
@@ -896,12 +914,14 @@ class Rigify:
             if ob.parent is None and ob.name[0:4] == "WGT-":
                 ob.parent = empty
 
+        print("  Setup extras")
         extras = self.setupExtras(rig, rigifySkel, spineBones)
         if meta.DazUseBreasts:
             for prefix in ["l", "r"]:
                 dname = drvBone(prefix+"Pectoral")
                 extras[dname] = dname
 
+        print("  Get driven bones")
         driven = {}
         for pb in rig.pose.bones:
             fcus = getBoneDrivers(rig, pb)
@@ -909,6 +929,7 @@ class Rigify:
                 driven[pb.name] = fcus
 
         # Add extra bones to generated rig
+        print("  Add extra bones")
         faceLayers = R_FACE*[False] + [True] + (31-R_FACE)*[False]
         helpLayers = R_HELP*[False] + [True] + (31-R_HELP)*[False]
         setActiveObject(context, gen)
@@ -931,12 +952,14 @@ class Rigify:
                 eb.layers = helpLayers
 
         # Group bones
+        print("  Create group bones")
         if self.useCustomLayers:
             for data in self.GroupBones:
                 eb = gen.data.edit_bones[data[0]]
                 eb.layers = helpLayers
 
         # Add parents to extra bones
+        print("  Add parents to extra bones")
         for dname,rname in extras.items():
             if dname not in dazBones.keys():
                 continue
@@ -965,6 +988,7 @@ class Rigify:
         bpy.ops.object.mode_set(mode='POSE')
 
         # Lock extras
+        print("  Lock extras")
         for dname,rname in extras.items():
             if dname not in dazBones.keys():
                 continue
@@ -978,6 +1002,7 @@ class Rigify:
                     pb.lock_location = (False, False, False)
                 self.copyBoneInfo(dname, rname, rig, gen)
 
+        print("  Fix custom shapes")
         # Remove breast custom shapes, because they are placed differently in Daz
         for rname in ["breast.L", "breast.R"]:
             if rname in gen.pose.bones.keys():
@@ -991,6 +1016,7 @@ class Rigify:
             self.fixCustomShape(gen, ["chest"], 1, Vector((0,-100*rig.DazScale,0)))
 
         # Add DAZ properties
+        print("  Add DAZ properties")
         for key in rig.keys():
             self.copyProp(key, rig, gen)
         for key in rig.data.keys():
@@ -1003,6 +1029,7 @@ class Rigify:
             self.copyBoneInfo(srcname, trgname, rig, gen)
 
         # Handle bone parents
+        print("  Handle bone parents")
         boneParents = []
         for ob in rig.children:
             if ob.parent_type == 'BONE':
@@ -1019,7 +1046,8 @@ class Rigify:
                 print("Did not find bone parent %s %s" %(dname, rname))
                 setParent(context, ob, gen, None)
 
-        # Copy DAZ morph drivers and change armature modifier
+        # Change vertex groups
+        print("  Change vertex groups")
         activateObject(context, gen)
         for ob in rig.children:
             if ob.type == 'MESH':
@@ -1051,6 +1079,7 @@ class Rigify:
                 self.changeAllTargets(ob, rig, gen)
 
         # Fix drivers
+        print("  Fix drivers")
         assoc = dict([(bname,bname) for bname in rig.data.bones.keys()])
         for daz,rigi,_ in Genesis3Spine:
             assoc[daz] = rigi
@@ -1073,9 +1102,10 @@ class Rigify:
                 for fcu in fcus:
                     fcu2 = self.copyDriver(fcu, pb)
                     self.setId(fcu2, rig, gen)
-                    self.changeTarget(fcu2, gen, assoc)
+                    self.changeTarget(fcu2, gen, gen, assoc)
 
         # Fix correctives
+        print("  Fix correctives")
         correctives = {}
         for dname,rname in assoc.items():
             if self.isCopyTransformed("ORG-"+rname, gen):
@@ -1087,6 +1117,7 @@ class Rigify:
         self.fixBoneDrivers(gen, correctives)
 
         #Clean up
+        print("  Clean up")
         setattr(gen.data, DrawType, 'STICK')
         setattr(gen, ShowXRay, True)
         gen.DazRig = meta.DazRigType
@@ -1226,6 +1257,9 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists):
         ob = context.object
         return (ob and ob.type == 'ARMATURE' and not ob.DazRigifyType)
 
+    def __init__(self):
+        Fixer.__init__(self)
+
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
         self.layout.prop(self, "useDeleteMeta")
@@ -1256,6 +1290,9 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists):
     useAutoAlign = False
     useDeleteMeta = False
 
+    def __init__(self):
+        Fixer.__init__(self)
+
     def draw(self, context):
         self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "useKeepRig")
@@ -1281,6 +1318,9 @@ class DAZ_OT_RigifyMetaRig(DazPropsOperator, Rigify, Fixer, BendTwists):
     useKeepRig = False
     useDeleteMeta = False
 
+    def __init__(self):
+        Fixer.__init__(self)
+
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
         self.layout.prop(self, "useCustomLayers")
@@ -1291,6 +1331,34 @@ class DAZ_OT_RigifyMetaRig(DazPropsOperator, Rigify, Fixer, BendTwists):
 
     def run(self, context):
         self.rigifyMeta(context)
+
+#-------------------------------------------------------------
+#   Set rigify to FK. For load pose.
+#-------------------------------------------------------------
+
+def setToFk1(rig, layers):
+    for bname in ["hand.ik.L", "hand.ik.R", "foot.ik.L", "foot.ik.R"]:
+        pb = rig.pose.bones[bname]
+        pb["ik_fk_switch"] = 0.0
+    if "head.001" in rig.pose.bones.keys():
+        pb = rig.pose.bones["head.001"]
+        pb["neck_follow"] = 0.0
+    return layers
+
+
+def setToFk2(rig, layers):
+    for bname in ["upper_arm_parent.L", "upper_arm_parent.R", "thigh_parent.L", "thigh_parent.R"]:
+        pb = rig.pose.bones[bname]
+        pb["IK_FK"] = 0.0
+    if "torso" in rig.pose.bones.keys():
+        pb = rig.pose.bones["torso"]
+        pb["neck_follow"] = 1.0
+        pb["head_follow"] = 1.0
+    for n in [8, 11, 14, 17]:
+        layers[n] = True
+    for n in [7, 10, 13, 16]:
+        layers[n] = False
+    return layers
 
 #-------------------------------------------------------------
 #   List bones

@@ -152,25 +152,34 @@ class Fixer(DriverUser):
 
 
     def fixBoneDrivers(self, rig, assoc0):
-        def changeTargets(rna):
+        def changeTargets(rna, rig):
             if rna.animation_data:
-                print("    (%s %d)" % (rna.name, len(rna.animation_data.drivers)))
-                for fcu in rna.animation_data.drivers:
-                    self.changeTarget(fcu, rig, assoc)
+                drivers = list(rna.animation_data.drivers)
+                print("    (%s %d)" % (rna.name, len(drivers)))
+                for n,fcu in enumerate(drivers):
+                    self.changeTarget(fcu, rna, rig, assoc)
 
         assoc = dict([(bname,bname) for bname in rig.data.bones.keys()])
         for dname,bname in assoc0.items():
             assoc[dname] = bname
-        changeTargets(rig)
-        changeTargets(rig.data)
+        changeTargets(rig, rig)
+        changeTargets(rig.data, rig)
         for ob in rig.children:
-            changeTargets(ob)
+            changeTargets(ob, rig)
             if ob.type == 'MESH' and ob.data.shape_keys:
-                changeTargets(ob.data.shape_keys)
+                changeTargets(ob.data.shape_keys, rig)
 
 
-    def changeTarget(self, fcu, rig, assoc):
-        for var in fcu.driver.variables:
+    def changeTarget(self, fcu, rna, rig, assoc):
+        channel = fcu.data_path
+        idx = self.getArrayIndex(fcu)
+        fcu2 = self.getTmpDriver(0)
+        self.copyFcurve(fcu, fcu2)
+        if idx >= 0:
+            rna.driver_remove(channel, idx)
+        else:
+            rna.driver_remove(channel)
+        for var in fcu2.driver.variables:
             for trg in var.targets:
                 if trg.id_type == 'OBJECT':
                     trg.id = rig
@@ -178,6 +187,11 @@ class Fixer(DriverUser):
                     trg.id = rig.data
                 if var.type == 'TRANSFORMS':
                     trg.bone_target = assoc[trg.bone_target]
+        fcu3 = rna.animation_data.drivers.from_existing(src_driver=fcu2)
+        fcu3.data_path = channel
+        if idx >= 0:
+            fcu3.array_index = idx
+        self.clearTmpDriver(0)
 
 
     def changeAllTargets(self, ob, rig, newrig):

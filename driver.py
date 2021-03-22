@@ -60,6 +60,13 @@ class DriverUser:
         self.tmp.driver_remove("rotation_euler", idx)
 
 
+    def getArrayIndex(self, fcu):
+        if fcu.data_path[-1] == "]":
+            return -1
+        else:
+            return fcu.array_index
+
+
     def splitDataPath(self, fcu):
         bname = prop = None
         idx = -1

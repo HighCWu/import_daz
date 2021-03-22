@@ -503,57 +503,17 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
     def prepareRig(self, rig):
         self.setupRigProps(rig)
+        if not self.affectBones:
+            return
         if rig.DazRig == "rigify":
-            for bname in ["hand.ik.L", "hand.ik.R",
-                          "foot.ik.L", "foot.ik.R"]:
-                if (self.affectBones and self.checkRigifySwitch(bname, rig)):
-                    pb = rig.pose.bones[bname]
-                    pb["ik_fk_switch"] = 0.0
-            if "head.001" in rig.pose.bones.keys():
-                pb = rig.pose.bones["head.001"]
-                pb["neck_follow"] = 0.0
+            from .rigify import setToFk1
+            self.boneLayers = setToFk1(rig, self.boneLayers)
         elif rig.DazRig == "rigify2":
-            for bname in ["upper_arm_parent.L", "upper_arm_parent.R",
-                          "thigh_parent.L", "thigh_parent.R"]:
-                if (self.affectBones and self.checkRigifySwitch(bname, rig)):
-                    pb = rig.pose.bones[bname]
-                    pb["IK_FK"] = 1.0
-            if "torso" in rig.pose.bones.keys():
-                pb = rig.pose.bones["torso"]
-                pb["neck_follow"] = 1.0
-                pb["head_follow"] = 1.0
+            from .rigify import setToFk2
+            self.boneLayers = setToFk2(rig, self.boneLayers)
         elif rig.MhxRig or rig.DazRig == "mhx":
             from .mhx import setToFk
-            if self.affectBones:
-                self.boneLayers = setToFk(rig, self.boneLayers)
-
-    FKChains = {
-        "hand.ik" : ["upper_arm.fk", "forearm.fk", "hand.fk"],
-        "foot.ik" : ["thigh.fk", "shin.fk", "foot.fk"],
-        "upper_arm_parent" : ["upper_arm_fk", "forearm_fk", "hand_fk"],
-        "thigh_parent" : ["thigh_fk", "shin_fk", "foot_fk"],
-        "MhaArmIk" : ["upper_arm.fk", "forearm.fk", "hand.fk"],
-        "MhaLegIk" : ["thigh.fk", "shin.fk", "foot.fk"],
-    }
-
-    def checkRigifySwitch(self, bname, rig):
-        if bname not in rig.pose.bones.keys():
-            return False
-        return self.checkSelectedChain(bname, rig)
-
-
-    def checkSelectedChain(self, bname, rig):
-        if self.affectSelectedOnly:
-            suffix = bname[-1:]
-            for cname in self.FKChains[bname[:-2]]:
-                dname = cname + "." + suffix
-                if dname in rig.pose.bones.keys():
-                    pb = rig.pose.bones[dname]
-                    if pb.bone.select:
-                        return True
-            return False
-        else:
-            return True
+            self.boneLayers = setToFk(rig, self.boneLayers)
 
 
     def parseScene(self, struct):

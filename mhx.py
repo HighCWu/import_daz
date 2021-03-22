@@ -35,6 +35,7 @@ from .error import *
 from .utils import *
 from .globvars import NewFaceLayer
 from .propgroups import DazPairGroup
+from .fix import ConstraintStore, BendTwists, Fixer
 
 #-------------------------------------------------------------
 #   Bone layers
@@ -305,8 +306,6 @@ def applyBoneChildren(context, rig):
 #   Convert to MHX button
 #-------------------------------------------------------------
 
-from .fix import ConstraintStore, BendTwists, Fixer
-
 class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, IsArmature):
     bl_idname = "daz.convert_to_mhx"
     bl_label = "Convert To MHX"
@@ -384,6 +383,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         "pelvis" : "hips"
     }
 
+    def __init__(self):
+        ConstraintStore.__init__(self)
+        Fixer.__init__(self)
+
+
     def draw(self, context):
         rig = context.object
         split = self.layout.split(factor=0.4)
@@ -412,10 +416,24 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
     def run(self, context):
+        from time import perf_counter
+        rig = context.object
+        startProgress("Convert %s to MHX" % rig.name)
+        t1 = perf_counter()
+        self.createTmp()
+        try:
+            self.convertMhx(context)
+        finally:
+            self.deleteTmp()
+        t2 = perf_counter()
+        showProgress(25, 25, "MHX rig created in %.1f seconds" % (t2-t1))
+        endProgress()
+
+
+    def convertMhx(self, context):
         from .merge import reparentToes
         rig = context.object
         rig.DazMhxLegacy = False
-        startProgress("Convert %s to MHX" % rig.name)
         if self.useKeepRig:
             saveExistingRig(context)
         self.createBoneGroups(rig)
@@ -635,8 +653,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.restoreBoneChildren(bchildren, context, rig)
         updateScene(context)
         updateDrivers(rig)
-        showProgress(25, 25, "MHX rig created")
-        endProgress()
 
 
     def fixGenesis2Problems(self, rig):
