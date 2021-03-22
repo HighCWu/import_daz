@@ -45,6 +45,10 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
     bl_description = "Merge selected geografts to active object"
     bl_options = {'UNDO'}
 
+    def __init__(self):
+        DriverUser.__init__(self)
+
+
     def run(self, context):
         cob = context.object
         ncverts = len(cob.data.vertices)

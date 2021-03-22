@@ -1088,11 +1088,9 @@ class Rigify:
                 daz = daz[0]
             assoc[daz] = rigi
         for fcu in getPropDrivers(rig):
-            fcu2 = self.copyDriver(fcu, gen)
-            self.setId(fcu2, rig, gen)
+            fcu2 = self.copyDriver(fcu, gen, old=rig, new=gen)
         for fcu in getPropDrivers(rig.data):
-            fcu2 = self.copyDriver(fcu, gen.data)
-            self.setId(fcu2, rig, gen)
+            fcu2 = self.copyDriver(fcu, gen.data, old=rig, new=gen)
         for bname, fcus in driven.items():
             if bname in gen.pose.bones.keys():
                 pb = gen.pose.bones[bname]
@@ -1100,9 +1098,7 @@ class Rigify:
                 for fcu in fcus:
                     self.copyBoneProp(fcu, rig, gen, pb)
                 for fcu in fcus:
-                    fcu2 = self.copyDriver(fcu, pb)
-                    self.setId(fcu2, rig, gen)
-                    self.changeTarget(fcu2, gen, gen, assoc)
+                    fcu2 = self.copyDriver(fcu, gen, old=rig, new=gen, assoc=assoc)
 
         # Fix correctives
         print("  Fix correctives")
@@ -1142,9 +1138,13 @@ class Rigify:
 
 
     def copyBoneProp(self, fcu, rig, gen, pb):
-        bname,prop,channel,idx = self.splitDataPath(fcu)
-        if prop and bname in rig.pose.bones.keys():
-            self.copyProp(prop, rig.pose.bones[bname], pb)
+        bname = prop = None
+        words = fcu.data_path.split('"')
+        if words[0] == "pose.bones[" and words[2] == "][":
+            bname = words[1]
+            prop = words[3]
+            if bname in rig.pose.bones.keys():
+                self.copyProp(prop, rig.pose.bones[bname], pb)
 
 
     def copyBoneInfo(self, srcname, trgname, rig, gen):

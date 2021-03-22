@@ -432,7 +432,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
                 print("Convert to MHX")
                 bpy.ops.daz.convert_to_mhx()
             elif self.rigType == 'RIGIFY':
-                bpy.ops.daz.convert_to_rigify(deleteMeta=True)
+                bpy.ops.daz.convert_to_rigify(useDeleteMeta=True)
                 mainRig = context.object
 
         # Make mannequin

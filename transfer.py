@@ -241,9 +241,11 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
             raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (src.name))
         targets = self.getTargets(src, context)
         data = self.prepare(context, src, (self.transferMethod == 'NEAREST'))
+        self.createTmp()
         try:
             failed = self.transferAllMorphs(context, src, targets)
         finally:
+            self.deleteTmp()
             self.restore(context, data)
         t2 = time.perf_counter()
         print("Morphs transferred in %.1f seconds" % (t2-t1))
@@ -281,6 +283,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
         else:
             basic = None
         hskeys = src.data.shape_keys
+        cskeys = trg.data.shape_keys
         if src.active_shape_key_index < 0:
             src.active_shape_key_index = 0
         trg.active_shape_key_index = 0
@@ -303,9 +306,9 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
                 print(" 0", sname)
                 continue
 
-            if sname in trg.data.shape_keys.key_blocks.keys():
+            if sname in cskeys.key_blocks.keys():
                 if self.useOverwrite:
-                    cskey = trg.data.shape_keys.key_blocks[sname]
+                    cskey = cskeys.key_blocks[sname]
                     trg.shape_key_remove(cskey)
 
             cskey = None
@@ -317,7 +320,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
             if cskey:
                 print(" *", sname)
             elif self.autoTransfer(src, trg, hskey):
-                cskey = trg.data.shape_keys.key_blocks[sname]
+                cskey = cskeys.key_blocks[sname]
                 print(" +", sname)
                 if cskey and not self.ignoreRigidity:
                     self.correctForRigidity(trg, cskey)
@@ -327,7 +330,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
                 cskey.slider_max = hskey.slider_max
                 cskey.value = hskey.value
                 if fcu is not None:
-                    self.copyDriver(fcu, cskey)
+                    self.copyDriver(fcu, cskeys)
             else:
                 print(" -", sname)
 

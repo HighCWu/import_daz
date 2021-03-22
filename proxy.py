@@ -181,6 +181,7 @@ class DAZ_OT_FindPolys(DazOperator, IsMeshArmature):
 
 class Proxifier(DriverUser):
     def __init__(self, ob):
+        DriverUser.__init__(self)
         self.object = ob
         self.nfaces = len(ob.data.polygons)
         self.nverts = len(ob.data.vertices)
@@ -438,7 +439,6 @@ class Proxifier(DriverUser):
             for skey in ob.data.shape_keys.key_blocks:
                 data = dict([(vn, skey.data[vn].co) for vn in range(self.nverts)])
                 skeys.append((skey.name, skey.value, skey.slider_min, skey.slider_max, data))
-
         drivers = self.getShapekeyDrivers(ob)
 
         ob.data = me
@@ -460,7 +460,8 @@ class Proxifier(DriverUser):
                 if nvn >= 0:
                     skey.data[nvn].co = co
 
-        self.copyShapeKeyDrivers(ob, drivers)
+        if drivers:
+            self.copyShapeKeyDrivers(ob, drivers)
 
 
     def changeFace(self, vn, fn1, newface):

@@ -63,42 +63,34 @@ class DriverUser:
     def getArrayIndex(self, fcu):
         if fcu.data_path[-1] == "]":
             return -1
+        elif fcu.data_path.endswith("value"):
+            return -1
         else:
             return fcu.array_index
 
 
-    def splitDataPath(self, fcu):
-        bname = prop = None
-        idx = -1
-        words = fcu.data_path.split('"')
-        if words[0] == "[":
-            prop = words[1]
-            channel = fcu.data_path
-        elif words[0] == "pose.bones[":
-            bname = words[1]
-            if words[2] == "][":
-                prop = words[3]
-                channel = propRef(prop)
-        elif words[0] == "data[":
-            prop = words[1]
-            channel = fcu.data_path
-        if prop is None:
-            channel = fcu.data_path.rsplit(".",2)[-1]
-            if channel != "value":
-                idx = fcu.array_index
-        return bname, prop, channel, idx
-
-
-    def getChannel(self, fcu):
-        _bname,_prop,channel,idx = self.splitDataPath(fcu)
-        return channel, idx
-
-
-    def copyDriver(self, fcu, rna):
-        channel,idx = self.getChannel(fcu)
-        fcu2 = rna.driver_add(channel, idx)
+    def copyDriver(self, fcu, rna, old=None, new=None, assoc=None):
+        channel = fcu.data_path
+        idx = self.getArrayIndex(fcu)
+        fcu2 = self.getTmpDriver(0)
         self.copyFcurve(fcu, fcu2)
-        return fcu2
+        if old or assoc:
+            self.setId(fcu2, old, new, assoc)
+        if rna.animation_data is None:
+            if idx > 0:
+                rna.driver_add(channel, idx)
+            else:
+                rna.driver_add(channel)
+        if idx >= 0:
+            rna.driver_remove(channel, idx)
+        else:
+            rna.driver_remove(channel)
+        fcu3 = rna.animation_data.drivers.from_existing(src_driver=fcu2)
+        fcu3.data_path = channel
+        if idx >= 0:
+            fcu3.array_index = idx
+        self.clearTmpDriver(0)
+        return fcu3
 
 
     def copyFcurve(self, fcu1, fcu2):
@@ -123,13 +115,15 @@ class DriverUser:
                 trg2.transform_space = trg1.transform_space
 
 
-    def setId(self, fcu, old, new):
+    def setId(self, fcu, old, new, assoc=None):
         for var in fcu.driver.variables:
             for trg in var.targets:
                 if trg.id_type == 'OBJECT' and trg.id == old:
                     trg.id = new
                 elif trg.id_type == 'ARMATURE' and trg.id == old.data:
                     trg.id = new.data
+                if assoc and var.type == 'TRANSFORMS':
+                    trg.bone_target = assoc[trg.bone_target]
 
 
     def getBoneTarget(self, fcu):
@@ -164,13 +158,19 @@ class DriverUser:
 
 
     def copyShapeKeyDrivers(self, ob, drivers):
+        if not drivers:
+            return
         skeys = ob.data.shape_keys
-        for sname,fcu in drivers.items():
-            if (getShapekeyDriver(skeys, sname) or
-                sname not in skeys.key_blocks.keys()):
-                continue
-            skey = skeys.key_blocks[sname]
-            self.copyDriver(fcu, skey)
+        self.createTmp()
+        try:
+            for sname,fcu in drivers.items():
+                if (getShapekeyDriver(skeys, sname) or
+                    sname not in skeys.key_blocks.keys()):
+                    continue
+                #skey = skeys.key_blocks[sname]
+                self.copyDriver(fcu, skeys)
+        finally:
+            self.deleteTmp()
 
 #-------------------------------------------------------------
 #   Check if RNA is driven
@@ -736,7 +736,11 @@ class DAZ_OT_CopyBoneDrivers(DazOperator, DriverUser, IsArmature):
         rig = context.object
         for ob in getSelectedArmatures(context):
             if ob != rig:
-                self.copyBoneDrivers(ob, rig)
+                self.createTmp()
+                try:
+                    self.copyBoneDrivers(ob, rig)
+                finally:
+                    self.deleteTmp()
                 return
         raise DazError("Need two selected armatures")
 
