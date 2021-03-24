@@ -66,6 +66,7 @@ class LoadMorph(DriverUser):
         self.shapekeys = {}
         self.mults = {}
         self.sumdrivers = {}
+        self.parscales = {}
         self.initAmt()
         print("Making morphs")
         self.makeAllMorphs(namepaths)
@@ -325,7 +326,19 @@ class LoadMorph(DriverUser):
         # DS and Blender seem to inherit scale differently
         tfm,pb,prop,factor = self.getBoneData(bname, expr)
         tfm.setScale(self.strength*factor, True, prop, index=idx)
+        self.addScaleToChildren(pb, bname, idx)
         self.addPoseboneDriver(pb, tfm)
+
+
+    def addScaleToChildren(self, pb, bname, idx):
+        for child in pb.children:
+            cname = child.name
+            if cname not in self.parscales.keys():
+                self.parscales[cname] = {}
+            if idx not in self.parscales[cname].keys():
+                self.parscales[cname][idx] = {}
+            self.parscales[cname][idx][bname] = True
+            self.addScaleToChildren(child, bname, idx)
 
     #-------------------------------------------------------------
     #   Add posebone driver
@@ -350,10 +363,10 @@ class LoadMorph(DriverUser):
                 self.setFcurves(pb, euler, tfm.rotProp, "rotation_euler", 0)
                 success = True
         if (tfm.scaleProp and scale.length > 1e-4):
-            self.setFcurves(pb, scale, tfm.scaleProp, "scale", 1)
+            self.setFcurves(pb, scale, tfm.scaleProp, "scale", 0)
             success = True
         elif tfm.generalProp:
-            self.setFcurves(pb, scale, tfm.generalProp, "scale", 1)
+            self.setFcurves(pb, scale, tfm.generalProp, "scale", 0)
             success = True
         return success
 
@@ -390,6 +403,22 @@ class LoadMorph(DriverUser):
 
 
     def addSumDriver(self, pb, idx, channel, fcu, data):
+        bname = self.findSumDriver(pb, channel, idx, (pb, fcu, []))
+        self.sumdrivers[bname][channel][idx][2].append(data)
+
+
+    def addScaleSumDrivers(self):
+        for bname,bstruct in self.parscales.items():
+            pb = self.rig.pose.bones[bname]
+            for idx,istruct in bstruct.items():
+                bname = self.findSumDriver(pb, "scale", idx, (pb, None, []))
+                for pname in istruct.keys():
+                    prop = self.getParentScale(pname, idx)
+                    data = ("Sca", prop, -1, 0)
+                    self.sumdrivers[bname]["scale"][idx][2].append(data)
+
+
+    def findSumDriver(self, pb, channel, idx, data):
         bname = pb.name
         if drvBone(bname) in self.rig.data.bones.keys():
             bname = drvBone(bname)
@@ -398,8 +427,8 @@ class LoadMorph(DriverUser):
         if channel not in self.sumdrivers[bname].keys():
             self.sumdrivers[bname][channel] = {}
         if idx not in self.sumdrivers[bname][channel].keys():
-            self.sumdrivers[bname][channel][idx] = (pb, fcu, [])
-        self.sumdrivers[bname][channel][idx][2].append(data)
+            self.sumdrivers[bname][channel][idx] = data
+        return bname
 
 
     def clearProp(self, pgs, prop, idx):
@@ -685,8 +714,8 @@ class LoadMorph(DriverUser):
 
 
     def buildSumDrivers(self):
-        from .driver import Driver
         print("Building sum drivers")
+        self.addScaleSumDrivers()
         for bname,bdata in self.sumdrivers.items():
             for channel,cdata in bdata.items():
                 for idx,idata in cdata.items():
@@ -695,17 +724,17 @@ class LoadMorph(DriverUser):
                         if fcu0.driver.type == 'SUM':
                             pathids = self.getAllTargets(fcu0)
                         else:
-                            prop0 = "origo:%d" % idx
-                            pb[prop0] = 0.0
-                            fcu = pb.driver_add(propRef(prop0))
-                            driver = Driver(fcu0, True)
-                            driver.fill(fcu)
-                            path0 = 'pose.bones["%s"]["%s"]' % (pb.name, prop0)
+                            path0 = self.getOrigo(fcu0, pb, idx)
                             pathids = { path0 : 'OBJECT' }
+                    elif (channel == "scale" or
+                          (bname in self.parscales.keys() and
+                           idx in self.parscales[bname].keys())):
+                        path1 = self.getUnity(pb, idx)
+                        pathids = { path1 : 'OBJECT' }
                     else:
                         pathids = {}
 
-                    fcu,t3 = self.addTmpDriver(pb, idx, dlist, pathids)
+                    fcu,t3 = self.addTmpSumDriver(pb, idx, dlist, pathids)
                     sumfcu = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
                     pb.driver_remove(channel, idx)
                     sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
@@ -714,7 +743,47 @@ class LoadMorph(DriverUser):
             print(" + %s" % bname)
 
 
-    def addTmpDriver(self, pb, idx, dlist, pathids):
+    def getOrigo(self, fcu0, pb, idx):
+        from .driver import Driver
+        prop = "origo:%d" % idx
+        pb[prop] = 0.0
+        fcu = pb.driver_add(propRef(prop))
+        driver = Driver(fcu0, True)
+        driver.fill(fcu)
+        return 'pose.bones["%s"]["%s"]' % (pb.name, prop)
+
+
+    def getUnity(self, pb, idx):
+        prop = "unity:%d" % idx
+        pb[prop] = 1.0
+        fcu = pb.driver_add(propRef(prop))
+        fcu.driver.type = 'SCRIPTED'
+        fcu.driver.expression = "1.0"
+        return 'pose.bones["%s"]["%s"]' % (pb.name, prop)
+
+
+    def getParentScale(self, pname, idx):
+        from .driver import getRnaDriver
+        prop = "scale:%s:%d" % (pname, idx)
+        if prop not in self.amt.keys():
+            self.amt[prop] = 0.0
+        if getRnaDriver(self.amt, propRef(prop)):
+            return prop
+        fcu = self.amt.driver_add(propRef(prop))
+        fcu.driver.type = 'SCRIPTED'
+        fcu.driver.expression = "var-1.0"
+        var = fcu.driver.variables.new()
+        var.name = "var"
+        var.type = 'TRANSFORMS'
+        trg = var.targets[0]
+        trg.id = self.rig
+        trg.bone_target = pname
+        trg.transform_type = 'SCALE_%s' % chr(ord('X')+idx)
+        trg.transform_space = 'LOCAL_SPACE'
+        return prop
+
+
+    def addTmpSumDriver(self, pb, idx, dlist, pathids):
         def getTermDriverName(prop, key, idx):
             return ("%s:%s:%d" % (prop.split("(",1)[0], key, idx))
 
