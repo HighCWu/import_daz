@@ -176,7 +176,6 @@ class Material(Asset, Channels):
             self.rna = bpy.data.materials.new(self.name)
         scn = self.scene = context.scene
         mat = self.rna
-        self.storeRna(mat)
         mat.DazRenderEngine = scn.render.engine
         mat.DazShader = self.shader
         if self.uv_set:
@@ -226,7 +225,7 @@ class Material(Asset, Channels):
 
 
     def fixUdim(self, context, udim):
-        mat = self.getRna(context)
+        mat = self.rna
         if mat is None:
             return
         try:

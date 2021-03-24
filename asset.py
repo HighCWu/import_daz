@@ -44,22 +44,6 @@ class Accessor:
         self.rna = None
 
 
-    def getRna(self, context):
-        return self.rna
-        global theRnas
-        if self.rna is None:
-            if self.name in theRnas.keys():
-                return theRnas[self.name]
-            else:
-                print("Did not find RNA", self.name)
-        return self.rna
-
-
-    def storeRna(self, rna):
-        global theRnas
-        theRnas[self.name] = rna
-
-
     def getAsset(self, id, strict=True):
         global theAssets, theOtherAssets
 
@@ -500,11 +484,10 @@ def undoQuote(ref):
 
 
 def clearAssets():
-    global theAssets, theOtherAssets, theSources, theRnas
+    global theAssets, theOtherAssets, theSources
     theAssets = {}
     theOtherAssets = {}
     theSources = {}
-    theRnas = {}
 
 clearAssets()
 

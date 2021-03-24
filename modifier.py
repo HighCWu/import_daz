@@ -393,14 +393,22 @@ class SkinBinding(Modifier):
         from .geometry import GeoNode
         from .figure import FigureInstance
         if isinstance(inst, GeoNode):
-            ob = inst.getRna(context)
+            ob = inst.rna
             if ob:
                 rig = ob.parent
             else:
                 rig = None
             return ob, rig, inst
+        elif isinstance(inst, FigureInstance):
+            rig = inst.rna
+            if inst.geometries:
+                geonode = inst.geometries[0]
+                ob = geonode.rna
+            else:
+                ob = geonode = None
+            return ob, rig, geonode
         else:
-            msg = ("Expected geonode but got:\n  %s" % inst)
+            msg = ("Expected geonode or figure but got:\n  %s" % inst)
             reportError(msg, trigger=(2,3))
             return None,None,None
 

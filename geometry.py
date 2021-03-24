@@ -108,8 +108,6 @@ class GeoNode(Node):
 
     def buildObject(self, context, inst, center):
         Node.buildObject(self, context, inst, center)
-        ob = self.rna
-        self.storeRna(ob)
 
 
     def addLSMesh(self, ob, inst, rigname):
