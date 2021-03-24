@@ -573,7 +573,7 @@ class FormulaAsset(Formula, ChannelAsset):
 
     def parse(self, struct):
         ChannelAsset.parse(self, struct)
-        if not LS.useMorph:
+        if not LS.useMorphOnly:
             return
         if "group" in struct.keys():
             words = struct["group"].split("/")
@@ -585,15 +585,13 @@ class FormulaAsset(Formula, ChannelAsset):
 
 
     def build(self, context, inst):
-        if not LS.useMorph:
-            return
-        Formula.build(self, context, inst)
+        if LS.useMorphOnly:
+            Formula.build(self, context, inst)
 
 
     def postbuild(self, context, inst):
-        if not LS.useMorph:
-            return
-        Formula.postbuild(self, context, inst)
+        if LS.useMorphOnly:
+            Formula.postbuild(self, context, inst)
 
 #-------------------------------------------------------------
 #   Morph

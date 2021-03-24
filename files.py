@@ -328,7 +328,7 @@ def parseAssetFile(struct, toplevel=False, fileref=None):
 
     if asset is None:
         return None
-    elif LS.useMorph:
+    elif LS.useMorphOnly:
         from .modifier import parseMorph
         return parseMorph(asset, struct)
     else:

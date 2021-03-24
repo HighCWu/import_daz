@@ -385,6 +385,7 @@ class LocalSettings:
         self.useMaterials = False
         self.useModifiers = False
         self.useMorph = False
+        self.useMorphOnly = False
         self.useFormulas = False
         self.useHDObjects = False
         self.applyMorphs = False
@@ -473,6 +474,8 @@ class LocalSettings:
             self.singleUser = False
         elif btn.fitMeshes == 'UNIQUE':
             pass
+        elif btn.fitMeshes == 'MORPHED':
+            self.useMorph = True
         elif btn.fitMeshes == 'DBZFILE':
             self.fitFile = True
 
@@ -493,6 +496,7 @@ class LocalSettings:
         self.reset(scn)
         self.scale = ob.DazScale
         self.useMorph = True
+        self.useMorphOnly = True
         self.useFormulas = True
         self.applyMorphs = False
         self.useModifiers = True

@@ -610,6 +610,34 @@ def findFileRecursive(folder, tfile):
                 return tpath
     return None
 
+
+#----------------------------------------------------------
+#   Apply all shapekeys
+#----------------------------------------------------------
+
+class DAZ_OT_ApplyAllShapekeys(DazOperator, IsMesh):
+    bl_idname = "daz.apply_all_shapekeys"
+    bl_label = "Apply All Shapekeys"
+    bl_description = "Apply all shapekeys to selected meshes"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        for ob in getSelectedMeshes(context):
+            skeys = ob.data.shape_keys
+            if skeys:
+                nverts = len(ob.data.vertices)
+                verts = np.array([v.co for v in ob.data.vertices])
+                coords = verts.copy()
+                for skey in skeys.key_blocks:
+                    scoords = np.array([skey.data[n].co for n in range(nverts)])
+                    coords += skey.value*(scoords - verts)
+                blocks = list(skeys.key_blocks)
+                blocks.reverse()
+                for skey in blocks:
+                    ob.shape_key_remove(skey)
+                for v,co in zip(ob.data.vertices, coords):
+                    v.co = co
+
 #----------------------------------------------------------
 #   Mix Shapekeys
 #----------------------------------------------------------
@@ -829,6 +857,7 @@ classes = [
     DAZ_OT_CopyVertexGroupsByNumber,
     DAZ_OT_TransferShapekeys,
     DAZ_OT_PruneVertexGroups,
+    DAZ_OT_ApplyAllShapekeys,
     DAZ_OT_MixShapekeys,
 ]
 

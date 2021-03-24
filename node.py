@@ -640,7 +640,6 @@ class Node(Asset, Formula, Channels):
 
     def update(self, struct):
         from .geometry import GeoNode
-
         Asset.update(self, struct)
         Channels.update(self, struct)
         for channel,data in struct.items():
@@ -659,6 +658,10 @@ class Node(Asset, Formula, Channels):
                     self.geometries.append(geonode)
             elif channel in self.attributes.keys():
                 self.setAttribute(channel, data)
+        if LS.useMorph and "preview" in struct.keys():
+            preview = struct["preview"]
+            self.attributes["center_point"] = Vector(preview["center_point"])
+            self.attributes["end_point"] = Vector(preview["end_point"])
         self.count += 1
 
 
