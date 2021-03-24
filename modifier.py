@@ -393,6 +393,7 @@ class SkinBinding(Modifier):
         from .geometry import GeoNode
         from .figure import FigureInstance
         if isinstance(inst, GeoNode):
+            # This happens for normal scenes
             ob = inst.rna
             if ob:
                 rig = ob.parent
@@ -400,6 +401,7 @@ class SkinBinding(Modifier):
                 rig = None
             return ob, rig, inst
         elif isinstance(inst, FigureInstance):
+            # This happens for library characters
             rig = inst.rna
             if inst.geometries:
                 geonode = inst.geometries[0]
