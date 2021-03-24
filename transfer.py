@@ -50,6 +50,13 @@ class FastMatcher:
             self.checkTransforms(rig)
             rig.data.pose_position = 'REST'
 
+        self.svalues = {}
+        skeys = src.data.shape_keys
+        if skeys:
+            for skey in skeys.key_blocks:
+                self.svalues[skey.name] = skey.value
+                skey.value = 0
+
         ob = self.trihuman = None
         if triangulate:
             ob = bpy.data.objects.new("_TRIHUMAN", src.data.copy())
@@ -63,12 +70,16 @@ class FastMatcher:
         return (ob, rig)
 
 
-    def restore(self, context, data):
+    def restore(self, context, src, data):
         ob,rig = data
         if rig:
             rig.data.pose_position = 'POSE'
         if ob:
             deleteObjects(context, [ob])
+        skeys = src.data.shape_keys
+        if skeys:
+            for skey in skeys.key_blocks:
+                skey.value = self.svalues[skey.name]
 
 
     def getTargets(self, src, context):
@@ -246,7 +257,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
             failed = self.transferAllMorphs(context, src, targets)
         finally:
             self.deleteTmp()
-            self.restore(context, data)
+            self.restore(context, src, data)
         t2 = time.perf_counter()
         print("Morphs transferred in %.1f seconds" % (t2-t1))
         if failed:
@@ -328,7 +339,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
             if cskey:
                 cskey.slider_min = hskey.slider_min
                 cskey.slider_max = hskey.slider_max
-                cskey.value = hskey.value
+                cskey.value = self.svalues[sname]
                 if fcu is not None:
                     self.copyDriver(fcu, cskeys)
             else:
