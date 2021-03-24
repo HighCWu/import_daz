@@ -1097,6 +1097,8 @@ class CyclesTree:
 
 
     def buildDisplacementNodes(self):
+        if bpy.app.version < (2,80,0):
+            return
         channel = self.material.getChannelDisplacement()
         if not( channel and
                 self.material.isEnabled("Displacement") and

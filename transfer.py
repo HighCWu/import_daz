@@ -49,6 +49,13 @@ class FastMatcher:
             self.checkTransforms(rig)
             rig.data.pose_position = 'REST'
 
+        self.svalues = {}
+        skeys = src.data.shape_keys
+        if skeys:
+            for skey in skeys.key_blocks:
+                self.svalues[skey.name] = skey.value
+                skey.value = 0
+
         ob = self.trihuman = None
         if triangulate:
             ob = bpy.data.objects.new("_TRIHUMAN", src.data.copy())
@@ -62,12 +69,16 @@ class FastMatcher:
         return (ob, rig)
 
 
-    def restore(self, context, data):
+    def restore(self, context, src, data):
         ob,rig = data
         if rig:
             rig.data.pose_position = 'POSE'
         if ob:
             deleteObjects(context, [ob])
+        skeys = src.data.shape_keys
+        if skeys:
+            for skey in skeys.key_blocks:
+                skey.value = self.svalues[skey.name]
 
 
     def getTargets(self, src, context):
@@ -189,7 +200,7 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
         try:
             failed = self.transferAllMorphs(context, src, targets)
         finally:
-            self.restore(context, data)
+            self.restore(context, src, data)
         t2 = time.perf_counter()
         print("Morphs transferred in %.1f seconds" % (t2-t1))
         if failed:
@@ -267,7 +278,7 @@ class MorphTransferer(Selector, FastMatcher, B.TransferOptions):
             if cskey:
                 cskey.slider_min = hskey.slider_min
                 cskey.slider_max = hskey.slider_max
-                cskey.value = hskey.value
+                cskey.value = self.svalues[sname]
                 self.addToMorphSet(trg, sname)
                 if fcu is not None:
                     copyDriver(fcu, cskey)
@@ -606,6 +617,33 @@ class DAZ_OT_TransferCorrectives(DazOperator, MorphTransferer):
         addToMorphSet0(ob, "Standardjcms", prop)
 
 #----------------------------------------------------------
+#   Apply all shapekeys
+#----------------------------------------------------------
+
+class DAZ_OT_ApplyAllShapekeys(DazOperator, IsMesh):
+    bl_idname = "daz.apply_all_shapekeys"
+    bl_label = "Apply All Shapekeys"
+    bl_description = "Apply all shapekeys to selected meshes"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        for ob in getSelectedMeshes(context):
+            skeys = ob.data.shape_keys
+            if skeys:
+                nverts = len(ob.data.vertices)
+                verts = np.array([v.co for v in ob.data.vertices])
+                coords = verts.copy()
+                for skey in skeys.key_blocks:
+                    scoords = np.array([skey.data[n].co for n in range(nverts)])
+                    coords += skey.value*(scoords - verts)
+                blocks = list(skeys.key_blocks)
+                blocks.reverse()
+                for skey in blocks:
+                    ob.shape_key_remove(skey)
+                for v,co in zip(ob.data.vertices, coords):
+                    v.co = co
+
+#----------------------------------------------------------
 #   Mix Shapekeys
 #----------------------------------------------------------
 
@@ -773,6 +811,7 @@ classes = [
     DAZ_OT_TransferCorrectives,
     DAZ_OT_TransferOtherMorphs,
     DAZ_OT_PruneVertexGroups,
+    DAZ_OT_ApplyAllShapekeys,
     DAZ_OT_MixShapekeys,
 ]
 

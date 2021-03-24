@@ -80,7 +80,7 @@ class Formula:
     def postbuild(self, context, inst):
         from .modifier import Morph
         from .node import Node
-        if not LS.useMorph:
+        if not LS.useMorphOnly:
             return
         for formula in self.formulas:
             ref,key,value = self.computeFormula(formula)

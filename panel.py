@@ -117,6 +117,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.label(text="Create low-poly meshes before transfers.")
                 box.operator("daz.transfer_jcms")
                 box.operator("daz.transfer_other_morphs")
+                box.operator("daz.apply_all_shapekeys")
                 box.operator("daz.add_shrinkwrap")
                 box.separator()
                 box.operator("daz.mix_shapekeys")
