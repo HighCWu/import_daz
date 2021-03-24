@@ -437,7 +437,7 @@ class CyclesTree:
 
         # Bump map
         bumpval,self.bumptex = self.getColorTex("getChannelBump", "NONE", 0, False)
-        if bumpval and self.isEnabled("Bump"):
+        if bumpval and self.bumptex and self.isEnabled("Bump"):
             self.bump = self.buildBumpMap(bumpval, self.bumptex, col=3)
             self.linkNormal(self.bump)
 
@@ -445,7 +445,7 @@ class CyclesTree:
     def buildBumpMap(self, bump, bumptex, col=3):
         node = self.addNode("ShaderNodeBump", col=col)
         if GS.limitBump and bump > GS.maxBump:
-            u = GS.maxBump
+            bump = GS.maxBump
         node.inputs["Strength"].default_value = bump
         bumpmin = self.material.getChannelValue(self.material.getChannelBumpMin(), -0.01)
         bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.01)
