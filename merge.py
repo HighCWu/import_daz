@@ -74,26 +74,14 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
                 raise DazError(msg)
 
         cname = self.getUvName(cob.data)
-        anames = []
         drivers = {}
-
-        # Keep extra UVs
-        self.keepUv = []
-        for ob in [cob] + anatomies:
-            for uvtex in ob.data.uv_layers:
-                if not self.isBaseUV(uvtex, ob):
-                    self.keepUv.append(uvtex.name)
 
         # Select graft group for each anatomy
         for aob in anatomies:
             activateObject(context, aob)
             self.moveGraftVerts(aob, cob)
             self.getShapekeyDrivers(aob, drivers)
-            for uvtex in aob.data.uv_layers:
-                if self.isBaseUV(uvtex, aob):
-                    anames.append(uvtex.name)
-                else:
-                    self.keepUv.append(uvtex.name)
+            self.replaceTexco(aob)
 
         # For the body, setup mask groups
         activateObject(context, cob)
@@ -216,37 +204,27 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
                 dists.sort()
                 pair.a = dists[0][1]
 
-        self.joinUvTextures(cob.data)
-
-        newname = self.getUvName(cob.data)
-        for mat in cob.data.materials:
-            if mat.use_nodes:
-                replaceNodeNames(mat, cname, newname)
-                for aname in anames:
-                    replaceNodeNames(mat, aname, newname)
-
-        # Remove unused materials
-        #self.mathits = dict([(mn,False) for mn in range(len(cob.data.materials))])
-        #for f in cob.data.polygons:
-        #    self.mathits[f.material_index] = True
-        #self.mergeMaterials(cob)
-
         self.copyShapeKeyDrivers(cob, drivers)
         updateDrivers(cob)
 
 
-    def keepMaterial(self, mn, mat, ob):
-        keep = self.mathits[mn]
-        if not keep:
-            print("Remove material %s" % mat.name)
-        return keep
-
-
-    def isBaseUV(self, uvtex, ob):
-        if ob.data.DazUV:
-            return (uvtex.name == ob.data.DazUV)
-        else:
-            return uvtex.active_render
+    def replaceTexco(self, ob):
+        for uvtex in ob.data.uv_layers:
+            if uvtex.active_render:
+                uvrender = uvtex
+        for mat in ob.data.materials:
+            texco = None
+            for node in mat.node_tree.nodes:
+                if node.type == 'TEX_COORD':
+                    texco = node
+            if texco:
+                uvmap = mat.node_tree.nodes.new(type="ShaderNodeUVMap")
+                uvmap.uv_map = uvrender.name
+                uvmap.location = texco.location
+                for link in mat.node_tree.links:
+                    if link.from_node == texco:
+                        mat.node_tree.links.new(uvmap.outputs["UV"], link.to_socket)
+                mat.node_tree.nodes.remove(texco)
 
 
     def moveGraftVerts(self, aob, cob):
