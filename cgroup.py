@@ -369,30 +369,38 @@ class TopCoatGroup(MixGroup):
 
     def __init__(self):
         MixGroup.__init__(self)
-        self.insockets += ["Color", "Roughness", "Normal", "Bump"]
+        self.insockets += ["Color", "Roughness", "Bump", "Height", "Normal"]
 
 
     def create(self, node, name, parent):
-        MixGroup.create(self, node, name, parent, 3)
+        MixGroup.create(self, node, name, parent, 4)
         self.group.inputs.new("NodeSocketColor", "Color")
         self.group.inputs.new("NodeSocketFloat", "Roughness")
-        self.group.inputs.new("NodeSocketVector", "Normal")
         self.group.inputs.new("NodeSocketFloat", "Bump")
+        self.group.inputs.new("NodeSocketFloat", "Height")
+        self.group.inputs.new("NodeSocketVector", "Normal")
 
 
     def addNodes(self, args=None):
         MixGroup.addNodes(self, args)
-        glossy = self.addNode("ShaderNodeBsdfGlossy", 1)
+        bump = self.addNode("ShaderNodeBump", 1)
+        bump.inputs["Distance"].default_value = 0.02 * LS.scale
+        self.links.new(self.inputs.outputs["Bump"], bump.inputs["Strength"])
+        self.links.new(self.inputs.outputs["Height"], bump.inputs["Height"])
+        self.links.new(self.inputs.outputs["Normal"], bump.inputs["Normal"])
+
+        glossy = self.addNode("ShaderNodeBsdfGlossy", 2)
         self.links.new(self.inputs.outputs["Color"], glossy.inputs["Color"])
         self.links.new(self.inputs.outputs["Roughness"], glossy.inputs["Roughness"])
+        self.links.new(bump.outputs["Normal"], glossy.inputs["Normal"])
         self.links.new(glossy.outputs[0], self.mix1.inputs[2])
         self.links.new(glossy.outputs[0], self.mix2.inputs[2])
 
-        mult = self.addNode("ShaderNodeVectorMath", 1)
-        mult.operation = 'MULTIPLY'
-        self.links.new(self.inputs.outputs["Normal"], mult.inputs[0])
-        self.links.new(self.inputs.outputs["Bump"], mult.inputs[1])
-        self.links.new(mult.outputs[0], glossy.inputs["Normal"])
+        #mult = self.addNode("ShaderNodeVectorMath", 2)
+        #mult.operation = 'MULTIPLY'
+        #self.links.new(self.inputs.outputs["Normal"], mult.inputs[0])
+        #self.links.new(bump.outputs[0], mult.inputs[1])
+        #self.links.new(mult.outputs[0], glossy.inputs["Normal"])
 
 # ---------------------------------------------------------------------
 #   Refraction Group

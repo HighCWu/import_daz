@@ -718,17 +718,11 @@ class CyclesTree:
         self.linkColor(coltex, top, color, "Color")
         self.linkScalar(roughtex, top, roughness, "Roughness")
         if self.material.shader == 'PBRSKIN':
-            if (self.bump and self.bumptex and
-                self.bump.inputs["Strength"].default_value != 1.0):
-                node = self.buildBumpMap(1.0, self.bumptex, col=self.column-1)
-                self.linkNormal(node)
-                self.links.new(node.outputs[0], top.inputs["Normal"])
-            else:
-                self.linkBumpNormal(top)
+            if self.bumptex:
+                self.links.new(self.bumptex.outputs[0], top.inputs["Height"])
         elif bumptex:
-            node = self.buildBumpMap(1.0, bumptex, col=self.column-1)
-            self.linkNormal(node)
-            self.links.new(node.outputs[0], top.inputs["Normal"])
+            self.links.new(bumptex.outputs[0], top.inputs["Height"])
+        self.linkNormal(top)
         top.inputs["Bump"].default_value = bump
         self.mixWithActive(weight, weighttex, top)
 
