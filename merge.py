@@ -81,7 +81,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
         self.keepUv = []
         for ob in [cob] + anatomies:
             for uvtex in ob.data.uv_layers:
-                if not uvtex.active_render:
+                if not self.isBaseUV(uvtex, ob):
                     self.keepUv.append(uvtex.name)
 
         # Select graft group for each anatomy
@@ -90,7 +90,7 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
             self.moveGraftVerts(aob, cob)
             self.getShapekeyDrivers(aob, drivers)
             for uvtex in aob.data.uv_layers:
-                if uvtex.active_render:
+                if self.isBaseUV(uvtex, aob):
                     anames.append(uvtex.name)
                 else:
                     self.keepUv.append(uvtex.name)
@@ -242,6 +242,13 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
         return keep
 
 
+    def isBaseUV(self, uvtex, ob):
+        if ob.data.DazUV:
+            return (uvtex.name == ob.data.DazUV)
+        else:
+            return uvtex.active_render
+
+
     def moveGraftVerts(self, aob, cob):
         cvgroups = dict([(vgrp.index, vgrp.name) for vgrp in cob.vertex_groups])
         for pair in aob.data.DazGraftGroup:
@@ -322,9 +329,6 @@ def replaceNodeNames(mat, oldname, newname):
                 tosockets.append(link.to_socket)
         for tosocket in tosockets:
             mat.node_tree.links.new(fromsocket, tosocket)
-
-    for node in uvmaps:
-        mat.node_tree.nodes.remove(node)
 
 #-------------------------------------------------------------
 #   Create graft and mask vertex groups

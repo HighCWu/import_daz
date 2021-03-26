@@ -743,6 +743,10 @@ class Geometry(Asset, Channels):
         self.buildUVSet(context, self.uv_set, me, True)
         if self.shells and self.uv_set != self.default_uv_set:
             self.buildUVSet(context, self.default_uv_set, me, False)
+        if self.uv_set:
+            me.DazUV = self.uv_set.name
+        if self.default_uv_set:
+            me.DazDefaultUV = self.default_uv_set.name
 
         for struct in self.material_selection_sets:
             if "materials" in struct.keys() and "name" in struct.keys():
@@ -1275,6 +1279,8 @@ def register():
     bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = DazTextGroup)
     bpy.types.Object.DazMultires = BoolProperty(default=False)
     bpy.types.Mesh.DazHairType = StringProperty(default = 'SHEET')
+    bpy.types.Mesh.DazUV = StringProperty(name="UV", default = "")
+    bpy.types.Mesh.DazDefaultUV = StringProperty(name="Default UV", default = "")
 
 
 def unregister():

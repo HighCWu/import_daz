@@ -343,6 +343,9 @@ class DAZ_PT_Utils(bpy.types.Panel):
             box.prop(ob, "DazRig")
             box.prop(ob, "DazMesh")
             box.prop(ob, "DazOrientMethod")
+            if ob.type == 'MESH':
+                box.prop(ob.data, "DazDefaultUV")
+                box.prop(ob.data, "DazUV")
             box.prop(ob, "DazScale")
             factor = 1/ob.DazScale
         else:
