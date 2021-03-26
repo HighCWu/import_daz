@@ -367,38 +367,71 @@ def getUVLayers(scn, context):
 class DAZ_OT_MergeUVLayers(DazPropsOperator, IsMesh):
     bl_idname = "daz.merge_uv_layers"
     bl_label = "Merge UV Layers"
-    bl_description = "Merge two UV layers"
+    bl_description = ("Merge an UV layer to the active render layer.\n" +
+                      "Merging the active render layer to itself replaces\n" +
+                      "any UV map nodes with texture coordinate nodes")
     bl_options = {'UNDO'}
 
-    layer1 : EnumProperty(
-        items = getUVLayers,
-        name = "Layer To Keep",
-        description = "UV layer that the other layer is merged with")
-
-    layer2 : EnumProperty(
+    layer : EnumProperty(
         items = getUVLayers,
         name = "Layer To Merge",
-        description = "UV layer that is merged with the other layer")
+        description = "UV layer that is merged with the active render layer")
 
     def draw(self, context):
-        self.layout.prop(self, "layer1")
-        self.layout.prop(self, "layer2")
+        self.layout.label(text="Active Layer: %s" % self.keepName)
+        self.layout.prop(self, "layer")
+
+
+    def invoke(self, context, event):
+        ob = context.object
+        self.keepIdx = -1
+        self.keepName = "None"
+        for idx,uvlayer in enumerate(ob.data.uv_layers):
+            if uvlayer.active_render:
+                self.keepIdx = idx
+                self.keepName = uvlayer.name
+                break
+        return DazPropsOperator.invoke(self, context, event)
+
 
     def run(self, context):
-        keepIdx = int(self.layer1)
-        mergeIdx = int(self.layer2)
-        if keepIdx == mergeIdx:
-            raise DazError("Keep and merge UV layers are equal")
-        mergeUVLayers(context.object.data, keepIdx, mergeIdx)
+        if self.keepIdx < 0:
+            raise DazError("No active UV layer found")
+        mergeIdx = int(self.layer)
+        mergeUVLayers(context.object.data, self.keepIdx, mergeIdx)
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
-        print("UV layers joined")
 
 
 def mergeUVLayers(me, keepIdx, mergeIdx):
+    def replaceUVMapNodes(me, mergeLayer):
+        for mat in me.materials:
+            texco = None
+            for node in mat.node_tree.nodes:
+                if node.type == 'TEX_COORD':
+                    texco = node
+            deletes = {}
+            for link in mat.node_tree.links:
+                node = link.from_node
+                if (node.type == 'UVMAP' and
+                    node.uv_map == mergeLayer.name):
+                    deletes[node.name] = node
+                    if texco is None:
+                        texco = mat.node_tree.nodes.new(type="ShaderNodeTexCoord")
+                        texco.location = node.location
+                    mat.node_tree.links.new(texco.outputs["UV"], link.to_socket)
+            for node in deletes.values():
+                mat.node_tree.nodes.remove(node)
+
     keepLayer = me.uv_layers[keepIdx]
     mergeLayer = me.uv_layers[mergeIdx]
+    if not keepLayer.active_render:
+        raise DazError("Only the active render layer may be the layer to keep")
+    replaceUVMapNodes(me, mergeLayer)
+    if keepIdx == mergeIdx:
+        print("UV layer is the same as the active render layer.")
+        return
     for n,data in enumerate(mergeLayer.data):
         if data.uv.length > 1e-6:
             keepLayer.data[n].uv = data.uv
@@ -407,6 +440,7 @@ def mergeUVLayers(me, keepIdx, mergeIdx):
             replaceNodeNames(mat, mergeLayer.name, keepLayer.name)
     me.uv_layers.active_index = keepIdx
     me.uv_layers.remove(mergeLayer)
+    print("UV layers joined")
 
 #-------------------------------------------------------------
 #   Get selected rigs
