@@ -660,8 +660,12 @@ class Node(Asset, Formula, Channels):
                 self.setAttribute(channel, data)
         if LS.useMorph and "preview" in struct.keys():
             preview = struct["preview"]
-            self.attributes["center_point"] = Vector(preview["center_point"])
-            self.attributes["end_point"] = Vector(preview["end_point"])
+            pcenter = Vector(preview["center_point"])
+            pend = Vector(preview["end_point"])
+            bcenter = self.attributes["center_point"]
+            bend = self.attributes["end_point"]
+            self.attributes["center_point"] = bcenter + LS.morphStrength*(pcenter-bcenter)
+            self.attributes["end_point"] = bend + LS.morphStrength*(pend-bend)
         self.count += 1
 
 

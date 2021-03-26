@@ -378,6 +378,7 @@ class LocalSettings:
         self.clothesColor = None
         self.fitFile = False
         self.autoMaterials = True
+        self.morphStrength = 1.0
 
         self.useNodes = False
         self.useGeometries = False
@@ -476,6 +477,7 @@ class LocalSettings:
             pass
         elif btn.fitMeshes == 'MORPHED':
             self.useMorph = True
+            self.morphStrength = btn.morphStrength
         elif btn.fitMeshes == 'DBZFILE':
             self.fitFile = True
 

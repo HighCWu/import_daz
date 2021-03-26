@@ -715,7 +715,7 @@ class Morph(FormulaAsset):
             elif LS.applyMorphs:
                 self.addMorphToVerts(ob.data)
             elif self.value > 0.0:
-                self.buildMorph(ob)
+                self.buildMorph(ob, strength=LS.morphStrength)
         return self
 
 
@@ -756,23 +756,6 @@ class Morph(FormulaAsset):
                 skey.data[vn].co += d2b00(delta[1:])
         if strength != 1:
             LS.scale = scale
-
-
-    def rebuild(self, geonode, value):
-        ob = geonode.rna
-        self.value = value
-        if (ob.data.shape_keys and
-            self.name in ob.data.shape_keys.key_blocks.keys()):
-            skey = ob.data.shape_keys.key_blocks[self.name]
-            skey.value = value
-            self.buildShapeKey(ob, skey)
-        else:
-            if LS.applyMorphs:
-                self.addMorphToVerts(ob.data)
-            elif ob:
-                if self.value > 0.0:
-                    self.buildMorph(ob)
-            #raise DazError("No such shapekey %s in %s" % (skey, ob))
 
 
 def addShapekey(ob, sname):

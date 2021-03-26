@@ -219,7 +219,7 @@ def printTraceBack(context, fp):
     settings = []
     scn = bpy.context.scene
     for attr in dir(scn):
-        if attr[0:3] == "Daz":
+        if attr[0:3] == "Daz" and hasattr(scn, attr):
             value = getattr(scn, attr)
             if (isinstance(value, int) or
                 isinstance(value, float) or

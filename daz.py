@@ -77,10 +77,17 @@ class DazOptions(DazImageFile, SingleFile):
         description = "Mesh fitting method",
         default = 'DBZFILE')
 
+    morphStrength : FloatProperty(
+        name = "Morph Strength",
+        description = "Morph strength",
+        default = 1.0)
+
     def draw(self, context):
         box = self.layout.box()
         box.label(text = "Mesh Fitting")
         box.prop(self, "fitMeshes", expand=True)
+        if self.fitMeshes == 'MORPHED':
+            box.prop(self, "morphStrength")
         self.layout.separator()
         box = self.layout.box()
         box.label(text = "Viewport Color")
