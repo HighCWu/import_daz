@@ -698,6 +698,7 @@ class CyclesTree:
         else:
             refl,refltex = self.getColorTex(["Top Coat Reflectivity"], "NONE", 0, useFactor=False)
             bump = self.getValue(["Top Coat Bump Weight"], 0)
+            bump *= self.bumpval
             bumptex = None
 
         weight = 0.05 * topweight * refl
