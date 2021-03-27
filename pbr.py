@@ -45,7 +45,7 @@ class PbrTree(CyclesTree):
         return ("<Pbr %s %s %s>" % (self.material.rna, self.nodes, self.links))
 
 
-    def buildLayer(self):
+    def buildLayer(self, uvname):
         self.column = 4
         try:
             self.pbr = self.addNode("ShaderNodeBsdfPrincipled")
@@ -54,10 +54,10 @@ class PbrTree(CyclesTree):
             self.pbr = None
             self.type = 'CYCLES'
         if self.pbr is None:
-            CyclesTree.buildLayer(self)
+            CyclesTree.buildLayer(self, uvname)
             return
         self.cycles = self.eevee = self.pbr
-        self.buildBumpNodes()
+        self.buildBumpNodes(uvname)
         self.buildPBRNode()
         self.linkPBRNormal(self.pbr)
         self.postPBR = False

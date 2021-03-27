@@ -101,11 +101,12 @@ class ShellGroup(MaterialGroup):
         self.group.outputs.new("NodeSocketFloat", "Displacement")
 
 
-    def addNodes(self, shell):
-        shell.rna = self.parent.material.rna
-        self.material = shell
+    def addNodes(self, args):
+        shmat,uvname = args
+        shmat.rna = self.parent.material.rna
+        self.material = shmat
         self.texco = self.inputs.outputs["UV"]
-        self.buildLayer()
+        self.buildLayer(uvname)
         alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1.0)
         mult = self.addNode("ShaderNodeMath", 6)
         mult.operation = 'MULTIPLY'
@@ -135,15 +136,15 @@ class ShellGroup(MaterialGroup):
 
 
 class ShellCyclesGroup(ShellGroup, CyclesTree):
-    def create(self, node, shell, parent):
+    def create(self, node, name, parent):
         CyclesTree.__init__(self, parent.material)
-        ShellGroup.create(self, node, shell, parent)
+        ShellGroup.create(self, node, name, parent)
 
 
 class ShellPbrGroup(ShellGroup, PbrTree):
-    def create(self, node, shell, parent):
+    def create(self, node, name, parent):
         PbrTree.__init__(self, parent.material)
-        ShellGroup.create(self, node, shell, parent)
+        ShellGroup.create(self, node, name, parent)
 
 
 # ---------------------------------------------------------------------

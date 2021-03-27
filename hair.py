@@ -1446,7 +1446,7 @@ class HairTree(CyclesTree):
 
     def build(self):
         self.makeTree()
-        self.buildLayer()
+        self.buildLayer("")
         self.prune()
 
 
@@ -1560,7 +1560,7 @@ class HairTree(CyclesTree):
 
 class HairBSDFTree(HairTree):
 
-    def buildLayer(self):
+    def buildLayer(self, uvname):
         self.initLayer()
         self.readColor(0.5)
         trans = self.buildTransmission()
@@ -1719,7 +1719,7 @@ class FadeHairTree(HairTree):
 
 class HairPBRTree(HairTree):
 
-    def buildLayer(self):
+    def buildLayer(self, uvname):
         self.initLayer()
         self.readColor(0.216)
         pbr = self.active = self.addNode("ShaderNodeBsdfHairPrincipled")
@@ -1736,7 +1736,7 @@ class HairPBRTree(HairTree):
 
 class HairEeveeTree(HairTree):
 
-    def buildLayer(self):
+    def buildLayer(self, uvname):
         self.initLayer()
         self.readColor(0.216)
         pbr = self.active = self.addNode("ShaderNodeBsdfPrincipled")

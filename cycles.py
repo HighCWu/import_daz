@@ -269,7 +269,7 @@ class CyclesTree:
         else:
             raise RuntimeError("Bug Cycles type %s" % self.type)
         group.create(node, nname, self)
-        group.addNodes(shmat)
+        group.addNodes((shmat, shell.uv))
         node.inputs["Influence"].default_value = 1.0
         shell.tree = node.node_tree
         return node
@@ -277,7 +277,7 @@ class CyclesTree:
 
     def build(self):
         self.makeTree()
-        self.buildLayer()
+        self.buildLayer("")
         self.buildCutout()
         self.buildVolume()
         self.buildDisplacementNodes()
@@ -309,8 +309,8 @@ class CyclesTree:
                 self.ycoords[self.column] -= 50
 
 
-    def buildLayer(self):
-        self.buildBumpNodes()
+    def buildLayer(self, uvname):
+        self.buildBumpNodes(uvname)
         self.buildDiffuse()
 
         self.buildTranslucency()
@@ -406,7 +406,7 @@ class CyclesTree:
 #   Bump
 #-------------------------------------------------------------
 
-    def buildBumpNodes(self):
+    def buildBumpNodes(self, uvname):
         # Column 3: Normal, Bump and Displacement
 
         # Normal map
@@ -414,10 +414,8 @@ class CyclesTree:
         if channel and self.isEnabled("Normal"):
             tex = self.addTexImageNode(channel, "NONE")
             #_,tex = self.getColorTex("getChannelNormal", "NONE", BLACK)
-            if self.material.uv_set:
+            if not uvname and self.material.uv_set:
                 uvname = self.material.uv_set.name
-            else:
-                uvname = ""
             if tex:
                 if self.material.useEevee:
                     from .cgroup import NormalGroup
@@ -431,9 +429,9 @@ class CyclesTree:
                 self.links.new(tex.outputs[0], self.normal.inputs["Color"])
 
         # Bump map
-        bumpval,self.bumptex = self.getColorTex("getChannelBump", "NONE", 0, False)
-        if bumpval and self.bumptex and self.isEnabled("Bump"):
-            self.bump = self.buildBumpMap(bumpval, self.bumptex, col=3)
+        self.bumpval,self.bumptex = self.getColorTex("getChannelBump", "NONE", 0, False)
+        if self.bumpval and self.bumptex and self.isEnabled("Bump"):
+            self.bump = self.buildBumpMap(self.bumpval, self.bumptex, col=3)
             self.linkNormal(self.bump)
 
 
