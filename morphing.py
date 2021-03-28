@@ -715,7 +715,7 @@ class MorphLoader(LoadMorph):
         else:
             raise DazError("No morphs selected")
         self.loadAllMorphs(list(namepaths.items()))
-        for prop in ["JCMs On", "BaseFlexions"]:
+        for prop in StandardOnProperties:
             setBoolProp(self.rig, prop, True)
         finishMain("Folder", folder, t1)
         if self.errors:
@@ -728,6 +728,10 @@ class MorphLoader(LoadMorph):
         if self.ecr and GS.verbosity >= 3:
             msg = "Found morphs that want to\nchange the rest pose"
             raise DazError(msg, warning=True)
+
+StandardOnProperties = [
+    "JCMs On", "BaseFlexions", "PBMNavel",
+]
 
 #------------------------------------------------------------------
 #   Load standard morphs

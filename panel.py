@@ -437,9 +437,11 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.toggle_rot_limits", icon=icon, emboss=False)
 
         if "JCMs On" in ob.keys():
+            from .morphing import StandardOnProperties
             layout.separator()
-            layout.prop(ob, propRef("JCMs On"))
-            layout.prop(ob, propRef("BaseFlexions"))
+            for prop in StandardOnProperties:
+                if prop in ob.keys():
+                    layout.prop(ob, propRef(prop))
         return
         layout.separator()
         layout.operator("daz.save_current_frame")
