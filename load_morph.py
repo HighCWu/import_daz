@@ -523,7 +523,7 @@ class LoadMorph(DriverUser):
                 continue
             varname = nextLetter(varname)
             string += multiply(factor, varname)
-            self.ensureExists(subraw, subfinal)
+            self.ensureExists(subraw, subfinal, 0.0)
             self.addPathVar(fcu, varname, self.amt, channel)
         return string
 
@@ -556,7 +556,7 @@ class LoadMorph(DriverUser):
         else:
             rna = self.amt
             final = finalProp(raw)
-            self.ensureExists(raw, final)
+            self.ensureExists(raw, final, 0.0)
             channel = propRef(final)
         return rna, channel
 
@@ -568,7 +568,7 @@ class LoadMorph(DriverUser):
             for mult in self.mult:
                 mstring += "%s*" % varname
                 multfinal = finalProp(mult)
-                self.ensureExists(mult, multfinal)
+                self.ensureExists(mult, multfinal, 1.0)
                 self.addPathVar(fcu, varname, self.amt, propRef(multfinal))
                 varname = nextLetter(varname)
             return "%s(%s)" % (mstring, string)
@@ -576,11 +576,11 @@ class LoadMorph(DriverUser):
             return string
 
 
-    def ensureExists(self, raw, final):
+    def ensureExists(self, raw, final, default):
         if raw not in self.rig.keys():
-            self.rig[raw] = 0.0
+            self.rig[raw] = default
         if final not in self.amt.keys():
-            self.amt[final] = 0.0
+            self.amt[final] = default
             fcu = self.amt.driver_add(propRef(final))
             fcu.driver.type = 'SCRIPTED'
             fcu.driver.expression = "a"

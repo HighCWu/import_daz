@@ -730,7 +730,7 @@ class MorphLoader(LoadMorph):
             raise DazError(msg, warning=True)
 
 StandardOnProperties = [
-    "JCMs On", "BaseFlexions", "PBMNavel",
+#    "JCMs On", "BaseFlexions", "PBMNavel",
 ]
 
 #------------------------------------------------------------------
