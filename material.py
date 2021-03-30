@@ -63,7 +63,8 @@ class Material(Asset, Channels):
         self.force = False
         self.shells = {}
         self.geometry = None
-        self.geosockets = []
+        self.geoemit = []
+        self.geobump = {}
         self.uv_set = None
         self.uv_sets = {}
         self.useDefaultUvs = True

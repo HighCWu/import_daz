@@ -442,6 +442,8 @@ class Geometry(Asset, Channels):
         self.vertex_count = 0
         self.poly_count = 0
         self.vertex_pairs = []
+        self.dmaterials = []
+        self.bumpareas = {}
 
         self.hidden_polys = []
         self.uv_set = None
@@ -775,6 +777,7 @@ class Geometry(Asset, Channels):
                     reportError(msg, trigger=(2,3))
                     #return False
                 me.materials.append(dmat.rna)
+                self.dmaterials.append(dmat)
                 if dmat.shells:
                     hasShells = True
                 if dmat.uv_set and dmat.uv_set.checkSize(me):
@@ -795,6 +798,18 @@ class Geometry(Asset, Channels):
         for key, dmat in geonode.materials.items():
             if dmat.rna:
                 me.materials.append(dmat.rna)
+                self.dmaterials.append(dmat)
+
+
+    def getBumpArea(self, me, bumps):
+        bump = list(bumps)[0]
+        if bump not in self.bumpareas.keys():
+            area = 0.0
+            for mn,dmat in enumerate(self.dmaterials):
+                if bump in dmat.geobump.keys():
+                    area += sum([f.area for f in me.polygons if f.material_index == mn])
+            self.bumpareas[bump] = area
+        return self.bumpareas[bump]
 
 
     def buildUVSet(self, context, uv_set, me, setActive):

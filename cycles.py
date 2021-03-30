@@ -88,19 +88,46 @@ class CyclesMaterial(Material):
 
     def postbuild(self):
         geonode = self.geometry
-        if (self.geosockets and geonode and geonode.data.rna):
-            me = geonode.data.rna
-            mnum = 0
+        if geonode and geonode.data.rna:
+            geo = geonode.data
+            me = geo.rna
+            mnum = -1
             for mn,mat in enumerate(me.materials):
                 if mat == self.rna:
                     mnum = mn
                     break
-            nodes = list(geonode.data.nodes.values())
-            if self.geosockets:
-                self.correctArea(nodes, me, mnum)
+            if mnum < 0:
+                return
+            nodes = list(geo.nodes.values())
+            if self.geoemit:
+                self.correctEmitArea(nodes, me, mnum)
+            if self.geobump:
+                area = geo.getBumpArea(me, self.geobump.keys())
+                self.correctBumpArea(area)
 
 
-    def correctArea(self, nodes, me, mnum):
+    def correctBumpArea(self, area):
+        if area <= 0.0:
+            return
+        for tex,socket in self.geobump.values():
+            img = tex.image
+            if img is None:
+                continue
+            width,height = img.size
+            density = width * height / area
+            if density == 0.0:
+                continue
+            link = self.tree.getLinkTo(tex, "Vector")
+            if link and link.from_node.type == 'MAPPING':
+                scale = link.from_node.inputs["Scale"]
+                density *= scale.default_value[0] * scale.default_value[1]
+                if density == 0.0:
+                    continue
+            height = 0.2/(math.sqrt(density)*LS.scale)
+            socket.default_value = height
+
+
+    def correctEmitArea(self, nodes, me, mnum):
         ob = nodes[0].rna
         ob.data = me2 = me.copy()
         wmat = ob.matrix_world.copy()
@@ -112,7 +139,7 @@ class CyclesMaterial(Material):
         bpy.data.meshes.remove(me2, do_unlink=True)
 
         area *= 1e-4/(LS.scale*LS.scale)
-        for socket in self.geosockets:
+        for socket in self.geoemit:
             socket.default_value /= area
             for link in self.tree.links:
                 if link.to_socket == socket:
@@ -444,6 +471,7 @@ class CyclesTree:
         bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.01)
         node.inputs["Distance"].default_value = (bumpmax-bumpmin) * LS.scale
         self.links.new(bumptex.outputs[0], node.inputs["Height"])
+        self.material.geobump[bumptex.name] = (bumptex, node.inputs["Distance"])
         return node
 
 
@@ -948,7 +976,7 @@ class CyclesTree:
             factors = [1, 1000, 10.764, 10000, 1, 1]
             strength = lum/2 * factors[units] / 15000
             if units >= 4:
-                self.material.geosockets.append(emit.inputs["Strength"])
+                self.material.geoemit.append(emit.inputs["Strength"])
                 if units == 5:
                     strength *= self.getValue(["Luminous Efficacy"], 1)
             emit.inputs["Strength"].default_value = strength
@@ -1107,21 +1135,19 @@ class CyclesTree:
             mat.cycles.displacement_method = 'BOTH'
 
 
-    def getLinkFrom(self, node, name):
-        mat = self.material.rna
-        for link in mat.node_tree.links:
-            if (link.to_node == node and
-                link.to_socket.name == name):
-                return link.from_node
+    def getLinkFrom(self, node, slot):
+        for link in self.links:
+            if (link.from_node == node and
+                link.from_socket.name == slot):
+                return link
         return None
 
 
-    def getLinkTo(self, node, name):
-        mat = self.material.rna
-        for link in mat.node_tree.links:
-            if (link.from_node == node and
-                link.from_socket.name == name):
-                return link.to_node
+    def getLinkTo(self, node, slot):
+        for link in self.links:
+            if (link.to_node == node and
+                link.to_socket.name == slot):
+                return link
         return None
 
 
