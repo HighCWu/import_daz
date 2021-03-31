@@ -110,7 +110,8 @@ TweakableChannels = OrderedDict([
     ("Top Coat", None),
     ("Top Coat Color", ("DAZ Top Coat", "Color", 4)),
     ("Top Coat Roughness", ("DAZ Top Coat", "Roughness", 1)),
-    ("Top Coat Strength", ("DAZ Top Coat", "Fac", 1)),
+    ("Top Coat Bump", ("DAZ Top Coat", "Bump", 1)),
+    ("Top Coat Distance", ("DAZ Top Coat", "Distance", 1)),
 
     ("Overlay", None),
     ("Overlay Color", ("DAZ Overlay", "Color", 4)),

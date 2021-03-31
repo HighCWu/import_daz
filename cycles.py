@@ -106,10 +106,20 @@ class CyclesMaterial(Material):
                 self.correctBumpArea(area)
 
 
+    def addGeoBump(self, tex, socket):
+        bumpmin = self.getValue("getChannelBumpMin", -0.01)
+        bumpmax = self.getValue("getChannelBumpMax", -0.01)
+        socket.default_value = (bumpmax-bumpmin) * LS.scale
+        key = tex.name
+        if key not in self.geobump.keys():
+            self.geobump[key] = (tex, [])
+        self.geobump[key][1].append(socket)
+
+
     def correctBumpArea(self, area):
         if area <= 0.0:
             return
-        for tex,socket in self.geobump.values():
+        for tex,sockets in self.geobump.values():
             img = tex.image
             if img is None:
                 continue
@@ -123,8 +133,9 @@ class CyclesMaterial(Material):
                 density *= scale.default_value[0] * scale.default_value[1]
                 if density == 0.0:
                     continue
-            height = 0.2/(math.sqrt(density)*LS.scale)
-            socket.default_value = height
+            height = 3.0/math.sqrt(density)
+            for socket in sockets:
+                socket.default_value = height
 
 
     def correctEmitArea(self, nodes, me, mnum):
@@ -464,14 +475,9 @@ class CyclesTree:
 
     def buildBumpMap(self, bump, bumptex, col=3):
         node = self.addNode("ShaderNodeBump", col=col)
-        if GS.limitBump and bump > GS.maxBump:
-            bump = GS.maxBump
-        node.inputs["Strength"].default_value = bump
-        bumpmin = self.material.getChannelValue(self.material.getChannelBumpMin(), -0.01)
-        bumpmax = self.material.getChannelValue(self.material.getChannelBumpMax(), 0.01)
-        node.inputs["Distance"].default_value = (bumpmax-bumpmin) * LS.scale
+        node.inputs["Strength"].default_value = bump * GS.bumpFactor
         self.links.new(bumptex.outputs[0], node.inputs["Height"])
-        self.material.geobump[bumptex.name] = (bumptex, node.inputs["Distance"])
+        self.material.addGeoBump(bumptex, node.inputs["Distance"])
         return node
 
 
@@ -747,10 +753,12 @@ class CyclesTree:
         if self.material.shader == 'PBRSKIN':
             if self.bumptex:
                 self.links.new(self.bumptex.outputs[0], top.inputs["Height"])
+                self.material.addGeoBump(self.bumptex, top.inputs["Distance"])
         elif bumptex:
             self.links.new(bumptex.outputs[0], top.inputs["Height"])
+            self.material.addGeoBump(bumptex, top.inputs["Distance"])
+        top.inputs["Bump"].default_value = bump * GS.bumpFactor
         self.linkNormal(top)
-        top.inputs["Bump"].default_value = bump
         self.mixWithActive(weight, weighttex, top)
 
 #-------------------------------------------------------------

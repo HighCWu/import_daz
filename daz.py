@@ -746,9 +746,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazViewportColor")
         box.prop(scn, "DazUseEnvironment")
         box.prop(scn, "DazReuseMaterials")
-        box.prop(scn, "DazLimitBump")
-        if scn.DazLimitBump:
-            box.prop(scn, "DazMaxBump")
+        box.prop(scn, "DazBumpFactor")
         box.prop(scn, "DazHandleRenderSettings")
         box.prop(scn, "DazHandleLightSettings")
         box.separator()
@@ -1081,14 +1079,10 @@ def register():
         name = "Prune Node Tree",
         description = "Prune material node-tree.\nDisable for debugging only")
 
-    bpy.types.Scene.DazMaxBump = FloatProperty(
-        name = "Max Bump Strength",
-        description = "Max bump strength",
+    bpy.types.Scene.DazBumpFactor = FloatProperty(
+        name = "Bump Factor",
+        description = "Multiplier for bump strength",
         min = 0.1, max = 10)
-
-    bpy.types.Scene.DazLimitBump = BoolProperty(
-        name = "Limit Bump Strength",
-        description = "Limit the bump strength")
 
     bpy.types.Scene.DazUseDisplacement = BoolProperty(
         name = "Displacement",

@@ -69,8 +69,7 @@ class GlobalSettings:
         self.mergeShells = True
         self.pruneNodes = True
 
-        self.limitBump = False
-        self.maxBump = 10
+        self.bumpFactor = 1.0
         self.handleRenderSettings = "UPDATE"
         self.handleLightSettings = "WARN"
         self.useDisplacement = True
@@ -122,8 +121,7 @@ class GlobalSettings:
         "DazViewportColor" : "viewportColors",
         "DazUseEnvironment" : "useEnvironment",
         "DazReuseMaterials" : "reuseMaterials",
-        "DazLimitBump" : "limitBump",
-        "DazMaxBump" : "maxBump",
+        "DazBumpFactor" : "bumpFactor",
         "DazHandleRenderSettings" : "handleRenderSettings",
         "DazHandleLightSettings" : "handleLightSettings",
         "DazUseDisplacement" : "useDisplacement",
