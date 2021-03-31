@@ -226,11 +226,6 @@ class Fixer(DriverUser):
                 if not getHideViewport(child):
                     findChildrenRecursive(child, objects)
 
-        def findAllSelected(scn, objects):
-            for ob in scn.collection.all_objects:
-                if ob.select_get() and not getHideViewport(ob):
-                    objects.append(ob)
-
         rig = context.object
         scn = context.scene
         activateObject(context, rig)
@@ -244,8 +239,7 @@ class Fixer(DriverUser):
         scn.collection.children.link(coll)
         coll.children.link(mcoll)
 
-        newObjects = []
-        findAllSelected(scn, newObjects)
+        newObjects = getSelectedObjects(context)
         nrig = None
         for ob in newObjects:
             ob.name = dazifyName(ob)
