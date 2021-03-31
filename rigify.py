@@ -906,14 +906,6 @@ class Rigify:
         rigifySkel, spineBones, dazSkel = self.setupDazSkeleton(meta)
         dazBones = self.getDazBones(rig)
 
-        print("  Parent widgets")
-        empty = bpy.data.objects.new("Widgets", None)
-        coll.objects.link(empty)
-        empty.parent = gen
-        for ob in scn.collection.all_objects:
-            if ob.parent is None and ob.name[0:4] == "WGT-":
-                ob.parent = empty
-
         print("  Setup extras")
         extras = self.setupExtras(rig, rigifySkel, spineBones)
         if meta.DazUseBreasts:
@@ -1120,8 +1112,10 @@ class Rigify:
         name = rig.name
         coll = getRigCollection(rig)
         if coll:
-            coll.objects.link(gen)
-            coll.objects.link(meta)
+            if gen.name not in coll.objects:
+                coll.objects.link(gen)
+            if meta.name not in coll.objects:
+                coll.objects.link(meta)
             if gen.name in scn.collection.objects:
                 scn.collection.objects.unlink(gen)
                 scn.collection.objects.unlink(meta)
@@ -1273,8 +1267,7 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists):
         rig = context.object
         rname = rig.name
         if self.useKeepRig:
-            from .mhx import saveExistingRig
-            saveExistingRig(context)
+            self.saveExistingRig(context)
         self.createMeta(context)
         gen = self.rigifyMeta(context)
         t2 = time.perf_counter()
@@ -1304,8 +1297,7 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists):
 
     def run(self, context):
         if self.useKeepRig:
-            from .mhx import saveExistingRig
-            saveExistingRig(context)
+            self.saveExistingRig(context)
         self.createMeta(context)
 
 

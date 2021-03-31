@@ -210,6 +210,58 @@ class Fixer(DriverUser):
                     mod.object = newrig
 
 
+    def saveExistingRig(self, context):
+        def dazName(string):
+            return (string + "_DAZ")
+
+        def dazifyName(ob):
+            if ob.name[-4] == "." and ob.name[-3:].isdigit():
+                return dazName(ob.name[:-4])
+            else:
+                return dazName(ob.name)
+
+        def findChildrenRecursive(ob, objects):
+            objects.append(ob)
+            for child in ob.children:
+                if not getHideViewport(child):
+                    findChildrenRecursive(child, objects)
+
+        def findAllSelected(scn, objects):
+            for ob in scn.collection.all_objects:
+                if ob.select_get() and not getHideViewport(ob):
+                    objects.append(ob)
+
+        rig = context.object
+        scn = context.scene
+        activateObject(context, rig)
+        objects = []
+        findChildrenRecursive(rig, objects)
+        for ob in objects:
+            ob.select_set(True)
+        bpy.ops.object.duplicate()
+        coll = bpy.data.collections.new(name=dazName(rig.name))
+        mcoll = bpy.data.collections.new(name=dazName(rig.name) + " Meshes")
+        scn.collection.children.link(coll)
+        coll.children.link(mcoll)
+
+        newObjects = []
+        findAllSelected(scn, newObjects)
+        nrig = None
+        for ob in newObjects:
+            ob.name = dazifyName(ob)
+            if ob.name == dazifyName(rig):
+                nrig = ob
+            unlinkAll(ob)
+            if ob.type == 'MESH':
+                mcoll.objects.link(ob)
+            else:
+                coll.objects.link(ob)
+        if nrig:
+            for ob in newObjects:
+                self.changeAllTargets(ob, rig, nrig)
+        activateObject(context, rig)
+
+
     def isFaceBone(self, pb):
         if pb.parent:
             par = pb.parent
