@@ -225,12 +225,12 @@ class CyclesTree:
         return self.material.getColor(channel, default)
 
 
-    def addNode(self, stype, col=None, label=None, parent=None):
+    def addNode(self, stype, col=None, size=0, label=None, parent=None):
         if col is None:
             col = self.column
         node = self.nodes.new(type = stype)
         node.location = ((col-2)*XSIZE, self.ycoords[col])
-        self.ycoords[col] -= YSIZE
+        self.ycoords[col] -= (YSIZE + size)
         if label:
             node.label = label
         if parent:
@@ -264,9 +264,7 @@ class CyclesTree:
     def addGroup(self, classdef, name, col=None, size=0, args=[], force=False):
         if col is None:
             col = self.column
-        node = self.addNode("ShaderNodeGroup", col)
-        if size:
-            self.ycoords[col] -= size
+        node = self.addNode("ShaderNodeGroup", col, size=size)
         group = classdef()
         if name in bpy.data.node_groups.keys() and not force:
             tree = bpy.data.node_groups[name]
@@ -900,8 +898,15 @@ class CyclesTree:
         weight,wttex = self.getColorTex("getChannelRefractionWeight", "NONE", 0.0)
         if weight == 0:
             return
-        node = self.buildRefractionNode()
+        node,color = self.buildRefractionNode()
         self.mixWithActive(weight, wttex, node)
+        print("BRR", self.cycles, node)
+        if GS.useFakeCaustics and not self.material.thinWall:
+            from .cgroup import FakeCausticsGroup
+            self.column += 1
+            node = self.addGroup(FakeCausticsGroup, "DAZ Fake Caustics", args=[color], force=True)
+            self.mixWithActive(weight, wttex, node, keep=True)
+            print("CAU", self.cycles, node)
 
 
     def buildRefractionNode(self):
@@ -932,7 +937,7 @@ class CyclesTree:
             self.linkScalar(iortex, node, ior, "Refraction IOR")
             self.material.setTransSettings(True, False)
         self.linkBumpNormal(node)
-        return node
+        return node, color
 
 
     def buildCutout(self):

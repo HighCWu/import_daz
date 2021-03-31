@@ -460,6 +460,46 @@ class RefractionGroup(MixGroup):
         self.links.new(mix.outputs[0], self.mix2.inputs[2])
 
 # ---------------------------------------------------------------------
+#   Fake Caustics Group
+# ---------------------------------------------------------------------
+
+class FakeCausticsGroup(MixGroup):
+
+    def create(self, node, name, parent):
+        MixGroup.create(self, node, name, parent, 6)
+
+
+    def addNodes(self, args):
+        MixGroup.addNodes(self, args)
+        normal = self.addNode("ShaderNodeNewGeometry", 1)
+        incoming = self.addNode("ShaderNodeNewGeometry", 1)
+
+        dot = self.addNode("ShaderNodeVectorMath", 2)
+        dot.operation = 'DOT_PRODUCT'
+        self.links.new(normal.outputs["Normal"], dot.inputs[0])
+        self.links.new(incoming.outputs["Incoming"], dot.inputs[1])
+
+        ramp = self.addNode('ShaderNodeValToRGB', 3)
+        self.links.new(dot.outputs["Value"], ramp.inputs['Fac'])
+        colramp = ramp.color_ramp
+        colramp.interpolation = 'LINEAR'
+        color = args[0]
+        elt = colramp.elements[0]
+        elt.position = 0.9
+        elt.color[0:3] = 0.5*color
+        elt = colramp.elements[1]
+        elt.position = 1.0
+        elt.color[0:3] = 10*color
+
+        lightpath = self.addNode("ShaderNodeLightPath", 4, size=100)
+        trans = self.addNode("ShaderNodeBsdfTransparent", 4)
+        self.links.new(ramp.outputs["Color"], trans.inputs["Color"])
+        self.links.new(lightpath.outputs["Is Shadow Ray"], self.mix1.inputs[0])
+        self.links.new(lightpath.outputs["Is Shadow Ray"], self.mix2.inputs[0])
+        self.links.new(trans.outputs[0], self.mix1.inputs[2])
+        self.links.new(trans.outputs[0], self.mix2.inputs[2])
+
+# ---------------------------------------------------------------------
 #   Transparent Group
 # ---------------------------------------------------------------------
 

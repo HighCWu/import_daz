@@ -748,6 +748,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseEnvironment")
         box.prop(scn, "DazReuseMaterials")
         box.prop(scn, "DazBumpFactor")
+        box.prop(scn, "DazFakeCaustics")
         box.prop(scn, "DazHandleRenderSettings")
         box.prop(scn, "DazHandleLightSettings")
         box.separator()
@@ -1091,6 +1092,10 @@ def register():
         name = "Bump Factor",
         description = "Multiplier for bump strength",
         min = 0.1, max = 10)
+
+    bpy.types.Scene.DazFakeCaustics = BoolProperty(
+        name = "Fake Caustics",
+        description = "Use fake caustics")
 
     bpy.types.Scene.DazUseDisplacement = BoolProperty(
         name = "Displacement",

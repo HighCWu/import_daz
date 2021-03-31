@@ -70,6 +70,7 @@ class GlobalSettings:
         self.pruneNodes = True
 
         self.bumpFactor = 1.0
+        self.useFakeCaustics = True
         self.handleRenderSettings = "UPDATE"
         self.handleLightSettings = "WARN"
         self.useDisplacement = True
@@ -123,6 +124,7 @@ class GlobalSettings:
         "DazUseEnvironment" : "useEnvironment",
         "DazReuseMaterials" : "reuseMaterials",
         "DazBumpFactor" : "bumpFactor",
+        "DazFakeCaustics" : "useFakeCaustics",
         "DazHandleRenderSettings" : "handleRenderSettings",
         "DazHandleLightSettings" : "handleLightSettings",
         "DazUseDisplacement" : "useDisplacement",
