@@ -782,8 +782,9 @@ class Geometry(Asset, Channels):
                     hasShells = True
                 if dmat.uv_set and dmat.uv_set.checkSize(me):
                     self.uv_set = dmat.uv_set
-                #me.use_auto_smooth = dmat.getValue(["Smooth On"], False)
-                #me.auto_smooth_angle = dmat.getValue(["Smooth Angle"], 89.9)*D
+                if GS.useAutoSmooth:
+                    me.use_auto_smooth = dmat.getValue(["Smooth On"], False)
+                    me.auto_smooth_angle = dmat.getValue(["Smooth Angle"], 89.9)*D
             else:
                 if GS.verbosity > 3:
                     mats = list(geonode.materials.keys())

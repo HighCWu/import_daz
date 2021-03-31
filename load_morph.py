@@ -384,22 +384,22 @@ class LoadMorph(DriverUser):
 
         key = channel[0:3].capitalize()
         fcurves = getBoneFcurves(pb, channel)
-        idx,factor = self.getMaxFactor(vec, default)
-        if idx in fcurves.keys():
-            fcu = fcurves[idx]
-        else:
-            fcu = None
-        self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, default))
+        for idx,factor in self.getFactors(vec, default):
+            if idx in fcurves.keys():
+                fcu = fcurves[idx]
+            else:
+                fcu = None
+            self.addSumDriver(pb, idx, channel, fcu, (key, prop, factor, default))
         pb.DazDriven = True
 
 
-    def getMaxFactor(self, vec, default):
+    def getFactors(self, vec, default):
         vals = [(abs(factor-default), idx, factor) for idx,factor in enumerate(vec)]
         if len(vals) == 4:
             vals = vals[1:]
         vals.sort()
-        _,idx,factor = vals[-1]
-        return idx, factor
+        maxfactor = abs(vals[-1][2])
+        return [(idx,factor) for _,idx,factor in vals if abs(factor) > 0.01*maxfactor]
 
 
     def addSumDriver(self, pb, idx, channel, fcu, data):

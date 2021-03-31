@@ -730,6 +730,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Meshes")
         box.prop(scn, "DazBuildHighdef")
         box.prop(scn, "DazMultires")
+        box.prop(scn, "DazUseAutoSmooth")
         box.prop(scn, "DazUseInstancing")
 
         box = col.box()
@@ -1062,6 +1063,13 @@ def register():
     bpy.types.Scene.DazMultires = BoolProperty(
         name = "Add Multires",
         description = "Add multires modifier to HD meshes and rebuild lower subdivision levels")
+
+    bpy.types.Scene.DazUseAutoSmooth = BoolProperty(
+        name = "Auto Smooth",
+        description = (
+            "Use auto smooth if this is done in DAZ Studio.\n" +
+            "This can be useful for objects with hard edges,\n" +
+            "but leads to poor performance and artifacts for organic meshes"))
 
     bpy.types.Scene.DazInfluence = BoolProperty(
         name = "Influence Groups",
