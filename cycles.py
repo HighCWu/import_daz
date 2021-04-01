@@ -900,13 +900,11 @@ class CyclesTree:
             return
         node,color = self.buildRefractionNode()
         self.mixWithActive(weight, wttex, node)
-        print("BRR", self.cycles, node)
         if GS.useFakeCaustics and not self.material.thinWall:
             from .cgroup import FakeCausticsGroup
             self.column += 1
             node = self.addGroup(FakeCausticsGroup, "DAZ Fake Caustics", args=[color], force=True)
             self.mixWithActive(weight, wttex, node, keep=True)
-            print("CAU", self.cycles, node)
 
 
     def buildRefractionNode(self):

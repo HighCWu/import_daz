@@ -127,8 +127,7 @@ class WorldMaterial(CyclesMaterial):
                 foundenv = True
         if (not foundenv and
             mode in [0,3] and
-            self.background and
-            not isBlack(self.background)):
+            self.background):
             print("Draw backdrop", mode, self.background)
             self.envmap = None
             fixray = True
