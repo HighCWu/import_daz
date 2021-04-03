@@ -29,6 +29,7 @@ import os
 import bpy
 from .driver import DriverUser
 from .utils import *
+from .error import reportError
 
 #------------------------------------------------------------------
 #   LoadMorph base class
@@ -114,8 +115,10 @@ class LoadMorph(DriverUser):
             return " -"
         elif isinstance(asset, Alias):
             return " _"
-        sname = self.buildShapekey(asset)
-        if self.rig:
+        sname,ok = self.buildShapekey(asset)
+        if not ok:
+            return " #"
+        elif self.rig:
             self.makeFormulas(asset, sname)
         return " *"
 
@@ -126,12 +129,12 @@ class LoadMorph(DriverUser):
         if not (isinstance(asset, Morph) and
                 self.mesh and
                 asset.deltas):
-            return None
+            return None,True
         useBuild = True
         if asset.vertex_count < 0:
             print("Vertex count == %d" % asset.vertex_count)
         elif asset.vertex_count != len(self.mesh.data.vertices):
-            msg = ("Vertex count mismatch:\n  %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
+            msg = ("Vertex count mismatch: %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
             if GS.verbosity > 2:
                 print(msg)
             if asset.hd_url:
@@ -139,8 +142,12 @@ class LoadMorph(DriverUser):
                     useBuild = False
                 elif self.treatHD == 'ACTIVE':
                     skey = self.getActiveShape(asset)
-            if useBuild and not skey:
-                return None
+                else:
+                    reportError(msg, trigger=(2,3))
+                    return None,False
+            else:
+                reportError(msg, trigger=(2,3))
+                return None,False
         if not asset.rna:
             asset.buildMorph(self.mesh,
                              useBuild=useBuild,
@@ -161,8 +168,9 @@ class LoadMorph(DriverUser):
                 item = pgs.add()
                 item.name = prop
             item.s = self.getBodyPart(asset)
-            return prop
-        return None
+            return prop,True
+        else:
+            return None,True
 
 
     def makeFormulas(self, asset, sname):
@@ -221,9 +229,13 @@ class LoadMorph(DriverUser):
             elif asset.type == "float":
                 self.setFloatLimits(self.rig, raw, GS.rawLimits, asset)
                 self.setFloatLimits(self.amt, final, GS.finalLimits, asset)
+            elif asset.type == "int":
+                self.rig[raw] = 0
+                self.amt[final] = 0
             else:
-                print("Unknown asset type:", asset.type)
-                raise RuntimeError("BUG")
+                self.setFloatLimits(self.rig, raw, GS.rawLimits, asset)
+                self.setFloatLimits(self.amt, final, GS.finalLimits, asset)
+                reportError("BUG: Unknown asset type: %s.\nAsset: %s" % (asset.type, asset), trigger=(2,3))
             if visible:
                 setActivated(self.rig, raw, True)
                 self.addToMorphSet(raw, asset, False)
@@ -394,12 +406,8 @@ class LoadMorph(DriverUser):
 
 
     def getFactors(self, vec, default):
-        vals = [(abs(factor-default), idx, factor) for idx,factor in enumerate(vec)]
-        if len(vals) == 4:
-            vals = vals[1:]
-        vals.sort()
-        maxfactor = abs(vals[-1][2])
-        return [(idx,factor) for _,idx,factor in vals if abs(factor) > 0.01*maxfactor]
+        maxfactor = max([abs(factor) for factor in vec])
+        return [(idx,factor) for idx,factor in enumerate(vec) if abs(factor) > 0.01*maxfactor]
 
 
     def addSumDriver(self, pb, idx, channel, fcu, data):

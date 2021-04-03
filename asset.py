@@ -584,6 +584,7 @@ def getDazPath(ref):
     elif path[0] == "/":
         for folder in theDazPaths:
             filepath = folder + path
+            filepath = filepath.replace("//", "/")
             if os.path.exists(filepath):
                 return filepath
             elif GS.caseSensitivePaths:
@@ -597,6 +598,6 @@ def getDazPath(ref):
         return filepath
 
     LS.missingAssets[ref] = True
-    msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (filepath, ref))
+    msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (path, ref))
     reportError(msg, trigger=(3,4))
     return None
