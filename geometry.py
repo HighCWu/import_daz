@@ -51,7 +51,14 @@ class GeoNode(Node):
         Node.__init__(self, fileref)
         self.classType = GeoNode
         self.id = normalizeRef(ref)
-        self.data = geo
+        if isinstance(geo, Geometry):
+            geo.caller = self
+            geo.nodes[self.id] = self
+            self.data = geo
+        else:
+            msg = ("Not a geometry:\n%s" % geo)
+            reportError(msg, trigger=(2,3))
+            self.data = None
         self.figure = figure
         self.figureInst = None
         self.verts = None
@@ -68,13 +75,6 @@ class GeoNode(Node):
         self.hairgen = None
         self.dforce = None
         self.index = figure.count
-        if geo:
-            if isinstance(geo, Geometry):
-                geo.caller = self
-                geo.nodes[self.id] = self
-            else:
-                msg = ("Not a geometry:\n%s" % geo)
-                reportError(msg, trigger=(2,3))
         self.modifiers = {}
         self.morphsValues = {}
         self.shstruct = {}

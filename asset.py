@@ -136,7 +136,7 @@ class Accessor:
             "Asset of type %s not found:\n  %s\n" % (type, id) +
             "File ref:\n  '%s'\n" % self.fileref
         )
-        return reportError(msg, warnPaths=True)
+        return reportError(msg, trigger=(2,3), warnPaths=True)
 
 
     def parseUrlAsset(self, struct, type=None):

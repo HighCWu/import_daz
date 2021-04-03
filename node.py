@@ -639,14 +639,14 @@ class Node(Asset, Formula, Channels):
 
 
     def update(self, struct):
-        from .geometry import GeoNode
+        from .geometry import GeoNode, Geometry
         Asset.update(self, struct)
         Channels.update(self, struct)
         for channel,data in struct.items():
             if channel == "geometries":
                 for geostruct in data:
                     if "url" in geostruct.keys():
-                        geo = self.parseUrlAsset(geostruct)
+                        geo = self.parseUrlAsset(geostruct, Geometry)
                         geonode = GeoNode(self, geo, geostruct["id"])
                     else:
                         print("No geometry URL")
