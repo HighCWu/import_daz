@@ -70,7 +70,7 @@ class LoadMorph(DriverUser):
         self.parscales = {}
         self.initAmt()
         print("Making morphs")
-        self.makeAllMorphs(namepaths)
+        self.makeAllMorphs(namepaths, True)
         if self.loadMissed:
             print("Making missing morphs")
             self.makeMissingMorphs()
@@ -89,21 +89,21 @@ class LoadMorph(DriverUser):
     #   Make all morphs
     #------------------------------------------------------------------
 
-    def makeAllMorphs(self, namepaths):
+    def makeAllMorphs(self, namepaths, force):
         namepaths.sort()
         idx = 0
         npaths = len(namepaths)
         for name,path in namepaths:
             showProgress(idx, npaths)
             idx += 1
-            char = self.makeSingleMorph(name, path)
+            char = self.makeSingleMorph(name, path, force)
             print(char, name)
 
     #------------------------------------------------------------------
     #   First pass: collect data
     #------------------------------------------------------------------
 
-    def makeSingleMorph(self, name, filepath):
+    def makeSingleMorph(self, name, filepath, force):
         from .load_json import loadJson
         from .files import parseAssetFile
         from .modifier import Alias, ChannelAsset
@@ -111,6 +111,11 @@ class LoadMorph(DriverUser):
         asset = parseAssetFile(struct)
         fileref = self.getFileRef(filepath)
         self.loaded.append(fileref)
+        if not force:
+            raw = asset.getName()
+            final = finalProp(raw)
+            if raw in self.rig.keys() and final in self.amt.keys():
+                return " ."
         if not isinstance(asset, ChannelAsset):
             return " -"
         elif isinstance(asset, Alias):
@@ -460,7 +465,7 @@ class LoadMorph(DriverUser):
                 if path:
                     name = ref.rsplit("/",1)[-1]
                     namepaths.append((name,path))
-        self.makeAllMorphs(namepaths)
+        self.makeAllMorphs(namepaths, False)
 
     #------------------------------------------------------------------
     #   Third pass: Build the drivers
