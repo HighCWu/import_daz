@@ -1819,7 +1819,7 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, IsMeshArmature):
 
 
     def run(self, context):
-        from .driver import removeRigDrivers, removePropDrivers
+        from .driver import removePropDrivers
         morphsets = []
         force = False
         if self.useStandard:
@@ -1833,7 +1833,7 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             setupMorphPaths(scn, False)
-            removeRigDrivers(rig)
+            self.removeRigDrivers(rig)
             self.clearPropGroups(rig)
             if self.useCustom:
                 self.removeCustom(rig, morphsets)
@@ -1846,6 +1846,18 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, IsMeshArmature):
                     self.removeMorphSets(ob, morphsets)
             updateScene(context)
             updateDrivers(rig)
+
+
+    def removeRigDrivers(self, rig):
+        from .driver import removeDriverFCurves
+        if rig.animation_data is None:
+            return
+        fcus = []
+        for fcu in rig.animation_data.drivers:
+            if ("evalMorphs" in fcu.driver.expression or
+                isNumber(fcu.driver.expression)):
+                fcus.append(fcu)
+        removeDriverFCurves(fcus, rig)
 
 
     def clearPropGroups(self, rig):
@@ -1886,54 +1898,133 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, IsMeshArmature):
 #   Remove specific morphs
 #-------------------------------------------------------------
 
-class MorphRemover(DeleteShapekeysBool):
+class MorphRemover(DeleteShapekeysBool, DriverUser):
     def drawExtra(self, context):
         self.layout.prop(self, "deleteShapekeys")
 
 
     def run(self, context):
-        props = self.getSelectedProps()
-        print("Remove", props)
-        paths = [propRef(finalProp(prop)) for prop in props]
-        rig = getRigFromObject(context.object)
-        self.removeFromMeshes(context.object, rig, paths, props)
+        ob = context.object
+        rig = getRigFromObject(ob)
+        self.createTmp()
+        try:
+            self.removeMorphs(ob, rig)
+        finally:
+            self.deleteTmp()
+        updateScene(context)
         if rig:
-            for prop in props:
-                self.removeDriver(rig, propRef(finalProp(prop)))
-                self.removeDriver(rig.data, propRef(finalProp(prop)))
-                removeFromPropGroups(rig, prop)
-            self.finishRemove(rig, props)
-            updateScene(context)
             updateDrivers(rig)
 
 
-    def removeDriver(self, rna, path):
-        from .driver import getRnaDriver
-        if getRnaDriver(rna, path):
-            print("RDR", rna, path)
+    def removeMorphs(self, ob, rig):
+        props = self.getSelectedProps()
+        print("Remove", props)
+        paths = [propRef(finalProp(prop)) for prop in props]
+        if rig:
+            paths = self.removeTargets(rig.data, paths)
+            self.removeTargets(rig, paths)
+            for raw in props:
+                final = finalProp(raw)
+                self.removeDriver(rig.data, propRef(final))
+                self.removeDriver(rig, propRef(raw))
+                removeFromPropGroups(rig, raw)
+                #if final in rig.data.keys():
+                #    del rig.data[final]
+                rig.data[final] = 0.0
+                if raw in rig.keys():
+                    del rig[raw]
+            self.finishRemove(rig, props)
+        self.removeFromMeshes(ob, rig, paths, props)
+
+
+    def removeDriver(self, rna, path, idx=-1):
+        if idx < 0:
             rna.driver_remove(path)
+        else:
+            rna.driver_remove(path, idx)
+
+
+    def removeTargets(self, rna, paths):
+        if rna.animation_data is None:
+            return paths
+        for fcu in list(rna.animation_data.drivers):
+            deletes,targets = self.getTargets(fcu, paths)
+            if deletes and len(targets) == 0:
+                idx = self.getArrayIndex(fcu)
+                if idx < 0:
+                    paths.append(fcu.data_path)
+                self.removeDriver(rna, fcu.data_path, idx)
+        for fcu in list(rna.animation_data.drivers):
+            deletes,targets = self.getTargets(fcu, paths)
+            if deletes:
+                if len(targets) == 0:
+                    idx = self.getArrayIndex(fcu)
+                    self.removeDriver(rna, fcu.data_path, idx)
+                else:
+                    self.makeNewDriver(rna, fcu, targets, deletes)
+        return paths
+
+
+    def getTargets(self, fcu, paths):
+        targets = []
+        deletes = []
+        for var in fcu.driver.variables:
+            for trg in var.targets:
+                if trg.data_path in paths:
+                    deletes.append(var.name)
+                else:
+                    targets.append((var.name, trg.data_path, trg.id))
+        return deletes, targets
+
+
+    def makeNewDriver(self, rna, fcu, targets, deletes):
+        from .driver import addDriverVar
+        datapath = fcu.data_path
+        idx = self.getArrayIndex(fcu)
+        expr = fcu.driver.expression
+        dtype = fcu.driver.type
+        fcu2 = self.getTmpDriver(0)
+        fcu2.driver.type == fcu.driver.type
+        self.removeDriver(rna, fcu.data_path, idx)
+        for varname,path,trgid in targets:
+            addDriverVar(fcu2, varname, path, trgid)
+        fcu3 = rna.animation_data.drivers.from_existing(src_driver=fcu2)
+        fcu3.data_path = datapath
+        if idx >= 0:
+            fcu3.array_index = idx
+        self.clearTmpDriver(0)
+        if dtype == 'SCRIPTED':
+            for varname in deletes:
+                expr = expr.replace("+"+varname, "")
+                expr = expr.replace("-"+varname, "")
+                expr = expr.replace(varname, "0")
+            fcu3.driver.expression = expr
 
 
     def removeFromMeshes(self, _ob, rig, paths, props):
         if rig is None:
             return
         for ob in rig.children:
-            if ob.type == 'MESH' and ob.data.shape_keys:
+            if ob.type == 'MESH':
                 self.removeFromMesh(ob, rig, paths, props)
 
 
     def removeFromMesh(self, ob, rig, paths, props):
-        self.removeShapekeyDrivers(ob, rig, paths, props)
+        skeys = ob.data.shape_keys
+        if skeys is None:
+            return
+        self.removeTargets(skeys, paths)
+        self.removeShapekeyDrivers(skeys, rig, paths, props)
         if self.deleteShapekeys:
             for prop in props:
-                if prop in ob.data.shape_keys.key_blocks.keys():
-                    skey = ob.data.shape_keys.key_blocks[prop]
+                if prop in skeys.key_blocks.keys():
+                    skey = skeys.key_blocks[prop]
                     ob.shape_key_remove(skey)
 
 
-    def removeShapekeyDrivers(self, ob, rig, paths, props):
+    def removeShapekeyDrivers(self, skeys, rig, paths, props):
         from .driver import removePropDrivers
-        removePropDrivers(ob.data.shape_keys, paths, rig, force=True)
+        removePropDrivers(skeys, paths, rig, force=True)
 
 
     def finishRemove(self, rig, props):
@@ -1978,9 +2069,8 @@ class DAZ_OT_RemoveJCMs(DazOperator, JCMSelector, MorphRemover, IsMesh):
         self.removeFromMesh(ob, rig, paths, props)
 
 
-    def removeShapekeyDrivers(self, ob, rig, paths, snames):
+    def removeShapekeyDrivers(self, skeys, rig, paths, snames):
         from .driver import getShapekeyDriver
-        skeys = ob.data.shape_keys
         for sname in snames:
             if sname in skeys.key_blocks.keys():
                 skey = skeys.key_blocks[sname]

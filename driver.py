@@ -494,17 +494,6 @@ def removeDriverFCurves(fcus, rig):
             pass
 
 
-def removeRigDrivers(rig):
-    if rig.animation_data is None:
-        return
-    fcus = []
-    for fcu in rig.animation_data.drivers:
-        if ("evalMorphs" in fcu.driver.expression or
-            isNumber(fcu.driver.expression)):
-            fcus.append(fcu)
-    removeDriverFCurves(fcus, rig)
-
-
 def removePropDrivers(rna, paths=None, rig=None, force=False):
     if rna is None or rna.animation_data is None:
         return False
