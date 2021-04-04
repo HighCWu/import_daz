@@ -1792,107 +1792,75 @@ class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
 #   Remove all morph drivers
 #------------------------------------------------------------------
 
-class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, IsMeshArmature):
-    bl_idname = "daz.remove_all_shapekey_drivers"
-    bl_label = "Remove All Shapekey Drivers"
-    bl_description = "Remove all shapekey drivers"
+class DAZ_OT_RemoveAllDrivers(DazPropsOperator, DriverUser, IsMeshArmature):
+    bl_idname = "daz.remove_all_drivers"
+    bl_label = "Remove All Drivers"
+    bl_description = "Remove all drivers from selected objects"
     bl_options = {'UNDO'}
 
-    useStandard : BoolProperty(
-        name = "Standard Morphs",
-        description = "Remove drivers to all standard morphs",
+    useRemoveProps : BoolProperty(
+        name = "Remove Properties",
+        description = "Also remove driving properties",
         default = True)
 
-    useCustom : BoolProperty(
-        name = "Custom Morphs",
-        description = "Remove drivers to all custom morphs",
-        default = True)
-
-    useJCM : BoolProperty(
-        name = "JCMs",
-        description = "Remove drivers to all JCMs",
+    useRemoveAllProps : BoolProperty(
+        name = "Remove All Properties",
+        description = "Also remove other properties",
         default = False)
 
     def draw(self, context):
-        self.layout.prop(self, "useStandard")
-        self.layout.prop(self, "useCustom")
-        self.layout.prop(self, "useJCM")
+        self.layout.prop(self, "useRemoveProps")
+        if self.useRemoveProps:
+            self.layout.prop(self, "useRemoveAllProps")
 
 
     def run(self, context):
-        from .driver import removePropDrivers
-        morphsets = []
-        force = False
-        if self.useStandard:
-            morphsets += theStandardMorphSets
-        if self.useCustom:
-            morphsets += theCustomMorphSets
-        if self.useJCM:
-            morphsets += theJCMMorphSets
-            force = True
-        scn = context.scene
-        rig = getRigFromObject(context.object)
-        if rig:
-            setupMorphPaths(scn, False)
-            self.removeRigDrivers(rig)
-            self.clearPropGroups(rig)
-            if self.useCustom:
-                self.removeCustom(rig, morphsets)
-            self.removeMorphSets(rig, morphsets)
-            for ob in rig.children:
-                if ob.type == 'MESH' and ob.data.shape_keys:
-                    removePropDrivers(ob.data.shape_keys, force=force)
-                    if self.useCustom:
-                        self.removeCustom(ob, morphsets)
-                    self.removeMorphSets(ob, morphsets)
-            updateRigDrivers(context, rig)
+        self.targets = {}
+        meshes = getSelectedMeshes(context)
+        rigs = getSelectedArmatures(context)
+        for ob in meshes:
+            skeys = ob.data.shape_keys
+            if skeys:
+                self.removeDrivers(skeys)
+        for rig in rigs:
+            self.removeDrivers(rig.data)
+            self.removeDrivers(rig)
 
-
-    def removeRigDrivers(self, rig):
-        from .driver import removeDriverFCurves
-        if rig.animation_data is None:
+        if not self.useRemoveProps:
             return
-        fcus = []
-        for fcu in rig.animation_data.drivers:
-            if ("evalMorphs" in fcu.driver.expression or
-                isNumber(fcu.driver.expression)):
-                fcus.append(fcu)
-        removeDriverFCurves(fcus, rig)
+        for path,rna in self.targets.items():
+            words = path.split('"')
+            if len(words) == 5 and words[0] == "pose.bones[" and words[4] == "]":
+                bname = words[1]
+                prop = words[3]
+                pb = rna.pose.bones[bname]
+                if prop in pb.keys():
+                    del pb[prop]
+            elif len(words) == 3 and words[2] == "]":
+                prop = words[1]
+                if prop in rna.keys():
+                    del rna[prop]
 
-
-    def clearPropGroups(self, rig):
-        from .propgroups import getAllPropGroups
-        for pb in rig.pose.bones:
-            for pgs in getAllPropGroups(pb):
-                pgs.clear()
-            pb.location = (0,0,0)
-            pb.rotation_euler = (0,0,0)
-            pb.rotation_quaternion = (1,0,0,0)
-            pb.scale = (1,1,1)
-
-
-    def removeCustom(self, rig, morphsets):
-        rig.DazCustomMorphs = False
-        for cat in rig.DazMorphCats:
-            for morph in cat.morphs:
-                key = morph.name
-                if key in rig.keys():
-                    rig[key] = 0.0
+        if not self.useRemoveAllProps:
+            return
+        for rig in rigs:
+            for key in list(rig.keys()):
+                if not (key[0] == "_" or hasattr(rig, key)):
                     del rig[key]
-        rig.DazMorphCats.clear()
+            for key in list(rig.data.keys()):
+                if not (key[0] == "_" or hasattr(rig.data, key)):
+                    del rig.data[key]
 
 
-    def removeMorphSets(self, rig, morphsets):
-        for item in getMorphList(rig, morphsets):
-            key = item.name
-            if key in rig.keys():
-                rig[key] = 0.0
-                del rig[key]
-
-        for morphset in morphsets:
-            pg = getattr(rig, "Daz"+morphset)
-            pg.clear()
-
+    def removeDrivers(self, rna):
+        if not rna.animation_data:
+            return
+        for fcu in list(rna.animation_data.drivers):
+            for var in fcu.driver.variables:
+                for trg in var.targets:
+                    self.targets[trg.data_path] = trg.id
+            idx = self.getArrayIndex(fcu)
+            self.removeDriver(rna, fcu.data_path, idx)
 
 #-------------------------------------------------------------
 #   Remove specific morphs
@@ -1929,13 +1897,6 @@ class MorphRemover(DeleteShapekeysBool, DriverUser):
                     del rig[raw]
             self.finishRemove(rig, props)
         self.removeFromMeshes(ob, rig, paths, props)
-
-
-    def removeDriver(self, rna, path, idx=-1):
-        if idx < 0:
-            rna.driver_remove(path)
-        else:
-            rna.driver_remove(path, idx)
 
 
     def removeTargets(self, rna, paths):
@@ -1989,8 +1950,8 @@ class MorphRemover(DeleteShapekeysBool, DriverUser):
         self.clearTmpDriver(0)
         if dtype == 'SCRIPTED':
             for varname in deletes:
-                expr = expr.replace("+"+varname, "")
-                expr = expr.replace("-"+varname, "")
+                #expr = expr.replace("+"+varname, "")
+                #expr = expr.replace("-"+varname, "")
                 expr = expr.replace(varname, "0")
             fcu3.driver.expression = expr
 
@@ -2663,7 +2624,7 @@ classes = [
     DAZ_OT_RemoveCustomMorphs,
     DAZ_OT_RemoveJCMs,
     DAZ_OT_AddDrivenValueNodes,
-    DAZ_OT_RemoveAllShapekeyDrivers,
+    DAZ_OT_RemoveAllDrivers,
     DAZ_OT_AddShapekeyDrivers,
     DAZ_OT_RemoveShapekeyDrivers,
     DAZ_OT_ToggleAllCats,

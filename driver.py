@@ -69,6 +69,13 @@ class DriverUser:
             return fcu.array_index
 
 
+    def removeDriver(self, rna, path, idx=-1):
+        if idx < 0:
+            rna.driver_remove(path)
+        else:
+            rna.driver_remove(path, idx)
+
+
     def copyDriver(self, fcu, rna, old=None, new=None, assoc=None):
         channel = fcu.data_path
         idx = self.getArrayIndex(fcu)
@@ -585,53 +592,6 @@ class DAZ_OT_UpdateAll(DazOperator):
         updateAll(context)
 
 #----------------------------------------------------------
-#   Remove unused drivers
-#----------------------------------------------------------
-
-class DAZ_OT_RemoveUnusedDrivers(DazOperator, IsObject):
-    bl_idname = "daz.remove_unused_drivers"
-    bl_label = "Remove Unused Drivers"
-    bl_description = "Remove unused drivers"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        for ob in getSelectedObjects(context):
-            self.removeUnused(ob)
-            if ob.data:
-                self.removeUnused(ob.data)
-            if ob.type == 'MESH' and ob.data.shape_keys:
-                self.removeUnused(ob.data.shape_keys)
-                self.removeShapekeys(ob.data.shape_keys)
-            updateDrivers(ob)
-        updateScene(context)
-
-
-    def removeUnused(self, rna):
-        fcus = []
-        if rna and rna.animation_data:
-            for fcu in rna.animation_data.drivers:
-                for var in fcu.driver.variables:
-                    for trg in var.targets:
-                        if trg.id is None:
-                            fcus.append(fcu)
-            for fcu in fcus:
-                if fcu.data_path:
-                    rna.driver_remove(fcu.data_path)
-
-
-    def removeShapekeys(self, skeys):
-        paths = []
-        if skeys and skeys.animation_data:
-            for fcu in skeys.animation_data.drivers:
-                words = fcu.data_path.split('"')
-                if words[0] == "key_blocks[":
-                    if words[1] not in skeys.key_blocks.keys():
-                        paths.append(fcu.data_path)
-        for path in paths:
-            skeys.driver_remove(path)
-        updateDrivers(skeys)
-
-#----------------------------------------------------------
 #   Retarget mesh drivers
 #----------------------------------------------------------
 
@@ -825,7 +785,6 @@ class DazDriverGroup(bpy.types.PropertyGroup):
 classes = [
     DazDriverGroup,
 
-    DAZ_OT_RemoveUnusedDrivers,
     DAZ_OT_RetargetDrivers,
     DAZ_OT_CopyProps,
     DAZ_OT_CopyBoneDrivers,
