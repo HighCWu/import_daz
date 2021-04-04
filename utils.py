@@ -217,6 +217,12 @@ def updateDrivers(rna):
     if rna:
         rna.update_tag()
 
+def updateRigDrivers(context, rig):
+    updateScene(context)
+    if rig:
+        updateDrivers(rig.data)
+        updateDrivers(rig)
+
 #-------------------------------------------------------------
 #   More utility functions
 #-------------------------------------------------------------

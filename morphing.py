@@ -1481,7 +1481,7 @@ class DAZ_OT_ClearMorphs(DazOperator, MorphsetString, IsMeshArmature):
         if rig:
             scn = context.scene
             clearMorphs(rig, self.morphset, self.category, scn, scn.frame_current, False)
-            updateDrivers(rig)
+            updateRigDrivers(context, rig)
 
 
 class DAZ_OT_ClearShapes(DazOperator, MorphsetString, IsMesh):
@@ -1524,9 +1524,12 @@ class DAZ_OT_UpdateMorphs(DazOperator, MorphsetString, IsMeshArmature):
                     item.text = item.name
                     if item.text[0:2] == "Dz":
                         item.text = item.text[3:]
-            if ob.type == 'MESH' and ob.data.shape_keys:
-                for key in ob.data.shape_keys.key_blocks.keys():
-                    self.updateKey(ob, key)
+            if ob.type == 'MESH':
+                skeys = ob.data.shape_keys
+                if skeys:
+                    for key in skeys.key_blocks.keys():
+                        self.updateKey(ob, key)
+                    updateDrivers(skeys)
             elif ob.type == 'ARMATURE':
                 bad = False
                 for pb in ob.pose.bones:
@@ -1540,7 +1543,7 @@ class DAZ_OT_UpdateMorphs(DazOperator, MorphsetString, IsMeshArmature):
                                 bad = True
                 if bad:
                     self.removeAllMorphs(ob)
-            updateDrivers(ob)
+                updateRigDrivers(context, ob)
             ob.DazMorphPrefixes = False
         prettifyAll(context)
 
@@ -1608,7 +1611,7 @@ class DAZ_OT_AddKeysets(DazOperator, MorphsetString, IsMeshArmature):
         if rig:
             scn = context.scene
             addKeySet(rig, self.morphset, scn, scn.frame_current)
-            updateDrivers(rig)
+            updateRigDrivers(context, rig)
 
 #------------------------------------------------------------------
 #   Set morph keys
@@ -1625,8 +1628,8 @@ class DAZ_OT_KeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
         if rig:
             scn = context.scene
             self.keyMorphs(rig, scn, scn.frame_current)
-            updateScene(context)
-            updateDrivers(rig)
+            updateRigDrivers(context, rig)
+
 
 
     def keyMorphs(self, rig, scn, frame):
@@ -1683,8 +1686,7 @@ class DAZ_OT_UnkeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
         if rig and rig.animation_data and rig.animation_data.action:
             scn = context.scene
             self.unkeyMorphs(rig, scn, scn.frame_current)
-            updateScene(context)
-            updateDrivers(rig)
+            updateRigDrivers(context, rig)
 
 
     def unkeyMorphs(self, rig, scn, frame):
@@ -1783,8 +1785,7 @@ class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
         for prop in rig.keys():
             if prop.lower() in props:
                 setFloatProp(rig, prop, rig[prop], GS.customMin, GS.customMax)
-        updateScene(context)
-        updateDrivers(rig)
+        updateRigDrivers(context, rig)
         print("Slider limits updated")
 
 #------------------------------------------------------------------
@@ -1844,8 +1845,7 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, IsMeshArmature):
                     if self.useCustom:
                         self.removeCustom(ob, morphsets)
                     self.removeMorphSets(ob, morphsets)
-            updateScene(context)
-            updateDrivers(rig)
+            updateRigDrivers(context, rig)
 
 
     def removeRigDrivers(self, rig):
@@ -1899,10 +1899,6 @@ class DAZ_OT_RemoveAllShapekeyDrivers(DazPropsOperator, IsMeshArmature):
 #-------------------------------------------------------------
 
 class MorphRemover(DeleteShapekeysBool, DriverUser):
-    def drawExtra(self, context):
-        self.layout.prop(self, "deleteShapekeys")
-
-
     def run(self, context):
         ob = context.object
         rig = getRigFromObject(ob)
@@ -1911,9 +1907,7 @@ class MorphRemover(DeleteShapekeysBool, DriverUser):
             self.removeMorphs(ob, rig)
         finally:
             self.deleteTmp()
-        updateScene(context)
-        if rig:
-            updateDrivers(rig)
+        updateRigDrivers(context, rig)
 
 
     def removeMorphs(self, ob, rig):
@@ -1984,7 +1978,7 @@ class MorphRemover(DeleteShapekeysBool, DriverUser):
         expr = fcu.driver.expression
         dtype = fcu.driver.type
         fcu2 = self.getTmpDriver(0)
-        fcu2.driver.type == fcu.driver.type
+        fcu2.driver.type = dtype
         self.removeDriver(rna, fcu.data_path, idx)
         for varname,path,trgid in targets:
             addDriverVar(fcu2, varname, path, trgid)
@@ -2037,6 +2031,9 @@ class DAZ_OT_RemoveStandardMorphs(DazOperator, StandardSelector, MorphRemover, I
     bl_description = "Remove specific standard morphs and their associated drivers"
     bl_options = {'UNDO'}
 
+    def drawExtra(self, context):
+        self.layout.prop(self, "deleteShapekeys")
+
 
 class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMeshArmature):
     bl_idname = "daz.remove_custom_morphs"
@@ -2045,6 +2042,10 @@ class DAZ_OT_RemoveCustomMorphs(DazOperator, CustomSelector, MorphRemover, IsMes
     bl_options = {'UNDO'}
 
     morphset = "Custom"
+
+    def drawExtra(self, context):
+        self.layout.prop(self, "deleteShapekeys")
+
 
     def finishRemove(self, rig, props):
         for cat in rig.DazMorphCats:
@@ -2064,6 +2065,10 @@ class DAZ_OT_RemoveJCMs(DazOperator, JCMSelector, MorphRemover, IsMesh):
     bl_label = "Remove JCMs"
     bl_description = "Remove specific JCMs"
     bl_options = {'UNDO'}
+
+    def drawExtra(self, context):
+        self.layout.prop(self, "deleteShapekeys")
+
 
     def removeFromMeshes(self, ob, rig, paths, props):
         self.removeFromMesh(ob, rig, paths, props)
@@ -2141,7 +2146,7 @@ class AddRemoveDriver:
         if (rig and rig.type == 'ARMATURE'):
             for sname in self.getSelectedProps():
                 self.handleShapekey(sname, rig, ob)
-            updateDrivers(rig)
+            updateRigDrivers(context, rig)
 
 
     def invoke(self, context, event):
@@ -2425,7 +2430,7 @@ class DAZ_OT_PinProp(DazOperator, MorphsetString, IsMeshArmature):
         scn = context.scene
         setupMorphPaths(scn, False)
         pinProp(rig, scn, self.key, self.morphset, self.category, scn.frame_current)
-        updateDrivers(rig)
+        updateRigDrivers(context, rig)
 
 
 class DAZ_OT_PinShape(DazOperator, MorphsetString, IsMesh):
@@ -2484,7 +2489,7 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, SingleFile):
                     pinProp(rig, scn, key, "Visemes", "", frame)
         fp.close()
         #setInterpolation(rig)
-        updateDrivers(rig)
+        updateRigDrivers(context, rig)
         scn.tool_settings.use_keyframe_insert_auto = auto
         print("Moho file %s loaded" % self.filepath)
 
@@ -2539,13 +2544,10 @@ class MorphsToShapes:
                 mod = getModifier(ob, 'ARMATURE')
                 if mod:
                     rig[key] = 1.0
-                    updateScene(context)
-                    updateDrivers(rig)
+                    updateRigDrivers(context, rig)
                     self.applyArmature(ob, rig, mod, mname)
                     rig[key] = 0.0
-        updateScene(context)
-        updateDrivers(rig)
-        updateDrivers(rig)
+        updateRigDrivers(context, rig)
 
 
     def applyArmature(self, ob, rig, mod, mname):
