@@ -185,6 +185,10 @@ def setWorldMatrix(ob, wmat):
         ob.scale = One
 
 
+def nonzero(vec):
+    return (max([abs(x) for x in vec]) > 1e-6)
+
+
 def getRigParent(ob):
     par = ob.parent
     while par and par.type != 'ARMATURE':

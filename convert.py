@@ -28,6 +28,7 @@
 
 import bpy
 import os
+from collections import OrderedDict
 from mathutils import *
 from .error import *
 from .utils import *
@@ -44,9 +45,9 @@ IkPoses = {}
 #   Save current pose
 #-------------------------------------------------------------
 
-class DAZ_OT_SavePose(DazOperator, JsonExportFile, IsArmature):
-    bl_idname = "daz.save_pose"
-    bl_label = "Save Pose"
+class DAZ_OT_SavePoseInternal(DazOperator, JsonExportFile, IsArmature):
+    bl_idname = "daz.save_pose_internal"
+    bl_label = "Save Pose Internal"
     bl_description = "Save the current pose as a json file"
     bl_options = {'UNDO'}
 
@@ -90,7 +91,6 @@ class DAZ_OT_SavePose(DazOperator, JsonExportFile, IsArmature):
 
 
     def run(self, context):
-        from collections import OrderedDict
         rig = context.object
         struct = OrderedDict()
         struct["character"] = rig.name
@@ -133,11 +133,6 @@ class DAZ_OT_SavePose(DazOperator, JsonExportFile, IsArmature):
                                          pb.DazRotMode)
         from .load_json import saveJson
         saveJson(struct, self.filepath)
-
-
-def nonzero(vec):
-    val = max([abs(x) for x in vec])
-    return (val > 1e-6)
 
 #-------------------------------------------------------------
 #   Load pose
@@ -288,9 +283,9 @@ def loadPose(context, rig, character, table, modify):
         loadBonePose(context, root, ctable["pose"])
 
 
-class DAZ_OT_LoadPose(HideOperator, JsonFile, SingleFile, IsArmature):
-    bl_idname = "daz.load_pose"
-    bl_label = "Load Pose"
+class DAZ_OT_LoadPoseInternal(HideOperator, JsonFile, SingleFile, IsArmature):
+    bl_idname = "daz.load_pose_internal"
+    bl_label = "Load Pose Internal"
     bl_description = "Load pose from a json file"
     bl_options = {'UNDO'}
 
@@ -298,7 +293,6 @@ class DAZ_OT_LoadPose(HideOperator, JsonFile, SingleFile, IsArmature):
         folder = os.path.dirname(self.filepath)
         character = os.path.splitext(os.path.basename(self.filepath))[0]
         table = {}
-        print("Load rest pose entry")
         loadRestPoseEntry(character, table, folder)
         print("Load pose")
         loadPose(context, context.object, character, table, False)
@@ -483,8 +477,8 @@ def getConverterEntry(cname):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_SavePose,
-    DAZ_OT_LoadPose,
+    DAZ_OT_SavePoseInternal,
+    DAZ_OT_LoadPoseInternal,
     DAZ_OT_OptimizePose,
     DAZ_OT_ConvertRigPose,
 ]

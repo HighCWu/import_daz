@@ -29,12 +29,13 @@
 import bpy
 import math
 import os
+from collections import OrderedDict
 from mathutils import *
 from .error import *
 from .utils import *
 from .transform import Transform
 from .globvars import theDazExtensions
-from .fileutils import MultiFile
+from .fileutils import MultiFile, SingleFile, JsonFile, JsonExportFile
 
 #-------------------------------------------------------------
 #   Convert between frames and vectors
@@ -147,7 +148,6 @@ class FrameConverter:
     def getConv(self, bones, rig):
         from .figure import getRigType
         from .convert import getConverter
-        from collections import OrderedDict
         stype = None
         conv = {}
         twists = {}
@@ -1262,6 +1262,124 @@ class DAZ_OT_PruneAction(DazOperator):
         ob = context.object
         pruneAction(ob.animation_data.action, ob.DazScale)
 
+#-------------------------------------------------------------
+#   Save pose
+#-------------------------------------------------------------
+
+class DAZ_OT_SavePoses(DazOperator, JsonExportFile, IsArmature):
+    bl_idname = "daz.save_poses"
+    bl_label = "Save Poses"
+    bl_description = "Save the current pose or action as a json file"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        from .load_json import saveJson
+        rig = context.object
+        struct = OrderedDict()
+        self.savePose(rig, struct)
+        if rig.animation_data and rig.animation_data.action:
+            self.saveAction(rig, struct)
+        saveJson(struct, self.filepath)
+
+
+    def savePose(self, rig, struct):
+        struct["object"] = {
+            "location" : self.addStatic(rig.location),
+            "rotation_euler" : self.addStatic(rig.rotation_euler),
+            "scale" : self.addStatic(rig.scale)
+        }
+
+        bones = struct["bones"] = OrderedDict()
+        for pb in rig.pose.bones:
+            bone = bones[pb.name] = {}
+            if nonzero(pb.location):
+                bone["location"] = self.addStatic(pb.location)
+            if pb.rotation_mode == 'QUATERNION':
+                bone["rotation_quaternion"] = self.addStatic(pb.rotation_quaternion)
+            else:
+                bone["rotation_euler"] = self.addStatic(pb.rotation_euler)
+            if nonzero(pb.scale-One):
+                bone["scale"] = self.addStatic(pb.scale)
+
+
+    def addStatic(self, vec):
+        return [[(0.0, x)] for x in vec]
+
+
+    def saveAction(self, rig, struct):
+        act = rig.animation_data.action
+        object = {"location" : 3*[None], "rotation_euler" : 3*[None], "scale" : 3*[None]}
+        bones = OrderedDict()
+        for pb in rig.pose.bones:
+            bones[pb.name] = {"location" : 3*[None], "rotation_quaternion": 4*[None], "rotation_euler" : 3*[None], "scale" : 3*[None]}
+
+        for fcu in act.fcurves:
+            channel = fcu.data_path.rsplit(".")[-1]
+            words = fcu.data_path.split('"')
+            if words[0] == "pose.bones[":
+                bname = words[1]
+                if bname in bones.keys() and channel in bones[bname].keys():
+                    bones[bname][channel][fcu.array_index] = fcu
+            elif channel in object.keys():
+                object[channel][fcu.array_index] = fcu
+
+        for channel,fcus in object.items():
+            for idx,fcu in enumerate(fcus):
+                if fcu is not None:
+                    struct["object"][channel][idx] = self.addFcurve(fcu)
+        for bname,channels in bones.items():
+            for channel,fcus in channels.items():
+                for idx, fcu in enumerate(fcus):
+                    if fcu is not None:
+                        struct["bones"][bname][channel][idx] = self.addFcurve(fcu)
+
+
+    def addFcurve(self, fcu):
+        return [list(kp.co) for kp in fcu.keyframe_points]
+
+#-------------------------------------------------------------
+#   Load pose
+#-------------------------------------------------------------
+
+class DAZ_OT_LoadPoses(HideOperator, JsonFile, SingleFile, IsArmature):
+    bl_idname = "daz.load_poses"
+    bl_label = "Load Poses"
+    bl_description = "Load pose or action from a json file"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        from .load_json import loadJson
+        struct = loadJson(self.filepath)
+        rig = context.object
+        if "object" in struct.keys():
+            self.addFcurves(rig, struct["object"], rig, "")
+        if "bones" in struct.keys():
+            bones = struct["bones"]
+            for pb in rig.pose.bones:
+                if pb.name in bones.keys():
+                    path = 'pose.bones["%s"].' % pb.name
+                    self.addFcurves(pb, bones[pb.name], rig, path)
+
+
+    def addFcurves(self, rna, struct, rig, path):
+        for channel,data in struct.items():
+            attr = getattr(rna, channel)
+            for idx,kpoints in enumerate(data):
+                t,y = kpoints[0]
+                attr[idx] = y
+                if len(kpoints) > 1:
+                    rna.keyframe_insert(channel, index=idx, frame=t, group=rna.name)
+                    fcu = self.findFcurve(rig, path+channel, idx)
+                    for t,y in kpoints[1:]:
+                        fcu.keyframe_points.insert(t, y, options={'FAST'})
+
+
+    def findFcurve(self, rig, path, idx):
+        for fcu in rig.animation_data.action.fcurves:
+            if fcu.data_path == path and fcu.array_index == idx:
+                return fcu
+        return None
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -1275,6 +1393,8 @@ classes = [
     DAZ_OT_ImportNodePose,
     DAZ_OT_ClearPose,
     DAZ_OT_PruneAction,
+    DAZ_OT_SavePoses,
+    DAZ_OT_LoadPoses,
 ]
 
 def register():
