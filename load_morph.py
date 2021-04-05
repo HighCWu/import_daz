@@ -889,7 +889,7 @@ def buildBoneFormula(asset, rig, errors):
 #------------------------------------------------------------------
 
 def isPath(path):
-    return (path[0:2] == "[")
+    return (path[0:2] == '["')
 
 def unPath(path):
     if path[0:2] == '["':
