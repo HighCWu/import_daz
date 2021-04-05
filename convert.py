@@ -32,6 +32,7 @@ from mathutils import *
 from .error import *
 from .utils import *
 from .fileutils import SingleFile, JsonFile, JsonExportFile
+from .animation import HideOperator
 
 Converters = {}
 TwistBones = {}
@@ -43,47 +44,100 @@ IkPoses = {}
 #   Save current pose
 #-------------------------------------------------------------
 
-class DAZ_OT_SaveCurrentPose(DazOperator, JsonExportFile, IsArmature):
-    bl_idname = "daz.save_current_pose"
-    bl_label = "Save Current Pose"
+class DAZ_OT_SavePose(DazOperator, JsonExportFile, IsArmature):
+    bl_idname = "daz.save_pose"
+    bl_label = "Save Pose"
+    bl_description = "Save the current pose as a json file"
     bl_options = {'UNDO'}
 
-    skeleton : BoolProperty("Skeleton", default=True)
-    pose : BoolProperty("Pose", default=True)
+    useSkeleton : BoolProperty(
+        name = "Skeleton",
+        description = "Save rotation mode and roll angles",
+        default = False)
+
+    usePose : BoolProperty(
+        name = "Pose",
+        description = "Save the current pose",
+        default = True)
+
+    useObjectTransform : BoolProperty(
+        name = "Object Transform",
+        description = "Save object transform",
+        default = True)
+
+    useRotationOnly : BoolProperty(
+        name = "Rotation Only",
+        description = "Save rotation curves only",
+        default = False)
+
+    useSelectedOnly : BoolProperty(
+        name = "Selected Only",
+        description = "Save pose of selected bones only",
+        default = False)
+
+    def draw(self, context):
+        self.layout.prop(self, "useSkeleton")
+        self.layout.prop(self, "usePose")
+        if self.usePose:
+            self.layout.prop(self, "useRotationOnly")
+            self.layout.prop(self, "useObjectTransform")
+        self.layout.prop(self, "useSelectedOnly")
+
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
-    def run(self, context):
-        rig = context.object
-        rolls = {}
-        bpy.ops.object.mode_set(mode='EDIT')
-        for eb in rig.data.edit_bones:
-            rolls[eb.name] = eb.roll
-        bpy.ops.object.mode_set(mode='OBJECT')
 
+    def run(self, context):
         from collections import OrderedDict
+        rig = context.object
         struct = OrderedDict()
         struct["character"] = rig.name
         struct["scale"] = 1.0
 
-        if self.skeleton:
+        if self.useSkeleton:
+            rolls = {}
+            bpy.ops.object.mode_set(mode='EDIT')
+            for eb in rig.data.edit_bones:
+                rolls[eb.name] = eb.roll
+            bpy.ops.object.mode_set(mode='OBJECT')
             skel = {}
             struct["skeleton"] = skel
             for pb in rig.pose.bones:
                 skel[pb.name]  = [pb.rotation_mode, rolls[pb.name]]
 
-        if self.pose:
+        if self.useObjectTransform:
+            struct["object"] = [list(rig.location),
+                                list(rig.rotation_euler),
+                                list(rig.scale),
+                                rig.rotation_mode]
+
+        if self.usePose:
             pose = {}
             struct["pose"] = pose
             for pb in rig.pose.bones:
-                if pb.bone.select:
-                    euler = pb.matrix.to_3x3().to_euler()
-                    pose[pb.name] = (list(euler), list(pb.bone.DazOrient), pb.DazRotMode)
-
+                if not self.useSelectedOnly or pb.bone.select:
+                    loc,quat,scale = pb.matrix.decompose()
+                    euler = quat.to_euler()
+                    if (self.useRotationOnly or
+                        not (nonzero(pb.location) or nonzero(pb.scale-One))):
+                        pose[pb.name] = (list(euler),
+                                         list(pb.bone.DazOrient),
+                                         pb.DazRotMode)
+                    else:
+                        pose[pb.name] = (list(euler),
+                                         list(pb.location),
+                                         list(pb.scale),
+                                         list(pb.bone.DazOrient),
+                                         pb.DazRotMode)
         from .load_json import saveJson
         saveJson(struct, self.filepath)
+
+
+def nonzero(vec):
+    val = max([abs(x) for x in vec])
+    return (val > 1e-6)
 
 #-------------------------------------------------------------
 #   Load pose
@@ -123,9 +177,9 @@ def getOrientation(character, bname, rig):
         return pb.bone.DazOrient, pb.DazRotMode
 
     loadRestPoseEntry(character, RestPoses, theRestPoseFolder)
-    bones = RestPoses[character]["pose"]
-    if bname in bones.keys():
-        vec, orient, xyz = bones[bname]
+    poses = RestPoses[character]["pose"]
+    if bname in poses.keys():
+        orient, xyz = poses[bname][-2:]
         return orient, xyz
     else:
         return None, "XYZ"
@@ -154,78 +208,100 @@ def getParent(character, bname):
         return None
 
 
-def loadPose(rig, character, table, modify):
+def loadPose(context, rig, character, table, modify):
+
+    def getBoneName(bname, bones):
+        if bname in bones.keys():
+            return bname
+        elif isDrvBone(bname):
+            bname = baseBone(bname)
+            if bname in bones.keys():
+                return bname
+        elif (bname[-4:] == "Copy" and
+              bname[:-4] in bones.keys()):
+            return bname[:-4]
+        return None
+
+
+    def modifySkeleton(rig, skel):
+        bpy.ops.object.mode_set(mode='EDIT')
+        for eb in rig.data.edit_bones:
+            bname = getBoneName(eb.name, skel)
+            if bname in skel.keys():
+                eb.roll = skel[bname][1]
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for pb in rig.pose.bones:
+            bname = getBoneName(pb.name, skel)
+            if bname in skel.keys():
+                pb.rotation_mode = skel[bname][0]
+
+
+    def loadBonePose(context, pb, pose):
+        pbname = getBoneName(pb.name, pose)
+        if pbname and pb.name[:-4] != "Copy":
+            if len(pose[pbname]) == 3:
+                rot, pb.bone.DazOrient, pb.DazRotMode = pose[pbname]
+                loc = scale = None
+            else:
+                rot, loc, scale, pb.bone.DazOrient, pb.DazRotMode = pose[pbname]
+            euler = Euler(rot)
+            mat = euler.to_matrix()
+            rmat = pb.bone.matrix_local.to_3x3()
+            if pb.parent:
+                par = pb.parent
+                rmat = par.bone.matrix_local.to_3x3().inverted() @ rmat
+                mat = par.matrix.to_3x3().inverted() @ mat
+            bmat = rmat.inverted() @ mat
+            pb.matrix_basis = bmat.to_4x4()
+            if loc:
+                pb.location = loc
+                pb.scale = scale
+            for n in range(3):
+                if pb.lock_rotation[n]:
+                    pb.rotation_euler[n] = 0
+            updateScene(context)
+
+        if pb.name != "head":
+            for child in pb.children:
+                loadBonePose(context, child, pose)
+
+
+    def loadObjectPose(context, rig, pose):
+        rig.location, rot, rig.scale, xyz = pose
+        euler = Euler(rot, xyz)
+        rig.rotation_euler = euler
+
+
     root = None
     for pb in rig.pose.bones:
         if pb.parent is None:
             root = pb
             break
-    if "skeleton" in table[character]:
-        modifySkeleton(rig, table[character]["skeleton"])
-    loadBonePose(root, table[character]["pose"])
+    ctable = table[character]
+    if "skeleton" in ctable.keys():
+        modifySkeleton(rig, ctable["skeleton"])
+    if "object" in ctable.keys():
+        loadObjectPose(context, rig, ctable["object"])
+    else:
+        loadObjectPose(context, rig, [Zero, Zero, One, "XYZ"])
+    if "pose" in ctable.keys():
+        loadBonePose(context, root, ctable["pose"])
 
 
-def modifySkeleton(rig, skel):
-    bpy.ops.object.mode_set(mode='EDIT')
-    for eb in rig.data.edit_bones:
-        bname = getBoneName(eb.name, skel)
-        if bname in skel.keys():
-            eb.roll = skel[bname][1]
-    bpy.ops.object.mode_set(mode='OBJECT')
-    for pb in rig.pose.bones:
-        bname = getBoneName(pb.name, skel)
-        if bname in skel.keys():
-            pb.rotation_mode = skel[bname][0]
-
-
-def getBoneName(bname, bones):
-    if bname in bones.keys():
-        return bname
-    elif isDrvBone(bname):
-        bname = baseBone(bname)
-        if bname in bones.keys():
-            return bname
-    elif (bname[-4:] == "Copy" and
-          bname[:-4] in bones.keys()):
-        return bname[:-4]
-    return None
-
-
-def loadBonePose(pb, pose):
-    pbname = getBoneName(pb.name, pose)
-    if pbname and pb.name[:-4] != "Copy":
-        vec, pb.bone.DazOrient, pb.DazRotMode = pose[pbname]
-        euler = Euler(vec)
-        mat = euler.to_matrix()
-        rmat = pb.bone.matrix_local.to_3x3()
-        if pb.parent:
-            par = pb.parent
-            rmat = par.bone.matrix_local.to_3x3().inverted() @ rmat
-            mat = par.matrix.to_3x3().inverted() @ mat
-        bmat = rmat.inverted() @ mat
-        pb.matrix_basis = bmat.to_4x4()
-        for n in range(3):
-            if pb.lock_rotation[n]:
-                pb.rotation_euler[n] = 0
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.object.mode_set(mode='OBJECT')
-
-    if pb.name != "head":
-        for child in pb.children:
-            loadBonePose(child, pose)
-
-
-class DAZ_OT_LoadPose(DazOperator, JsonFile, SingleFile, IsArmature):
+class DAZ_OT_LoadPose(HideOperator, JsonFile, SingleFile, IsArmature):
     bl_idname = "daz.load_pose"
     bl_label = "Load Pose"
+    bl_description = "Load pose from a json file"
     bl_options = {'UNDO'}
 
     def run(self, context):
         folder = os.path.dirname(self.filepath)
         character = os.path.splitext(os.path.basename(self.filepath))[0]
         table = {}
+        print("Load rest pose entry")
         loadRestPoseEntry(character, table, folder)
-        loadPose(context.object, character, table, False)
+        print("Load pose")
+        loadPose(context, context.object, character, table, False)
         print("Pose %s loaded" % self.filepath)
 
     def invoke(self, context, event):
@@ -259,7 +335,7 @@ class DAZ_OT_OptimizePose(DazPropsOperator, IsArmature):
         if char is None:
             raise DazError("Did not recognize character")
         loadRestPoseEntry(char, IkPoses, theIkPoseFolder)
-        loadPose(rig, char, IkPoses, False)
+        loadPose(context, rig, char, IkPoses, False)
         if self.useApplyRestPose:
             applyRestPoses(context, rig, [])
 
@@ -319,7 +395,7 @@ class DAZ_OT_ConvertRigPose(DazPropsOperator):
                 self.renameBones(rig, table["translate"])
             if "scale" in table.keys():
                 scale = table["scale"] * rig.DazScale
-        loadPose(rig, self.newRig, RestPoses, modify)
+        loadPose(context, rig, self.newRig, RestPoses, modify)
         rig.DazRig = src
         print("Rig converted to %s" % self.newRig)
         if scale != 1.0:
@@ -407,7 +483,7 @@ def getConverterEntry(cname):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_SaveCurrentPose,
+    DAZ_OT_SavePose,
     DAZ_OT_LoadPose,
     DAZ_OT_OptimizePose,
     DAZ_OT_ConvertRigPose,

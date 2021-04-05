@@ -1190,88 +1190,6 @@ def findAction(aname):
     return None
 
 
-class DAZ_OT_SaveCurrentFrame(DazOperator):
-    bl_idname = "daz.save_current_frame"
-    bl_label = "Save Current Frame"
-    bl_description = "Save all poses for current frame in new actions"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        scn = context.scene
-        frame = scn.frame_current
-        for ob in getSelectedObjects(context):
-            aname = actionFrameName(ob, frame)
-            act = findAction(aname)
-            if act:
-                act.use_fake_user = False
-                bpy.data.actions.remove(act)
-            if ob.animation_data:
-                ob.animation_data.action = None
-            ob.keyframe_insert("location", frame=frame)
-            ob.keyframe_insert("rotation_euler", frame=frame)
-            ob.keyframe_insert("scale", frame=frame)
-
-            from .morphing import getAllLowerMorphNames
-            lprops = getAllLowerMorphNames(ob)
-            for key in rig.keys():
-                if (key.lower() in lprops or
-                    key[0:3] in ["Mha", "Mhh"]):
-                    value = getattr(ob, key)
-                    if (isinstance(value, int) or
-                        isinstance(value, float) or
-                        isinstance(value, bool) or
-                        isinstance(value, str)):
-                        ob[key] = value
-            for key in ob.keys():
-                try:
-                    ob.keyframe_insert(key, frame=frame)
-                except TypeError:
-                    pass
-            if ob.type == 'ARMATURE':
-                tfm = Transform()
-                for pb in ob.pose.bones:
-                    tfm.insertKeys(ob, pb, frame, pb.name, [])
-        scn.frame_current += 10
-        for ob in scn.collection.all_objects:
-            if ob.animation_data:
-                act = ob.animation_data.action
-                if act:
-                    act.use_fake_user = True
-                    act.name = actionFrameName(ob, frame)
-                ob.animation_data.action = None
-            if ob.type == 'ARMATURE':
-                for pb in ob.pose.bones:
-                    pb.location = (0,0,0)
-                    pb.rotation_euler = (0,0,0)
-                    pb.rotation_quaternion = (1,0,0,0)
-                    pb.scale = (1,1,1)
-
-
-class DAZ_OT_RestoreCurrentFrame(DazOperator):
-    bl_idname = "daz.restore_current_frame"
-    bl_label = "Restore Current Frame"
-    bl_description = "Restore all poses for current frame from stored actions"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        scn = context.scene
-        frame = scn.frame_current
-        for ob in getSelectedObjects(context):
-            aname = actionFrameName(ob, frame)
-            act = findAction(aname)
-            if act:
-                if ob.animation_data is None:
-                    ob.animation_data_create()
-                ob.animation_data.action = act
-            else:
-                print("Missing action %s" % aname)
-        updateScene(context)
-        scn.frame_current += 1
-        scn.frame_current -= 1
-        for ob in getSelectedObjects(context):
-            if ob.animation_data:
-                ob.animation_data.action = None
-
 #----------------------------------------------------------
 #   Clear pose
 #----------------------------------------------------------
@@ -1355,8 +1273,6 @@ classes = [
     DAZ_OT_ImportNodePoseLib,
     DAZ_OT_ImportPose,
     DAZ_OT_ImportNodePose,
-    DAZ_OT_SaveCurrentFrame,
-    DAZ_OT_RestoreCurrentFrame,
     DAZ_OT_ClearPose,
     DAZ_OT_PruneAction,
 ]

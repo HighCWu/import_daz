@@ -419,6 +419,9 @@ class DAZ_PT_Posing(bpy.types.Panel):
         op.morphset = "All"
         op.category = ""
         layout.separator()
+        layout.operator("daz.save_pose")
+        layout.operator("daz.load_pose")
+        layout.separator()
         layout.operator("daz.prune_action")
         layout.operator("daz.rotate_bones")
 
@@ -432,20 +435,6 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.toggle_loc_limits", icon=icon, emboss=False)
         icon = 'CHECKBOX_HLT' if ob.DazRotLimits else 'CHECKBOX_DEHLT'
         layout.operator("daz.toggle_rot_limits", icon=icon, emboss=False)
-
-        if "JCMs On" in ob.keys():
-            from .morphing import StandardOnProperties
-            layout.separator()
-            for prop in StandardOnProperties:
-                if prop in ob.keys():
-                    layout.prop(ob, propRef(prop))
-        return
-        layout.separator()
-        layout.operator("daz.save_current_frame")
-        layout.operator("daz.restore_current_frame")
-        layout.separator()
-        layout.operator("daz.save_current_pose")
-        layout.operator("daz.load_pose")
 
 
 class DAZ_PT_Morphs:
