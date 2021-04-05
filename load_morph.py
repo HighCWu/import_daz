@@ -563,14 +563,10 @@ class LoadMorph(DriverUser):
 
 
     def getDrivenChannel(self, raw):
-        if False and raw in self.shapekeys.keys():
-            rna = self.mesh.data.shape_keys
-            channel = 'key_blocks["%s"].value' % raw
-        else:
-            rna = self.amt
-            final = finalProp(raw)
-            self.ensureExists(raw, final, 0.0)
-            channel = propRef(final)
+        rna = self.amt
+        final = finalProp(raw)
+        self.ensureExists(raw, final, 0.0)
+        channel = propRef(final)
         return rna, channel
 
 
@@ -710,6 +706,14 @@ class LoadMorph(DriverUser):
         fcu = rna.driver_add(channel, idx)
         fcu.driver.type = 'SCRIPTED'
         string = self.multiplyMults(fcu, string)
+        if GS.useMakeHiddenSliders and isPath(channel):
+            final = unPath(channel)
+            if isFinal(final):
+                raw = baseProp(final)
+                string = "u+" + string
+                self.rig[raw] = 0.0
+                self.addPathVar(fcu, "u", self.rig, propRef(raw))
+                self.addToMorphSet(raw, None, True)
         fcu.driver.expression = string
         ttypes = ["ROT_X", "ROT_Y", "ROT_Z"]
         for j,vname,bname in vars:
@@ -883,6 +887,9 @@ def buildBoneFormula(asset, rig, errors):
 #------------------------------------------------------------------
 #   Utilities
 #------------------------------------------------------------------
+
+def isPath(path):
+    return (path[0:2] == "[")
 
 def unPath(path):
     if path[0:2] == '["':

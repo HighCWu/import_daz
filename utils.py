@@ -248,10 +248,15 @@ def propRef(prop):
 def finalProp(prop):
     return "%s(fin)" % prop
 
+def baseProp(string):
+    if string[-5:] == "(fin)":
+        return string[:-5]
+    return string
+
 def isDrvBone(string):
     return (string[-3:] == "Drv" or string[-5:] == "(drv)")
 
-def isFinBone(string):
+def isFinal(string):
     return (string[-5:] == "(fin)")
 
 def drvBone(string):

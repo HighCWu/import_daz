@@ -1305,7 +1305,7 @@ def getBoneLayer(pb, rig):
         isBoneDriven(rig, pb) or
         pb.name in facerigs):
         return L_HELP, False
-    elif isFinBone(pb.name):
+    elif isFinal(pb.name):
         return L_FIN, False
     elif pb.parent:
         par = pb.parent

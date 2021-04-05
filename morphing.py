@@ -904,7 +904,7 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader,
     bodypart = "Body"
 
     def addToMorphSet(self, prop, asset, hidden):
-        addToMorphSet(self.mesh, self.morphset, prop, asset, hideable=False)
+        addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden, hideable=False)
 
 
 class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMesh):
@@ -917,7 +917,7 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoa
     bodypart = "Body"
 
     def addToMorphSet(self, prop, asset, hidden):
-        addToMorphSet(self.mesh, self.morphset, prop, asset, hideable=False)
+        addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden, hideable=False)
 
 #------------------------------------------------------------------------
 #   Import all standard morphs in one bunch, for performance
