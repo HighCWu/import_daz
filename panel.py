@@ -720,7 +720,16 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (ob and ob.type == 'MESH' and ob.DazMeshMorphs)
+        return (ob and ob.type == 'MESH' and
+                (ob.DazMeshMorphs or ob.DazMorphAuto))
+
+
+    def draw(self, context):
+        ob = context.object
+        if ob.DazMorphAuto:
+            self.layout.prop(ob, "DazMorphAutoFollow")
+        if ob.DazMeshMorphs:
+            DAZ_PT_Morphs.draw(self, context)
 
 
     def preamble(self, layout, ob):
@@ -733,8 +742,10 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     def getCurrentRig(self, context):
         return context.object
 
+
     def drawItems(self, scn, ob):
         CustomDrawItems.drawItems(self, scn, ob)
+
 
     def getRna(self, ob):
         return ob.data.shape_keys

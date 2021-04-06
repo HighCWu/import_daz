@@ -2636,6 +2636,12 @@ def register():
 
     bpy.types.Object.DazCustomMorphs = BoolProperty(default = False)
     bpy.types.Object.DazMeshMorphs = BoolProperty(default = False)
+    bpy.types.Object.DazMorphAuto = BoolProperty(default = False)
+
+    bpy.types.Object.DazMorphAutoFollow = FloatProperty(
+        name = "Morph Auto Follow",
+        description = "Multiplier for morph strength for active mesh",
+        default = 1.0)
 
     bpy.types.Object.DazMorphPrefixes = BoolProperty(default = True)
     for morphset in theMorphSets:

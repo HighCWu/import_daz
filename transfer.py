@@ -299,7 +299,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
             return False
         trg.select_set(True)
         if self.useStrength:
-            trg["Daz Morph Strength"] = 1.0
+            trg["DazMorphAutoFollow"] = 1.0
         if not trg.data.shape_keys:
             basic = trg.shape_key_add(name="Basic")
         else:
@@ -355,7 +355,8 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
                     fcu = self.copyDriver(fcu, cskeys)
                     if self.useStrength:
                         fcu.driver.expression = "L*(%s)" % fcu.driver.expression
-                        addDriverVar(fcu, "L", propRef("Daz Morph Strength"), trg)
+                        addDriverVar(fcu, "L", propRef("DazMorphAutoFollow"), trg)
+                        trg.DazMorphAuto = True
             else:
                 print(" -", sname)
 
