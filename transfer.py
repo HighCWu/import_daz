@@ -213,6 +213,11 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
         description = "Transfer both shapekeys and drivers",
         default = True)
 
+    useStrength : BoolProperty(
+        name = "Strength Multiplier",
+        description = "Add a strength multiplier to drivers",
+        default = False)
+
     useVendorMorphs : BoolProperty(
         name = "Use Vendor Morphs",
         description = "Use customized morphs provided by vendor,\notherwise always auto-transfer morphs",
@@ -237,6 +242,8 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
     def draw(self, context):
         self.layout.prop(self, "transferMethod", expand=True)
         self.layout.prop(self, "useDrivers")
+        if self.useDrivers:
+            self.layout.prop(self, "useStrength")
         self.layout.prop(self, "useVendorMorphs")
         self.layout.prop(self, "useOverwrite")
         self.layout.prop(self, "useSelectedOnly")
@@ -250,6 +257,8 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
         src = context.object
         if not src.data.shape_keys:
             raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (src.name))
+        if not self.useDrivers:
+            self.useStrength = False
         targets = self.getTargets(src, context)
         data = self.prepare(context, src, (self.transferMethod == 'NEAREST'))
         self.createTmp()
@@ -279,7 +288,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
 
 
     def transferMorphs(self, src, trg, context):
-        from .driver import getShapekeyDriver
+        from .driver import getShapekeyDriver, addDriverVar
         from .asset import setDazPaths
 
         startProgress("Transfer morphs %s => %s" %(src.name, trg.name))
@@ -289,6 +298,8 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
         if not self.findMatch(src, trg):
             return False
         trg.select_set(True)
+        if self.useStrength:
+            trg["Daz Morph Strength"] = 1.0
         if not trg.data.shape_keys:
             basic = trg.shape_key_add(name="Basic")
         else:
@@ -341,7 +352,10 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
                 cskey.slider_max = hskey.slider_max
                 cskey.value = self.svalues[sname]
                 if fcu is not None:
-                    self.copyDriver(fcu, cskeys)
+                    fcu = self.copyDriver(fcu, cskeys)
+                    if self.useStrength:
+                        fcu.driver.expression = "L*(%s)" % fcu.driver.expression
+                        addDriverVar(fcu, "L", propRef("Daz Morph Strength"), trg)
             else:
                 print(" -", sname)
 
