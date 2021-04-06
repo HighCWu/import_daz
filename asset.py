@@ -132,6 +132,10 @@ class Accessor:
             type is None or
             isinstance(asset,type)):
             return asset
+        if self.caller:
+            asset = self.caller.getTypedAsset(id, type)
+            if asset:
+                return asset
         msg = (
             "Asset of type %s not found:\n  %s\n" % (type, id) +
             "File ref:\n  '%s'\n" % self.fileref
