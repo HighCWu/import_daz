@@ -726,15 +726,28 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
 
     def draw(self, context):
         ob = context.object
-        if len(ob.DazAutoFollow) > 0:
+        skeys = ob.data.shape_keys
+        if skeys and len(ob.DazAutoFollow) > 0:
             box = self.layout.box()
             box.label(text = "Auto Follow")
             for item in ob.DazAutoFollow:
-                if item.name in ob.keys():
-                    box.prop(ob, propRef(item.name), text=item.text)
+                sname = item.name
+                if (sname in ob.keys() and
+                    sname in skeys.key_blocks.keys()):
+                    skey = skeys.key_blocks[sname]
+                    self.drawAutoItem(box, ob, skey, sname, item.text)
             self.layout.separator()
         if ob.DazMeshMorphs:
             DAZ_PT_Morphs.draw(self, context)
+
+
+    def drawAutoItem(self, layout, ob, skey, sname, text):
+        if GS.showFinalProps:
+            split = layout.split(factor=0.8)
+            split.prop(ob, propRef(sname), text=text)
+            split.label(text = "%.3f" % skey.value)
+        else:
+            layout.prop(ob, propRef(sname), text=text)
 
 
     def preamble(self, layout, ob):
