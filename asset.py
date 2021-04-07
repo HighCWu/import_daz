@@ -499,7 +499,7 @@ clearAssets()
 #   Paths
 #-------------------------------------------------------------
 
-def setDazPaths(scn):
+def setDazPaths():
     from .error import DazError
     global theDazPaths
     filepaths = []

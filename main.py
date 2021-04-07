@@ -30,13 +30,13 @@ import os
 import bpy
 from .error import *
 from .utils import *
-from .fileutils import SingleFile, DazFile, DazImageFile
+from .fileutils import SingleFile, MultiFile, DazFile, DazImageFile
 
 #------------------------------------------------------------------
 #   Import DAZ
 #------------------------------------------------------------------
 
-class DazOptions(DazImageFile, SingleFile):
+class DazOptions(DazImageFile, MultiFile):
 
     skinColor : FloatVectorProperty(
         name = "Skin",
@@ -111,8 +111,7 @@ class ImportDAZ(DazOperator, DazOptions):
         from .objfile import getFitFile, fitToFile
         from .fileutils import getTypedFilePath
 
-        scn = context.scene
-        LS.forImport(self, scn)
+        LS.forImport(self)
         LS.scene = self.filepath
         print("Scale", LS.scale)
         t1 = time.perf_counter()
@@ -701,6 +700,8 @@ class DAZ_OT_DecodeFile(DazOperator, DazFile, SingleFile):
 #----------------------------------------------------------
 
 classes = [
+    ImportDAZ,
+    EasyImportDAZ,
     DAZ_OT_DecodeFile,
 ]
 

@@ -702,7 +702,7 @@ class MorphLoader(LoadMorph):
             ob = self.rig
         else:
             raise DazError("Neither mesh nor rig selected")
-        LS.forMorphLoad(ob, context.scene)
+        LS.forMorphLoad(ob)
         if not self.usePropDrivers:
             self.rig = None
         clearDependecies()
@@ -917,7 +917,7 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoa
 #   Import all standard morphs in one bunch, for performance
 #------------------------------------------------------------------------
 
-from .daz import MorphTypeOptions
+from .main import MorphTypeOptions
 
 class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTypeOptions, IsMeshArmature):
     bl_idname = "daz.import_standard_morphs"

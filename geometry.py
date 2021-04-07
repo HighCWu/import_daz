@@ -1198,8 +1198,7 @@ class DAZ_OT_LoadUV(DazOperator, DazFile, SingleFile, IsMesh):
 
         ob = context.object
         me = ob.data
-        scn = context.scene
-        LS.forUV(ob, scn)
+        LS.forUV(ob)
         struct = loadJson(self.filepath)
         asset = parseAssetFile(struct)
         if asset is None or len(asset.uvs) == 0:

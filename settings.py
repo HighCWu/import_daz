@@ -446,19 +446,19 @@ class LocalSettings:
         return string + ">"
 
 
-    def reset(self, scn):
+    def reset(self):
         from .asset import setDazPaths, clearAssets
         global theTrace
         theTrace = []
-        setDazPaths(scn)
+        setDazPaths()
         clearAssets()
         self.useStrict = False
-        self.scene = scn
+        self.scene = ""
 
 
-    def forImport(self, btn, scn):
+    def forImport(self, btn):
         self.__init__()
-        self.reset(scn)
+        self.reset()
         self.scale = GS.unitScale
         self.useNodes = True
         self.useGeometries = True
@@ -484,9 +484,9 @@ class LocalSettings:
             self.fitFile = True
 
 
-    def forAnimation(self, btn, ob, scn):
+    def forAnimation(self, btn, ob):
         self.__init__()
-        self.reset(scn)
+        self.reset()
         self.scale = ob.DazScale
         self.useNodes = True
         self.useAnimations = True
@@ -495,9 +495,9 @@ class LocalSettings:
             self.integerFrames = btn.integerFrames
 
 
-    def forMorphLoad(self, ob, scn):
+    def forMorphLoad(self, ob):
         self.__init__()
-        self.reset(scn)
+        self.reset()
         self.scale = ob.DazScale
         self.useMorph = True
         self.useMorphOnly = True
@@ -506,25 +506,25 @@ class LocalSettings:
         self.useModifiers = True
 
 
-    def forUV(self, ob, scn):
+    def forUV(self, ob):
         self.__init__()
-        self.reset(scn)
+        self.reset()
         self.scale = ob.DazScale
         self.useUV = True
 
 
-    def forMaterial(self, ob, scn):
+    def forMaterial(self, ob):
         self.__init__()
-        self.reset(scn)
+        self.reset()
         self.scale = ob.DazScale
         self.useImages = True
         self.useMaterials = True
         self.verbosity = 1
 
 
-    def forEngine(self, scn):
+    def forEngine(self):
         self.__init__()
-        self.reset(scn)
+        self.reset()
 
 
 GS = GlobalSettings()

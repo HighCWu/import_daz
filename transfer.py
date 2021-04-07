@@ -293,7 +293,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
 
         startProgress("Transfer morphs %s => %s" %(src.name, trg.name))
         scn = context.scene
-        setDazPaths(scn)
+        setDazPaths()
         activateObject(context, src)
         if not self.findMatch(src, trg):
             return False
@@ -375,7 +375,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
         from .load_json import loadJson
         from .files import parseAssetFile
         from .modifier import Morph
-        LS.forMorphLoad(ob, scn)
+        LS.forMorphLoad(ob)
         struct = loadJson(filepath)
         asset = parseAssetFile(struct)
         if (not isinstance(asset, Morph) or

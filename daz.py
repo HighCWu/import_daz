@@ -300,10 +300,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
 #-------------------------------------------------------------
 
 classes = [
-    ImportDAZ,
-    EasyImportDAZ,
     DAZ_OT_SetSilentMode,
-
     DAZ_OT_AddContentDir,
     DAZ_OT_AddMDLDir,
     DAZ_OT_AddCloudDir,

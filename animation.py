@@ -969,7 +969,7 @@ class StandardAnimation:
         scn = context.scene
         if not self.affectSelectedOnly:
             selected = self.selectAll(rig, True)
-        LS.forAnimation(self, rig, scn)
+        LS.forAnimation(self, rig)
         if scn.tool_settings.use_keyframe_insert_auto:
             self.insertKeys = True
         else:
