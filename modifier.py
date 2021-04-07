@@ -138,6 +138,7 @@ class ExtraAsset(Modifier, Channels):
 
     def parse(self, struct):
         Modifier.parse(self, struct)
+        Channels.parse(self, struct)
         extras = struct["extra"]
         if not isinstance(extras, list):
             extras = [extras]
@@ -149,6 +150,7 @@ class ExtraAsset(Modifier, Channels):
 
     def update(self, struct):
         Modifier.update(self, struct)
+        Channels.update(self, struct)
         if "extra" not in struct.keys():
             return
         extras = struct["extra"]
@@ -165,7 +167,7 @@ class ExtraAsset(Modifier, Channels):
 
 
     def preprocess(self, inst):
-        geonode, pgeonode = self.getGeoNodes(inst)
+        geonode = self.getGeoNode(inst)
         if geonode is None:
             return
         if "studio_modifier_channels" in self.extras.keys():
@@ -178,34 +180,23 @@ class ExtraAsset(Modifier, Channels):
             geonode.push = self.getValue(["Value"], 0)
 
 
-    def getGeoNodes(self, inst):
-        if inst is None:
-            reportError("Cannot build %s" % self, trigger=(3,4))
-            return None,None
-        pinst = inst.parent
-        geonode = self.getGeoNode(inst)
-        pgeonode = self.getGeoNode(pinst)
-        if geonode is None and GS.verbosity > 2:
-            print("No geo", self)
-        return geonode, pgeonode
-
-
     def build(self, context, inst):
-        geonode, pgeonode = self.getGeoNodes(inst)
-        if geonode is None:
-            return
         for etype,extra in self.extras.items():
             if etype == "studio/modifier/dynamic_generate_hair":
-                geonode.addHairSim(self, extra, pgeonode)
-                geonode.pgeonode = pgeonode
+                from .dforce import DynGenHair
+                inst.dyngenhair = DynGenHair(inst, self, extra)
             elif etype == "studio/modifier/dynamic_simulation":
-                geonode.addDForce(self, extra, pgeonode)
+                from .dforce import DynSim
+                inst.dynsim = DynSim(inst, self, extra)
             elif etype == "studio/modifier/dynamic_hair_follow":
-                pass
+                from .dforce import DynHairFlw
+                inst.dynhairflw = DynHairFlw(inst, self, extra)
             elif etype == "studio/modifier/line_tessellation":
-                pass
+                from .dforce import LinTess
+                inst.lintess = LinTess(inst, self, extra)
             elif etype == "studio/simulation_settings/dynamic_simulation":
-                pass
+                from .dforce import SimSet
+                inst.simset = SimSet(inst, self, extra)
 
 
     def getGeoNode(self, inst):

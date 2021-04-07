@@ -106,11 +106,7 @@ class FileAsset(Asset):
                 for nstruct in scene["nodes"]:
                     asset = self.parseUrlAsset(nstruct)
                     if isinstance(asset, Geometry):
-                        print("Bug: expected node not geometry", asset)
-                        for geonode in asset.nodes:
-                            inst = geonode.makeInstance(self.fileref, nstruct)
-                            self.instances[inst.id] = inst
-                            self.nodes.append((geonode, inst))
+                        reportError("Bug: expected node not geometry" % asset, trigger=(2,3))
                     elif asset:
                         inst = asset.makeInstance(self.fileref, nstruct)
                         self.instances[inst.id] = inst

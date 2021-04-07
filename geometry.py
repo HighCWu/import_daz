@@ -34,14 +34,14 @@ from .asset import Asset
 from .channels import Channels
 from .utils import *
 from .error import *
-from .node import Node, Instance
+from .node import Node, Instance, SimNode
 from .fileutils import SingleFile, DazFile
 
 #-------------------------------------------------------------
 #   Geonode
 #-------------------------------------------------------------
 
-class GeoNode(Node):
+class GeoNode(Node, SimNode):
     def __init__(self, figure, geo, ref):
         from .asset import normalizeRef
         if figure.caller:
@@ -71,15 +71,13 @@ class GeoNode(Node):
         self.polylines = None
         self.highdef = None
         self.hdobject = None
-        self.pgeonode = None
-        self.hairgen = None
-        self.dforce = None
         self.index = figure.count
         self.modifiers = {}
         self.morphsValues = {}
         self.shstruct = {}
         self.push = 0
         self.assigned = False
+        SimNode.__init__(self)
 
 
     def __repr__(self):
@@ -150,10 +148,14 @@ class GeoNode(Node):
             if self.hdobject and self.hdobject != ob:
                 self.data.buildRigidity(self.hdobject)
 
+        if inst.vissim:
+            mod = ob.modifiers.new("Collision", 'COLLISION')
+            ob.collision.thickness_outer = 0.1*LS.scale
+
         if (self.type == "subdivision_surface" and
             self.data and
             (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
-            mod = ob.modifiers.new(name='SUBSURF', type='SUBSURF')
+            mod = ob.modifiers.new("Subsurf", 'SUBSURF')
             mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
             mod.levels = self.data.SubDIALevel
             if hasattr(mod, "use_limit_surface"):
@@ -238,18 +240,6 @@ class GeoNode(Node):
             inst.collection.objects.unlink(hdob)
 
 
-    def addHairSim(self, mod, extra, pgeonode):
-        from .dforce import HairGenerator
-        if self.hairgen is None:
-            self.hairgen = HairGenerator(mod, self, extra, pgeonode)
-
-
-    def addDForce(self, mod, extra, pgeonode):
-        from .dforce import DForce
-        if self.dforce is None:
-            self.dforce = DForce(mod, self, extra, pgeonode)
-
-
     def postbuild(self, context, inst):
         ob = self.rna
         hdob = self.hdobject
@@ -258,8 +248,6 @@ class GeoNode(Node):
             self.addLSMesh(ob, inst, None)
         if hdob and hdob != ob:
             self.buildHighDef(context, inst)
-        if self.dforce:
-            self.dforce.build(context)
 
 
     def buildHighDef(self, context, inst):

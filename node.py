@@ -68,6 +68,19 @@ def parseNode(asset, struct):
         return None
 
 #-------------------------------------------------------------
+#   SimNode, also used by GeoNode
+#-------------------------------------------------------------
+
+class SimNode:
+    def __init__(self):
+        self.dyngenhair = None
+        self.dynsim = None
+        self.dynhairflw = None
+        self.lintess = None
+        self.simset = None
+        self.vissim = False
+
+#-------------------------------------------------------------
 #   Instance
 #-------------------------------------------------------------
 
@@ -91,7 +104,7 @@ def getChannelIndex(key):
     return channel, idx
 
 
-class Instance(Accessor, Channels):
+class Instance(Accessor, Channels, SimNode):
 
     U3 = Matrix().to_3x3()
 
@@ -152,6 +165,7 @@ class Instance(Accessor, Channels):
         self.wsmat = self.U3
         self.lsmat = None
         node.clearTransforms()
+        SimNode.__init__(self)
 
 
     def __repr__(self):
@@ -225,10 +239,14 @@ class Instance(Accessor, Channels):
             child.groupChildren(coll)
 
 
-    def buildChannels(self, context):
-        ob = self.rna
-        if ob is None:
-            return
+    def prebuildChannels(self):
+        self.vissim = True
+        for key in self.channels.keys():
+            if key == "Visible in Simulation":
+                self.vissim = self.getValue([key], False)
+
+
+    def buildChannels(self, ob):
         for channel in self.channels.values():
             if self.ignoreChannel(channel):
                 continue
@@ -253,8 +271,6 @@ class Instance(Accessor, Channels):
             elif channel["id"] == "Selectable":
                 if not value:
                     ob.hide_select = True
-            elif channel["id"] == "Visible in Simulation":
-                pass
             elif channel["id"] == "Cast Shadows":
                 pass
             elif channel["id"] == "Instance Mode":
@@ -358,9 +374,14 @@ class Instance(Accessor, Channels):
 
 
     def finalize(self, context):
+        ob = self.rna
+        if ob is None:
+            return
         for geonode in self.geometries:
             geonode.finalize(context, self)
-        self.buildChannels(context)
+        self.buildChannels(ob)
+        if self.dynsim:
+            self.dynsim.build(context)
 
 
     def formulate(self, key, value):
@@ -671,6 +692,7 @@ class Node(Asset, Formula, Channels):
 
     def build(self, context, inst):
         center = d2b(inst.attributes["center_point"])
+        inst.prebuildChannels()
         if inst.ignore:
             print("Ignore", inst)
         elif inst.geometries:

@@ -207,7 +207,7 @@ class ImportDAZ(DazOperator, DazOptions, MultiFile):
         for asset,inst in main.modifiers:
             showProgress(80 + int(idx*10/nmods), 100)
             idx += 1
-            asset.build(context, inst)      # Builds morphs
+            asset.build(context, inst)      # Builds morphs 1
         showProgress(90, 100)
 
         for _,inst in main.nodes:

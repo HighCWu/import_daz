@@ -29,315 +29,122 @@ import bpy
 from .utils import *
 
 #-------------------------------------------------------------
-#   SimData base class
-#-------------------------------------------------------------
-
-class SimData:
-    def __init__(self, mod, geonode, extra, pgeonode):
-        self.extra = extra
-        self.modifier = mod
-        self.geonode = geonode
-        self.pgeonode = pgeonode
-        self.isHair = False
-
-
-    def getGeoObject(self):
-        geonode = self.geonode
-        if self.useParent:
-            geonode = self.pgeonode
-        ob = None
-        if geonode.rna:
-            ob = geonode.rna
-        return geonode, ob
-
-
-    def getInfluence(self, ob):
-        from .modifier import buildVertexGroup
-        nverts = len(ob.data.vertices)
-        if "influence_weights" not in self.extra.keys():
-            return {},{}
-        if nverts != self.extra["vertex_count"]:
-            msg = ("Influence vertex count mismatch: %s" % ob.name)
-            reportError(msg, trigger=(2,4))
-            return {},{}
-        else:
-            weights = self.extra["influence_weights"]["values"]
-            mname = self.modifier.name
-            vgrp = buildVertexGroup(ob, mname, weights)
-            vgrps = {mname : vgrp}
-            weights = {mname : dict(weights)}
-            return vgrps, weights
-
-
-    def getSims(self):
-        matnames = []
-        sims = {}
-        for modname,mod in self.geonode.modifiers.items():
-            if (mod.getValue(["Visible in Simulation"], False) and
-                modname[0:8] == "DZ__SPS_"):
-                matname = mod.groups[0]
-                matnames += mod.groups
-                sims[matname] = mod
-        if matnames:
-            return sims
-        else:
-            return {}
-
-
-    def getWeights(self, geo):
-        ngroups = len(geo.polygon_groups)
-        gweights = dict([(gn,{}) for gn in range(ngroups)])
-        for gn,face in zip(geo.polygon_indices, geo.faces):
-            for vn in face:
-                gweights[gn][vn] = 1
-        return gweights
-
-
-    def getPolyGroups(self, geonode, ob):
-        from .modifier import buildVertexGroup
-        if not geonode:
-            return {},{}
-        oldvgrps = dict([(vgrp.name.lower(),vgrp) for vgrp in ob.vertex_groups])
-        vgrps = {}
-        geo = geonode.data
-        gweights = self.getWeights(geo)
-        weights = {}
-        for gn,gname in enumerate(geo.polygon_groups):
-            if self.useSingleGroup:
-                vgrp = None
-            elif gname.lower() in oldvgrps.keys():
-                vgrp = oldvgrps[gname.lower()]
-            else:
-                vgrp = buildVertexGroup(ob, gname.upper(), gweights[gn].items())
-            vgrps[gname] = vgrp
-            weights[gname] = gweights[gn]
-
-        if self.useSingleGroup:
-            return self.mergeGroups(ob, weights)
-        else:
-            return vgrps, weights
-
-
-    def mergeGroups(self, ob, gweights):
-        if not gweights:
-            return {},{}
-        from .modifier import buildVertexGroup
-        vweights = {}
-        for gname in gweights.keys():
-            for vn,wt in gweights[gname].items():
-                vweights[vn] = wt
-        mname = self.modifier.name
-        vgrp = buildVertexGroup(ob, mname, vweights.items())
-        vgrps = {mname : vgrp}
-        weights = {mname : dict(vweights)}
-        return vgrps,weights
-
-
-    def getSizes(self, ob, weights):
-        sizes = {}
-        verts = ob.data.vertices
-        for gname,gweights in weights.items():
-            size = Vector((10,10,10))*LS.scale
-            for n in range(3):
-                coord = [verts[vn].co[n] for vn in gweights.keys()]
-                if coord:
-                    size[n] = max(coord) - min(coord)
-            sizes[gname] = size
-        return sizes
-
-#-------------------------------------------------------------
-#   Hair simulation
-#-------------------------------------------------------------
-
-class HairGenerator(SimData):
-    def __init__(self, mod, geonode, extra, pgeonode):
-        SimData.__init__(self, mod, geonode, extra, pgeonode)
-        self.useParent = True
-        self.useSingleGroup = False
-        self.isHair = True
-        self.vertexGroups = {}
-        self.weights = None
-
-
-    def build(self, ob, polygrp):
-        from .modifier import buildVertexGroup
-        if polygrp not in self.vertexGroups.keys():
-            geonode,ob = self.getGeoObject()
-            if not geonode:
-                return None
-            geo = geonode.data
-            if self.weights is None:
-                self.weights = self.getWeights(geo)
-            vgrp = None
-            for gn,gname in enumerate(geo.polygon_groups):
-                if gname == polygrp:
-                    vgrp = buildVertexGroup(ob, polygrp.upper(), self.weights[gn].items())
-                    break
-            self.vertexGroups[polygrp] = vgrp
-        return self.vertexGroups[polygrp]
-
-#-------------------------------------------------------------
 #  dForce simulation
 #-------------------------------------------------------------
 
-class DForce(SimData):
-    def __init__(self, mod, geonode, extra, pgeonode):
-        SimData.__init__(self, mod, geonode, extra, pgeonode)
-        self.useParent = False
-        self.useSingleGroup = True
+class DForce:
+    def __init__(self, inst, mod, extra):
+        self.instance = inst
+        self.modifier = mod
+        self.extra = extra
+        #print("\nCREA", self)
 
+    def __repr__(self):
+        return "<DForce %s\ni: %s\nm: %s\ne: %s>" % (self.type, self.instance, self.modifier, self.instance.rna)
+
+
+#-------------------------------------------------------------
+#  studio/modifier/dynamic_generate_hair
+#-------------------------------------------------------------
+
+class DynGenHair(DForce):
+    type = "DynGenHair"
+
+#-------------------------------------------------------------
+#  studio/modifier/dynamic_simulation
+#-------------------------------------------------------------
+
+class DynSim(DForce):
+    type = "DynSim"
 
     def build(self, context):
-        if self.geonode.hairgen:
-            print("Ignore hair simulation: %s" % self.modifier.id)
-            return
-        geonode,ob = self.getGeoObject()
-        if ob is None:
-            return
+        from .node import Instance
+        from .geometry import GeoNode
+        #print("\nBUILD", self)
+        if isinstance(self.instance, Instance):
+            inst = self.instance
+            geonode = self.instance.geometries[0]
+        elif isinstance(self.instance, GeoNode):
+            inst = self.instance
+            geonode = self.instance
 
-        if (GS.useSimulation and
-            "dForce Simulation" in self.geonode.modifiers.keys()):
-            sim = self.geonode.modifiers["dForce Simulation"]
-        elif (GS.useInfluence and
-              "influence_weights" in self.extra.keys()):
-            self.getInfluence(ob)
-            return
-        else:
+        ob = geonode.rna
+        if not (ob and ob.type == 'MESH'):
             return
 
-        sot = sim.getValue(["Simulation Object Type"], 0)
-        # [ "Static Surface", "Dynamic Surface", "Dynamic Surface Add-On" ]
-        if sot != 1:
+        visible = False
+        strength = 0.0
+        if geonode.simset:
+            settings = geonode.simset.modifier
+            for key in settings.channels.keys():
+                if key == "Visible in Simulation":
+                    visible = settings.getValue([key], False)
+                elif key == "Dynamics Strength":
+                    strength = settings.getValue([key], 0.0)
+        if not visible or strength == 0.0:
             return
-        # Unused simulation properties
-        sbt = sim.getValue(["Simulation Base Shape"], 0)
-        # [ "Use Simulation Start Frame", "Use Scene Frame 0", "Use Shape from Simulation Start Frame", "Use Shape from Scene Frame 0" ]
-        freeze = sim.getValue(["Freeze Simulation"], False)
 
-        sims = self.getSims()
-        if not sims:
-            print("Cannot build:", self.modifier.name, ob)
-            return
-        if "influence_weights" in self.extra.keys():
-            vgrps,weights = self.getInfluence(ob)
-        else:
-            vgrps,weights = self.getPolyGroups(geonode, ob)
-        sizes = self.getSizes(ob, weights)
-        if self.useSingleGroup:
-            key = list(vgrps.keys())[0]
-            sim = list(sims.values())[0]
-            sims = {key : sim}
-
-        # Make modifier
-        _,hum,char = self.getHuman(ob)
-        activateObject(context, ob)
-        deflect = None
-        for key,sim in sims.items():
-            if ob == hum or not hum:
-                mod = self.buildSoftBody(ob, sim, vgrps[key], sizes[key].length)
-            else:
-                mod = self.buildCloth(ob, sim, vgrps[key], sizes[key].length)
-            self.moveModifierUp(ob, mod)
+        cloth = ob.modifiers.new("Cloth", 'CLOTH')
+        cset = cloth.settings
+        self.setSilk(cset)
+        # Collision settings
+        colset = cloth.collision_settings
+        colset.distance_min = 0.1*LS.scale
+        colset.use_self_collision = True
+        colset.self_distance_min = 0.1*LS.scale
+        colset.collision_quality = 4
+        # Pinning
+        pingrp = self.addConstantVertexGroup(ob, "DForce Pin", 1-strength)
+        cset.vertex_group_mass = pingrp.name
+        cset.pin_stiffness = 1.0
 
 
-        # Unused
-        dynStrength = sim.getValue(["Dynamics Strength"], 0)
-        buckStiff = sim.getValue(["Buckling Stiffness"], 0)
-        buckRatio = sim.getValue(["Buckling Ratio"], 0)
+    def setSilk(self, cset):
+        # Cloth
+        cset.quality = 16
+        # Physical properties
+        cset.mass = 0.15
+        cset.air_damping = 1.0
+        # Stiffness
+        cset.tension_stiffness = 5.0
+        cset.compression_stiffness = 5.0
+        cset.shear_stiffness = 5.0
+        cset.bending_stiffness = 0.05
+        # Damping
+        cset.tension_damping = 0.0
+        cset.compression_damping = 0.0
+        cset.shear_damping = 0.0
+        cset.bending_damping = 0.5
+        #
+        cset.use_internal_springs = False
+        cset.use_pressure = False
 
 
-    def getHuman(self, ob):
-        from .finger import getFingeredCharacter
-        while ob.parent:
-            ob = ob.parent
-        return getFingeredCharacter(ob)
+    def addConstantVertexGroup(self, ob, vgname, value):
+        vgrp = ob.vertex_groups.new(name = vgname)
+        nverts = len(ob.data.vertices)
+        for vn in range(nverts):
+            vgrp.add([vn], value, 'REPLACE')
+        return vgrp
 
+#-------------------------------------------------------------
+#  studio/modifier/dynamic_hair_follow
+#-------------------------------------------------------------
 
-    def makeDeflectionCollection(self, context, hum, char, sim):
-        from .proxy import makeDeflection
-        if hum is None:
-            return None
-        if not sim.getValue(["Collision Layer"], 0):
-            return
-        if char in LS.deflectors.keys():
-            return LS.deflectors[char]
-        _,deflect = makeDeflection(context, hum, char, 0)
-        LS.deflectors[char] = deflect
-        return deflect
+class DynHairFlw(DForce):
+    type = "DynHairFlw"
 
+#-------------------------------------------------------------
+#  studio/modifier/line_tessellation
+#-------------------------------------------------------------
 
-    def addDeflection(self, mcset, deflect, sim):
-        mcset.collection = deflect
-        mcset.distance_min = sim.getValue(["Collision Offset"], 0) * LS.scale
-        mcset.self_impulse_clamp = sim.getValue(["Collision Response Damping"], 0)
+class LinTess(DForce):
+    type = "LinTess"
 
+#-------------------------------------------------------------
+#  studio/simulation_settings/dynamic_simulation
+#-------------------------------------------------------------
 
-    def moveModifierUp(self, ob, cloth):
-        m = 0
-        for n,mod in enumerate(ob.modifiers):
-            if mod.type in ["SUBSURF", "MULTIRES"]:
-                m = len(ob.modifiers) - n - 1
-                break
-        for n in range(m):
-            bpy.ops.object.modifier_move_up(modifier=cloth.name)
+class SimSet(DForce):
+    type = "SimSet"
 
-
-    def buildCloth(self, ob, sim, vgrp, size):
-        mod = ob.modifiers.new("Cloth", 'CLOTH')
-        mset = mod.settings
-
-        density = sim.getValue(["Density"], 0)  # grams/m^2
-        mset.mass = density * 1e-3 * 1e-2       # kg/cm^2 - 1 vert/cm^2
-        mset.air_damping = sim.getValue(["Damping"], 0)
-
-        ceRatio = sim.getValue(["Contraction-Expansion Ratio"], 1)
-        mset.tension_stiffness = sim.getValue(["Stretch Stiffness"], 15)
-        mset.compression_stiffness = mset.tension_stiffness * ceRatio
-        mset.shear_stiffness = sim.getValue(["Shear Stiffness"], 5)
-        mset.bending_stiffness = sim.getValue(["Bend Stiffness"], 0.5)
-
-        mset.tension_damping = sim.getValue(["Stretch Damping"], 5)
-        mset.compression_damping = mset.tension_damping * ceRatio
-        mset.shear_damping = sim.getValue(["Shear Damping"], 5)
-        mset.bending_damping = sim.getValue(["Bend Damping"], 0.5)
-
-        mset.vertex_group_mass = vgrp.name
-
-        return mod
-
-
-    def buildSoftBody(self, ob, sim, vgrp, size):
-        mod = ob.modifiers.new("Softbody", 'SOFT_BODY')
-        mset = mod.settings
-        if vgrp:
-            mset.vertex_group_mass = vgrp.name
-
-        # Object settings
-        density = sim.getValue(["Density"], 0) # grams/m^2
-        mass = density * size**2 * 1e-3     # kg
-        mset.mass = mass
-        #mset.friction = sim.getValue(["Friction"], 0)
-
-        # Self collisions - off
-        #mset.use_self_collision = sim.getValue(["Self Collide"], False)
-        mset.use_self_collision = False
-        mset.ball_size = size
-        mset.ball_stiff = sim.getValue(["Bend Stiffness"], 0)
-        mset.ball_damp = sim.getValue(["Damping"], 0)
-
-        # Goal - on
-        mset.use_goal = True
-
-        # Edges - definitely off
-        mset.use_edges = False
-        if vgrp:
-            mset.vertex_group_spring = vgrp.name
-        ceRatio = sim.getValue(["Contraction-Expansion Ratio"], 1)
-        mset.pull = sim.getValue(["Stretch Stiffness"], 0)
-        mset.push = mset.pull * ceRatio
-        mset.damping = sim.getValue(["Damping"], 0)
-        mset.bend = sim.getValue(["Bend Stiffness"], 0)
-
-        mset.use_stiff_quads = False
-        mset.shear = sim.getValue(["Shear Stiffness"], 0)
-        return mod
