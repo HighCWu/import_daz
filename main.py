@@ -30,144 +30,616 @@ import os
 import bpy
 from .error import *
 from .utils import *
-from .fileutils import SingleFile, DazFile
+from .fileutils import SingleFile, DazFile, DazImageFile
 
 #------------------------------------------------------------------
-#   Import file
+#   Import DAZ
 #------------------------------------------------------------------
 
-def getMainAsset(filepath, context, btn):
-    import time
-    from .objfile import getFitFile, fitToFile
+class DazOptions(DazImageFile, SingleFile):
 
-    scn = context.scene
-    LS.forImport(btn, scn)
-    LS.scene = filepath
-    print("Scale", LS.scale)
-    t1 = time.perf_counter()
+    skinColor : FloatVectorProperty(
+        name = "Skin",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.6, 0.4, 0.25, 1.0)
+    )
 
-    from .fileutils import getTypedFilePath
-    path = getTypedFilePath(filepath, ["duf", "dsf", "dse"])
-    if path is None:
-        raise DazError("Found no .duf file matching\n%s        " % filepath)
-    filepath = path
-    startProgress("\nLoading %s" % filepath)
-    if LS.fitFile:
-        getFitFile(filepath)
+    clothesColor : FloatVectorProperty(
+        name = "Clothes",
+        subtype = "COLOR",
+        size = 4,
+        min = 0.0,
+        max = 1.0,
+        default = (0.09, 0.01, 0.015, 1.0)
+    )
 
-    from .load_json import loadJson
-    struct = loadJson(filepath)
-    showProgress(10, 100)
+    fitMeshes : EnumProperty(
+        items = [('SHARED', "Unmorphed Shared (Environments)", "Don't fit meshes. All objects share the same mesh.\nFor environments with identical objects like leaves"),
+                 ('UNIQUE', "Unmorped Unique (Environments)", "Don't fit meshes. Each object has unique mesh instance.\nFor environments with objects with same mesh but different materials, like paintings"),
+                 ('MORPHED', "Morphed (Characters)", "Don't fit meshes, but load shapekeys.\nNot all shapekeys are found.\nShapekeys are not transferred to clothes"),
+                 ('DBZFILE', "DBZ File (Characters)", "Use exported .dbz (.json) file to fit meshes. Must exist in same directory.\nFor characters and other objects with morphs"),
+                ],
+        name = "Mesh Fitting",
+        description = "Mesh fitting method",
+        default = 'DBZFILE')
 
-    grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()
-    LS.collection = makeRootCollection(grpname, context)
+    morphStrength : FloatProperty(
+        name = "Morph Strength",
+        description = "Morph strength",
+        default = 1.0)
 
-    print("Parsing data")
-    from .files import parseAssetFile
-    main = parseAssetFile(struct, toplevel=True)
-    if main is None:
-        msg = ("File not found:  \n%s      " % filepath)
-        raise DazError(msg)
-    showProgress(20, 100)
+    def draw(self, context):
+        box = self.layout.box()
+        box.label(text = "Mesh Fitting")
+        box.prop(self, "fitMeshes", expand=True)
+        if self.fitMeshes == 'MORPHED':
+            box.prop(self, "morphStrength")
+        self.layout.separator()
+        box = self.layout.box()
+        box.label(text = "Viewport Color")
+        if GS.viewportColors == 'GUESS':
+            row = box.row()
+            row.prop(self, "skinColor")
+            row.prop(self, "clothesColor")
+        else:
+            box.label(text = GS.viewportColors)
 
-    print("Preprocessing...")
-    for asset,inst in main.nodes:
-        inst.preprocess(context)
 
-    if LS.fitFile:
-        fitToFile(filepath, main.nodes)
-    showProgress(30, 100)
+class ImportDAZ(DazOperator, DazOptions):
+    """Load a DAZ File"""
+    bl_idname = "daz.import_daz"
+    bl_label = "Import DAZ"
+    bl_description = "Load a native DAZ file"
+    bl_options = {'PRESET', 'UNDO'}
 
-    for asset,inst in main.nodes:
-        inst.preprocess2(context)
-    for asset,inst in main.modifiers:
-        asset.preprocess(inst)
+    def draw(self, context):
+        DazOptions.draw(self, context)
+        self.layout.separator()
+        box = self.layout.box()
+        box.label(text = "For more options, see Global Settings.")
 
-    print("Building objects...")
-    for asset in main.materials:
-        asset.build(context)
-    showProgress(50, 100)
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
-    nnodes = len(main.nodes)
-    idx = 0
-    for asset,inst in main.nodes:
-        showProgress(50 + int(idx*30/nnodes), 100)
-        idx += 1
-        asset.build(context, inst)      # Builds armature
-    showProgress(80, 100)
 
-    nmods = len(main.modifiers)
-    idx = 0
-    for asset,inst in main.modifiers:
-        showProgress(80 + int(idx*10/nmods), 100)
-        idx += 1
-        asset.build(context, inst)      # Builds morphs
-    showProgress(90, 100)
+    def run(self, context):
+        import time
+        from .objfile import getFitFile, fitToFile
+        from .fileutils import getTypedFilePath
 
-    for _,inst in main.nodes:
-        inst.poseRig(context)
-    for asset,inst in main.nodes:
-        inst.postbuild(context)
+        scn = context.scene
+        LS.forImport(self, scn)
+        LS.scene = self.filepath
+        print("Scale", LS.scale)
+        t1 = time.perf_counter()
 
-    # Need to update scene before calculating object areas
-    updateScene(context)
-    for asset in main.materials:
-        asset.postbuild()
+        filepath = getTypedFilePath(self.filepath, ["duf", "dsf", "dse"])
+        if filepath is None:
+            raise DazError("Found no .duf file matching\n%s        " % self.filepath)
+        startProgress("\nLoading %s" % filepath)
+        if LS.fitFile:
+            getFitFile(filepath)
 
-    print("Postprocessing...")
-    for asset,inst in main.nodes:
-        asset.postprocess(context, inst)
-    for asset,inst in main.modifiers:
-        asset.postprocess(context, inst)
-    for asset,inst in main.modifiers:
-        asset.postbuild(context, inst)
-    for _,inst in main.nodes:
-        inst.buildInstance(context)
-    for _,inst in main.nodes:
-        inst.finalize(context)
+        from .load_json import loadJson
+        struct = loadJson(filepath)
+        showProgress(10, 100)
 
-    if LS.render:
-        LS.render.build(context)
+        grpname = os.path.splitext(os.path.basename(filepath))[0].capitalize()
+        LS.collection = makeRootCollection(grpname, context)
 
-    from .node import transformDuplis
-    transformDuplis()
+        print("Parsing data")
+        from .files import parseAssetFile
+        main = parseAssetFile(struct, toplevel=True)
+        if main is None:
+            msg = ("File not found:  \n%s      " % filepath)
+            raise DazError(msg)
+        showProgress(20, 100)
 
-    if LS.useMaterials:
+        print("Preprocessing...")
+        for asset,inst in main.nodes:
+            inst.preprocess(context)
+
+        if LS.fitFile:
+            fitToFile(filepath, main.nodes)
+        showProgress(30, 100)
+
+        for asset,inst in main.nodes:
+            inst.preprocess2(context)
+        for asset,inst in main.modifiers:
+            asset.preprocess(inst)
+
+        print("Building objects...")
         for asset in main.materials:
-            asset.guessColor()
+            asset.build(context)
+        showProgress(50, 100)
 
-    if GS.useDump:
-        from .error import dumpErrors
-        dumpErrors(filepath)
-    finishMain("File", filepath, t1)
+        nnodes = len(main.nodes)
+        idx = 0
+        for asset,inst in main.nodes:
+            showProgress(50 + int(idx*30/nnodes), 100)
+            idx += 1
+            asset.build(context, inst)      # Builds armature
+        showProgress(80, 100)
 
-    msg = ""
-    if LS.missingAssets:
-        msg = ("Some assets were not found.\n" +
-               "Check that all Daz paths have been set up correctly.        \n" +
-               "For details see\n'%s'" % getErrorPath())
-    else:
-        if LS.hdfailures:
-            msg += "Could not rebuild subdivisions for the following HD objects:       \n"
-            for hdname in LS.hdfailures:
-                msg += ("  %s\n" % hdname)
-        if LS.hdweights:
-            msg += "Could not copy vertex weights to the following HD objects:         \n"
-            for hdname in LS.hdweights:
-                msg += ("  %s\n" % hdname)
-    if msg:
-        clearErrorMessage()
-        handleDazError(context, warning=True, dump=True)
-        print(msg)
-        LS.warning = True
-        raise DazError(msg, warning=True)
+        nmods = len(main.modifiers)
+        idx = 0
+        for asset,inst in main.modifiers:
+            showProgress(80 + int(idx*10/nmods), 100)
+            idx += 1
+            asset.build(context, inst)      # Builds morphs
+        showProgress(90, 100)
 
-    from .material import checkRenderSettings
-    msg = checkRenderSettings(context, False)
-    if msg:
-        LS.warning = True
-        raise DazError(msg, warning=True)
+        for _,inst in main.nodes:
+            inst.poseRig(context)
+        for asset,inst in main.nodes:
+            inst.postbuild(context)
 
+        # Need to update scene before calculating object areas
+        updateScene(context)
+        for asset in main.materials:
+            asset.postbuild()
+
+        print("Postprocessing...")
+        for asset,inst in main.nodes:
+            asset.postprocess(context, inst)
+        for asset,inst in main.modifiers:
+            asset.postprocess(context, inst)
+        for asset,inst in main.modifiers:
+            asset.postbuild(context, inst)
+        for _,inst in main.nodes:
+            inst.buildInstance(context)
+        for _,inst in main.nodes:
+            inst.finalize(context)
+
+        if LS.render:
+            LS.render.build(context)
+
+        from .node import transformDuplis
+        transformDuplis()
+
+        if LS.useMaterials:
+            for asset in main.materials:
+                asset.guessColor()
+
+        if GS.useDump:
+            from .error import dumpErrors
+            dumpErrors(filepath)
+        finishMain("File", filepath, t1)
+
+        msg = ""
+        if LS.missingAssets:
+            msg = ("Some assets were not found.\n" +
+                   "Check that all Daz paths have been set up correctly.        \n" +
+                   "For details see\n'%s'" % getErrorPath())
+        else:
+            if LS.hdfailures:
+                msg += "Could not rebuild subdivisions for the following HD objects:       \n"
+                for hdname in LS.hdfailures:
+                    msg += ("  %s\n" % hdname)
+            if LS.hdweights:
+                msg += "Could not copy vertex weights to the following HD objects:         \n"
+                for hdname in LS.hdweights:
+                    msg += ("  %s\n" % hdname)
+        if msg:
+            clearErrorMessage()
+            handleDazError(context, warning=True, dump=True)
+            print(msg)
+            LS.warning = True
+            raise DazError(msg, warning=True)
+
+        from .material import checkRenderSettings
+        msg = checkRenderSettings(context, False)
+        if msg:
+            LS.warning = True
+            raise DazError(msg, warning=True)
+
+
+class MorphTypeOptions:
+    units : BoolProperty(
+        name = "Face Units",
+        description = "Import all face units",
+        default = False)
+
+    expressions : BoolProperty(
+        name = "Expressions",
+        description = "Import all expressions",
+        default = False)
+
+    visemes : BoolProperty(
+        name = "Visemes",
+        description = "Import all visemes",
+        default = False)
+
+    facs : BoolProperty(
+        name = "FACS",
+        description = "Import all FACS units",
+        default = False)
+
+    facsexpr : BoolProperty(
+        name = "FACS Expressions",
+        description = "Import all FACS expressions",
+        default = False)
+
+    body : BoolProperty(
+        name = "Body",
+        description = "Import all body morphs",
+        default = False)
+
+    jcms : BoolProperty(
+        name = "JCMs",
+        description = "Import all JCMs",
+        default = False)
+
+    flexions : BoolProperty(
+        name = "Flexions",
+        description = "Import all flexions",
+        default = False)
+
+    def draw(self, context):
+        self.layout.prop(self, "units")
+        self.layout.prop(self, "expressions")
+        self.layout.prop(self, "visemes")
+        self.layout.prop(self, "facs")
+        self.layout.prop(self, "facsexpr")
+        self.layout.prop(self, "body")
+        self.layout.prop(self, "jcms")
+        self.layout.prop(self, "flexions")
+
+
+class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
+    """Load a DAZ File and perform the most common opertations"""
+    bl_idname = "daz.easy_import_daz"
+    bl_label = "Easy Import DAZ"
+    bl_description = "Load a native DAZ file and perform the most common operations"
+    bl_options = {'UNDO'}
+
+    rigType : EnumProperty(
+        items = [('DAZ', "DAZ", "Original DAZ rig"),
+                 ('CUSTOM', "Custom Shapes", "Original DAZ rig with custom shapes"),
+                 ('MHX', "MHX", "MHX rig"),
+                 ('RIGIFY', "Rigify", "Rigify")],
+        name = "Rig Type",
+        description = "Convert the main rig to a more animator-friendly rig",
+        default = 'DAZ')
+
+    mannequinType : EnumProperty(
+        items = [('NONE', "None", "Don't make mannequins"),
+                 ('NUDE', "Nude", "Make mannequin for main mesh only"),
+                 ('ALL', "All", "Make mannequin from all meshes")],
+        name = "Mannequin Type",
+        description = "Add mannequin to meshes of this type",
+        default = 'NONE')
+
+    useMergeRigs : BoolProperty(
+        name = "Merge Rigs",
+        description = "Merge all rigs to the main character rig",
+        default = True)
+
+    useMergeMaterials : BoolProperty(
+        name = "Merge Materials",
+        description = "Merge identical materials",
+        default = True)
+
+    useMergeToes : BoolProperty(
+        name = "Merge Toes",
+        description = "Merge separate toes into a single toe bone",
+        default = False)
+
+    useTransferJCMs : BoolProperty(
+        name = "Transfer JCMs",
+        description = "Transfer JCMs and flexions from character to clothes",
+        default = True)
+
+    useMergeGeografts : BoolProperty(
+        name = "Merge Geografts",
+        description = "Merge selected geografts to active object.\nDoes not work with nested geografts.\nShapekeys are always transferred first",
+        default = False)
+
+    useMergeLashes : BoolProperty(
+        name = "Merge Lashes",
+        description = "Merge separate eyelash mesh to character.\nShapekeys are always transferred first",
+        default = False)
+
+    useExtraFaceBones : BoolProperty(
+        name = "Extra Face Bones",
+        description = "Add an extra layer of face bones, which can be both driven and posed",
+        default = True)
+
+    useMakeAllBonesPoseable : BoolProperty(
+        name = "Make All Bones Poseable",
+        description = "Add an extra layer of driven bones, to make them poseable",
+        default = False)
+
+    useConvertHair : BoolProperty(
+        name = "Convert Hair",
+        description = "Convert strand-based hair to particle hair",
+        default = False)
+
+    def draw(self, context):
+        DazOptions.draw(self, context)
+        self.layout.separator()
+        self.layout.prop(self, "rigType")
+        self.layout.prop(self, "mannequinType")
+        self.layout.prop(self, "useMergeMaterials")
+        self.layout.prop(self, "useMergeRigs")
+        self.layout.prop(self, "useMergeToes")
+        self.layout.prop(self, "useMergeGeografts")
+        self.layout.prop(self, "useMergeLashes")
+        self.layout.prop(self, "useExtraFaceBones")
+        self.layout.prop(self, "useMakeAllBonesPoseable")
+        self.layout.prop(self, "useConvertHair")
+        MorphTypeOptions.draw(self, context)
+        if self.jcms or self.flexions:
+            self.layout.prop(self, "useTransferJCMs")
+
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
+    def run(self, context):
+        from .error import setSilentMode
+        from time import perf_counter
+        time1 = perf_counter()
+        try:
+            bpy.ops.daz.import_daz(
+                filepath = self.filepath,
+                skinColor = self.skinColor,
+                clothesColor = self.clothesColor,
+                fitMeshes = self.fitMeshes)
+        except:
+            if LS.warning:
+                print("Warning:", LS.warning)
+            else:
+                raise DazError("Import failed")
+
+        if not LS.objects:
+            raise DazError("No objects found")
+        setSilentMode(True)
+        self.rigs = LS.rigs
+        self.meshes = LS.meshes
+        self.objects = LS.objects
+        self.hdmeshes = LS.hdmeshes
+        self.hairs = LS.hairs
+        for rigname in self.rigs.keys():
+            self.treatRig(context, rigname)
+        setSilentMode(False)
+        time2 = perf_counter()
+        print("File %s loaded in %.3f seconds" % (self.filepath, time2-time1))
+
+
+    def treatRig(self, context, rigname):
+        rigs = self.rigs[rigname]
+        meshes = self.meshes[rigname]
+        objects = self.objects[rigname]
+        hdmeshes = self.hdmeshes[rigname]
+        hairs = self.hairs[rigname]
+        if len(rigs) > 0:
+            mainRig = rigs[0]
+        else:
+            mainRig = None
+        if len(meshes) > 0:
+            mainMesh = meshes[0]
+        else:
+            mainMesh = None
+        if mainRig:
+            from .finger import getFingeredCharacter
+            _,_,mainChar = getFingeredCharacter(mainRig)
+        else:
+            mainChar = None
+        if mainChar:
+            print("Main character:", mainChar)
+        else:
+            print("Did not recognize main character", mainMesh)
+
+        empties = []
+        for ob in objects:
+            if ob.type == None:
+                empties.append(ob)
+
+        geografts = []
+        lashes = []
+        if mainMesh and mainRig:
+            nmeshes = [mainMesh]
+            lmeshes = self.getLashes(mainRig, mainMesh)
+            for ob in meshes[1:]:
+                if ob.data.DazGraftGroup and self.useMergeGeografts:
+                    geografts.append(ob)
+                elif ob in lmeshes and self.useMergeLashes:
+                    lashes.append(ob)
+                else:
+                    nmeshes.append(ob)
+            meshes = nmeshes
+
+        if mainRig:
+            # Merge rigs
+            activateObject(context, mainRig)
+            for rig in rigs[1:]:
+                rig.select_set(True)
+            if self.useMergeRigs and len(rigs) > 1:
+                print("Merge rigs")
+                bpy.ops.daz.merge_rigs()
+                mainRig = context.object
+                rigs = [mainRig]
+
+            # Eliminate empties
+            activateObject(context, mainRig)
+            bpy.ops.daz.eliminate_empties()
+
+            # Merge toes
+            if self.useMergeToes:
+                print("Merge toes")
+                bpy.ops.daz.merge_toes()
+
+            # Add extra face bones
+            if self.useExtraFaceBones:
+                print("Add extra face bones")
+                bpy.ops.daz.add_extra_face_bones()
+
+        if mainMesh:
+            # Merge materials
+            activateObject(context, mainMesh)
+            for ob in meshes[1:]:
+                ob.select_set(True)
+            print("Merge materials")
+            bpy.ops.daz.merge_materials()
+
+        if mainChar and mainRig and mainMesh:
+            if (self.units or
+                self.expressions or
+                self.visemes or
+                self.facs or
+                self.facsexpr or
+                self.body or
+                self.jcms or
+                self.flexions):
+                activateObject(context, mainRig)
+                bpy.ops.daz.import_standard_morphs(
+                    units = self.units,
+                    expressions = self.expressions,
+                    visemes = self.visemes,
+                    facs = self.facs,
+                    facsexpr = self.facsexpr,
+                    body = self.body,
+                    jcms = self.jcms,
+                    flexions = self.flexions)
+
+
+        # Merge geografts
+        if geografts:
+            self.transferShapes(context, mainMesh, geografts, False, "Body")
+            activateObject(context, mainMesh)
+            for ob in geografts:
+                ob.select_set(True)
+            print("Merge geografts")
+            bpy.ops.daz.merge_geografts()
+
+        # Merge lashes
+        if lashes:
+            self.transferShapes(context, mainMesh, lashes, False, "Face")
+            activateObject(context, mainMesh)
+            for ob in lashes:
+                ob.select_set(True)
+            print("Merge lashes")
+            self.mergeLashes(mainMesh)
+
+        # Transfer shapekeys to clothes
+        self.transferShapes(context, mainMesh, meshes[1:], True, "Body")
+
+        if mainRig:
+            activateObject(context, mainRig)
+            # Make all bones poseable
+            if self.useMakeAllBonesPoseable:
+                print("Make all bones poseable")
+                bpy.ops.daz.make_all_bones_poseable()
+
+        # Convert hairs
+        if hairs and mainMesh and self.useConvertHair:
+            activateObject(context, mainMesh)
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+            for hair in hairs:
+                activateObject(context, hair)
+                mainMesh.select_set(True)
+                bpy.ops.daz.make_hair(strandType='TUBE')
+
+        # Change rig
+        if mainRig:
+            activateObject(context, mainRig)
+            if self.rigType == 'CUSTOM':
+                print("Add custom shapes")
+                bpy.ops.daz.add_custom_shapes()
+            elif self.rigType == 'MHX':
+                print("Convert to MHX")
+                bpy.ops.daz.convert_to_mhx()
+            elif self.rigType == 'RIGIFY':
+                bpy.ops.daz.convert_to_rigify(useDeleteMeta=True)
+                mainRig = context.object
+
+        # Make mannequin
+        if mainRig and mainMesh and self.mannequinType != 'NONE':
+            activateObject(context, mainMesh)
+            if self.mannequinType == 'ALL':
+                for ob in meshes:
+                    ob.select_set(True)
+            print("Make mannequin")
+            bpy.ops.daz.add_mannequin(useGroup=True, group="%s Mannequin" % mainRig.name)
+
+        if mainMesh:
+            mainMesh.update_tag()
+        if mainRig:
+            mainRig.update_tag()
+            activateObject(context, mainRig)
+
+
+    def transferShapes(self, context, ob, meshes, useDrivers, bodypart):
+        if not (self.useTransferJCMs and (self.jcms or self.flexions)):
+            return
+        if not (ob and meshes):
+            return
+
+        from .fileutils import setSelection
+        from .morphing import classifyShapekeys
+        skeys = ob.data.shape_keys
+        if skeys:
+            bodyparts = classifyShapekeys(ob, skeys)
+            snames = [sname for sname,bpart in bodyparts.items() if bpart == bodypart]
+            if not snames:
+                return
+            activateObject(context, ob)
+            selected = False
+            for mesh in meshes:
+                if self.useTransferTo(mesh):
+                    mesh.select_set(True)
+                    selected = True
+            if not selected:
+                return
+            setSelection(snames)
+            if not useDrivers:
+                bpy.ops.daz.transfer_shapekeys(useDrivers=False)
+            else:
+                bpy.ops.daz.transfer_shapekeys(useDrivers=True)
+
+
+    def useTransferTo(self, mesh):
+        if not getModifier(mesh, 'ARMATURE'):
+            return False
+        ishair = ("head" in mesh.vertex_groups.keys() and
+                  "lSldrBend" not in mesh.vertex_groups.keys())
+        return not ishair
+
+
+    def mergeLashes(self, ob):
+        from .merge import mergeUVLayers
+        nlayers = len(ob.data.uv_layers)
+        bpy.ops.object.join()
+        idxs = list(range(nlayers, len(ob.data.uv_layers)))
+        idxs.reverse()
+        for idx in idxs:
+            mergeUVLayers(ob.data, 0, idx)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        print("Lashes merged")
+
+
+    def getLashes(self, rig, ob):
+        meshes = []
+        for mesh in getMeshChildren(rig):
+            if mesh != ob:
+                for vgname in mesh.vertex_groups.keys():
+                    if vgname[1:7] == "Eyelid":
+                        meshes.append(mesh)
+                        break
+        return meshes
+
+#------------------------------------------------------------------
+#   Utilities
+#------------------------------------------------------------------
 
 def makeRootCollection(grpname, context):
     root = bpy.data.collections.new(name=grpname)
