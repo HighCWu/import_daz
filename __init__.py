@@ -90,10 +90,6 @@ from .settings import GS
 #   Register
 #----------------------------------------------------------
 
-def menu_func_import(self, context):
-    self.layout.operator(daz.ImportDAZ.bl_idname, text="DAZ (.duf, .dsf)")
-    self.layout.operator(daz.EasyImportDAZ.bl_idname, text="Easy DAZ (.duf, .dsf)")
-
 def register():
     if panel.UseAddonUpdater:
         updater.register(bl_info)
@@ -126,8 +122,6 @@ def register():
         udim.register()
         facecap.register()
     hdmorphs.register()
-
-    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 
     settings.GS.loadDefaults()
 
@@ -164,8 +158,6 @@ def unregister():
         udim.unregister()
         facecap.unregister()
     hdmorphs.unregister()
-
-    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 
 
 if __name__ == "__main__":

@@ -697,6 +697,11 @@ class DAZ_OT_DecodeFile(DazOperator, DazFile, SingleFile):
 #   Initialize
 #----------------------------------------------------------
 
+def menu_func_import(self, context):
+    self.layout.operator(ImportDAZ.bl_idname, text="DAZ (.duf, .dsf)")
+    self.layout.operator(EasyImportDAZ.bl_idname, text="Easy DAZ (.duf, .dsf)")
+
+
 classes = [
     ImportDAZ,
     EasyImportDAZ,
@@ -706,8 +711,10 @@ classes = [
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
