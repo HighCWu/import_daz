@@ -717,7 +717,7 @@ class MorphLoader(LoadMorph):
         t2 = perf_counter()
         print("Folder %s loaded in %.3f seconds" % (folder, t2-t1))
         if self.errors:
-            msg = "Morphs loaded with errors.\n  "
+            msg = "Morphs loaded with errors."
             for err,props in self.errors.items():
                 msg += "\n%s:    \n" % err
                 for prop in props:

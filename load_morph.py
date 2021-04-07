@@ -31,6 +31,8 @@ from .driver import DriverUser
 from .utils import *
 from .error import reportError
 
+MAX_EXPRESSION_SIZE = 255
+
 #------------------------------------------------------------------
 #   LoadMorph base class
 #------------------------------------------------------------------
@@ -551,8 +553,11 @@ class LoadMorph(DriverUser):
         pathids = self.getAllTargets(fcu)
         string = self.addDriverVars(fcu, string, varname, raw, drivers, pathids.keys())
         string += char
-        if len(string) > 511:
-            print('Driving expression for "%s" too long' % raw)
+        if len(string) > MAX_EXPRESSION_SIZE:
+            errtype = "Driving expressions too long for the following properties:"
+            if errtype not in self.errors.keys():
+                self.errors[errtype] = []
+            self.errors[errtype].append(raw)
         else:
             fcu.driver.expression = string
 
