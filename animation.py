@@ -961,10 +961,7 @@ def nameAction(self, ob):
 class StandardAnimation:
 
     def run(self, context):
-        import time
-        from .main import finishMain
-        from .fileutils import getMultiFiles
-
+        from time import perf_counter
         rig = context.object
         scn = context.scene
         if not self.affectSelectedOnly:
@@ -979,10 +976,10 @@ class StandardAnimation:
         missing = []
         startframe = offset = scn.frame_current
         props = []
-        t1 = time.perf_counter()
+        t1 = perf_counter()
         print("\n--------------------")
 
-        dazfiles = getMultiFiles(self, theDazExtensions)
+        dazfiles = self.getMultiFiles(theDazExtensions)
         nfiles = len(dazfiles)
         if nfiles == 0:
             raise DazError("No corresponding DAZ file selected")
@@ -996,7 +993,8 @@ class StandardAnimation:
             if prop:
                 props.append(prop)
 
-        finishMain("File", self.filepath, t1)
+        t2 = perf_counter()
+        print("File %s imported in %.3f seconds" % (self.filepath, t2-t1))
         scn.frame_current = startframe
         nameAction(self, rig)
         if not self.affectSelectedOnly:

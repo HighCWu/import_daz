@@ -142,8 +142,8 @@ class DAZ_OT_TransferVertexGroups(DazPropsOperator, FastMatcher, IsMesh, Thresho
         src = context.object
         if not src.vertex_groups:
             raise DazError("Source mesh %s         \nhas no vertex groups" % src.name)
-        import time
-        t1 = time.perf_counter()
+        from time import perf_counter
+        t1 = perf_counter()
         targets = []
         for trg in self.getTargets(src, context):
             targets.append(trg.name)
@@ -154,7 +154,7 @@ class DAZ_OT_TransferVertexGroups(DazPropsOperator, FastMatcher, IsMesh, Thresho
             vert_mapping = 'NEAREST',
             layers_select_src = 'ALL',
             layers_select_dst = 'NAME')
-        t2 = time.perf_counter()
+        t2 = perf_counter()
         print("Vertex groups transferred in %.1f seconds" % (t2-t1))
 
 
@@ -252,8 +252,8 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
 
 
     def run(self, context):
-        import time
-        t1 = time.perf_counter()
+        from time import perf_counter
+        t1 = perf_counter()
         src = context.object
         if not src.data.shape_keys:
             raise DazError("Cannot transfer because object    \n%s has no shapekeys   " % (src.name))
@@ -267,7 +267,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
         finally:
             self.deleteTmp()
             self.restore(context, src, data)
-        t2 = time.perf_counter()
+        t2 = perf_counter()
         print("Morphs transferred in %.1f seconds" % (t2-t1))
         if failed:
             msg = ("Morph transfer to the following meshes\nfailed due to insufficient memory:")
@@ -458,8 +458,8 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
 
 
     def findMatch(self, src, trg):
-        import time
-        t1 = time.perf_counter()
+        from time import perf_counter
+        t1 = perf_counter()
         if self.transferMethod == 'LEGACY':
             return True
         elif self.transferMethod == 'BODY':
@@ -468,7 +468,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
             self.findMatchNearest(self.trihuman, trg)
         elif self.transferMethod == 'GEOGRAFT':
             self.findMatchGeograft(src, trg)
-        t2 = time.perf_counter()
+        t2 = perf_counter()
         print("Matching table created in %.1f seconds" % (t2-t1))
         return True
 

@@ -290,8 +290,8 @@ class HairSystem:
 
 
     def build(self, context, ob):
-        import time
-        t1 = time.perf_counter()
+        from time import perf_counter
+        t1 = perf_counter()
         if len(self.strands) == 0:
             raise DazError("No strands found")
         btn = self.button
@@ -333,18 +333,18 @@ class HairSystem:
 
         psys.use_hair_dynamics = False
 
-        t2 = time.perf_counter()
+        t2 = perf_counter()
         bpy.ops.particle.disconnect_hair(all=True)
         bpy.ops.particle.connect_hair(all=True)
         psys = updateHair(context, ob, psys)
-        t3 = time.perf_counter()
+        t3 = perf_counter()
         self.buildStrands(psys)
-        t4 = time.perf_counter()
+        t4 = perf_counter()
         psys = updateHair(context, ob, psys)
         #printPsys(psys)
-        t5 = time.perf_counter()
+        t5 = perf_counter()
         self.buildFinish(context, psys, ob)
-        t6 = time.perf_counter()
+        t6 = perf_counter()
         bpy.ops.object.mode_set(mode='OBJECT')
         #print("Hair %s: %.3f %.3f %.3f %.3f %.3f" % (self.name, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5))
 
@@ -596,8 +596,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
 
 
     def run(self, context):
-        import time
-        t1 = time.perf_counter()
+        from time import perf_counter
+        t1 = perf_counter()
         self.clocks = []
         hair,hum = getHairAndHuman(context, True)
         if hasObjectTransforms(hair):
@@ -631,7 +631,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
         bpy.ops.mesh.select_mode(type='FACE')
         bpy.ops.mesh.select_all(action='DESELECT')
 
-        t2 = time.perf_counter()
+        t2 = perf_counter()
         self.clocks.append(("Initialize", t2-t1))
         print("Start conversion")
         hsystems = {}
@@ -658,7 +658,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
                 if count % 10 == 0:
                     sys.stdout.write(".")
                     sys.stdout.flush()
-            t5 = time.perf_counter()
+            t5 = perf_counter()
             self.clocks.append(("Make hair systems", t5-t2))
         else:
             hairs = [hair]
@@ -670,7 +670,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
                 tess.unTesselateFaces(context, hair, self)
             strands = tess.findStrands(hair)
             haircount = self.addStrands(hum, strands, hsystems, -1)
-            t5 = time.perf_counter()
+            t5 = perf_counter()
             self.clocks.append(("Make hair systems", t5-t2))
         haircount += 1
         print("\nTotal number of strands: %d" % haircount)
@@ -681,10 +681,10 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
             hsystems = self.blockResize(hsystems, hum)
         elif self.resizeHair:
             hsystems = self.hairResize(self.size, hsystems, hum)
-        t6 = time.perf_counter()
+        t6 = perf_counter()
         self.clocks.append(("Resize", t6-t5))
         self.makeHairs(context, hsystems, hum)
-        t7 = time.perf_counter()
+        t7 = perf_counter()
         self.clocks.append(("Make Hair", t7-t6))
         if self.keepMesh:
             if self.strandType == 'SHEET':
@@ -692,13 +692,13 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
                 selectObjects(context, hairs)
                 bpy.ops.object.join()
                 activateObject(context, hum)
-                t8 = time.perf_counter()
+                t8 = perf_counter()
                 self.clocks.append(("Rejoined mesh hairs", t8-t7))
             else:
                 t8 = t7
         else:
             deleteObjects(context, hairs)
-            t8 = time.perf_counter()
+            t8 = perf_counter()
             self.clocks.append(("Deleted mesh hairs", t8-t7))
         if self.nonquads:
             print("Ignored %d non-quad faces out of %d faces" % (len(self.nonquads), nhairfaces))

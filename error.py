@@ -164,6 +164,7 @@ def handleDazError(context, warning=False, dump=False):
         fp.write("\n")
         fp.close()
         print(theMessage)
+        LS.reset()
 
 
 def dumpErrors(context):

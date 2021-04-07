@@ -97,8 +97,7 @@ class LoadMaps(MultiFile, ImageFile, IsMesh):
 
 
     def getArgs(self, ob):
-        from .fileutils import getMultiFiles
-        filepaths = getMultiFiles(self, theImageExtensions)
+        filepaths = self.getMultiFiles(theImageExtensions)
         skeys = ob.data.shape_keys
         args = []
         if self.useShapeDriver:

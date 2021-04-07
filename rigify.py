@@ -1261,8 +1261,8 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists):
         self.layout.prop(self, "useKeepRig")
 
     def run(self, context):
-        import time
-        t1 = time.perf_counter()
+        from time import perf_counter
+        t1 = perf_counter()
         print("Modifying DAZ rig to Rigify")
         rig = context.object
         rname = rig.name
@@ -1270,7 +1270,7 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists):
             self.saveExistingRig(context)
         self.createMeta(context)
         gen = self.rigifyMeta(context)
-        t2 = time.perf_counter()
+        t2 = perf_counter()
         print("DAZ rig %s successfully rigified in %.3f seconds" % (rname, t2-t1))
 
 

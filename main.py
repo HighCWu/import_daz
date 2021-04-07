@@ -36,7 +36,7 @@ from .fileutils import SingleFile, MultiFile, DazFile, DazImageFile
 #   Import DAZ
 #------------------------------------------------------------------
 
-class DazOptions(DazImageFile, MultiFile):
+class DazOptions(DazImageFile):
 
     skinColor : FloatVectorProperty(
         name = "Skin",
@@ -88,7 +88,7 @@ class DazOptions(DazImageFile, MultiFile):
             box.label(text = GS.viewportColors)
 
 
-class ImportDAZ(DazOperator, DazOptions):
+class ImportDAZ(DazOperator, DazOptions, MultiFile):
     """Load a DAZ File"""
     bl_idname = "daz.import_daz"
     bl_label = "Import DAZ"
@@ -101,24 +101,62 @@ class ImportDAZ(DazOperator, DazOptions):
         box = self.layout.box()
         box.label(text = "For more options, see Global Settings.")
 
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
 
     def run(self, context):
-        import time
+        from time import perf_counter
+        filepaths = self.getMultiFiles(["duf", "dsf", "dse"])
+        if len(filepaths) == 0:
+            raise DazError("No valid files selected")
+        elif len(filepaths) > 1:
+            t1 = perf_counter()
+        LS.forImport(self)
+        for filepath in filepaths:
+            self.loadDazFile(filepath, context)
+        if LS.render:
+            LS.render.build(context)
+        if GS.useDump:
+            from .error import dumpErrors
+            dumpErrors(filepath)
+        if len(filepaths) > 1:
+            t2 = perf_counter()
+            print("Total load time: %.3f seconds" % (t2-t1))
+
+        msg = ""
+        if LS.missingAssets:
+            msg = ("Some assets were not found.\n" +
+                   "Check that all Daz paths have been set up correctly.        \n" +
+                   "For details see\n'%s'" % getErrorPath())
+        else:
+            if LS.hdfailures:
+                msg += "Could not rebuild subdivisions for the following HD objects:       \n"
+                for hdname in LS.hdfailures:
+                    msg += ("  %s\n" % hdname)
+            if LS.hdweights:
+                msg += "Could not copy vertex weights to the following HD objects:         \n"
+                for hdname in LS.hdweights:
+                    msg += ("  %s\n" % hdname)
+        if msg:
+            clearErrorMessage()
+            handleDazError(context, warning=True, dump=True)
+            print(msg)
+            LS.warning = True
+            raise DazError(msg, warning=True)
+
+        from .material import checkRenderSettings
+        msg = checkRenderSettings(context, False)
+        if msg:
+            LS.warning = True
+            raise DazError(msg, warning=True)
+        LS.reset()
+
+
+    def loadDazFile(self, filepath, context):
+        from time import perf_counter
         from .objfile import getFitFile, fitToFile
         from .fileutils import getTypedFilePath
 
-        LS.forImport(self)
-        LS.scene = self.filepath
-        print("Scale", LS.scale)
-        t1 = time.perf_counter()
-
-        filepath = getTypedFilePath(self.filepath, ["duf", "dsf", "dse"])
-        if filepath is None:
-            raise DazError("Found no .duf file matching\n%s        " % self.filepath)
+        LS.scene = filepath
+        t1 = perf_counter()
         startProgress("\nLoading %s" % filepath)
         if LS.fitFile:
             getFitFile(filepath)
@@ -194,9 +232,6 @@ class ImportDAZ(DazOperator, DazOptions):
         for _,inst in main.nodes:
             inst.finalize(context)
 
-        if LS.render:
-            LS.render.build(context)
-
         from .node import transformDuplis
         transformDuplis()
 
@@ -204,37 +239,8 @@ class ImportDAZ(DazOperator, DazOptions):
             for asset in main.materials:
                 asset.guessColor()
 
-        if GS.useDump:
-            from .error import dumpErrors
-            dumpErrors(filepath)
-        finishMain("File", filepath, t1)
-
-        msg = ""
-        if LS.missingAssets:
-            msg = ("Some assets were not found.\n" +
-                   "Check that all Daz paths have been set up correctly.        \n" +
-                   "For details see\n'%s'" % getErrorPath())
-        else:
-            if LS.hdfailures:
-                msg += "Could not rebuild subdivisions for the following HD objects:       \n"
-                for hdname in LS.hdfailures:
-                    msg += ("  %s\n" % hdname)
-            if LS.hdweights:
-                msg += "Could not copy vertex weights to the following HD objects:         \n"
-                for hdname in LS.hdweights:
-                    msg += ("  %s\n" % hdname)
-        if msg:
-            clearErrorMessage()
-            handleDazError(context, warning=True, dump=True)
-            print(msg)
-            LS.warning = True
-            raise DazError(msg, warning=True)
-
-        from .material import checkRenderSettings
-        msg = checkRenderSettings(context, False)
-        if msg:
-            LS.warning = True
-            raise DazError(msg, warning=True)
+        t2 = perf_counter()
+        print('File "%s" loaded in %.3f seconds' % (filepath, t2-t1))
 
 
 class MorphTypeOptions:
@@ -289,7 +295,7 @@ class MorphTypeOptions:
         self.layout.prop(self, "flexions")
 
 
-class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
+class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
     """Load a DAZ File and perform the most common opertations"""
     bl_idname = "daz.easy_import_daz"
     bl_label = "Easy Import DAZ"
@@ -384,10 +390,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions):
     def run(self, context):
         from .error import setSilentMode
         from time import perf_counter
+        from .fileutils import setSelection
         time1 = perf_counter()
+        setSelection([self.filepath])
         try:
             bpy.ops.daz.import_daz(
-                filepath = self.filepath,
                 skinColor = self.skinColor,
                 clothesColor = self.clothesColor,
                 fitMeshes = self.fitMeshes)
@@ -644,15 +651,6 @@ def makeRootCollection(grpname, context):
     root = bpy.data.collections.new(name=grpname)
     context.scene.collection.children.link(root)
     return root
-
-
-def finishMain(entity, filepath, t1):
-    import time
-    from .asset import clearAssets
-
-    t2 = time.perf_counter()
-    print('%s "%s" loaded in %.3f seconds' % (entity, filepath, t2-t1))
-    clearAssets()
 
 #------------------------------------------------------------------
 #   Decode file

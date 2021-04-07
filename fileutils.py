@@ -131,7 +131,7 @@ def setSelection(files):
 clearSelection()
 
 #-------------------------------------------------------------
-#   SingleFile and MultiFile
+#    File extensions
 #-------------------------------------------------------------
 
 class DbzFile:
@@ -184,7 +184,7 @@ class CsvFile:
     filter_glob : StringProperty(default="*.csv", options={'HIDDEN'})
 
 #-------------------------------------------------------------
-#   File extensions
+#   SingleFile and MultiFile
 #-------------------------------------------------------------
 
 class SingleFile(ImportHelper):
@@ -211,18 +211,18 @@ class MultiFile(ImportHelper):
         return {'RUNNING_MODAL'}
 
 
-def getMultiFiles(self, extensions):
-    paths = getSelection()
-    if paths:
+    def getMultiFiles(self, extensions):
+        paths = getSelection()
+        if paths:
+            return paths
+        paths = []
+        for file_elem in self.files:
+            filepath = os.path.join(self.directory, file_elem.name)
+            if os.path.isfile(filepath):
+                path = getTypedFilePath(filepath, extensions)
+                if path:
+                    paths.append(path)
         return paths
-    paths = []
-    for file_elem in self.files:
-        filepath = os.path.join(self.directory, file_elem.name)
-        if os.path.isfile(filepath):
-            path = getTypedFilePath(filepath, extensions)
-            if path:
-                paths.append(path)
-    return paths
 
 
 def getTypedFilePath(filepath, exts):

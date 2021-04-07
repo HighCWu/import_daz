@@ -690,9 +690,8 @@ class MorphLoader(LoadMorph):
 
 
     def getAllMorphs(self, namepaths, context):
-        import time
+        from time import perf_counter
         from .asset import clearAssets
-        from .main import finishMain
         from .propgroups import clearDependecies
         from .driver import setBoolProp
 
@@ -708,14 +707,15 @@ class MorphLoader(LoadMorph):
         clearDependecies()
 
         self.errors = {}
-        t1 = time.perf_counter()
+        t1 = perf_counter()
         if namepaths:
             path = list(namepaths.values())[0]
             folder = os.path.dirname(path)
         else:
             raise DazError("No morphs selected")
         self.loadAllMorphs(list(namepaths.items()))
-        finishMain("Folder", folder, t1)
+        t2 = perf_counter()
+        print("Folder %s loaded in %.3f seconds" % (folder, t2-t1))
         if self.errors:
             msg = "Morphs loaded with errors.\n  "
             for err,props in self.errors.items():
@@ -971,6 +971,8 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
 
 
     def getMorphSet(self, asset):
+        if asset is None:
+            return "Standard"
         lpath = unquote(asset.id).split('#')[0]
         if lpath in self.morphsets.keys():
             return self.morphsets[lpath]
@@ -1080,10 +1082,9 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
 
 
     def getNamePaths(self):
-        from .fileutils import getMultiFiles
         namepaths = {}
         folder = ""
-        for path in getMultiFiles(self, ["duf", "dsf"]):
+        for path in self.getMultiFiles(["duf", "dsf"]):
             name = os.path.splitext(os.path.basename(path))[0]
             namepaths[name] = path
         return namepaths

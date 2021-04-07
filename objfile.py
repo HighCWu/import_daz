@@ -345,12 +345,11 @@ class DAZ_OT_ImportDBZ(DazOperator, DbzFile, MultiFile, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        from .fileutils import getMultiFiles
         objects = getSelectedMeshes(context)
         if not objects:
             return
         LS.scale = objects[0].DazScale
-        paths = getMultiFiles(self, ["dbz", "json"])
+        paths = self.getMultiFiles(["dbz", "json"])
         for path in paths:
             for ob in objects:
                 self.buildDBZMorph(ob, path)
