@@ -721,13 +721,18 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     def poll(self, context):
         ob = context.object
         return (ob and ob.type == 'MESH' and
-                (ob.DazMeshMorphs or ob.DazMorphAuto))
+                (ob.DazMeshMorphs or len(ob.DazAutoFollow) > 0))
 
 
     def draw(self, context):
         ob = context.object
-        if ob.DazMorphAuto:
-            self.layout.prop(ob, "DazMorphAutoFollow")
+        if len(ob.DazAutoFollow) > 0:
+            box = self.layout.box()
+            box.label(text = "Auto Follow")
+            for item in ob.DazAutoFollow:
+                if item.name in ob.keys():
+                    box.prop(ob, propRef(item.name), text=item.text)
+            self.layout.separator()
         if ob.DazMeshMorphs:
             DAZ_PT_Morphs.draw(self, context)
 
