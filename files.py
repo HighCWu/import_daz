@@ -218,66 +218,6 @@ class FileAsset(Asset):
                 parseRenderOptions(renderSettings, sceneSettings, backdrop, self.fileref)
 
 
-    def getModifierType(self, name):
-         if (name[0:3] in ["PHM", "CTR", "MCM"]):
-            return name[0:3]
-         else:
-            return None
-
-
-    def addAllModifiers(self, scene):
-        from copy import deepcopy
-
-        taken = {}
-        folders = {}
-        templates = {}
-
-        for mstruct in scene["modifiers"]:
-            mtype = None
-            if "id" in mstruct.keys():
-                mtype = self.getModifierType(mstruct["id"])
-            if mtype and "url" in mstruct.keys():
-                relpath, path = getUrlPath(mstruct["url"])
-                taken[os.path.basename(relpath)] = mstruct
-                folder = os.path.dirname(path)
-                try:
-                    folders[folder]
-                except KeyError:
-                    folders[folder] = os.path.dirname(relpath)
-                try:
-                    templates[mtype]
-                except KeyError:
-                    templates[mtype] = mstruct
-
-        print("CTRLDIRS", folders)
-        print("TAKEN", taken)
-        print("TEMPLATES", templates.items())
-
-        for folder,relfolder in folders.items():
-            for file in os.listdir(folder):
-                mtype = self.getModifierType(file)
-                if mtype:
-                    path = folder+"/"+file
-                    relpath = relfolder+"/"+file
-                    fname,ext = os.path.splitext(file)
-                    if relpath in taken.keys():
-                        mod = taken[relpath]
-                        asset = self.parseUrlAsset(mod)
-                        self.modifiers.append(asset)
-                    elif ext in [".duf", ".dsf"]:
-                        mod = deepcopy(templates[mtype])
-                        mod["id"] = fname
-                        mod["url"] = "%s#%s" % (relpath, fname)
-                        if "channel" in mod.keys():
-                            channel = mod["channel"]
-                            channel["current_value"] = 0.0
-                            channel["value"] = 0.0
-                        asset = self.parseUrlAsset(mod)
-                        self.modifiers.append(asset)
-                    else:
-                        print("SKIP", file)
-
-
     def parseTypedAsset(self, struct, typedAsset):
         from .asset import getAssetFromStruct
         from .geometry import Geometry

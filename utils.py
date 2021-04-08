@@ -281,6 +281,13 @@ def baseBone(string):
 def nextLetter(char):
     return chr(ord(char) + 1)
 
+def isSimpleType(x):
+    return (isinstance(x, int) or
+            isinstance(x, float) or
+            isinstance(x, str) or
+            isinstance(x, bool) or
+            x is None)
+
 def addToStruct(struct, key, prop, value):
     if key not in struct.keys():
         struct[key] = {}

@@ -240,6 +240,8 @@ class Instance(Accessor, Channels, SimNode):
 
 
     def prebuildChannels(self):
+        if not GS.useSimulation:
+            return
         self.vissim = True
         for key in self.channels.keys():
             if key == "Visible in Simulation":

@@ -84,6 +84,10 @@ class DynSim(DForce):
         if not visible or strength == 0.0:
             return
 
+        collision = self.hideModifier(ob, 'COLLISION')
+        subsurf = self.hideModifier(ob, 'SUBSURF')
+        multires = self.hideModifier(ob, 'MULTIRES')
+
         cloth = ob.modifiers.new("Cloth", 'CLOTH')
         cset = cloth.settings
         self.setSilk(cset)
@@ -97,6 +101,13 @@ class DynSim(DForce):
         pingrp = self.addConstantVertexGroup(ob, "DForce Pin", 1-strength)
         cset.vertex_group_mass = pingrp.name
         cset.pin_stiffness = 1.0
+
+        if collision:
+            collision.restore(ob)
+        if subsurf:
+            subsurf.restore(ob)
+        if multires:
+            multires.restore(ob)
 
 
     def setSilk(self, cset):
@@ -127,6 +138,16 @@ class DynSim(DForce):
             vgrp.add([vn], value, 'REPLACE')
         return vgrp
 
+
+    def hideModifier(self, ob, mtype):
+        mod = getModifier(ob, mtype)
+        if mod:
+            store = ModStore(mod)
+            ob.modifiers.remove(mod)
+            return store
+        else:
+            return None
+
 #-------------------------------------------------------------
 #  studio/modifier/dynamic_hair_follow
 #-------------------------------------------------------------
@@ -147,4 +168,46 @@ class LinTess(DForce):
 
 class SimSet(DForce):
     type = "SimSet"
+
+#-------------------------------------------------------------
+#  class for storing modifiers
+#-------------------------------------------------------------
+
+class ModStore:
+    def __init__(self, mod):
+        self.name = mod.name
+        self.type = mod.type
+        self.data = {}
+        self.store(mod, self.data)
+        self.settings = {}
+        if hasattr(mod, "settings"):
+            self.store(mod.settings, self.settings)
+        self.collision_settings = {}
+        if hasattr(mod, "collision_settings"):
+            self.store(mod.collision_settings, self.collision_settings)
+
+
+    def store(self, data, struct):
+        for key in dir(data):
+            if (key[0] == '_' or
+                key == "name" or
+                key == "type"):
+                continue
+            value = getattr(data, key)
+            if isSimpleType(value):
+                struct[key] = value
+
+
+    def restore(self, ob):
+        mod = ob.modifiers.new(self.name, self.type)
+        self.restoreData(self.data, mod)
+        if self.settings:
+            self.restoreData(self.settings, mod.settings)
+        if self.collision_settings:
+            self.restoreData(self.collision_settings, mod.collision_settings)
+
+
+    def restoreData(self, struct, data):
+        for key,value in struct.items():
+            setattr(data, key, value)
 
