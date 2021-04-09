@@ -61,9 +61,10 @@ class DynSim(DForce):
     type = "DynSim"
 
     def build(self, context):
+        if not (GS.useInfluence or GS.useSimulation):
+            return
         from .node import Instance
         from .geometry import GeoNode
-        #print("\nBUILD", self)
         if isinstance(self.instance, Instance):
             inst = self.instance
             geonode = self.instance.geometries[0]
@@ -74,7 +75,6 @@ class DynSim(DForce):
         ob = geonode.rna
         if not (ob and ob.type == 'MESH'):
             return
-
         visible = False
         strength = 0.0
         if geonode.simset:
@@ -84,8 +84,14 @@ class DynSim(DForce):
                     visible = settings.getValue([key], False)
                 elif key == "Dynamics Strength":
                     strength = settings.getValue([key], 0.0)
-        if not visible or strength == 0.0:
+        if not GS.useSimulation or not visible or strength == 0.0:
+            if GS.useInfluence:
+                self.addPinVertexGroup(ob, 1.0)
             return
+        elif GS.useInfluence:
+            pingrp = self.addPinVertexGroup(ob, strength)
+        else:
+            pingrp = None
 
         collision = self.hideModifier(ob, 'COLLISION')
         subsurf = self.hideModifier(ob, 'SUBSURF')
@@ -103,8 +109,8 @@ class DynSim(DForce):
         colset.self_distance_min = 0.1*LS.scale
         colset.collision_quality = GS.collQuality
         # Pinning
-        pingrp = self.addPinVertexGroup(ob, strength)
-        cset.vertex_group_mass = pingrp.name
+        if pingrp:
+            cset.vertex_group_mass = pingrp.name
         cset.pin_stiffness = 1.0
 
         if collision:
@@ -129,24 +135,42 @@ class DynSim(DForce):
 
 
     def addPinVertexGroup(self, ob, strength):
-        idxs = []
+        nverts = len(ob.data.vertices)
+        vgrp = ob.vertex_groups.new(name = "DForce Pin")
+
+        # Influence group
+        if "influence_weights" in self.extra.keys():
+            vcount = self.extra["vertex_count"]
+            if vcount == nverts:
+                weights = self.extra["influence_weights"]["values"]
+                for vn,w in weights:
+                    ww = 1-w*strength
+                    if ww > 1e-5:
+                        vgrp.add([vn], ww, 'REPLACE')
+                return vgrp
+            else:
+                msg = ("Influence weight mismatch: %d != %d" % (vcount, nverts))
+                reportError(msg, trigger=(2,4))
+
+        # Dform
+        dforms = []
         for vgrp in ob.vertex_groups:
             if vgrp.name[0:5] == "Dform":
-                idxs.append(vgrp.index)
-        vgrp = ob.vertex_groups.new(name = "DForce Pin")
-        nverts = len(ob.data.vertices)
-        if idxs:
+                dforms.append(vgrp.index)
+        if dforms:
             weights = dict([(vn, 0.0) for vn in range(nverts)])
             for v in ob.data.vertices:
                 for g in v.groups:
-                    if g.group in idxs:
+                    if g.group in dforms:
                         weights[v.index] += g.weight
             for vn,w in weights.items():
                 vgrp.add([vn], 1-w*strength, 'REPLACE')
-        else:
-            value = 1-strength
-            for vn in range(nverts):
-                vgrp.add([vn], value, 'REPLACE')
+            return vgrp
+
+        # Constant vertex group
+        value = 1-strength
+        for vn in range(nverts):
+            vgrp.add([vn], value, 'REPLACE')
         return vgrp
 
 

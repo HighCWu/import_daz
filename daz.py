@@ -259,10 +259,11 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Simulation")
         box.prop(scn, "DazInfluence")
         box.prop(scn, "DazSimulation")
-        box.prop(scn, "DazSimPreset")
-        box.prop(scn, "DazSimQuality")
-        box.prop(scn, "DazCollQuality")
-        box.prop(scn, "DazGsmFactor")
+        if scn.DazSimulation:
+            box.prop(scn, "DazSimPreset")
+            box.prop(scn, "DazSimQuality")
+            box.prop(scn, "DazCollQuality")
+            box.prop(scn, "DazGsmFactor")
 
         box = split.box()
         box.label(text = "Materials")
