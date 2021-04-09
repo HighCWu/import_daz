@@ -200,7 +200,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.quadify")
             box.separator()
             box.operator("daz.add_push")
-            box.operator("daz.make_deflection")
 
         layout.separator()
         box = layout.box()
@@ -239,7 +238,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         if showBox(scn, "DazShowMesh", box):
             box.operator("daz.limit_vertex_groups")
             box.operator("daz.prune_vertex_groups")
-            box.operator("daz.transfer_vertex_groups")
             box.operator("daz.create_graft_groups")
             box.operator("daz.apply_subsurf")
             box.operator("daz.find_seams")
@@ -247,6 +245,11 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.mesh_add_pinning")
             if bpy.app.version >= (2,90,0):
                 box.operator("daz.make_multires")
+            box.separator()
+            box.label(text="Speed up simulations")
+            box.operator("daz.make_deflection")
+            box.operator("daz.transfer_vertex_groups")
+            box.operator("daz.copy_modifiers")
 
         layout.separator()
         box = layout.box()

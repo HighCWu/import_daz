@@ -271,7 +271,8 @@ class ModStore:
                 key == "type"):
                 continue
             value = getattr(data, key)
-            if isSimpleType(value):
+            if (isSimpleType(value) or
+                isinstance(value, bpy.types.Object)):
                 struct[key] = value
 
 

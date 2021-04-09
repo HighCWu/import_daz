@@ -1537,52 +1537,86 @@ class DAZ_OT_MakeDeflection(DazPropsOperator, Offset, IsMesh):
         self.layout.prop(self, "offset")
 
     def run(self, context):
+        from .load_json import loadJson
         ob = context.object
         fac = self.offset*0.1*ob.DazScale
-        makeDeflection(context, ob, ob.DazMesh, fac)
+        char = ob.DazMesh
 
+        folder = os.path.dirname(__file__)
+        filepath = os.path.join(folder, "data", "lowpoly", char.lower()+".json")
+        print("Loading %s" % filepath)
+        struct = loadJson(filepath, mustOpen=True)
+        vnums = struct["vertices"]
+        verts = ob.data.vertices
+        coords = [(verts[vn].co + fac*verts[vn].normal) for vn in vnums]
+        #faces = struct["faces"]
+        faces = ([(f[0],f[1],f[2]) for f in struct["faces"]] +
+                 [(f[0],f[2],f[3]) for f in struct["faces"]])
+        me = bpy.data.meshes.new(ob.data.name+"Deflect")
+        me.from_pydata(coords, [], faces)
+        nob = bpy.data.objects.new(ob.name+"Deflect", me)
+        ncoll = bpy.data.collections.new(name=ob.name+"Deflect")
+        ncoll.objects.link(nob)
+        for coll in bpy.data.collections:
+            if ob in coll.objects.values():
+                coll.children.link(ncoll)
+        nob.hide_render = True
+        setActiveObject(context, nob)
 
-def makeDeflection(context, ob, char, fac):
-    from .load_json import loadJson
-    folder = os.path.dirname(__file__)
-    filepath = os.path.join(folder, "data", "lowpoly", char.lower()+".json")
-    print("Loading %s" % filepath)
-    struct = loadJson(filepath, mustOpen=True)
-    vnums = struct["vertices"]
-    verts = ob.data.vertices
-    coords = [(verts[vn].co + fac*verts[vn].normal) for vn in vnums]
-    #faces = struct["faces"]
-    faces = ([(f[0],f[1],f[2]) for f in struct["faces"]] +
-             [(f[0],f[2],f[3]) for f in struct["faces"]])
-    me = bpy.data.meshes.new(ob.data.name+"Deflect")
-    me.from_pydata(coords, [], faces)
-    nob = bpy.data.objects.new(ob.name+"Deflect", me)
-    ncoll = bpy.data.collections.new(name=ob.name+"Deflect")
-    ncoll.objects.link(nob)
-    for coll in bpy.data.collections:
-        if ob in coll.objects.values():
-            coll.children.link(ncoll)
-    nob.hide_render = True
-    setActiveObject(context, nob)
+        vgrps = dict([(vgrp.index, vgrp) for vgrp in ob.vertex_groups])
+        ngrps = {}
+        for vgrp in ob.vertex_groups:
+            ngrp = nob.vertex_groups.new(name=vgrp.name)
+            ngrps[ngrp.index] = ngrp
+        for nv in nob.data.vertices:
+            v = ob.data.vertices[vnums[nv.index]]
+            for g in v.groups:
+                ngrp = ngrps[g.group]
+                ngrp.add([nv.index], g.weight, 'REPLACE')
 
-    vgrps = dict([(vgrp.index, vgrp) for vgrp in ob.vertex_groups])
-    ngrps = {}
-    for vgrp in ob.vertex_groups:
-        ngrp = nob.vertex_groups.new(name=vgrp.name)
-        ngrps[ngrp.index] = ngrp
-    for nv in nob.data.vertices:
-        v = ob.data.vertices[vnums[nv.index]]
-        for g in v.groups:
-            ngrp = ngrps[g.group]
-            ngrp.add([nv.index], g.weight, 'REPLACE')
-
-    rig = ob.parent
-    if rig:
-        from .modifier import makeArmatureModifier
         nob.parent = ob.parent
-        makeArmatureModifier(rig.name, context, nob, rig)
 
-    return nob,ncoll
+#----------------------------------------------------------
+#   Initialize
+#----------------------------------------------------------
+
+class DAZ_OT_CopyModifiers(DazPropsOperator, Offset, IsMesh):
+    bl_idname = "daz.copy_modifiers"
+    bl_label = "Copy Modifiers"
+    bl_description = "Copy modifiers from active mesh to selected"
+    bl_options = {'UNDO'}
+
+    useSubsurf : BoolProperty(
+        name = "Use Subsurf",
+        description = "Also copy subsurf and multires modifiers",
+        default = False)
+
+    useRemoveCloth : BoolProperty(
+        name = "Remove Cloth",
+        description = "Remove cloth modifiers from source mesh",
+        default = True)
+
+    def draw(self, context):
+        self.layout.prop(self, "useSubsurf")
+        self.layout.prop(self, "useRemoveCloth")
+
+    def run(self, context):
+        from .dforce import ModStore
+        src = context.object
+        stores = []
+        for mod in list(src.modifiers):
+            if (self.useSubsurf or
+                mod.type not in ['SUBSURF', 'MULTIRES']):
+                stores.append(ModStore(mod))
+            if (self.useRemoveCloth and
+                mod.type in ['COLLISION', 'CLOTH', 'SOFTBODY']):
+                src.modifiers.remove(mod)
+        for trg in getSelectedMeshes(context):
+            if trg != src:
+                trg.parent = src.parent
+                for store in stores:
+                    print("RES", store)
+                    store.restore(trg)
 
 #----------------------------------------------------------
 #   Initialize
@@ -1604,6 +1638,7 @@ classes = [
     DAZ_OT_AddMannequin,
     DAZ_OT_AddPush,
     DAZ_OT_MakeDeflection,
+    DAZ_OT_CopyModifiers,
 ]
 
 def register():
