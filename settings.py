@@ -100,7 +100,10 @@ class GlobalSettings:
 
         self.useInfluence = True
         self.useSimulation = False
-
+        self.simPreset = 'COTTON'
+        self.simQuality = 16
+        self.collQuality = 4
+        self.gsmFactor = 1.0
 
     SceneTable = {
         # General
@@ -157,6 +160,10 @@ class GlobalSettings:
         # Simulation
         "DazInfluence" : "useInfluence",
         "DazSimulation" : "useSimulation",
+        "DazSimPreset" : "simPreset",
+        "DazSimQuality" : "simQuality",
+        "DazCollQuality" : "collQuality",
+        "DazGsmFactor" : "gsmFactor",
     }
 
     def fixPath(self, path):

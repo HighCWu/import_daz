@@ -259,6 +259,10 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.label(text = "Simulation")
         box.prop(scn, "DazInfluence")
         box.prop(scn, "DazSimulation")
+        box.prop(scn, "DazSimPreset")
+        box.prop(scn, "DazSimQuality")
+        box.prop(scn, "DazCollQuality")
+        box.prop(scn, "DazGsmFactor")
 
         box = split.box()
         box.label(text = "Materials")
@@ -598,6 +602,29 @@ def register():
     bpy.types.Scene.DazSimulation = BoolProperty(
         name = "Simulation",
         description = "Add simultations")
+
+    bpy.types.Scene.DazSimPreset = EnumProperty(
+        items = [('cotton.json', "Cotton", "Cotton"),
+                 ('denim.json', "Denim", "Denim"),
+                 ('leather.json', "Leather", "Leather"),
+                 ('rubber.json', "Rubber", "Rubber"),
+                 ('silk.json', "Silk", "Silk")],
+        name = "Preset",
+        description = "Simulation preset")
+
+    bpy.types.Scene.DazSimQuality = IntProperty(
+        name = "Simulation Quality",
+        description = "Simulation Quality")
+
+    bpy.types.Scene.DazCollQuality = IntProperty(
+        name = "Collision Quality",
+        description = "Collision Quality")
+
+    bpy.types.Scene.DazGsmFactor = FloatProperty(
+        name = "GSM Factor",
+        description = "GSM Factor (vertex mass multiplier)",
+        min = 0.0,
+        )
 
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shell Materials",

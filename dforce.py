@@ -26,7 +26,10 @@
 # either expressed or implied, of the FreeBSD Project.
 
 import bpy
+import os
 from .utils import *
+
+theSimPresets = {}
 
 #-------------------------------------------------------------
 #  dForce simulation
@@ -90,13 +93,15 @@ class DynSim(DForce):
 
         cloth = ob.modifiers.new("Cloth", 'CLOTH')
         cset = cloth.settings
-        self.setSilk(cset)
+        self.setPreset(cset)
+        cset.mass *= GS.gsmFactor
+        cset.quality = GS.simQuality
         # Collision settings
         colset = cloth.collision_settings
         colset.distance_min = 0.1*LS.scale
         colset.use_self_collision = True
         colset.self_distance_min = 0.1*LS.scale
-        colset.collision_quality = 4
+        colset.collision_quality = GS.collQuality
         # Pinning
         pingrp = self.addConstantVertexGroup(ob, "DForce Pin", 1-strength)
         cset.vertex_group_mass = pingrp.name
@@ -110,25 +115,17 @@ class DynSim(DForce):
             multires.restore(ob)
 
 
-    def setSilk(self, cset):
-        # Cloth
-        cset.quality = 16
-        # Physical properties
-        cset.mass = 0.15
-        cset.air_damping = 1.0
-        # Stiffness
-        cset.tension_stiffness = 5.0
-        cset.compression_stiffness = 5.0
-        cset.shear_stiffness = 5.0
-        cset.bending_stiffness = 0.05
-        # Damping
-        cset.tension_damping = 0.0
-        cset.compression_damping = 0.0
-        cset.shear_damping = 0.0
-        cset.bending_damping = 0.5
-        #
-        cset.use_internal_springs = False
-        cset.use_pressure = False
+    def setPreset(self, cset):
+        global theSimPresets
+        if not theSimPresets:
+            from .load_json import loadJson
+            folder = os.path.dirname(__file__) + "/data/presets"
+            for file in os.listdir(folder):
+                filepath = os.path.join(folder, file)
+                theSimPresets[file] = loadJson(filepath)
+        struct = theSimPresets[GS.simPreset]
+        for key,value in struct.items():
+            setattr(cset, key, value)
 
 
     def addConstantVertexGroup(self, ob, vgname, value):
@@ -209,5 +206,8 @@ class ModStore:
 
     def restoreData(self, struct, data):
         for key,value in struct.items():
-            setattr(data, key, value)
+            try:
+                setattr(data, key, value)
+            except:
+                pass
 
