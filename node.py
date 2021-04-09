@@ -257,13 +257,13 @@ class Instance(Accessor, Channels, SimNode):
                 if not value:
                     ob.hide_render = True
             elif channel["id"] == "Visible in Viewport":
-                if not value:
+                if not (value or GS.showHiddenObjects):
                     setHideViewport(ob, True)
                     for geonode in self.geometries:
                         if geonode.rna:
                             setHideViewport(geonode.rna, True)
             elif channel["id"] == "Visible":
-                if not value:
+                if not (value or GS.showHiddenObjects):
                     ob.hide_render = True
                     setHideViewport(ob, True)
                     for geonode in self.geometries:
@@ -271,7 +271,7 @@ class Instance(Accessor, Channels, SimNode):
                             geonode.rna.hide_render = True
                             setHideViewport(geonode.rna, True)
             elif channel["id"] == "Selectable":
-                if not value:
+                if not (value or GS.showHiddenObjects):
                     ob.hide_select = True
             elif channel["id"] == "Cast Shadows":
                 pass

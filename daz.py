@@ -224,6 +224,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazZup")
         box.prop(scn, "DazDump")
         box.prop(scn, "DazMakeHiddenSliders")
+        box.prop(scn, "DazShowHiddenObjects")
         box.prop(scn, "DazPruneNodes")
         box.prop(scn, "DazMergeShells")
 
@@ -386,6 +387,11 @@ def register():
     bpy.types.Scene.DazMakeHiddenSliders = BoolProperty(
         name = "Make Hidden Sliders",
         description = "Create properties for hidden morphs,\nso they can be displayed in the UI",
+        default = False)
+
+    bpy.types.Scene.DazShowHiddenObjects = BoolProperty(
+        name = "Show Hidden Objects",
+        description = "Don't hide objects which are hidden in DAZ Studio",
         default = False)
 
     # Object properties

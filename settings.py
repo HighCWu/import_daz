@@ -58,6 +58,7 @@ class GlobalSettings:
         self.useDump = False
         self.zup = True
         self.useMakeHiddenSliders = False
+        self.showHiddenObjects = False
 
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
@@ -116,6 +117,7 @@ class GlobalSettings:
         "DazDump" : "useDump",
         "DazZup" : "zup",
         "DazMakeHiddenSliders" : "useMakeHiddenSliders",
+        "DazShowHiddenObjects" : "showHiddenObjects",
         "DazMergeShells" : "mergeShells",
         "DazPruneNodes" : "pruneNodes",
 
