@@ -261,7 +261,9 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazInfluence")
         box.prop(scn, "DazSimulation")
         if scn.DazSimulation:
-            box.prop(scn, "DazSimPreset")
+            box.prop(scn, "DazSimSettings")
+            if not scn.DazSimSettings:
+                box.prop(scn, "DazSimPreset")
             box.prop(scn, "DazSimQuality")
             box.prop(scn, "DazCollQuality")
             box.prop(scn, "DazGsmFactor")
@@ -609,6 +611,10 @@ def register():
     bpy.types.Scene.DazSimulation = BoolProperty(
         name = "Simulation",
         description = "Add simultations")
+
+    bpy.types.Scene.DazSimSettings = BoolProperty(
+        name = "DAZ Settings",
+        description = "Use simulation settings from DAZ Studio")
 
     bpy.types.Scene.DazSimPreset = EnumProperty(
         items = [('cotton.json', "Cotton", "Cotton"),

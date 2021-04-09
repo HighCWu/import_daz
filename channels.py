@@ -101,14 +101,15 @@ class Channels:
             self.channels[channel["label"]] = self.channels[key]
 
 
-    def getChannel(self, attr):
+    def getChannel(self, attr, onlyVisible=True):
         if isinstance(attr, str):
             return getattr(self, attr)()
         for key in attr:
             if key in self.channels.keys():
                 channel = self.channels[key]
                 if ("visible" not in channel.keys() or
-                    channel["visible"]):
+                    channel["visible"] or
+                    not onlyVisible):
                     return channel
         return None
 
@@ -126,8 +127,8 @@ class Channels:
             self.channels[key] = value
 
 
-    def getValue(self, attr, default):
-        return self.getChannelValue(self.getChannel(attr), default)
+    def getValue(self, attr, default, onlyVisible=True):
+        return self.getChannelValue(self.getChannel(attr, onlyVisible), default)
 
 
     def getValueImage(self, attr, default):

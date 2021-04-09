@@ -79,6 +79,7 @@ class DynSim(DForce):
             return
         visible = False
         strength = 0.0
+        settings = None
         if geonode.simset:
             settings = geonode.simset.modifier
             for key in settings.channels.keys():
@@ -86,6 +87,7 @@ class DynSim(DForce):
                     visible = settings.getValue([key], False)
                 elif key == "Dynamics Strength":
                     strength = settings.getValue([key], 0.0)
+
         if not GS.useSimulation or not visible or strength == 0.0:
             if GS.useInfluence:
                 self.addPinVertexGroup(ob, 1.0)
@@ -101,13 +103,15 @@ class DynSim(DForce):
 
         cloth = ob.modifiers.new("Cloth", 'CLOTH')
         cset = cloth.settings
-        self.setPreset(cset)
+        if GS.useDazSimSettings:
+            self.setDazSettings(settings, cset)
+        else:
+            self.setPreset(cset)
         cset.mass *= GS.gsmFactor
         cset.quality = GS.simQuality
         # Collision settings
         colset = cloth.collision_settings
         colset.distance_min = 0.1*LS.scale
-        colset.use_self_collision = True
         colset.self_distance_min = 0.1*LS.scale
         colset.collision_quality = GS.collQuality
         # Pinning
@@ -115,12 +119,48 @@ class DynSim(DForce):
             cset.vertex_group_mass = pingrp.name
         cset.pin_stiffness = 1.0
 
-        if collision:
-            collision.restore(ob)
+        if GS.useDazSimSettings and settings:
+            useColl = settings.getValue(["Collide"], True)
+            if collision and useColl:
+                collision.restore(ob)
+            if settings.getValue(["Self Collide"], False):
+                colset.use_self_collision = True
+            distmin = settings.getValue(["Collision Offset"], 0.1)*LS.scale
+            colset.distance_min = distmin
+            colset.self_distance_min = distmin
+        else:
+            if collision:
+                collision.restore(ob)
         if subsurf:
             subsurf.restore(ob)
         if multires:
             multires.restore(ob)
+
+
+    def setDazSettings(self, settings, cset):
+        params = {
+            "Friction" : ([], 1.0),
+            "Dynamics Strength" : ([], 1.0),
+            "Stretch Stiffness" : (["compression_stiffness", "tension_stiffness"], 1/LS.scale),
+            "Shear Stiffness" : (["shear_stiffness"], 1/LS.scale),
+            "Bend Stiffness" : (["bending_stiffness"], 1/LS.scale),
+            "Buckling Stiffness" : ([], 1/LS.scale),
+            "Buckling Ratio" : ([], 1.0),
+            "Density" : (["mass"], LS.scale),
+            "Contraction-Expansion Ratio" : ([], 1.0),
+            "Damping" : (["air_damping"], 1.0),
+            "Stretch Damping" : (["compression_damping", "tension_damping"], 1.0),
+            "Shear Damping" : (["shear_damping"], 1.0),
+            "Bend Damping" : (["bending_damping"], 1.0),
+            "Velocity Smoothing" : ([], 1.0),
+            "Velocity Smoothing Iterations" : ([], 1),
+        }
+        for key in settings.channels.keys():
+            if key in params.keys():
+                attrs,factor = params[key]
+                value = settings.getValue([key], None)
+                for attr in attrs:
+                    setattr(cset, attr, factor*value)
 
 
     def setPreset(self, cset):

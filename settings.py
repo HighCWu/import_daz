@@ -101,10 +101,11 @@ class GlobalSettings:
 
         self.useInfluence = True
         self.useSimulation = False
+        self.useDazSimSettings = False
         self.simPreset = 'COTTON'
         self.simQuality = 16
         self.collQuality = 4
-        self.gsmFactor = 1.0
+        self.gsmFactor = 0.5
 
     SceneTable = {
         # General
@@ -162,6 +163,7 @@ class GlobalSettings:
         # Simulation
         "DazInfluence" : "useInfluence",
         "DazSimulation" : "useSimulation",
+        "DazSimSettings" : "useDazSimSettings",
         "DazSimPreset" : "simPreset",
         "DazSimQuality" : "simQuality",
         "DazCollQuality" : "collQuality",
