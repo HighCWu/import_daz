@@ -103,7 +103,7 @@ class DynSim(DForce):
         colset.self_distance_min = 0.1*LS.scale
         colset.collision_quality = GS.collQuality
         # Pinning
-        pingrp = self.addConstantVertexGroup(ob, "DForce Pin", 1-strength)
+        pingrp = self.addPinVertexGroup(ob, strength)
         cset.vertex_group_mass = pingrp.name
         cset.pin_stiffness = 1.0
 
@@ -128,11 +128,25 @@ class DynSim(DForce):
             setattr(cset, key, value)
 
 
-    def addConstantVertexGroup(self, ob, vgname, value):
-        vgrp = ob.vertex_groups.new(name = vgname)
+    def addPinVertexGroup(self, ob, strength):
+        idxs = []
+        for vgrp in ob.vertex_groups:
+            if vgrp.name[0:5] == "Dform":
+                idxs.append(vgrp.index)
+        vgrp = ob.vertex_groups.new(name = "DForce Pin")
         nverts = len(ob.data.vertices)
-        for vn in range(nverts):
-            vgrp.add([vn], value, 'REPLACE')
+        if idxs:
+            weights = dict([(vn, 0.0) for vn in range(nverts)])
+            for v in ob.data.vertices:
+                for g in v.groups:
+                    if g.group in idxs:
+                        weights[v.index] += g.weight
+            for vn,w in weights.items():
+                vgrp.add([vn], 1-w*strength, 'REPLACE')
+        else:
+            value = 1-strength
+            for vn in range(nverts):
+                vgrp.add([vn], value, 'REPLACE')
         return vgrp
 
 

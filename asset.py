@@ -102,7 +102,10 @@ class Accessor:
             except KeyError:
                 pass
         else:
-            msg = ("Cannot open file:\n '%s'            " % unquote(fileref))
+            ref = unquote(fileref)
+            if ref.startswith("name:/@selection"):
+                return None
+            msg = ("Cannot open file:\n '%s'            " % ref)
             reportError(msg, warnPaths=True, trigger=(3,4))
             return None
 
@@ -601,6 +604,8 @@ def getDazPath(ref):
             print("Found", filepath)
         return filepath
 
+    if path.startswith("name:/@selection"):
+        return None
     LS.missingAssets[ref] = True
     msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (path, ref))
     reportError(msg, trigger=(3,4))

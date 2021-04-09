@@ -116,9 +116,67 @@ class Modifier(Asset):
         pass
 
 
+    def getGeoRig(self, context, inst):
+        from .geometry import GeoNode
+        from .figure import FigureInstance
+        if isinstance(inst, GeoNode):
+            # This happens for normal scenes
+            ob = inst.rna
+            if ob:
+                rig = ob.parent
+            else:
+                rig = None
+            return ob, rig, inst
+        elif isinstance(inst, FigureInstance):
+            # This happens for library characters
+            rig = inst.rna
+            if inst.geometries:
+                geonode = inst.geometries[0]
+                ob = geonode.rna
+            else:
+                ob = geonode = None
+            return ob, rig, geonode
+        else:
+            msg = ("Expected geonode or figure but got:\n  %s" % inst)
+            reportError(msg, trigger=(2,3))
+            return None,None,None
+
+#-------------------------------------------------------------
+#   DForm
+#-------------------------------------------------------------
+
 class DForm(Modifier):
+    def __init__(self, fileref):
+        Modifier.__init__(self, fileref)
+        self.parent = None
+        self.dform = {}
+
+
     def __repr__(self):
         return ("<Dform %s>" % (self.id))
+
+
+    def parse(self, struct):
+        Modifier.parse(self, struct)
+        self.dform = struct["dform"]
+        self.parent = self.getAsset(struct["parent"])
+
+
+    def update(self, struct):
+        Modifier.update(self, struct)
+
+
+    def build(self, context, inst):
+        ob,rig,geonode = self.getGeoRig(context, inst)
+        if ob is None or ob.type != 'MESH':
+            return
+        vcount = self.dform["influence_vertex_count"]
+        if vcount != len(ob.data.vertices) and vcount >= 0:
+            msg = "Dform vertex count mismatch %d != %d" % (vcount, len(ob.data.vertices))
+            reportError(msg, trigger=(2,3))
+        vgrp = ob.vertex_groups.new(name = "Dform " + self.name)
+        for vn,w in self.dform["influence_weights"]["values"]:
+            vgrp.add([vn], w, 'REPLACE')
 
 #-------------------------------------------------------------
 #   Extra
@@ -199,6 +257,8 @@ class ExtraAsset(Modifier, Channels):
             elif etype == "studio/simulation_settings/dynamic_simulation":
                 from .dforce import SimSet
                 inst.simset = SimSet(inst, self, extra)
+            elif etype == "studio/node/dform":
+                print("DFORM", self)
 
 
     def getGeoNode(self, inst):
@@ -364,7 +424,7 @@ class SkinBinding(Modifier):
 
 
     def build(self, context, inst):
-        ob,rig,geonode = self.getGeoRig(context, inst, self.skin["geometry"])
+        ob,rig,geonode = self.getGeoRig(context, inst)
         if ob is None or rig is None or ob.type != 'MESH':
             return
         makeArmatureModifier(self.name, context, ob, rig)
@@ -380,32 +440,6 @@ class SkinBinding(Modifier):
                 copyVertexGroups(ob, hdob)
             else:
                 LS.hdweights.append(hdob.name)
-
-
-    def getGeoRig(self, context, inst, geoname):
-        from .geometry import GeoNode
-        from .figure import FigureInstance
-        if isinstance(inst, GeoNode):
-            # This happens for normal scenes
-            ob = inst.rna
-            if ob:
-                rig = ob.parent
-            else:
-                rig = None
-            return ob, rig, inst
-        elif isinstance(inst, FigureInstance):
-            # This happens for library characters
-            rig = inst.rna
-            if inst.geometries:
-                geonode = inst.geometries[0]
-                ob = geonode.rna
-            else:
-                ob = geonode = None
-            return ob, rig, geonode
-        else:
-            msg = ("Expected geonode or figure but got:\n  %s" % inst)
-            reportError(msg, trigger=(2,3))
-            return None,None,None
 
 
     def addVertexGroups(self, ob, geonode, rig):
