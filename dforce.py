@@ -45,6 +45,8 @@ class DForce:
     def __repr__(self):
         return "<DForce %s\ni: %s\nm: %s\ne: %s>" % (self.type, self.instance, self.modifier, self.instance.rna)
 
+    def build(self, context):
+        pass
 
 #-------------------------------------------------------------
 #  studio/modifier/dynamic_generate_hair
