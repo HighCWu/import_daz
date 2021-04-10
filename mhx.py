@@ -311,6 +311,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     bl_description = "Convert rig to MHX"
     bl_options = {'UNDO'}
 
+    dialogWidth = 500
+
     addTweakBones : BoolProperty(
         name = "Tweak Bones",
         description = "Add tweak bones",
@@ -323,11 +325,19 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         default = False
     )
 
-    usePoleParents : BoolProperty(
-        name = "Pole Target Parents",
-        description = "Parent the elbow and knee pole targets\nto the shoulder and foot.",
-        default = False
-    )
+    elbowParent : EnumProperty(
+        items = [('HAND', "Hand", "Parent elbow pole target to IK hand"),
+                 ('SHOULDER', "Shoulder", "Parent elbow pole target to shoulder"),
+                 ('MASTER', "Master", "Parent elbow pole target to the master bone")],
+        name = "Elbow Parent",
+        description = "Parent of elbow pole target")
+
+    kneeParent : EnumProperty(
+        items = [('FOOT', "Foot", "Parent knee pole target to IK foot"),
+                 ('HIP', "Hip", "Parent knee pole target to hip"),
+                 ('MASTER', "Master", "Parent knee pole target to the master bone")],
+        name = "Knee Parent",
+        description = "Parent of knee pole target")
 
     useRenameFaceBones : BoolProperty(
         name = "Rename Face Bones",
@@ -401,11 +411,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def draw(self, context):
         rig = context.object
-        split = self.layout.split(factor=0.4)
+        split = self.layout.split(factor=0.5)
         col = split.column()
         col.prop(self, "addTweakBones")
         col.prop(self, "useKeepRig")
-        col.prop(self, "usePoleParents")
+        col.prop(self, "elbowParent")
+        col.prop(self, "kneeParent")
         col.prop(self, "useRenameFaceBones")
         col = split.column()
         for bg in rig.pose.bone_groups:
@@ -1013,11 +1024,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
             locElbowPt = forearm.head - 5*rig.DazScale*vec
-            if self.usePoleParents:
-                elbowParent = armParent
-            else:
-                elbowParent = None
-            elbowPt = makeBone("elbow.pt.ik"+suffix, rig, locElbowPt, locElbowPt+Vector((0,0,size)), 0, L_LARMIK+dlayer, elbowParent)
+            if self.elbowParent == 'HAND':
+                elbowPar = handIk
+            elif self.elbowParent == 'SHOULDER':
+                elbowPar = armParent
+            elif self.elbowParent == 'MASTER':
+                elbowPar = None
+            elbowPt = makeBone("elbow.pt.ik"+suffix, rig, locElbowPt, locElbowPt+Vector((0,0,size)), 0, L_LARMIK+dlayer, elbowPar)
             elbowLink = makeBone("elbow.link"+suffix, rig, forearm.head, locElbowPt, 0, L_LARMIK+dlayer, upper_armIk)
             elbowLink.hide_select = True
 
@@ -1060,11 +1073,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             vec = thigh.matrix.to_3x3().col[2]
             vec.normalize()
             locKneePt = shin.head - 5*rig.DazScale*vec
-            if self.usePoleParents:
-                kneeParent = footIk
-            else:
-                kneeParent = None
-            kneePt = makeBone("knee.pt.ik"+suffix, rig, locKneePt, locKneePt+Vector((0,0,size)), 0, L_LLEGIK+dlayer, kneeParent)
+            if self.kneeParent == 'FOOT':
+                kneePar = footIk
+            elif self.kneeParent == 'HIP':
+                kneePar = root
+            elif self.kneeParent == 'MASTER':
+                kneePar = None
+            kneePt = makeBone("knee.pt.ik"+suffix, rig, locKneePt, locKneePt+Vector((0,0,size)), 0, L_LLEGIK+dlayer, kneePar)
             kneePt.layers[L_LEXTRA+dlayer] = True
             kneeLink = makeBone("knee.link"+suffix, rig, shin.head, locKneePt, 0, L_LLEGIK+dlayer, thighIk)
             kneeLink.layers[L_LEXTRA+dlayer] = True
