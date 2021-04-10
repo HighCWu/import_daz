@@ -324,22 +324,28 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         default = False
     )
 
+    usePoleParents : BoolProperty(
+        name = "Pole Target Parents",
+        description = "Parent the elbow and knee pole targets\nto the shoulder and foot.",
+        default = False
+    )
+
     boneGroups : CollectionProperty(
         type = DazPairGroup,
         name = "Bone Groups")
 
 
     DefaultBoneGroups = [
-        ('Spine',        "THEME01", (L_MAIN, L_SPINE)),
-        ('Left Arm FK',  "THEME02", (L_LARMFK, L_LHAND, L_LFINGER)),
-        ('Right Arm FK', "THEME04", (L_RARMFK, L_RHAND, L_RFINGER)),
-        ('Left Arm IK',  "THEME03", (L_LARMIK,)),
-        ('Right Arm IK', "THEME11", (L_RARMIK,)),
-        ('Left Leg FK',  "THEME09", (L_LLEGFK, L_LTOE)),
-        ('Right Leg FK', "THEME07", (L_RLEGFK, L_RTOE)),
-        ('Left Leg IK',  "THEME14", (L_LLEGIK,)),
-        ('Right Leg IK', "THEME08", (L_RLEGIK,)),
-        ('Face',         "THEME10", (L_HEAD, L_FACE)),
+        ('Spine',        "THEME10", (L_MAIN, L_SPINE)),
+        ('Left Arm FK',  "THEME01", (L_LARMFK, L_LHAND, L_LFINGER)),
+        ('Right Arm FK', "THEME03", (L_RARMFK, L_RHAND, L_RFINGER)),
+        ('Left Arm IK',  "THEME02", (L_LARMIK,)),
+        ('Right Arm IK', "THEME04", (L_RARMIK,)),
+        ('Left Leg FK',  "THEME01", (L_LLEGFK, L_LTOE)),
+        ('Right Leg FK', "THEME03", (L_RLEGFK, L_RTOE)),
+        ('Left Leg IK',  "THEME02", (L_LLEGIK,)),
+        ('Right Leg IK', "THEME04", (L_RLEGIK,)),
+        ('Face',         "THEME13", (L_HEAD, L_FACE)),
     ]
 
     BendTwists = [
@@ -394,6 +400,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         col = split.column()
         col.prop(self, "addTweakBones")
         col.prop(self, "useKeepRig")
+        col.prop(self, "usePoleParents")
         col = split.column()
         for bg in rig.pose.bone_groups:
             row = col.row()
@@ -1008,7 +1015,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
             locElbowPt = forearm.head - 5*rig.DazScale*vec
-            elbowPt = makeBone("elbow.pt.ik"+suffix, rig, locElbowPt, locElbowPt+Vector((0,0,size)), 0, L_LARMIK+dlayer, None)
+            if self.usePoleParents:
+                elbowParent = armParent
+            else:
+                elbowParent = None
+            elbowPt = makeBone("elbow.pt.ik"+suffix, rig, locElbowPt, locElbowPt+Vector((0,0,size)), 0, L_LARMIK+dlayer, elbowParent)
             elbowLink = makeBone("elbow.link"+suffix, rig, forearm.head, locElbowPt, 0, L_LARMIK+dlayer, upper_armIk)
             elbowLink.hide_select = True
 
@@ -1051,7 +1062,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             vec = thigh.matrix.to_3x3().col[2]
             vec.normalize()
             locKneePt = shin.head - 5*rig.DazScale*vec
-            kneePt = makeBone("knee.pt.ik"+suffix, rig, locKneePt, locKneePt+Vector((0,0,size)), 0, L_LLEGIK+dlayer, None)
+            if self.usePoleParents:
+                kneeParent = footIk
+            else:
+                kneeParent = None
+            kneePt = makeBone("knee.pt.ik"+suffix, rig, locKneePt, locKneePt+Vector((0,0,size)), 0, L_LLEGIK+dlayer, kneeParent)
             kneePt.layers[L_LEXTRA+dlayer] = True
             kneeLink = makeBone("knee.link"+suffix, rig, shin.head, locKneePt, 0, L_LLEGIK+dlayer, thighIk)
             kneeLink.layers[L_LEXTRA+dlayer] = True
