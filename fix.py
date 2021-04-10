@@ -261,8 +261,6 @@ class Fixer(DriverUser):
     #-------------------------------------------------------------
 
     def isFaceBone(self, pb):
-        if "eyelid" in pb.name.lower():
-            return False
         if pb.parent:
             par = pb.parent
             if par.name in ["upperFaceRig", "lowerFaceRig"]:
@@ -272,6 +270,10 @@ class Fixer(DriverUser):
                   par.parent.name in ["upperFaceRig", "lowerFaceRig"]):
                 return True
         return False
+
+
+    def isEyeLid(self, pb):
+        return ("eyelid" in pb.name.lower())
 
     #-------------------------------------------------------------
     #   Gizmos (custom shapes)
@@ -323,7 +325,41 @@ class Fixer(DriverUser):
         else:
             pb.custom_shape_scale = scale
 
-#-------------------------------------------------------------
+
+    def renameFaceBones(self, rig):
+
+        def renameFaceBone(bone):
+            bname = bone.name
+            if isDrvBone(bname) or isFinal(bname):
+                return
+            if len(bname) >= 2 and bname[1].isupper():
+                if bname[0] == "r":
+                    newname = bname[1].lower() + bname[2:] + ".R"
+                    renamed[bname] = newname
+                    bone.name = newname
+                elif bname[0] == "l":
+                    newname = bname[1].lower() + bname[2:] + ".L"
+                    renamed[bname] = newname
+                    bone.name = newname
+            elif bname[0].isupper():
+                newname = bname[0].lower() + bname[1:]
+                renamed[bname] = newname
+                bone.name = newname
+
+        if not self.useRenameFaceBones:
+            return
+        renamed = {}
+        for pb in rig.pose.bones:
+            if self.isFaceBone(pb):
+                renameFaceBone(pb.bone)
+        for pb in rig.pose.bones:
+            for cns in pb.constraints:
+                if (hasattr(cns, "subtarget") and
+                    cns.subtarget in renamed.keys()):
+                    cns.subtarget = renamed[cns.subtarget]
+
+
+ #-------------------------------------------------------------
 #   Constraints class
 #-------------------------------------------------------------
 

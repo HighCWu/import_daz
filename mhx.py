@@ -329,6 +329,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         default = False
     )
 
+    useRenameFaceBones : BoolProperty(
+        name = "Rename Face Bones",
+        description = "Rename face bones from l/r prefix to .L/.R suffix",
+        default = True
+    )
+
     boneGroups : CollectionProperty(
         type = DazPairGroup,
         name = "Bone Groups")
@@ -400,6 +406,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         col.prop(self, "addTweakBones")
         col.prop(self, "useKeepRig")
         col.prop(self, "usePoleParents")
+        col.prop(self, "useRenameFaceBones")
         col = split.column()
         for bg in rig.pose.bone_groups:
             row = col.row()
@@ -641,7 +648,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         showProgress(22, 25, "  Collect deform bones")
         self.collectDeformBones(rig)
         bpy.ops.object.mode_set(mode='POSE')
-        showProgress(23, 25, "  Add bone groups")
+        showProgress(23, 25, "  Rename face bones")
+        self.renameFaceBones(rig)
+        showProgress(24, 25, "  Add bone groups")
         self.addBoneGroups(rig)
         rig.MhxRig = True
         setattr(rig.data, DrawType, 'WIRE')
@@ -765,7 +774,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 self.addGizmo(pb, gizmo, scale)
             elif pb.name[0:4] == "palm":
                 self.addGizmo(pb, "GZM_Ellipse", 1)
-            elif self.isFaceBone(pb):
+            elif self.isFaceBone(pb) and not self.isEyeLid(pb):
                 self.addGizmo(pb, "GZM_Circle", 0.2)
             else:
                 for pname in self.FingerNames + ["big_toe", "small_toe"]:

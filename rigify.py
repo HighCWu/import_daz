@@ -395,6 +395,12 @@ class Rigify:
         default = False
     )
 
+    useRenameFaceBones : BoolProperty(
+        name = "Rename Face Bones",
+        description = "Rename face bones from l/r prefix to .L/.R suffix",
+        default = True
+    )
+
     GroupBones = [("Face ", R_FACE, 2, 6),
                   ("Face (detail) ", R_DETAIL, 2, 3),
                   ("Custom ", R_CUSTOM, 13, 6)]
@@ -1109,8 +1115,9 @@ class Rigify:
         self.gizmos = {}
         self.makeEmptyGizmo("GZM_Circle", 'CIRCLE')
         for pb in gen.pose.bones:
-            if self.isFaceBone(pb):
+            if self.isFaceBone(pb) and not self.isEyeLid(pb):
                 self.addGizmo(pb, "GZM_Circle", 0.2)
+        self.renameFaceBones(gen)
 
         #Clean up
         print("  Clean up")
@@ -1267,6 +1274,7 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists):
         self.layout.prop(self, "useDeleteMeta")
         self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "useKeepRig")
+        self.layout.prop(self, "useRenameFaceBones")
 
     def run(self, context):
         from time import perf_counter
