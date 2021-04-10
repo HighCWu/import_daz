@@ -77,7 +77,7 @@ class SimNode:
         self.dynsim = None
         self.dynhairflw = None
         self.lintess = None
-        self.simset = None
+        self.simsets = []
         self.vissim = False
 
 #-------------------------------------------------------------

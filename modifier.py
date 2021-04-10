@@ -254,7 +254,8 @@ class ExtraAsset(Modifier, Channels):
                 inst.lintess = LinTess(inst, self, extra)
             elif etype == "studio/simulation_settings/dynamic_simulation":
                 from .dforce import SimSet
-                inst.simset = SimSet(inst, self, extra)
+                simset = SimSet(inst, self, extra)
+                inst.simsets.append(simset)
             elif etype == "studio/node/dform":
                 print("DFORM", self)
 

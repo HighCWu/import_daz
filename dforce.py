@@ -68,35 +68,30 @@ class DynSim(DForce):
         from .node import Instance
         from .geometry import GeoNode
         if isinstance(self.instance, Instance):
-            inst = self.instance
             geonode = self.instance.geometries[0]
         elif isinstance(self.instance, GeoNode):
-            inst = self.instance
             geonode = self.instance
-
+        else:
+            reportError("Bug DynSim %s" % self.instance, trigger=(2,3))
+            return
         ob = geonode.rna
         if not (ob and ob.type == 'MESH'):
             return
-        visible = False
-        strength = 0.0
-        settings = None
-        if geonode.simset:
-            settings = geonode.simset.modifier
-            for key in settings.channels.keys():
-                if key == "Visible in Simulation":
-                    visible = settings.getValue([key], False)
-                elif key == "Dynamics Strength":
-                    strength = settings.getValue([key], 0.0)
 
-        if not GS.useSimulation or not visible or strength == 0.0:
+        visible = False
+        for simset in geonode.simsets:
+            if simset.modifier.getValue(["Visible in Simulation"], False):
+                visible = True
+        if not GS.useSimulation or not visible:
             if GS.useInfluence:
-                self.addPinVertexGroup(ob, 1.0)
+                self.addPinVertexGroup(ob, geonode)
             return
         elif GS.useInfluence:
-            pingrp = self.addPinVertexGroup(ob, strength)
+            pingrp = self.addPinVertexGroup(ob, geonode)
         else:
             pingrp = None
 
+        settings = geonode.simsets[0]
         collision = self.hideModifier(ob, 'COLLISION')
         subsurf = self.hideModifier(ob, 'SUBSURF')
         multires = self.hideModifier(ob, 'MULTIRES')
@@ -176,7 +171,7 @@ class DynSim(DForce):
             setattr(cset, key, value)
 
 
-    def addPinVertexGroup(self, ob, strength):
+    def addPinVertexGroup(self, ob, geonode):
         nverts = len(ob.data.vertices)
         vgrp = ob.vertex_groups.new(name = "DForce Pin")
 
@@ -209,10 +204,20 @@ class DynSim(DForce):
                 vgrp.add([vn], 1-w*strength, 'REPLACE')
             return vgrp
 
-        # Constant vertex group
-        value = 1-strength
-        for vn in range(nverts):
-            vgrp.add([vn], value, 'REPLACE')
+        # Constant per material vertex group
+        geo = geonode.data
+        mnums = dict([(mgrp, mn) for mn,mgrp in enumerate(geo.polygon_material_groups)])
+        for simset in geonode.simsets:
+            strength = simset.modifier.getValue(["Dynamics Strength"], 0.0)
+            value = 1-strength
+            if value == 0.0:
+                continue
+            for mgrp in simset.modifier.groups:
+                mn = mnums[mgrp]
+                for f in ob.data.polygons:
+                    if f.material_index == mn:
+                        for vn in f.vertices:
+                            vgrp.add([vn], value, 'REPLACE')
         return vgrp
 
 
