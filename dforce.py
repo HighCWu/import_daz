@@ -109,6 +109,7 @@ class DynSim(DForce):
         colset.distance_min = 0.1*LS.scale
         colset.self_distance_min = 0.1*LS.scale
         colset.collision_quality = GS.collQuality
+        colset.use_self_collision = True
         # Pinning
         if pingrp:
             cset.vertex_group_mass = pingrp.name
@@ -118,8 +119,8 @@ class DynSim(DForce):
             useColl = settings.getValue(["Collide"], True)
             if collision and useColl:
                 collision.restore(ob)
-            if settings.getValue(["Self Collide"], False):
-                colset.use_self_collision = True
+            if not settings.getValue(["Self Collide"], True):
+                colset.use_self_collision = False
             distmin = settings.getValue(["Collision Offset"], 0.1)*LS.scale
             colset.distance_min = distmin
             colset.self_distance_min = distmin
