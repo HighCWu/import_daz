@@ -1104,6 +1104,14 @@ class Rigify:
                 correctives[dname] = "ORG-"+rname
         self.fixBoneDrivers(gen, correctives)
 
+        # Face bone gizmos
+        self.hidden = createHiddenCollection(context, None)
+        self.gizmos = {}
+        self.makeEmptyGizmo("GZM_Circle", 'CIRCLE')
+        for pb in gen.pose.bones:
+            if self.isFaceBone(pb):
+                self.addGizmo(pb, "GZM_Circle", 0.2)
+
         #Clean up
         print("  Clean up")
         setattr(gen.data, DrawType, 'STICK')

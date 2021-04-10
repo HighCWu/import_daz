@@ -28,6 +28,7 @@
 
 import bpy
 import math
+import os
 from mathutils import *
 from .error import *
 from .utils import *
@@ -255,8 +256,13 @@ class Fixer(DriverUser):
                 self.changeAllTargets(ob, rig, nrig)
         activateObject(context, rig)
 
+    #-------------------------------------------------------------
+    #   Face Bone
+    #-------------------------------------------------------------
 
     def isFaceBone(self, pb):
+        if "eyelid" in pb.name.lower():
+            return False
         if pb.parent:
             par = pb.parent
             if par.name in ["upperFaceRig", "lowerFaceRig"]:
@@ -266,6 +272,56 @@ class Fixer(DriverUser):
                   par.parent.name in ["upperFaceRig", "lowerFaceRig"]):
                 return True
         return False
+
+    #-------------------------------------------------------------
+    #   Gizmos (custom shapes)
+    #-------------------------------------------------------------
+
+    def makeGizmos(self, gnames):
+        self.gizmos = {}
+        self.makeEmptyGizmo("GZM_Circle", 'CIRCLE')
+        self.makeEmptyGizmo("GZM_Ball", 'SPHERE')
+        self.makeEmptyGizmo("GZM_Cube", 'CUBE')
+        self.makeEmptyGizmo("GZM_Cone", 'CONE')
+        self.makeEmptyGizmo("GZM_Arrow", 'SINGLE_ARROW')
+
+        from .load_json import loadJson
+        folder = os.path.dirname(__file__)
+        filepath = os.path.join(folder, "data", "gizmos.json")
+        struct = loadJson(filepath)
+        if gnames is None:
+            gnames = struct.keys()
+        for gname in gnames:
+            gizmo = struct[gname]
+            me = bpy.data.meshes.new(gname)
+            me.from_pydata(gizmo["verts"], gizmo["edges"], [])
+            ob = self.makeGizmo(gname, me)
+            if gizmo["subsurf"]:
+                ob.modifiers.new('SUBSURF', 'SUBSURF')
+
+
+    def makeGizmo(self, gname, me, parent=None):
+        ob = bpy.data.objects.new(gname, me)
+        self.hidden.objects.link(ob)
+        ob.parent = parent
+        putOnHiddenLayer(ob)
+        self.gizmos[gname] = ob
+        return ob
+
+
+    def makeEmptyGizmo(self, gname, dtype):
+        empty = self.makeGizmo(gname, None)
+        empty.empty_display_type = dtype
+
+
+    def addGizmo(self, pb, gname, scale, blen=None):
+        gizmo = self.gizmos[gname]
+        pb.custom_shape = gizmo
+        pb.bone.show_wire = True
+        if blen:
+            pb.custom_shape_scale = blen/pb.bone.length
+        else:
+            pb.custom_shape_scale = scale
 
 #-------------------------------------------------------------
 #   Constraints class
@@ -709,7 +765,7 @@ class DAZ_OT_AddWinder(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        from .mhx import copyRotation, copyScale, makeGizmos
+        from .mhx import copyRotation, copyScale
         bpy.ops.object.mode_set(mode='POSE')
         rig = context.object
         pb = bpy.context.active_pose_bone
@@ -719,9 +775,9 @@ class DAZ_OT_AddWinder(DazOperator, IsArmature):
         wname = "Wind"+bname
         gizmo = self.findChild("GZM_Knuckle", rig)
         if gizmo is None:
-            hidden = createHiddenCollection(context, None)
-            gizmos = makeGizmos(["GZM_Knuckle"], rig, hidden)
-            gizmo = gizmos["GZM_Knuckle"]
+            self.hidden = createHiddenCollection(context, None)
+            self.makeGizmos(["GZM_Knuckle"], rig)
+            gizmo = self.gizmos["GZM_Knuckle"]
             putOnHiddenLayer(gizmo)
 
         bpy.ops.object.mode_set(mode='EDIT')

@@ -29,7 +29,6 @@
 import bpy
 
 import math
-import os
 from mathutils import *
 from .error import *
 from .utils import *
@@ -645,7 +644,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         showProgress(23, 25, "  Add bone groups")
         self.addBoneGroups(rig)
         rig.MhxRig = True
-        setattr(rig.data, DrawType, 'STICK')
+        setattr(rig.data, DrawType, 'WIRE')
         T = True
         F = False
         rig.data.layers = [T,T,T,F, T,F,T,F, F,F,F,F, F,F,F,F,
@@ -752,13 +751,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def addGizmos(self, rig, context):
         from .driver import isBoneDriven
-        hidden = createHiddenCollection(context, None)
+        self.hidden = createHiddenCollection(context, None)
         bpy.ops.object.mode_set(mode='OBJECT')
-        empty = bpy.data.objects.new("Gizmos", None)
-        hidden.objects.link(empty)
-        empty.parent = rig
-        putOnHiddenLayer(empty)
-        self.gizmos = makeGizmos(None, empty, hidden)
+        #empty = bpy.data.objects.new("Gizmos", None)
+        #self.hidden.objects.link(empty)
+        #empty.parent = rig
+        #putOnHiddenLayer(empty)
+        self.makeGizmos(None)
 
         for pb in rig.pose.bones:
             if pb.name in Gizmos.keys():
@@ -793,16 +792,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             if twkname in rig.pose.bones.keys():
                 tb = rig.pose.bones[twkname]
                 self.addGizmo(tb, gizmo, 1, blen=10*rig.DazScale)
-
-
-    def addGizmo(self, pb, gname, scale, blen=None):
-        gizmo = self.gizmos[gname]
-        pb.custom_shape = gizmo
-        pb.bone.show_wire = True
-        if blen:
-            pb.custom_shape_scale = blen/pb.bone.length
-        else:
-            pb.custom_shape_scale = scale
 
     #-------------------------------------------------------------
     #   Bone groups
@@ -1456,7 +1445,7 @@ Gizmos = {
     "index.L" :         ("GZM_Knuckle", 1),
     "middle.L" :        ("GZM_Knuckle", 1),
     "ring.L" :          ("GZM_Knuckle", 1),
-    "pinky.L" :         ("GZM_Knuckle", 1),
+    "pinky.L":         ("GZM_Knuckle", 1),
 
     "thumb.R" :         ("GZM_Knuckle", 1),
     "index.R" :         ("GZM_Knuckle", 1),
@@ -1464,41 +1453,6 @@ Gizmos = {
     "ring.R" :          ("GZM_Knuckle", 1),
     "pinky.R" :         ("GZM_Knuckle", 1),
     }
-
-def makeGizmos(gnames, parent, hidden):
-    def makeGizmo(gname, me):
-        ob = bpy.data.objects.new(gname, me)
-        hidden.objects.link(ob)
-        ob.parent = parent
-        putOnHiddenLayer(ob)
-        gizmos[gname] = ob
-        return ob
-
-    def makeEmptyGizmo(gname, dtype):
-        empty = makeGizmo(gname, None)
-        empty.empty_display_type = dtype
-
-    gizmos = {}
-    makeEmptyGizmo("GZM_Circle", 'CIRCLE')
-    makeEmptyGizmo("GZM_Ball", 'SPHERE')
-    makeEmptyGizmo("GZM_Cube", 'CUBE')
-    makeEmptyGizmo("GZM_Cone", 'CONE')
-    makeEmptyGizmo("GZM_Arrow", 'SINGLE_ARROW')
-
-    from .load_json import loadJson
-    folder = os.path.dirname(__file__)
-    filepath = os.path.join(folder, "data", "gizmos.json")
-    struct = loadJson(filepath)
-    if gnames is None:
-        gnames = struct.keys()
-    for gname in gnames:
-        gizmo = struct[gname]
-        me = bpy.data.meshes.new(gname)
-        me.from_pydata(gizmo["verts"], gizmo["edges"], [])
-        ob = makeGizmo(gname, me)
-        if gizmo["subsurf"]:
-            ob.modifiers.new('SUBSURF', 'SUBSURF')
-    return gizmos
 
 # ---------------------------------------------------------------------
 #   Convert MHX actions from legacy to modern
