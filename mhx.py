@@ -645,7 +645,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         showProgress(23, 25, "  Add bone groups")
         self.addBoneGroups(rig)
         rig.MhxRig = True
-        setattr(rig.data, DrawType, 'WIRE')
+        setattr(rig.data, DrawType, 'STICK')
         T = True
         F = False
         rig.data.layers = [T,T,T,F, T,F,T,F, F,F,F,F, F,F,F,F,
@@ -1420,6 +1420,8 @@ Gizmos = {
     "ankle.R" :         ("GZM_Ball025", 1),
     "knee.pt.ik.L" :    ("GZM_Cone", 0.25),
     "knee.pt.ik.R" :    ("GZM_Cone", 0.25),
+    "knee.link.L" :     ("GZM_Arrow", 1),
+    "knee.link.R" :     ("GZM_Arrow", 1),
 
     "toe.marker.L" :     ("GZM_Ball025", 1),
     "ball.marker.L" :    ("GZM_Ball025", 1),
@@ -1445,6 +1447,8 @@ Gizmos = {
     "hand.ik.R" :       ("GZM_HandIK", 1),
     "elbow.pt.ik.L" :   ("GZM_Cone", 0.25),
     "elbow.pt.ik.R" :   ("GZM_Cone", 0.25),
+    "elbow.link.L" :     ("GZM_Arrow", 1),
+    "elbow.link.R" :     ("GZM_Arrow", 1),
 
     # Finger
 
@@ -1479,6 +1483,7 @@ def makeGizmos(gnames, parent, hidden):
     makeEmptyGizmo("GZM_Ball", 'SPHERE')
     makeEmptyGizmo("GZM_Cube", 'CUBE')
     makeEmptyGizmo("GZM_Cone", 'CONE')
+    makeEmptyGizmo("GZM_Arrow", 'SINGLE_ARROW')
 
     from .load_json import loadJson
     folder = os.path.dirname(__file__)

@@ -176,48 +176,32 @@ class DynSim(DForce):
         vgrp = ob.vertex_groups.new(name = "DForce Pin")
 
         # Influence group
+        influ = dict([(vn,1.0) for vn in range(nverts)])
+        useInflu = False
         if "influence_weights" in self.extra.keys():
             vcount = self.extra["vertex_count"]
             if vcount == nverts:
+                useInflu = True
                 weights = self.extra["influence_weights"]["values"]
                 for vn,w in weights:
-                    ww = 1-w*strength
-                    if ww > 1e-5:
-                        vgrp.add([vn], ww, 'REPLACE')
-                return vgrp
+                    influ[vn] = w
             else:
                 msg = ("Influence weight mismatch: %d != %d" % (vcount, nverts))
                 reportError(msg, trigger=(2,4))
-
-        # Dform
-        dforms = []
-        for vgrp in ob.vertex_groups:
-            if vgrp.name[0:5] == "Dform":
-                dforms.append(vgrp.index)
-        if dforms:
-            weights = dict([(vn, 0.0) for vn in range(nverts)])
-            for v in ob.data.vertices:
-                for g in v.groups:
-                    if g.group in dforms:
-                        weights[v.index] += g.weight
-            for vn,w in weights.items():
-                vgrp.add([vn], 1-w*strength, 'REPLACE')
-            return vgrp
 
         # Constant per material vertex group
         geo = geonode.data
         mnums = dict([(mgrp, mn) for mn,mgrp in enumerate(geo.polygon_material_groups)])
         for simset in geonode.simsets:
             strength = simset.modifier.getValue(["Dynamics Strength"], 0.0)
-            value = 1-strength
-            if value == 0.0:
+            if strength == 1.0 and not useInflu:
                 continue
             for mgrp in simset.modifier.groups:
                 mn = mnums[mgrp]
                 for f in ob.data.polygons:
                     if f.material_index == mn:
                         for vn in f.vertices:
-                            vgrp.add([vn], value, 'REPLACE')
+                            vgrp.add([vn], 1-strength*influ[vn], 'REPLACE')
         return vgrp
 
 

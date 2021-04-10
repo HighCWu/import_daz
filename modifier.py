@@ -239,6 +239,8 @@ class ExtraAsset(Modifier, Channels):
 
 
     def build(self, context, inst):
+        if inst is None:
+            return
         for etype,extra in self.extras.items():
             if etype == "studio/modifier/dynamic_generate_hair":
                 from .dforce import DynGenHair
