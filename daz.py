@@ -258,15 +258,16 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
         box = col.box()
         box.label(text = "Simulation")
-        box.prop(scn, "DazInfluence")
         box.prop(scn, "DazSimulation")
         if scn.DazSimulation:
-            box.prop(scn, "DazSimSettings")
-            if not scn.DazSimSettings:
-                box.prop(scn, "DazSimPreset")
-            box.prop(scn, "DazSimQuality")
-            box.prop(scn, "DazCollQuality")
-            box.prop(scn, "DazGsmFactor")
+            box.prop(scn, "DazInfluenceOnly")
+            if not scn.DazInfluenceOnly:
+                box.prop(scn, "DazSimSettings")
+                if not scn.DazSimSettings:
+                    box.prop(scn, "DazSimPreset")
+                box.prop(scn, "DazSimQuality")
+                box.prop(scn, "DazCollQuality")
+                box.prop(scn, "DazGsmFactor")
 
         box = split.box()
         box.label(text = "Materials")
@@ -604,9 +605,9 @@ def register():
             "This can be useful for objects with hard edges,\n" +
             "but leads to poor performance and artifacts for organic meshes"))
 
-    bpy.types.Scene.DazInfluence = BoolProperty(
-        name = "Influence Groups",
-        description = "Add influence vertex groups")
+    bpy.types.Scene.DazInfluenceOnly = BoolProperty(
+        name = "Influence Groups Only",
+        description = "Add influence (pinning) vertex groups\nbut don't set up simulation")
 
     bpy.types.Scene.DazSimulation = BoolProperty(
         name = "Simulation",

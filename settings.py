@@ -99,8 +99,8 @@ class GlobalSettings:
         self.useMultiShapes = True
         self.useAutoSmooth = False
 
-        self.useInfluence = True
-        self.useSimulation = False
+        self.useSimulation = True
+        self.useInfluenceOnly = False
         self.useDazSimSettings = False
         self.simPreset = 'COTTON'
         self.simQuality = 16
@@ -161,7 +161,7 @@ class GlobalSettings:
         "DazUseAutoSmooth" : "useAutoSmooth",
 
         # Simulation
-        "DazInfluence" : "useInfluence",
+        "DazInfluenceOnly" : "useInfluenceOnly",
         "DazSimulation" : "useSimulation",
         "DazSimSettings" : "useDazSimSettings",
         "DazSimPreset" : "simPreset",

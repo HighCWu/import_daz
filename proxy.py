@@ -1520,21 +1520,38 @@ class DAZ_OT_AddPush(DazOperator, IsMesh):
 #   Make deflection
 #-------------------------------------------------------------
 
-class Offset:
-    offset : FloatProperty(
-        name = "Offset (mm)",
-        description = "Offset the surface from the character mesh",
-        default = 5.0)
-
-
-class DAZ_OT_MakeDeflection(DazPropsOperator, Offset, IsMesh):
+class DAZ_OT_MakeDeflection(DazPropsOperator, IsMesh):
     bl_idname = "daz.make_deflection"
     bl_label = "Make Deflection"
     bl_description = "Make a deflection object"
     bl_options = {'UNDO'}
 
+    offset : FloatProperty(
+        name = "Offset (mm)",
+        description = "Offset the surface from the character mesh",
+        default = 5.0)
+
+    useQuads : BoolProperty(
+        name = "Quads",
+        description = "Convert the deflector into a majority-quad mesh",
+        default = True)
+
+    useSubsurf : BoolProperty(
+        name = "Subsurf",
+        description = "Smooth the deflection mesh with a subsurf modifier",
+        default = True)
+
+    useShrinkwrap : BoolProperty(
+        name = "Shrinkwrap",
+        description = "Shrinkwrap the deflection mesh to the original mesh",
+        default = True)
+
+
     def draw(self, context):
         self.layout.prop(self, "offset")
+        self.layout.prop(self, "useQuads")
+        self.layout.prop(self, "useSubsurf")
+        self.layout.prop(self, "useShrinkwrap")
 
     def run(self, context):
         from .load_json import loadJson
@@ -1561,7 +1578,9 @@ class DAZ_OT_MakeDeflection(DazPropsOperator, Offset, IsMesh):
             if ob in coll.objects.values():
                 coll.children.link(ncoll)
         nob.hide_render = True
-        setActiveObject(context, nob)
+        nob.show_wire = True
+        nob.show_all_edges = True
+        nob.parent = ob.parent
 
         vgrps = dict([(vgrp.index, vgrp) for vgrp in ob.vertex_groups])
         ngrps = {}
@@ -1574,17 +1593,36 @@ class DAZ_OT_MakeDeflection(DazPropsOperator, Offset, IsMesh):
                 ngrp = ngrps[g.group]
                 ngrp.add([nv.index], g.weight, 'REPLACE')
 
-        nob.parent = ob.parent
+        setActiveObject(context, nob)
+        if self.useQuads:
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.tris_convert_to_quads()
+            bpy.ops.object.mode_set(mode='OBJECT')
+        if self.useSubsurf:
+            mod = nob.modifiers.new("Subsurf", 'SUBSURF')
+            mod.levels = 1
+            bpy.ops.object.modifier_apply(modifier="Subsurf")
+        if self.useShrinkwrap:
+            mod = nob.modifiers.new("Shrinkwrap", 'SHRINKWRAP')
+            mod.wrap_method = 'NEAREST_SURFACEPOINT'
+            mod.wrap_mode = 'ON_SURFACE'
+            mod.target = ob
+            bpy.ops.object.modifier_apply(modifier="Shrinkwrap")
 
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
-class DAZ_OT_CopyModifiers(DazPropsOperator, Offset, IsMesh):
+class DAZ_OT_CopyModifiers(DazPropsOperator, IsMesh):
     bl_idname = "daz.copy_modifiers"
     bl_label = "Copy Modifiers"
     bl_description = "Copy modifiers from active mesh to selected"
     bl_options = {'UNDO'}
+
+    offset : FloatProperty(
+        name = "Offset (mm)",
+        description = "Offset the surface from the character mesh",
+        default = 5.0)
 
     useSubsurf : BoolProperty(
         name = "Use Subsurf",

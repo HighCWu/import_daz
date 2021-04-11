@@ -63,7 +63,7 @@ class DynSim(DForce):
     type = "DynSim"
 
     def build(self, context):
-        if not (GS.useInfluence or GS.useSimulation):
+        if not GS.useSimulation:
             return
         from .node import Instance
         from .geometry import GeoNode
@@ -82,14 +82,13 @@ class DynSim(DForce):
         for simset in geonode.simsets:
             if simset.modifier.getValue(["Visible in Simulation"], False):
                 visible = True
-        if not GS.useSimulation or not visible:
-            if GS.useInfluence:
-                self.addPinVertexGroup(ob, geonode)
+        if GS.useInfluenceOnly:
+            self.addPinVertexGroup(ob, geonode)
             return
-        elif GS.useInfluence:
+        elif visible:
             pingrp = self.addPinVertexGroup(ob, geonode)
         else:
-            pingrp = None
+            return
 
         settings = geonode.simsets[0]
         collision = self.hideModifier(ob, 'COLLISION')
