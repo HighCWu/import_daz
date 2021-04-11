@@ -31,8 +31,6 @@ from bpy.props import *
 #from .drivers import *
 from .utils import *
 from .error import *
-from .proxy import Offset
-
 
 def getMaskName(string):
     return "Mask_" + string.split(".",1)[0]
