@@ -808,7 +808,7 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
 #   Add Winder
 #-------------------------------------------------------------
 
-class DAZ_OT_AddWinder(DazOperator, IsArmature):
+class DAZ_OT_AddWinder(DazOperator, GizmoUser, IsArmature):
     bl_idname = "daz.add_winder"
     bl_label = "Add Winder"
     bl_description = "Add winder to active posebone"
@@ -823,11 +823,9 @@ class DAZ_OT_AddWinder(DazOperator, IsArmature):
             raise DazError("No active posebone")
         bname = pb.name
         wname = "Wind"+bname
-        gizmo = self.findChild("GZM_Knuckle", rig)
-        if gizmo is None:
-            self.makeGizmos(["GZM_Knuckle"], rig)
-            gizmo = self.gizmos["GZM_Knuckle"]
-            putOnHiddenLayer(gizmo)
+        self.startGizmos(context)
+        self.makeGizmos(["GZM_Knuckle"])
+        gizmo = self.gizmos["GZM_Knuckle"]
 
         bpy.ops.object.mode_set(mode='EDIT')
         eb = rig.data.edit_bones[bname]
@@ -862,16 +860,6 @@ class DAZ_OT_AddWinder(DazOperator, IsArmature):
             cns1 = copyRotation(pb, target, (True,True,True), rig)
             cns1.use_offset = True
             cns1.influence = infl
-
-
-    def findChild(self, oname, rig):
-        for child in rig.children:
-            if child.name == oname:
-                return child
-            ob = self.findChild(oname, child)
-            if ob:
-                return ob
-        return None
 
 #----------------------------------------------------------
 #   Initialize
