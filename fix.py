@@ -275,12 +275,17 @@ class Fixer(DriverUser):
     def isEyeLid(self, pb):
         return ("eyelid" in pb.name.lower())
 
-    #-------------------------------------------------------------
-    #   Gizmos (custom shapes)
-    #-------------------------------------------------------------
+#-------------------------------------------------------------
+#   Gizmos (custom shapes)
+#-------------------------------------------------------------
+
+class GizmoUser:
+    def startGizmos(self, context):
+        self.gizmos = {}
+        self.hidden = createHiddenCollection(context, None)
+
 
     def makeGizmos(self, gnames):
-        self.gizmos = {}
         self.makeEmptyGizmo("GZM_Circle", 'CIRCLE')
         self.makeEmptyGizmo("GZM_Ball", 'SPHERE')
         self.makeEmptyGizmo("GZM_Cube", 'CUBE')
@@ -314,6 +319,7 @@ class Fixer(DriverUser):
     def makeEmptyGizmo(self, gname, dtype):
         empty = self.makeGizmo(gname, None)
         empty.empty_display_type = dtype
+        return empty
 
 
     def addGizmo(self, pb, gname, scale, blen=None):
@@ -359,7 +365,7 @@ class Fixer(DriverUser):
                     cns.subtarget = renamed[cns.subtarget]
 
 
- #-------------------------------------------------------------
+#-------------------------------------------------------------
 #   Constraints class
 #-------------------------------------------------------------
 
@@ -676,7 +682,7 @@ class BendTwists:
 #   Add IK goals
 #-------------------------------------------------------------
 
-class DAZ_OT_AddIkGoals(DazPropsOperator, IsArmature):
+class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
     bl_idname = "daz.add_ik_goals"
     bl_label = "Add IK goals"
     bl_description = "Add IK goals"
@@ -708,9 +714,7 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, IsArmature):
         self.layout.prop(self, "lockBones")
         self.layout.prop(self, "disableBones")
 
-
     def run(self, context):
-        from .figure import makeCustomShape
         rig = context.object
         ikgoals = []
         for pb in rig.pose.bones:
@@ -723,11 +727,12 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, IsArmature):
                     clen += 1
                     par = par.parent
                 if clen > 2:
+                    root = pbones[-1]
                     pbones = pbones[:-1]
-                    ikgoals.append((pb.name, clen, pbones))
+                    ikgoals.append((pb.name, clen-1, pbones, root))
 
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname, clen, pbones in ikgoals:
+        for bname, clen, pbones, root in ikgoals:
             eb = rig.data.edit_bones[bname]
             goal = rig.data.edit_bones.new(bname+"Goal")
             goalname = goal.name
@@ -743,27 +748,36 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, IsArmature):
                 pole.tail = eb.tail + eb.length * eb.x_axis
                 pole.roll = eb.roll
 
+        bpy.ops.object.mode_set(mode='OBJECT')
+        self.startGizmos(context)
+        gzmBall = self.makeEmptyGizmo("GZM_Ball", 'SPHERE')
+        gzmCube = self.makeEmptyGizmo("GZM_Cube", 'CUBE')
+        gzmCone = self.makeEmptyGizmo("GZM_Cone", 'CONE')
+
         bpy.ops.object.mode_set(mode='POSE')
-        for bname, clen, pbones in ikgoals:
+        for bname, clen, pbones, root in ikgoals:
             if bname not in rig.pose.bones.keys():
                 continue
             pb = rig.pose.bones[bname]
             rmat = pb.bone.matrix_local
+            root.custom_shape = gzmCube
 
             goal = rig.pose.bones[bname+"Goal"]
             goal.rotation_mode = pb.rotation_mode
             goal.bone.use_local_location = True
             goal.matrix_basis = rmat.inverted() @ pb.matrix
-            csCube = makeCustomShape("CS_Cube", "Cube", scale=1.5)
-            goal.custom_shape = csCube
+            goal.custom_shape = gzmBall
 
             if self.usePoleTargets:
                 pole = rig.pose.bones[polename]
                 pole.rotation_mode = pb.rotation_mode
                 pole.bone.use_local_location = True
                 pole.matrix_basis = rmat.inverted() @ pb.matrix
-                pole.custom_shape = csCube
+                pole.custom_shape = gzmCone
 
+            cns = getConstraint(pb, 'IK')
+            if cns:
+                pb.constraints.remove(cns)
             cns = pb.constraints.new('IK')
             cns.name = "IK"
             cns.target = rig
@@ -773,7 +787,7 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, IsArmature):
             if self.usePoleTargets:
                 cns.pole_target = rig
                 cns.pole_subtarget = polename
-                cns.pole_angle = 90*D
+                cns.pole_angle = 0*D
                 cns.use_rotation = False
             else:
                 cns.use_rotation = True
@@ -811,7 +825,6 @@ class DAZ_OT_AddWinder(DazOperator, IsArmature):
         wname = "Wind"+bname
         gizmo = self.findChild("GZM_Knuckle", rig)
         if gizmo is None:
-            self.hidden = createHiddenCollection(context, None)
             self.makeGizmos(["GZM_Knuckle"], rig)
             gizmo = self.gizmos["GZM_Knuckle"]
             putOnHiddenLayer(gizmo)

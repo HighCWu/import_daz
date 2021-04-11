@@ -41,7 +41,7 @@ from mathutils import Vector
 
 from .error import *
 from .utils import *
-from .fix import Fixer, BendTwists
+from .fix import Fixer, GizmoUser, BendTwists
 
 R_FACE = 1
 R_DETAIL = 2
@@ -879,6 +879,7 @@ class Rigify:
         from .hide import getRigCollection
 
         print("Rigify metarig")
+        self.startGizmos(context)
         meta = context.object
         rig = None
         for cns in meta.constraints:
@@ -1111,8 +1112,6 @@ class Rigify:
         self.fixBoneDrivers(gen, correctives)
 
         # Face bone gizmos
-        self.hidden = createHiddenCollection(context, None)
-        self.gizmos = {}
         self.makeEmptyGizmo("GZM_Circle", 'CIRCLE')
         for pb in gen.pose.bones:
             if self.isFaceBone(pb) and not self.isEyeLid(pb):
@@ -1249,7 +1248,7 @@ class Rigify:
 #  Buttons
 #-------------------------------------------------------------
 
-class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, BendTwists):
+class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, GizmoUser, BendTwists):
     bl_idname = "daz.convert_to_rigify"
     bl_label = "Convert To Rigify"
     bl_description = "Convert active rig to rigify"
@@ -1317,7 +1316,7 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists):
         self.createMeta(context)
 
 
-class DAZ_OT_RigifyMetaRig(DazPropsOperator, Rigify, Fixer, BendTwists):
+class DAZ_OT_RigifyMetaRig(DazPropsOperator, Rigify, Fixer, GizmoUser, BendTwists):
     bl_idname = "daz.rigify_meta"
     bl_label = "Rigify Metarig"
     bl_description = "Convert metarig to rigify"

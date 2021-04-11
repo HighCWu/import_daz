@@ -329,6 +329,13 @@ def getModifier(ob, type):
     return None
 
 
+def getConstraint(ob, type):
+    for cns in ob.constraints:
+        if cns.type == type:
+            return cns
+    return None
+
+
 def hasPoseBones(rig, bnames):
     for bname in bnames:
         if bname not in rig.pose.bones.keys():

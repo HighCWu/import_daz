@@ -34,7 +34,7 @@ from .error import *
 from .utils import *
 from .globvars import NewFaceLayer
 from .propgroups import DazPairGroup
-from .fix import ConstraintStore, BendTwists, Fixer
+from .fix import ConstraintStore, BendTwists, Fixer, GizmoUser
 
 #-------------------------------------------------------------
 #   Bone layers
@@ -305,7 +305,7 @@ def applyBoneChildren(context, rig):
 #   Convert to MHX button
 #-------------------------------------------------------------
 
-class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, IsArmature):
+class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, GizmoUser, IsArmature):
     bl_idname = "daz.convert_to_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
@@ -461,6 +461,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         if self.useKeepRig:
             self.saveExistingRig(context)
         self.createBoneGroups(rig)
+        self.startGizmos(context)
 
         #-------------------------------------------------------------
         #   MHX skeleton
@@ -771,12 +772,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def addGizmos(self, rig, context):
         from .driver import isBoneDriven
-        self.hidden = createHiddenCollection(context, None)
         bpy.ops.object.mode_set(mode='OBJECT')
-        #empty = bpy.data.objects.new("Gizmos", None)
-        #self.hidden.objects.link(empty)
-        #empty.parent = rig
-        #putOnHiddenLayer(empty)
         self.makeGizmos(None)
 
         for pb in rig.pose.bones:
