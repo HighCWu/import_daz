@@ -792,6 +792,7 @@ class LoadMorph(DriverUser):
         for rest,drivers in self.restdrivers.items():
             self.amt[rest] = 0.0
             self.addExtraRestDrivers(rest, drivers)
+            base = baseProp(rest)
             fcu1 = self.getTmpDriver(0)
             fcu1.driver.type = 'SUM'
             n = 0
@@ -803,10 +804,11 @@ class LoadMorph(DriverUser):
                 fcu2.driver.expression = "%g*a" % factor
                 self.addPathVar(fcu2, "a", self.rig, propRef(raw))
                 fcu3 = self.amt.animation_data.drivers.from_existing(src_driver=fcu2)
-                prop = "%s_%03d" % (rest, n)
+                prop = "%s_%s" % (base, raw)
                 if len(prop) > 63:
                     oldprop = prop
-                    prop = prop[0:63]
+                    prop = "%s_%03d" % (rest, n)
+                    #prop = prop[0:63]
                     print("Truncate prop: %s => %s" % (oldprop, prop))
                 self.amt[prop] = 0.0
                 fcu3.data_path = propRef(prop)
