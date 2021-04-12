@@ -33,7 +33,7 @@ from .utils import *
 from .fileutils import SingleFile, MultiFile, DazFile, DazImageFile
 
 #------------------------------------------------------------------
-#   Import DAZ
+#   DAZ options
 #------------------------------------------------------------------
 
 class DazOptions(DazImageFile):
@@ -87,6 +87,9 @@ class DazOptions(DazImageFile):
         else:
             box.label(text = GS.viewportColors)
 
+#------------------------------------------------------------------
+#   Import DAZ
+#------------------------------------------------------------------
 
 class ImportDAZ(DazOperator, DazOptions, MultiFile):
     """Load a DAZ File"""
@@ -153,7 +156,6 @@ class ImportDAZ(DazOperator, DazOptions, MultiFile):
     def loadDazFile(self, filepath, context):
         from time import perf_counter
         from .objfile import getFitFile, fitToFile
-        from .fileutils import getTypedFilePath
 
         LS.scene = filepath
         t1 = perf_counter()
@@ -242,6 +244,10 @@ class ImportDAZ(DazOperator, DazOptions, MultiFile):
         t2 = perf_counter()
         print('File "%s" loaded in %.3f seconds' % (filepath, t2-t1))
 
+#------------------------------------------------------------------
+#   MorphTypeOptions
+#   Also used in morphing.py
+#------------------------------------------------------------------
 
 class MorphTypeOptions:
     units : BoolProperty(
@@ -294,6 +300,9 @@ class MorphTypeOptions:
         self.layout.prop(self, "jcms")
         self.layout.prop(self, "flexions")
 
+#------------------------------------------------------------------
+#   Easy Import
+#------------------------------------------------------------------
 
 class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
     """Load a DAZ File and perform the most common opertations"""

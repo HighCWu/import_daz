@@ -110,8 +110,7 @@ class DAZ_OT_SaveSettingsFile(bpy.types.Operator, SingleFile, JsonExportFile):
 
     def invoke(self, context, event):
         self.properties.filepath = os.path.dirname(GS.settingsPath)
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        return SingleFile.invoke(self, context, event)
 
 
 class DAZ_OT_LoadFactorySettings(DazOperator):
@@ -160,12 +159,6 @@ class DAZ_OT_LoadRootPaths(DazOperator, SingleFile, JsonFile):
             print("No root paths found in", self.filepath)
         return {'PASS_THROUGH'}
 
-    def invoke(self, context, event):
-        #if not self.properties.filepath:
-        #    self.properties.filepath = GS.rootPath
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
 
 class DAZ_OT_LoadSettingsFile(DazOperator, SingleFile, JsonFile):
     bl_idname = "daz.load_settings_file"
@@ -181,8 +174,7 @@ class DAZ_OT_LoadSettingsFile(DazOperator, SingleFile, JsonFile):
 
     def invoke(self, context, event):
         self.properties.filepath = os.path.dirname(GS.settingsPath)
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        return SingleFile.invoke(self, context, event)
 
 
 class DAZ_OT_GlobalSettings(DazOperator):

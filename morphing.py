@@ -2469,11 +2469,6 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, SingleFile):
                 return pg.name
         return None
 
-
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
 #-------------------------------------------------------------
 #   Convert pose to shapekey
 #-------------------------------------------------------------

@@ -31,7 +31,7 @@ import bpy
 from .error import *
 from .utils import *
 from .globvars import getMaterialEnums, getShapeEnums, theImageExtensions
-from .fileutils import SingleFile, MultiFile, ImageFile
+from .fileutils import MultiFile, ImageFile
 from .cgroup import CyclesGroup
 from .propgroups import DazBoolGroup
 

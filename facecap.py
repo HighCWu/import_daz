@@ -74,11 +74,6 @@ class FACSImporter(SingleFile, ActionOptions):
         self.layout.prop(self, "useEyesRot")
 
 
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
     def run(self, context):
         from .morphing import getRigFromObject
         rig = getRigFromObject(context.object)

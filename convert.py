@@ -298,10 +298,6 @@ class DAZ_OT_LoadPoseInternal(HideOperator, JsonFile, SingleFile, IsArmature):
         loadPose(context, context.object, character, table, False)
         print("Pose %s loaded" % self.filepath)
 
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
 #-------------------------------------------------------------
 #   Optimize pose for IK
 #-------------------------------------------------------------

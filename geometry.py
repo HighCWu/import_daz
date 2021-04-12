@@ -1176,8 +1176,7 @@ class DAZ_OT_LoadUV(DazOperator, DazFile, SingleFile, IsMesh):
         folders = getFolders(context.object, context.scene, ["UV Sets/", ""])
         if folders:
             self.properties.filepath = folders[0]
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        return SingleFile.invoke(self, context, event)
 
 
     def run(self, context):

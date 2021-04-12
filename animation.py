@@ -469,10 +469,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             layout.prop(self, "srcCharacter")
 
 
-    def invoke(self, context, event):
-        return MultiFile.invoke(self, context, event)
-
-
     def getSingleAnimation(self, filepath, context, offset, missing):
         from .load_json import loadJson
         if filepath is None:

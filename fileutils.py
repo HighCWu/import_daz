@@ -194,16 +194,18 @@ class SingleFile(ImportHelper):
         maxlen=1024,
         default="")
 
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
 
 class MultiFile(ImportHelper):
     files : CollectionProperty(
-            name = "File Path",
-            type = bpy.types.OperatorFileListElement,
-            )
+        name = "File Path",
+        type = bpy.types.OperatorFileListElement)
 
     directory : StringProperty(
-            subtype='DIR_PATH',
-            )
+        subtype='DIR_PATH')
 
     def invoke(self, context, event):
         clearSelection()
@@ -212,39 +214,44 @@ class MultiFile(ImportHelper):
 
 
     def getMultiFiles(self, extensions):
+        def getTypedFilePath(filepath, exts):
+            words = os.path.splitext(filepath)
+            if len(words) == 2:
+                fname,ext = words
+            else:
+                return None
+            if fname[-4:] == ".tip":
+                fname = fname[:-4]
+            if ext in [".png", ".jpeg", ".jpg", ".bmp"]:
+                if os.path.exists(fname):
+                    words = os.path.splitext(fname)
+                    if (len(words) == 2 and
+                        words[1][1:] in exts):
+                        return fname
+                for ext1 in exts:
+                    path = fname+"."+ext1
+                    if os.path.exists(path):
+                        return path
+                return None
+            elif ext[1:].lower() in exts:
+                return filepath
+            else:
+                return None
+
+
+        filepaths = []
         paths = getSelection()
         if paths:
-            return paths
-        paths = []
-        for file_elem in self.files:
-            filepath = os.path.join(self.directory, file_elem.name)
-            if os.path.isfile(filepath):
-                path = getTypedFilePath(filepath, extensions)
-                if path:
-                    paths.append(path)
-        return paths
+            for path in paths:
+                filepath = getTypedFilePath(path, extensions)
+                if filepath:
+                    filepaths.append(filepath)
+        else:
+            for file_elem in self.files:
+                path = os.path.join(self.directory, file_elem.name)
+                if os.path.isfile(path):
+                    filepath = getTypedFilePath(path, extensions)
+                    if filepath:
+                        filepaths.append(filepath)
+        return filepaths
 
-
-def getTypedFilePath(filepath, exts):
-    words = os.path.splitext(filepath)
-    if len(words) == 2:
-        fname,ext = words
-    else:
-        return None
-    if fname[-4:] == ".tip":
-        fname = fname[:-4]
-    if ext in [".png", ".jpeg", ".jpg", ".bmp"]:
-        if os.path.exists(fname):
-            words = os.path.splitext(fname)
-            if (len(words) == 2 and
-                words[1][1:] in exts):
-                return fname
-        for ext1 in exts:
-            path = fname+"."+ext1
-            if os.path.exists(path):
-                return path
-        return None
-    elif ext[1:].lower() in exts:
-        return filepath
-    else:
-        return None
