@@ -1058,7 +1058,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 heel = rig.data.edit_bones["heel"+suffix]
                 locFootIk = (foot.head[0], heel.tail[1], toe.tail[2])
             else:
-                locFootIk = (foot.head[0], foot.head[1], toe.tail[2])
+                vec = foot.tail - foot.head
+                locFootIk = (foot.head[0], foot.head[1] - 0.5*vec[1], toe.tail[2])
             footIk = makeBone("foot.ik"+suffix, rig, locFootIk, toe.tail, 0, L_LLEGIK+dlayer, None)
             toeRev = makeBone("toe.rev"+suffix, rig, toe.tail, toe.head, 0, L_LLEGIK+dlayer, footIk)
             footRev = makeBone("foot.rev"+suffix, rig, toe.head, foot.head, 0, L_LLEGIK+dlayer, toeRev)
@@ -1429,8 +1430,6 @@ Gizmos = {
     "ankle.R" :         ("GZM_Ball025", 1),
     "knee.pt.ik.L" :    ("GZM_Cone", 0.25),
     "knee.pt.ik.R" :    ("GZM_Cone", 0.25),
-    "knee.link.L" :     ("GZM_Arrow", 1),
-    "knee.link.R" :     ("GZM_Arrow", 1),
 
     "toe.marker.L" :     ("GZM_Ball025", 1),
     "ball.marker.L" :    ("GZM_Ball025", 1),
@@ -1456,8 +1455,6 @@ Gizmos = {
     "hand.ik.R" :       ("GZM_HandIK", 1),
     "elbow.pt.ik.L" :   ("GZM_Cone", 0.25),
     "elbow.pt.ik.R" :   ("GZM_Cone", 0.25),
-    "elbow.link.L" :     ("GZM_Arrow", 1),
-    "elbow.link.R" :     ("GZM_Arrow", 1),
 
     # Finger
 

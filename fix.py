@@ -299,7 +299,6 @@ class GizmoUser:
         self.makeEmptyGizmo("GZM_Ball", 'SPHERE')
         self.makeEmptyGizmo("GZM_Cube", 'CUBE')
         self.makeEmptyGizmo("GZM_Cone", 'CONE')
-        self.makeEmptyGizmo("GZM_Arrow", 'SINGLE_ARROW')
 
         from .load_json import loadJson
         folder = os.path.dirname(__file__)
