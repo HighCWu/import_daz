@@ -69,6 +69,7 @@ class LoadMorph(DriverUser):
         self.shapekeys = {}
         self.mults = {}
         self.sumdrivers = {}
+        self.restdrivers = {}
         self.parscales = {}
         self.initAmt()
         print("Making morphs")
@@ -81,6 +82,7 @@ class LoadMorph(DriverUser):
             try:
                 self.buildDrivers()
                 self.buildSumDrivers()
+                self.buildRestDrivers()
             finally:
                 self.deleteTmp()
             self.rig.update_tag()
@@ -550,8 +552,18 @@ class LoadMorph(DriverUser):
             char += ")"
             string = string[:-1]
         varname = string[-1]
-        pathids = self.getAllTargets(fcu)
-        string = self.addDriverVars(fcu, string, varname, raw, drivers, pathids.keys())
+        if string[-4:] == "Rest":
+            rest = restProp(raw)
+            self.addRestDrivers(rest, drivers)
+            return
+        elif ord(varname) + len(drivers) > ord("d"):
+            string += "+Rest"
+            rest = restProp(raw)
+            self.addPathVar(fcu, "Rest", self.amt, propRef(rest))
+            self.addRestDrivers(rest, drivers)
+        else:
+            pathids = self.getAllTargets(fcu)
+            string = self.addDriverVars(fcu, string, varname, raw, drivers, pathids.keys())
         string += char
         if len(string) > MAX_EXPRESSION_SIZE:
             errtype = "Driving expressions too long for the following properties:"
@@ -560,6 +572,13 @@ class LoadMorph(DriverUser):
             self.errors[errtype].append(raw)
         else:
             fcu.driver.expression = string
+
+
+    def addRestDrivers(self, rest, drivers):
+        struct = self.restdrivers[rest] = {}
+        for dtype,prop,factor in drivers:
+            if dtype == 'PROP':
+                struct[prop] = factor
 
 
     def addPathVar(self, fcu, varname, rna, path):
@@ -763,6 +782,57 @@ class LoadMorph(DriverUser):
                     sumfcu.array_index = idx
                     self.clearTmpDriver(0)
             print(" + %s" % bname)
+
+
+    def buildRestDrivers(self):
+        if self.restdrivers:
+            print("Building rest drivers")
+        else:
+            print("No rest drivers")
+        for rest,drivers in self.restdrivers.items():
+            self.amt[rest] = 0.0
+            self.addExtraRestDrivers(rest, drivers)
+            fcu1 = self.getTmpDriver(0)
+            fcu1.driver.type = 'SUM'
+            n = 0
+            for raw,factor in drivers.items():
+                n += 1
+                self.rig[raw] = 0.0
+                fcu2 = self.getTmpDriver(1)
+                fcu2.driver.type = 'SCRIPTED'
+                fcu2.driver.expression = "%g*a" % factor
+                self.addPathVar(fcu2, "a", self.rig, propRef(raw))
+                fcu3 = self.amt.animation_data.drivers.from_existing(src_driver=fcu2)
+                prop = "%s_%03d" % (rest, n)
+                if len(prop) > 63:
+                    oldprop = prop
+                    prop = prop[0:63]
+                    print("Truncate prop: %s => %s" % (oldprop, prop))
+                self.amt[prop] = 0.0
+                fcu3.data_path = propRef(prop)
+                self.clearTmpDriver(1)
+                self.addPathVar(fcu1, "t%.03d" % n, self.amt, propRef(prop))
+            sumfcu = self.amt.animation_data.drivers.from_existing(src_driver=fcu1)
+            self.amt.driver_remove(rest)
+            sumfcu.data_path = propRef(rest)
+            self.clearTmpDriver(0)
+
+
+    def addExtraRestDrivers(self, rest, drivers):
+        from .driver import getRnaDriver
+        fcu = getRnaDriver(self.amt, propRef(rest))
+        if fcu is None:
+            return
+        for var in fcu.driver.variables:
+            for trg in var.targets:
+                fcu2 = getRnaDriver(self.amt, trg.data_path)
+                if fcu2:
+                    for var2 in fcu2.driver.variables:
+                        trg2 = var2.targets[0]
+                        prop = unPath(trg2.data_path)
+                        if prop not in drivers.keys():
+                            factor = fcu2.driver.expression.split("*")[0]
+                            drivers[prop] = float(factor)
 
 
     def getOrigo(self, fcu0, pb, idx):

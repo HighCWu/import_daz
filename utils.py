@@ -252,8 +252,11 @@ def propRef(prop):
 def finalProp(prop):
     return "%s(fin)" % prop
 
+def restProp(prop):
+    return "%s(rst)" % prop
+
 def baseProp(string):
-    if string[-5:] == "(fin)":
+    if string[-5:] in ["(fin)", "(rst)"]:
         return string[:-5]
     return string
 
