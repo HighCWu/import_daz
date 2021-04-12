@@ -180,6 +180,7 @@ class Fixer(DriverUser):
             rna.driver_remove(channel, idx)
         else:
             rna.driver_remove(channel)
+        success = True
         for var in fcu2.driver.variables:
             for trg in var.targets:
                 if trg.id_type == 'OBJECT':
@@ -187,11 +188,19 @@ class Fixer(DriverUser):
                 elif trg.id_type == 'ARMATURE':
                     trg.id = rig.data
                 if var.type == 'TRANSFORMS':
-                    trg.bone_target = assoc[trg.bone_target]
-        fcu3 = rna.animation_data.drivers.from_existing(src_driver=fcu2)
-        fcu3.data_path = channel
-        if idx >= 0:
-            fcu3.array_index = idx
+                    bname = trg.bone_target
+                    defbone = "DEF-" + bname
+                    if bname in assoc.keys():
+                        trg.bone_target = assoc[bname]
+                    elif defbone in rig.pose.bones.keys():
+                        trg.bone_target = defbone
+                    else:
+                        success = False
+        if success:
+            fcu3 = rna.animation_data.drivers.from_existing(src_driver=fcu2)
+            fcu3.data_path = channel
+            if idx >= 0:
+                fcu3.array_index = idx
         self.clearTmpDriver(0)
 
 
