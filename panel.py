@@ -538,10 +538,11 @@ class DAZ_PT_Morphs:
         if key not in rig.keys():
             return
         split = layout.split(factor=0.8)
-        if GS.showFinalProps:
+        final = finalProp(key)
+        if GS.showFinalProps and final in amt.keys():
             split2 = split.split(factor=0.8)
             split2.prop(rig, propRef(key), text=morph.text)
-            split2.label(text = "%.3f" % amt[finalProp(key)])
+            split2.label(text = "%.3f" % amt[final])
         else:
             split.prop(rig, propRef(key), text=morph.text)
         row = split.row()
