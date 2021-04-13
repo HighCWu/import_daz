@@ -511,7 +511,7 @@ class LoadMorph(DriverUser):
             self.addPathVar(fcu, varname, self.rig, propRef(raw))
             if raw not in self.rig.keys():
                 self.rig[raw] = 0.0
-        string = self.addDriverVars(fcu, string, varname, raw, drivers, [])
+        string = self.addDriverVars(fcu, string, varname, raw, drivers)
         self.mult = []
         if raw in self.mults.keys():
             self.mult = self.mults[raw]
@@ -519,7 +519,7 @@ class LoadMorph(DriverUser):
         fcu.driver.expression = string
 
 
-    def addDriverVars(self, fcu, string, varname, raw, drivers, channels):
+    def addDriverVars(self, fcu, string, varname, raw, drivers):
         def multiply(factor, varname):
             if factor == 1:
                 return "+%s" % varname
@@ -528,6 +528,7 @@ class LoadMorph(DriverUser):
             else:
                 return "+%g*%s" % (factor, varname)
 
+        channels = [var.targets[0].data_path for var in fcu.driver.variables]
         for dtype,subraw,factor in drivers:
             if dtype != 'PROP':
                 continue
@@ -559,8 +560,8 @@ class LoadMorph(DriverUser):
             self.addPathVar(fcu, "Rest", self.amt, propRef(rest))
             self.addRestDrivers(rest, drivers)
         else:
-            pathids = self.restoreBatch(fcu, drivers)
-            string = self.addDriverVars(fcu, string, varname, raw, drivers, pathids.keys())
+            self.restoreBatch(fcu, drivers)
+            string = self.addDriverVars(fcu, string, varname, raw, drivers)
         string += char
         if len(string) > MAX_EXPRESSION_SIZE:
             errtype = "Driving expressions too long for the following properties:"
