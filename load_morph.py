@@ -554,14 +554,12 @@ class LoadMorph(DriverUser):
             rest = restProp(raw)
             self.addRestDrivers(rest, drivers)
             return
-        elif ord(varname) + len(drivers) > ord("d"):
+        else:
             string += "+Rest"
             rest = restProp(raw)
+            self.amt[rest] = 0.0
             self.addPathVar(fcu, "Rest", self.amt, propRef(rest))
             self.addRestDrivers(rest, drivers)
-        else:
-            self.restoreBatch(fcu, drivers)
-            string = self.addDriverVars(fcu, string, varname, raw, drivers)
         string += char
         if len(string) > MAX_EXPRESSION_SIZE:
             errtype = "Driving expressions too long for the following properties:"
@@ -574,9 +572,9 @@ class LoadMorph(DriverUser):
 
     def addRestDrivers(self, rest, drivers):
         struct = self.restdrivers[rest] = {}
-        for dtype,prop,factor in drivers:
+        for dtype,raw,factor in drivers:
             if dtype == 'PROP':
-                struct[prop] = factor
+                struct[finalProp(raw)] = (factor, 0.0)
 
 
     def addPathVar(self, fcu, varname, rna, path):
@@ -757,7 +755,7 @@ class LoadMorph(DriverUser):
                     pathids = {}
                     if fcu0:
                         if fcu0.driver.type == 'SUM':
-                            self.restoreBatch(fcu0, drivers)
+                            self.recoverOldDrivers(fcu0, drivers)
                         else:
                             path0 = self.getOrigo(fcu0, pb, channel, idx)
                             pathids = { path0 : 'OBJECT' }
@@ -768,7 +766,9 @@ class LoadMorph(DriverUser):
                         pathids = { path1 : 'OBJECT' }
 
                     pb.driver_remove(channel, idx)
-                    fcu,t3 = self.addSumDriver(pb, channel, idx, drivers, pathids)
+                    key = channel[0:3].capitalize()
+                    prefix = "%s:%s" % (key, idx)
+                    fcu = self.addSumDriver(pb, prefix, drivers, pathids, self.assignPoseBoneFcurve)
                     sumfcu = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
                     sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
                     sumfcu.array_index = idx
@@ -776,43 +776,39 @@ class LoadMorph(DriverUser):
             print(" + %s" % bname)
 
 
+    def assignPoseBoneFcurve(self, pb, path, pathids, fcu):
+        pbpath = 'pose.bones["%s"]%s' % (pb.name, path)
+        pathids[pbpath] = 'OBJECT'
+        fcu2 = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
+        fcu2.data_path = pbpath
+
+
     def buildRestDrivers(self):
+        from .driver import getRnaDriver
         if self.restdrivers:
             print("Building rest drivers")
         else:
             print("No rest drivers")
         for rest,drivers in self.restdrivers.items():
             self.amt[rest] = 0.0
-            self.addExtraRestDrivers(rest, drivers)
-            base = baseProp(rest)
-            fcu1 = self.getTmpDriver(0)
-            fcu1.driver.type = 'SUM'
-            n = 0
-            for raw,factor in drivers.items():
-                n += 1
-                self.rig[raw] = 0.0
-                fcu2 = self.getTmpDriver(1)
-                fcu2.driver.type = 'SCRIPTED'
-                fcu2.driver.expression = "%g*a" % factor
-                self.addPathVar(fcu2, "a", self.rig, propRef(raw))
-                fcu3 = self.amt.animation_data.drivers.from_existing(src_driver=fcu2)
-                prop = "%s:%s" % (base, raw)
-                if len(prop) > 63:
-                    oldprop = prop
-                    prop = "%s:%03d" % (rest, n)
-                    #prop = prop[0:63]
-                    print("Truncate prop: %s => %s" % (oldprop, prop))
-                self.amt[prop] = 0.0
-                fcu3.data_path = propRef(prop)
-                self.clearTmpDriver(1)
-                self.addPathVar(fcu1, "t%.03d" % n, self.amt, propRef(prop))
-            sumfcu = self.amt.animation_data.drivers.from_existing(src_driver=fcu1)
+            fcu = getRnaDriver(self.amt, propRef(rest))
+            if fcu:
+                self.recoverOldDrivers(fcu, drivers)
+            self.amt.driver_remove(propRef(rest))
+            fcu = self.addSumDriver(self.amt, rest, drivers, {}, self.assignRestFcurve)
+            sumfcu = self.amt.animation_data.drivers.from_existing(src_driver=fcu)
             self.amt.driver_remove(rest)
             sumfcu.data_path = propRef(rest)
             self.clearTmpDriver(0)
 
 
-    def restoreBatch(self, sumfcu, drivers):
+    def assignRestFcurve(self, rna, path, pathids, fcu):
+        pathids[path] = 'ARMATURE'
+        fcu2 = self.amt.animation_data.drivers.from_existing(src_driver=fcu)
+        fcu2.data_path = path
+
+
+    def recoverOldDrivers(self, sumfcu, drivers):
         from .driver import getRnaDriver
         default = 0.0
         for var in sumfcu.driver.variables:
@@ -835,23 +831,16 @@ class LoadMorph(DriverUser):
                     trg2 = targets[word2[0]]
                     prop = unPath(trg2.data_path)
                     if prop not in drivers.keys():
-                        factor = float(word1)
+                        try:
+                            factor = float(word1)
+                        except ValueError:
+                            msg = ("BUG recoverOldDrivers: not a float\n" +
+                                   "FCU2 %s %d" % (fcu2.data_path, fcu2.array_index) +
+                                   "EXPR %s" % fcu2.driver.expression +
+                                   "TARGETS %s" % list(targets.keys()))
+                            reportError(msg, trigger=(0,0))
                         drivers[prop] = (factor, default)
                     word1 = word2[1:]
-
-
-    def addExtraRestDrivers(self, rest, drivers):
-        from .driver import getRnaDriver
-        fcu = getRnaDriver(self.amt, propRef(rest))
-        if fcu:
-            self.restoreBatch(fcu, drivers, 0.0)
-
-
-    def addExtraRestDrivers(self, rest, drivers):
-        from .driver import getRnaDriver
-        fcu = getRnaDriver(self.amt, propRef(rest))
-        if fcu is None:
-            return
 
 
     def getOrigo(self, fcu0, pb, channel, idx):
@@ -894,11 +883,11 @@ class LoadMorph(DriverUser):
         return prop
 
 
-    def getTermDriverName(self, channel, idx, n):
-        return ("%s:%d:%02d" % (channel[0:3].capitalize(), idx, n))
+    def getTermDriverName(self, key, idx, n):
+        return ("%s:%d:%02d" % (key, idx, n))
 
 
-    def addSumDriver(self, pb, channel, idx, drivers, pathids):
+    def getBatches(self, drivers):
         def getTermDriverExpr(varname, factor, default):
             if default > 0:
                 term = "(%s+%g)" % (varname, default)
@@ -906,9 +895,9 @@ class LoadMorph(DriverUser):
                 term = "(%s-%g)" % (varname, default)
             else:
                 term = varname
-            if factor == 1:
-                return "+%s" % term
-            elif factor < 0:
+            #if factor == 1:
+            #    return "+%s" % term
+            if factor < 0:
                 return "%g*%s" % (factor, term)
             else:
                 return "+%g*%s" % (factor, term)
@@ -933,26 +922,26 @@ class LoadMorph(DriverUser):
                 vars = []
         if vars:
             batches.append((string, vars))
+        return batches
 
+
+    def addSumDriver(self, rna, prefix, drivers, pathids, assignBatchFcurve):
+        batches = self.getBatches(drivers)
         sumfcu = self.getTmpDriver(0)
         sumfcu.driver.type = 'SUM'
         for n,batch in enumerate(batches):
             string,vars = batch
-            drvprop = self.getTermDriverName(channel, idx, n+1)
-            pb[drvprop] = 0.0
+            drvprop = "%s:%02d" % (prefix, n+1)
+            rna[drvprop] = 0.0
             path = propRef(drvprop)
-            pb.driver_remove(path)
+            rna.driver_remove(path)
             fcu = self.getTmpDriver(1)
             fcu.driver.type = 'SCRIPTED'
             fcu.driver.expression = string
             for varname,final in vars:
                 self.addPathVar(fcu, varname, self.amt, propRef(final))
-            pbpath = 'pose.bones["%s"]%s' % (pb.name, path)
-            pathids[pbpath] = 'OBJECT'
-            fcu2 = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
-            fcu2.data_path = pbpath
+            assignBatchFcurve(rna, path, pathids, fcu)
             self.clearTmpDriver(1)
-        t3 = perf_counter()
         for n,data in enumerate(pathids.items()):
             path,idtype = data
             if idtype == 'OBJECT':
@@ -960,7 +949,7 @@ class LoadMorph(DriverUser):
             else:
                 rna = self.amt
             self.addPathVar(sumfcu, "t%.02d" % n, rna, path)
-        return sumfcu, t3
+        return sumfcu
 
 
     def getActiveShape(self, asset):
