@@ -766,7 +766,7 @@ class LoadMorph(DriverUser):
                         pathids = { path1 : 'OBJECT' }
 
                     pb.driver_remove(channel, idx)
-                    prefix = self.getChannelPrefix(channel, idx)
+                    prefix = self.getChannelPrefix(pb, channel, idx)
                     fcu = self.addSumDriver(pb, prefix, drivers, pathids, self.assignPoseBoneFcurve)
                     sumfcu = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
                     sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
@@ -775,9 +775,9 @@ class LoadMorph(DriverUser):
             print(" + %s" % bname)
 
 
-    def getChannelPrefix(self, channel, idx):
+    def getChannelPrefix(self, pb, channel, idx):
         key = channel[0:3].capitalize()
-        return "%s:%s" % (key, idx)
+        return "%s:%s:%s" % (pb.name, key, idx)
 
 
     def getTermDriverName(self, prefix, n):
@@ -853,7 +853,7 @@ class LoadMorph(DriverUser):
 
     def getOrigo(self, fcu0, pb, channel, idx):
         from .driver import Driver
-        prefix = self.getChannelPrefix(channel, idx)
+        prefix = self.getChannelPrefix(pb, channel, idx)
         prop = self.getTermDriverName(prefix, 0)
         pb[prop] = 0.0
         fcu = pb.driver_add(propRef(prop))
