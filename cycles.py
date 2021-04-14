@@ -951,7 +951,7 @@ class CyclesTree:
             else:
                 from .cgroup import TransparentGroup
                 node = self.addGroup(TransparentGroup, "DAZ Transparent")
-                self.mixWithActive(1-alpha, tex, node, flip=True)
+                self.mixWithActive(alpha, tex, node)
             node.inputs["Color"].default_value[0:3] = WHITE
             if alpha < 1 or tex:
                 self.material.setTransSettings(False, False)
@@ -1285,7 +1285,7 @@ class CyclesTree:
         return mix
 
 
-    def mixWithActive(self, fac, tex, shader, useAlpha=False, flip=False, keep=False):
+    def mixWithActive(self, fac, tex, shader, useAlpha=False, keep=False):
         if shader.type != 'GROUP':
             raise RuntimeError("BUG: mixWithActive", shader.type)
         if fac == 0 and tex is None and not keep:
@@ -1296,14 +1296,14 @@ class CyclesTree:
             self.eevee = shader
             return
         if self.eevee:
-            self.makeActiveMix("Eevee", self.eevee, self.getEeveeSocket(), fac, tex, shader, useAlpha, flip)
+            self.makeActiveMix("Eevee", self.eevee, self.getEeveeSocket(), fac, tex, shader, useAlpha)
         self.eevee = shader
         if self.cycles:
-            self.makeActiveMix("Cycles", self.cycles, self.getCyclesSocket(), fac, tex, shader, useAlpha, flip)
+            self.makeActiveMix("Cycles", self.cycles, self.getCyclesSocket(), fac, tex, shader, useAlpha)
         self.cycles = shader
 
 
-    def makeActiveMix(self, slot, active, socket, fac, tex, shader, useAlpha, flip):
+    def makeActiveMix(self, slot, active, socket, fac, tex, shader, useAlpha):
         self.links.new(socket, shader.inputs[slot])
         shader.inputs["Fac"].default_value = fac
         if tex:
