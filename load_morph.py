@@ -758,7 +758,7 @@ class LoadMorph(DriverUser):
                             self.recoverOldDrivers(fcu0, drivers)
                         else:
                             path0 = self.getOrigo(fcu0, pb, channel, idx)
-                            pathids = { path0 : 'OBJECT' }
+                            pathids = { path0 : 'ARMATURE' }
                     elif (channel == "scale" or
                           (bname in self.parscales.keys() and
                            idx in self.parscales[bname].keys())):
@@ -767,7 +767,7 @@ class LoadMorph(DriverUser):
 
                     pb.driver_remove(channel, idx)
                     prefix = self.getChannelPrefix(pb, channel, idx)
-                    fcu = self.addSumDriver(self.amt, prefix, drivers, pathids)
+                    fcu = self.addSumDriver(prefix, drivers, pathids)
                     sumfcu = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
                     sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
                     sumfcu.array_index = idx
@@ -796,7 +796,7 @@ class LoadMorph(DriverUser):
             if fcu:
                 self.recoverOldDrivers(fcu, drivers)
             self.amt.driver_remove(propRef(rest))
-            fcu = self.addSumDriver(self.amt, rest, drivers, {})
+            fcu = self.addSumDriver(rest, drivers, {})
             sumfcu = self.amt.animation_data.drivers.from_existing(src_driver=fcu)
             self.amt.driver_remove(rest)
             sumfcu.data_path = propRef(rest)
@@ -842,11 +842,11 @@ class LoadMorph(DriverUser):
         from .driver import Driver
         prefix = self.getChannelPrefix(pb, channel, idx)
         prop = self.getTermDriverName(prefix, 0)
-        pb[prop] = 0.0
-        fcu = pb.driver_add(propRef(prop))
+        self.amt[prop] = 0.0
+        fcu = self.amt.driver_add(propRef(prop))
         driver = Driver(fcu0, True)
         driver.fill(fcu)
-        return 'pose.bones["%s"]["%s"]' % (pb.name, prop)
+        return propRef(prop)
 
 
     def getUnity(self, pb, idx):
@@ -917,16 +917,16 @@ class LoadMorph(DriverUser):
         return batches
 
 
-    def addSumDriver(self, rna, prefix, drivers, pathids):
+    def addSumDriver(self, prefix, drivers, pathids):
         batches = self.getBatches(drivers)
         sumfcu = self.getTmpDriver(0)
         sumfcu.driver.type = 'SUM'
         for n,batch in enumerate(batches):
             string,vars = batch
             drvprop = self.getTermDriverName(prefix, n+1)
-            rna[drvprop] = 0.0
+            self.amt[drvprop] = 0.0
             path = propRef(drvprop)
-            rna.driver_remove(path)
+            self.amt.driver_remove(path)
             fcu = self.getTmpDriver(1)
             fcu.driver.type = 'SCRIPTED'
             fcu.driver.expression = string
