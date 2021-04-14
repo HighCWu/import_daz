@@ -1449,7 +1449,8 @@ def getCustomMorphs(ob, category):
 def clearMorphs(rig, morphset, category, scn, frame, force):
     morphs = getRelevantMorphs(rig, morphset, category)
     for morph in morphs:
-        if getActivated(rig, rig, morph, force):
+        if (getActivated(rig, rig, morph, force) and
+            isinstance(rig[morph], float)):
             rig[morph] = 0.0
             autoKeyProp(rig, morph, scn, frame, force)
 
@@ -1468,7 +1469,7 @@ def clearShapes(ob, category, scn, frame):
 class DAZ_OT_ClearMorphs(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.clear_morphs"
     bl_label = "Clear Morphs"
-    bl_description = "Set all morphs of specified type to zero"
+    bl_description = "Set all morphs of specified type to zero.\nDoes not affect integer properties"
     bl_options = {'UNDO'}
 
     def run(self, context):
