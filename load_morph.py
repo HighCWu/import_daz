@@ -766,14 +766,22 @@ class LoadMorph(DriverUser):
                         pathids = { path1 : 'OBJECT' }
 
                     pb.driver_remove(channel, idx)
-                    key = channel[0:3].capitalize()
-                    prefix = "%s:%s" % (key, idx)
+                    prefix = self.getChannelPrefix(channel, idx)
                     fcu = self.addSumDriver(pb, prefix, drivers, pathids, self.assignPoseBoneFcurve)
                     sumfcu = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
                     sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
                     sumfcu.array_index = idx
                     self.clearTmpDriver(0)
             print(" + %s" % bname)
+
+
+    def getChannelPrefix(self, channel, idx):
+        key = channel[0:3].capitalize()
+        return "%s:%s" % (key, idx)
+
+
+    def getTermDriverName(self, prefix, n):
+        return ("%s:%02d" % (prefix, n))
 
 
     def assignPoseBoneFcurve(self, pb, path, pathids, fcu):
@@ -845,7 +853,8 @@ class LoadMorph(DriverUser):
 
     def getOrigo(self, fcu0, pb, channel, idx):
         from .driver import Driver
-        prop = self.getTermDriverName(channel, idx, 0)
+        prefix = self.getChannelPrefix(channel, idx)
+        prop = self.getTermDriverName(prefix, 0)
         pb[prop] = 0.0
         fcu = pb.driver_add(propRef(prop))
         driver = Driver(fcu0, True)
@@ -881,10 +890,6 @@ class LoadMorph(DriverUser):
         trg.transform_type = 'SCALE_%s' % chr(ord('X')+idx)
         trg.transform_space = 'LOCAL_SPACE'
         return prop
-
-
-    def getTermDriverName(self, key, idx, n):
-        return ("%s:%d:%02d" % (key, idx, n))
 
 
     def getBatches(self, drivers):
@@ -931,7 +936,7 @@ class LoadMorph(DriverUser):
         sumfcu.driver.type = 'SUM'
         for n,batch in enumerate(batches):
             string,vars = batch
-            drvprop = "%s:%02d" % (prefix, n+1)
+            drvprop = self.getTermDriverName(prefix, n+1)
             rna[drvprop] = 0.0
             path = propRef(drvprop)
             rna.driver_remove(path)
