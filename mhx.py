@@ -1019,7 +1019,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
-            locElbowPt = forearm.head - 5*rig.DazScale*vec
+            locElbowPt = forearm.head - 30*rig.DazScale*vec
             if self.elbowParent == 'HAND':
                 elbowPar = handIk
             elif self.elbowParent == 'SHOULDER':
@@ -1069,7 +1069,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             vec = thigh.matrix.to_3x3().col[2]
             vec.normalize()
-            locKneePt = shin.head - 5*rig.DazScale*vec
+            locKneePt = shin.head - 40*rig.DazScale*vec
             if self.kneeParent == 'FOOT':
                 kneePar = footIk
             elif self.kneeParent == 'HIP':
