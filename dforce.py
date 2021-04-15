@@ -90,7 +90,7 @@ class DynSim(DForce):
         else:
             return
 
-        settings = geonode.simsets[0]
+        settings = geonode.simsets[0].modifier
         collision = self.hideModifier(ob, 'COLLISION')
         subsurf = self.hideModifier(ob, 'SUBSURF')
         multires = self.hideModifier(ob, 'MULTIRES')
@@ -105,8 +105,8 @@ class DynSim(DForce):
         cset.quality = GS.simQuality
         # Collision settings
         colset = cloth.collision_settings
-        colset.distance_min = 0.1*LS.scale
-        colset.self_distance_min = 0.1*LS.scale
+        colset.distance_min = 0.1*LS.scale*GS.collDistMin
+        colset.self_distance_min = 0.1*LS.scale*GS.collDistMin
         colset.collision_quality = GS.collQuality
         colset.use_self_collision = True
         # Pinning

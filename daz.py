@@ -260,6 +260,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
                 box.prop(scn, "DazSimQuality")
                 box.prop(scn, "DazCollQuality")
                 box.prop(scn, "DazGsmFactor")
+                box.prop(scn, "DazCollDistMin")
 
         box = split.box()
         box.label(text = "Materials")
@@ -629,8 +630,12 @@ def register():
     bpy.types.Scene.DazGsmFactor = FloatProperty(
         name = "GSM Factor",
         description = "GSM Factor (vertex mass multiplier)",
-        min = 0.0,
-        )
+        min = 0.0)
+
+    bpy.types.Scene.DazCollDistMin = FloatProperty(
+        name = "Collision Distance",
+        description = "Minimun collision distance (mm)",
+        min = 1.0, max = 20.0)
 
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shell Materials",

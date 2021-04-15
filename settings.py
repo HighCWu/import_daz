@@ -106,6 +106,7 @@ class GlobalSettings:
         self.simQuality = 16
         self.collQuality = 4
         self.gsmFactor = 0.5
+        self.collDistMin = 1.0
 
     SceneTable = {
         # General
@@ -168,6 +169,7 @@ class GlobalSettings:
         "DazSimQuality" : "simQuality",
         "DazCollQuality" : "collQuality",
         "DazGsmFactor" : "gsmFactor",
+        "DazCollDistMin" : "collDistMin",
     }
 
     def fixPath(self, path):
