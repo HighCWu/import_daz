@@ -511,12 +511,14 @@ class LoadMorph(DriverUser):
             self.addPathVar(fcu, varname, self.rig, propRef(raw))
             if raw not in self.rig.keys():
                 self.rig[raw] = 0.0
-        string = self.addDriverVars(fcu, string, varname, raw, drivers)
+        string,rdrivers = self.addDriverVars(fcu, string, varname, raw, drivers)
         self.mult = []
         if raw in self.mults.keys():
             self.mult = self.mults[raw]
         string = self.multiplyMults(fcu, string)
         fcu.driver.expression = string
+        if rdrivers:
+            self.extendPropDriver(fcu, raw, rdrivers)
 
 
     def addDriverVars(self, fcu, string, varname, raw, drivers):
@@ -529,7 +531,7 @@ class LoadMorph(DriverUser):
                 return "+%g*%s" % (factor, varname)
 
         channels = [var.targets[0].data_path for var in fcu.driver.variables]
-        for dtype,subraw,factor in drivers:
+        for dtype,subraw,factor in drivers[0:MAX_TERMS]:
             if dtype != 'PROP':
                 continue
             subfinal = finalProp(subraw)
@@ -540,7 +542,10 @@ class LoadMorph(DriverUser):
             string += multiply(factor, varname)
             self.ensureExists(subraw, subfinal, 0.0)
             self.addPathVar(fcu, varname, self.amt, channel)
-        return string
+        if len(drivers) > MAX_TERMS:
+            return string, drivers[MAX_TERMS:]
+        else:
+            return string, []
 
 
     def extendPropDriver(self, fcu, raw, drivers):
