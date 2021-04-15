@@ -102,7 +102,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
                 box.operator("daz.enable_drivers")
             elif ob and ob.type in ['ARMATURE', 'MESH']:
                 if ob.DazMorphPrefixes:
-                    box.operator("daz.update_morphs")
+                    box.label(text="Object with obsolete morphs")
                     return
                 box.operator("daz.import_units")
                 box.operator("daz.import_expressions")
@@ -271,14 +271,9 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowMorphs2", box):
-            box.operator("daz.remove_standard_morphs")
-            box.operator("daz.remove_custom_morphs")
-            box.operator("daz.remove_jcms")
-            box.separator()
             box.operator("daz.add_shape_to_category")
             box.operator("daz.remove_shape_from_category")
             box.operator("daz.rename_category")
-            box.operator("daz.remove_categories")
             box.separator()
             box.operator("daz.convert_standard_morphs_to_shapekeys")
             box.operator("daz.convert_custom_morphs_to_shapekeys")
@@ -293,10 +288,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.retarget_mesh_drivers")
             box.separator()
             box.operator("daz.update_slider_limits")
-            box.separator()
             box.operator("daz.import_dbz")
-            box.separator()
-            box.operator("daz.update_morphs")
             box.operator("daz.update_morph_paths")
 
 
