@@ -46,6 +46,7 @@ class DForce:
         return "<DForce %s\ni: %s\nm: %s\ne: %s>" % (self.type, self.instance, self.modifier, self.instance.rna)
 
     def build(self, context):
+        print("Build", self)
         pass
 
 #-------------------------------------------------------------

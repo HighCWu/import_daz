@@ -384,6 +384,10 @@ class Instance(Accessor, Channels, SimNode):
         self.buildChannels(ob)
         if self.dynsim:
             self.dynsim.build(context)
+        if self.dyngenhair:
+            self.dyngenhair.build(context)
+        if self.dynhairflw:
+            self.dynhairflw.build(context)
 
 
     def formulate(self, key, value):
