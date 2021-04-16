@@ -85,6 +85,13 @@ class HairOptions:
         description = "Remove existing particle systems from this mesh"
     )
 
+    useSeparateLoose : BoolProperty(
+        name = "Separate Loose Parts",
+        default = True,
+        description = ("Separate hair mesh into loose parts before doing the conversion.\n" +
+                       "Usually improves performance but can stall for large meshes")
+    )
+
     sparsity : IntProperty(
         name = "Sparsity",
         min = 1,
@@ -542,6 +549,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
         multimat = True
         if self.strandType == 'SHEET':
             box.prop(self, "strandOrientation")
+            box.prop(self, "useSeparateLoose")
         elif self.strandType == 'TUBE':
             multimat = False
         box.prop(self, "keepMesh")
@@ -637,9 +645,10 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
         hsystems = {}
         if self.strandType == 'SHEET':
             hairs = []
-            bpy.ops.mesh.separate(type='LOOSE')
+            if self.useSeparateLoose:
+                bpy.ops.mesh.separate(type='LOOSE')
+                print("Loose parts separated")
             bpy.ops.object.mode_set(mode='OBJECT')
-            print("Loose parts separated")
             hname = hair.name
             if (len(hname) >= 4 and hname[-4] == "." and hname[-3:].isdigit()):
                 hname = hname[:-4]
@@ -697,7 +706,9 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
             else:
                 t8 = t7
         else:
-            deleteObjects(context, hairs)
+            for hair in hairs:
+                unlinkAll(hair)
+            #deleteObjects(context, hairs)
             t8 = perf_counter()
             self.clocks.append(("Deleted mesh hairs", t8-t7))
         if self.nonquads:
@@ -723,6 +734,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
         self.faceverts, self.vertfaces = getVertFaces(hair)
         self.nfaces = len(hair.data.polygons)
         if not self.nfaces:
+            return None
             raise DazError("Hair has no faces")
         mneighbors = findNeighbors(range(self.nfaces), self.faceverts, self.vertfaces)
         self.centers, self.uvcenters = self.findCenters(hair)
@@ -760,6 +772,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
         else:
             mnum = 0
         mrects = self.findMeshRects(hair)
+        if mrects is None:
+            return {}, 0
         trects = self.findTexRects(hair, mrects)
         #print("Sort columns")
         haircount = -1

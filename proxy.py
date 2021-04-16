@@ -1067,9 +1067,14 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh):
         min = 0.0, max = 1.0,
         default = 0.5)
 
+    seed : IntProperty(
+        name = "Seed",
+        description = "Seed for the random number generator",
+        default = 0)
 
     def draw(self, context):
         self.layout.prop(self, "fraction")
+        self.layout.prop(self, "seed")
 
 
     def run(self, context):
@@ -1077,6 +1082,7 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh):
         ob = context.object
         prox = Proxifier(ob)
         comps = prox.getComponents(ob, context)
+        random.seed(self.seed)
         for comp in comps.values():
             if random.random() < self.fraction:
                 prox.selectComp(comp, ob)
