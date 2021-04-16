@@ -1461,7 +1461,6 @@ class HairTree(CyclesTree):
     def build(self):
         self.makeTree()
         self.buildLayer("")
-        self.prune()
 
 
     def initLayer(self):
