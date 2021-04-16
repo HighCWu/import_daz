@@ -1020,7 +1020,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
             dist = max(upper_arm.length, forearm.length)
-            locElbowPt = forearm.head - dist*vec
+            locElbowPt = forearm.head - 1.2*dist*vec
             if self.elbowParent == 'HAND':
                 elbowPoleA = makeBone("elbowPoleA"+suffix, rig, armSocket.head, armSocket.head-ez, 0, L_HELP2, armSocket)
                 elbowPoleP = makeBone("elbowPoleP"+suffix, rig, forearm.head, forearm.head-ez, 0, L_HELP2, armParent)
@@ -1073,7 +1073,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             vec = thigh.matrix.to_3x3().col[2]
             vec.normalize()
             dist = max(thigh.length, shin.length)
-            locKneePt = shin.head - dist*vec
+            locKneePt = shin.head - 1.2*dist*vec
             if self.kneeParent == 'FOOT':
                 kneePoleA = makeBone("kneePoleA"+suffix, rig, legSocket.head, legSocket.head-ez, 0, L_HELP2, legSocket)
                 kneePoleP = makeBone("kneePoleP"+suffix, rig, shin.head, shin.head-ez, 0, L_HELP2, hip)
