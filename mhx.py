@@ -1022,7 +1022,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             dist = max(upper_arm.length, forearm.length)
             locElbowPt = forearm.head - 1.2*dist*vec
             if self.elbowParent == 'HAND':
-                elbowPoleA = makeBone("elbowPoleA"+suffix, rig, armSocket.head, armSocket.head-ez, 0, L_HELP2, armSocket)
+                elbowPoleA = makeBone("elbowPoleA"+suffix, rig, armSocket.head, armSocket.head-ez, 0, L_LARMIK+dlayer, armSocket)
                 elbowPoleP = makeBone("elbowPoleP"+suffix, rig, forearm.head, forearm.head-ez, 0, L_HELP2, armParent)
                 elbowPar = elbowPoleP
             elif self.elbowParent == 'SHOULDER':
@@ -1075,7 +1075,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             dist = max(thigh.length, shin.length)
             locKneePt = shin.head - 1.2*dist*vec
             if self.kneeParent == 'FOOT':
-                kneePoleA = makeBone("kneePoleA"+suffix, rig, legSocket.head, legSocket.head-ez, 0, L_HELP2, legSocket)
+                kneePoleA = makeBone("kneePoleA"+suffix, rig, legSocket.head, legSocket.head-ez, 0, L_LLEGIK+dlayer, legSocket)
                 kneePoleP = makeBone("kneePoleP"+suffix, rig, shin.head, shin.head-ez, 0, L_HELP2, hip)
                 kneePar = kneePoleP
             elif self.kneeParent == 'HIP':
@@ -1127,7 +1127,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                     "forearm", "forearm.fk", "forearm.ik",
                     "foot", "foot.fk", "toe", "toe.fk",
                     "foot.rev", "toe.rev",
-                    "knee.pt.ik", "elbow.pt.ik",
+                    "knee.pt.ik", "elbow.pt.ik", "elbowPoleA", "kneePoleA",
                     "breast",
                    ],
             'YXZ' : ["hand", "hand.fk", "hand.ik"],
@@ -1168,10 +1168,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             if self.elbowParent == 'HAND':
                 elbowPoleA = rpbs["elbowPoleA"+suffix]
                 elbowPoleP = rpbs["elbowPoleP"+suffix]
+                elbowPoleA.lock_rotation = (True,False,True)
                 dampedTrack(elbowPoleA, handIk, rig)
-                cns = copyTransform(elbowPoleA, handIk, rig)
+                cns = copyLocation(elbowPoleA, handIk, rig)
                 cns.influence = upper_arm.bone.length/(upper_arm.bone.length + forearm.bone.length)
-                copyLocation(elbowPoleP, elbowPoleA, rig)
+                copyTransform(elbowPoleP, elbowPoleA, rig)
             hintRotation(forearmIk)
             ikConstraint(forearmIk, handIk, elbowPt, -90, 2, rig)
             stretchTo(elbowLink, elbowPt, rig)
@@ -1225,10 +1226,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             if self.kneeParent == 'FOOT':
                 kneePoleA = rpbs["kneePoleA"+suffix]
                 kneePoleP = rpbs["kneePoleP"+suffix]
+                kneePoleA.lock_rotation = (True,False,True)
                 dampedTrack(kneePoleA, ankleIk, rig)
-                cns = copyTransform(kneePoleA, ankleIk, rig)
+                cns = copyLocation(kneePoleA, ankleIk, rig)
                 cns.influence = thigh.bone.length/(thigh.bone.length + shin.bone.length)
-                copyLocation(kneePoleP, kneePoleA, rig)
+                copyTransform(kneePoleP, kneePoleA, rig)
 
             hintRotation(shinIk)
             ikConstraint(shinIk, ankleIk, kneePt, -90, 2, rig)
@@ -1457,13 +1459,15 @@ Gizmos = {
     "ankle.R" :         ("GZM_Ball025", 1),
     "knee.pt.ik.L" :    ("GZM_Cone", 0.25),
     "knee.pt.ik.R" :    ("GZM_Cone", 0.25),
+    "kneePoleA.L" :     ("GZM_Knuckle", 1),
+    "kneePoleA.R" :     ("GZM_Knuckle", 1),
 
-    "toe.marker.L" :     ("GZM_Ball025", 1),
-    "ball.marker.L" :    ("GZM_Ball025", 1),
-    "heel.marker.L" :    ("GZM_Ball025", 1),
-    "toe.marker.R" :     ("GZM_Ball025", 1),
-    "ball.marker.R" :    ("GZM_Ball025", 1),
-    "heel.marker.R" :    ("GZM_Ball025", 1),
+    "toe.marker.L" :    ("GZM_Ball025", 1),
+    "ball.marker.L" :   ("GZM_Ball025", 1),
+    "heel.marker.L" :   ("GZM_Ball025", 1),
+    "toe.marker.R" :    ("GZM_Ball025", 1),
+    "ball.marker.R" :   ("GZM_Ball025", 1),
+    "heel.marker.R" :   ("GZM_Ball025", 1),
 
 
     # Arm
@@ -1482,6 +1486,8 @@ Gizmos = {
     "hand.ik.R" :       ("GZM_HandIK", 1),
     "elbow.pt.ik.L" :   ("GZM_Cone", 0.25),
     "elbow.pt.ik.R" :   ("GZM_Cone", 0.25),
+    "elbowPoleA.L" :    ("GZM_Knuckle", 1),
+    "elbowPoleA.R" :    ("GZM_Knuckle", 1),
 
     # Finger
 
@@ -1489,7 +1495,7 @@ Gizmos = {
     "index.L" :         ("GZM_Knuckle", 1),
     "middle.L" :        ("GZM_Knuckle", 1),
     "ring.L" :          ("GZM_Knuckle", 1),
-    "pinky.L":         ("GZM_Knuckle", 1),
+    "pinky.L":          ("GZM_Knuckle", 1),
 
     "thumb.R" :         ("GZM_Knuckle", 1),
     "index.R" :         ("GZM_Knuckle", 1),
