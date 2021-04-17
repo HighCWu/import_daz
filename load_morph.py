@@ -32,7 +32,8 @@ from .utils import *
 from .error import reportError
 
 MAX_EXPRESSION_SIZE = 255
-MAX_TERMS = 3
+MAX_TERMS = 12
+MAX_TERMS2 = 9
 MAX_EXPR_LEN = 240
 
 
@@ -531,7 +532,7 @@ class LoadMorph(DriverUser):
                 return "+%g*%s" % (factor, varname)
 
         channels = [var.targets[0].data_path for var in fcu.driver.variables]
-        for dtype,subraw,factor in drivers[0:MAX_TERMS]:
+        for dtype,subraw,factor in drivers[0:MAX_TERMS2]:
             if dtype != 'PROP':
                 continue
             subfinal = finalProp(subraw)
@@ -542,8 +543,8 @@ class LoadMorph(DriverUser):
             string += multiply(factor, varname)
             self.ensureExists(subraw, subfinal, 0.0)
             self.addPathVar(fcu, varname, self.amt, channel)
-        if len(drivers) > MAX_TERMS:
-            return string, drivers[MAX_TERMS:]
+        if len(drivers) > MAX_TERMS2:
+            return string, drivers[MAX_TERMS2:]
         else:
             return string, []
 
@@ -555,15 +556,15 @@ class LoadMorph(DriverUser):
             char += ")"
             string = string[:-1]
         varname = string[-1]
-        if string[-4:] == "Rest":
+        if string[-1] == "R":
             rest = restProp(raw)
             self.addRestDrivers(rest, drivers)
             return
         else:
-            string += "+Rest"
+            string += "+R"
             rest = restProp(raw)
             self.amt[rest] = 0.0
-            self.addPathVar(fcu, "Rest", self.amt, propRef(rest))
+            self.addPathVar(fcu, "R", self.amt, propRef(rest))
             self.addRestDrivers(rest, drivers)
         string += char
         if len(string) > MAX_EXPRESSION_SIZE:
