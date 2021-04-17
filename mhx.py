@@ -1169,7 +1169,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 elbowPoleA = rpbs["elbowPoleA"+suffix]
                 elbowPoleP = rpbs["elbowPoleP"+suffix]
                 dampedTrack(elbowPoleA, handIk, rig)
-                cns = copyLocation(elbowPoleA, handIk, rig)
+                cns = copyTransform(elbowPoleA, handIk, rig)
                 cns.influence = upper_arm.bone.length/(upper_arm.bone.length + forearm.bone.length)
                 copyLocation(elbowPoleP, elbowPoleA, rig)
             hintRotation(forearmIk)
@@ -1226,7 +1226,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 kneePoleA = rpbs["kneePoleA"+suffix]
                 kneePoleP = rpbs["kneePoleP"+suffix]
                 dampedTrack(kneePoleA, ankleIk, rig)
-                cns = copyLocation(kneePoleA, ankleIk, rig)
+                cns = copyTransform(kneePoleA, ankleIk, rig)
                 cns.influence = thigh.bone.length/(thigh.bone.length + shin.bone.length)
                 copyLocation(kneePoleP, kneePoleA, rig)
 
