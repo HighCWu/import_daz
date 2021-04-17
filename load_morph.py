@@ -375,28 +375,29 @@ class LoadMorph(DriverUser):
         loc,quat,scale = mat.decompose()
         success = False
         if (tfm.transProp and loc.length > 0.01*self.rig.DazScale):
-            self.setFcurves(pb, loc, tfm.transProp, "location", 0)
+            self.setFcurves(pb, loc, tfm.transProp, "location")
             success = True
         if tfm.rotProp:
             if Vector(quat.to_euler()).length < 1e-4:
                 pass
             elif pb.rotation_mode == 'QUATERNION':
-                self.setFcurves(pb, quat, tfm.rotProp, "rotation_quaternion", 0)
+                quat[0] -= 1
+                self.setFcurves(pb, quat, tfm.rotProp, "rotation_quaternion")
                 success = True
             else:
                 euler = mat.to_euler(pb.rotation_mode)
-                self.setFcurves(pb, euler, tfm.rotProp, "rotation_euler", 0)
+                self.setFcurves(pb, euler, tfm.rotProp, "rotation_euler")
                 success = True
         if (tfm.scaleProp and scale.length > 1e-4):
-            self.setFcurves(pb, scale, tfm.scaleProp, "scale", 0)
+            self.setFcurves(pb, scale-One, tfm.scaleProp, "scale")
             success = True
         elif tfm.generalProp:
-            self.setFcurves(pb, scale, tfm.generalProp, "scale", 0)
+            self.setFcurves(pb, scale-One, tfm.generalProp, "scale")
             success = True
         return success
 
 
-    def setFcurves(self, pb, vec, prop, channel, default):
+    def setFcurves(self, pb, vec, prop, channel):
         def getBoneFcurves(pb, channel):
             dot = ("" if channel[0] == "[" else ".")
             path = 'pose.bones["%s"]%s%s' % (pb.name, dot, channel)
@@ -408,17 +409,17 @@ class LoadMorph(DriverUser):
             return fcurves
 
         fcurves = getBoneFcurves(pb, channel)
-        for idx,factor in self.getFactors(vec, default):
+        for idx,factor in self.getFactors(vec):
             if idx in fcurves.keys():
                 fcu = fcurves[idx]
             else:
                 fcu = None
             bname,drivers = self.findSumDriver(pb, channel, idx, (pb, fcu, {}))
-            drivers[prop] = (factor, default)
+            drivers[prop] = (factor, 0)
         pb.DazDriven = True
 
 
-    def getFactors(self, vec, default):
+    def getFactors(self, vec):
         maxfactor = max([abs(factor) for factor in vec])
         return [(idx,factor) for idx,factor in enumerate(vec) if abs(factor) > 0.01*maxfactor]
 
@@ -759,17 +760,20 @@ class LoadMorph(DriverUser):
                 for idx,idata in cdata.items():
                     pb,fcu0,drivers = idata
                     pathids = {}
+                    if ((channel == "rotation_quaternion" and idx == 0) or
+                        (channel == "scale")):
+                        path = self.getUnity(pb, idx)
+                        pathids[path] = 'ARMATURE'
                     if fcu0:
                         if fcu0.driver.type == 'SUM':
                             self.recoverOldDrivers(fcu0, drivers)
                         else:
-                            path0 = self.getOrigo(fcu0, pb, channel, idx)
-                            pathids = { path0 : 'ARMATURE' }
-                    elif (channel == "scale" or
-                          (bname in self.parscales.keys() and
-                           idx in self.parscales[bname].keys())):
-                        path1 = self.getUnity(pb, idx)
-                        pathids = { path1 : 'OBJECT' }
+                            path = self.getOrigo(fcu0, pb, channel, idx)
+                            pathids[path] = 'ARMATURE'
+                    elif (bname in self.parscales.keys() and
+                          idx in self.parscales[bname].keys()):
+                        path = self.getUnity(pb, idx)
+                        pathids[path] = 'ARMATURE'
 
                     pb.driver_remove(channel, idx)
                     prefix = self.getChannelPrefix(pb, channel, idx)
@@ -856,12 +860,15 @@ class LoadMorph(DriverUser):
 
 
     def getUnity(self, pb, idx):
-        prop = "unity:%d" % idx
-        pb[prop] = 1.0
-        fcu = pb.driver_add(propRef(prop))
-        fcu.driver.type = 'SCRIPTED'
-        fcu.driver.expression = "1.0"
-        return 'pose.bones["%s"]["%s"]' % (pb.name, prop)
+        from .driver import getRnaDriver
+        prop = "Unity"
+        self.amt[prop] = 1.0
+        path = propRef(prop)
+        if not getRnaDriver(self.amt, path):
+            fcu = self.amt.driver_add(path)
+            fcu.driver.type = 'SCRIPTED'
+            fcu.driver.expression = "1.0"
+        return path
 
 
     def getParentScale(self, pname, idx):
