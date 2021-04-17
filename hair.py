@@ -805,7 +805,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
 
 
     def getHairKey(self, n, mnum):
-        if self.multiMaterials:
+        if self.multiMaterials and mnum < len(self.materials):
             mat = self.materials[mnum]
             return ("%d_%s" % (n, mat.name)), mnum
         else:
