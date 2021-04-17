@@ -104,7 +104,8 @@ class CyclesMaterial(Material):
             if self.geobump:
                 area = geo.getBumpArea(me, self.geobump.keys())
                 self.correctBumpArea(area)
-        self.tree.prune()
+        if self.tree:
+            self.tree.prune()
 
 
     def addGeoBump(self, tex, socket):
