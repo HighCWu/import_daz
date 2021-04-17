@@ -707,6 +707,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
                 t8 = t7
         else:
             for hair in hairs:
+                hair.parent = None
                 unlinkAll(hair)
             #deleteObjects(context, hairs)
             t8 = perf_counter()

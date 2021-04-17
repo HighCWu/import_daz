@@ -127,7 +127,6 @@ def selectObjects(context, objects):
             pass
 
 def unlinkAll(ob):
-    ob.parent = None
     for coll in bpy.data.collections:
         if ob in coll.objects.values():
             coll.objects.unlink(ob)
