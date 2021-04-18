@@ -135,8 +135,19 @@ class DAZ_OT_MakeCollision(DazPropsOperator, IsMesh):
 
     def run(self, context):
         for ob in getSelectedMeshes(context):
+            self.addCollision(ob)
+
+    def addCollision(self, ob):
+        subsurf = hideModifier(ob, 'SUBSURF')
+        multires = hideModifier(ob, 'MULTIRES')
+        mod = getModifier(ob, 'COLLISION')
+        if mod is None:
             mod = ob.modifiers.new("Collision", 'COLLISION')
-            ob.collision.thickness_outer = 0.1*ob.DazScale*self.collDist
+        ob.collision.thickness_outer = 0.1*ob.DazScale*self.collDist
+        if subsurf:
+            subsurf.restore(ob)
+        if multires:
+            multires.restore(ob)
 
 #-------------------------------------------------------------
 #   Make Cloth
@@ -202,7 +213,9 @@ class DAZ_OT_MakeCloth(DazPropsOperator, IsMesh):
         subsurf = hideModifier(ob, 'SUBSURF')
         multires = hideModifier(ob, 'MULTIRES')
 
-        cloth = ob.modifiers.new("Cloth", 'CLOTH')
+        cloth = getModifier(ob, 'CLOTH')
+        if cloth is None:
+            cloth = ob.modifiers.new("Cloth", 'CLOTH')
         cset = cloth.settings
         self.setPreset(cset)
         cset.mass *= self.gsmFactor

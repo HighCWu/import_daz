@@ -239,6 +239,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.limit_vertex_groups")
             box.operator("daz.prune_vertex_groups")
             box.operator("daz.create_graft_groups")
+            box.operator("daz.transfer_vertex_groups")
             box.operator("daz.apply_subsurf")
             box.operator("daz.copy_modifiers")
             box.operator("daz.find_seams")
@@ -251,7 +252,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         box = layout.box()
         if showBox(scn, "DazShowSimulation", box):
             box.operator("daz.make_deflection")
-            box.operator("daz.transfer_vertex_groups")
             box.operator("daz.make_collision")
             box.operator("daz.make_cloth")
 
