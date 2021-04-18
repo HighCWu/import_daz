@@ -537,12 +537,12 @@ class CyclesTree:
             else:
                 power = 2
             if wttex:
-                if wttex.type == 'TEX_IMAGE':
+                slot = 0
+                if False and wttex.type == 'TEX_IMAGE':
                     img = wttex.image
-                    useAlpha = (img.file_format in ['PNG'])
-                else:
-                    useAlpha = False
-                wttex = self.raiseToPower(wttex, power, useAlpha=useAlpha)
+                    if img and img.file_format in ['PNG']:
+                        slot = "Alpha"
+                wttex = self.raiseToPower(wttex, power, slot)
             color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE)
             from .cgroup import DiffuseGroup
             node = self.addGroup(DiffuseGroup, "DAZ Overlay")
@@ -556,14 +556,10 @@ class CyclesTree:
             return False
 
 
-    def raiseToPower(self, tex, power, useAlpha=True):
+    def raiseToPower(self, tex, power, slot):
         node = self.addNode("ShaderNodeMath", col=self.column-1)
         node.operation = 'POWER'
         node.inputs[1].default_value = power
-        if useAlpha and "Alpha" in tex.outputs.keys():
-            slot = "Alpha"
-        else:
-            slot = 0
         self.links.new(tex.outputs[slot], node.inputs[0])
         return node
 
