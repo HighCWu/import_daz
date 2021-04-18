@@ -247,20 +247,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazMultires")
         box.prop(scn, "DazUseAutoSmooth")
         box.prop(scn, "DazUseInstancing")
-
-        box = col.box()
-        box.label(text = "Simulation")
         box.prop(scn, "DazSimulation")
-        if scn.DazSimulation:
-            box.prop(scn, "DazInfluenceOnly")
-            if not scn.DazInfluenceOnly:
-                box.prop(scn, "DazSimSettings")
-                if not scn.DazSimSettings:
-                    box.prop(scn, "DazSimPreset")
-                box.prop(scn, "DazSimQuality")
-                box.prop(scn, "DazCollQuality")
-                box.prop(scn, "DazGsmFactor")
-                box.prop(scn, "DazCollDistMin")
 
         box = split.box()
         box.label(text = "Materials")
@@ -471,6 +458,7 @@ def register():
     bpy.types.Scene.DazShowVisibility = BoolProperty(name = "Visibility", default = False)
     bpy.types.Scene.DazShowRigging2 = BoolProperty(name = "Rigging", default = False)
     bpy.types.Scene.DazShowMesh = BoolProperty(name = "Mesh", default = False)
+    bpy.types.Scene.DazShowSimulation = BoolProperty(name = "Simulation", default = False)
     bpy.types.Scene.DazShowMorphs2 = BoolProperty(name = "Morphs", default = False)
     bpy.types.Scene.DazShowHair = BoolProperty(name = "Hair", default = False)
     bpy.types.Scene.DazShowGeneral = BoolProperty(name = "General", default = False)
@@ -598,44 +586,9 @@ def register():
             "This can be useful for objects with hard edges,\n" +
             "but leads to poor performance and artifacts for organic meshes"))
 
-    bpy.types.Scene.DazInfluenceOnly = BoolProperty(
-        name = "Influence Groups Only",
-        description = "Add influence (pinning) vertex groups\nbut don't set up simulation")
-
     bpy.types.Scene.DazSimulation = BoolProperty(
         name = "Simulation",
-        description = "Add simultations")
-
-    bpy.types.Scene.DazSimSettings = BoolProperty(
-        name = "DAZ Settings",
-        description = "Use simulation settings from DAZ Studio")
-
-    bpy.types.Scene.DazSimPreset = EnumProperty(
-        items = [('cotton.json', "Cotton", "Cotton"),
-                 ('denim.json', "Denim", "Denim"),
-                 ('leather.json', "Leather", "Leather"),
-                 ('rubber.json', "Rubber", "Rubber"),
-                 ('silk.json', "Silk", "Silk")],
-        name = "Preset",
-        description = "Simulation preset")
-
-    bpy.types.Scene.DazSimQuality = IntProperty(
-        name = "Simulation Quality",
-        description = "Simulation Quality")
-
-    bpy.types.Scene.DazCollQuality = IntProperty(
-        name = "Collision Quality",
-        description = "Collision Quality")
-
-    bpy.types.Scene.DazGsmFactor = FloatProperty(
-        name = "GSM Factor",
-        description = "GSM Factor (vertex mass multiplier)",
-        min = 0.0)
-
-    bpy.types.Scene.DazCollDistMin = FloatProperty(
-        name = "Collision Distance",
-        description = "Minimun collision distance (mm)",
-        min = 1.0, max = 20.0)
+        description = "Add influence (pinning) vertex groups for simulation")
 
     bpy.types.Scene.DazMergeShells = BoolProperty(
         name = "Merge Shell Materials",

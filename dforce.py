@@ -28,6 +28,7 @@
 import bpy
 import os
 from .utils import *
+from .error import *
 
 theSimPresets = {}
 
@@ -76,100 +77,8 @@ class DynSim(DForce):
             reportError("Bug DynSim %s" % self.instance, trigger=(2,3))
             return
         ob = geonode.rna
-        if not (ob and ob.type == 'MESH'):
-            return
-
-        visible = False
-        for simset in geonode.simsets:
-            if simset.modifier.getValue(["Visible in Simulation"], False):
-                visible = True
-        if GS.useInfluenceOnly:
+        if ob and ob.type == 'MESH':
             self.addPinVertexGroup(ob, geonode)
-            return
-        elif visible:
-            pingrp = self.addPinVertexGroup(ob, geonode)
-        else:
-            return
-
-        settings = geonode.simsets[0].modifier
-        collision = self.hideModifier(ob, 'COLLISION')
-        subsurf = self.hideModifier(ob, 'SUBSURF')
-        multires = self.hideModifier(ob, 'MULTIRES')
-
-        cloth = ob.modifiers.new("Cloth", 'CLOTH')
-        cset = cloth.settings
-        if GS.useDazSimSettings:
-            self.setDazSettings(settings, cset)
-        else:
-            self.setPreset(cset)
-        cset.mass *= GS.gsmFactor
-        cset.quality = GS.simQuality
-        # Collision settings
-        colset = cloth.collision_settings
-        colset.distance_min = 0.1*LS.scale*GS.collDistMin
-        colset.self_distance_min = 0.1*LS.scale*GS.collDistMin
-        colset.collision_quality = GS.collQuality
-        colset.use_self_collision = True
-        # Pinning
-        if pingrp:
-            cset.vertex_group_mass = pingrp.name
-        cset.pin_stiffness = 1.0
-
-        if GS.useDazSimSettings and settings:
-            useColl = settings.getValue(["Collide"], True)
-            if collision and useColl:
-                collision.restore(ob)
-            if not settings.getValue(["Self Collide"], True):
-                colset.use_self_collision = False
-            distmin = settings.getValue(["Collision Offset"], 0.1)*LS.scale
-            colset.distance_min = distmin
-            colset.self_distance_min = distmin
-        else:
-            if collision:
-                collision.restore(ob)
-        if subsurf:
-            subsurf.restore(ob)
-        if multires:
-            multires.restore(ob)
-
-
-    def setDazSettings(self, settings, cset):
-        params = {
-            "Friction" : ([], 1.0),
-            "Dynamics Strength" : ([], 1.0),
-            "Stretch Stiffness" : (["compression_stiffness", "tension_stiffness"], 1/LS.scale),
-            "Shear Stiffness" : (["shear_stiffness"], 1/LS.scale),
-            "Bend Stiffness" : (["bending_stiffness"], 1/LS.scale),
-            "Buckling Stiffness" : ([], 1/LS.scale),
-            "Buckling Ratio" : ([], 1.0),
-            "Density" : (["mass"], LS.scale),
-            "Contraction-Expansion Ratio" : ([], 1.0),
-            "Damping" : (["air_damping"], 1.0),
-            "Stretch Damping" : (["compression_damping", "tension_damping"], 1.0),
-            "Shear Damping" : (["shear_damping"], 1.0),
-            "Bend Damping" : (["bending_damping"], 1.0),
-            "Velocity Smoothing" : ([], 1.0),
-            "Velocity Smoothing Iterations" : ([], 1),
-        }
-        for key in settings.channels.keys():
-            if key in params.keys():
-                attrs,factor = params[key]
-                value = settings.getValue([key], None)
-                for attr in attrs:
-                    setattr(cset, attr, factor*value)
-
-
-    def setPreset(self, cset):
-        global theSimPresets
-        if not theSimPresets:
-            from .load_json import loadJson
-            folder = os.path.dirname(__file__) + "/data/presets"
-            for file in os.listdir(folder):
-                filepath = os.path.join(folder, file)
-                theSimPresets[file] = loadJson(filepath)
-        struct = theSimPresets[GS.simPreset]
-        for key,value in struct.items():
-            setattr(cset, key, value)
 
 
     def addPinVertexGroup(self, ob, geonode):
@@ -205,15 +114,128 @@ class DynSim(DForce):
                             vgrp.add([vn], 1-strength*influ[vn], 'REPLACE')
         return vgrp
 
+#-------------------------------------------------------------
+#   Make Collision
+#-------------------------------------------------------------
 
-    def hideModifier(self, ob, mtype):
-        mod = getModifier(ob, mtype)
-        if mod:
-            store = ModStore(mod)
-            ob.modifiers.remove(mod)
-            return store
-        else:
-            return None
+class DAZ_OT_MakeCollision(DazPropsOperator, IsMesh):
+    bl_idname = "daz.make_collision"
+    bl_label = "Make Collision"
+    bl_description = "Add collision modifiers to selected meshes"
+    bl_options = {'UNDO'}
+
+    collDist : FloatProperty(
+        name = "Collision Distance",
+        description = "Minimun collision distance (mm)",
+        min = 1.0, max = 20.0,
+        default = 1.0)
+
+    def draw(self, context):
+        self.layout.prop(self, "collDist")
+
+    def run(self, context):
+        for ob in getSelectedMeshes(context):
+            mod = ob.modifiers.new("Collision", 'COLLISION')
+            ob.collision.thickness_outer = 0.1*ob.DazScale*self.collDist
+
+#-------------------------------------------------------------
+#   Make Cloth
+#-------------------------------------------------------------
+
+class DAZ_OT_MakeCloth(DazPropsOperator, IsMesh):
+    bl_idname = "daz.make_cloth"
+    bl_label = "Make Cloth"
+    bl_description = "Add cloth modifiers to selected meshes"
+    bl_options = {'UNDO'}
+
+    simPreset : EnumProperty(
+        items = [('cotton.json', "Cotton", "Cotton"),
+                 ('denim.json', "Denim", "Denim"),
+                 ('leather.json', "Leather", "Leather"),
+                 ('rubber.json', "Rubber", "Rubber"),
+                 ('silk.json', "Silk", "Silk")],
+        name = "Preset",
+        description = "Simulation preset")
+
+    pinGroup : StringProperty(
+        name = "Pin Group",
+        description = "Use this group as pin group",
+        default = "DForce Pin")
+
+    simQuality : IntProperty(
+        name = "Simulation Quality",
+        description = "Simulation Quality",
+        default = 16)
+
+    collQuality : IntProperty(
+        name = "Collision Quality",
+        description = "Collision Quality",
+        default = 4)
+
+    gsmFactor : FloatProperty(
+        name = "GSM Factor",
+        description = "GSM Factor (vertex mass multiplier)",
+        min = 0.0,
+        default = 0.5)
+
+    collDistMin : FloatProperty(
+        name = "Collision Distance",
+        description = "Minimun collision distance (mm)",
+        min = 1.0, max = 20.0,
+        default = 1.0)
+
+    def draw(self, context):
+        self.layout.prop(self, "simPreset")
+        self.layout.prop(self, "pinGroup")
+        self.layout.prop(self, "simQuality")
+        self.layout.prop(self, "collQuality")
+        self.layout.prop(self, "gsmFactor")
+        self.layout.prop(self, "collDistMin")
+
+    def run(self, context):
+        for ob in getSelectedMeshes(context):
+            self.addCloth(ob)
+
+    def addCloth(self, ob):
+        scale = ob.DazScale
+        collision = hideModifier(ob, 'COLLISION')
+        subsurf = hideModifier(ob, 'SUBSURF')
+        multires = hideModifier(ob, 'MULTIRES')
+
+        cloth = ob.modifiers.new("Cloth", 'CLOTH')
+        cset = cloth.settings
+        self.setPreset(cset)
+        cset.mass *= self.gsmFactor
+        cset.quality = self.simQuality
+        # Collision settings
+        colset = cloth.collision_settings
+        colset.distance_min = 0.1*scale*self.collDistMin
+        colset.self_distance_min = 0.1*scale*self.collDistMin
+        colset.collision_quality = self.collQuality
+        colset.use_self_collision = True
+        # Pinning
+        cset.vertex_group_mass = self.pinGroup
+        cset.pin_stiffness = 1.0
+
+        if collision:
+            collision.restore(ob)
+        if subsurf:
+            subsurf.restore(ob)
+        if multires:
+            multires.restore(ob)
+
+
+    def setPreset(self, cset):
+        global theSimPresets
+        if not theSimPresets:
+            from .load_json import loadJson
+            folder = os.path.dirname(__file__) + "/data/presets"
+            for file in os.listdir(folder):
+                filepath = os.path.join(folder, file)
+                theSimPresets[file] = loadJson(filepath)
+        struct = theSimPresets[self.simPreset]
+        for key,value in struct.items():
+            setattr(cset, key, value)
 
 #-------------------------------------------------------------
 #  studio/modifier/dynamic_hair_follow
@@ -239,6 +261,16 @@ class SimSet(DForce):
 #-------------------------------------------------------------
 #  class for storing modifiers
 #-------------------------------------------------------------
+
+def hideModifier(ob, mtype):
+    mod = getModifier(ob, mtype)
+    if mod:
+        store = ModStore(mod)
+        ob.modifiers.remove(mod)
+        return store
+    else:
+        return None
+
 
 class ModStore:
     def __init__(self, mod):
@@ -282,3 +314,20 @@ class ModStore:
             except:
                 pass
 
+
+#-------------------------------------------------------------
+#   Initialize
+#-------------------------------------------------------------
+
+classes = [
+    DAZ_OT_MakeCollision,
+    DAZ_OT_MakeCloth,
+]
+
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+def unregister():
+    for cls in classes:
+        bpy.utils.unregister_class(cls)

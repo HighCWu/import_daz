@@ -240,16 +240,20 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.prune_vertex_groups")
             box.operator("daz.create_graft_groups")
             box.operator("daz.apply_subsurf")
+            box.operator("daz.copy_modifiers")
             box.operator("daz.find_seams")
             box.operator("daz.get_finger_print")
             box.operator("daz.mesh_add_pinning")
             if bpy.app.version >= (2,90,0):
                 box.operator("daz.make_multires")
-            box.separator()
-            box.label(text="Speed up simulations")
+
+        layout.separator()
+        box = layout.box()
+        if showBox(scn, "DazShowSimulation", box):
             box.operator("daz.make_deflection")
             box.operator("daz.transfer_vertex_groups")
-            box.operator("daz.copy_modifiers")
+            box.operator("daz.make_collision")
+            box.operator("daz.make_cloth")
 
         layout.separator()
         box = layout.box()

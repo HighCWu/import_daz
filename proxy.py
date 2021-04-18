@@ -1529,7 +1529,7 @@ class DAZ_OT_AddPush(DazOperator, IsMesh):
 class DAZ_OT_MakeDeflection(DazPropsOperator, IsMesh):
     bl_idname = "daz.make_deflection"
     bl_label = "Make Deflection"
-    bl_description = "Make a deflection object"
+    bl_description = "Make a low-poly deflection mesh for the active mesh"
     bl_options = {'UNDO'}
 
     offset : FloatProperty(

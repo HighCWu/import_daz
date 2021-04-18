@@ -98,15 +98,8 @@ class GlobalSettings:
         self.useMultires = True
         self.useMultiShapes = True
         self.useAutoSmooth = False
-
         self.useSimulation = True
-        self.useInfluenceOnly = False
-        self.useDazSimSettings = False
-        self.simPreset = 'COTTON'
-        self.simQuality = 16
-        self.collQuality = 4
-        self.gsmFactor = 0.5
-        self.collDistMin = 1.0
+
 
     SceneTable = {
         # General
@@ -160,16 +153,7 @@ class GlobalSettings:
         "DazBuildHighdef" : "buildHighdef",
         "DazMultires" : "useMultires",
         "DazUseAutoSmooth" : "useAutoSmooth",
-
-        # Simulation
-        "DazInfluenceOnly" : "useInfluenceOnly",
         "DazSimulation" : "useSimulation",
-        "DazSimSettings" : "useDazSimSettings",
-        "DazSimPreset" : "simPreset",
-        "DazSimQuality" : "simQuality",
-        "DazCollQuality" : "collQuality",
-        "DazGsmFactor" : "gsmFactor",
-        "DazCollDistMin" : "collDistMin",
     }
 
     def fixPath(self, path):

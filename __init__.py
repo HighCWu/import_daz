@@ -122,6 +122,7 @@ def register():
         udim.register()
         facecap.register()
     hdmorphs.register()
+    dforce.register()
 
     settings.GS.loadDefaults()
 
@@ -158,6 +159,7 @@ def unregister():
         udim.unregister()
         facecap.unregister()
     hdmorphs.unregister()
+    dforce.unregister()
 
 
 if __name__ == "__main__":

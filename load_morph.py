@@ -415,7 +415,7 @@ class LoadMorph(DriverUser):
             else:
                 fcu = None
             bname,drivers = self.findSumDriver(pb, channel, idx, (pb, fcu, {}))
-            drivers[prop] = (factor, 0)
+            drivers[prop] = factor
         pb.DazDriven = True
 
 
@@ -431,7 +431,7 @@ class LoadMorph(DriverUser):
                 bname,drivers = self.findSumDriver(pb, "scale", idx, (pb, None, {}))
                 for pname in istruct.keys():
                     prop = self.getParentScale(pname, idx)
-                    drivers[prop] = (-1, 0)
+                    drivers[prop] = -1
 
 
     def findSumDriver(self, pb, channel, idx, data):
@@ -581,7 +581,7 @@ class LoadMorph(DriverUser):
         struct = self.restdrivers[rest] = {}
         for dtype,raw,factor in drivers:
             if dtype == 'PROP':
-                struct[finalProp(raw)] = (factor, 0.0)
+                struct[finalProp(raw)] = factor
 
 
     def addPathVar(self, fcu, varname, rna, path):
@@ -604,7 +604,7 @@ class LoadMorph(DriverUser):
             for mult in self.mult:
                 mstring += "%s*" % varname
                 multfinal = finalProp(mult)
-                self.ensureExists(mult, multfinal, 1.0)
+                self.ensureExists(mult, multfinal, 1)
                 self.addPathVar(fcu, varname, self.amt, propRef(multfinal))
                 varname = nextLetter(varname)
             return "%s(%s)" % (mstring, string)
@@ -815,7 +815,6 @@ class LoadMorph(DriverUser):
 
     def recoverOldDrivers(self, sumfcu, drivers):
         from .driver import getRnaDriver
-        default = 0.0
         for var in sumfcu.driver.variables:
             trg = var.targets[0]
             if trg.id_type == 'OBJECT':
@@ -844,7 +843,7 @@ class LoadMorph(DriverUser):
                                    "EXPR %s" % fcu2.driver.expression +
                                    "TARGETS %s" % list(targets.keys()))
                             reportError(msg, trigger=(0,0))
-                        drivers[prop] = (factor, default)
+                        drivers[prop] = factor
                     word1 = word2[1:]
 
 
@@ -893,28 +892,19 @@ class LoadMorph(DriverUser):
 
 
     def getBatches(self, drivers):
-        def getTermDriverExpr(varname, factor, default):
-            if default > 0:
-                term = "(%s+%g)" % (varname, default)
-            elif default < 0:
-                term = "(%s-%g)" % (varname, default)
-            else:
-                term = varname
-            #if factor == 1:
-            #    return "+%s" % term
+        def getTermDriverExpr(varname, factor):
             if factor < 0:
-                return "%g*%s" % (factor, term)
+                return "%g*%s" % (factor, varname)
             else:
-                return "+%g*%s" % (factor, term)
+                return "+%g*%s" % (factor, varname)
 
         batches = []
         string = ""
         nterms = 0
         varname = "a"
         vars = []
-        for final,data in drivers.items():
-            factor,default = data
-            string += getTermDriverExpr(varname, factor, default)
+        for final,factor in drivers.items():
+            string += getTermDriverExpr(varname, factor)
             nterms += 1
             vars.append((varname, final))
             varname = nextLetter(varname)
@@ -975,7 +965,7 @@ class LoadMorph(DriverUser):
 
 def buildBoneFormula(asset, rig, errors):
 
-    def buildChannel(exprs, pb, channel, default):
+    def buildChannel(exprs, pb, channel):
         lm = LoadMorph(rig, None)
         for idx,expr in exprs.items():
             factor = expr["factor"]
@@ -997,7 +987,7 @@ def buildBoneFormula(asset, rig, errors):
             continue
         pb = rig.pose.bones[driven]
         if "rotation" in expr.keys():
-            buildChannel(expr["rotation"], pb, "rotation_euler", Zero)
+            buildChannel(expr["rotation"], pb, "rotation_euler")
 
 
 #------------------------------------------------------------------
