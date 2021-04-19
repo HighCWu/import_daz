@@ -1591,16 +1591,19 @@ class DAZ_OT_SeparateLooseParts(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        def getCollection(ob):
+        def getCollections(ob, scn):
+            colls = []
+            if ob.name in scn.collection.objects.keys():
+                colls.append(scn.collection)
             for coll in bpy.data.collections:
                 if ob.name in coll.objects.keys():
-                    return coll
-            return None
+                    colls.append(coll)
+            return colls
 
         ob = context.object
-        coll = getCollection(ob)
-        if coll is None:
-            raise DazError("Object %s not in any collection" % ob.name)
+        colls = getCollections(ob, context.scene)
+        if not colls:
+            return
         fclusters = separateLoose(ob)
         idx = -1
         for _assoc,verts,faces,uvcoord in fclusters:
@@ -1610,12 +1613,15 @@ class DAZ_OT_SeparateLooseParts(DazOperator, IsMesh):
             uvlayer = me.uv_layers.new(name="Default")
             for n,uv in enumerate(uvcoord):
                 uvlayer.data[n].uv = uv
+            for mat in ob.data.materials:
+                me.materials.append(mat)
             if idx == 0:
                 nob = ob
                 ob.data = me
             else:
                 nob = bpy.data.objects.new(ob.name, me)
-                coll.objects.link(nob)
+                for coll in colls:
+                    coll.objects.link(nob)
                 nob.parent = ob.parent
             nob.select_set(True)
 
