@@ -538,7 +538,7 @@ class CyclesTree:
                 power = 2
             if wttex:
                 slot = 0
-                if False and wttex.type == 'TEX_IMAGE':
+                if wttex.type == 'TEX_IMAGE':
                     img = wttex.image
                     if img and img.file_format in ['PNG']:
                         slot = "Alpha"
