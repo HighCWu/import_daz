@@ -244,6 +244,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.copy_modifiers")
             box.operator("daz.find_seams")
             box.operator("daz.get_finger_print")
+            box.operator("daz.separate_loose_parts")
             box.operator("daz.mesh_add_pinning")
             if bpy.app.version >= (2,90,0):
                 box.operator("daz.make_multires")

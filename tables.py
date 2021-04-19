@@ -150,4 +150,3 @@ def findTexVerts(ob, vertfaces):
                 vt += 1
             texface.append(vts[m1])
     return texverts, texfaces
-

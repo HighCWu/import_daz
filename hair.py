@@ -646,7 +646,8 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
         if self.strandType == 'SHEET':
             hairs = []
             if self.useSeparateLoose:
-                bpy.ops.mesh.separate(type='LOOSE')
+                #bpy.ops.mesh.separate(type='LOOSE')
+                bpy.ops.daz.separate_loose_parts()
                 print("Loose parts separated")
             bpy.ops.object.mode_set(mode='OBJECT')
             hname = hair.name
