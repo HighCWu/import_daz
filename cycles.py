@@ -965,37 +965,60 @@ class CyclesTree:
         if not isBlack(color):
             from .cgroup import EmissionGroup
             self.column += 1
-            #emit = self.addNode("ShaderNodeEmission")
             emit = self.addGroup(EmissionGroup, "DAZ Emission")
+            self.addEmitColor(emit, "Color")
+            strength = self.getLuminance(emit)
+            emit.inputs["Strength"].default_value = strength
             self.links.new(self.getCyclesSocket(), emit.inputs["Cycles"])
             self.links.new(self.getEeveeSocket(), emit.inputs["Eevee"])
             self.cycles = self.eevee = emit
-            color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)
-            self.linkColor(tex, emit, color, "Color")
-            if tex is None:
-                channel = self.material.getChannel(["Luminance"])
-                if channel:
-                    tex = self.addTexImageNode(channel, "COLOR")
-                    self.linkColor(tex, emit, color, "Color")
+            self.addOneSided()
 
-            lum = self.getValue(["Luminance"], 1500)
-            # "cd/m^2", "kcd/m^2", "cd/ft^2", "cd/cm^2", "lm", "W"
-            units = self.getValue(["Luminance Units"], 3)
-            factors = [1, 1000, 10.764, 10000, 1, 1]
-            strength = lum/2 * factors[units] / 15000
-            if units >= 4:
-                self.material.geoemit.append(emit.inputs["Strength"])
-                if units == 5:
-                    strength *= self.getValue(["Luminous Efficacy"], 1)
-            emit.inputs["Strength"].default_value = strength
 
-            twosided = self.getValue(["Two Sided Light"], False)
-            if not twosided:
-                from .cgroup import OneSidedGroup
-                node = self.addGroup(OneSidedGroup, "DAZ One-Sided")
-                self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])
-                self.links.new(self.getEeveeSocket(), node.inputs["Eevee"])
-                self.cycles = self.eevee = node
+    def addEmitColor(self, emit, slot):
+        color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)
+        if tex is None:
+            _,tex = self.getColorTex(["Luminance"], "COLOR", BLACK)
+        temp = self.getValue(["Emission Temperature"], None)
+        if temp is None:
+            self.linkColor(tex, emit, color, slot)
+            return
+        elif temp == 0:
+            temp = 6500
+        blackbody = self.addNode("ShaderNodeBlackbody", self.column-2)
+        blackbody.inputs["Temperature"].default_value = temp
+        if isWhite(color) and tex is None:
+            self.links.new(blackbody.outputs["Color"], emit.inputs[slot])
+        else:
+            mult = self.addNode("ShaderNodeMixRGB", self.column-1)
+            mult.blend_type = 'MULTIPLY'
+            mult.inputs[0].default_value = 1
+            self.links.new(blackbody.outputs["Color"], mult.inputs[1])
+            self.linkColor(tex, mult, color, 2)
+            self.links.new(mult.outputs[0], emit.inputs[slot])
+
+
+    def getLuminance(self, emit):
+        lum = self.getValue(["Luminance"], 1500)
+        # "cd/m^2", "kcd/m^2", "cd/ft^2", "cd/cm^2", "lm", "W"
+        units = self.getValue(["Luminance Units"], 3)
+        factors = [1, 1000, 10.764, 10000, 1, 1]
+        strength = lum/2 * factors[units] / 15000
+        if units >= 4:
+            self.material.geoemit.append(emit.inputs["Strength"])
+            if units == 5:
+                strength *= self.getValue(["Luminous Efficacy"], 1)
+        return strength
+
+
+    def addOneSided(self):
+        twosided = self.getValue(["Two Sided Light"], False)
+        if not twosided:
+            from .cgroup import OneSidedGroup
+            node = self.addGroup(OneSidedGroup, "DAZ One-Sided")
+            self.links.new(self.getCyclesSocket(), node.inputs["Cycles"])
+            self.links.new(self.getEeveeSocket(), node.inputs["Eevee"])
+            self.cycles = self.eevee = node
 
     #-------------------------------------------------------------
     #   Volume

@@ -126,9 +126,9 @@ class PbrTree(CyclesTree):
         if not GS.useEmission:
             return
         elif "Emission" in self.pbr.inputs.keys():
-            color,tex = self.getColorTex("getChannelEmissionColor", "COLOR", BLACK)
-            if color != BLACK:
-                self.linkColor(tex, self.pbr, color, "Emission")
+            color = self.getColor("getChannelEmissionColor", BLACK)
+            if not isBlack(color):
+                self.addEmitColor(self.pbr, "Emission")
         else:
             CyclesTree.buildEmission(self)
             self.postPBR = True
