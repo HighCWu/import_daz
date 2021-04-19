@@ -47,8 +47,11 @@ class Channels:
                 self.channels = copy.deepcopy(asset.channels)
         for key,data in struct.items():
             if key == "extra":
-                self.extra = data
-                for extra in data:
+                if isinstance(data, list):
+                    self.extra = data
+                else:
+                    self.extra = [data]
+                for extra in self.extra:
                     self.setExtra(extra)
                     if "channels" in extra.keys():
                         for cstruct in extra["channels"]:
@@ -69,8 +72,11 @@ class Channels:
     def update(self, struct):
         for key,data in struct.items():
             if key == "extra":
-                self.extra = data
-                for extra in data:
+                if isinstance(data, list):
+                    self.extra = data
+                else:
+                    self.extra = [data]
+                for extra in self.extra:
                     self.setExtra(extra)
                     if "channels" in extra.keys():
                         for cstruct in extra["channels"]:
