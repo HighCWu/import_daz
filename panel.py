@@ -251,6 +251,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowSimulation", box):
+            box.operator("daz.make_simulation")
+            box.separator()
             box.operator("daz.make_deflection")
             box.operator("daz.make_collision")
             box.operator("daz.make_cloth")

@@ -301,7 +301,6 @@ class Figure(Node):
         self.rigtype = getRigType1(inst.bones.keys())
         center = d2b(inst.attributes["center_point"])
         Asset.build(self, context, inst)
-        inst.prebuildChannels()
         for geo in inst.geometries:
             geo.buildObject(context, inst, center)
             geo.rna.location = Zero

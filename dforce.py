@@ -78,6 +78,7 @@ class DynSim(DForce):
             return
         ob = geonode.rna
         if ob and ob.type == 'MESH':
+            ob.DazCloth = True
             self.addPinVertexGroup(ob, geonode)
 
 
@@ -118,12 +119,7 @@ class DynSim(DForce):
 #   Make Collision
 #-------------------------------------------------------------
 
-class DAZ_OT_MakeCollision(DazPropsOperator, IsMesh):
-    bl_idname = "daz.make_collision"
-    bl_label = "Make Collision"
-    bl_description = "Add collision modifiers to selected meshes"
-    bl_options = {'UNDO'}
-
+class Collision:
     collDist : FloatProperty(
         name = "Collision Distance",
         description = "Minimun collision distance (mm)",
@@ -132,10 +128,6 @@ class DAZ_OT_MakeCollision(DazPropsOperator, IsMesh):
 
     def draw(self, context):
         self.layout.prop(self, "collDist")
-
-    def run(self, context):
-        for ob in getSelectedMeshes(context):
-            self.addCollision(ob)
 
     def addCollision(self, ob):
         subsurf = hideModifier(ob, 'SUBSURF')
@@ -149,16 +141,22 @@ class DAZ_OT_MakeCollision(DazPropsOperator, IsMesh):
         if multires:
             multires.restore(ob)
 
+
+class DAZ_OT_MakeCollision(DazPropsOperator, Collision, IsMesh):
+    bl_idname = "daz.make_collision"
+    bl_label = "Make Collision"
+    bl_description = "Add collision modifiers to selected meshes"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        for ob in getSelectedMeshes(context):
+            self.addCollision(ob)
+
 #-------------------------------------------------------------
 #   Make Cloth
 #-------------------------------------------------------------
 
-class DAZ_OT_MakeCloth(DazPropsOperator, IsMesh):
-    bl_idname = "daz.make_cloth"
-    bl_label = "Make Cloth"
-    bl_description = "Add cloth modifiers to selected meshes"
-    bl_options = {'UNDO'}
-
+class Cloth:
     simPreset : EnumProperty(
         items = [('cotton.json', "Cotton", "Cotton"),
                  ('denim.json', "Denim", "Denim"),
@@ -189,23 +187,13 @@ class DAZ_OT_MakeCloth(DazPropsOperator, IsMesh):
         min = 0.0,
         default = 0.5)
 
-    collDistMin : FloatProperty(
-        name = "Collision Distance",
-        description = "Minimun collision distance (mm)",
-        min = 1.0, max = 20.0,
-        default = 1.0)
-
     def draw(self, context):
         self.layout.prop(self, "simPreset")
         self.layout.prop(self, "pinGroup")
         self.layout.prop(self, "simQuality")
         self.layout.prop(self, "collQuality")
         self.layout.prop(self, "gsmFactor")
-        self.layout.prop(self, "collDistMin")
 
-    def run(self, context):
-        for ob in getSelectedMeshes(context):
-            self.addCloth(ob)
 
     def addCloth(self, ob):
         scale = ob.DazScale
@@ -222,8 +210,8 @@ class DAZ_OT_MakeCloth(DazPropsOperator, IsMesh):
         cset.quality = self.simQuality
         # Collision settings
         colset = cloth.collision_settings
-        colset.distance_min = 0.1*scale*self.collDistMin
-        colset.self_distance_min = 0.1*scale*self.collDistMin
+        colset.distance_min = 0.1*scale*self.collDist
+        colset.self_distance_min = 0.1*scale*self.collDist
         colset.collision_quality = self.collQuality
         colset.use_self_collision = True
         # Pinning
@@ -249,6 +237,21 @@ class DAZ_OT_MakeCloth(DazPropsOperator, IsMesh):
         struct = theSimPresets[self.simPreset]
         for key,value in struct.items():
             setattr(cset, key, value)
+
+
+class DAZ_OT_MakeCloth(DazPropsOperator, Cloth, Collision, IsMesh):
+    bl_idname = "daz.make_cloth"
+    bl_label = "Make Cloth"
+    bl_description = "Add cloth modifiers to selected meshes"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        Cloth.draw(self, context)
+        Collision.draw(self, context)
+
+    def run(self, context):
+        for ob in getSelectedMeshes(context):
+            self.addCloth(ob)
 
 #-------------------------------------------------------------
 #  studio/modifier/dynamic_hair_follow
@@ -327,6 +330,60 @@ class ModStore:
             except:
                 pass
 
+#-------------------------------------------------------------
+#   Make Simulation
+#-------------------------------------------------------------
+
+class Settings:
+    filepath = "~/daz_importer_simulations.json"
+
+    props = ["simPreset", "pinGroup", "simQuality",
+             "collQuality", "gsmFactor", "collDist"]
+
+    def invoke(self, context, event):
+        from .fileutils import openSettingsFile
+        struct = openSettingsFile(self.filepath)
+        if struct:
+            print("Load settings from", self.filepath)
+            self.readSettings(struct)
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def readSettings(self, struct):
+        if "simulation-settings" in struct.keys():
+            settings = struct["simulation-settings"]
+            for key,value in settings.items():
+                if key in self.props:
+                    setattr(self, key, value)
+
+    def saveSettings(self):
+        from .load_json import saveJson
+        struct = {}
+        for key in self.props:
+            value = getattr(self, key)
+            struct[key] = value
+        filepath = os.path.expanduser(self.filepath)
+        saveJson({"simulation-settings" : struct}, filepath)
+        print("Settings file %s saved" % filepath)
+
+
+class DAZ_OT_MakeSimulation(DazOperator, Collision, Cloth, Settings):
+    bl_idname = "daz.make_simulation"
+    bl_label = "Make Simulation"
+    bl_description = "Create simulation from Daz data"
+    bl_options = {'UNDO'}
+
+    def draw(self, context):
+        Cloth.draw(self, context)
+        Collision.draw(self, context)
+
+    def run(self, context):
+        for ob in getVisibleMeshes(context):
+            if ob.DazCollision:
+                self.addCollision(ob)
+            if ob.DazCloth:
+                self.addCloth(ob)
+        self.saveSettings()
 
 #-------------------------------------------------------------
 #   Initialize
@@ -335,11 +392,16 @@ class ModStore:
 classes = [
     DAZ_OT_MakeCollision,
     DAZ_OT_MakeCloth,
+    DAZ_OT_MakeSimulation,
 ]
 
 def register():
+    bpy.types.Object.DazCollision = BoolProperty(default = True)
+    bpy.types.Object.DazCloth = BoolProperty(default = False)
+
     for cls in classes:
         bpy.utils.register_class(cls)
+
 
 def unregister():
     for cls in classes:

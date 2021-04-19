@@ -255,3 +255,26 @@ class MultiFile(ImportHelper):
                         filepaths.append(filepath)
         return filepaths
 
+#-------------------------------------------------------------
+#   Open settings file
+#-------------------------------------------------------------
+
+def openSettingsFile(filepath):
+    filepath = os.path.expanduser(filepath)
+    try:
+        fp = open(filepath, "r", encoding="utf-8-sig")
+    except:
+        fp = None
+    if fp:
+        import json
+        try:
+            return json.load(fp)
+        except json.decoder.JSONDecodeError as err:
+            print("File %s is corrupt" % filepath)
+            print("Error: %s" % err)
+            return None
+        finally:
+            fp.close()
+    else:
+        print("Could not open %s" % filepath)
+        return None

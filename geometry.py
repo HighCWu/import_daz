@@ -148,10 +148,6 @@ class GeoNode(Node, SimNode):
             if self.hdobject and self.hdobject != ob:
                 self.data.buildRigidity(self.hdobject)
 
-        if False and inst.vissim:
-            mod = ob.modifiers.new("Collision", 'COLLISION')
-            ob.collision.thickness_outer = 0.1*LS.scale
-
         if (self.type == "subdivision_surface" and
             self.data and
             (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):

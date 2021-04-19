@@ -214,29 +214,9 @@ class GlobalSettings:
         setattr(scn, "DazErrorPath", path)
 
 
-    def openFile(self, filepath):
-        filepath = os.path.expanduser(filepath)
-        try:
-            fp = open(filepath, "r", encoding="utf-8-sig")
-        except:
-            fp = None
-        if fp:
-            import json
-            try:
-                return json.load(fp)
-            except json.decoder.JSONDecodeError as err:
-                print("File %s is corrupt" % filepath)
-                print("Error: %s" % err)
-                return None
-            finally:
-                fp.close()
-        else:
-            print("Could not open %s" % filepath)
-            return None
-
-
     def load(self, filepath):
-        struct = self.openFile(filepath)
+        from .fileutils import openSettingsFile
+        struct = openSettingsFile(filepath)
         if struct:
             print("Load settings from", filepath)
             self.readDazSettings(struct)

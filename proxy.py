@@ -1599,6 +1599,12 @@ class DAZ_OT_MakeDeflection(DazPropsOperator, IsMesh):
                 ngrp = ngrps[g.group]
                 ngrp.add([nv.index], g.weight, 'REPLACE')
 
+        mod = getModifier(ob, 'ARMATURE')
+        if mod:
+            nmod = nob.modifiers.new(mod.name, 'ARMATURE')
+            nmod.object = mod.object
+            nmod.use_deform_preserve_volume = mod.use_deform_preserve_volume
+
         setActiveObject(context, nob)
         if self.useQuads:
             bpy.ops.object.mode_set(mode='EDIT')

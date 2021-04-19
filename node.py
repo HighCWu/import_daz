@@ -78,7 +78,6 @@ class SimNode:
         self.dynhairflw = None
         self.lintess = None
         self.simsets = []
-        self.vissim = False
 
 #-------------------------------------------------------------
 #   Instance
@@ -239,29 +238,22 @@ class Instance(Accessor, Channels, SimNode):
             child.groupChildren(coll)
 
 
-    def prebuildChannels(self):
-        return
-        self.vissim = True
-        for key in self.channels.keys():
-            if key == "Visible in Simulation":
-                self.vissim = self.getValue([key], False)
-
-
     def buildChannels(self, ob):
         for channel in self.channels.values():
             if self.ignoreChannel(channel):
                 continue
+            key = channel["id"]
             value = getCurrentValue(channel)
-            if channel["id"] == "Renderable":
+            if key == "Renderable":
                 if not value:
                     ob.hide_render = True
-            elif channel["id"] == "Visible in Viewport":
+            elif key == "Visible in Viewport":
                 if not (value or GS.showHiddenObjects):
                     setHideViewport(ob, True)
                     for geonode in self.geometries:
                         if geonode.rna:
                             setHideViewport(geonode.rna, True)
-            elif channel["id"] == "Visible":
+            elif key == "Visible":
                 if not (value or GS.showHiddenObjects):
                     ob.hide_render = True
                     setHideViewport(ob, True)
@@ -269,18 +261,20 @@ class Instance(Accessor, Channels, SimNode):
                         if geonode.rna:
                             geonode.rna.hide_render = True
                             setHideViewport(geonode.rna, True)
-            elif channel["id"] == "Selectable":
+            elif key == "Selectable":
                 if not (value or GS.showHiddenObjects):
                     ob.hide_select = True
-            elif channel["id"] == "Cast Shadows":
+            elif key == "Visible in Simulation":
+                ob.DazCollision = value
+            elif key == "Cast Shadows":
                 pass
-            elif channel["id"] == "Instance Mode":
+            elif key == "Instance Mode":
                 #print("InstMode", ob.name, value)
                 pass
-            elif channel["id"] == "Instance Target":
+            elif key == "Instance Target":
                 #print("InstTarg", ob.name)
                 pass
-            elif channel["id"] == "Point At":
+            elif key == "Point At":
                 pass
 
 
@@ -697,7 +691,6 @@ class Node(Asset, Formula, Channels):
 
     def build(self, context, inst):
         center = d2b(inst.attributes["center_point"])
-        inst.prebuildChannels()
         if inst.ignore:
             print("Ignore", inst)
         elif inst.geometries:
