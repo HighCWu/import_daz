@@ -537,11 +537,7 @@ class CyclesTree:
             else:
                 power = 2
             if wttex:
-                slot = 0
-                if wttex.type == 'TEX_IMAGE':
-                    img = wttex.image
-                    if img and img.file_format in ['PNG']:
-                        slot = "Alpha"
+                slot = self.getImageSlot(["Diffuse Overlay Weight"])
                 wttex = self.raiseToPower(wttex, power, slot)
             color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE)
             from .cgroup import DiffuseGroup
@@ -554,6 +550,13 @@ class CyclesTree:
             return True
         else:
             return False
+
+
+    def getImageSlot(self, attr):
+        if self.material.getImageMod(attr, "grayscale_mode") == "alpha":
+            return "Alpha"
+        else:
+            return 0
 
 
     def raiseToPower(self, tex, power, slot):

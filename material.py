@@ -436,6 +436,15 @@ class Material(Asset, Channels):
         return Vector(lin)
 
 
+    def getImageMod(self, attr, key):
+        channel = self.getChannel(attr)
+        if channel and "image_modification" in channel.keys():
+            mod = channel["image_modification"]
+            if key in mod.keys():
+                return mod[key]
+        return None
+
+
     def getTextures(self, channel):
         if isinstance(channel, tuple):
             channel = channel[0]
