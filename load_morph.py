@@ -128,17 +128,17 @@ class LoadMorph(DriverUser):
             return " -"
         elif isinstance(asset, Alias):
             return " _"
-        sname,ok = self.buildShapekey(asset)
+        skey,ok = self.buildShapekey(asset)
         if not ok:
             return " #"
         elif self.rig:
-            self.makeFormulas(asset, sname)
+            self.makeFormulas(asset, skey)
         return " *"
 
 
     def buildShapekey(self, asset, useBuild=True):
         from .modifier import Morph
-        from .driver import makePropDriver, setFloatProp
+        from .driver import makePropDriver
         if not (isinstance(asset, Morph) and
                 self.mesh and
                 asset.deltas):
@@ -172,7 +172,7 @@ class LoadMorph(DriverUser):
             skey.name = prop
             self.shapekeys[prop] = skey
             if self.rig:
-                final = self.addNewProp(prop)
+                final = self.addNewProp(prop, None, skey)
                 makePropDriver(propRef(final), skey, "value", self.amt, "x")
             pgs = self.mesh.data.DazBodyPart
             if prop in pgs.keys():
@@ -181,14 +181,14 @@ class LoadMorph(DriverUser):
                 item = pgs.add()
                 item.name = prop
             item.s = self.getBodyPart(asset)
-            return prop,True
+            return skey,True
         else:
             return None,True
 
 
-    def makeFormulas(self, asset, sname):
+    def makeFormulas(self, asset, skey):
         from .formula import Formula
-        self.addNewProp(asset.getName(), asset, sname)
+        self.addNewProp(asset.getName(), asset, skey)
         if not isinstance(asset, Formula):
             return
         exprs = asset.evalFormulas(self.rig, self.mesh)
@@ -222,7 +222,7 @@ class LoadMorph(DriverUser):
             raise RuntimeError("getFileRef", filepath)
 
 
-    def addNewProp(self, raw, asset=None, sname=None):
+    def addNewProp(self, raw, asset=None, skey=None):
         from .driver import setBoolProp
         from .morphing import setActivated
         final = finalProp(raw)
@@ -234,20 +234,20 @@ class LoadMorph(DriverUser):
             visible = (asset.visible or GS.useMakeHiddenSliders)
             self.visible[raw] = visible
             self.primary[raw] = True
-            if sname and not visible:
+            if skey and not visible:
                 return final
             elif asset.type == "bool":
                 setBoolProp(self.rig, raw, asset.value)
                 setBoolProp(self.amt, final, asset.value)
             elif asset.type == "float":
-                self.setFloatLimits(self.rig, raw, GS.rawLimits, asset)
-                self.setFloatLimits(self.amt, final, GS.finalLimits, asset)
+                self.setFloatLimits(self.rig, raw, GS.rawLimits, asset, skey)
+                self.setFloatLimits(self.amt, final, GS.finalLimits, asset, skey)
             elif asset.type == "int":
                 self.rig[raw] = 0
                 self.amt[final] = 0
             else:
-                self.setFloatLimits(self.rig, raw, GS.rawLimits, asset)
-                self.setFloatLimits(self.amt, final, GS.finalLimits, asset)
+                self.setFloatLimits(self.rig, raw, GS.rawLimits, asset, skey)
+                self.setFloatLimits(self.amt, final, GS.finalLimits, asset, skey)
                 reportError("BUG: Unknown asset type: %s.\nAsset: %s" % (asset.type, asset), trigger=(2,3))
             if visible:
                 setActivated(self.rig, raw, True)
@@ -255,14 +255,23 @@ class LoadMorph(DriverUser):
         return final
 
 
-    def setFloatLimits(self, rna, prop, limits, asset):
+    def setFloatLimits(self, rna, prop, limits, asset, skey):
         from .driver import setFloatProp
         if limits == 'DAZ':
             setFloatProp(rna, prop, 0.0, asset.min, asset.max)
+            if skey:
+                skey.slider_min = asset.min
+                skey.slider_max = asset.max
         elif limits == 'CUSTOM':
             setFloatProp(rna, prop, 0.0, GS.customMin, GS.customMax)
+            if skey:
+                skey.slider_min = GS.customMin
+                skey.slider_max = GS.customMax
         else:
             setFloatProp(rna, prop, 0.0, None, None)
+            if skey:
+                skey.slider_min = 0.0
+                skey.slider_max = 1.0
 
 
     def makeValueFormula(self, output, expr):

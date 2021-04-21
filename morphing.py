@@ -1591,10 +1591,16 @@ class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
         description = "Maximum slider value",
         min = 0.0, max = 10.0)
 
+    allShapes : BoolProperty(
+        name = "All Shapekeys",
+        description = "Update all shapekey sliders",
+        default = True)
+
     def draw(self, context):
         scn = context.scene
         self.layout.prop(self, "min")
         self.layout.prop(self, "max")
+        self.layout.prop(self, "allShapes")
 
 
     def run(self, context):
@@ -1622,12 +1628,15 @@ class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
         for ob in rig.children:
             if ob.type == 'MESH' and ob.data.shape_keys:
                 for skey in ob.data.shape_keys.key_blocks:
-                    if skey.name.lower() in props:
+                    if self.allShapes or skey.name.lower() in props:
                         skey.slider_min = GS.customMin
                         skey.slider_max = GS.customMax
-        for prop in rig.keys():
-            if prop.lower() in props:
-                setFloatProp(rig, prop, rig[prop], GS.customMin, GS.customMax)
+        amt = rig.data
+        for raw in rig.keys():
+            if raw.lower() in props:
+                final = finalProp(raw)
+                setFloatProp(rig, raw, rig[raw], GS.customMin, GS.customMax)
+                setFloatProp(amt, final, amt[final], GS.customMin, GS.customMax)
         updateRigDrivers(context, rig)
         print("Slider limits updated")
 
@@ -1845,7 +1854,7 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, Category
         skey = skeys.key_blocks[sname]
         if getShapekeyDriver(skeys, skey.name):
             raise DazError("Shapekey %s is already driven" % skey.name)
-        setFloatProp(rig, sname, skey.value, GS.customMin, GS.customMax)
+        setFloatProp(rig, sname, skey.value, skey.slider_min, skey.slider_max)
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
         addDriverVar(fcu, "a", propRef(sname), rig)
