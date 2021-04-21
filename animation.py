@@ -1375,6 +1375,82 @@ class DAZ_OT_LoadPoses(HideOperator, JsonFile, SingleFile, IsArmature):
         return None
 
 #----------------------------------------------------------
+#   Unflip animation
+#----------------------------------------------------------
+
+class DAZ_OT_UnflipAction(DazOperator, IsArmature):
+    bl_idname = "daz.unflip_action"
+    bl_label = "Unflip Action"
+    bl_description = "Change pose or action to fit unflipped armature. For BVH export"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        rig = context.object
+        self.setupFlipper(rig)
+        if rig.animation_data:
+            act = rig.animation_data.action
+        else:
+            raise DazError("No action found")
+        nact = bpy.data.actions.new(act.name + "_Unflipped")
+        for fcu in act.fcurves:
+            bname,flip = self.getBoneFlip(fcu)
+            if flip and bname in self.flipper.keys():
+                idx,sgn = self.flipper[bname][fcu.array_index]
+                nfcu = nact.fcurves.new(fcu.data_path, index=idx, action_group=bname)
+                self.flipFcurve(fcu, nfcu, sgn)
+            else:
+                if bname:
+                    grp = bname
+                else:
+                    grp = ""
+                nfcu = nact.fcurves.new(fcu.data_path, index=fcu.array_index, action_group=grp)
+                self.flipFcurve(fcu, nfcu, 1)
+
+
+    def getBoneFlip(self, fcu):
+        channel = fcu.data_path.rsplit(".",1)[-1]
+        if channel in ["location", "rotation_euler", "scale"]:
+            flip = True
+        else:
+            flip = False
+        words = fcu.data_path.split('"')
+        if words[0] == "pose.bones[":
+            return words[1],flip
+        return None,False
+
+
+    def flipFcurve(self, fcu, nfcu, sgn):
+        for kp in fcu.keyframe_points:
+            t,y = kp.co
+            nfcu.keyframe_points.insert(t, sgn*y, options={'FAST'})
+
+
+    def setupFlipper(self, rig):
+        from math import pi
+        RX = Matrix.Rotation(pi/2, 3, 'X')
+        self.flipper = {}
+        for bone in rig.data.bones:
+            euler = Euler(Vector(bone.DazOrient)*D, 'XYZ')
+            dmat = euler.to_matrix()
+            bmat = bone.matrix_local.to_3x3()
+            bmat = RX.inverted() @ bmat @ RX
+            pmat = dmat.inverted() @ bmat
+            bflip = []
+            for i in range(3):
+                vec = pmat.col[i]
+                clist = [(abs(vec[j]), j, vec[j]) for j in range(3)]
+                clist.sort()
+                _,n,comp = clist[2]
+                bflip.append((n, -1 if comp < 0 else 1))
+            self.flipper[bone.name] = bflip
+            if bone.name in ["hip", "pelvis", "lThighBend", "lShldrBend"]:
+                print("\nBO", bone.name)
+                print("BB", bmat)
+                print("DD", dmat)
+                print("PP", pmat)
+                print("FF", bone.name, bflip)
+
+#----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
@@ -1389,6 +1465,7 @@ classes = [
     DAZ_OT_PruneAction,
     DAZ_OT_SavePoses,
     DAZ_OT_LoadPoses,
+    DAZ_OT_UnflipAction,
 ]
 
 def register():
