@@ -111,7 +111,7 @@ class WorldMaterial(CyclesMaterial):
             return
         mode = self.getValue(["Environment Mode"], 3)
         # [Dome and Scene, Dome Only, Sun-Skies Only, Scene Only]
-        if mode == 3:
+        if mode == 4:
             print("Scene Only")
             return
 
@@ -129,7 +129,7 @@ class WorldMaterial(CyclesMaterial):
         if (not foundenv and
             mode in [0,3] and
             self.background):
-            print("Draw backdrop", mode, self.background)
+            print("Draw background", mode, self.background)
             self.envmap = None
             fixray = True
             foundenv = True
@@ -183,8 +183,6 @@ class WorldTree(CyclesTree):
 
 
     def build(self):
-        from mathutils import Euler, Matrix
-
         backdrop = self.material.backdrop
         background = self.material.background
         envmap = self.material.envmap
@@ -222,6 +220,8 @@ class WorldTree(CyclesTree):
 
 
     def buildEnvmap(self, envmap):
+        from mathutils import Euler
+
         self.makeTree(slot="Generated")
         self.column = 1
         rot = self.getValue(["Dome Rotation"], 0)
