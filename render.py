@@ -29,7 +29,7 @@ import bpy
 import os
 from .asset import Asset
 from .channels import Channels
-from .material import Material, WHITE, isBlack
+from .material import Material, WHITE, BLACK, isBlack
 from .cycles import CyclesMaterial, CyclesTree
 from .cgroup import CyclesGroup
 from .utils import *
@@ -81,7 +81,7 @@ class RenderOptions(Asset, Channels):
 
 
     def build(self, context):
-        if LS.useEnvironment:
+        if LS.useWorld != 'NEVER':
             self.world = WorldMaterial(self, self.fileref)
             self.world.build(context)
 
@@ -111,31 +111,27 @@ class WorldMaterial(CyclesMaterial):
             return
         mode = self.getValue(["Environment Mode"], 3)
         # [Dome and Scene, Dome Only, Sun-Skies Only, Scene Only]
-        if mode == 4:
-            print("Scene Only")
+        if mode == 3 and LS.useWorld != 'ALWAYS':
+            print("Import scene only")
             return
 
+        scn = context.scene
         self.envmap = self.getChannel(["Environment Map"])
-        fixray = False
-        foundenv = False
+        scn.render.film_transparent = False
         if mode in [0,1] and self.envmap:
             print("Draw environment", mode)
             if not self.getValue(["Draw Dome"], False):
                 print("Draw Dome turned off")
+                scn.render.film_transparent = True
             elif self.getImageFile(self.envmap) is None:
                 print("Don't draw environment. Image file not found")
-            else:
-                foundenv = True
-        if (not foundenv and
-            mode in [0,3] and
-            self.background):
-            print("Draw background", mode, self.background)
+        else:
             self.envmap = None
-            fixray = True
-            foundenv = True
-        if not foundenv:
-            print("Dont draw environment. Environment mode == %d" % mode)
-            return
+            if self.background:
+                print("Draw background", mode, self.background)
+            else:
+                scn.render.film_transparent = True
+                self.background = BLACK
 
         self.refractive = False
         Material.build(self, context)
@@ -144,8 +140,8 @@ class WorldMaterial(CyclesMaterial):
         world = self.rna = bpy.data.worlds.new(self.name)
         world.use_nodes = True
         self.tree.build()
-        context.scene.world = world
-        if fixray:
+        scn.world = world
+        if self.envmap is None:
             vis = world.cycles_visibility
             vis.camera = True
             vis.diffuse = False
@@ -187,7 +183,6 @@ class WorldTree(CyclesTree):
         background = self.material.background
         envmap = self.material.envmap
         strength = 1
-        color = WHITE
         if envmap:
             tex, strength = self.buildEnvmap(envmap)
         elif backdrop:
@@ -196,26 +191,29 @@ class WorldTree(CyclesTree):
             tex = None
             self.makeTree()
 
-        self.column += 1
-        bg = self.addNode("ShaderNodeBackground")
-        bg.inputs["Strength"].default_value = strength
-        self.linkColor(tex, bg, color)
-
+        socket = None
+        if tex:
+            self.column += 1
+            bg = self.addNode("ShaderNodeBackground")
+            bg.inputs["Strength"].default_value = strength
+            self.linkColor(tex, bg, WHITE)
+            socket = bg.outputs["Background"]
         if background:
             dazbg = self.addGroup(BackgroundGroup, "DAZ Background")
             dazbg.inputs["Color"].default_value[0:3] = background
+            socket = dazbg.outputs["Color"]
+        if tex and background:
             self.column += 1
             mix = self.addNode("ShaderNodeMixShader")
             self.links.new(dazbg.outputs["Fac"], mix.inputs[0])
             self.links.new(bg.outputs["Background"], mix.inputs[1])
             self.links.new(dazbg.outputs["Color"], mix.inputs[2])
+            socket = mix.outputs[0]
 
         self.column += 1
         output = self.addNode("ShaderNodeOutputWorld")
-        if background:
-            self.links.new(mix.outputs[0], output.inputs["Surface"])
-        else:
-            self.links.new(bg.outputs["Background"], output.inputs["Surface"])
+        if socket:
+            self.links.new(socket, output.inputs["Surface"])
         self.prune()
 
 
@@ -287,7 +285,7 @@ class WorldTree(CyclesTree):
 #-------------------------------------------------------------
 
 def parseRenderOptions(renderSettings, sceneSettings, backdrop, fileref):
-    if not LS.useEnvironment:
+    if not LS.useWorld:
         return
     else:
         renderOptions = renderSettings["render_options"]

@@ -256,7 +256,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazHairMaterialMethod")
         box.separator()
         box.prop(scn, "DazViewportColor")
-        box.prop(scn, "DazUseEnvironment")
+        box.prop(scn, "DazUseWorld")
         box.prop(scn, "DazReuseMaterials")
         box.prop(scn, "DazBumpFactor")
         box.prop(scn, "DazFakeCaustics")
@@ -505,9 +505,12 @@ def register():
         name = "Viewport Color",
         description = "Method to display object in viewport")
 
-    bpy.types.Scene.DazUseEnvironment = BoolProperty(
-        name = "Environment",
-        description = "Load environment")
+    bpy.types.Scene.DazUseWorld = EnumProperty(
+        items = [('ALWAYS', "Always", "Always create world material"),
+                 ('DOME_BACKGROUND', "Dome Or Background", "Create world material from dome or background"),
+                 ('NEVER', "Never", "Never create world material")],
+        name = "World",
+        description = "When to create a world material")
 
     bpy.types.Scene.DazReuseMaterials = BoolProperty(
         name = "Reuse Materials",

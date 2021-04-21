@@ -77,7 +77,7 @@ class GlobalSettings:
         self.useDisplacement = True
         self.useEmission = True
         self.useReflection = True
-        self.useEnvironment = True
+        self.useWorld = 'DOME_BACKGROUND'
         self.reuseMaterials = False
         self.hairMaterialMethod = 'HAIR_BSDF'
 
@@ -121,7 +121,7 @@ class GlobalSettings:
         "DazRefractiveMethod" : "refractiveMethod",
         "DazHairMaterialMethod" : "hairMaterialMethod",
         "DazViewportColor" : "viewportColors",
-        "DazUseEnvironment" : "useEnvironment",
+        "DazUseWorld" : "useWorld",
         "DazReuseMaterials" : "reuseMaterials",
         "DazBumpFactor" : "bumpFactor",
         "DazFakeCaustics" : "useFakeCaustics",
@@ -371,7 +371,7 @@ class LocalSettings:
         self.applyMorphs = False
         self.useAnimations = False
         self.useUV = False
-        self.useEnvironment = False
+        self.useWorld = 'NEVER'
 
         self.collection = None
         self.hdcollection = None
@@ -443,7 +443,7 @@ class LocalSettings:
         self.useMaterials = True
         self.useModifiers = True
         self.useUV = True
-        self.useEnvironment = GS.useEnvironment
+        self.useWorld = GS.useWorld
 
         self.skinColor = btn.skinColor
         self.clothesColor = btn.clothesColor
