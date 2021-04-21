@@ -77,7 +77,7 @@ class GlobalSettings:
         self.useDisplacement = True
         self.useEmission = True
         self.useReflection = True
-        self.useWorld = 'DOME_BACKGROUND'
+        self.useWorld = 'DOME'
         self.reuseMaterials = False
         self.hairMaterialMethod = 'HAIR_BSDF'
 

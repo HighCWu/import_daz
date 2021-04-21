@@ -507,7 +507,7 @@ def register():
 
     bpy.types.Scene.DazUseWorld = EnumProperty(
         items = [('ALWAYS', "Always", "Always create world material"),
-                 ('DOME_BACKGROUND', "Dome Or Background", "Create world material from dome or background"),
+                 ('DOME', "Dome", "Create world material from dome"),
                  ('NEVER', "Never", "Never create world material")],
         name = "World",
         description = "When to create a world material")
