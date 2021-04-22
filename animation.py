@@ -1378,77 +1378,154 @@ class DAZ_OT_LoadPoses(HideOperator, JsonFile, SingleFile, IsArmature):
 #   Unflip animation
 #----------------------------------------------------------
 
-class DAZ_OT_UnflipAction(DazOperator, IsArmature):
+class DAZ_OT_UnflipAction(HideOperator, DazPropsOperator, IsArmature):
     bl_idname = "daz.unflip_action"
     bl_label = "Unflip Action"
     bl_description = "Change pose or action to fit unflipped armature. For BVH export"
     bl_options = {'UNDO'}
 
+    first : IntProperty(
+        name = "Start",
+        description = "First frame",
+        default = 1)
+
+    last : IntProperty(
+        name = "End",
+        description = "Last frame",
+        default = 1)
+
     def run(self, context):
+        from math import pi
+        self.Z = Matrix.Rotation(pi/2, 4, 'X')
         rig = context.object
-        self.setupFlipper(rig)
+        act = None
+        actname = "Pose"
         if rig.animation_data:
             act = rig.animation_data.action
-        else:
-            raise DazError("No action found")
-        nact = bpy.data.actions.new(act.name + "_Unflipped")
-        for fcu in act.fcurves:
-            bname,flip = self.getBoneFlip(fcu)
-            if flip and bname in self.flipper.keys():
-                idx,sgn = self.flipper[bname][fcu.array_index]
-                nfcu = nact.fcurves.new(fcu.data_path, index=idx, action_group=bname)
-                self.flipFcurve(fcu, nfcu, sgn)
-            else:
-                if bname:
-                    grp = bname
-                else:
-                    grp = ""
-                nfcu = nact.fcurves.new(fcu.data_path, index=fcu.array_index, action_group=grp)
-                self.flipFcurve(fcu, nfcu, 1)
-
-
-    def getBoneFlip(self, fcu):
-        channel = fcu.data_path.rsplit(".",1)[-1]
-        if channel in ["location", "rotation_euler", "scale"]:
-            flip = True
-        else:
-            flip = False
-        words = fcu.data_path.split('"')
-        if words[0] == "pose.bones[":
-            return words[1],flip
-        return None,False
-
-
-    def flipFcurve(self, fcu, nfcu, sgn):
-        for kp in fcu.keyframe_points:
-            t,y = kp.co
-            nfcu.keyframe_points.insert(t, sgn*y, options={'FAST'})
+            if act:
+                actname = act.name
+                rig.animation_data.action = None
+        self.setupFlipper(rig)
+        self.setupFrames(rig, context)
+        #self.saveFile("D:/home/myblends/test.bvh", rig)
+        #return
+        self.insertFrames(rig, context)
+        if rig.animation_data:
+            nact = rig.animation_data.action
+            nact.name = actname + "_Unflipped"
+            rig.animation_data.action = act
+            print("ACTION", nact.name)
 
 
     def setupFlipper(self, rig):
-        from math import pi
-        RX = Matrix.Rotation(pi/2, 3, 'X')
-        self.flipper = {}
-        for bone in rig.data.bones:
-            euler = Euler(Vector(bone.DazOrient)*D, 'XYZ')
-            dmat = euler.to_matrix()
-            bmat = bone.matrix_local.to_3x3()
-            bmat = RX.inverted() @ bmat @ RX
-            pmat = dmat.inverted() @ bmat
-            bflip = []
-            for i in range(3):
-                vec = pmat.col[i]
-                clist = [(abs(vec[j]), j, vec[j]) for j in range(3)]
-                clist.sort()
-                _,n,comp = clist[2]
-                bflip.append((n, -1 if comp < 0 else 1))
-            self.flipper[bone.name] = bflip
-            if bone.name in ["hip", "pelvis", "lThighBend", "lShldrBend"]:
-                print("\nBO", bone.name)
-                print("BB", bmat)
-                print("DD", dmat)
-                print("PP", pmat)
-                print("FF", bone.name, bflip)
+        self.F = {}
+        self.Finv = {}
+        self.idxs = {}
+        for pb in rig.pose.bones:
+            bone = pb.bone
+            euler = Euler(Vector(pb.bone.DazOrient)*D, 'XYZ')
+            dmat = euler.to_matrix().to_4x4()
+            dmat.col[3][0:3] = Vector(pb.bone.DazHead)*rig.DazScale
+            Fn = pb.bone.matrix_local.inverted() @ self.Z @ dmat
+            self.F[pb.name] = Fn
+            self.Finv[pb.name] = Fn.inverted()
+            idxs = self.idxs[pb.name] = []
+            for n in range(3):
+                idx = ord(pb.DazRotMode[n]) - ord('X')
+                idxs.append(idx)
+
+
+    def setupFrames(self, rig, context):
+        scn = context.scene
+        self.Ls = {}
+        for frame in range(self.first, self.last+1):
+            scn.frame_set(frame)
+            updateScene(context)
+            L = self.Ls[frame] = {}
+            for pb in rig.pose.bones:
+                bn = pb.name
+                L[bn] = self.Finv[bn] @ pb.matrix_basis @ self.F[bn]
+
+
+    def insertFrames(self, rig, context):
+        scn = context.scene
+        for frame in range(self.first, self.last+1):
+            scn.frame_set(frame)
+            updateScene(context)
+            L = self.Ls[frame]
+            for pb in rig.pose.bones:
+                Ln = L[pb.name]
+                if pb.name == "hip":
+                    pb.location = Ln.col[3][0:3]
+                    pb.keyframe_insert("location", frame=frame, group=pb.name)
+                pb.rotation_euler = Ln.to_euler(pb.DazRotMode)
+                pb.keyframe_insert("rotation_euler", frame=frame, group=pb.name)
+
+
+    def saveFile(self, filepath, rig):
+        with open(filepath, "w") as fp:
+            string = self.writeHierarchy(rig)
+            fp.write(string)
+            string = self.writeMotion(rig)
+            fp.write(string)
+
+
+    def writeHierarchy(self, rig):
+        string = "HIERARCHY\n"
+        roots = [pb for pb in rig.pose.bones if pb.parent is None]
+        self.bones = []
+        for root in roots:
+            string = self.writeJoint(string, root, "")
+        return string
+
+
+    def writeJoint(self, string, pb, pad):
+        self.bones.append(pb)
+        if pad == "":
+            string += "ROOT %s\n" % pb.name
+            x,y,z = pb.bone.DazHead
+        else:
+            string += "%sJOINT %s\n" % (pad, pb.name)
+            x,y,z = Vector(pb.bone.DazHead) - Vector(pb.bone.parent.DazHead)
+        string += "%s{\n%s  OFFSET %.6f %.6f %.6f\n" % (pad, pad, x, y, z)
+        if pad == "":
+            string += "  CHANNELS 6 Xposition Yposition Zposition "
+        else:
+            string += "%s  CHANNELS 3 " % pad
+        string += "%srotation %srotation %srotation\n" % tuple(pb.DazRotMode)
+        if pb.children:
+            for child in pb.children:
+                string = self.writeJoint(string, child, pad+"  ")
+        else:
+            x,y,z = Vector(pb.bone.DazTail) - Vector(pb.bone.DazHead)
+            string += (
+                "%s  End Site\n" % pad +
+                "%s  {\n" % pad +
+                "%s    OFFSET %.6f %.6f %.6f\n" % (pad, x, y, z) +
+                "%s  }\n" % pad)
+        string += "%s}\n" % pad
+        return string
+
+
+    def writeMotion(self, rig):
+        string = (
+            "MOTION\n" +
+            "Frames %d\n" % (self.last - self.first + 1) +
+            "Frame Time: 0.04\n")
+        for frame in range(self.first, self.last+1):
+            L = self.Ls[frame]
+            for pb in self.bones:
+                Ln = L[pb.name]
+                if pb.parent is None:
+                    loc = Vector(Ln.col[3][0:3]) / rig.DazScale
+                    x,y,z = loc + Vector(pb.bone.DazHead)
+                    string += "%.6f %.6f %.6f " % (x, y, z)
+                euler = Ln.to_euler(pb.DazRotMode)
+                idxs = self.idxs[pb.name]
+                for n in range(3):
+                    string += "%.6f " % (euler[idxs[n]] / D)
+            string += "\n"
+        return string
 
 #----------------------------------------------------------
 #   Initialize
