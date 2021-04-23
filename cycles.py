@@ -372,7 +372,7 @@ class CyclesTree:
         mat.node_tree.nodes.clear()
         self.nodes = mat.node_tree.nodes
         self.links = mat.node_tree.links
-        self.addTexco(slot)
+        return self.addTexco(slot)
 
 
     def addTexco(self, slot):
@@ -401,6 +401,7 @@ class CyclesTree:
 
         for key,uvset in self.material.uv_sets.items():
             self.addUvNode(key, uvset.name)
+        return node
 
 
     def addUvNode(self, key, uvname):

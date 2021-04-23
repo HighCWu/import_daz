@@ -111,7 +111,7 @@ class WorldMaterial(CyclesMaterial):
             return
         mode = self.getValue(["Environment Mode"], 3)
         # [Dome and Scene, Dome Only, Sun-Skies Only, Scene Only]
-        if mode == 3 and LS.useWorld != 'ALWAYS':
+        if LS.useWorld != 'ALWAYS' and mode == 3 and not self.background:
             print("Import scene only")
             return
 
@@ -182,32 +182,20 @@ class WorldTree(CyclesTree):
         backdrop = self.material.backdrop
         background = self.material.background
         envmap = self.material.envmap
-        strength = 1
+        self.texco = self.makeTree()
+        self.column = 5
+        envnode = bgnode = socket = None
         if envmap:
-            tex, strength = self.buildEnvmap(envmap)
-        elif backdrop:
-            tex = self.buildBackdrop(backdrop)
-        else:
-            tex = None
-            self.makeTree()
-
-        socket = None
-        if tex:
-            self.column += 1
-            bg = self.addNode("ShaderNodeBackground")
-            bg.inputs["Strength"].default_value = strength
-            self.linkColor(tex, bg, WHITE)
-            socket = bg.outputs["Background"]
+            envnode,socket = self.buildEnvmap(envmap)
         if background:
-            dazbg = self.addGroup(BackgroundGroup, "DAZ Background")
-            dazbg.inputs["Color"].default_value[0:3] = background
-            socket = dazbg.outputs["Color"]
-        if tex and background:
+            bgnode,socket = self.buildBackground(background, backdrop)
+
+        if envnode and bgnode:
             self.column += 1
             mix = self.addNode("ShaderNodeMixShader")
-            self.links.new(dazbg.outputs["Fac"], mix.inputs[0])
-            self.links.new(bg.outputs["Background"], mix.inputs[1])
-            self.links.new(dazbg.outputs["Color"], mix.inputs[2])
+            self.links.new(bgnode.outputs["Fac"], mix.inputs[0])
+            self.links.new(envnode.outputs["Background"], mix.inputs[1])
+            self.links.new(bgnode.outputs["Color"], mix.inputs[2])
             socket = mix.outputs[0]
 
         self.column += 1
@@ -220,8 +208,7 @@ class WorldTree(CyclesTree):
     def buildEnvmap(self, envmap):
         from mathutils import Euler
 
-        self.makeTree(slot="Generated")
-        self.column = 1
+        texco = self.texco.outputs["Generated"]
         rot = self.getValue(["Dome Rotation"], 0)
         orx = self.getValue(["Dome Orientation X"], 0)
         ory = self.getValue(["Dome Orientation Y"], 0)
@@ -233,43 +220,74 @@ class WorldTree(CyclesTree):
             mat3 = Euler((orx*D,0,0)).to_matrix()
             mat4 = Euler((0,0,ory*D)).to_matrix()
             mat = mat1 @ mat2 @ mat3 @ mat4
-            self.addMapping(mat.to_euler())
+            scale = (1,1,1)
+            texco = self.addMapping(mat.to_euler(), scale, texco, 2)
 
         value = self.material.getChannelValue(envmap, 1)
         img = self.getImage(envmap, "NONE")
+        tex = None
         if img:
-            self.column += 1
-            tex = self.addNode("ShaderNodeTexEnvironment")
+            tex = self.addNode("ShaderNodeTexEnvironment", 3)
             self.setColorSpace(tex, "NONE")
             if img:
                 tex.image = img
                 tex.name = img.name
-            self.links.new(self.texco, tex.inputs["Vector"])
+            self.links.new(texco, tex.inputs["Vector"])
         strength = self.getValue(["Environment Intensity"], 1) * value
-        return tex, strength
+
+        envnode = self.addNode("ShaderNodeBackground")
+        envnode.inputs["Strength"].default_value = strength
+        self.linkColor(tex, envnode, WHITE)
+        socket = envnode.outputs["Background"]
+        return envnode, socket
 
 
-    def buildBackdrop(self, backdrop):
-        self.makeTree(slot="Window")
-        self.column = 1
-        img = self.getImage(backdrop, "COLOR")
-        if img:
-            self.column += 1
-            tex = self.addTextureNode(self.column, img, img.name, "COLOR")
-            self.linkVector(self.texco, tex)
-        return tex
+    def buildBackground(self, background, backdrop):
+        tex = None
+        texco = self.texco.outputs["Window"]
+        if backdrop:
+            if (backdrop["rotation"] != "NO_ROTATION" or
+                backdrop["flip_horizontal"] or
+                backdrop["flipped_vertical"]):
+                if backdrop["rotation"] == "ROTATE_LEFT_90":
+                    zrot = 90*D
+                elif backdrop["rotation"] == "ROTATE_RIGHT_90":
+                    zrot = -90*D
+                elif backdrop["rotation"] == "ROTATE_180":
+                    zrot = 180*D
+                else:
+                    zrot = 0
+                scale = [1,1,1]
+                if backdrop["flip_horizontal"]:
+                    scale[0] = -1
+                    zrot *= -1
+                if backdrop["flipped_vertical"]:
+                    scale[1] = -1
+                    zrot *= -1
+                texco = self.addMapping([0,0,zrot], scale, texco, 2)
+            img = self.getImage(backdrop, "COLOR")
+            if img:
+                tex = self.addTextureNode(3, img, img.name, "COLOR")
+                self.linkVector(texco, tex)
+
+        bgnode = self.addGroup(BackgroundGroup, "DAZ Background")
+        self.linkColor(tex, bgnode, background)
+        bgnode.inputs["Color"].default_value[0:3] = background
+        socket = bgnode.outputs["Color"]
+        return bgnode, socket
 
 
-    def addMapping(self, rot):
-        self.column += 1
-        mapping = self.addNode("ShaderNodeMapping")
+    def addMapping(self, rot, scale, texco, col):
+        mapping = self.addNode("ShaderNodeMapping", col)
         mapping.vector_type = 'TEXTURE'
         if hasattr(mapping, "rotation"):
             mapping.rotation = rot
+            mapping.scale = scale
         else:
             mapping.inputs['Rotation'].default_value = rot
-        self.links.new(self.texco, mapping.inputs["Vector"])
-        self.texco = mapping.outputs["Vector"]
+            mapping.inputs['Scale'].default_value = scale
+        self.links.new(texco, mapping.inputs["Vector"])
+        return mapping.outputs["Vector"]
 
 
     def getImage(self, channel, colorSpace):
