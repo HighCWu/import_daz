@@ -1405,19 +1405,20 @@ class DAZ_OT_UnflipAction(HideOperator, DazPropsOperator, IsArmature):
         if act:
             locs,rots,quats = self.getFcurves(rig, act)
             actname = act.name
-            rig.animation_data.action = None
         else:
             raise DazError("No action found")
         self.setupFlipper(rig)
         self.setupFrames(rig, locs, rots, quats)
-        self.saveFile("D:/home/myblends/test.bvh", rig)
+        #self.saveFile("D:/home/myblends/test.bvh", rig)
         #return
-        self.insertFrames(rig, context)
-        if rig.animation_data:
-            nact = rig.animation_data.action
-            nact.name = actname + "_Unflipped"
+        try:
+            rig.animation_data.action = None
+            self.insertFrames(rig, context)
+            if rig.animation_data:
+                nact = rig.animation_data.action
+                nact.name = actname + "_Unflipped"
+        finally:
             rig.animation_data.action = act
-            print("ACTION", nact.name)
 
 
     def getFcurves(self, rig, act):
