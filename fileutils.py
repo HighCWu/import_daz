@@ -169,6 +169,11 @@ class DazFile:
     filter_glob : StringProperty(default="*.dsf;*.duf;*.dbz", options={'HIDDEN'})
 
 
+class DufFile:
+    filename_ext = ".duf"
+    filter_glob : StringProperty(default="*.duf", options={'HIDDEN'})
+
+
 class DatFile:
     filename_ext = ".dat"
     filter_glob : StringProperty(default="*.dat", options={'HIDDEN'})

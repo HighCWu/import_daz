@@ -421,12 +421,13 @@ class DAZ_PT_Posing(bpy.types.Panel):
         op.morphset = "All"
         op.category = ""
         layout.separator()
+        layout.operator("daz.save_pose_preset")
+        layout.separator()
         layout.operator("daz.save_poses")
         layout.operator("daz.load_poses")
         layout.separator()
         layout.operator("daz.prune_action")
         layout.operator("daz.rotate_bones")
-        layout.operator("daz.unflip_action")
 
         layout.separator()
         split = layout.split(factor=0.6)

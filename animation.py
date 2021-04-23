@@ -35,7 +35,7 @@ from .error import *
 from .utils import *
 from .transform import Transform
 from .globvars import theDazExtensions
-from .fileutils import MultiFile, SingleFile, JsonFile, JsonExportFile
+from .fileutils import MultiFile, SingleFile, JsonFile, JsonExportFile, DufFile
 
 #-------------------------------------------------------------
 #   Convert between frames and vectors
@@ -1375,13 +1375,13 @@ class DAZ_OT_LoadPoses(HideOperator, JsonFile, SingleFile, IsArmature):
         return None
 
 #----------------------------------------------------------
-#   Unflip animation
+#   Save pose preset
 #----------------------------------------------------------
 
-class DAZ_OT_UnflipAction(HideOperator, DazPropsOperator, IsArmature):
-    bl_idname = "daz.unflip_action"
-    bl_label = "Unflip Action"
-    bl_description = "Change pose or action to fit unflipped armature. For BVH export"
+class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
+    bl_idname = "daz.save_pose_preset"
+    bl_label = "Save Pose Preset"
+    bl_description = "Save the active action as a pose preset,\nto be used in DAZ Studio"
     bl_options = {'UNDO'}
 
     first : IntProperty(
@@ -1393,6 +1393,18 @@ class DAZ_OT_UnflipAction(HideOperator, DazPropsOperator, IsArmature):
         name = "End",
         description = "Last frame",
         default = 1)
+
+    fps : FloatProperty(
+        name = "FPS",
+        description = "Frames per second",
+        min = 1, max = 120,
+        default = 30)
+
+    def draw(self, context):
+        self.layout.prop(self, "first")
+        self.layout.prop(self, "last")
+        self.layout.prop(self, "fps")
+
 
     def run(self, context):
         from math import pi
@@ -1409,16 +1421,7 @@ class DAZ_OT_UnflipAction(HideOperator, DazPropsOperator, IsArmature):
             raise DazError("No action found")
         self.setupFlipper(rig)
         self.setupFrames(rig, locs, rots, quats)
-        #self.saveFile("D:/home/myblends/test.bvh", rig)
-        #return
-        try:
-            rig.animation_data.action = None
-            self.insertFrames(rig, context)
-            if rig.animation_data:
-                nact = rig.animation_data.action
-                nact.name = actname + "_Unflipped"
-        finally:
-            rig.animation_data.action = act
+        self.saveFile(rig)
 
 
     def getFcurves(self, rig, act):
@@ -1491,93 +1494,88 @@ class DAZ_OT_UnflipAction(HideOperator, DazPropsOperator, IsArmature):
                         if fcu:
                             loc[idx] = fcu.evaluate(frame)
                     mat.col[3][0:3] = loc
-
                 L[bn] = self.Finv[bn] @ mat @ self.F[bn]
-                if bn == "hip":
-                    print("LL", frame, L[bn].to_euler())
 
 
-    def insertFrames(self, rig, context):
-        scn = context.scene
-        for frame in range(self.first, self.last+1):
-            scn.frame_set(frame)
-            updateScene(context)
-            L = self.Ls[frame]
-            for pb in rig.pose.bones:
-                Ln = L[pb.name]
-                if pb.name == "hip":
-                    pb.location = Ln.col[3][0:3]
-                    pb.keyframe_insert("location", frame=frame, group=pb.name)
-                pb.rotation_euler = Ln.to_euler(pb.DazRotMode)
-                pb.keyframe_insert("rotation_euler", frame=frame, group=pb.name)
+    def saveFile(self, rig):
+        from collections import OrderedDict
+        from .load_json import saveJson
+        file,ext = os.path.splitext(self.filepath)
+        filepath = file + ".duf"
+        struct = OrderedDict()
+        struct["file_version"] = "0.6.0.0"
+        struct["asset_info"] = self.getAssetInfo(filepath)
+        struct["scene"] = {}
+        struct["scene"]["animations"] = self.getAnimations(rig)
+        saveJson(struct, filepath, binary=False)
+        print("Pose preset %s saved" % filepath)
 
 
-    def saveFile(self, filepath, rig):
-        with open(filepath, "w") as fp:
-            string = self.writeHierarchy(rig)
-            fp.write(string)
-            string = self.writeMotion(rig)
-            fp.write(string)
+    def getAssetInfo(self, filepath):
+        from .asset import normalizeRef
+        from datetime import datetime
+
+        now = datetime.now()
+        struct = {}
+        struct["id"] = normalizeRef(filepath)
+        struct["type"] = "preset_pose"
+        struct["contributor"] = {
+            "author" : "Daz Importer",
+            "website" : "http://diffeomorphic.blogspot.com/"
+        }
+        struct["modified"] = str(now)
+        return struct
 
 
-    def writeHierarchy(self, rig):
-        string = "HIERARCHY\n"
-        roots = [pb for pb in rig.pose.bones if pb.parent is None]
-        self.bones = []
-        for root in roots:
-            string = self.writeJoint(string, root, "")
-        return string
+    def getAnimations(self, rig):
+        from collections import OrderedDict
+        anims = []
+        for pb in rig.pose.bones:
+            Ls = [self.Ls[frame][pb.name] for frame in range(self.first, self.last+1)]
+            if pb.parent is None:
+                locs = [L.col[3] for L in Ls]
+                self.getTrans(pb, locs, 1/rig.DazScale, anims)
+            rots = [L.to_euler(pb.DazRotMode) for L in Ls]
+            self.getRot(pb, rots, 1/D, anims)
+        return anims
 
 
-    def writeJoint(self, string, pb, pad):
-        self.bones.append(pb)
-        if pad == "":
-            string += "ROOT %s\n" % pb.name
-            x,y,z = pb.bone.DazHead
-        else:
-            string += "%sJOINT %s\n" % (pad, pb.name)
-            x,y,z = Vector(pb.bone.DazHead) - Vector(pb.bone.parent.DazHead)
-        string += "%s{\n%s  OFFSET %.6f %.6f %.6f\n" % (pad, pad, x, y, z)
-        if pad == "":
-            string += "  CHANNELS 6 Xposition Yposition Zposition "
-        else:
-            string += "%s  CHANNELS 3 " % pad
-        string += "%srotation %srotation %srotation\n" % tuple(pb.DazRotMode)
-        if pb.children:
-            for child in pb.children:
-                string = self.writeJoint(string, child, pad+"  ")
-        else:
-            x,y,z = Vector(pb.bone.DazTail) - Vector(pb.bone.DazHead)
-            string += (
-                "%s  End Site\n" % pad +
-                "%s  {\n" % pad +
-                "%s    OFFSET %.6f %.6f %.6f\n" % (pad, x, y, z) +
-                "%s  }\n" % pad)
-        string += "%s}\n" % pad
-        return string
+    def getTrans(self, pb, vecs, factor, anims):
+        for idx,x in enumerate(["x","y","z"]):
+            anim = {}
+            anim["url"] = "name://@selection/%s:?translation/%s/value" % (pb.name, x)
+            locs = [vec[idx]*factor for vec in vecs]
+            anim["keys"] = [(n/self.fps, loc) for n,loc in enumerate(locs)]
+            anims.append(anim)
 
 
-    def writeMotion(self, rig):
-        string = (
-            "MOTION\n" +
-            "Frames %d\n" % (self.last - self.first + 1) +
-            "Frame Time: 0.04\n")
-        for frame in range(self.first, self.last+1):
-            L = self.Ls[frame]
-            for pb in self.bones:
-                Ln = L[pb.name]
-                if pb.parent is None:
-                    loc = Vector(Ln.col[3][0:3]) / rig.DazScale
-                    x,y,z = loc + Vector(pb.bone.DazHead)
-                    string += "%.6f %.6f %.6f " % (x, y, z)
-                euler = Ln.to_euler()
-                if pb.name == "hip":
-                    print("EE", frame, euler)
-                idxs = self.idxs[pb.name]
-                for n in range(3):
-                    string += "%.6f " % (euler[idxs[n]] / D)
-            string += "\n"
-        return string
+    def getRot(self, pb, vecs, factor, anims):
+        for idx,x in enumerate(["x","y","z"]):
+            anim = {}
+            anim["url"] = "name://@selection/%s:?rotation/%s/value" % (pb.name, x)
+            rots = [vec[idx]*factor for vec in vecs]
+            rots = self.correct180(rots)
+            anim["keys"] = [(n/self.fps, rot) for n,rot in enumerate(rots)]
+            anims.append(anim)
+
+
+    def correct180(self, rots):
+        prev = 0
+        nrots = []
+        offset = 0
+        for rot in rots:
+            nrot = rot + offset
+            if nrot - prev > 180:
+                offset -= 360
+                nrot -= 360
+            elif nrot - prev < -180:
+                offset += 360
+                nrot += 360
+            prev = nrot
+            nrots.append(nrot)
+        return nrots
+
+
 
 #----------------------------------------------------------
 #   Initialize
@@ -1594,7 +1592,7 @@ classes = [
     DAZ_OT_PruneAction,
     DAZ_OT_SavePoses,
     DAZ_OT_LoadPoses,
-    DAZ_OT_UnflipAction,
+    DAZ_OT_SavePosePreset,
 ]
 
 def register():
