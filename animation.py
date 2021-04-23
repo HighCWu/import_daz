@@ -1402,12 +1402,15 @@ class DAZ_OT_UnflipAction(HideOperator, DazPropsOperator, IsArmature):
         actname = "Pose"
         if rig.animation_data:
             act = rig.animation_data.action
-            if act:
-                actname = act.name
-                rig.animation_data.action = None
+        if act:
+            locs,rots,quats = self.getFcurves(rig, act)
+            actname = act.name
+            rig.animation_data.action = None
+        else:
+            raise DazError("No action found")
         self.setupFlipper(rig)
-        self.setupFrames(rig, context)
-        #self.saveFile("D:/home/myblends/test.bvh", rig)
+        self.setupFrames(rig, locs, rots, quats)
+        self.saveFile("D:/home/myblends/test.bvh", rig)
         #return
         self.insertFrames(rig, context)
         if rig.animation_data:
@@ -1415,6 +1418,32 @@ class DAZ_OT_UnflipAction(HideOperator, DazPropsOperator, IsArmature):
             nact.name = actname + "_Unflipped"
             rig.animation_data.action = act
             print("ACTION", nact.name)
+
+
+    def getFcurves(self, rig, act):
+        quats = {}
+        rots = {}
+        locs = {}
+        for pb in rig.pose.bones:
+            if pb.rotation_mode == 'QUATERNION':
+                quats[pb.name] = 4*[None]
+            else:
+                rots[pb.name] = 3*[None]
+            if pb.parent is None:
+                locs[pb.name] = 3*[None]
+        for fcu in act.fcurves:
+            channel = fcu.data_path.rsplit(".",1)[-1]
+            words = fcu.data_path.split('"')
+            if words[0] == "pose.bones[":
+                bname = words[1]
+                idx = fcu.array_index
+                if channel == "location" and bname in locs.keys():
+                    locs[bname][idx] = fcu
+                elif channel == "rotation_euler":
+                    rots[bname][idx] = fcu
+                elif channel == "rotation_quaternion":
+                    quats[bname][idx] = fcu
+        return locs,rots,quats
 
 
     def setupFlipper(self, rig):
@@ -1435,16 +1464,36 @@ class DAZ_OT_UnflipAction(HideOperator, DazPropsOperator, IsArmature):
                 idxs.append(idx)
 
 
-    def setupFrames(self, rig, context):
-        scn = context.scene
+    def setupFrames(self, rig, locs, rots, quats):
         self.Ls = {}
         for frame in range(self.first, self.last+1):
-            scn.frame_set(frame)
-            updateScene(context)
             L = self.Ls[frame] = {}
             for pb in rig.pose.bones:
                 bn = pb.name
-                L[bn] = self.Finv[bn] @ pb.matrix_basis @ self.F[bn]
+                if bn in quats.keys():
+                    quat = pb.rotation_quaternion
+                    for idx,fcu in enumerate(quats[bn]):
+                        if fcu:
+                            quat[idx] = fcu.evaluate(frame)
+                    mat = quat.to_matrix().to_4x4()
+                elif bn in rots.keys():
+                    rot = pb.rotation_euler
+                    for idx,fcu in enumerate(rots[bn]):
+                        if fcu:
+                            rot[idx] = fcu.evaluate(frame)
+                    mat = rot.to_matrix().to_4x4()
+                else:
+                    continue
+                if bn in locs.keys():
+                    loc = pb.location
+                    for idx,fcu in enumerate(locs[bn]):
+                        if fcu:
+                            loc[idx] = fcu.evaluate(frame)
+                    mat.col[3][0:3] = loc
+
+                L[bn] = self.Finv[bn] @ mat @ self.F[bn]
+                if bn == "hip":
+                    print("LL", frame, L[bn].to_euler())
 
 
     def insertFrames(self, rig, context):
@@ -1520,7 +1569,9 @@ class DAZ_OT_UnflipAction(HideOperator, DazPropsOperator, IsArmature):
                     loc = Vector(Ln.col[3][0:3]) / rig.DazScale
                     x,y,z = loc + Vector(pb.bone.DazHead)
                     string += "%.6f %.6f %.6f " % (x, y, z)
-                euler = Ln.to_euler(pb.DazRotMode)
+                euler = Ln.to_euler()
+                if pb.name == "hip":
+                    print("EE", frame, euler)
                 idxs = self.idxs[pb.name]
                 for n in range(3):
                     string += "%.6f " % (euler[idxs[n]] / D)

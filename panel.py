@@ -426,7 +426,7 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.separator()
         layout.operator("daz.prune_action")
         layout.operator("daz.rotate_bones")
-        layout.operator("daz.unflip_action")
+        #layout.operator("daz.unflip_action")
 
         layout.separator()
         split = layout.split(factor=0.6)
