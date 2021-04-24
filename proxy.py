@@ -27,7 +27,7 @@
 
 import os
 import bpy
-from mathutils import Vector
+from mathutils import Vector, Euler
 from .error import *
 from .tables import *
 from .utils import *
@@ -1772,6 +1772,89 @@ class DAZ_OT_CopyModifiers(DazPropsOperator, IsMesh):
                     store.restore(trg)
 
 #----------------------------------------------------------
+#   Make custom shapes from mesh
+#----------------------------------------------------------
+
+class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
+    bl_idname = "daz.make_gizmos"
+    bl_label = "Make Custom Shapes"
+    bl_description = "Make custom shapes from the active mesh to its parent"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        ob = context.object
+        rig = ob.parent
+        if rig is None or not rig.type == 'ARMATURE':
+            raise DazError("Object has no armature parent")
+
+        vgnames,vgverts,vgfaces = self.getVertexGroupMesh(ob)
+        hidden = createHiddenCollection(context, None)
+        euler = Euler((0,180*D,90*D))
+        mat = euler.to_matrix()*(1.0/rig.DazScale)
+        pbones = []
+        for idx,verts in vgverts.items():
+            if not verts:
+                continue
+            verts = self.transform(verts, mat)
+            faces = vgfaces[idx]
+            key = vgnames[idx]
+            gname = "GZM_"+key
+            me = bpy.data.meshes.new(gname)
+            me.from_pydata(verts, [], faces)
+            gzm = bpy.data.objects.new(gname, me)
+            hidden.objects.link(gzm)
+            if key in rig.pose.bones.keys():
+                pb = rig.pose.bones[key]
+                pb.custom_shape = gzm
+                pb.bone.show_wire = True
+                pbones.append(pb)
+
+        for pb in pbones:
+            locks = pb.lock_rotation
+            if not(locks[0] or locks[1] or locks[2]):
+                pb.lock_location = (True,True,True)
+            self.hideChildren(pb)
+        unlinkAll(ob)
+
+
+    def getVertexGroupMesh(self, ob):
+        vgnames = dict([(vg.index, vg.name) for vg in ob.vertex_groups])
+        vgverts = dict([(vg.index, []) for vg in ob.vertex_groups])
+        vgfaces = dict([(vg.index, []) for vg in ob.vertex_groups])
+        vgroups = {}
+        assoc = {}
+        for v in ob.data.vertices:
+            grps = [(g.weight,g.group) for g in v.groups]
+            if len(grps) != 1:
+                raise DazError("Not a custom shape mesh")
+            grps.sort()
+            idx = grps[-1][1]
+            assoc[v.index] = len(vgverts[idx])
+            vgverts[idx].append(v.co)
+            vgroups[v.index] = idx
+        for f in ob.data.polygons:
+            idx = vgroups[f.vertices[0]]
+            nf = [assoc[vn] for vn in f.vertices]
+            vgfaces[idx].append(nf)
+        return vgnames, vgverts, vgfaces
+
+
+    def transform(self, verts, mat):
+        vsum = Vector((0,0,0))
+        for co in verts:
+            vsum += co
+        ave = vsum/len(verts)
+        verts = [mat@(co-ave) for co in verts]
+        return verts
+
+
+    def hideChildren(self, pb):
+        for child in pb.children:
+            if child.custom_shape is None:
+                child.bone.hide = True
+                self.hideChildren(child)
+
+#----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
@@ -1793,6 +1876,7 @@ classes = [
     DAZ_OT_SeparateLooseParts,
     DAZ_OT_MakeDeflection,
     DAZ_OT_CopyModifiers,
+    DAZ_OT_MakeGizmos,
 ]
 
 def register():

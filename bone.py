@@ -390,7 +390,8 @@ class BoneInstance(Instance):
             orient = Euler(self.attributes["orientation"]*D)
             xyz = self.rotation_order
             wsmat = self.U3
-
+        if (tail-head).length < 0.1:
+            tail = head + Vector((0,1,0))
         return head,tail,orient,xyz,wsmat
 
     RX = Matrix.Rotation(pi/2, 4, 'X')

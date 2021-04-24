@@ -80,8 +80,8 @@ def createHiddenCollection(context, parent, cname="Hidden"):
     if parent is None:
         parent = context.collection
     parent.children.link(coll)
-    coll.hide_viewport = True
-    coll.hide_render = True
+    #coll.hide_viewport = True
+    #coll.hide_render = True
     return coll
 
 def inSceneLayer(context, ob):

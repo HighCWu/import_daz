@@ -74,6 +74,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.eliminate_empties")
             box.operator("daz.merge_toes")
             box.operator("daz.add_extra_face_bones")
+            box.operator("daz.make_gizmos")
 
         layout.separator()
         box = layout.box()

@@ -656,7 +656,7 @@ class LoadMorph(DriverUser):
         rna.driver_remove(channel)
         path = expr["path"]
         comp = expr["comp"]
-        unit = getUnit(path)
+        unit = getUnit(path, self.rig)
         if "points" in expr.keys():
             uvec,xys = getSplinePoints(expr, pb, comp)
             self.makeSplineBoneDriver(path, uvec, xys, rna, channel, -1, bname)
@@ -988,7 +988,7 @@ def buildBoneFormula(asset, rig, errors):
             driver = expr["bone"]
             path = expr["path"]
             comp = expr["comp"]
-            unit = getUnit(path)
+            unit = getUnit(path, rig)
             if factor and driver in rig.pose.bones.keys():
                 pbDriver = rig.pose.bones[driver]
                 uvec = getBoneVector(factor, comp, pbDriver)
@@ -1008,7 +1008,6 @@ def buildBoneFormula(asset, rig, errors):
 
     exprs = asset.evalFormulas(rig, None)
     for driven,expr in exprs.items():
-        print("EES", expr)
         if "rotation" in expr.keys():
             if driven in rig.pose.bones.keys():
                 pb = rig.pose.bones[driven]
@@ -1066,7 +1065,7 @@ def getSign(u):
     else:
         return "+", u
 
-def getUnit(path):
+def getUnit(path, rig):
     if path == "translation":
         return 1/rig.DazScale
     elif path == "rotation":
