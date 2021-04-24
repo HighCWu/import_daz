@@ -964,7 +964,14 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
         if fileref in self.morphsets.keys():
             return self.morphsets[fileref]
         else:
-            print("Missing morphset", fileref)
+            msg = "Missing morphset: %s" % fileref
+            if GS.verbosity > 2:
+                print("Morphset keys:")
+                for key in self.morphsets.keys():
+                    print("  ", key)
+                    raise DazError(msg)
+            else:
+                print(msg)
             return "Standard"
 
 
