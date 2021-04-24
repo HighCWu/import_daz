@@ -214,9 +214,9 @@ class LoadMorph(DriverUser):
 
     def getFileRef(self, filepath):
         filepath = filepath.replace("\\", "/").lower()
-        words = filepath.rsplit("/data",1)
+        words = filepath.rsplit("/data/",1)
         if len(words) == 2:
-            return "/data%s" % words[1]
+            return "/data/%s" % words[1]
         else:
             raise RuntimeError("getFileRef", filepath)
 

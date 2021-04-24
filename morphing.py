@@ -960,7 +960,7 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
     def getMorphSet(self, asset):
         if asset is None:
             return "Standard"
-        fileref = unquote(asset.fileref)
+        fileref = unquote(asset.fileref.lower())
         if fileref in self.morphsets.keys():
             return self.morphsets[fileref]
         else:
