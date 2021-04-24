@@ -136,9 +136,10 @@ class Formula:
         driven = words[-1]
         output,channel = driven.split("?")
         if channel == "value":
-            if mesh is None:
+            if mesh is None and rig is None:
                 if GS.verbosity > 2:
                     print("Cannot drive properties", output)
+                    print("  ", unquote(formula["output"]))
                 return False
             pb = None
         else:
@@ -162,6 +163,7 @@ class Formula:
                 "factor" : 0,
                 "prop" : None,
                 "bone" : None,
+                "path" : None,
                 "comp" : -1,
                 "mult" : None}
         expr = exprs[output][path][idx]
@@ -174,19 +176,20 @@ class Formula:
     def evalStage(self, formula, expr):
         if formula["stage"] == "mult":
             opers = formula["operations"]
-            prop,type,comp = self.evalUrl(opers[0])
+            prop,type,path,comp = self.evalUrl(opers[0])
             if type == "value":
                 expr["mult"] = prop
 
 
     def evalOperations(self, formula, expr):
         opers = formula["operations"]
-        prop,type,comp = self.evalUrl(opers[0])
+        prop,type,path,comp = self.evalUrl(opers[0])
         if type == "value":
             if expr["prop"] is None:
                 expr["prop"] = prop
         else:
             expr["bone"] = prop
+        expr["path"] = path
         expr["comp"] = comp
         self.evalMainOper(opers, expr)
 
@@ -199,7 +202,7 @@ class Formula:
         prop,type = url.split("?")
         prop = unquote(prop)
         path,comp,default = self.parseChannel(type)
-        return prop,type,comp
+        return prop,type,path,comp
 
 
     def evalMainOper(self, opers, expr):
@@ -211,6 +214,8 @@ class Formula:
         if op == "mult":
             expr["factor"] = opers[1]["val"]
         elif op == "spline_tcb":
+            expr["points"] = [opers[n]["val"] for n in range(1,len(opers)-2)]
+        elif op == "spline_linear":
             expr["points"] = [opers[n]["val"] for n in range(1,len(opers)-2)]
         else:
             reportError("Unknown formula %s" % opers, trigger=(2,6))
