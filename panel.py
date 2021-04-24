@@ -574,6 +574,16 @@ class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
     morphset = "Units"
 
 
+class DAZ_PT_Head(bpy.types.Panel, DAZ_PT_Morphs):
+    bl_label = "Head"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "DAZ Importer"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    morphset = "Head"
+
+
 class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Expressions"
     bl_space_type = "VIEW_3D"
@@ -1098,6 +1108,7 @@ classes = [
     DAZ_PT_Posing,
     DAZ_PT_Standard,
     DAZ_PT_Units,
+    DAZ_PT_Head,
     DAZ_PT_Expressions,
     DAZ_PT_Visemes,
     DAZ_PT_FacsUnits,

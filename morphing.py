@@ -42,7 +42,7 @@ from .driver import DriverUser
 #   Morph sets
 #-------------------------------------------------------------
 
-theStandardMorphSets = ["Standard", "Units", "Expressions", "Visemes", "Facs", "Facsexpr", "Body"]
+theStandardMorphSets = ["Standard", "Units", "Expressions", "Visemes", "Head", "Facs", "Facsexpr", "Body"]
 theCustomMorphSets = ["Custom"]
 theJCMMorphSets = ["Jcms", "Flexions"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
@@ -930,56 +930,50 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
         self.morphsets = {}
         self.bodyparts = {}
         self.namepaths = {}
-        if self.units:
-            self.addFiles("Units", "Face")
-        if self.expressions:
-            self.addFiles("Expressions", "Face")
-        if self.visemes:
-            self.addFiles("Visemes", "Face")
-        if self.facs:
-            self.addFiles("Facs", "Face")
-        if self.facsexpr:
-            self.addFiles("Facsexpr", "Face")
-        if self.body:
-            self.addFiles("Body", "Body")
-        if self.jcms:
-            self.addFiles("Jcms", "Body")
-        if self.flexions:
-            self.addFiles("Flexions", "Body")
+        self.addFiles(self.units, "Units", "Face")
+        self.addFiles(False, "Head", "Face")
+        self.addFiles(self.expressions, "Expressions", "Face")
+        self.addFiles(self.visemes, "Visemes", "Face")
+        self.addFiles(self.facs, "Facs", "Face")
+        self.addFiles(self.facsexpr, "Facsexpr", "Face")
+        self.addFiles(self.body, "Body", "Body")
+        self.addFiles(self.jcms, "Jcms", "Body")
+        self.addFiles(self.flexions, "Flexions", "Body")
         self.getAllMorphs(self.namepaths, context)
 
 
-    def addFiles(self, morphset, bodypart):
+    def addFiles(self, use, morphset, bodypart):
         try:
             struct = theMorphFiles[self.char][morphset]
         except KeyError:
             msg = ("Character %s does not support feature %s" % (self.char, morphset))
             print(msg)
-            return []
+            return
         for key,filepath in struct.items():
             fileref = self.getFileRef(filepath)
             self.morphsets[fileref] = morphset
-            self.namepaths[key] = filepath
             self.bodyparts[fileref] = bodypart
+            if use:
+                self.namepaths[key] = filepath
 
 
     def getMorphSet(self, asset):
         if asset is None:
             return "Standard"
-        lpath = unquote(asset.id).split('#')[0]
-        if lpath in self.morphsets.keys():
-            return self.morphsets[lpath]
+        fileref = unquote(asset.fileref)
+        if fileref in self.morphsets.keys():
+            return self.morphsets[fileref]
         else:
-            print("Missing morphset", lpath)
+            print("Missing morphset", fileref)
             return "Standard"
 
 
     def getBodyPart(self, asset):
-        lpath = unquote(asset.id).split('#')[0]
-        if lpath in self.bodyparts.keys():
-            return self.bodyparts[lpath]
+        fileref = unquote(asset.fileref)
+        if fileref in self.bodyparts.keys():
+            return self.bodyparts[fileref]
         else:
-            print("Missing bodypart", lpath)
+            print("Missing bodypart", fileref)
             return "Custom"
 
 
@@ -989,7 +983,6 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
             addToMorphSet(self.rig, morphset, prop, asset, hideable=False)
         else:
             addToMorphSet(self.rig, morphset, prop, asset, hidden=hidden)
-
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose

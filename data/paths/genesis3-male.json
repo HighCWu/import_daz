@@ -19,6 +19,12 @@
 		"exclude" : [],
 		"path" : "data/DAZ 3D/Genesis 3/Male/Morphs/DAZ 3D/Base Pose/"
 	},
+	"head" : {
+		"prefix" : ["phm", "ctrl"],
+		"include" : ["phm", "ctrl"],
+		"exclude" : [],
+		"path" : "data/DAZ 3D/Genesis 3/Male/Morphs/DAZ 3D/Head/"
+	},
 	"jcms" : {
 		"prefix" : ["pjcm", "lshldr", "rshldr"],
 		"strip" : ["pjcm"],
