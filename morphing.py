@@ -969,7 +969,7 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
                 print("Morphset keys:")
                 for key in self.morphsets.keys():
                     print("  ", key)
-                    raise DazError(msg)
+                raise DazError(msg)
             else:
                 print(msg)
             return "Standard"
