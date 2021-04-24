@@ -308,8 +308,8 @@ class Figure(Node):
         self.buildObject(context, inst, center)
         rig = self.rna
         inst.addLSRig(rig)
-        setattr(amt, DrawType, 'STICK')
-        setattr(rig, ShowXRay, True)
+        amt.display_type = 'STICK'
+        rig.show_in_front = True
         rig.DazOrientMethod = GS.orientMethod
         for geonode in inst.geometries:
             geonode.parent = geonode.figure = self

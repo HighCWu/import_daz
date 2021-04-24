@@ -305,7 +305,7 @@ class DAZ_OT_LoadPoseInternal(HideOperator, JsonFile, SingleFile, IsArmature):
 class DAZ_OT_OptimizePose(DazPropsOperator, IsArmature):
     bl_idname = "daz.optimize_pose"
     bl_label = "Optimize Pose For IK"
-    bl_description = "Optimize pose for IK.\nIncompatible with pose loading and body morphs."
+    bl_description = "Optimize pose for IK.\nIncompatible with pose loading and body morphs"
     bl_options = {'UNDO'}
 
     useApplyRestPose : BoolProperty(

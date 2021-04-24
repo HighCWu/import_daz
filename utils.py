@@ -37,11 +37,6 @@ from . import globvars as G
 #   Blender 2.8 compatibility
 #-------------------------------------------------------------
 
-Region = "UI"
-HideViewport = "hide_viewport"
-DrawType = "display_type"
-ShowXRay = "show_in_front"
-
 def getHideViewport(ob):
     return (ob.hide_get() or ob.hide_viewport)
 

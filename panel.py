@@ -48,7 +48,7 @@ def showBox(scn, attr, layout):
 class DAZ_PT_Setup(bpy.types.Panel):
     bl_label = "Setup (version 1.6.0.%04d)" % BUILD
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
 
     def draw(self, context):
@@ -179,7 +179,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
 class DAZ_PT_Advanced(bpy.types.Panel):
     bl_label = "Advanced Setup"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -321,7 +321,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 class DAZ_PT_Utils(bpy.types.Panel):
     bl_label = "Utilities"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -397,7 +397,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
 class DAZ_PT_Posing(bpy.types.Panel):
     bl_label = "Posing"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -557,7 +557,7 @@ class DAZ_PT_Morphs:
 class DAZ_PT_Standard(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Unclassified Standard Morphs"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -567,7 +567,7 @@ class DAZ_PT_Standard(bpy.types.Panel, DAZ_PT_Morphs):
 class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Face Units"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -577,7 +577,7 @@ class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
 class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Expressions"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -587,7 +587,7 @@ class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
 class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Visemes"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -601,7 +601,7 @@ class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
 class DAZ_PT_FacsUnits(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "FACS Units"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -616,7 +616,7 @@ class DAZ_PT_FacsUnits(bpy.types.Panel, DAZ_PT_Morphs):
 class DAZ_PT_FacsExpressions(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "FACS Expressions"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -626,7 +626,7 @@ class DAZ_PT_FacsExpressions(bpy.types.Panel, DAZ_PT_Morphs):
 class DAZ_PT_BodyMorphs(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Body Morphs"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -636,7 +636,7 @@ class DAZ_PT_BodyMorphs(bpy.types.Panel, DAZ_PT_Morphs):
 class DAZ_PT_JCMs(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "JCMs"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -646,7 +646,7 @@ class DAZ_PT_JCMs(bpy.types.Panel, DAZ_PT_Morphs):
 class DAZ_PT_Flexions(bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Flexions"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -681,7 +681,7 @@ class CustomDrawItems:
 class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     bl_label = "Custom Morphs"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -715,7 +715,7 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
 class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     bl_label = "Mesh Shape Keys"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -814,7 +814,7 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
 class DAZ_PT_SimpleRig(bpy.types.Panel):
     bl_label = "Simple Rig"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -917,7 +917,7 @@ class MhxPanel:
 class DAZ_PT_MhxLayers(bpy.types.Panel, MhxPanel):
     bl_label = "MHX Layers"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -945,7 +945,7 @@ class DAZ_PT_MhxLayers(bpy.types.Panel, MhxPanel):
 class DAZ_PT_MhxFKIK(bpy.types.Panel, MhxPanel):
     bl_label = "MHX FK/IK Switch"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -1019,7 +1019,7 @@ class DAZ_PT_MhxFKIK(bpy.types.Panel, MhxPanel):
 class DAZ_PT_MhxProperties(bpy.types.Panel, MhxPanel):
     bl_label = "MHX Properties"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -1050,7 +1050,7 @@ class DAZ_PT_MhxProperties(bpy.types.Panel, MhxPanel):
 class DAZ_PT_Visibility(bpy.types.Panel):
     bl_label = "Visibility"
     bl_space_type = "VIEW_3D"
-    bl_region_type = Region
+    bl_region_type = "UI"
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 

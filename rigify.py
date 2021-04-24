@@ -1001,13 +1001,6 @@ class Rigify:
                     pb.lock_location = (False, False, False)
                 self.copyBoneInfo(dname, rname, rig, gen)
 
-        print("  Fix custom shapes")
-        # Remove breast custom shapes, because they are placed differently in Daz
-        for rname in ["breast.L", "breast.R"]:
-            if rname in gen.pose.bones.keys():
-                pb = gen.pose.bones[rname]
-                pb.custom_shape = None
-
         # Rescale custom shapes
         if meta.DazRigifyType in ["genesis3", "genesis8"]:
             self.fixCustomShape(gen, ["head", "spine_fk.007"], 4)
@@ -1108,20 +1101,17 @@ class Rigify:
             elif self.isCopyTransformed("DEF-"+rname, gen):
                 correctives[dname] = "DEF-"+rname
             else:
-                correctives[dname] = "ORG-"+rname
+                correctives[dname] = rname
         self.fixBoneDrivers(gen, correctives)
 
         # Face bone gizmos
-        self.makeEmptyGizmo("GZM_Circle", 'CIRCLE')
-        for pb in gen.pose.bones:
-            if self.isFaceBone(pb) and not self.isEyeLid(pb):
-                self.addGizmo(pb, "GZM_Circle", 0.2)
+        self.addGizmos(gen)
         self.renameFaceBones(gen)
 
         #Clean up
         print("  Clean up")
-        setattr(gen.data, DrawType, 'STICK')
-        setattr(gen, ShowXRay, True)
+        gen.data.display_type = 'WIRE'
+        gen.show_in_front = True
         gen.DazRig = meta.DazRigType
         name = rig.name
         coll = getRigCollection(rig)
@@ -1243,6 +1233,38 @@ class Rigify:
         if bone.name in gen.data.bones.keys():
             gen.data.edit_bones[bone.name]
             bone.realname = bone.name
+
+
+    def addGizmos(self, gen):
+        gizmos = {
+            "lowerJaw" :        ("GZM_Jaw", 1),
+            "rEye" :            ("GZM_Circle025", 1),
+            "lEye" :            ("GZM_Circle025", 1),
+            "rEar" :            ("GZM_Circle025", 1.5),
+            "lEar" :            ("GZM_Circle025", 1.5),
+            "lPectoral" :       ("GZM_Pectoral", 1),
+            "rPectoral" :       ("GZM_Pectoral", 1),
+            "breast.L" :        ("GZM_Pectoral", 1),
+            "breast.R" :        ("GZM_Pectoral", 1),
+        }
+        self.makeGizmos(None)
+        for pb in gen.pose.bones:
+            if self.isFaceBone(pb) and not self.isEyeLid(pb):
+                self.addGizmo(pb, "GZM_Circle", 0.2)
+            elif pb.name[0:6] == "tongue":
+                self.addGizmo(pb, "GZM_Tongue", 1)
+            elif pb.name in gizmos.keys():
+                gizmo,scale = gizmos[pb.name]
+                self.addGizmo(pb, gizmo, scale)
+
+        # Hide some bones on a hidden layer
+        for rname in [
+            #"breast.L", "breast.R",
+            "upperTeeth", "lowerTeeth",
+            ]:
+            if rname in gen.pose.bones.keys():
+                pb = gen.pose.bones[rname]
+                pb.bone.layers = 29*[False] + [True] + 2*[False]
 
 #-------------------------------------------------------------
 #  Buttons

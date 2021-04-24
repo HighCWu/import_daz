@@ -664,7 +664,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         showProgress(24, 25, "  Add bone groups")
         self.addBoneGroups(rig)
         rig.MhxRig = True
-        setattr(rig.data, DrawType, 'WIRE')
+        rig.data.display_type = 'WIRE'
         T = True
         F = False
         rig.data.layers = [T,T,T,F, T,F,T,F, F,F,F,F, F,F,F,F,
@@ -1416,6 +1416,8 @@ Gizmos = {
     "neck" :            ("GZM_Neck", 1),
     "neck-1" :          ("GZM_Neck", 1),
     "head" :            ("GZM_Head", 1),
+    "pectoral.L" :      ("GZM_Pectoral", 1),
+    "pectoral.R" :      ("GZM_Pectoral", 1),
     "clavicle.L" :      ("GZM_Ball025End", 1),
     "clavicle.R" :      ("GZM_Ball025End", 1),
 
