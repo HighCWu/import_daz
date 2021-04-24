@@ -976,7 +976,7 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
 
 
     def getBodyPart(self, asset):
-        fileref = unquote(asset.fileref)
+        fileref = unquote(asset.fileref.lower())
         if fileref in self.bodyparts.keys():
             return self.bodyparts[fileref]
         else:
