@@ -1378,11 +1378,24 @@ class DAZ_OT_LoadPoses(HideOperator, JsonFile, SingleFile, IsArmature):
 #   Save pose preset
 #----------------------------------------------------------
 
+class FakeCurve:
+    def __init__(self, value):
+        self.value = value
+
+    def evaluate(self, frame):
+        return self.value
+
+
 class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
     bl_idname = "daz.save_pose_preset"
     bl_label = "Save Pose Preset"
     bl_description = "Save the active action as a pose preset,\nto be used in DAZ Studio"
     bl_options = {'UNDO'}
+
+    useAction : BoolProperty(
+        name = "Use Action",
+        description = "Import action instead of single pose",
+        default = True)
 
     first : IntProperty(
         name = "Start",
@@ -1401,9 +1414,11 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
         default = 30)
 
     def draw(self, context):
-        self.layout.prop(self, "first")
-        self.layout.prop(self, "last")
-        self.layout.prop(self, "fps")
+        self.layout.prop(self, "useAction")
+        if self.useAction:
+            self.layout.prop(self, "first")
+            self.layout.prop(self, "last")
+            self.layout.prop(self, "fps")
 
 
     def run(self, context):
@@ -1411,14 +1426,13 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
         self.Z = Matrix.Rotation(pi/2, 4, 'X')
         rig = context.object
         act = None
-        actname = "Pose"
-        if rig.animation_data:
-            act = rig.animation_data.action
-        if act:
-            locs,rots,quats = self.getFcurves(rig, act)
-            actname = act.name
-        else:
-            raise DazError("No action found")
+        if self.useAction:
+            if rig.animation_data:
+                act = rig.animation_data.action
+            if act:
+                locs,rots,quats = self.getFcurves(rig, act)
+        if not act:
+            locs,rots,quats = self.getFakeCurves(rig)
         self.setupFlipper(rig)
         self.setupFrames(rig, locs, rots, quats)
         self.saveFile(rig)
@@ -1447,6 +1461,20 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
                     rots[bname][idx] = fcu
                 elif channel == "rotation_quaternion":
                     quats[bname][idx] = fcu
+        return locs,rots,quats
+
+
+    def getFakeCurves(self, rig):
+        quats = {}
+        rots = {}
+        locs = {}
+        for pb in rig.pose.bones:
+            if pb.rotation_mode == 'QUATERNION':
+                quats[pb.name] = [FakeCurve(t) for t in pb.rotation_quaternion]
+            else:
+                rots[pb.name] = [FakeCurve(t) for t in pb.rotation_euler]
+            if pb.parent is None:
+                locs[pb.name] = [FakeCurve(t) for t in pb.location]
         return locs,rots,quats
 
 
