@@ -471,9 +471,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
                     nmeshes.append(ob)
             meshes = nmeshes
 
-        if mainRig:
+        if mainRig and activateObject(context, mainRig):
             # Merge rigs
-            activateObject(context, mainRig)
             for rig in rigs[1:]:
                 rig.select_set(True)
             if self.useMergeRigs and len(rigs) > 1:
@@ -483,22 +482,21 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
                 rigs = [mainRig]
 
             # Eliminate empties
-            activateObject(context, mainRig)
-            bpy.ops.daz.eliminate_empties()
+            if activateObject(context, mainRig):
+                bpy.ops.daz.eliminate_empties()
 
-            # Merge toes
-            if self.useMergeToes:
-                print("Merge toes")
-                bpy.ops.daz.merge_toes()
+                # Merge toes
+                if self.useMergeToes:
+                    print("Merge toes")
+                    bpy.ops.daz.merge_toes()
 
-            # Add extra face bones
-            if self.useExtraFaceBones:
-                print("Add extra face bones")
-                bpy.ops.daz.add_extra_face_bones()
+                # Add extra face bones
+                if self.useExtraFaceBones:
+                    print("Add extra face bones")
+                    bpy.ops.daz.add_extra_face_bones()
 
-        if mainMesh:
+        if mainMesh and activateObject(context, mainMesh):
             # Merge materials
-            activateObject(context, mainMesh)
             for ob in meshes[1:]:
                 ob.select_set(True)
             print("Merge materials")
@@ -513,58 +511,58 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
                 self.body or
                 self.jcms or
                 self.flexions):
-                activateObject(context, mainRig)
-                bpy.ops.daz.import_standard_morphs(
-                    units = self.units,
-                    expressions = self.expressions,
-                    visemes = self.visemes,
-                    facs = self.facs,
-                    facsexpr = self.facsexpr,
-                    body = self.body,
-                    jcms = self.jcms,
-                    flexions = self.flexions)
+                if activateObject(context, mainRig):
+                    bpy.ops.daz.import_standard_morphs(
+                        units = self.units,
+                        expressions = self.expressions,
+                        visemes = self.visemes,
+                        facs = self.facs,
+                        facsexpr = self.facsexpr,
+                        body = self.body,
+                        jcms = self.jcms,
+                        flexions = self.flexions)
 
 
         # Merge geografts
         if geografts:
             self.transferShapes(context, mainMesh, geografts, False, "Body")
-            activateObject(context, mainMesh)
-            for ob in geografts:
-                ob.select_set(True)
-            print("Merge geografts")
-            bpy.ops.daz.merge_geografts()
+            if activateObject(context, mainMesh):
+                for ob in geografts:
+                    ob.select_set(True)
+                print("Merge geografts")
+                bpy.ops.daz.merge_geografts()
 
         # Merge lashes
         if lashes:
             self.transferShapes(context, mainMesh, lashes, False, "Face")
-            activateObject(context, mainMesh)
-            for ob in lashes:
-                ob.select_set(True)
-            print("Merge lashes")
-            self.mergeLashes(mainMesh)
+            if activateObject(context, mainMesh):
+                for ob in lashes:
+                    ob.select_set(True)
+                print("Merge lashes")
+                self.mergeLashes(mainMesh)
 
         # Transfer shapekeys to clothes
         self.transferShapes(context, mainMesh, meshes[1:], True, "Body")
 
-        if mainRig:
-            activateObject(context, mainRig)
+        if mainRig and activateObject(context, mainRig):
             # Make all bones poseable
             if self.useMakeAllBonesPoseable:
                 print("Make all bones poseable")
                 bpy.ops.daz.make_all_bones_poseable()
 
         # Convert hairs
-        if hairs and mainMesh and self.useConvertHair:
-            activateObject(context, mainMesh)
+        if (hairs and
+            mainMesh and
+            self.useConvertHair and
+            activateObject(context, mainMesh)):
             bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
             for hair in hairs:
-                activateObject(context, hair)
-                mainMesh.select_set(True)
-                bpy.ops.daz.make_hair(strandType='TUBE')
+                if activateObject(context, hair):
+                    mainMesh.select_set(True)
+                    bpy.ops.daz.make_hair(strandType='TUBE')
 
         # Change rig
-        if mainRig:
-            activateObject(context, mainRig)
+        if mainRig and activateObject(context, mainRig):
             if self.rigType == 'CUSTOM':
                 print("Add custom shapes")
                 bpy.ops.daz.add_custom_shapes()
@@ -576,8 +574,10 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
                 mainRig = context.object
 
         # Make mannequin
-        if mainRig and mainMesh and self.mannequinType != 'NONE':
-            activateObject(context, mainMesh)
+        if (mainRig and
+            mainMesh and
+            self.mannequinType != 'NONE' and
+            activateObject(context, mainMesh)):
             if self.mannequinType == 'ALL':
                 for ob in meshes:
                     ob.select_set(True)

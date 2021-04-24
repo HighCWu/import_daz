@@ -104,17 +104,17 @@ def inCollection(layer, ob):
             return True
     return False
 
+
 def activateObject(context, ob):
-    context.view_layer.objects.active = ob
     try:
+        context.view_layer.objects.active = ob
         bpy.ops.object.mode_set(mode='OBJECT')
-        ok = True
+        bpy.ops.object.select_all(action='DESELECT')
+        ob.select_set(True)
+        return True
     except RuntimeError:
         print("Could not activate", ob.name)
-        ok = False
-    bpy.ops.object.select_all(action='DESELECT')
-    ob.select_set(True)
-    return ok
+        return False
 
 
 def selectObjects(context, objects):
