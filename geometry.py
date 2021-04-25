@@ -153,7 +153,10 @@ class GeoNode(Node, SimNode):
             (self.data.SubDIALevel > 0 or self.data.SubDRenderLevel > 0)):
             mod = ob.modifiers.new("Subsurf", 'SUBSURF')
             mod.render_levels = self.data.SubDIALevel + self.data.SubDRenderLevel
-            mod.levels = self.data.SubDIALevel
+            if GS.speedOptimize:
+                mod.levels = 0
+            else:
+                mod.levels = self.data.SubDIALevel
             if hasattr(mod, "use_limit_surface"):
                 mod.use_limit_surface = False
 

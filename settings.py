@@ -59,6 +59,7 @@ class GlobalSettings:
         self.zup = True
         self.useMakeHiddenSliders = False
         self.showHiddenObjects = False
+        self.speedOptimize = True
 
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
@@ -107,6 +108,7 @@ class GlobalSettings:
         "DazVerbosity" : "verbosity",
         "DazErrorPath" : "errorPath",
         "DazCaseSensitivePaths" : "caseSensitivePaths",
+        "DazSpeedOptimize" : "speedOptimize",
 
         # Debugging
         "DazDump" : "useDump",
