@@ -534,7 +534,7 @@ class ExtraBones(DriverUser):
             fcus = [fcu for fcu in rna.animation_data.drivers
                     if fcu.driver.type == 'SCRIPTED']
             for fcu in fcus:
-                bname = self.getBoneTarget(fcu)
+                bname,_ = self.getBoneTarget(fcu)
                 if bname is None:
                     continue
                 bname = baseBone(bname)

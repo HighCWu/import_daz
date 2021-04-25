@@ -106,20 +106,24 @@ class DriverUser:
         fcu2.driver.expression = fcu1.driver.expression
         for var1 in fcu1.driver.variables:
             var2 = fcu2.driver.variables.new()
-            var2.type = var1.type
-            var2.name = var1.name
-            for n,trg1 in enumerate(var1.targets):
-                if n > 1:
-                    trg2 = var2.targets.add()
-                else:
-                    trg2 = var2.targets[0]
-                if trg1.id_type != 'OBJECT':
-                    trg2.id_type = trg1.id_type
-                trg2.id = trg1.id
-                trg2.bone_target = trg1.bone_target
-                trg2.data_path = trg1.data_path
-                trg2.transform_type = trg1.transform_type
-                trg2.transform_space = trg1.transform_space
+            self.copyVariable(var1, var2)
+
+
+    def copyVariable(self, var1, var2):
+        var2.type = var1.type
+        var2.name = var1.name
+        for n,trg1 in enumerate(var1.targets):
+            if n > 1:
+                trg2 = var2.targets.add()
+            else:
+                trg2 = var2.targets[0]
+            if trg1.id_type != 'OBJECT':
+                trg2.id_type = trg1.id_type
+            trg2.id = trg1.id
+            trg2.bone_target = trg1.bone_target
+            trg2.data_path = trg1.data_path
+            trg2.transform_type = trg1.transform_type
+            trg2.transform_space = trg1.transform_space
 
 
     def setId(self, fcu, old, new, assoc=None):
@@ -137,8 +141,8 @@ class DriverUser:
         for var in fcu.driver.variables:
             for trg in var.targets:
                 if trg.bone_target:
-                    return trg.bone_target
-        return None
+                    return trg.bone_target, var
+        return None, None
 
 
     def setBoneTarget(self, fcu, bname):

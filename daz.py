@@ -364,8 +364,8 @@ def register():
         description = "Min and max values for \"raw\" sliders")
 
     bpy.types.Scene.DazShowFinalProps = BoolProperty(
-        name = "Show Final Sliders",
-        description = "Display the \"final\" slider values")
+        name = "Show Final Morph Values",
+        description = "Display the \"final\" values of morphs")
 
     bpy.types.Scene.DazMakeHiddenSliders = BoolProperty(
         name = "Make Hidden Sliders",

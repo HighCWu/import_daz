@@ -505,19 +505,26 @@ class LoadMorph(DriverUser):
 
 
     def buildPropDriver(self, raw, drivers):
-        from .driver import getRnaDriver
+        from .driver import getRnaDriver, Variable
         rna,channel = self.getDrivenChannel(raw)
-        fcu = getRnaDriver(rna, channel, None)
-        if fcu and fcu.driver.type == 'SCRIPTED':
-            if self.getBoneTarget(fcu):
+        var0 = None
+        string = ""
+        fcu0 = getRnaDriver(rna, channel, None)
+        if fcu0 and fcu0.driver.type == 'SCRIPTED':
+            if not self.primary[raw]:
+                self.extendPropDriver(fcu0, raw, drivers)
                 return
-            elif not self.primary[raw]:
-                self.extendPropDriver(fcu, raw, drivers)
-                return
+            bname,var0 = self.getBoneTarget(fcu0)
+            if var0:
+                string = self.extractBoneExpression(fcu0.driver.expression, var0.name)
+                var0 = Variable(var0)
         rna.driver_remove(channel)
         fcu = rna.driver_add(channel)
         fcu.driver.type = 'SCRIPTED'
-        string = ""
+        if var0:
+            var = fcu.driver.variables.new()
+            var0.create(var)
+
         varname = "a"
         if self.visible[raw] or not self.primary[raw]:
             string += varname
@@ -532,6 +539,14 @@ class LoadMorph(DriverUser):
         fcu.driver.expression = string
         if rdrivers:
             self.extendPropDriver(fcu, raw, rdrivers)
+
+
+    def extractBoneExpression(self, string, varname):
+        string = string.split("(", 1)[-1]
+        mult = string.split(varname, 1)[0]
+        if mult == "0":
+            mult = "0*"
+        return "%s%s+" % (mult, varname)
 
 
     def addDriverVars(self, fcu, string, varname, raw, drivers):
@@ -567,7 +582,6 @@ class LoadMorph(DriverUser):
         while string[-1] == ")":
             char += ")"
             string = string[:-1]
-        varname = string[-1]
         if string[-1] == "R":
             rest = restProp(raw)
             self.addRestDrivers(rest, drivers)
