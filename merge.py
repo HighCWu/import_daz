@@ -538,7 +538,7 @@ class DAZ_OT_EliminateEmpties(DazOperator):
 #   Merge rigs
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature):
+class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
     bl_idname = "daz.merge_rigs"
     bl_label = "Merge Rigs"
     bl_description = "Merge selected rigs to active rig"
@@ -576,6 +576,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature):
         self.layout.prop(self, "useApplyRestPose")
         self.layout.prop(self, "useCreateDuplicates")
         self.layout.prop(self, "createMeshCollection")
+
+    def __init__(self):
+        DriverUser.__init__(self)
 
 
     def run(self, context):
@@ -799,6 +802,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature):
 
     def addExtraBones(self, subrig, rig, context, scn, parbone):
         from .figure import copyBoneInfo
+        from .fix import copyConstraints
         extras = []
         for bone in subrig.data.bones:
             if (bone.name not in self.mainBones or
@@ -819,6 +823,10 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature):
                 storage[bname] = EditBoneStorage(eb, None)
             bpy.ops.object.mode_set(mode='OBJECT')
 
+            for key in subrig.data.keys():
+                rig.data[key] = subrig.data[key]
+            self.copyDrivers(subrig.data, rig.data, subrig, rig)
+
             setActiveObject(context, rig)
             layers = (self.clothesLayer-1)*[False] + [True] + (32-self.clothesLayer)*[False]
             bpy.ops.object.mode_set(mode='EDIT')
@@ -830,7 +838,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, IsArmature):
             bpy.ops.object.mode_set(mode='OBJECT')
             for bname in extras:
                 pb = rig.pose.bones[bname]
-                copyBoneInfo(subrig.pose.bones[bname], pb)
+                subpb = subrig.pose.bones[bname]
+                copyBoneInfo(subpb, pb)
+                copyConstraints(subpb, pb, rig)
                 pb.bone.layers[self.clothesLayer-1] = True
             return storage
         else:
@@ -1145,7 +1155,6 @@ class EditBoneStorage:
             pname = parbone
         else:
             pname = None
-
         if pname is not None:
             eb.parent = rig.data.edit_bones[pname]
         return eb

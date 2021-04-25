@@ -434,6 +434,10 @@ class DAZ_OT_RotateBones(DazPropsOperator, IsArmature):
 #-------------------------------------------------------------
 
 def copyBoneInfo(srcpb, trgpb):
+    trgpb.rotation_mode = srcpb.rotation_mode
+    trgpb.lock_location = srcpb.lock_location
+    trgpb.lock_rotation = srcpb.lock_rotation
+    trgpb.lock_scale = srcpb.lock_scale
     trgpb.bone.DazOrient = Vector(srcpb.bone.DazOrient)
     trgpb.bone.DazHead = Vector(srcpb.bone.DazHead)
     trgpb.bone.DazTail = Vector(srcpb.bone.DazTail)

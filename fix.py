@@ -377,19 +377,29 @@ class GizmoUser:
 #   Constraints class
 #-------------------------------------------------------------
 
-class ConstraintStore:
-    Attributes = [
-        "type", "name", "mute", "target", "subtarget",
-        "head_tail", "use_offset", "owner_space", "target_space",
-        "use_x", "use_y", "use_z",
-        "invert_x", "invert_y", "invert_z",
-        "use_limit_x", "use_limit_y", "use_limit_z",
-        "use_min_x", "use_min_y", "use_min_z",
-        "use_max_x", "use_max_y", "use_max_z",
-        "min_x", "min_y", "min_z",
-        "max_x", "max_y", "max_z",
-    ]
+ConstraintAttributes = [
+    "type", "name", "mute", "target", "subtarget",
+    "head_tail", "use_offset", "owner_space", "target_space",
+    "use_x", "use_y", "use_z",
+    "invert_x", "invert_y", "invert_z",
+    "use_limit_x", "use_limit_y", "use_limit_z",
+    "use_min_x", "use_min_y", "use_min_z",
+    "use_max_x", "use_max_y", "use_max_z",
+    "min_x", "min_y", "min_z",
+    "max_x", "max_y", "max_z",
+]
 
+def copyConstraints(src, trg, rig=None):
+    for scns in src.constraints:
+        tcns = trg.constraints.new(scns.type)
+        for attr in ConstraintAttributes:
+            if (hasattr(scns, attr) and attr != "type"):
+                setattr(tcns, attr, getattr(scns, attr))
+        if rig and hasattr(tcns, "target"):
+            tcns.target = rig
+
+
+class ConstraintStore:
     def __init__(self):
         self.constraints = {}
 
@@ -398,7 +408,7 @@ class ConstraintStore:
         clist = []
         for cns in pb.constraints:
             struct = {}
-            for attr in self.Attributes:
+            for attr in ConstraintAttributes:
                 if hasattr(cns, attr):
                     struct[attr] = getattr(cns, attr)
             clist.append(struct)

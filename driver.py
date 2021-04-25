@@ -179,6 +179,17 @@ class DriverUser:
         finally:
             self.deleteTmp()
 
+
+    def copyDrivers(self, src, trg, old, new):
+        if src.animation_data is None:
+            return
+        self.createTmp()
+        try:
+            for fcu in src.animation_data.drivers:
+                self.copyDriver(fcu, trg, old, new)
+        finally:
+            self.deleteTmp()
+
 #-------------------------------------------------------------
 #   Check if RNA is driven
 #-------------------------------------------------------------
