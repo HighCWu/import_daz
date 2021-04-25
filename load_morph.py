@@ -507,9 +507,11 @@ class LoadMorph(DriverUser):
     def buildPropDriver(self, raw, drivers):
         from .driver import getRnaDriver
         rna,channel = self.getDrivenChannel(raw)
-        if not self.primary[raw]:
-            fcu = getRnaDriver(rna, channel, 'SINGLE_PROP')
-            if fcu and fcu.driver.type == 'SCRIPTED':
+        fcu = getRnaDriver(rna, channel, None)
+        if fcu and fcu.driver.type == 'SCRIPTED':
+            if self.getBoneTarget(fcu):
+                return
+            elif not self.primary[raw]:
                 self.extendPropDriver(fcu, raw, drivers)
                 return
         rna.driver_remove(channel)
@@ -666,19 +668,19 @@ class LoadMorph(DriverUser):
             halt
             uvecs = []
             for factor in expr["factor"]:
-                uvec = getBoneVector(factor*unit, comp, pb)
+                uvec = unit*getBoneVector(factor, comp, pb)
                 uvecs.append(uvec)
             self.makeProductBoneDriver(path, uvecs, rna, channel, -1, bname)
         else:
             factor = expr["factor"]
-            uvec = getBoneVector(factor*unit, comp, pb)
+            uvec = unit*getBoneVector(factor, comp, pb)
             self.makeSimpleBoneDriver(path, uvec, rna, channel, -1, bname)
 
     #-------------------------------------------------------------
     #   Bone drivers
     #-------------------------------------------------------------
 
-    def makeVarsString(self, uvec, bname):
+    def getVarData(self, uvec, bname):
         vals = [(abs(x), n, x) for n,x in enumerate(uvec)]
         vals.sort()
         _,n,umax = vals[-1]
@@ -690,7 +692,7 @@ class LoadMorph(DriverUser):
 
 
     def makeSimpleBoneDriver(self, path, vec, rna, channel, idx, bname=None):
-        var,vars,umax = self.makeVarsString(vec, bname)
+        var,vars,umax = self.getVarData(vec, bname)
         string = getMult(umax, var)
         self.makeBoneDriver(string, vars, path, rna, channel, idx)
 
@@ -699,7 +701,7 @@ class LoadMorph(DriverUser):
         string = ""
         vars = []
         for vec in vecs:
-            string1,vars1 = self.makeVarsString(vec, bname)
+            string1,vars1 = self.getVarData(vec, bname)
             if string1:
                 vars += vars1
                 string += ("*min(1,max(0,%s))" % string1)
@@ -712,7 +714,7 @@ class LoadMorph(DriverUser):
         #[1 if x< -1.983 else -x-0.983 if x< -0.983  else 0 for x in [+0.988*A]][0]
         #1 if A< -1.983/0.988 else -0.988*A-0.983 if A< -0.983/0.988  else 0
 
-        var,vars,umax = self.makeVarsString(uvec, bname)
+        var,vars,umax = self.getVarData(uvec, bname)
         lt = ("<" if umax > 0 else ">")
 
         n = len(points)
@@ -1003,7 +1005,6 @@ def buildBoneFormula(asset, rig, errors):
     def buildValueDriver(exprs, raw):
         lm = LoadMorph(rig, None)
         for idx,expr in exprs.items():
-            print("EE", expr)
             bname = expr["bone"]
             if bname not in rig.pose.bones.keys():
                 print("Missing bone:", bname)

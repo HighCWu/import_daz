@@ -666,6 +666,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             if success:
                 rig.data.layers[self.clothesLayer-1] = True
             setActiveObject(context, rig)
+            updateDrivers(rig)
+            updateDrivers(rig.data)
 
 
     def mergeRigs1(self, rig, subrigs, context):
@@ -826,6 +828,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             for key in subrig.data.keys():
                 rig.data[key] = subrig.data[key]
             self.copyDrivers(subrig.data, rig.data, subrig, rig)
+            self.copyDrivers(subrig, rig, subrig, rig)
 
             setActiveObject(context, rig)
             layers = (self.clothesLayer-1)*[False] + [True] + (32-self.clothesLayer)*[False]

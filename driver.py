@@ -593,6 +593,13 @@ def updateAll(context):
         updateDrivers(ob)
 
 
+def updateDrivers2(rna):
+    if rna and rna.animation_data:
+        for fcu in rna.animation_data.drivers:
+            if fcu.driver.type == 'SCRIPTED':
+                fcu.driver.expression = str(fcu.driver.expression)
+
+
 class DAZ_OT_UpdateAll(DazOperator):
     bl_idname = "daz.update_all"
     bl_label = "Update All"
