@@ -52,6 +52,7 @@ class LoadMorph(DriverUser):
         self.mesh = mesh
         self.initAmt()
         self.mult = []
+        self.mults = {}
 
 
     def initAmt(self):
@@ -639,7 +640,7 @@ class LoadMorph(DriverUser):
                 points.reverse()
 
             diff = points[n-1][0] - points[0][0]
-            uvec = getBoneVector(1/(diff*unit), comp, pb)
+            uvec = getBoneVector(unit/diff, comp, pb)
             xys = []
             for k in range(n):
                 x = points[k][0]/diff
@@ -665,12 +666,12 @@ class LoadMorph(DriverUser):
             halt
             uvecs = []
             for factor in expr["factor"]:
-                uvec = getBoneVector(factor/unit, comp, pb)
+                uvec = getBoneVector(factor*unit, comp, pb)
                 uvecs.append(uvec)
             self.makeProductBoneDriver(path, uvecs, rna, channel, -1, bname)
         else:
             factor = expr["factor"]
-            uvec = getBoneVector(factor/unit, comp, pb)
+            uvec = getBoneVector(factor*unit, comp, pb)
             self.makeSimpleBoneDriver(path, uvec, rna, channel, -1, bname)
 
     #-------------------------------------------------------------
@@ -983,7 +984,6 @@ def buildBoneFormula(asset, rig, errors):
     def buildChannel(exprs, pb, channel):
         lm = LoadMorph(rig, None)
         for idx,expr in exprs.items():
-            print("EE", expr)
             factor = expr["factor"]
             driver = expr["bone"]
             path = expr["path"]
@@ -991,20 +991,27 @@ def buildBoneFormula(asset, rig, errors):
             unit = getUnit(path, rig)
             if factor and driver in rig.pose.bones.keys():
                 pbDriver = rig.pose.bones[driver]
-                uvec = getBoneVector(factor, comp, pbDriver)
-                if pb:
-                    if pbDriver.parent == pb:
-                        print("Dependency loop: %s %s" % (pbDriver.name, pb.name))
-                    else:
-                        dvec = getBoneVector(1.0, idx, pb)
-                        idx2,sign,x = getDrivenComp(dvec)
-                        lm.makeSimpleBoneDriver(path, sign*uvec, pb, channel, idx2, driver)
+                if pbDriver.parent == pb:
+                    print("Dependency loop: %s %s" % (pbDriver.name, pb.name))
                 else:
-                    print("BD", channel, factor, driver, comp)
-                    raw = channel
-                    final = finalProp(channel)
-                    rig.data[final] = 0.0
-                    lm.makeSimpleBoneDriver(path, uvec, rig.data, propRef(final), -1, driver)
+                    uvec = getBoneVector(factor, comp, pbDriver)
+                    dvec = getBoneVector(1.0, idx, pb)
+                    idx2,sign,x = getDrivenComp(dvec)
+                    lm.makeSimpleBoneDriver(path, sign*uvec, pb, channel, idx2, driver)
+
+
+    def buildValueDriver(exprs, raw):
+        lm = LoadMorph(rig, None)
+        for idx,expr in exprs.items():
+            print("EE", expr)
+            bname = expr["bone"]
+            if bname not in rig.pose.bones.keys():
+                print("Missing bone:", bname)
+                continue
+            final = finalProp(raw)
+            rig.data[final] = 0.0
+            lm.buildBoneDriver(raw, bname, expr)
+
 
     exprs = asset.evalFormulas(rig, None)
     for driven,expr in exprs.items():
@@ -1013,7 +1020,7 @@ def buildBoneFormula(asset, rig, errors):
                 pb = rig.pose.bones[driven]
                 buildChannel(expr["rotation"], pb, "rotation_euler")
         elif "value" in expr.keys():
-            buildChannel(expr["value"], None, driven)
+            buildValueDriver(expr["value"], driven)
 
 #------------------------------------------------------------------
 #   Utilities
