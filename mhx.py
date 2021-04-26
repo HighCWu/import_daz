@@ -1017,7 +1017,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
             forearmIk.use_connect = forearm.use_connect
             handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
-            handTwkIk = deriveBone("handTwk.ik"+suffix, hand, rig, L_HELP2, forearmIk)
+            hand0Ik = deriveBone("hand0.ik"+suffix, hand, rig, L_HELP2, forearmIk)
 
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
@@ -1154,7 +1154,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             upper_armIk = rpbs["upper_arm.ik"+suffix]
             forearmIk = rpbs["forearm.ik"+suffix]
             handIk = rpbs["hand.ik"+suffix]
-            handTwkIk = rpbs["handTwk.ik"+suffix]
+            hand0Ik = rpbs["hand0.ik"+suffix]
             elbowPt = rpbs["elbow.pt.ik"+suffix]
             elbowLink = rpbs["elbow.link"+suffix]
 
@@ -1167,8 +1167,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             setMhxProp(rig.data, prop, 1.0)
             copyTransformFkIk(upper_arm, upper_armFk, upper_armIk, rig, prop)
             copyTransformFkIk(forearm, forearmFk, forearmIk, rig, prop)
-            copyTransformFkIk(hand, handFk, handTwkIk, rig, prop)
-            copyTransformFkIk(handTwkIk, handIk, None, rig, prop)
+            copyTransformFkIk(hand, handFk, hand0Ik, rig, prop)
+            copyTransformFkIk(hand0Ik, handIk, None, rig, prop)
             if self.elbowParent == 'HAND':
                 elbowPoleA = rpbs["elbowPoleA"+suffix]
                 elbowPoleP = rpbs["elbowPoleP"+suffix]
@@ -1186,7 +1186,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             yTrue = (False,True,False)
             copyRotation(forearm, handFk, yTrue, rig, space='LOCAL_WITH_PARENT')
-            copyRotation(forearm, handTwkIk, yTrue, rig, prop, space='LOCAL_WITH_PARENT')
+            copyRotation(forearm, hand0Ik, yTrue, rig, prop, space='LOCAL_WITH_PARENT')
             forearmFk.lock_rotation = yTrue
             handTwk.lock_rotation = (True,False,True)
 
