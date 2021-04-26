@@ -1110,14 +1110,20 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         from .figure import copyBoneInfo
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.mode_set(mode='POSE')
+        rpbs = rig.pose.bones
         for suffix in [".L", ".R"]:
-            for bname in ["upper_arm", "forearm", "hand",
-                          "thigh", "shin", "foot", "toe"]:
-                bone = rig.pose.bones[bname+suffix]
-                fkbone = rig.pose.bones[bname+".fk"+suffix]
+            for bname in ["upper_arm", "forearm", "thigh", "shin"]:
+                bone = rpbs[bname+suffix]
+                fkbone = rpbs[bname+".fk"+suffix]
+                ikbone = rpbs[bname+".ik"+suffix]
+                bone.lock_rotation = (False, False, False)
+                copyBoneInfo(bone, fkbone)
+                copyBoneInfo(bone, ikbone)
+            for bname in ["hand", "foot", "toe"]:
+                bone = rpbs[bname+suffix]
+                fkbone = rpbs[bname+".fk"+suffix]
                 copyBoneInfo(bone, fkbone)
 
-        rpbs = rig.pose.bones
         for bname in ["hip", "pelvis"]:
             pb = rpbs[bname]
             pb.rotation_mode = 'YZX'
@@ -1168,6 +1174,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             if self.elbowParent == 'HAND':
                 elbowPoleA = rpbs["elbowPoleA"+suffix]
                 elbowPoleP = rpbs["elbowPoleP"+suffix]
+                elbowPoleA.lock_location = (True,True,True)
                 elbowPoleA.lock_rotation = (True,False,True)
                 dampedTrack(elbowPoleA, handIk, rig)
                 cns = copyLocation(elbowPoleA, handIk, rig)
@@ -1226,6 +1233,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             if self.kneeParent == 'FOOT':
                 kneePoleA = rpbs["kneePoleA"+suffix]
                 kneePoleP = rpbs["kneePoleP"+suffix]
+                kneePoleA.lock_location = (True,True,True)
                 kneePoleA.lock_rotation = (True,False,True)
                 dampedTrack(kneePoleA, ankleIk, rig)
                 cns = copyLocation(kneePoleA, ankleIk, rig)
