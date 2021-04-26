@@ -1786,12 +1786,15 @@ class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
         rig = ob.parent
         if rig is None or not rig.type == 'ARMATURE':
             raise DazError("Object has no armature parent")
+        coll = context.scene.collection
+        hidden = createHiddenCollection(context, None)
+        self.hiddenLayers = 30*[False] + [True,False]
+        activateObject(context, ob)
 
         vgnames,vgverts,vgfaces = self.getVertexGroupMesh(ob)
-        hidden = createHiddenCollection(context, None)
         euler = Euler((0,180*D,90*D))
         mat = euler.to_matrix()*(1.0/rig.DazScale)
-        pbones = []
+        gizmos = []
         for idx,verts in vgverts.items():
             if not verts:
                 continue
@@ -1802,19 +1805,22 @@ class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
             me = bpy.data.meshes.new(gname)
             me.from_pydata(verts, [], faces)
             gzm = bpy.data.objects.new(gname, me)
-            self.removeInterior(gzm, context)
+            gizmos.append((key,gzm))
+            coll.objects.link(gzm)
             hidden.objects.link(gzm)
-            if key in rig.pose.bones.keys():
-                pb = rig.pose.bones[key]
+            gzm.select_set(True)
+
+        self.removeInteriors(gizmos, context)
+
+        drivers = self.getDrivers(rig.data)
+        for bname,gzm in gizmos:
+            if bname in rig.pose.bones.keys():
+                pb = rig.pose.bones[bname]
                 pb.custom_shape = gzm
                 pb.bone.show_wire = True
-                pbones.append(pb)
-
-        for pb in pbones:
-            locks = pb.lock_rotation
-            if not(locks[0] or locks[1] or locks[2]):
-                pb.lock_location = (True,True,True)
-            self.hideChildren(pb)
+                pb.lock_rotation = (True,True,True)
+                self.hideUnused(pb, drivers)
+            coll.objects.unlink(gzm)
         unlinkAll(ob)
 
 
@@ -1849,34 +1855,44 @@ class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
         return verts
 
 
-    def removeInterior(self, ob, context):
+    def removeInteriors(self, gizmos, context):
         from .tables import getVertEdges, getEdgeFaces
-        context.scene.collection.objects.link(ob)
-        activateObject(context, ob)
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
-        vertedges = getVertEdges(ob)
-        edgefaces = getEdgeFaces(ob, vertedges)
-        verts = ob.data.vertices
-        for v in verts:
-            v.select = True
-        for e in ob.data.edges:
-            if len(edgefaces[e.index]) <= 1:
-                vn1,vn2 = e.vertices
-                verts[vn1].select = False
-                verts[vn2].select = False
+        for _bname,ob in gizmos:
+            vertedges = getVertEdges(ob)
+            edgefaces = getEdgeFaces(ob, vertedges)
+            verts = ob.data.vertices
+            for v in verts:
+                v.select = True
+            for e in ob.data.edges:
+                if len(edgefaces[e.index]) <= 1:
+                    vn1,vn2 = e.vertices
+                    verts[vn1].select = False
+                    verts[vn2].select = False
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.delete(type='VERT')
         bpy.ops.object.mode_set(mode='OBJECT')
-        context.scene.collection.objects.unlink(ob)
 
 
-    def hideChildren(self, pb):
+    def getDrivers(self, amt):
+        if not (amt and amt.animation_data):
+            return {}
+        drivers = {}
+        for fcu in amt.animation_data.drivers:
+            for var in fcu.driver.variables:
+                if var.type == 'TRANSFORMS':
+                    for trg in var.targets:
+                        drivers[trg.bone_target] = True
+        return drivers
+
+
+    def hideUnused(self, pb, drivers):
+        if pb.name not in drivers.keys():
+            pb.bone.layers = self.hiddenLayers
         for child in pb.children:
-            if child.custom_shape is None:
-                child.bone.hide = True
-                self.hideChildren(child)
+            self.hideUnused(child, drivers)
 
 #----------------------------------------------------------
 #   Initialize
