@@ -534,19 +534,17 @@ class ExtraBones(DriverUser):
             fcus = [fcu for fcu in rna.animation_data.drivers
                     if fcu.driver.type == 'SCRIPTED']
             for fcu in fcus:
-                bname,_ = self.getBoneTarget(fcu)
-                if bname is None:
-                    continue
-                bname = baseBone(bname)
-                if bname and bname in self.bnames:
-                    channel = fcu.data_path
-                    fcu2 = self.getTmpDriver(0)
-                    self.copyFcurve(fcu, fcu2)
-                    rna.driver_remove(channel)
-                    self.setBoneTarget(fcu2, finBone(bname))
-                    fcu3 = rna.animation_data.drivers.from_existing(src_driver=fcu2)
-                    fcu3.data_path = channel
-                    self.clearTmpDriver(0)
+                for btarget in self.getBoneTargets(fcu):
+                    bname = baseBone(btarget[1])
+                    if bname and bname in self.bnames:
+                        channel = fcu.data_path
+                        fcu2 = self.getTmpDriver(0)
+                        self.copyFcurve(fcu, fcu2)
+                        rna.driver_remove(channel)
+                        self.setBoneTarget(fcu2, finBone(bname))
+                        fcu3 = rna.animation_data.drivers.from_existing(src_driver=fcu2)
+                        fcu3.data_path = channel
+                        self.clearTmpDriver(0)
 
 
     def storeRemoveBoneSumDrivers(self, rig):

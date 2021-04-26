@@ -137,12 +137,14 @@ class DriverUser:
                     trg.bone_target = assoc[trg.bone_target]
 
 
-    def getBoneTarget(self, fcu):
+    def getBoneTargets(self, fcu):
+        targets = []
         for var in fcu.driver.variables:
             for trg in var.targets:
                 if trg.bone_target:
-                    return trg.bone_target, var
-        return None, None
+                    targets.append((var.name, trg.bone_target, var))
+        targets.sort()
+        return targets
 
 
     def setBoneTarget(self, fcu, bname):
@@ -330,12 +332,17 @@ class Variable:
     def __init__(self, var):
         self.type = var.type
         self.name = var.name
-        self.target = Target(var.targets[0])
+        self.targets = []
+        for trg in var.targets:
+            self.targets.append(Target(trg))
 
     def create(self, var, fixDrv=False):
         var.name = self.name
         var.type = self.type
-        self.target.create(var.targets[0], fixDrv)
+        self.targets[0].create(var.targets[0], fixDrv)
+        for target in self.targets[1:]:
+            trg = var.targets.new()
+            target.create(trg, fixDrv)
 
 
 class Target:

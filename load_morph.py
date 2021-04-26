@@ -507,23 +507,26 @@ class LoadMorph(DriverUser):
     def buildPropDriver(self, raw, drivers):
         from .driver import getRnaDriver, Variable
         rna,channel = self.getDrivenChannel(raw)
-        var0 = None
+        bvars = []
         string = ""
         fcu0 = getRnaDriver(rna, channel, None)
         if fcu0 and fcu0.driver.type == 'SCRIPTED':
             if not self.primary[raw]:
                 self.extendPropDriver(fcu0, raw, drivers)
                 return
-            bname,var0 = self.getBoneTarget(fcu0)
-            if var0:
-                string = self.extractBoneExpression(fcu0.driver.expression, var0.name)
-                var0 = Variable(var0)
+            btargets = self.getBoneTargets(fcu0)
+            if btargets:
+                varname = btargets[-1][0]
+                string = self.extractBoneExpression(fcu0.driver.expression, varname)
+                for _,_,var0 in btargets:
+                    bvars.append(Variable(var0))
         rna.driver_remove(channel)
         fcu = rna.driver_add(channel)
         fcu.driver.type = 'SCRIPTED'
-        if var0:
+        for bvar in bvars:
             var = fcu.driver.variables.new()
-            var0.create(var)
+            print("BV", bvar.name)
+            bvar.create(var)
 
         varname = "a"
         if self.visible[raw] or not self.primary[raw]:
@@ -756,27 +759,26 @@ class LoadMorph(DriverUser):
 
     def makeBoneDriver(self, string, vars, channel, rna, path, idx, keep):
         from .driver import addTransformVar, Variable, getRnaDriver
-        var0 = None
+        bvars = []
         if keep:
             fcu0 = getRnaDriver(rna, path, None)
             if fcu0 and fcu0.driver.type == 'SCRIPTED':
-                bname,var0 = self.getBoneTarget(fcu0)
-                if var0:
-                    string0 = self.extractBoneExpression(fcu0.driver.expression, var0.name)
-                    vname = chr(ord(var0.name)+3)
-                    print("SS0", string0, var0.name)
-                    print("SS1", string, vars)
-                    string = string0 + string.replace(var0.name, vname)
-                    vars = [(idx, varname.replace(var0.name, vname), prop)
+                btargets = self.getBoneTargets(fcu0)
+                if btargets:
+                    varname = btargets[-1][0]
+                    string0 = self.extractBoneExpression(fcu0.driver.expression, varname)
+                    for _,_,var0 in btargets:
+                        bvars.append(Variable(var0))
+                    vname = nextLetter(varname)
+                    string = string0 + string.replace(varname, vname)
+                    vars = [(idx, varname.replace(varname, vname), prop)
                         for (idx, varname, prop) in  vars]
-                    print("SS3", string, vars)
-                    var0 = Variable(var0)
         rna.driver_remove(path, idx)
         fcu = rna.driver_add(path, idx)
         fcu.driver.type = 'SCRIPTED'
-        if var0:
+        for bvar in bvars:
             var = fcu.driver.variables.new()
-            var0.create(var)
+            bvar.create(var)
         string = self.multiplyMults(fcu, string)
         if GS.useMakeHiddenSliders and isPath(path):
             final = unPath(path)
@@ -874,26 +876,29 @@ class LoadMorph(DriverUser):
             if fcu2:
                 targets = {}
                 for var2 in fcu2.driver.variables:
-                    trg2 = var2.targets[0]
-                    targets[var2.name] = trg2
+                    if var2.type == 'SINGLE_PROP':
+                        trg2 = var2.targets[0]
+                        targets[var2.name] = trg2
                 string = fcu2.driver.expression
                 while string and string[0] == "(":
                     string = string[1:-1]
                 words = string.split("*")
                 word1 = words[0]
                 for word2 in words[1:]:
-                    trg2 = targets[word2[0]]
-                    prop = unPath(trg2.data_path)
-                    if prop not in drivers.keys():
-                        try:
-                            factor = float(word1)
-                        except ValueError:
-                            msg = ("BUG recoverOldDrivers: not a float\n" +
-                                   "FCU2 %s %d" % (fcu2.data_path, fcu2.array_index) +
-                                   "EXPR %s" % fcu2.driver.expression +
-                                   "TARGETS %s" % list(targets.keys()))
-                            reportError(msg, trigger=(0,0))
-                        drivers[prop] = factor
+                    varname = word2[0]
+                    if varname in targets.keys():
+                        trg2 = targets[varname]
+                        prop = unPath(trg2.data_path)
+                        if prop not in drivers.keys():
+                            try:
+                                factor = float(word1)
+                            except ValueError:
+                                msg = ("BUG recoverOldDrivers: not a float\n" +
+                                       "FCU2 %s %d" % (fcu2.data_path, fcu2.array_index) +
+                                       "EXPR %s" % fcu2.driver.expression +
+                                       "TARGETS %s" % list(targets.keys()))
+                                reportError(msg, trigger=(0,0))
+                            drivers[prop] = factor
                     word1 = word2[1:]
 
 
