@@ -1386,15 +1386,40 @@ class FakeCurve:
         return self.value
 
 
-class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
+class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, IsArmature):
     bl_idname = "daz.save_pose_preset"
     bl_label = "Save Pose Preset"
     bl_description = "Save the active action as a pose preset,\nto be used in DAZ Studio"
     bl_options = {'UNDO'}
 
+    author : StringProperty(
+        name = "Author",
+        description = "Author info in pose preset file",
+        default = "")
+
+    website : StringProperty(
+        name = "Website",
+        description = "Website info in pose preset file",
+        default = "")
+
     useAction : BoolProperty(
         name = "Use Action",
         description = "Import action instead of single pose",
+        default = True)
+
+    useBones : BoolProperty(
+        name = "Use Bones",
+        description = "Include bones in the pose preset",
+        default = True)
+
+    useFaceBones : BoolProperty(
+        name = "Use Face Bones",
+        description = "Include face bones in the pose preset",
+        default = True)
+
+    useMorphs : BoolProperty(
+        name = "Use Morphs",
+        description = "Include morphs in the pose preset",
         default = True)
 
     first : IntProperty(
@@ -1414,6 +1439,12 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
         default = 30)
 
     def draw(self, context):
+        self.layout.prop(self, "author")
+        self.layout.prop(self, "website")
+        self.layout.prop(self, "useBones")
+        if self.useBones:
+            self.layout.prop(self, "useFaceBones")
+        self.layout.prop(self, "useMorphs")
         self.layout.prop(self, "useAction")
         if self.useAction:
             self.layout.prop(self, "first")
@@ -1425,7 +1456,9 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
         from math import pi
         self.Z = Matrix.Rotation(pi/2, 4, 'X')
         rig = context.object
+        self.setupConverter(rig)
         act = None
+        self.morphs = {}
         if self.useAction:
             if rig.animation_data:
                 act = rig.animation_data.action
@@ -1433,48 +1466,71 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
                 locs,rots,quats = self.getFcurves(rig, act)
         if not act:
             locs,rots,quats = self.getFakeCurves(rig)
-        self.setupFlipper(rig)
-        self.setupFrames(rig, locs, rots, quats)
+        if self.useBones:
+            self.setupFlipper(rig)
+            self.setupFrames(rig, locs, rots, quats)
         self.saveFile(rig)
 
 
     def getFcurves(self, rig, act):
+        from .morphing import theStandardMorphSets, theCustomMorphSets
         quats = {}
         rots = {}
         locs = {}
+        if self.useMorphs:
+            morphsets = [getattr(rig, "Daz"+morphset)
+                for morphset in theStandardMorphSets + theCustomMorphSets]
+
         for pb in rig.pose.bones:
-            if pb.rotation_mode == 'QUATERNION':
-                quats[pb.name] = 4*[None]
-            else:
-                rots[pb.name] = 3*[None]
-            if pb.parent is None:
-                locs[pb.name] = 3*[None]
+            for bname in self.getBoneNames(pb.name):
+                if pb.rotation_mode == 'QUATERNION':
+                    quats[bname] = 4*[None]
+                else:
+                    rots[bname] = 3*[None]
+                if pb.name == "hip":
+                    locs[bname] = 3*[None]
+
         for fcu in act.fcurves:
             channel = fcu.data_path.rsplit(".",1)[-1]
             words = fcu.data_path.split('"')
-            if words[0] == "pose.bones[":
-                bname = words[1]
+            if words[0] == "pose.bones[" and self.useBones:
                 idx = fcu.array_index
-                if channel == "location" and bname in locs.keys():
-                    locs[bname][idx] = fcu
-                elif channel == "rotation_euler":
-                    rots[bname][idx] = fcu
-                elif channel == "rotation_quaternion":
-                    quats[bname][idx] = fcu
+                for bname in self.getBoneNames(words[1]):
+                    if channel == "location" and bname in locs.keys():
+                        locs[bname][idx] = fcu
+                    elif channel == "rotation_euler":
+                        rots[bname][idx] = fcu
+                    elif channel == "rotation_quaternion":
+                        quats[bname][idx] = fcu
+            elif words[0] == "[" and self.useMorphs:
+                prop = words[1]
+                if prop in rig.keys():
+                    for morphset in morphsets:
+                        if prop in morphset.keys():
+                            self.morphs[prop] = fcu
         return locs,rots,quats
 
 
     def getFakeCurves(self, rig):
+        from .morphing import theStandardMorphSets, theCustomMorphSets
         quats = {}
         rots = {}
         locs = {}
-        for pb in rig.pose.bones:
-            if pb.rotation_mode == 'QUATERNION':
-                quats[pb.name] = [FakeCurve(t) for t in pb.rotation_quaternion]
-            else:
-                rots[pb.name] = [FakeCurve(t) for t in pb.rotation_euler]
-            if pb.parent is None:
-                locs[pb.name] = [FakeCurve(t) for t in pb.location]
+        if self.useBones:
+            for pb in rig.pose.bones:
+                for bname in self.getBoneNames(pb.name):
+                    if pb.rotation_mode == 'QUATERNION':
+                        quats[bname] = [FakeCurve(t) for t in pb.rotation_quaternion]
+                    else:
+                        rots[bname] = [FakeCurve(t) for t in pb.rotation_euler]
+                    if bname == "hip":
+                        locs[bname] = [FakeCurve(t) for t in pb.location]
+        if self.useMorphs:
+            for morphset in theStandardMorphSets + theCustomMorphSets:
+                pg = getattr(rig, "Daz"+morphset)
+                for prop in pg.keys():
+                    if prop in rig.keys():
+                        self.morphs[prop]= FakeCurve(rig[prop])
         return locs,rots,quats
 
 
@@ -1488,12 +1544,13 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
             dmat = euler.to_matrix().to_4x4()
             dmat.col[3][0:3] = Vector(pb.bone.DazHead)*rig.DazScale
             Fn = pb.bone.matrix_local.inverted() @ self.Z @ dmat
-            self.F[pb.name] = Fn
-            self.Finv[pb.name] = Fn.inverted()
-            idxs = self.idxs[pb.name] = []
-            for n in range(3):
-                idx = ord(pb.DazRotMode[n]) - ord('X')
-                idxs.append(idx)
+            for bname in self.getBoneNames(pb.name):
+                self.F[bname] = Fn
+                self.Finv[bname] = Fn.inverted()
+                idxs = self.idxs[bname] = []
+                for n in range(3):
+                    idx = ord(pb.DazRotMode[n]) - ord('X')
+                    idxs.append(idx)
 
 
     def setupFrames(self, rig, locs, rots, quats):
@@ -1501,28 +1558,70 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
         for frame in range(self.first, self.last+1):
             L = self.Ls[frame] = {}
             for pb in rig.pose.bones:
-                bn = pb.name
-                if bn in quats.keys():
-                    quat = pb.rotation_quaternion
-                    for idx,fcu in enumerate(quats[bn]):
-                        if fcu:
-                            quat[idx] = fcu.evaluate(frame)
-                    mat = quat.to_matrix().to_4x4()
-                elif bn in rots.keys():
-                    rot = pb.rotation_euler
-                    for idx,fcu in enumerate(rots[bn]):
-                        if fcu:
-                            rot[idx] = fcu.evaluate(frame)
-                    mat = rot.to_matrix().to_4x4()
-                else:
-                    continue
-                if bn in locs.keys():
-                    loc = pb.location
-                    for idx,fcu in enumerate(locs[bn]):
-                        if fcu:
-                            loc[idx] = fcu.evaluate(frame)
-                    mat.col[3][0:3] = loc
-                L[bn] = self.Finv[bn] @ mat @ self.F[bn]
+                for bname in self.getBoneNames(pb.name):
+                    if bname in quats.keys():
+                        quat = pb.rotation_quaternion
+                        for idx,fcu in enumerate(quats[bname]):
+                            if fcu:
+                                quat[idx] = fcu.evaluate(frame)
+                        mat = quat.to_matrix().to_4x4()
+                    elif bname in rots.keys():
+                        rot = pb.rotation_euler
+                        for idx,fcu in enumerate(rots[bname]):
+                            if fcu:
+                                rot[idx] = fcu.evaluate(frame)
+                        mat = rot.to_matrix().to_4x4()
+                    else:
+                        continue
+                    if bname in locs.keys():
+                        loc = pb.location
+                        for idx,fcu in enumerate(locs[bname]):
+                            if fcu:
+                                loc[idx] = fcu.evaluate(frame)
+                        mat.col[3][0:3] = loc
+                    L[bname] = self.Finv[bname] @ mat @ self.F[bname]
+
+
+    def setupConverter(self, rig):
+        conv,twists,bonemap = self.getConv(rig, rig)
+        self.conv = {}
+        self.twists = []
+        if conv:
+            self.twists = twists
+            for mbone,dbone in conv.items():
+                if dbone not in self.conv.keys():
+                    self.conv[dbone] = []
+                self.conv[dbone].append(mbone)
+            if self.useFaceBones:
+                for root in ["head", "DEF-spine.007"]:
+                    if root in rig.pose.bones.keys():
+                        pb = rig.pose.bones[root]
+                        self.setupConvBones(pb)
+            print("C", self.conv)
+        else:
+            roots = [pb for pb in rig.pose.bones if pb.parent is None]
+            for pb in roots:
+                self.setupConvBones(pb)
+
+
+    def setupConvBones(self, pb):
+        if pb.name[-2:] == ".L":
+            bname = "l%s%s" % (pb.name[0].upper(), pb.name[1:-2])
+        elif pb.name[-2:] == ".R":
+            bname = "r%s%s" % (pb.name[0].upper(), pb.name[1:-2])
+        else:
+            bname = pb.name
+        self.conv[pb.name] = [bname]
+        if pb.name != "head" or self.useFaceBones:
+            for child in pb.children:
+                self.setupConvBones(child)
+
+
+    def getBoneNames(self, bname):
+        if bname in self.conv.keys():
+            return self.conv[bname]
+        else:
+            return []
 
 
     def saveFile(self, rig):
@@ -1548,8 +1647,8 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
         struct["id"] = normalizeRef(filepath)
         struct["type"] = "preset_pose"
         struct["contributor"] = {
-            "author" : "Daz Importer",
-            "website" : "http://diffeomorphic.blogspot.com/"
+            "author" : self.author,
+            "website" : self.website,
         }
         struct["modified"] = str(now)
         return struct
@@ -1558,29 +1657,43 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, IsArmature):
     def getAnimations(self, rig):
         from collections import OrderedDict
         anims = []
-        for pb in rig.pose.bones:
-            Ls = [self.Ls[frame][pb.name] for frame in range(self.first, self.last+1)]
-            if pb.parent is None:
-                locs = [L.col[3] for L in Ls]
-                self.getTrans(pb, locs, 1/rig.DazScale, anims)
-            rots = [L.to_euler(pb.DazRotMode) for L in Ls]
-            self.getRot(pb, rots, 1/D, anims)
+        if self.useBones:
+            for pb in rig.pose.bones:
+                for bname in self.getBoneNames(pb.name):
+                    Ls = [self.Ls[frame][bname] for frame in range(self.first, self.last+1)]
+                    if pb.name == "hip":
+                        locs = [L.col[3] for L in Ls]
+                        self.getTrans(bname, locs, 1/rig.DazScale, anims)
+                    rots = [L.to_euler(pb.DazRotMode) for L in Ls]
+                    self.getRot(bname, rots, 1/D, anims)
+        if self.useMorphs:
+            for prop,fcu in self.morphs.items():
+                self.getMorph(prop, fcu, anims)
         return anims
 
 
-    def getTrans(self, pb, vecs, factor, anims):
+    def getMorph(self, prop, fcu, anims):
+        from .asset import normalizeRef
+        anim = {}
+        anim["url"] = "name://@selection#%s:?value" % prop
+        vals = [fcu.evaluate(frame) for frame in range(self.first, self.last+1)]
+        anim["keys"] = [(n/self.fps, val) for n,val in enumerate(vals)]
+        anims.append(anim)
+
+
+    def getTrans(self, bname, vecs, factor, anims):
         for idx,x in enumerate(["x","y","z"]):
             anim = {}
-            anim["url"] = "name://@selection/%s:?translation/%s/value" % (pb.name, x)
+            anim["url"] = "name://@selection/%s:?translation/%s/value" % (bname, x)
             locs = [vec[idx]*factor for vec in vecs]
             anim["keys"] = [(n/self.fps, loc) for n,loc in enumerate(locs)]
             anims.append(anim)
 
 
-    def getRot(self, pb, vecs, factor, anims):
+    def getRot(self, bname, vecs, factor, anims):
         for idx,x in enumerate(["x","y","z"]):
             anim = {}
-            anim["url"] = "name://@selection/%s:?rotation/%s/value" % (pb.name, x)
+            anim["url"] = "name://@selection/%s:?rotation/%s/value" % (bname, x)
             rots = [vec[idx]*factor for vec in vecs]
             rots = self.correct180(rots)
             anim["keys"] = [(n/self.fps, rot) for n,rot in enumerate(rots)]

@@ -1,6 +1,6 @@
 {
-    "hip" : "root",
-    "pelvis" : "hips",    
+    "hip" : "hip",
+    "pelvis" : "pelvis",    
     "abdomen" : "spine", 
     "abdomenLower" : "spine", 
     "abdomen2" : "spine-1", 
