@@ -678,6 +678,7 @@ class BendTwists:
 
     def constrainBendTwists(self, rig):
         from .utils import hasPoseBones
+        from .mhx import dampedTrack, copyRotation
         bpy.ops.object.mode_set(mode='POSE')
 
         for bname,tname in self.BendTwists:
@@ -695,19 +696,9 @@ class BendTwists:
             cns0.target = rig
             cns0.subtarget = tname
             cns0.chain_count = 1
-
-            cns1 = pb1.constraints.new('COPY_ROTATION')
-            cns1.target = rig
-            cns1.subtarget = bname0
-            cns1.use_y = False
-            cns1.target_space = 'LOCAL_WITH_PARENT'
-            cns1.owner_space = 'LOCAL_WITH_PARENT'
-
-            cns2 = pb2.constraints.new('COPY_ROTATION')
-            cns2.target = rig
-            cns2.subtarget = bname
-            cns2.target_space = 'WORLD'
-            cns2.owner_space = 'WORLD'
+            cns1 = dampedTrack(pb1, pb0, rig)
+            cns1.head_tail = 1.0
+            cns2 = copyRotation(pb2, pb, rig, space='WORLD')
 
 #-------------------------------------------------------------
 #   Add IK goals
@@ -881,14 +872,14 @@ class DAZ_OT_AddWinder(DazOperator, GizmoUser, IsArmature):
         target.matrix_basis = pb.matrix_basis
 
         infl = 2*pb.bone.length/length
-        cns1 = copyRotation(pb, target, (True,True,True), rig)
+        cns1 = copyRotation(pb, target, rig)
         cns1.influence = infl
-        cns2 = copyScale(pb, target, (True,True,True), rig)
+        cns2 = copyScale(pb, target, rig)
         cns2.influence = infl
         while pb.children and len(pb.children) == 1:
             pb = pb.children[0]
             infl = 2*pb.bone.length/length
-            cns1 = copyRotation(pb, target, (True,True,True), rig)
+            cns1 = copyRotation(pb, target, rig)
             cns1.use_offset = True
             cns1.influence = infl
 

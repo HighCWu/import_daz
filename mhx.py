@@ -153,11 +153,10 @@ def copyLocation(bone, target, rig, prop=None, expr="x"):
     return cns
 
 
-def copyRotation(bone, target, use, rig, prop=None, expr="x", space='LOCAL'):
+def copyRotation(bone, target, rig, prop=None, expr="x", space='LOCAL'):
     cns = bone.constraints.new('COPY_ROTATION')
     cns.target = rig
     cns.subtarget = target.name
-    cns.use_x,cns.use_y,cns.use_z = use
     cns.owner_space = space
     cns.target_space = space
     if prop is not None:
@@ -165,13 +164,12 @@ def copyRotation(bone, target, use, rig, prop=None, expr="x", space='LOCAL'):
     return cns
 
 
-def copyScale(bone, target, use, rig, prop=None, expr="x"):
+def copyScale(bone, target, rig, prop=None, expr="x", space='LOCAL'):
     cns = bone.constraints.new('COPY_SCALE')
     cns.target = rig
     cns.subtarget = target.name
-    cns.use_x,cns.use_y,cns.use_z = use
-    cns.owner_space = 'LOCAL'
-    cns.target_space = 'LOCAL'
+    cns.owner_space = space
+    cns.target_space = space
     if prop is not None:
         addDriver(cns, "influence", rig, prop, expr)
     return cns
@@ -787,7 +785,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                     if pb.name.startswith(pname):
                         self.addGizmo(pb, "GZM_Circle", 0.4)
                 for pname,shape,scale in [
-                        ("handTwk", "GZM_Ball025", 1) ,
+                        ("handTwk", "GZM_Circle", 0.4) ,
                         ("pectoral", "GZM_Ball025", 1) ,
                         ("heel", "GZM_Ball025End", 1)]:
                     if pb.name.startswith(pname):
@@ -840,7 +838,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         for bname in self.BackBones:
             if bname in rig.pose.bones.keys():
                 pb = rig.pose.bones[bname]
-                cns = copyRotation(pb, back, (True,True,True), rig)
+                cns = copyRotation(pb, back, rig)
                 cns.use_offset = True
 
     #-------------------------------------------------------------
@@ -961,12 +959,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 fing = rig.pose.bones[self.linkName(m, n0, suffix)]
                 fing.lock_rotation = (False,True,False)
                 long.rotation_mode = fing.rotation_mode
-                cns = copyRotation(fing, long, (True,False,True), rig, prop)
+                cns = copyRotation(fing, long, rig, prop)
+                cns.use_x = cns.use_z = False
                 cns.use_offset = True
                 for n in range(n0+1,3):
                     fing = rig.pose.bones[self.linkName(m, n, suffix)]
                     fing.lock_rotation = (False,True,True)
-                    cns = copyRotation(fing, long, (True,False,False), rig, prop)
+                    cns = copyRotation(fing, long, rig, prop)
+                    cns.use_x = cns.use_z = False
                     cns.use_offset = True
 
     #-------------------------------------------------------------
@@ -1017,7 +1017,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
             forearmIk.use_connect = forearm.use_connect
             handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
-            hand0Ik = deriveBone("hand0.ik"+suffix, hand, rig, L_HELP2, forearmIk)
 
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
@@ -1154,7 +1153,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             upper_armIk = rpbs["upper_arm.ik"+suffix]
             forearmIk = rpbs["forearm.ik"+suffix]
             handIk = rpbs["hand.ik"+suffix]
-            hand0Ik = rpbs["hand0.ik"+suffix]
             elbowPt = rpbs["elbow.pt.ik"+suffix]
             elbowLink = rpbs["elbow.link"+suffix]
 
@@ -1167,8 +1165,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             setMhxProp(rig.data, prop, 1.0)
             copyTransformFkIk(upper_arm, upper_armFk, upper_armIk, rig, prop)
             copyTransformFkIk(forearm, forearmFk, forearmIk, rig, prop)
-            copyTransformFkIk(hand, handFk, hand0Ik, rig, prop)
-            copyTransformFkIk(hand0Ik, handIk, None, rig, prop)
+            copyTransformFkIk(hand, handFk, handIk, rig, prop)
             if self.elbowParent == 'HAND':
                 elbowPoleA = rpbs["elbowPoleA"+suffix]
                 elbowPoleP = rpbs["elbowPoleP"+suffix]
@@ -1184,10 +1181,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             elbowPt.rotation_euler[0] = -90*D
             elbowPt.lock_rotation = (True,True,True)
 
-            yTrue = (False,True,False)
-            copyRotation(forearm, handFk, yTrue, rig, space='LOCAL_WITH_PARENT')
-            copyRotation(forearm, hand0Ik, yTrue, rig, prop, space='LOCAL_WITH_PARENT')
-            forearmFk.lock_rotation = yTrue
+            cns = copyRotation(forearm, handFk, rig, prop, "1-x")
+            cns.use_x = cns.use_z = False
+            forearmFk.lock_rotation = (False,True,False)
             handTwk.lock_rotation = (True,False,True)
 
             legSocket = rpbs["legSocket"+suffix]

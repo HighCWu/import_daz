@@ -1028,7 +1028,7 @@ def addSimpleIK(rig, IK):
         hand = rpbs[prefix+"Hand"]
         driveConstraint(hand, 'LIMIT_ROTATION', rig, armProp, "1-x")
         handIK = getBoneCopy(prefix+"HandIK", hand, rpbs)
-        copyRotation(hand, handIK, (True,True,True), rig, space='WORLD', prop=armProp)
+        copyRotation(hand, handIK, rig, prop=armProp)
         handIK.custom_shape = hand.custom_shape
         handIK.custom_shape_scale = 1.8
         handIK.bone_group = bgrp
@@ -1038,7 +1038,7 @@ def addSimpleIK(rig, IK):
         foot = rpbs[prefix+"Foot"]
         driveConstraint(foot, 'LIMIT_ROTATION', rig, legProp, "1-x")
         footIK = getBoneCopy(prefix+"FootIK", foot, rpbs)
-        copyRotation(foot, footIK, (True,True,True), rig, space='WORLD', prop=legProp)
+        copyRotation(foot, footIK, rig, prop=legProp)
         footIK.custom_shape = foot.custom_shape
         footIK.custom_shape_scale = 1.8
         footIK.bone_group = bgrp
