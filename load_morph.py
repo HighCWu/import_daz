@@ -1114,6 +1114,6 @@ def getUnit(path, rig):
     if path == "translation":
         return 1/rig.DazScale
     elif path == "rotation":
-        return D
+        return 1/D
     else:
         return 1
