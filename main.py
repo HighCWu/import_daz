@@ -422,16 +422,27 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         if not LS.objects:
             raise DazError("No objects found")
         setSilentMode(True)
-        self.rigs = LS.rigs
-        self.meshes = LS.meshes
-        self.objects = LS.objects
-        self.hdmeshes = LS.hdmeshes
-        self.hairs = LS.hairs
+        self.rigs = self.getVisibleObjects(context, LS.rigs)
+        self.meshes = self.getVisibleObjects(context, LS.meshes)
+        self.objects = self.getVisibleObjects(context, LS.objects)
+        self.hdmeshes = self.getVisibleObjects(context, LS.hdmeshes)
+        self.hairs = self.getVisibleObjects(context, LS.hairs)
         for rigname in self.rigs.keys():
             self.treatRig(context, rigname)
         setSilentMode(False)
         time2 = perf_counter()
         print("File %s loaded in %.3f seconds" % (self.filepath, time2-time1))
+
+
+    def getVisibleObjects(self, context, struct):
+        nstruct = {}
+        for key,objects in struct.items():
+            nstruct[key] = [ob for ob in objects if
+                (ob and
+                 ob.name in context.scene.collection.all_objects and
+                 ob.name in context.view_layer.objects and
+                 not (ob.hide_get() or ob.hide_viewport))]
+        return nstruct
 
 
     def treatRig(self, context, rigname):
