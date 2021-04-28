@@ -593,10 +593,9 @@ class BendTwists:
 
     def getSubBoneNames(self, bname):
         base,suffix = bname.split(".")
-        bname0 = base + "-0." + suffix
-        bname1 = base + "-1." + suffix
-        bname2 = base + "-2." + suffix
-        return bname0,bname1,bname2
+        bname1 = "%s.bend.%s" % (base, suffix)
+        bname2 = "%s.twist.%s" % (base, suffix)
+        return bname1,bname2
 
 
     def createBendTwists(self, rig):
@@ -606,22 +605,20 @@ class BendTwists:
         for bname,_ in self.BendTwists:
             eb = rig.data.edit_bones[bname]
             vec = eb.tail - eb.head
-            bname0,bname1,bname2 = self.getSubBoneNames(bname)
-            eb0 = rig.data.edit_bones.new(bname0)
+            bname1,bname2 = self.getSubBoneNames(bname)
             eb1 = rig.data.edit_bones.new(bname1)
             eb2 = rig.data.edit_bones.new(bname2)
-            eb0.head = eb1.head = eb.head
-            eb0.tail = eb1.tail = eb2.head = eb.head+vec/2
+            eb1.head = eb.head
+            eb1.tail = eb2.head = eb.head+vec/2
             eb2.tail = eb.tail
-            eb0.roll = eb1.roll = eb2.roll = eb.roll
-            eb0.parent = eb1.parent = eb.parent
-            eb2.parent = eb0
-            eb0.use_connect = eb1.use_connect = eb.use_connect
+            eb1.roll = eb2.roll = eb.roll
+            eb1.parent = eb.parent
+            eb2.parent = eb1
+            eb1.use_connect = eb.use_connect
             eb2.use_connect = True
             eb.use_deform = False
-            eb0.use_deform = False
             eb1.use_deform = eb2.use_deform = True
-            eb0.layers = eb1.layers = eb2.layers = hiddenLayer
+            eb1.layers = eb2.layers = hiddenLayer
 
             for ob in rig.children:
                 if (ob.type == 'MESH' and
@@ -638,7 +635,7 @@ class BendTwists:
 
     def splitVertexGroup2(self, ob, bname, head, tail):
         vgrp = self.getVertexGroup(ob, bname)
-        bname0,bname1,bname2 = self.getSubBoneNames(bname)
+        bname1,bname2 = self.getSubBoneNames(bname)
         vgrp1 = ob.vertex_groups.new(name=bname1)
         vgrp2 = ob.vertex_groups.new(name=bname2)
         vec = tail-head
@@ -682,21 +679,13 @@ class BendTwists:
         bpy.ops.object.mode_set(mode='POSE')
 
         for bname,tname in self.BendTwists:
-            bname0,bname1,bname2 = self.getSubBoneNames(bname)
-            if not hasPoseBones(rig, [bname, bname0, bname1, bname2]):
+            bname1,bname2 = self.getSubBoneNames(bname)
+            if not hasPoseBones(rig, [bname, bname1, bname2]):
                 continue
             pb = rig.pose.bones[bname]
-            pb0 = rig.pose.bones[bname0]
             pb1 = rig.pose.bones[bname1]
             pb2 = rig.pose.bones[bname2]
-            pb0.lock_ik_y = True
-            pb2.lock_ik_x = pb2.lock_ik_z = True
-
-            cns0 = pb0.constraints.new('IK')
-            cns0.target = rig
-            cns0.subtarget = tname
-            cns0.chain_count = 1
-            cns1 = dampedTrack(pb1, pb0, rig)
+            cns1 = dampedTrack(pb1, pb, rig)
             cns1.head_tail = 1.0
             cns2 = copyRotation(pb2, pb, rig, space='WORLD')
 

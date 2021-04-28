@@ -382,12 +382,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     ]
 
     Correctives = {
-        "upper_armBend.L" : "upper_arm-1.L",
-        "forearmBend.L" : "forearm-1.L",
-        "thighBend.L" : "thigh-1.L",
-        "upper_armBend.R" : "upper_arm-1.R",
-        "forearmBend.R" : "forearm-1.R",
-        "thighBend.R" : "thigh-1.R",
+        "upper_armBend.L" : "upper_arm.bend.L",
+        "forearmBend.L" : "forearm.bend.L",
+        "thighBend.L" : "thigh.bend.L",
+        "upper_armBend.R" : "upper_arm.bend.R",
+        "forearmBend.R" : "forearm.bend.R",
+        "thighBend.R" : "thigh.bend.R",
     }
 
     BreastBones = [
@@ -754,9 +754,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             if dname == bname:
                 if mname[-2] == ".":
                     if mname[-6:-2] == "Bend":
-                        mname = mname[:-6] + "-1" + mname[-2:]
+                        mname = "%s.bend.%s" % (mname[:-6],  mname[-1])
                     elif mname[-7:-2] == "Twist":
-                        mname = mname[:-7] + "-2" + mname[-2:]
+                        mname = "%s.twist.%s" % (mname[:-7],  mname[-1])
                 if mname in rig.data.bones.keys():
                     return rig.data.bones[mname]
                 else:
@@ -1006,7 +1006,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             armSocket = makeBone("armSocket"+suffix, rig, upper_arm.head, upper_arm.head+ez, 0, L_LEXTRA+dlayer, upper_arm.parent)
             armParent = deriveBone("arm_parent"+suffix, armSocket, rig, L_HELP, hip)
             upper_arm.parent = armParent
-            rig.data.edit_bones["upper_arm-1"+suffix].parent = armParent
+            rig.data.edit_bones["upper_arm.bend"+suffix].parent = armParent
 
             upper_armFk = deriveBone("upper_arm.fk"+suffix, upper_arm, rig, L_LARMFK+dlayer, armParent)
             forearmFk = deriveBone("forearm.fk"+suffix, forearm, rig, L_LARMFK+dlayer, upper_armFk)
@@ -1044,7 +1044,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             legSocket = makeBone("legSocket"+suffix, rig, thigh.head, thigh.head+ez, 0, L_LEXTRA+dlayer, thigh.parent)
             legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, hip)
             thigh.parent = legParent
-            rig.data.edit_bones["thigh-1"+suffix].parent = legParent
+            rig.data.edit_bones["thigh.bend"+suffix].parent = legParent
 
             thighFk = deriveBone("thigh.fk"+suffix, thigh, rig, L_LLEGFK+dlayer, thigh.parent)
             shinFk = deriveBone("shin.fk"+suffix, shin, rig, L_LLEGFK+dlayer, thighFk)
