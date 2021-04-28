@@ -1274,34 +1274,15 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def fixConstraints(self, rig):
         for suffix in [".L", ".R"]:
-            '''
-            pb = rig.pose.bones["hand.fk" + suffix]
-            cns = getConstraint(pb, 'LIMIT_ROTATION'):
-            if cns:
-                cns.use_limit_y = False
-                minx = cns.min_x
-                maxx = cns.max_x
-                if suffix == ".L":
-                    cns.min_x = -cns.max_z
-                    cns.max_x = -cns.min_z
-                else:
-                    cns.min_x = cns.min_z
-                    cns.max_x = cns.max_z
-                cns.min_z = minx
-                cns.max_z = maxx
-            '''
-            pb = rig.pose.bones["upper_arm.fk" + suffix]
-            self.unlockYrot(pb)
-            pb = rig.pose.bones["forearm.fk" + suffix]
-            self.unlockYrot(pb)
-            pb = rig.pose.bones["thigh.fk" + suffix]
-            self.unlockYrot(pb)
+            self.unlockYrot(rig, "upper_arm.fk" + suffix)
+            self.unlockYrot(rig, "forearm.fk" + suffix)
+            self.unlockYrot(rig, "thigh.fk" + suffix)
 
 
-    def unlockYrot(self, pb):
+    def unlockYrot(self, rig, bname):
+        pb = rig.pose.bones[bname]
         pb.lock_rotation[1] = False
         cns = getConstraint(pb, 'LIMIT_ROTATION')
-        print("UNL", pb.name, cns)
         if cns:
             cns.use_limit_y = True
             cns.min_y = -90*D

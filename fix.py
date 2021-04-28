@@ -685,9 +685,9 @@ class BendTwists:
             pb = rig.pose.bones[bname]
             pb1 = rig.pose.bones[bname1]
             pb2 = rig.pose.bones[bname2]
-            cns1 = dampedTrack(pb1, pb, rig)
-            cns1.head_tail = 1.0
-            cns2 = copyRotation(pb2, pb, rig, space='WORLD')
+            pb3 = rig.pose.bones[tname]
+            dampedTrack(pb1, pb3, rig)
+            copyRotation(pb2, pb, rig, space='WORLD')
 
 #-------------------------------------------------------------
 #   Add IK goals
