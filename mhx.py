@@ -650,8 +650,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.addGizmos(rig, context)
         showProgress(20, 25, "  Restore constraints")
         self.restoreAllConstraints(rig)
-        showProgress(21, 25, "  Fix hand constraints")
-        self.fixHandConstraints(rig)
+        showProgress(21, 25, "  Fix constraints")
+        self.fixConstraints(rig)
         if rig.DazRig in ["genesis3", "genesis8"]:
             self.fixCustomShape(rig, ["head"], 4)
         showProgress(22, 25, "  Collect deform bones")
@@ -785,7 +785,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                     if pb.name.startswith(pname):
                         self.addGizmo(pb, "GZM_Circle", 0.4)
                 for pname,shape,scale in [
-                        ("handTwk", "GZM_Circle", 0.4) ,
                         ("pectoral", "GZM_Ball025", 1) ,
                         ("heel", "GZM_Ball025End", 1)]:
                     if pb.name.startswith(pname):
@@ -987,19 +986,19 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         for suffix,dlayer in [(".L",0), (".R",16)]:
             upper_arm = setLayer("upper_arm"+suffix, rig, L_HELP)
             forearm = setLayer("forearm"+suffix, rig, L_HELP)
-            handTwk = setLayer("hand"+suffix, rig, L_DEF)
-            handTwk.layers[L_TWEAK] = True
-            handTwk.name = "handTwk"+suffix
+            hand0 = setLayer("hand"+suffix, rig, L_DEF)
+            hand0.layers[L_TWEAK] = True
+            hand0.name = "hand0"+suffix
             vec = forearm.tail - forearm.head
             vec.normalize()
-            tail = handTwk.head + vec*handTwk.length
+            tail = hand0.head + vec*hand0.length
             roll = normalizeRoll(forearm.roll + 90*D)
-            if abs(roll - handTwk.roll) > 180*D:
+            if abs(roll - hand0.roll) > 180*D:
                 roll = normalizeRoll(roll + 180*D)
-            hand = makeBone("hand"+suffix, rig, handTwk.head, tail, roll, L_HELP, forearm)
-            handconn = handTwk.use_connect
-            handTwk.use_connect = False
-            handTwk.parent = hand
+            hand = makeBone("hand"+suffix, rig, hand0.head, tail, roll, L_HELP, forearm)
+            handconn = hand0.use_connect
+            hand0.use_connect = False
+            hand0.parent = hand
 
             size = 10*rig.DazScale
             ez = Vector((0,0,size))
@@ -1132,7 +1131,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                     "knee.pt.ik", "elbow.pt.ik", "elbowPoleA", "kneePoleA",
                     "breast",
                    ],
-            'YXZ' : ["hand", "hand.fk", "handTwk"],
+            'YXZ' : ["hand", "hand.fk", "hand0"],
         }
         for suffix in [".L", ".R"]:
             for rmode,bnames in rotmodes.items():
@@ -1146,7 +1145,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             upper_arm = rpbs["upper_arm"+suffix]
             forearm = rpbs["forearm"+suffix]
             hand = rpbs["hand"+suffix]
-            handTwk = rpbs["handTwk"+suffix]
+            hand0 = rpbs["hand0"+suffix]
             upper_armFk = getBoneCopy("upper_arm.fk"+suffix, upper_arm, rpbs)
             forearmFk = getBoneCopy("forearm.fk"+suffix, forearm, rpbs)
             handFk = getBoneCopy("hand.fk"+suffix, hand, rpbs)
@@ -1180,11 +1179,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             stretchTo(elbowLink, elbowPt, rig)
             elbowPt.rotation_euler[0] = -90*D
             elbowPt.lock_rotation = (True,True,True)
-
-            cns = copyRotation(forearm, handFk, rig, prop, "1-x")
-            cns.use_x = cns.use_z = False
-            forearmFk.lock_rotation = (False,True,False)
-            handTwk.lock_rotation = (True,False,True)
 
             legSocket = rpbs["legSocket"+suffix]
             legParent = rpbs["leg_parent"+suffix]
@@ -1278,22 +1272,40 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #   Fix hand constraints -
     #-------------------------------------------------------------
 
-    def fixHandConstraints(self, rig):
+    def fixConstraints(self, rig):
         for suffix in [".L", ".R"]:
+            '''
             pb = rig.pose.bones["hand.fk" + suffix]
-            for cns in pb.constraints:
-                if cns.type == 'LIMIT_ROTATION':
-                    cns.use_limit_y = False
-                    minx = cns.min_x
-                    maxx = cns.max_x
-                    if suffix == ".L":
-                        cns.min_x = -cns.max_z
-                        cns.max_x = -cns.min_z
-                    else:
-                        cns.min_x = cns.min_z
-                        cns.max_x = cns.max_z
-                    cns.min_z = minx
-                    cns.max_z = maxx
+            cns = getConstraint(pb, 'LIMIT_ROTATION'):
+            if cns:
+                cns.use_limit_y = False
+                minx = cns.min_x
+                maxx = cns.max_x
+                if suffix == ".L":
+                    cns.min_x = -cns.max_z
+                    cns.max_x = -cns.min_z
+                else:
+                    cns.min_x = cns.min_z
+                    cns.max_x = cns.max_z
+                cns.min_z = minx
+                cns.max_z = maxx
+            '''
+            pb = rig.pose.bones["upper_arm.fk" + suffix]
+            self.unlockYrot(pb)
+            pb = rig.pose.bones["forearm.fk" + suffix]
+            self.unlockYrot(pb)
+            pb = rig.pose.bones["thigh.fk" + suffix]
+            self.unlockYrot(pb)
+
+
+    def unlockYrot(self, pb):
+        pb.lock_rotation[1] = False
+        cns = getConstraint(pb, 'LIMIT_ROTATION')
+        print("UNL", pb.name, cns)
+        if cns:
+            cns.use_limit_y = True
+            cns.min_y = -90*D
+            cns.max_y = 90*D
 
     #-------------------------------------------------------------
     #   Markers
