@@ -638,8 +638,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         #   Add MHX stuff
         #-------------------------------------------------------------
 
-        showProgress(11, 25, "  Constrain bend and twist bones")
-        self.constrainBendTwists(rig)
         showProgress(12, 25, "  Add long fingers")
         self.addLongFingers(rig)
         showProgress(13, 25, "  Add tweak bones")
@@ -656,6 +654,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.addMaster(rig)
         showProgress(19, 25, "  Add gizmos")
         self.addGizmos(rig, context)
+        showProgress(11, 25, "  Constrain bend and twist bones")
+        self.constrainBendTwists(rig)
         showProgress(20, 25, "  Restore constraints")
         self.restoreAllConstraints(rig)
         showProgress(21, 25, "  Fix constraints")
@@ -670,7 +670,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         showProgress(24, 25, "  Add bone groups")
         self.addBoneGroups(rig)
         rig.MhxRig = True
-        rig.data.display_type = 'WIRE'
+        rig.data.display_type = 'OCTAHEDRAL'
         T = True
         F = False
         rig.data.layers = [T,T,T,F, T,F,T,F, F,F,F,F, F,F,F,F,
@@ -861,8 +861,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             None, "spine", "spine-1", "chest", "chest-1",
             None, "neck", "neck-1",
             None, "pelvis",
-            None, "clavicle.L", None, "forearm.L", None, "shin.L",
-            None, "clavicle.R", None, "forearm.R", None, "shin.R"]
+            None, "hand.L",
+            None, "hand.R",
+            ]
 
         self.noTweakParents = [
             "spine", "spine-1", "chest", "chest-1", "neck", "neck-1", "head",
@@ -967,13 +968,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 fing.lock_rotation = (False,True,False)
                 long.rotation_mode = fing.rotation_mode
                 cns = copyRotation(fing, long, rig, prop)
-                cns.use_x = cns.use_z = False
+                cns.use_y = cns.use_z = False
                 cns.use_offset = True
                 for n in range(n0+1,3):
                     fing = rig.pose.bones[self.linkName(m, n, suffix)]
                     fing.lock_rotation = (False,True,True)
                     cns = copyRotation(fing, long, rig, prop)
-                    cns.use_x = cns.use_z = False
+                    cns.use_y = cns.use_z = False
                     cns.use_offset = True
 
     #-------------------------------------------------------------
@@ -994,19 +995,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         for suffix,dlayer in [(".L",0), (".R",16)]:
             upper_arm = setLayer("upper_arm"+suffix, rig, L_HELP)
             forearm = setLayer("forearm"+suffix, rig, L_HELP)
-            hand0 = setLayer("hand"+suffix, rig, L_DEF)
-            hand0.layers[L_TWEAK] = True
-            hand0.name = "hand0"+suffix
+            hand = setLayer("hand"+suffix, rig, L_HELP)
             vec = forearm.tail - forearm.head
             vec.normalize()
-            tail = hand0.head + vec*hand0.length
+            tail = hand.head + vec*hand.length
             roll = normalizeRoll(forearm.roll + 90*D)
-            if abs(roll - hand0.roll) > 180*D:
+            if abs(roll - hand.roll) > 180*D:
                 roll = normalizeRoll(roll + 180*D)
-            hand = makeBone("hand"+suffix, rig, hand0.head, tail, roll, L_HELP, forearm)
-            handconn = hand0.use_connect
-            hand0.use_connect = False
-            hand0.parent = hand
 
             size = 10*rig.DazScale
             ez = Vector((0,0,size))
@@ -1019,11 +1014,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             forearmFk = deriveBone("forearm.fk"+suffix, forearm, rig, L_LARMFK+dlayer, upper_armFk)
             forearmFk.use_connect = forearm.use_connect
             handFk = deriveBone("hand.fk"+suffix, hand, rig, L_LARMFK+dlayer, forearmFk)
-            handFk.use_connect = handconn
+            handFk.use_connect = hand.use_connect
             upper_armIk = deriveBone("upper_arm.ik"+suffix, upper_arm, rig, L_HELP2, armParent)
-            forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_LARMIK+dlayer, upper_armIk)
+            forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
             forearmIk.use_connect = forearm.use_connect
             handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
+            hand0Ik = deriveBone("hand0.ik"+suffix, hand, rig, L_HELP2, forearmIk)
 
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
@@ -1138,14 +1134,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             pb.rotation_mode = 'YZX'
 
         rotmodes = {
-            'YZX': ["thigh.ik", "shin", "shin.fk", "shin.ik",
-                    "upper_arm.ik", "forearm", "forearm.fk", "forearm.ik",
+            'YZX': [#"shin", "shin.fk", "shin.ik",
+                    #"forearm", "forearm.fk", "forearm.ik",
                     "foot", "foot.fk", "toe", "toe.fk",
                     "foot.rev", "toe.rev",
                     "knee.pt.ik", "elbow.pt.ik", "elbowPoleA", "kneePoleA",
                     "breast",
                    ],
-            'YXZ' : ["hand", "hand.fk", "hand0"],
+            'YXZ' : ["hand", "hand.fk", "hand.ik", "hand0.ik"],
         }
         for suffix in [".L", ".R"]:
             for rmode,bnames in rotmodes.items():
@@ -1159,13 +1155,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             upper_arm = rpbs["upper_arm"+suffix]
             forearm = rpbs["forearm"+suffix]
             hand = rpbs["hand"+suffix]
-            hand0 = rpbs["hand0"+suffix]
             upper_armFk = getBoneCopy("upper_arm.fk"+suffix, upper_arm, rpbs)
             forearmFk = getBoneCopy("forearm.fk"+suffix, forearm, rpbs)
             handFk = getBoneCopy("hand.fk"+suffix, hand, rpbs)
             upper_armIk = rpbs["upper_arm.ik"+suffix]
             forearmIk = rpbs["forearm.ik"+suffix]
             handIk = rpbs["hand.ik"+suffix]
+            hand0Ik = rpbs["hand0.ik"+suffix]
             elbowPt = rpbs["elbow.pt.ik"+suffix]
             elbowLink = rpbs["elbow.link"+suffix]
 
@@ -1193,7 +1189,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             stretchTo(elbowLink, elbowPt, rig)
             elbowPt.rotation_euler[0] = -90*D
             elbowPt.lock_rotation = (True,True,True)
-            upper_armIk.lock_rotation = forearmIk.lock_rotation = (True,False,True)
+
+            cns1 = copyRotation(forearm, handFk, rig, space='LOCAL')
+            cns2 = copyRotation(forearm, hand0Ik, rig, prop, space='LOCAL')
+            cns1.use_x = cns1.use_z = cns2.use_x = cns2.use_z = False
 
             legSocket = rpbs["legSocket"+suffix]
             legParent = rpbs["leg_parent"+suffix]
@@ -1246,7 +1245,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             hintRotation(shinIk)
             ikConstraint(shinIk, ankleIk, kneePt, -90, 2, rig)
-            thighIk.lock_rotation = shinIk.lock_rotation = (True,False,True)
             stretchTo(kneeLink, kneePt, rig)
             kneePt.rotation_euler[0] = 90*D
             kneePt.lock_rotation = (True,True,True)
@@ -1507,12 +1505,8 @@ Gizmos = {
     "clavicle.R" :      ("GZM_Shoulder", 1),
     "upper_arm.fk.L" :  ("GZM_Circle025", 1),
     "upper_arm.fk.R" :  ("GZM_Circle025", 1),
-    "upper_arm.ik.L" :  ("GZM_Circle025", 1),
-    "upper_arm.ik.R" :  ("GZM_Circle025", 1),
     "forearm.fk.L" :    ("GZM_Circle025", 1),
     "forearm.fk.R" :    ("GZM_Circle025", 1),
-    "forearm.ik.L" :    ("GZM_Circle025", 1),
-    "forearm.ik.R" :    ("GZM_Circle025", 1),
     "hand.fk.L" :       ("GZM_Hand", 1),
     "hand.fk.R" :       ("GZM_Hand", 1),
     "armSocket.L" :     ("GZM_Cube", 0.25),

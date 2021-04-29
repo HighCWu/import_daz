@@ -593,37 +593,47 @@ class BendTwists:
 
     def getSubBoneNames(self, bname):
         base,suffix = bname.split(".")
-        bname1 = "%s.bend.%s" % (base, suffix)
-        bname2 = "%s.twist.%s" % (base, suffix)
-        return bname1,bname2
+        bendname = "%s.bend.%s" % (base, suffix)
+        twistname = "%s.twist.%s" % (base, suffix)
+        btwkname = "%s.bend.twk.%s" % (base, suffix)
+        ttwkname = "%s.twist.twk.%s" % (base, suffix)
+        return bendname,twistname,btwkname,ttwkname
 
 
     def createBendTwists(self, rig):
-        hiddenLayer = 31*[False] + [True]
+        from .mhx import L_TWEAK, L_HELP2, L_DEF
+        helpLayer = L_HELP2*[False] + [True] + (31-L_HELP2)*[False]
+        tweakLayer = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
         bpy.ops.object.mode_set(mode='EDIT')
 
         for bname,_ in self.BendTwists:
             eb = rig.data.edit_bones[bname]
             vec = eb.tail - eb.head
-            bname1,bname2 = self.getSubBoneNames(bname)
-            eb1 = rig.data.edit_bones.new(bname1)
-            eb2 = rig.data.edit_bones.new(bname2)
-            eb1.head = eb.head
-            eb1.tail = eb2.head = eb.head+vec/2
-            eb2.tail = eb.tail
-            eb1.roll = eb2.roll = eb.roll
-            eb1.parent = eb.parent
-            eb2.parent = eb1
-            eb1.use_connect = eb.use_connect
-            eb2.use_connect = True
-            eb.use_deform = False
-            eb1.use_deform = eb2.use_deform = True
-            eb1.layers = eb2.layers = hiddenLayer
+            bendname,twistname,btwkname,ttwkname = self.getSubBoneNames(bname)
+            bend = rig.data.edit_bones.new(bendname)
+            twist = rig.data.edit_bones.new(twistname)
+            bendtwk = rig.data.edit_bones.new(btwkname)
+            twisttwk = rig.data.edit_bones.new(ttwkname)
+            bend.head = bendtwk.head = eb.head
+            bend.tail = twist.head = bendtwk.tail = twisttwk.head = eb.head+vec/2
+            twist.tail = twisttwk.tail = eb.tail
+            bend.roll = twist.roll = bendtwk.roll = twisttwk.roll = eb.roll
+            bend.parent = eb.parent
+            bendtwk.parent = bend
+            twist.parent = bend
+            twisttwk.parent = twist
+            bend.use_connect = eb.use_connect
+            twist.use_connect = True
+            eb.use_deform = bend.use_deform = twist.use_deform = False
+            bendtwk.use_deform = twisttwk.use_deform = True
+            bend.layers = twist.layers = helpLayer
+            bendtwk.layers = twisttwk.layers = tweakLayer
+            bendtwk.layers[L_DEF] = twisttwk.layers[L_DEF] = True
 
             for ob in rig.children:
                 if (ob.type == 'MESH' and
                     self.getVertexGroup(ob, bname)):
-                    self.splitVertexGroup2(ob, bname, eb.head, eb.tail)
+                    self.splitVertexGroup2(ob, bname, btwkname, ttwkname, eb.head, eb.tail)
 
 
     def getVertexGroup(self, ob, vgname):
@@ -633,11 +643,11 @@ class BendTwists:
         return None
 
 
-    def splitVertexGroup2(self, ob, bname, head, tail):
+    def splitVertexGroup2(self, ob, bname, bend, twist, head, tail):
         vgrp = self.getVertexGroup(ob, bname)
-        bname1,bname2 = self.getSubBoneNames(bname)
-        vgrp1 = ob.vertex_groups.new(name=bname1)
-        vgrp2 = ob.vertex_groups.new(name=bname2)
+        bendname,twistname,btwkname,ttwkname = self.getSubBoneNames(bname)
+        vgrp1 = ob.vertex_groups.new(name=bend)
+        vgrp2 = ob.vertex_groups.new(name=twist)
         vec = tail-head
         vec /= vec.dot(vec)
         for v in ob.data.vertices:
@@ -677,17 +687,22 @@ class BendTwists:
         from .utils import hasPoseBones
         from .mhx import dampedTrack, copyRotation
         bpy.ops.object.mode_set(mode='POSE')
-
+        gizmo = "GZM_Ball025"
         for bname,tname in self.BendTwists:
-            bname1,bname2 = self.getSubBoneNames(bname)
-            if not hasPoseBones(rig, [bname, bname1, bname2]):
+            bendname,twistname,btwkname,ttwkname = self.getSubBoneNames(bname)
+            if not hasPoseBones(rig, [bname, bendname, twistname, btwkname, btwkname]):
                 continue
             pb = rig.pose.bones[bname]
-            pb1 = rig.pose.bones[bname1]
-            pb2 = rig.pose.bones[bname2]
-            pb3 = rig.pose.bones[tname]
-            dampedTrack(pb1, pb3, rig)
-            copyRotation(pb2, pb, rig, space='WORLD')
+            bend = rig.pose.bones[bendname]
+            twist = rig.pose.bones[twistname]
+            bendtwk = rig.pose.bones[btwkname]
+            twisttwk = rig.pose.bones[ttwkname]
+            pb2 = rig.pose.bones[tname]
+            dampedTrack(bend, pb2, rig)
+            copyRotation(twist, pb, rig, space='WORLD')
+            bendtwk.lock_rotation = twisttwk.lock_rotation = (True,True,True)
+            self.addGizmo(bendtwk, gizmo, 1, blen=10*rig.DazScale)
+            self.addGizmo(twisttwk, gizmo, 1, blen=10*rig.DazScale)
 
 #-------------------------------------------------------------
 #   Add IK goals
