@@ -671,6 +671,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.addBoneGroups(rig)
         rig.MhxRig = True
         rig.data.display_type = 'OCTAHEDRAL'
+        rig.data.display_type = 'WIRE'
         T = True
         F = False
         rig.data.layers = [T,T,T,F, T,F,T,F, F,F,F,F, F,F,F,F,
@@ -861,8 +862,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             None, "spine", "spine-1", "chest", "chest-1",
             None, "neck", "neck-1",
             None, "pelvis",
-            None, "hand.L",
-            None, "hand.R",
+            None, "hand.L", None, "shin.L", None, "foot.L",
+            None, "hand.R", None, "shin.R", None, "foot.R",
             ]
 
         self.noTweakParents = [
@@ -998,10 +999,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             hand = setLayer("hand"+suffix, rig, L_HELP)
             vec = forearm.tail - forearm.head
             vec.normalize()
-            tail = hand.head + vec*hand.length
+            hand.tail = hand.head + vec*hand.length
+            hand.use_deform = False
             roll = normalizeRoll(forearm.roll + 90*D)
             if abs(roll - hand.roll) > 180*D:
-                roll = normalizeRoll(roll + 180*D)
+                hand.roll = normalizeRoll(roll + 180*D)
 
             size = 10*rig.DazScale
             ez = Vector((0,0,size))
@@ -1190,9 +1192,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             elbowPt.rotation_euler[0] = -90*D
             elbowPt.lock_rotation = (True,True,True)
 
-            cns1 = copyRotation(forearm, handFk, rig, space='LOCAL')
-            cns2 = copyRotation(forearm, hand0Ik, rig, prop, space='LOCAL')
-            cns1.use_x = cns1.use_z = cns2.use_x = cns2.use_z = False
+            #cns1 = copyRotation(forearm, handFk, rig, space='LOCAL')
+            #cns2 = copyRotation(forearm, hand0Ik, rig, prop, space='LOCAL')
+            #cns1.use_x = cns1.use_z = cns2.use_x = cns2.use_z = False
 
             legSocket = rpbs["legSocket"+suffix]
             legParent = rpbs["leg_parent"+suffix]
@@ -1291,19 +1293,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.unlockYrot(rig, "upper_arm.fk" + suffix)
             self.unlockYrot(rig, "forearm.fk" + suffix)
             self.unlockYrot(rig, "thigh.fk" + suffix)
-            self.limitYrot(rig, "forearm.ik" + suffix, "forearm.fk" + suffix)
-            self.limitYrot(rig, "shin.ik" + suffix, "shin.fk" + suffix)
-
-
-    def limitYrot(self, rig, ikname, fkname):
-        ikbone = rig.pose.bones[ikname]
-        fkbone = rig.pose.bones[fkname]
-        ikcns = getConstraint(ikbone, 'LIMIT_ROTATION')
-        fkcns = getConstraint(fkbone, 'LIMIT_ROTATION')
-        if fkcns and ikcns:
-            ikcns.min_y = fkcns.min_y
-            ikcns.max_y = fkcns.max_y
-            ikcns.use_limit_y = fkcns.use_limit_y
 
 
     def unlockYrot(self, rig, bname):
@@ -1509,6 +1498,8 @@ Gizmos = {
     "forearm.fk.R" :    ("GZM_Circle025", 1),
     "hand.fk.L" :       ("GZM_Hand", 1),
     "hand.fk.R" :       ("GZM_Hand", 1),
+    "handTwk.L" :       ("GZM_Circle", 0.4),
+    "handTwk.R" :       ("GZM_Circle", 0.4),
     "armSocket.L" :     ("GZM_Cube", 0.25),
     "armSocket.R" :     ("GZM_Cube", 0.25),
     "hand.ik.L" :       ("GZM_HandIK", 1),

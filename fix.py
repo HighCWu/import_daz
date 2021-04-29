@@ -700,7 +700,7 @@ class BendTwists:
             pb2 = rig.pose.bones[tname]
             dampedTrack(bend, pb2, rig)
             copyRotation(twist, pb, rig, space='WORLD')
-            bendtwk.lock_rotation = twisttwk.lock_rotation = (True,True,True)
+            #bendtwk.lock_rotation = twisttwk.lock_rotation = (True,True,True)
             self.addGizmo(bendtwk, gizmo, 1, blen=10*rig.DazScale)
             self.addGizmo(twisttwk, gizmo, 1, blen=10*rig.DazScale)
 
