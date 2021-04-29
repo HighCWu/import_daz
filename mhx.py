@@ -996,14 +996,18 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         for suffix,dlayer in [(".L",0), (".R",16)]:
             upper_arm = setLayer("upper_arm"+suffix, rig, L_HELP)
             forearm = setLayer("forearm"+suffix, rig, L_HELP)
-            hand = setLayer("hand"+suffix, rig, L_HELP)
+            hand0 = setLayer("hand"+suffix, rig, L_DEF)
+            hand0.name = "hand0"+suffix
             vec = forearm.tail - forearm.head
             vec.normalize()
-            hand.tail = hand.head + vec*hand.length
-            hand.use_deform = False
+            tail = hand0.head + vec*hand0.length
             roll = normalizeRoll(forearm.roll + 90*D)
-            if abs(roll - hand.roll) > 180*D:
-                hand.roll = normalizeRoll(roll + 180*D)
+            if abs(roll - hand0.roll) > 180*D:
+                roll = normalizeRoll(roll + 180*D)
+            hand = makeBone("hand"+suffix, rig, hand0.head, tail, roll, L_HELP, forearm)
+            handconn = hand0.use_connect
+            hand0.use_connect = False
+            hand0.parent = hand
 
             size = 10*rig.DazScale
             ez = Vector((0,0,size))
@@ -1016,7 +1020,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             forearmFk = deriveBone("forearm.fk"+suffix, forearm, rig, L_LARMFK+dlayer, upper_armFk)
             forearmFk.use_connect = forearm.use_connect
             handFk = deriveBone("hand.fk"+suffix, hand, rig, L_LARMFK+dlayer, forearmFk)
-            handFk.use_connect = hand.use_connect
+            handFk.use_connect = handconn
             upper_armIk = deriveBone("upper_arm.ik"+suffix, upper_arm, rig, L_HELP2, armParent)
             forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
             forearmIk.use_connect = forearm.use_connect
@@ -1124,7 +1128,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         bpy.ops.object.mode_set(mode='POSE')
         rpbs = rig.pose.bones
         for suffix in [".L", ".R"]:
-            for bname in ["upper_arm", "forearm", "thigh", "shin", "hand", "foot", "toe"]:
+            for bname in ["upper_arm", "forearm", "hand",
+                          "thigh", "shin", "foot", "toe"]:
                 bone = rpbs[bname+suffix]
                 fkbone = rpbs[bname+".fk"+suffix]
                 copyBoneInfo(bone, fkbone)
@@ -1136,8 +1141,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             pb.rotation_mode = 'YZX'
 
         rotmodes = {
-            'YZX': [#"shin", "shin.fk", "shin.ik",
-                    #"forearm", "forearm.fk", "forearm.ik",
+            'YZX': ["shin", "shin.fk", "shin.ik",
+                    "forearm", "forearm.fk", "forearm.ik",
                     "foot", "foot.fk", "toe", "toe.fk",
                     "foot.rev", "toe.rev",
                     "knee.pt.ik", "elbow.pt.ik", "elbowPoleA", "kneePoleA",
@@ -1177,6 +1182,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             copyTransformFkIk(upper_arm, upper_armFk, upper_armIk, rig, prop)
             copyTransformFkIk(forearm, forearmFk, forearmIk, rig, prop)
             copyTransformFkIk(hand, handFk, handIk, rig, prop)
+            copyTransform(hand0Ik, handIk, rig, prop)
             if self.elbowParent == 'HAND':
                 elbowPoleA = rpbs["elbowPoleA"+suffix]
                 elbowPoleP = rpbs["elbowPoleP"+suffix]
@@ -1192,9 +1198,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             elbowPt.rotation_euler[0] = -90*D
             elbowPt.lock_rotation = (True,True,True)
 
-            #cns1 = copyRotation(forearm, handFk, rig, space='LOCAL')
-            #cns2 = copyRotation(forearm, hand0Ik, rig, prop, space='LOCAL')
-            #cns1.use_x = cns1.use_z = cns2.use_x = cns2.use_z = False
+            cns1 = copyRotation(forearm, handFk, rig, space='LOCAL')
+            cns2 = copyRotation(forearm, hand0Ik, rig, prop, space='LOCAL')
+            cns1.use_x = cns1.use_z = cns2.use_x = cns2.use_z = False
+            forearmFk.lock_rotation[1] = True
 
             legSocket = rpbs["legSocket"+suffix]
             legParent = rpbs["leg_parent"+suffix]
