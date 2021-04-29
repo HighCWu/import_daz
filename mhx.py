@@ -68,6 +68,7 @@ L_CUSTOM =  16
 
 L_HELP =    14
 L_HELP2 =   15
+L_HIDE =    29
 L_FIN =     30
 L_DEF =     31
 
@@ -175,7 +176,7 @@ def copyScale(bone, target, rig, prop=None, expr="x", space='LOCAL'):
     return cns
 
 
-def hintRotation(bone):
+def hintRotation(ikbone):
     pos = (18*D,0,0)
     neg = (-18*D,0,0)
     hints = {
@@ -184,8 +185,8 @@ def hintRotation(bone):
         "shin.ik.L" : pos,
         "shin.ik.R" : pos,
         }
-    hint = hints[bone.name]
-    limitRotation(bone, hint, hint, (True,False,False))
+    hint = hints[ikbone.name]
+    limitRotation(ikbone, hint, hint, (True,False,False))
 
 
 def limitRotation(bone, min, max, use):
@@ -321,6 +322,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         default = True
     )
 
+    showLinks : BoolProperty(
+        name = "Show Link Bones",
+        description = "Show link bones",
+        default = True
+    )
+
     useKeepRig : BoolProperty(
         name = "Keep DAZ Rig",
         description = "Keep existing armature and meshes in a new collection",
@@ -411,6 +418,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         split = self.layout.split(factor=0.5)
         col = split.column()
         col.prop(self, "addTweakBones")
+        col.prop(self, "showLinks")
         col.prop(self, "useKeepRig")
         col.prop(self, "elbowParent")
         col.prop(self, "kneeParent")
@@ -1013,7 +1021,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             handFk = deriveBone("hand.fk"+suffix, hand, rig, L_LARMFK+dlayer, forearmFk)
             handFk.use_connect = handconn
             upper_armIk = deriveBone("upper_arm.ik"+suffix, upper_arm, rig, L_HELP2, armParent)
-            forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
+            forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_LARMIK+dlayer, upper_armIk)
             forearmIk.use_connect = forearm.use_connect
             handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
 
@@ -1031,7 +1039,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 elbowPar = None
             elbowPt = makeBone("elbow.pt.ik"+suffix, rig, locElbowPt, locElbowPt+ez, 0, L_LARMIK+dlayer, elbowPar)
             elbowLink = makeBone("elbow.link"+suffix, rig, forearm.head, locElbowPt, 0, L_LARMIK+dlayer, upper_armIk)
-            elbowLink.hide_select = True
+            if self.showLinks:
+                elbowLink.hide_select = True
+            else:
+                elbowLink.layers = L_HIDE*[False] + [True] + (31-L_HIDE)*[False]
 
             thigh = setLayer("thigh"+suffix, rig, L_HELP)
             shin = setLayer("shin"+suffix, rig, L_HELP)
@@ -1054,7 +1065,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             toeFk = deriveBone("toe.fk"+suffix, toe, rig, L_LLEGFK+dlayer, footFk)
             toeFk.layers[L_LEXTRA+dlayer] = True
             thighIk = deriveBone("thigh.ik"+suffix, thigh, rig, L_HELP2, thigh.parent)
-            shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
+            shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_LLEGIK+dlayer, thighIk)
             shinIk.use_connect = shin.use_connect
 
             if "heel"+suffix in rig.data.edit_bones.keys():
@@ -1085,8 +1096,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             kneePt = makeBone("knee.pt.ik"+suffix, rig, locKneePt, locKneePt+ez, 0, L_LLEGIK+dlayer, kneePar)
             kneePt.layers[L_LEXTRA+dlayer] = True
             kneeLink = makeBone("knee.link"+suffix, rig, shin.head, locKneePt, 0, L_LLEGIK+dlayer, thighIk)
-            kneeLink.layers[L_LEXTRA+dlayer] = True
-            kneeLink.hide_select = True
+            if self.showLinks:
+                kneeLink.layers[L_LEXTRA+dlayer] = True
+                kneeLink.hide_select = True
+            else:
+                kneeLink.layers = L_HIDE*[False] + [True] + (31-L_HIDE)*[False]
 
             footInv = deriveBone("foot.inv.ik"+suffix, foot, rig, L_HELP2, footRev)
             toeInv = deriveBone("toe.inv.ik"+suffix, toe, rig, L_HELP2, toeRev)
@@ -1124,8 +1138,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             pb.rotation_mode = 'YZX'
 
         rotmodes = {
-            'YZX': [#"shin", "shin.fk", "shin.ik",
-                    #"forearm", "forearm.fk", "forearm.ik",
+            'YZX': ["thigh.ik", "shin", "shin.fk", "shin.ik",
+                    "upper_arm.ik", "forearm", "forearm.fk", "forearm.ik",
                     "foot", "foot.fk", "toe", "toe.fk",
                     "foot.rev", "toe.rev",
                     "knee.pt.ik", "elbow.pt.ik", "elbowPoleA", "kneePoleA",
@@ -1179,6 +1193,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             stretchTo(elbowLink, elbowPt, rig)
             elbowPt.rotation_euler[0] = -90*D
             elbowPt.lock_rotation = (True,True,True)
+            upper_armIk.lock_rotation = forearmIk.lock_rotation = (True,False,True)
 
             legSocket = rpbs["legSocket"+suffix]
             legParent = rpbs["leg_parent"+suffix]
@@ -1231,6 +1246,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             hintRotation(shinIk)
             ikConstraint(shinIk, ankleIk, kneePt, -90, 2, rig)
+            thighIk.lock_rotation = shinIk.lock_rotation = (True,False,True)
             stretchTo(kneeLink, kneePt, rig)
             kneePt.rotation_euler[0] = 90*D
             kneePt.lock_rotation = (True,True,True)
@@ -1277,6 +1293,19 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.unlockYrot(rig, "upper_arm.fk" + suffix)
             self.unlockYrot(rig, "forearm.fk" + suffix)
             self.unlockYrot(rig, "thigh.fk" + suffix)
+            self.limitYrot(rig, "forearm.ik" + suffix, "forearm.fk" + suffix)
+            self.limitYrot(rig, "shin.ik" + suffix, "shin.fk" + suffix)
+
+
+    def limitYrot(self, rig, ikname, fkname):
+        ikbone = rig.pose.bones[ikname]
+        fkbone = rig.pose.bones[fkname]
+        ikcns = getConstraint(ikbone, 'LIMIT_ROTATION')
+        fkcns = getConstraint(fkbone, 'LIMIT_ROTATION')
+        if fkcns and ikcns:
+            ikcns.min_y = fkcns.min_y
+            ikcns.max_y = fkcns.max_y
+            ikcns.use_limit_y = fkcns.use_limit_y
 
 
     def unlockYrot(self, rig, bname):
@@ -1439,8 +1468,12 @@ Gizmos = {
 
     "thigh.fk.L" :      ("GZM_Circle025", 1),
     "thigh.fk.R" :      ("GZM_Circle025", 1),
+    "thigh.ik.L" :      ("GZM_Circle025", 1),
+    "thigh.ik.R" :      ("GZM_Circle025", 1),
     "shin.fk.L" :       ("GZM_Circle025", 1),
     "shin.fk.R" :       ("GZM_Circle025", 1),
+    "shin.ik.L" :       ("GZM_Circle025", 1),
+    "shin.ik.R" :       ("GZM_Circle025", 1),
     "foot.fk.L" :       ("GZM_Foot_L", 1),
     "foot.fk.R" :       ("GZM_Foot_R", 1),
     "toe.fk.L" :        ("GZM_Toe_L", 1),
@@ -1474,8 +1507,12 @@ Gizmos = {
     "clavicle.R" :      ("GZM_Shoulder", 1),
     "upper_arm.fk.L" :  ("GZM_Circle025", 1),
     "upper_arm.fk.R" :  ("GZM_Circle025", 1),
+    "upper_arm.ik.L" :  ("GZM_Circle025", 1),
+    "upper_arm.ik.R" :  ("GZM_Circle025", 1),
     "forearm.fk.L" :    ("GZM_Circle025", 1),
     "forearm.fk.R" :    ("GZM_Circle025", 1),
+    "forearm.ik.L" :    ("GZM_Circle025", 1),
+    "forearm.ik.R" :    ("GZM_Circle025", 1),
     "hand.fk.L" :       ("GZM_Hand", 1),
     "hand.fk.R" :       ("GZM_Hand", 1),
     "armSocket.L" :     ("GZM_Cube", 0.25),
