@@ -1067,7 +1067,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             toeFk = deriveBone("toe.fk"+suffix, toe, rig, L_LLEGFK+dlayer, footFk)
             toeFk.layers[L_LEXTRA+dlayer] = True
             thighIk = deriveBone("thigh.ik"+suffix, thigh, rig, L_HELP2, thigh.parent)
-            shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_LLEGIK+dlayer, thighIk)
+            shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
             shinIk.use_connect = shin.use_connect
 
             if "heel"+suffix in rig.data.edit_bones.keys():
@@ -1076,7 +1076,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             else:
                 vec = foot.tail - foot.head
                 locFootIk = (foot.head[0], foot.head[1] - 0.5*vec[1], toe.tail[2])
-            footIk = makeBone("foot.ik"+suffix, rig, locFootIk, toe.tail, 0, L_LLEGIK+dlayer, None)
+            footIk = makeBone("foot.ik"+suffix, rig, locFootIk, toe.tail, 180*D, L_LLEGIK+dlayer, None)
             toeRev = makeBone("toe.rev"+suffix, rig, toe.tail, toe.head, 0, L_LLEGIK+dlayer, footIk)
             footRev = makeBone("foot.rev"+suffix, rig, toe.head, foot.head, 0, L_LLEGIK+dlayer, toeRev)
             locAnkle = foot.head + Vector((0,size,0))
