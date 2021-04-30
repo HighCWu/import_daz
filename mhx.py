@@ -220,6 +220,7 @@ def stretchTo(pb, target, rig):
     cns.target = rig
     cns.subtarget = target.name
     #pb.bone.hide_select = True
+    cns.volume = "NO_VOLUME"
     return cns
 
 
@@ -373,12 +374,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     ]
 
     BendTwists = [
-        ("thigh.L", "shin.L"),
-        ("forearm.L", "hand.L"),
-        ("upper_arm.L", "forearm.L"),
-        ("thigh.R", "shin.R"),
-        ("forearm.R", "hand.R"),
-        ("upper_arm.R", "forearm.R"),
+        ("shin.L", "foot.L", True),
+        ("thigh.L", "shin.L", False),
+        ("forearm.L", "hand.L", True),
+        ("upper_arm.L", "forearm.L", False),
+        ("shin.R", "foot.R", True),
+        ("thigh.R", "shin.R", False),
+        ("forearm.R", "hand.R", True),
+        ("upper_arm.R", "forearm.R", False),
         ]
 
     Knees = [
@@ -911,9 +914,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def getTweakBoneName(self, bname):
         if bname[-2] == ".":
-            return bname[:-2] + "Twk" + bname[-2:]
+            return "%s.twk%s" % (bname[:-2], bname[-2:])
         else:
-            return bname + "Twk"
+            return "%s.twk" % bname
 
     #-------------------------------------------------------------
     #   Fingers
