@@ -913,146 +913,20 @@ class DAZ_PT_SimpleRig(bpy.types.Panel):
 #    Mhx Layers Panel
 #------------------------------------------------------------------------
 
-class MhxPanel:
+class DAZ_PT_Mhx(bpy.types.Panel):
+    bl_label = "MHX"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "DAZ Importer"
+    bl_options = {'DEFAULT_CLOSED'}
+
     @classmethod
     def poll(cls, context):
         return (context.object and context.object.DazRig == "mhx")
 
-    def needsMhxUpdate(self, rig):
-        if "MhaGaze_L" in rig.keys():
-            self.layout.operator("daz.update_mhx")
-            return True
-        return False
-
-
-class DAZ_PT_MhxLayers(bpy.types.Panel, MhxPanel):
-    bl_label = "MHX Layers"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     def draw(self, context):
-        rig = context.object
-        if self.needsMhxUpdate(rig):
-            return
-
-        from .layers import MhxLayers
-        self.layout.operator("daz.pose_enable_all_layers")
-        self.layout.operator("daz.pose_disable_all_layers")
-        for (left,right) in MhxLayers:
-            row = self.layout.row()
-            if type(left) == str:
-                row.label(text=left)
-                row.label(text=right)
-            else:
-                for (n, name, prop) in [left,right]:
-                    row.prop(rig.data, "layers", index=n, toggle=True, text=name)
-
-#------------------------------------------------------------------------
-#    Mhx FK/IK switch panel
-#------------------------------------------------------------------------
-
-class DAZ_PT_MhxFKIK(bpy.types.Panel, MhxPanel):
-    bl_label = "MHX FK/IK Switch"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        rig = context.object
-        if self.needsMhxUpdate(rig):
-            return
-
-        amt = rig.data
-        row = self.layout.row()
-        row.label(text = "")
-        row.label(text = "Left")
-        row.label(text = "Right")
-
-        self.layout.label(text = "FK/IK switch")
-        row = self.layout.row()
-        row.label(text = "Arm")
-        self.toggle(row, amt, "MhaArmIk_L", " 3", " 2")
-        self.toggle(row, amt, "MhaArmIk_R", " 19", " 18")
-        row = self.layout.row()
-        row.label(text = "Leg")
-        self.toggle(row, amt, "MhaLegIk_L", " 5", " 4")
-        self.toggle(row, amt, "MhaLegIk_R", " 21", " 20")
-
-        self.layout.label(text = "IK Influence")
-        row = self.layout.row()
-        row.label(text = "Arm")
-        row.prop(amt, propRef("MhaArmIk_L"), text="")
-        row.prop(amt, propRef("MhaArmIk_R"), text="")
-        row = self.layout.row()
-        row.label(text = "Leg")
-        row.prop(amt, propRef("MhaLegIk_L"), text="")
-        row.prop(amt, propRef("MhaLegIk_R"), text="")
-
-        self.layout.separator()
-        self.layout.label(text = "Snap Arm Bones")
-        row = self.layout.row()
-        row.label(text = "FK Arm")
-        row.operator("daz.snap_fk_ik", text="Snap L FK Arm").data = "MhaArmIk_L 2 3 12"
-        row.operator("daz.snap_fk_ik", text="Snap R FK Arm").data = "MhaArmIk_R 18 19 28"
-        row = self.layout.row()
-        row.label(text = "IK Arm")
-        row.operator("daz.snap_ik_fk", text="Snap L IK Arm").data = "MhaArmIk_L 2 3 12"
-        row.operator("daz.snap_ik_fk", text="Snap R IK Arm").data = "MhaArmIk_R 18 19 28"
-
-        self.layout.label(text = "Snap Leg Bones")
-        row = self.layout.row()
-        row.label(text = "FK Leg")
-        row.operator("daz.snap_fk_ik", text="Snap L FK Leg").data = "MhaLegIk_L 4 5 12"
-        row.operator("daz.snap_fk_ik", text="Snap R FK Leg").data = "MhaLegIk_R 20 21 28"
-        row = self.layout.row()
-        row.label(text = "IK Leg")
-        row.operator("daz.snap_ik_fk", text="Snap L IK Leg").data = "MhaLegIk_L 4 5 12"
-        row.operator("daz.snap_ik_fk", text="Snap R IK Leg").data = "MhaLegIk_R 20 21 28"
-
-        self.layout.separator()
-        icon = 'CHECKBOX_HLT' if amt["MhaHintsOn"] else 'CHECKBOX_DEHLT'
-        self.layout.operator("daz.toggle_hints", icon=icon, emboss=False)
-
-
-    def toggle(self, row, amt, prop, fk, ik):
-        if amt[prop] > 0.5:
-            row.operator("daz.toggle_fk_ik", text="IK").toggle = prop + " 0" + fk + ik
-        else:
-            row.operator("daz.toggle_fk_ik", text="FK").toggle = prop + " 1" + ik + fk
-
-#------------------------------------------------------------------------
-#    Mhx Properties Panel
-#------------------------------------------------------------------------
-
-class DAZ_PT_MhxProperties(bpy.types.Panel, MhxPanel):
-    bl_label = "MHX Properties"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        rig = context.object
-        if self.needsMhxUpdate(rig):
-            return
-
-        amt = rig.data
-        self.layout.separator()
-        self.layout.prop(amt, propRef("MhaGazeFollowsHead"), text="Gaze Follows Head")
-        row = self.layout.row()
-        row.label(text = "Left")
-        row.label(text = "Right")
-        props = [key for key in amt.keys() if key[0:3] == "Mha" and key[-1] in ["L", "R"]]
-        props.sort()
-        while props:
-            left,right = props[0:2]
-            props = props[2:]
-            row = self.layout.row()
-            row.prop(amt, propRef(left), text=left[3:-2])
-            row.prop(amt, propRef(right), text=right[3:-2])
+        self.layout.label(text="MHX RTS has moved.")
+        self.layout.label(text="See https://diffeomorphic.blogspot.com/2021/04/mhx-runtime-system-has-moved.html.")
 
 #------------------------------------------------------------------------
 #   Visibility panels
@@ -1120,9 +994,7 @@ classes = [
     DAZ_PT_CustomMorphs,
     DAZ_PT_CustomMeshMorphs,
     DAZ_PT_SimpleRig,
-    DAZ_PT_MhxLayers,
-    DAZ_PT_MhxFKIK,
-    DAZ_PT_MhxProperties,
+    DAZ_PT_Mhx,
     DAZ_PT_Visibility,
 ]
 

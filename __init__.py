@@ -62,7 +62,7 @@ def importModules():
                     "material", "cycles", "cgroup", "pbr", "render", "camera", "light",
                     "guess", "animation", "convert", "files", "main", "finger",
                     "matedit", "tables", "proxy", "rigify", "merge", "hide",
-                    "mhx", "layers", "fkik", "hair", "transfer", "dforce",
+                    "mhx", "layers", "hair", "transfer", "dforce",
                     "hdmorphs", "facecap"]
         if bpy.app.version >= (2,82,0):
             modnames += ["udim"]
@@ -100,7 +100,6 @@ def register():
     figure.register()
     finger.register()
     fix.register()
-    fkik.register()
     geometry.register()
     guess.register()
     hide.register()
@@ -138,7 +137,6 @@ def unregister():
     figure.unregister()
     finger.unregister()
     fix.unregister()
-    fkik.unregister()
     geometry.unregister()
     guess.unregister()
     hide.unregister()
