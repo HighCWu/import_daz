@@ -645,8 +645,13 @@ class Morph(FormulaAsset):
             return
         self.parent = struct["parent"]
         morph = struct["morph"]
-        self.deltas = morph["deltas"]["values"]
-        self.vertex_count = morph["vertex_count"]
+        if ("deltas" in morph.keys() and
+            "values" in morph["deltas"].keys()):
+            self.deltas = morph["deltas"]["values"]
+        else:
+            print("Morph without deltas: %s", self.name)
+        if "vertex_count" in morph.keys():
+            self.vertex_count = morph["vertex_count"]
         if "hd_url" in morph.keys():
             self.hd_url = morph["hd_url"]
 
