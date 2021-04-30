@@ -1290,7 +1290,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             lock = (not pb.bone.use_connect)
             pb.lock_location = (lock,lock,lock)
 
-
     #-------------------------------------------------------------
     #   Fix hand constraints -
     #-------------------------------------------------------------
@@ -1300,6 +1299,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.unlockYrot(rig, "upper_arm.fk" + suffix)
             self.unlockYrot(rig, "forearm.fk" + suffix)
             self.unlockYrot(rig, "thigh.fk" + suffix)
+            self.copyLimits(rig, "upper_arm", suffix)
+            self.copyLimits(rig, "forearm", suffix)
+            self.copyLimits(rig, "thigh", suffix)
+            self.copyLimits(rig, "shin", suffix)
 
 
     def unlockYrot(self, rig, bname):
@@ -1310,6 +1313,18 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             cns.use_limit_y = True
             cns.min_y = -90*D
             cns.max_y = 90*D
+
+
+    def copyLimits(self, rig, bname, suffix):
+        fkbone = rig.pose.bones["%s.fk%s" % (bname, suffix)]
+        ikbone = rig.pose.bones["%s.ik%s" % (bname, suffix)]
+        cns = getConstraint(fkbone, 'LIMIT_ROTATION')
+        if cns:
+            for n,x in enumerate(["x", "y", "z"]):
+                setattr(ikbone, "use_ik_limit_%s" % x, getattr(cns, "use_limit_%s" % x))
+                setattr(ikbone, "ik_min_%s" % x, getattr(cns, "min_%s" % x))
+                setattr(ikbone, "ik_max_%s" % x, getattr(cns, "max_%s" % x))
+                setattr(ikbone, "lock_ik_%s" % x, fkbone.lock_rotation[n])
 
     #-------------------------------------------------------------
     #   Markers
@@ -1462,12 +1477,8 @@ Gizmos = {
 
     "thigh.fk.L" :      ("GZM_Circle025", 1),
     "thigh.fk.R" :      ("GZM_Circle025", 1),
-    "thigh.ik.L" :      ("GZM_Circle025", 1),
-    "thigh.ik.R" :      ("GZM_Circle025", 1),
     "shin.fk.L" :       ("GZM_Circle025", 1),
     "shin.fk.R" :       ("GZM_Circle025", 1),
-    "shin.ik.L" :       ("GZM_Circle025", 1),
-    "shin.ik.R" :       ("GZM_Circle025", 1),
     "foot.fk.L" :       ("GZM_Foot_L", 1),
     "foot.fk.R" :       ("GZM_Foot_R", 1),
     "toe.fk.L" :        ("GZM_Toe_L", 1),
