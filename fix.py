@@ -599,9 +599,9 @@ class BendTwists:
 
 
     def createBendTwists(self, rig):
-        from .mhx import L_TWEAK, L_HELP2, L_DEF
+        from .mhx import L_TWEAK, L_FIN, L_DEF
         defLayer = L_DEF*[False] + [True] + (31-L_DEF)*[False]
-        helpLayer = L_HELP2*[False] + [True] + (31-L_HELP2)*[False]
+        finLayer = L_FIN*[False] + [True] + (31-L_FIN)*[False]
         tweakLayer = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
         bpy.ops.object.mode_set(mode='EDIT')
 
@@ -633,7 +633,7 @@ class BendTwists:
                 twisttwk.parent = twist
                 bend.use_deform = twist.use_deform = False
                 bendtwk.use_deform = twisttwk.use_deform = True
-                bend.layers = twist.layers = helpLayer
+                bend.layers = twist.layers = finLayer
                 bendtwk.layers = twisttwk.layers = defLayer
                 bendtwk.layers[L_TWEAK] = True
                 bvgname = btwkname
