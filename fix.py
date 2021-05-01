@@ -621,7 +621,7 @@ class BendTwists:
             twist.use_connect = True
             eb.use_deform = False
             if self.addTweakBones:
-                btwkname = self.getTweakBoneName(bname)
+                btwkname = self.getTweakBoneName(bendname)
                 ttwkname = self.getTweakBoneName(twistname)
                 bendtwk = rig.data.edit_bones.new(btwkname)
                 twisttwk = rig.data.edit_bones.new(ttwkname)
@@ -635,7 +635,7 @@ class BendTwists:
                 bendtwk.use_deform = twisttwk.use_deform = True
                 bend.layers = twist.layers = finLayer
                 bendtwk.layers = twisttwk.layers = defLayer
-                bendtwk.layers[L_TWEAK] = True
+                bendtwk.layers[L_TWEAK] = twisttwk.layers[L_TWEAK] = True
                 bvgname = btwkname
                 tvgname = ttwkname
             else:
@@ -715,9 +715,12 @@ class BendTwists:
                 stretchTo(bend, pb2, rig)
                 stretchTo(twist, pb2, rig)
             if self.addTweakBones:
-                btwkname = self.getTweakBoneName(bname)
+                btwkname = self.getTweakBoneName(bendname)
+                ttwkname = self.getTweakBoneName(twistname)
                 bendtwk = rig.pose.bones[btwkname]
+                twisttwk = rig.pose.bones[ttwkname]
                 self.addGizmo(bendtwk, gizmo, 1, blen=10*rig.DazScale)
+                self.addGizmo(twisttwk, gizmo, 1, blen=10*rig.DazScale)
 
 #-------------------------------------------------------------
 #   Add IK goals
