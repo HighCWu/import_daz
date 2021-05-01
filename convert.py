@@ -300,6 +300,7 @@ class DAZ_OT_LoadPoseInternal(HideOperator, JsonFile, SingleFile, IsArmature):
 
 #-------------------------------------------------------------
 #   Optimize pose for IK
+#   Function used by rigify
 #-------------------------------------------------------------
 
 class DAZ_OT_OptimizePose(DazPropsOperator, IsArmature):
@@ -316,18 +317,21 @@ class DAZ_OT_OptimizePose(DazPropsOperator, IsArmature):
     def draw(self, context):
         self.layout.prop(self, "useApplyRestPose")
 
-
     def run(self, context):
-        from .globvars import theIkPoseFolder
-        from .merge import applyRestPoses
-        rig = context.object
-        char = getCharacter(rig)
-        if char is None:
-            raise DazError("Did not recognize character")
-        loadRestPoseEntry(char, IkPoses, theIkPoseFolder)
-        loadPose(context, rig, char, IkPoses, False)
-        if self.useApplyRestPose:
-            applyRestPoses(context, rig, [])
+        optimizePose(context, self.useApplyRestPose)
+
+
+def optimizePose(context, useApplyRestPose):
+    from .globvars import theIkPoseFolder
+    from .merge import applyRestPoses
+    rig = context.object
+    char = getCharacter(rig)
+    if char is None:
+        raise DazError("Did not recognize character")
+    loadRestPoseEntry(char, IkPoses, theIkPoseFolder)
+    loadPose(context, rig, char, IkPoses, False)
+    if useApplyRestPose:
+        applyRestPoses(context, rig, [])
 
 #-------------------------------------------------------------
 #   Convert Rig
