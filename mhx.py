@@ -310,8 +310,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     bl_description = "Convert rig to MHX"
     bl_options = {'UNDO'}
 
-    dialogWidth = 500
-
     addTweakBones : BoolProperty(
         name = "Tweak Bones",
         description = "Add tweak bones",
@@ -357,16 +355,23 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     DefaultBoneGroups = [
         ('Spine',        (1,1,0),   (L_MAIN, L_SPINE)),
-        ('Left Arm FK',  (1,0,1),   (L_LARMFK, L_LHAND, L_LFINGER)),
-        ('Right Arm FK', (0,1,1),   (L_RARMFK, L_RHAND, L_RFINGER)),
+        ('Left Arm FK',  (0.5,0,0), (L_LARMFK,)),
+        ('Right Arm FK', (0,0,0.5), (L_RARMFK,)),
         ('Left Arm IK',  (1,0,0),   (L_LARMIK,)),
         ('Right Arm IK', (0,0,1),   (L_RARMIK,)),
-        ('Left Leg FK',  (1,0,1),   (L_LLEGFK, L_LTOE)),
-        ('Right Leg FK', (0,1,1),   (L_RLEGFK, L_RTOE)),
+        ('Left Hand',    (1,0,0),   (L_LHAND,)),
+        ('Right Hand',   (0,0,1),   (L_RHAND,)),
+        ('Left Fingers', (0.5,0,0), (L_LFINGER,)),
+        ('Right Fingers',(0,0,0.5), (L_RFINGER,)),
+        ('Left Leg FK',  (0.5,0,0), (L_LLEGFK,)),
+        ('Right Leg FK', (0,0,0.5), (L_RLEGFK,)),
         ('Left Leg IK',  (1,0,0),   (L_LLEGIK,)),
         ('Right Leg IK', (0,0,1),   (L_RLEGIK,)),
+        ('Left Toes',    (0.5,0,0), (L_LTOE,)),
+        ('Right Toes',   (0,0,0.5), (L_RTOE,)),
         ('Face',         (0,1,0),   (L_HEAD, L_FACE)),
         ('Tweak',        (0,0.5,0), (L_TWEAK,)),
+        ('Custom',       (1,0.5,0), (L_CUSTOM,)),
     ]
 
     BendTwists = [
@@ -413,20 +418,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
     def draw(self, context):
-        rig = context.object
-        split = self.layout.split(factor=0.5)
-        col = split.column()
-        col.prop(self, "addTweakBones")
-        col.prop(self, "showLinks")
-        col.prop(self, "useKeepRig")
-        col.prop(self, "elbowParent")
-        col.prop(self, "kneeParent")
-        col.prop(self, "useRenameFaceBones")
-        col = split.column()
-        for bg in rig.pose.bone_groups:
-            row = col.row()
-            row.label(text=bg.name)
-            row.prop(bg.colors, "normal", text="")
+        self.layout.prop(self, "addTweakBones")
+        self.layout.prop(self, "showLinks")
+        self.layout.prop(self, "useKeepRig")
+        self.layout.prop(self, "elbowParent")
+        self.layout.prop(self, "kneeParent")
+        self.layout.prop(self, "useRenameFaceBones")
 
 
     def invoke(self, context, event):
@@ -441,10 +438,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             for bgname,color,_layers in self.DefaultBoneGroups:
                 bg = rig.pose.bone_groups.new(name=bgname)
                 bg.color_set = 'CUSTOM'
-                color = Vector(color)
                 bg.colors.normal = color
-                bg.colors.select = color + Vector((0.5,0.5,0.5))
-                bg.colors.active = (1,1,1)
+                bg.colors.select = (0.6, 0.9, 1.0)
+                bg.colors.active = (1.0, 1.0, 0.8)
 
 
     def run(self, context):
