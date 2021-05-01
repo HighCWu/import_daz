@@ -356,16 +356,17 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
     DefaultBoneGroups = [
-        ('Spine',        "THEME10", (L_MAIN, L_SPINE)),
-        ('Left Arm FK',  "THEME01", (L_LARMFK, L_LHAND, L_LFINGER)),
-        ('Right Arm FK', "THEME03", (L_RARMFK, L_RHAND, L_RFINGER)),
-        ('Left Arm IK',  "THEME02", (L_LARMIK,)),
-        ('Right Arm IK', "THEME04", (L_RARMIK,)),
-        ('Left Leg FK',  "THEME01", (L_LLEGFK, L_LTOE)),
-        ('Right Leg FK', "THEME03", (L_RLEGFK, L_RTOE)),
-        ('Left Leg IK',  "THEME02", (L_LLEGIK,)),
-        ('Right Leg IK', "THEME04", (L_RLEGIK,)),
-        ('Face',         "THEME13", (L_HEAD, L_FACE)),
+        ('Spine',        (1,1,0),   (L_MAIN, L_SPINE)),
+        ('Left Arm FK',  (1,0,1),   (L_LARMFK, L_LHAND, L_LFINGER)),
+        ('Right Arm FK', (0,1,1),   (L_RARMFK, L_RHAND, L_RFINGER)),
+        ('Left Arm IK',  (1,0,0),   (L_LARMIK,)),
+        ('Right Arm IK', (0,0,1),   (L_RARMIK,)),
+        ('Left Leg FK',  (1,0,1),   (L_LLEGFK, L_LTOE)),
+        ('Right Leg FK', (0,1,1),   (L_RLEGFK, L_RTOE)),
+        ('Left Leg IK',  (1,0,0),   (L_LLEGIK,)),
+        ('Right Leg IK', (0,0,1),   (L_RLEGIK,)),
+        ('Face',         (0,1,0),   (L_HEAD, L_FACE)),
+        ('Tweak',        (0,0.5,0), (L_TWEAK,)),
     ]
 
     BendTwists = [
@@ -425,7 +426,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         for bg in rig.pose.bone_groups:
             row = col.row()
             row.label(text=bg.name)
-            row.prop(bg, "color_set", text="")
+            row.prop(bg.colors, "normal", text="")
 
 
     def invoke(self, context, event):
@@ -437,9 +438,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         if len(rig.pose.bone_groups) != len(self.DefaultBoneGroups):
             for bg in list(rig.pose.bone_groups):
                 rig.pose.bone_groups.remove(bg)
-            for bgname,theme,_layers in self.DefaultBoneGroups:
+            for bgname,color,_layers in self.DefaultBoneGroups:
                 bg = rig.pose.bone_groups.new(name=bgname)
-                bg.color_set = theme
+                bg.color_set = 'CUSTOM'
+                color = Vector(color)
+                bg.colors.normal = color
+                bg.colors.select = color + Vector((0.5,0.5,0.5))
+                bg.colors.active = (1,1,1)
 
 
     def run(self, context):
