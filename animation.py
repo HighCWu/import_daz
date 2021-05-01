@@ -285,18 +285,6 @@ class HideOperator(DazOperator):
         rig = context.object
         self.boneLayers = list(rig.data.layers)
         rig.data.layers = 32*[True]
-        self.simpleIK = False
-        if rig.DazSimpleIK:
-            from .figure import SimpleIK
-            self.simpleIK = SimpleIK()
-            self.simpleIK.storeProps(rig)
-            self.simpleIK.setProps(rig, False)
-            updateScene(context)
-            self.lArmIK = self.simpleIK.getLimbBoneNames(rig, "l", "Arm")
-            self.rArmIK = self.simpleIK.getLimbBoneNames(rig, "r", "Arm")
-            self.lLegIK = self.simpleIK.getLimbBoneNames(rig, "l", "Leg")
-            self.rLegIK = self.simpleIK.getLimbBoneNames(rig, "r", "Leg")
-
         self.layerColls = []
         self.obhides = []
         for ob in context.scene.collection.all_objects:
@@ -324,8 +312,6 @@ class HideOperator(DazOperator):
         DazOperator.sequel(self, context)
         rig = context.object
         rig.data.layers = self.boneLayers
-        if self.simpleIK:
-            self.simpleIK.restoreProps(rig)
         for layer in self.layerColls:
             layer.exclude = False
         for ob,hide in self.obhides:
@@ -502,11 +488,12 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         if not self.affectBones:
             return
         if rig.DazRig == "rigify":
-            from .rigify import setToFk1
-            self.boneLayers = setToFk1(rig, self.boneLayers)
+            from .rigify import setFkIk1
+            self.boneLayers = setFkIk1(rig, False, self.boneLayers)
         elif rig.DazRig == "rigify2":
-            from .rigify import setToFk2
-            self.boneLayers = setToFk2(rig, self.boneLayers)
+            from .rigify import setFkIk2
+            self.boneLayers = setFkIk2(rig, False, self.boneLayers)
+            print("RR2", self.boneLayers)
         elif rig.MhxRig or rig.DazRig == "mhx":
             from .mhx import setToFk
             self.boneLayers = setToFk(rig, self.boneLayers)
@@ -683,19 +670,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 for root in rig.pose.bones:
                     if root.parent is None:
                         self.fixScale(root, root.scale[0])
-
-                if self.simpleIK:
-                    from .figure import snapSimpleIK
-                    updateScene(context)
-                    snapSimpleIK(rig, self.lArmIK, "DazArmIK_L")
-                    snapSimpleIK(rig, self.rArmIK, "DazArmIK_R")
-                    snapSimpleIK(rig, self.lLegIK, "DazLegIK_L")
-                    snapSimpleIK(rig, self.rLegIK, "DazLegIK_R")
-                    if self.insertKeys:
-                        updateScene(context)
-                        self.simpleIK.insertIKKeys(rig, n+offset)
-                    self.simpleIK.setProps(rig, False)
-                    updateScene(context)
 
                 if rig.DazRig == "mhx" and self.affectBones:
                     for suffix in ["L", "R"]:

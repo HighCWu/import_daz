@@ -1130,6 +1130,7 @@ class Rigify:
             deleteObjects(context, [meta])
         activateObject(context, gen)
         gen.name = name
+        setFkIk2(gen, True, gen.data.layers)
         bpy.ops.object.mode_set(mode='POSE')
         print("Rigify created")
         return gen
@@ -1365,28 +1366,30 @@ class DAZ_OT_RigifyMetaRig(DazPropsOperator, Rigify, Fixer, GizmoUser, BendTwist
 #   Set rigify to FK. For load pose.
 #-------------------------------------------------------------
 
-def setToFk1(rig, layers):
+def setFkIk1(rig, ik, layers):
+    value = float(ik)
     for bname in ["hand.ik.L", "hand.ik.R", "foot.ik.L", "foot.ik.R"]:
         pb = rig.pose.bones[bname]
-        pb["ik_fk_switch"] = 0.0
+        pb["ik_fk_switch"] = value
     if "head.001" in rig.pose.bones.keys():
         pb = rig.pose.bones["head.001"]
-        pb["neck_follow"] = 0.0
+        pb["neck_follow"] = value
     return layers
 
 
-def setToFk2(rig, layers):
+def setFkIk2(rig, ik, layers):
+    value = float(ik)
     for bname in ["upper_arm_parent.L", "upper_arm_parent.R", "thigh_parent.L", "thigh_parent.R"]:
         pb = rig.pose.bones[bname]
-        pb["IK_FK"] = 0.0
+        pb["IK_FK"] = value
     if "torso" in rig.pose.bones.keys():
         pb = rig.pose.bones["torso"]
-        pb["neck_follow"] = 1.0
-        pb["head_follow"] = 1.0
+        pb["neck_follow"] = 1.0-value
+        pb["head_follow"] = 1.0-value
     for n in [8, 11, 14, 17]:
-        layers[n] = True
+        layers[n] = (not ik)
     for n in [7, 10, 13, 16]:
-        layers[n] = False
+        layers[n] = ik
     return layers
 
 #-------------------------------------------------------------
