@@ -1143,7 +1143,7 @@ class Rigify:
         T = True
         gen.data.layers = (
             F,T,F,T, F,F,F,T, F,F,T,F, F,T,F,F,
-            T,F,F,F, F,F,F,F, F,F,F,F, F,F,F,F)
+            T,F,F,F, F,F,F,F, F,F,F,F, T,F,F,F)
         bpy.ops.object.mode_set(mode='POSE')
         print("Rigify created")
         return gen
