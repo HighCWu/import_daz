@@ -33,7 +33,7 @@ from .utils import *
 from .globvars import getMaterialEnums, getShapeEnums, theImageExtensions
 from .fileutils import MultiFile, ImageFile
 from .cgroup import CyclesGroup
-from .propgroups import DazBoolGroup
+from .propgroups import DazBoolGroup, DazStringBoolGroup
 from .morphing import Selector
 
 #-------------------------------------------------------------
@@ -823,56 +823,36 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, NormalAdder, ScalarDispAdder
             self.loadDispMaps(mat, args)
 
 #----------------------------------------------------------
-#   Bake dhdm maps
+#   Select .dhdm and jcm files
 #----------------------------------------------------------
 
-def get_dhdm_files():
-    ob = bpy.context.object
+def get_dhdm_files(ob=None):
+    if ob is None:
+        ob = bpy.context.object
     if ob and ob.type == 'MESH':
-        return [item.s for item in ob.data.DazHdUrls]
+        return [item.s for item in ob.data.DazDhdmFiles if item.b]
     return []
 
 
-def get_jcm_files():
-    ob = bpy.context.object
+def get_jcm_files(ob=None):
+    if ob is None:
+        ob = bpy.context.object
     if ob and ob.type == 'MESH':
-        return [item.s for item in ob.data.DazJcmFiles]
+        return [item.s for item in ob.data.DazJcmFiles if item.b]
     return []
 
 
-class DAZ_OT_SetDhdmFiles(DazOperator, Selector, IsMesh):
-    bl_idname = "daz.set_dhdm_files"
-    bl_label = "Set DHDM Files"
-    bl_description = "Make list of .dhdm files to be used with the HD Morphs DAZ add-on"
-
-    def invoke(self, context, event):
-        from .error import invokeErrorMessage
-        scn = context.scene
-        scn.DazDhdmFiles.clear()
-        if not bpy.data.filepath:
-            msg = "Save the blend file first"
-            invokeErrorMessage(msg)
-            return {'CANCELLED'}
-        try:
-            hdinfo = scn.daz_hd_morph_test
-            msg = ""
-        except AttributeError:
-            msg = "HD Morphs daz add-on was not found"
-        if msg:
-            invokeErrorMessage(msg)
-            return {'CANCELLED'}
-        return Selector.invoke(self, context, event)
-
+class ActiveFileSelector(Selector):
 
     def getKeys(self, rig, ob):
         skeys = ob.data.shape_keys
         if skeys is None:
             return []
         keys = []
-        pgs = ob.data.DazHdUrls
+        fpgs = getattr(ob.data, self.attr)
         for skey in skeys.key_blocks[1:]:
             sname = skey.name
-            if sname in pgs.keys():
+            if sname in fpgs.keys():
                 keys.append((sname,sname,sname))
         return keys
 
@@ -880,41 +860,49 @@ class DAZ_OT_SetDhdmFiles(DazOperator, Selector, IsMesh):
     def run(self, context):
         from .asset import getDazPath
         ob = context.object
-        scn = context.scene
-        ob.data.DazDhdmFiles.clear()
         LS.forMorphLoad(ob)
-        pgs = ob.data.DazHdUrls
-        for prop in self.getSelectedProps():
-            if prop in pgs.keys():
-                item = pgs[prop]
-                item2 = ob.data.DazDhdmFiles.add()
-                item2.name = item.s
-        print("DHDM files:")
-        for dhdm in ob.data.DazDhdmFiles.keys():
-            print("  ", dhdm)
+        pgs = getattr(ob.data, self.attr)
+        for item in self.selection:
+            if item.name in pgs.keys():
+                item2 = pgs[item.name]
+                item2.b = item.select
+        print(self.attr)
+        for item in pgs:
+            print("  ", item.b, item.s)
 
-        hdinfo = scn.daz_hd_morph_test
-        hdinfo.base_ob = ob.name
-        folder = os.path.join(os.path.dirname(bpy.data.filepath), "textures")
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        hdinfo.working_dirpath = "//textures"
+
+class DAZ_OT_SelectDhdmFiles(DazOperator, ActiveFileSelector, IsMesh):
+    bl_idname = "daz.select_dhdm_files"
+    bl_label = "Select DHDM Files"
+    bl_description = "Make list of .dhdm files to be used with the HD Morphs DAZ add-on"
+
+    attr = "DazDhdmFiles"
+
+
+class DAZ_OT_SelectJcmFiles(DazOperator, ActiveFileSelector, IsMesh):
+    bl_idname = "daz.select_jcm_files"
+    bl_label = "Select JCM Files"
+    bl_description = "Make list of JCM files to be used with the HD Morphs DAZ add-on"
+
+    attr = "DazJcmFiles"
 
 
 def addSkeyToUrls(ob, isJcm, asset, skey):
     from .asset import getDazPath
     if asset.hd_url:
-        pgs = ob.data.DazHdUrls
+        pgs = ob.data.DazDhdmFiles
         if skey.name not in pgs.keys():
             item = pgs.add()
             item.name = skey.name
             item.s = getDazPath(asset.hd_url)
+            item.b = False
     if isJcm:
         pgs = ob.data.DazJcmFiles
         if skey.name not in pgs.keys():
             item = pgs.add()
             item.name = skey.name
             item.s = getDazPath(asset.fileref)
+            item.b = False
 
 #-------------------------------------------------------------
 #   Initialize
@@ -926,11 +914,13 @@ classes = [
     DAZ_OT_LoadNormalMap,
     DAZ_OT_BakeMaps,
     DAZ_OT_LoadBakedMaps,
-    DAZ_OT_SetDhdmFiles,
+    DAZ_OT_SelectDhdmFiles,
+    DAZ_OT_SelectJcmFiles,
 ]
 
 def register():
-    bpy.types.Mesh.DazDhdmFiles = CollectionProperty(type = bpy.types.PropertyGroup)
+    bpy.types.Mesh.DazDhdmFiles = CollectionProperty(type = DazStringBoolGroup)
+    bpy.types.Mesh.DazJcmFiles = CollectionProperty(type = DazStringBoolGroup)
     for cls in classes:
         bpy.utils.register_class(cls)
 

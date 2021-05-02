@@ -49,6 +49,10 @@ class DazStringIntGroup(bpy.types.PropertyGroup):
     s : StringProperty()
     i : IntProperty()
 
+class DazStringBoolGroup(bpy.types.PropertyGroup):
+    s : StringProperty()
+    b : BoolProperty()
+
 class DazPairGroup(bpy.types.PropertyGroup):
     a : IntProperty()
     b : IntProperty()
@@ -371,6 +375,7 @@ classes = [
     DazBoolGroup,
     DazFloatGroup,
     DazStringGroup,
+    DazStringBoolGroup,
     DazPairGroup,
     DazRigidityGroup,
     DazStringStringGroup,

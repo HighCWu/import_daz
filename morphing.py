@@ -2319,8 +2319,6 @@ def register():
         bpy.types.Object.DazMorphCats = CollectionProperty(type = DazCategory, override={'LIBRARY_OVERRIDABLE'})
 
     bpy.types.Mesh.DazBodyPart = CollectionProperty(type = DazStringGroup)
-    bpy.types.Mesh.DazHdUrls = CollectionProperty(type = DazStringGroup)
-    bpy.types.Mesh.DazJcmFiles = CollectionProperty(type = DazStringGroup)
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],
         name = "Morph")
