@@ -546,6 +546,17 @@ def findLayerCollection(layer, coll):
             return clayer
     return None
 
+
+def createHiddenCollection(context, parent, cname="Hidden"):
+    coll = bpy.data.collections.new(name=cname)
+    if parent is None:
+        parent = context.collection
+    parent.children.link(coll)
+    layer = findLayerCollection(context.view_layer.layer_collection, coll)
+    if layer:
+        layer.exclude = True
+    return coll
+
 #-------------------------------------------------------------
 #   Node
 #-------------------------------------------------------------

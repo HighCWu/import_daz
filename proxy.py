@@ -1782,6 +1782,7 @@ class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
+        from .node import createHiddenCollection
         ob = context.object
         rig = ob.parent
         if rig is None or not rig.type == 'ARMATURE':

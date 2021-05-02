@@ -1115,6 +1115,7 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
                 IK.limitBone(shin, False, rig, legProp)
                 ikConstraint(shin, footIK, None, 0, 2, rig, prop=legProp)
 
+        from .node import createHiddenCollection
         hidden = createHiddenCollection(context, context.collection)
         for ob in LS.customShapes:
             hidden.objects.link(ob)
@@ -1491,6 +1492,7 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
                 pb.custom_shape = circleY2
                 print("Unknown bone:", pb.name)
 
+        from .node import createHiddenCollection
         hidden = createHiddenCollection(context, coll)
         for ob in LS.customShapes:
             hidden.objects.link(ob)

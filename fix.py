@@ -290,6 +290,7 @@ class Fixer(DriverUser):
 
 class GizmoUser:
     def startGizmos(self, context):
+        from .node import createHiddenCollection
         self.gizmos = {}
         self.hidden = createHiddenCollection(context, None)
 
@@ -319,7 +320,6 @@ class GizmoUser:
         ob = bpy.data.objects.new(gname, me)
         self.hidden.objects.link(ob)
         ob.parent = parent
-        putOnHiddenLayer(ob)
         self.gizmos[gname] = ob
         return ob
 

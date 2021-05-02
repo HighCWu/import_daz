@@ -70,20 +70,6 @@ def setActiveObject(context, ob):
     except:
         return False
 
-def putOnHiddenLayer(ob):
-    ob.hide_set(True)
-    ob.hide_viewport = True
-    ob.hide_render = True
-
-def createHiddenCollection(context, parent, cname="Hidden"):
-    coll = bpy.data.collections.new(name=cname)
-    if parent is None:
-        parent = context.collection
-    parent.children.link(coll)
-    #coll.hide_viewport = True
-    #coll.hide_render = True
-    return coll
-
 def inSceneLayer(context, ob):
     if getHideViewport(ob):
         return False
