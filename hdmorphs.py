@@ -479,7 +479,7 @@ class DAZ_OT_LoadNormalMap(DazOperator, LoadMaps, NormalAdder):
 #   Baking
 #----------------------------------------------------------
 
-class Baker(TextureInfo):
+class Baker:
     bakeType : EnumProperty(
         items = [('NORMALS', "Normals", "Bake normal maps"),
                  ('DISPLACEMENT', "Displacement", "Bake scalar displacement maps")],
