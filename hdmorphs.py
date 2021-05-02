@@ -34,6 +34,7 @@ from .globvars import getMaterialEnums, getShapeEnums, theImageExtensions
 from .fileutils import MultiFile, ImageFile
 from .cgroup import CyclesGroup
 from .propgroups import DazBoolGroup
+from .morphing import Selector
 
 #-------------------------------------------------------------
 #   Load HD Vector Displacement Map
@@ -824,6 +825,124 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, NormalAdder, ScalarDispAdder
         elif self.bakeType == 'DISPLACEMENT':
             self.loadDispMaps(mat, args)
 
+#----------------------------------------------------------
+#   Interface to Xin's addon
+#----------------------------------------------------------
+
+class XinAddon:
+
+    bakeType : EnumProperty(
+        items = [('NORMALS', "Normals", "Bake normal maps"),
+                 ('VECTOR_DISPLACEMENT', "Vector Displacement", "Bake vector displacement maps"),
+                 ('DISPLACEMENT', "Displacement", "Bake scalar displacement maps")],
+        name = "Bake Type",
+        description = "Bake Type",
+        default = 'NORMALS')
+
+    textureSize : EnumProperty(
+        items = [("512", "512", "512 x 512 pixels"),
+                 ("1024", "1024", "1024 x 1024 pixels"),
+                 ("2048", "2048", "2048 x 2048 pixels"),
+                 ("4096", "4096", "4096 x 4096 pixels"),
+                ],
+        name = "Texture Size",
+        default = "2048")
+
+    subfolder : StringProperty(
+        name = "Subfolder",
+        description = "Subfolder for normal/displace maps",
+        default = "")
+
+    basename : StringProperty(
+        name = "Base Name",
+        description = "Name used to construct file names",
+        default = "")
+
+
+    def draw(self, context):
+        self.layout.prop(self, "bakeType")
+        self.layout.prop(self, "textureSize")
+        self.layout.label(text="More settings in HD Morphs daz add-on")
+
+
+    def checkEnabled(self, context):
+        from .error import invokeErrorMessage
+        msg = ""
+        if not bpy.data.filepath:
+            msg = "Save the blend file first"
+        try:
+            hdinfo = context.scene.daz_hd_morph_test
+        except AttributeError:
+            msg = "HD Morphs daz add-on was not found"
+        if msg:
+            invokeErrorMessage(msg)
+            return False
+        return True
+
+#----------------------------------------------------------
+#   Bake dhdm maps
+#----------------------------------------------------------
+
+class DAZ_OT_BakeDhdmMaps(DazOperator, Selector, XinAddon, IsMesh):
+    bl_idname = "daz.bake_dhdm_maps"
+    bl_label = "Bake DHDM Maps"
+    bl_description = "Bake normal/displacement maps from .dhdm files for the active mesh"
+
+    def draw(self, context):
+        XinAddon.draw(self, context)
+        self.layout.separator()
+        Selector.draw(self, context)
+
+    def invoke(self, context, event):
+        if not XinAddon.checkEnabled(self, context):
+            return {'CANCELLED'}
+        return Selector.invoke(self, context, event)
+
+    def getKeys(self, rig, ob):
+        skeys = ob.data.shape_keys
+        if skeys is None:
+            return []
+        keys = []
+        pgs = ob.data.DazHdUrls
+        for skey in skeys.key_blocks[1:]:
+            sname = skey.name
+            if sname in pgs.keys():
+                keys.append((sname,sname,sname))
+        return keys
+
+    def run(self, context):
+        from .asset import getDazPath
+        ob = context.object
+        LS.forMorphLoad(ob)
+        pgs = ob.data.DazHdUrls
+        hdpaths = []
+        for prop in self.getSelectedProps():
+            if prop in pgs.keys():
+                item = pgs[prop]
+                hdpath = getDazPath(item.s)
+                hdpaths.append(hdpath)
+        print("DHDM files:")
+        for hdpath in hdpaths:
+            print("  ", hdpath)
+
+        hdinfo = context.scene.daz_hd_morph_test
+        hdinfo.base_ob = ob.name
+        #bpy.ops.dazmorphtest.morph_files_op_add(files=hdpaths)
+        folder = os.path.dirname(bpy.data.filepath).replace("\\", "/")
+        folder = "%s/textures/%s" % (folder, self.bakeType.lower())
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        hdinfo.working_dirpath = bpy.path.relpath(folder)
+        hdinfo.texture_size = self.textureSize
+        if self.bakeType == 'NORMALS':
+            hdinfo.normal_bake_type = 'MR_NORMAL'
+            bpy.ops.dazmorphtest.normals()
+        elif self.bakeType == 'VECTOR_DISPLACEMENT':
+            bpy.ops.dazmorphtest.vecdisp()
+        elif self.bakeType == 'DISPLACEMENT':
+            hdinfo.normal_bake_type = 'MR_DISP'
+            bpy.ops.dazmorphtest.normals()
+
 #-------------------------------------------------------------
 #   Initialize
 #-------------------------------------------------------------
@@ -834,6 +953,7 @@ classes = [
     DAZ_OT_LoadNormalMap,
     DAZ_OT_BakeMaps,
     DAZ_OT_LoadBakedMaps,
+    DAZ_OT_BakeDhdmMaps,
 ]
 
 def register():

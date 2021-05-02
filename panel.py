@@ -212,15 +212,21 @@ class DAZ_PT_Advanced(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        if showBox(scn, "DazShowMaterials2", box):
+        if showBox(scn, "DazShowHDMesh", box):
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.bake_maps")
                 box.operator("daz.load_baked_maps")
+                box.separator()
+            box.operator("daz.bake_dhdm_maps")
+            box.separator()
             box.operator("daz.load_normal_map")
             box.operator("daz.load_scalar_disp")
             box.operator("daz.load_vector_disp")
             box.operator("daz.add_driven_value_nodes")
-            box.separator()
+
+        layout.separator()
+        box = layout.box()
+        if showBox(scn, "DazShowMaterials2", box):
             box.operator("daz.load_uv")
             box.operator("daz.prune_uv_maps")
             box.separator()
@@ -1000,6 +1006,21 @@ classes = [
 
 
 def register():
+    bpy.types.Scene.DazShowCorrections = BoolProperty(name = "Corrections", default = False)
+    bpy.types.Scene.DazShowMaterials = BoolProperty(name = "Materials", default = False)
+    bpy.types.Scene.DazShowMaterials2 = BoolProperty(name = "Materials", default = False)
+    bpy.types.Scene.DazShowMorphs = BoolProperty(name = "Morphs", default = False)
+    bpy.types.Scene.DazShowFinish = BoolProperty(name = "Finishing", default = False)
+    bpy.types.Scene.DazShowRigging = BoolProperty(name = "Rigging", default = False)
+    bpy.types.Scene.DazShowLowpoly = BoolProperty(name = "Low-poly Versions", default = False)
+    bpy.types.Scene.DazShowVisibility = BoolProperty(name = "Visibility", default = False)
+    bpy.types.Scene.DazShowRigging2 = BoolProperty(name = "Rigging", default = False)
+    bpy.types.Scene.DazShowHDMesh = BoolProperty(name = "HD Meshes", default = False)
+    bpy.types.Scene.DazShowMesh = BoolProperty(name = "Mesh", default = False)
+    bpy.types.Scene.DazShowSimulation = BoolProperty(name = "Simulation", default = False)
+    bpy.types.Scene.DazShowMorphs2 = BoolProperty(name = "Morphs", default = False)
+    bpy.types.Scene.DazShowHair = BoolProperty(name = "Hair", default = False)
+
     for cls in classes:
         bpy.utils.register_class(cls)
 

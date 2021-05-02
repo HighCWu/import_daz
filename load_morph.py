@@ -162,6 +162,12 @@ class LoadMorph(DriverUser):
             else:
                 reportError(msg, trigger=(2,3))
                 return None,False
+        if asset.hd_url:
+            pgs = self.mesh.data.DazHdUrls
+            if asset.name not in pgs.keys():
+                item = pgs.add()
+                item.name = asset.name
+                item.s = asset.hd_url
         if not asset.rna:
             asset.buildMorph(self.mesh,
                              useBuild=useBuild,
