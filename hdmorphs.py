@@ -479,24 +479,22 @@ class DAZ_OT_LoadNormalMap(DazOperator, LoadMaps, NormalAdder):
 #   Baking
 #----------------------------------------------------------
 
-class Baker:
-    imageSize : EnumProperty(
-        items = [("512", "512 x 512", "512 x 512 pixels"),
-                 ("1024", "1024 x 1024", "1024 x 1024 pixels"),
-                 ("2048", "2048 x 2048", "2048 x 2048 pixels"),
-                 ("4096", "4096 x 4096", "4096 x 4096 pixels"),
-                ],
-        name = "Image Size",
-        description = "Size of the normal map texture image",
-        default = "512"
-    )
-
+class Baker(TextureInfo):
     bakeType : EnumProperty(
-        items = [('NORMALS', "Normals", "Bake normals"),
-                 ('DISPLACEMENT', "Displacement", "Bake displacement")],
+        items = [('NORMALS', "Normals", "Bake normal maps"),
+                 ('DISPLACEMENT', "Displacement", "Bake scalar displacement maps")],
         name = "Bake Type",
         description = "Bake Type",
         default = 'NORMALS')
+
+    imageSize : EnumProperty(
+        items = [("512", "512", "512 x 512 pixels"),
+                 ("1024", "1024", "1024 x 1024 pixels"),
+                 ("2048", "2048", "2048 x 2048 pixels"),
+                 ("4096", "4096", "4096 x 4096 pixels"),
+                ],
+        name = "Image Size",
+        default = "2048")
 
     subfolder : StringProperty(
         name = "Subfolder",
@@ -508,10 +506,9 @@ class Baker:
         description = "Name used to construct file names",
         default = "")
 
-
     def draw(self, context):
-        self.layout.prop(self, "imageSize")
         self.layout.prop(self, "bakeType")
+        self.layout.prop(self, "imageSize")
         self.layout.prop(self, "subfolder")
         self.layout.prop(self, "basename")
 
@@ -826,77 +823,36 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, NormalAdder, ScalarDispAdder
             self.loadDispMaps(mat, args)
 
 #----------------------------------------------------------
-#   Interface to Xin's addon
+#   Bake dhdm maps
 #----------------------------------------------------------
 
-class XinAddon:
-
-    bakeType : EnumProperty(
-        items = [('NORMALS', "Normals", "Bake normal maps"),
-                 ('VECTOR_DISPLACEMENT', "Vector Displacement", "Bake vector displacement maps"),
-                 ('DISPLACEMENT', "Displacement", "Bake scalar displacement maps")],
-        name = "Bake Type",
-        description = "Bake Type",
-        default = 'NORMALS')
-
-    textureSize : EnumProperty(
-        items = [("512", "512", "512 x 512 pixels"),
-                 ("1024", "1024", "1024 x 1024 pixels"),
-                 ("2048", "2048", "2048 x 2048 pixels"),
-                 ("4096", "4096", "4096 x 4096 pixels"),
-                ],
-        name = "Texture Size",
-        default = "2048")
-
-    subfolder : StringProperty(
-        name = "Subfolder",
-        description = "Subfolder for normal/displace maps",
-        default = "")
-
-    basename : StringProperty(
-        name = "Base Name",
-        description = "Name used to construct file names",
-        default = "")
+def get_dhdm_files():
+    return bpy.context.scene.DazDhdmFiles.keys()
 
 
-    def draw(self, context):
-        self.layout.prop(self, "bakeType")
-        self.layout.prop(self, "textureSize")
-        self.layout.label(text="More settings in HD Morphs daz add-on")
+class DAZ_OT_SetDhdmFiles(DazOperator, Selector, IsMesh):
+    bl_idname = "daz.set_dhdm_files"
+    bl_label = "Set DHDM Files"
+    bl_description = "Make list of .dhdm files to be used with the HD Morphs DAZ add-on"
 
-
-    def checkEnabled(self, context):
+    def invoke(self, context, event):
         from .error import invokeErrorMessage
-        msg = ""
+        scn = context.scene
+        scn.DazDhdmFiles.clear()
         if not bpy.data.filepath:
             msg = "Save the blend file first"
+            invokeErrorMessage(msg)
+            return {'CANCELLED'}
         try:
-            hdinfo = context.scene.daz_hd_morph_test
+            hdinfo = scn.daz_hd_morph_test
+            msg = ""
         except AttributeError:
             msg = "HD Morphs daz add-on was not found"
         if msg:
             invokeErrorMessage(msg)
-            return False
-        return True
-
-#----------------------------------------------------------
-#   Bake dhdm maps
-#----------------------------------------------------------
-
-class DAZ_OT_BakeDhdmMaps(DazOperator, Selector, XinAddon, IsMesh):
-    bl_idname = "daz.bake_dhdm_maps"
-    bl_label = "Bake DHDM Maps"
-    bl_description = "Bake normal/displacement maps from .dhdm files for the active mesh"
-
-    def draw(self, context):
-        XinAddon.draw(self, context)
-        self.layout.separator()
-        Selector.draw(self, context)
-
-    def invoke(self, context, event):
-        if not XinAddon.checkEnabled(self, context):
             return {'CANCELLED'}
         return Selector.invoke(self, context, event)
+
 
     def getKeys(self, rig, ob):
         skeys = ob.data.shape_keys
@@ -910,38 +866,29 @@ class DAZ_OT_BakeDhdmMaps(DazOperator, Selector, XinAddon, IsMesh):
                 keys.append((sname,sname,sname))
         return keys
 
+
     def run(self, context):
         from .asset import getDazPath
         ob = context.object
+        scn = context.scene
+        scn.DazDhdmFiles.clear()
         LS.forMorphLoad(ob)
         pgs = ob.data.DazHdUrls
-        hdpaths = []
         for prop in self.getSelectedProps():
             if prop in pgs.keys():
                 item = pgs[prop]
-                hdpath = getDazPath(item.s)
-                hdpaths.append(hdpath)
+                item2 = scn.DazDhdmFiles.add()
+                item2.name = getDazPath(item.s)
         print("DHDM files:")
-        for hdpath in hdpaths:
-            print("  ", hdpath)
+        for dhdm in scn.DazDhdmFiles.keys():
+            print("  ", dhdm)
 
-        hdinfo = context.scene.daz_hd_morph_test
+        hdinfo = scn.daz_hd_morph_test
         hdinfo.base_ob = ob.name
-        #bpy.ops.dazmorphtest.morph_files_op_add(files=hdpaths)
-        folder = os.path.dirname(bpy.data.filepath).replace("\\", "/")
-        folder = "%s/textures/%s" % (folder, self.bakeType.lower())
+        folder = os.path.join(os.path.dirname(bpy.data.filepath), "textures")
         if not os.path.exists(folder):
             os.makedirs(folder)
-        hdinfo.working_dirpath = bpy.path.relpath(folder)
-        hdinfo.texture_size = self.textureSize
-        if self.bakeType == 'NORMALS':
-            hdinfo.normal_bake_type = 'MR_NORMAL'
-            bpy.ops.dazmorphtest.normals()
-        elif self.bakeType == 'VECTOR_DISPLACEMENT':
-            bpy.ops.dazmorphtest.vecdisp()
-        elif self.bakeType == 'DISPLACEMENT':
-            hdinfo.normal_bake_type = 'MR_DISP'
-            bpy.ops.dazmorphtest.normals()
+        hdinfo.working_dirpath = "//textures"
 
 #-------------------------------------------------------------
 #   Initialize
@@ -953,10 +900,11 @@ classes = [
     DAZ_OT_LoadNormalMap,
     DAZ_OT_BakeMaps,
     DAZ_OT_LoadBakedMaps,
-    DAZ_OT_BakeDhdmMaps,
+    DAZ_OT_SetDhdmFiles,
 ]
 
 def register():
+    bpy.types.Scene.DazDhdmFiles = CollectionProperty(type = bpy.types.PropertyGroup)
     for cls in classes:
         bpy.utils.register_class(cls)
 

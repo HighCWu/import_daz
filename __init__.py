@@ -85,6 +85,7 @@ from .error import getErrorMessage, setSilentMode
 from .fileutils import setSelection, getSelection, clearSelection
 from .morphing import getMorphs
 from .settings import GS
+from .hdmorphs import get_dhdm_files
 
 #----------------------------------------------------------
 #   Register

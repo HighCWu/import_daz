@@ -217,7 +217,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
                 box.operator("daz.bake_maps")
                 box.operator("daz.load_baked_maps")
                 box.separator()
-            box.operator("daz.bake_dhdm_maps")
+            box.operator("daz.set_dhdm_files")
             box.separator()
             box.operator("daz.load_normal_map")
             box.operator("daz.load_scalar_disp")
