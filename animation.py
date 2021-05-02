@@ -283,6 +283,9 @@ class HideOperator(DazOperator):
     def prequel(self, context):
         DazOperator.prequel(self, context)
         rig = context.object
+        amt = rig.data
+        if amt.DazSimpleIK:
+            amt.DazArmIK_L = amt.DazArmIK_R = amt.DazLegIK_L = amt.DazLegIK_R = 0.0
         self.boneLayers = list(rig.data.layers)
         rig.data.layers = 32*[True]
         self.layerColls = []
