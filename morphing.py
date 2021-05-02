@@ -698,6 +698,7 @@ class MorphLoader(LoadMorph):
         if not self.usePropDrivers:
             self.rig = None
         clearDependecies()
+        #self.initJcmFiles(context)
 
         self.errors = {}
         t1 = perf_counter()
@@ -889,6 +890,7 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader,
 
     morphset = "Jcms"
     bodypart = "Body"
+    isJcm = True
 
     def addToMorphSet(self, prop, asset, hidden):
         addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden, hideable=False)
@@ -902,6 +904,7 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoa
 
     morphset = "Flexions"
     bodypart = "Body"
+    isJcm = True
 
     def addToMorphSet(self, prop, asset, hidden):
         addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden, hideable=False)
@@ -2317,6 +2320,7 @@ def register():
 
     bpy.types.Mesh.DazBodyPart = CollectionProperty(type = DazStringGroup)
     bpy.types.Mesh.DazHdUrls = CollectionProperty(type = DazStringGroup)
+    bpy.types.Mesh.DazJcmFiles = CollectionProperty(type = DazStringGroup)
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],
         name = "Morph")

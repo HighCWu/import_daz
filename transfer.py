@@ -336,7 +336,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
             if self.useVendorMorphs:
                 filepath = getMorphPath(sname, trg, scn)
             if filepath is not None:
-                cskey = self.loadMorph(filepath, trg, scn)
+                cskey = self.loadMorph(filepath, src, trg, scn)
             if cskey:
                 print(" *", sname)
             elif self.autoTransfer(src, trg, hskey):
@@ -371,19 +371,22 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
         return True
 
 
-    def loadMorph(self, filepath, ob, scn):
+    def loadMorph(self, filepath, src, trg, scn):
         from .load_json import loadJson
         from .files import parseAssetFile
         from .modifier import Morph
-        LS.forMorphLoad(ob)
+        from .hdmorphs import addSkeyToUrls
+        LS.forMorphLoad(trg)
         struct = loadJson(filepath)
         asset = parseAssetFile(struct)
         if (not isinstance(asset, Morph) or
-            len(ob.data.vertices) != asset.vertex_count):
+            len(trg.data.vertices) != asset.vertex_count):
             return None
-        asset.buildMorph(ob, useBuild=True)
+        asset.buildMorph(trg, useBuild=True)
         if asset.rna:
             skey,_,_ = asset.rna
+            isJcm = (skey.name in src.data.DazJcmFiles.keys())
+            addSkeyToUrls(trg, isJcm, asset, skey)
             return skey
         else:
             return None

@@ -827,7 +827,17 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, NormalAdder, ScalarDispAdder
 #----------------------------------------------------------
 
 def get_dhdm_files():
-    return bpy.context.scene.DazDhdmFiles.keys()
+    ob = bpy.context.object
+    if ob and ob.type == 'MESH':
+        return [item.s for item in ob.data.DazHdUrls]
+    return []
+
+
+def get_jcm_files():
+    ob = bpy.context.object
+    if ob and ob.type == 'MESH':
+        return [item.s for item in ob.data.DazJcmFiles]
+    return []
 
 
 class DAZ_OT_SetDhdmFiles(DazOperator, Selector, IsMesh):
@@ -871,16 +881,16 @@ class DAZ_OT_SetDhdmFiles(DazOperator, Selector, IsMesh):
         from .asset import getDazPath
         ob = context.object
         scn = context.scene
-        scn.DazDhdmFiles.clear()
+        ob.data.DazDhdmFiles.clear()
         LS.forMorphLoad(ob)
         pgs = ob.data.DazHdUrls
         for prop in self.getSelectedProps():
             if prop in pgs.keys():
                 item = pgs[prop]
-                item2 = scn.DazDhdmFiles.add()
-                item2.name = getDazPath(item.s)
+                item2 = ob.data.DazDhdmFiles.add()
+                item2.name = item.s
         print("DHDM files:")
-        for dhdm in scn.DazDhdmFiles.keys():
+        for dhdm in ob.data.DazDhdmFiles.keys():
             print("  ", dhdm)
 
         hdinfo = scn.daz_hd_morph_test
@@ -889,6 +899,22 @@ class DAZ_OT_SetDhdmFiles(DazOperator, Selector, IsMesh):
         if not os.path.exists(folder):
             os.makedirs(folder)
         hdinfo.working_dirpath = "//textures"
+
+
+def addSkeyToUrls(ob, isJcm, asset, skey):
+    from .asset import getDazPath
+    if asset.hd_url:
+        pgs = ob.data.DazHdUrls
+        if skey.name not in pgs.keys():
+            item = pgs.add()
+            item.name = skey.name
+            item.s = getDazPath(asset.hd_url)
+    if isJcm:
+        pgs = ob.data.DazJcmFiles
+        if skey.name not in pgs.keys():
+            item = pgs.add()
+            item.name = skey.name
+            item.s = getDazPath(asset.fileref)
 
 #-------------------------------------------------------------
 #   Initialize
@@ -904,7 +930,7 @@ classes = [
 ]
 
 def register():
-    bpy.types.Scene.DazDhdmFiles = CollectionProperty(type = bpy.types.PropertyGroup)
+    bpy.types.Mesh.DazDhdmFiles = CollectionProperty(type = bpy.types.PropertyGroup)
     for cls in classes:
         bpy.utils.register_class(cls)
 

@@ -36,7 +36,6 @@ MAX_TERMS = 12
 MAX_TERMS2 = 9
 MAX_EXPR_LEN = 240
 
-
 #------------------------------------------------------------------
 #   LoadMorph base class
 #------------------------------------------------------------------
@@ -45,7 +44,7 @@ class LoadMorph(DriverUser):
     morphset = None
     usePropDrivers = True
     loadMissed = True
-
+    isJcm = False
 
     def __init__(self, rig, mesh):
         self.rig = rig
@@ -140,6 +139,7 @@ class LoadMorph(DriverUser):
     def buildShapekey(self, asset, useBuild=True):
         from .modifier import Morph
         from .driver import makePropDriver
+        from .hdmorphs import addSkeyToUrls
         if not (isinstance(asset, Morph) and
                 self.mesh and
                 asset.deltas):
@@ -162,12 +162,6 @@ class LoadMorph(DriverUser):
             else:
                 reportError(msg, trigger=(2,3))
                 return None,False
-        if asset.hd_url:
-            pgs = self.mesh.data.DazHdUrls
-            if asset.name not in pgs.keys():
-                item = pgs.add()
-                item.name = asset.name
-                item.s = asset.hd_url
         if not asset.rna:
             asset.buildMorph(self.mesh,
                              useBuild=useBuild,
@@ -178,6 +172,7 @@ class LoadMorph(DriverUser):
             self.alias[prop] = skey.name
             skey.name = prop
             self.shapekeys[prop] = skey
+            addSkeyToUrls(self.mesh, self.isJcm, asset, skey)
             if self.rig:
                 final = self.addNewProp(prop, None, skey)
                 makePropDriver(propRef(final), skey, "value", self.amt, "x")
