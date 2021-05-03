@@ -380,31 +380,32 @@ class Rigify:
     useAutoAlign : BoolProperty(
         name = "Auto Align Hand/Foot",
         description = "Auto align hand and foot (Rigify parameter)",
-        default = False
-    )
+        default = False)
 
     useCustomLayers : BoolProperty(
         name = "Custom Layers",
         description = "Display layers for face and custom bones.\nNot for Rigify legacy",
-        default = True
-    )
+        default = True)
 
     useOptimizePose : BoolProperty(
         name = "Optimize Pose For IK",
         description = "Optimize pose for IK.\nIncompatible with pose loading and body morphs",
+        default = False)
+
+    useIkFix : BoolProperty(
+        name = "IK Fix",
+        description = "Add limits to IK bones, to prevent poor bending",
         default = True)
 
     useKeepRig : BoolProperty(
         name = "Keep DAZ Rig",
         description = "Keep existing armature and meshes in a new collection",
-        default = False
-    )
+        default = False)
 
     useRenameFaceBones : BoolProperty(
         name = "Rename Face Bones",
         description = "Rename face bones from l/r prefix to .L/.R suffix",
-        default = True
-    )
+        default = True)
 
     GroupBones = [("Face ", R_FACE, 2, 6),
                   ("Face (detail) ", R_DETAIL, 2, 3),
@@ -915,6 +916,8 @@ class Rigify:
         gen = context.object
         coll = context.collection
         print("Fix generated rig", gen.name)
+        if self.useIkFix:
+            self.fixIk(gen)
 
         print("  Setup DAZ Skeleton")
         setActiveObject(context, rig)
@@ -1262,14 +1265,23 @@ class Rigify:
             "breast.R" :        ("GZM_Pectoral", 1),
         }
         self.makeGizmos(None)
+        bgrp = gen.pose.bone_groups.new(name="DAZ")
+        bgrp.color_set = 'CUSTOM'
+        bgrp.colors.normal = (1.0, 0.5, 0)
+        bgrp.colors.select = (0.596, 0.898, 1.0)
+        bgrp.colors.active = (0.769, 1, 1)
         for pb in gen.pose.bones:
-            if self.isFaceBone(pb) and not self.isEyeLid(pb):
-                self.addGizmo(pb, "GZM_Circle", 0.2)
+            if self.isFaceBone(pb):
+                if not self.isEyeLid(pb):
+                    self.addGizmo(pb, "GZM_Circle", 0.2)
+                pb.bone_group = bgrp
             elif pb.name[0:6] == "tongue":
                 self.addGizmo(pb, "GZM_Tongue", 1)
+                pb.bone_group = bgrp
             elif pb.name in gizmos.keys():
                 gizmo,scale = gizmos[pb.name]
                 self.addGizmo(pb, gizmo, scale)
+                pb.bone_group = bgrp
 
         # Hide some bones on a hidden layer
         for rname in [
@@ -1279,6 +1291,15 @@ class Rigify:
             if rname in gen.pose.bones.keys():
                 pb = gen.pose.bones[rname]
                 pb.bone.layers = 29*[False] + [True] + 2*[False]
+
+
+    def fixIk(self, rig):
+        for bname in ["MCH-forearm_ik.L", "MCH-forearm_ik.R", "MCH-shin_ik.L", "MCH-shin_ik.R"]:
+            if bname in rig.pose.bones.keys():
+                pb = rig.pose.bones[bname]
+                pb.use_ik_limit_x = True
+                pb.ik_min_x = 0
+                pb.ik_max_x = 160*D
 
 #-------------------------------------------------------------
 #  Buttons
@@ -1308,6 +1329,7 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, GizmoUser, BendTwi
         self.layout.prop(self, "useAutoAlign")
         self.layout.prop(self, "useDeleteMeta")
         self.layout.prop(self, "useOptimizePose")
+        self.layout.prop(self, "useIkFix")
         self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "useKeepRig")
         self.layout.prop(self, "useRenameFaceBones")
