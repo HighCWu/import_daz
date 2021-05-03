@@ -738,7 +738,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 continue
             layer,unlock = getBoneLayer(pb, rig)
             pb.bone.layers = layer*[False] + [True] + (31-layer)*[False]
-            if unlock:
+            if False and unlock:
                 pb.lock_location = (False,False,False)
 
 
@@ -1400,7 +1400,7 @@ def getBoneLayer(pb, rig):
         isBoneDriven(rig, pb) or
         pb.name in facerigs):
         return L_HELP, False
-    elif isFinal(pb.name):
+    elif isFinal(pb.name) or pb.bone.layers[L_FIN]:
         return L_FIN, False
     elif pb.parent:
         par = pb.parent

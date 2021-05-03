@@ -1813,6 +1813,14 @@ class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
 
         self.removeInteriors(gizmos, context)
 
+        activateObject(context, rig)
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname,gzm in gizmos:
+            if bname in rig.data.edit_bones.keys():
+                eb = rig.data.edit_bones[bname]
+                eb.use_deform = False
+
+        bpy.ops.object.mode_set(mode='OBJECT')
         drivers = self.getDrivers(rig.data)
         for bname,gzm in gizmos:
             if bname in rig.pose.bones.keys():
