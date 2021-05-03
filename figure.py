@@ -1002,7 +1002,7 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
         if not rig.DazCustomShapes:
             raise DazError("Make custom shapes first")
 
-        from .mhx import makeBone, getBoneCopy, ikConstraint, copyRotation, stretchTo
+        from .mhx import makeBone, getBoneCopy, ikConstraint, copyRotation, stretchTo, fixIk
         IK = SimpleIK(self)
         genesis = IK.getGenesisType(rig)
         if not genesis:
@@ -1073,6 +1073,7 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
                 IK.limitBone(thighTwist, True, rig, legProp, stiffness=(0,0.160,0))
                 shin = rpbs[prefix+"Shin"]
                 IK.limitBone(shin, False, rig, legProp, stiffness=(0.068,0,0.517))
+                fixIk(rig, [shin.name])
 
             elif genesis == "G12":
                 handIK.custom_shape_scale = 3.0
@@ -1086,6 +1087,7 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
                 IK.limitBone(thigh, False, rig, legProp)
                 shin = rpbs[prefix+"Shin"]
                 IK.limitBone(shin, False, rig, legProp)
+                fixIk(rig, [shin.name])
 
             if IK.usePoleTargets:
                 elbow = rpbs[prefix+"Elbow"]

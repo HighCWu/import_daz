@@ -911,7 +911,8 @@ class Rigify:
         coll = context.collection
         print("Fix generated rig", gen.name)
         if self.useIkFix:
-            self.fixIk(gen)
+            from .mhx import fixIk
+            fixIk(gen, ["MCH-shin_ik.L", "MCH-shin_ik.R"])
 
         print("  Setup DAZ Skeleton")
         setActiveObject(context, rig)
@@ -1285,15 +1286,6 @@ class Rigify:
             if rname in gen.pose.bones.keys():
                 pb = gen.pose.bones[rname]
                 pb.bone.layers = 29*[False] + [True] + 2*[False]
-
-
-    def fixIk(self, rig):
-        for bname in ["MCH-shin_ik.L", "MCH-shin_ik.R"]:
-            if bname in rig.pose.bones.keys():
-                pb = rig.pose.bones[bname]
-                pb.use_ik_limit_x = True
-                pb.ik_min_x = 0
-                pb.ik_max_x = 160*D
 
 #-------------------------------------------------------------
 #  Buttons

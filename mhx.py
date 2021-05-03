@@ -1192,7 +1192,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 cns = copyLocation(elbowPoleA, handIk, rig)
                 cns.influence = upper_arm.bone.length/(upper_arm.bone.length + forearm.bone.length)
                 copyTransform(elbowPoleP, elbowPoleA, rig)
-            hintRotation(forearmIk, rig)
+            #hintRotation(forearmIk, rig)
             ikConstraint(forearmIk, handIk, elbowPt, -90, 2, rig)
             stretchTo(elbowLink, elbowPt, rig)
             elbowPt.rotation_euler[0] = -90*D
@@ -1253,7 +1253,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 cns.influence = thigh.bone.length/(thigh.bone.length + shin.bone.length)
                 copyTransform(kneePoleP, kneePoleA, rig)
 
-            hintRotation(shinIk, rig)
+            #hintRotation(shinIk, rig)
+            fixIk(rig, [shinIk.name])
             ikConstraint(shinIk, ankleIk, kneePt, -90, 2, rig)
             stretchTo(kneeLink, kneePt, rig)
             kneePt.rotation_euler[0] = 90*D
@@ -1619,6 +1620,18 @@ def setToFk(rig, layers):
     for layer in [L_LARMIK, L_RARMIK, L_LLEGIK, L_RLEGIK]:
         layers[layer] = False
     return layers
+
+#-------------------------------------------------------------
+#   Fix IK. Used by rigify and simple rig
+#-------------------------------------------------------------
+
+def fixIk(rig, bnames):
+    for bname in bnames:
+        if bname in rig.pose.bones.keys():
+            pb = rig.pose.bones[bname]
+            pb.use_ik_limit_x = True
+            pb.ik_min_x = 0
+            pb.ik_max_x = 160*D
 
 #-------------------------------------------------------------
 #   Update MHX rig for armature properties
