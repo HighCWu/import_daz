@@ -48,6 +48,7 @@ R_DETAIL = 2
 R_CUSTOM = 19
 R_DEFORM = 29
 R_HELP = 30
+R_FIN = 31
 
 def setupTables(meta):
     global MetaBones, MetaParents, MetaDisconnect, RigifyParams
@@ -56,12 +57,13 @@ def setupTables(meta):
     global Genesis3Toes, Genesis3Renames
     global DeformBones, MhxRigifyLayer
 
-    from .mhx import L_HELP, L_FACE, L_HEAD, L_CUSTOM
+    from .mhx import L_HELP, L_FACE, L_HEAD, L_CUSTOM, L_FIN
     MhxRigifyLayer = {
         L_HELP : R_HELP,
         L_FACE : R_DETAIL,
         L_HEAD : R_FACE,
-        L_CUSTOM : R_CUSTOM
+        L_CUSTOM : R_CUSTOM,
+        L_FIN : R_FIN,
     }
 
     if meta.DazPre278:
