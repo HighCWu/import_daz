@@ -373,11 +373,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         description = "Convert strand-based hair to particle hair",
         default = False)
 
-    useOptimize : BoolProperty(
-        name = "Optimize Pose For IK",
-        description = "Optimize pose for IK.\nIncompatible with pose loading and body morphs",
-        default = False)
-
     def draw(self, context):
         DazOptions.draw(self, context)
         self.layout.separator()
@@ -389,7 +384,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         self.layout.prop(self, "useExtraFaceBones")
         self.layout.prop(self, "useMakeAllBonesPoseable")
         self.layout.prop(self, "useConvertHair")
-        self.layout.prop(self, "useOptimize")
         self.layout.prop(self, "rigType")
         self.layout.prop(self, "mannequinType")
         MorphTypeOptions.draw(self, context)
@@ -580,8 +574,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
         # Change rig
         if mainRig and activateObject(context, mainRig):
-            if self.useOptimize:
-                bpy.ops.daz.optimize_pose(useApplyRestPose=True)
             if self.rigType == 'CUSTOM':
                 print("Add custom shapes")
                 bpy.ops.daz.add_custom_shapes()
