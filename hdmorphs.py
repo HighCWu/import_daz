@@ -43,14 +43,9 @@ from .morphing import Selector
 class LoadMaps(MultiFile, ImageFile, IsMesh):
     materials : CollectionProperty(type = DazBoolGroup)
 
-    useShapeDriver : BoolProperty(
-        name = "Shapekey Drivers",
-        description = "Drive maps with shapekey values",
-        default = True)
-
-    useShapeFromFile : BoolProperty(
-        name = "Shapekey From Filename",
-        description = "Deduce the driving shapekeys from filenames,\notherwise use the active shapekey.\nOnly works with Xin's naming convention",
+    useDriver : BoolProperty(
+        name = "Use Drivers",
+        description = "Drive maps with armature properties",
         default = True)
 
     tile : IntProperty(
@@ -65,11 +60,8 @@ class LoadMaps(MultiFile, ImageFile, IsMesh):
         default = True)
 
     def draw(self, context):
-        self.layout.prop(self, "useShapeDriver")
-        if self.useShapeDriver:
-            self.layout.prop(self, "useShapeFromFile")
-            if self.useShapeFromFile:
-                self.layout.prop(self, "tile")
+        self.layout.prop(self, "useDriver")
+        self.layout.prop(self, "tile")
         self.layout.prop(self, "usePrune")
         self.layout.label(text="Add Maps To Materials:")
         box = self.layout.box()
@@ -108,21 +100,21 @@ class LoadMaps(MultiFile, ImageFile, IsMesh):
             key = os.path.splitext(os.path.basename(item.s))[0].lower()
             self.props[key] = item.name
         args = []
-        if self.useShapeDriver and amt:
+        if self.useDriver and amt:
             for filepath in filepaths:
                 fname = os.path.splitext(os.path.basename(filepath))[0].split("_dhdm",1)[0]
                 key = fname.lower()
                 if key not in self.props.keys():
-                    args.append((amt, fname, None, filepath))
+                    args.append((ob, amt, fname, None, filepath))
                     continue
                 final = finalProp(self.props[key])
                 amt[final] = 0.0
-                args.append((amt, fname, final, filepath))
+                args.append((ob, amt, fname, final, filepath))
         else:
             for filepath in filepaths:
                 fname = os.path.splitext(os.path.basename(filepath))[0]
-                args.append((amt, fname, None, filepath))
-        for _,prop,_,_ in args:
+                args.append((ob, amt, fname, None, filepath))
+        for _,_,prop,_,_ in args:
             print(" *", prop)
         if not args:
             raise DazError("No file selected")
@@ -170,15 +162,14 @@ class DispGroup(CyclesGroup):
         from .driver import makePropDriver
         last = None
         midlevel,args = args
-        for ob,sname,skey,filepath in args:
+        for ob,amt,sname,prop,filepath in args:
             tex = self.addImageTexNode(filepath, sname, 1)
             self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
 
             disp = self.addDispNode(sname, tex, midlevel)
             disp.inputs["Scale"].default_value = ob.DazScale
-            if skey:
-                path = 'data.shape_keys.key_blocks["%s"].value' % skey.name
-                makePropDriver(path, disp.inputs["Scale"], "default_value", ob, "%g*x" % ob.DazScale)
+            if amt and prop:
+                makePropDriver(propRef(prop), disp.inputs["Scale"], "default_value", amt, "%g*x" % ob.DazScale)
 
             if last is None:
                 last = disp
@@ -443,7 +434,7 @@ class NormalAdder:
                 if "Normal" in node.inputs.keys():
                     tree.links.new(normal.outputs["Normal"], node.inputs["Normal"])
 
-        for amt,fname,prop,filepath in args:
+        for ob,amt,fname,prop,filepath in args:
             tex = tree.addImageTexNode(filepath, fname, -1)
             tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
 
