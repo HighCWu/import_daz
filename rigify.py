@@ -389,11 +389,6 @@ class Rigify:
         description = "Display layers for face and custom bones.\nNot for Rigify legacy",
         default = True)
 
-    useOptimizePose : BoolProperty(
-        name = "Optimize Pose For IK",
-        description = "Optimize pose for IK.\nIncompatible with pose loading and body morphs",
-        default = False)
-
     useIkFix : BoolProperty(
         name = "IK Fix",
         description = "Add limits to IK bones, to prevent poor bending",
@@ -762,7 +757,6 @@ class Rigify:
         from .mhx import connectToParent, unhideAllObjects
         from .figure import getRigType
         from .merge import mergeBonesAndVgroups
-        from .convert import optimizePose
 
         print("Create metarig")
         rig = context.object
@@ -772,8 +766,6 @@ class Rigify:
             raise DazError("Rigify: %s is neither an armature nor has armature parent" % ob)
 
         unhideAllObjects(context, rig)
-        if self.useOptimizePose:
-            optimizePose(context, True)
 
         # Create metarig
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -1296,7 +1288,7 @@ class Rigify:
 
 
     def fixIk(self, rig):
-        for bname in ["MCH-forearm_ik.L", "MCH-forearm_ik.R", "MCH-shin_ik.L", "MCH-shin_ik.R"]:
+        for bname in ["MCH-shin_ik.L", "MCH-shin_ik.R"]:
             if bname in rig.pose.bones.keys():
                 pb = rig.pose.bones[bname]
                 pb.use_ik_limit_x = True
@@ -1330,7 +1322,6 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, GizmoUser, BendTwi
     def draw(self, context):
         self.layout.prop(self, "useAutoAlign")
         self.layout.prop(self, "useDeleteMeta")
-        self.layout.prop(self, "useOptimizePose")
         self.layout.prop(self, "useIkFix")
         self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "useKeepRig")
@@ -1363,7 +1354,6 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists):
         Fixer.__init__(self)
 
     def draw(self, context):
-        self.layout.prop(self, "useOptimizePose")
         self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "useKeepRig")
 
