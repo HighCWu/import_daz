@@ -1104,8 +1104,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             else:
                 kneeLink.layers = L_HIDE*[False] + [True] + (31-L_HIDE)*[False]
 
-            footInv = deriveBone("foot.inv.ik"+suffix, foot, rig, L_HELP2, footRev)
-            toeInv = deriveBone("toe.inv.ik"+suffix, toe, rig, L_HELP2, toeRev)
+            footInvFk = deriveBone("foot.inv.fk"+suffix, footRev, rig, L_HELP2, footFk)
+            toeInvFk = deriveBone("toe.inv.fk"+suffix, toeRev, rig, L_HELP2, toeFk)
+            footInvIk = deriveBone("foot.inv.ik"+suffix, foot, rig, L_HELP2, footRev)
+            toeInvIk = deriveBone("toe.inv.ik"+suffix, toe, rig, L_HELP2, toeRev)
 
             prefix = suffix[1].lower()
             eye = rig.data.edit_bones[prefix + "Eye"]
@@ -1182,7 +1184,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             copyTransformFkIk(upper_arm, upper_armFk, upper_armIk, rig, prop)
             copyTransformFkIk(forearm, forearmFk, forearmIk, rig, prop)
             copyTransformFkIk(hand, handFk, handIk, rig, prop)
-            copyTransform(hand0Ik, handIk, rig, prop)
+            copyTransform(hand0Ik, handIk, rig)
             if self.elbowParent == 'HAND':
                 elbowPoleA = rpbs["elbowPoleA"+suffix]
                 elbowPoleP = rpbs["elbowPoleP"+suffix]
@@ -1223,8 +1225,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             footIk = rpbs["foot.ik"+suffix]
             toeRev = rpbs["toe.rev"+suffix]
             footRev = rpbs["foot.rev"+suffix]
-            footInv = rpbs["foot.inv.ik"+suffix]
-            toeInv = rpbs["toe.inv.ik"+suffix]
+            footInvIk = rpbs["foot.inv.ik"+suffix]
+            toeInvIk = rpbs["toe.inv.ik"+suffix]
 
             prop = "MhaLegHinge_" + suffix[1]
             setMhxProp(rig.data, prop, False)
@@ -1240,8 +1242,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             copyTransformFkIk(thigh, thighFk, thighIk, rig, prop1)
             copyTransformFkIk(shin, shinFk, shinIk, rig, prop1)
-            copyTransformFkIk(foot, footFk, footInv, rig, (prop1,prop2), "x1*(1-x2)")
-            copyTransformFkIk(toe, toeFk, toeInv, rig, (prop1,prop2), "x1*(1-x2)")
+            copyTransformFkIk(foot, footFk, footInvIk, rig, (prop1,prop2), "x1*(1-x2)")
+            copyTransformFkIk(toe, toeFk, toeInvIk, rig, (prop1,prop2), "x1*(1-x2)")
 
             if self.kneeParent == 'FOOT':
                 kneePoleA = rpbs["kneePoleA"+suffix]
