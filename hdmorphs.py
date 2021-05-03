@@ -98,33 +98,34 @@ class LoadMaps(MultiFile, ImageFile, IsMesh):
 
 
     def getArgs(self, ob):
+        rig = ob.parent
+        amt = None
+        if rig and rig.type == 'ARMATURE':
+            amt = rig.data
         filepaths = self.getMultiFiles(theImageExtensions)
-        skeys = ob.data.shape_keys
+        self.props = {}
+        for item in ob.data.DazDhdmFiles:
+            key = os.path.splitext(os.path.basename(item.s))[0].lower()
+            self.props[key] = item.name
         args = []
-        if self.useShapeDriver:
-            if skeys:
-                shapes = dict([(skey.name.lower(), skey) for skey in skeys.key_blocks])
-            else:
-                raise DazError("No shapekeys found")
-            if not self.useShapeFromFile:
-                idx = ob.active_shape_key_index
-                skey = skeys.key_blocks[idx]
-                if skey is None or idx == 0:
-                    raise DazError("Basic or no shapekey selected")
+        if self.useShapeDriver and amt:
             for filepath in filepaths:
-                fname = os.path.splitext(os.path.basename(filepath))[0]
-                if self.useShapeFromFile:
-                    arg = self.getArgFromFile(fname, filepath, ob, shapes)
-                    if arg:
-                        args.append(arg)
-                else:
-                    args.append((ob, fname, skey, filepath))
+                fname = os.path.splitext(os.path.basename(filepath))[0].split("_dhdm",1)[0]
+                key = fname.lower()
+                if key not in self.props.keys():
+                    args.append((amt, fname, None, filepath))
+                    continue
+                final = finalProp(self.props[key])
+                amt[final] = 0.0
+                args.append((amt, fname, final, filepath))
         else:
             for filepath in filepaths:
                 fname = os.path.splitext(os.path.basename(filepath))[0]
-                args.append((ob, fname, None, filepath))
-        for _,sname,_,_ in args:
-            print(" *", sname)
+                args.append((amt, fname, None, filepath))
+        for _,prop,_,_ in args:
+            print(" *", prop)
+        if not args:
+            raise DazError("No file selected")
         return args
 
 
@@ -442,8 +443,8 @@ class NormalAdder:
                 if "Normal" in node.inputs.keys():
                     tree.links.new(normal.outputs["Normal"], node.inputs["Normal"])
 
-        for ob,sname,skey,filepath in args:
-            tex = tree.addImageTexNode(filepath, sname, -1)
+        for amt,fname,prop,filepath in args:
+            tex = tree.addImageTexNode(filepath, fname, -1)
             tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
 
             mix = tree.addGroup(MixNormalTextureGroup, "DAZ Mix Normal Texture", col=0, force=True)
@@ -452,11 +453,13 @@ class NormalAdder:
             if socket:
                 tree.links.new(socket, mix.inputs["Color1"])
             tree.links.new(tex.outputs["Color"], mix.inputs["Color2"])
-            if skey:
-                path = 'data.shape_keys.key_blocks["%s"].value' % skey.name
-                makePropDriver(path, mix.inputs["Fac"], "default_value", ob, "x")
+            if amt and prop:
+                makePropDriver(propRef(prop), mix.inputs["Fac"], "default_value", amt, "x")
             socket = mix.outputs["Color"]
-        tree.links.new(socket, normal.inputs["Color"])
+        if socket:
+            tree.links.new(socket, normal.inputs["Color"])
+        else:
+            print("No link to normal map node")
         if self.usePrune:
             tree.prune()
 
@@ -472,6 +475,7 @@ class DAZ_OT_LoadNormalMap(DazOperator, LoadMaps, NormalAdder):
     def run(self, context):
         ob = context.object
         args = self.getArgs(ob)
+        print("LMM", args)
         for mat in self.getMaterials(ob):
             self.loadNormalMaps(mat, args, 1)
 
