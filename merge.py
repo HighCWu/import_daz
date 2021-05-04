@@ -229,9 +229,11 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
 
     def moveGraftVerts(self, aob, cob):
         cvgroups = dict([(vgrp.index, vgrp.name) for vgrp in cob.vertex_groups])
+        averts = aob.data.vertices
+        cverts = cob.data.vertices
         for pair in aob.data.DazGraftGroup:
-            avert = aob.data.vertices[pair.a]
-            cvert = cob.data.vertices[pair.b]
+            avert = averts[pair.a]
+            cvert = cverts[pair.b]
             avert.co = cvert.co
             for cg in cvert.groups:
                 vgname = cvgroups[cg.group]
@@ -241,12 +243,17 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
                     avgrp = aob.vertex_groups.new(name=vgname)
                 avgrp.add([pair.a], cg.weight, 'REPLACE')
 
-        if cob.data.shape_keys and aob.data.shape_keys:
-            for cskey in cob.data.shape_keys.key_blocks:
-                if cskey.name in aob.data.shape_keys.key_blocks.keys():
-                    askey = aob.data.shape_keys.key_blocks[cskey.name]
+        askeys = aob.data.shape_keys
+        cskeys = cob.data.shape_keys
+        if askeys:
+            for askey in askeys.key_blocks:
+                if cskeys and askey.name in cskeys.key_blocks.keys():
+                    cskey = cskeys.key_blocks[askey.name]
                     for pair in aob.data.DazGraftGroup:
                         askey.data[pair.a].co = cskey.data[pair.b].co
+                else:
+                    for pair in aob.data.DazGraftGroup:
+                        askey.data[pair.a].co = cverts[pair.b].co
 
 
     def joinUvTextures(self, me):
