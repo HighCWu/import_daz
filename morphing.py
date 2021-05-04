@@ -716,10 +716,10 @@ class MorphLoader(LoadMorph):
                 msg += "\n%s:    \n" % err
                 for prop in props:
                     msg += "    %s\n" % prop
-            raise DazError(msg, warning=True)
-        if self.ecr and GS.verbosity >= 3:
+        elif self.ecr and GS.verbosity >= 3:
             msg = "Found morphs that want to\nchange the rest pose"
-            raise DazError(msg, warning=True)
+        else:
+            msg = None
 
 #------------------------------------------------------------------
 #   Load standard morphs
@@ -766,7 +766,9 @@ class StandardMorphLoader(MorphLoader):
         setupMorphPaths(scn, False)
         self.rig.DazMorphPrefixes = False
         namepaths = self.getActiveMorphFiles(context)
-        self.getAllMorphs(namepaths, context)
+        msg = self.getAllMorphs(namepaths, context)
+        if msg:
+            raise DazError(msg, warning=True)
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -942,7 +944,9 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
         self.addFiles(self.body, "Body", "Body")
         self.addFiles(self.jcms, "Jcms", "Body")
         self.addFiles(self.flexions, "Flexions", "Body")
-        self.getAllMorphs(self.namepaths, context)
+        msg = self.getAllMorphs(self.namepaths, context)
+        if msg:
+            raise DazError(msg, warning=True)
 
 
     def addFiles(self, use, morphset, bodypart):
@@ -1066,15 +1070,15 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
     def run(self, context):
         from .driver import setBoolProp
         namepaths = self.getNamePaths()
-        self.getAllMorphs(namepaths, context)
+        msg = self.getAllMorphs(namepaths, context)
         if self.usePropDrivers and self.drivers:
             self.rig.DazCustomMorphs = True
         elif self.useMeshCats and self.shapekeys:
             props = self.shapekeys.keys()
             addToCategories(self.mesh, props, self.catname)
             self.mesh.DazMeshMorphs = True
-        if self.errors:
-            raise DazError(theLimitationsMessage)
+        if msg:
+            raise DazError(msg, warning=True)
 
 
     def getNamePaths(self):
