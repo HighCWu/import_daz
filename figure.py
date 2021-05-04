@@ -1118,9 +1118,10 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
                 ikConstraint(shin, footIK, knee, -90, 2, rig, prop=legProp)
 
         from .node import createHiddenCollection
-        hidden = createHiddenCollection(context, context.collection)
+        hidden = createHiddenCollection(context, rig)
         for ob in LS.customShapes:
             hidden.objects.link(ob)
+            ob.hide_viewport = ob.hide_render = True
         T = True
         F = False
         rig.data.layers = 16*[F] + [T,T,F,F, F,F,F,F, F,F,T,T, T,T,F,F]
@@ -1370,9 +1371,9 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
 
     def run(self, context):
         rig = context.object
+        coll = getCollection(rig)
         LS.customShapes = []
         IK = SimpleIK()
-        coll = context.collection
         makeBoneGroups(rig)
 
         csCollar = makeCustomShape("CS_Collar", "CircleX", (0,1,0), (0,0.5,0.1))
@@ -1495,9 +1496,10 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
                 print("Unknown bone:", pb.name)
 
         from .node import createHiddenCollection
-        hidden = createHiddenCollection(context, coll)
+        hidden = createHiddenCollection(context, rig)
         for ob in LS.customShapes:
             hidden.objects.link(ob)
+            ob.hide_viewport = ob.hide_render = True
         rig.DazCustomShapes = True
         rig.data.layers = 16*[False] + 14*[True] + 2*[False]
 

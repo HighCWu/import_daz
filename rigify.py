@@ -879,10 +879,8 @@ class Rigify:
         from .node import setParent, clearParent
         from .propgroups import copyPropGroups
         from .mhx import unhideAllObjects, getBoneLayer
-        from .hide import getRigCollection
 
         print("Rigify metarig")
-        self.startGizmos(context)
         meta = context.object
         rig = None
         for cns in meta.constraints:
@@ -891,9 +889,10 @@ class Rigify:
 
         if rig is None:
             raise DazError("Original rig not found")
+        coll = getCollection(rig)
         unhideAllObjects(context, rig)
-        if not inSceneLayer(context, rig):
-            context.collection.objects.link(rig)
+        if rig.name not in coll.objects.keys():
+            coll.objects.link(rig)
 
         bpy.ops.object.mode_set(mode='POSE')
         for pb in meta.pose.bones:
@@ -908,7 +907,7 @@ class Rigify:
 
         scn = context.scene
         gen = context.object
-        coll = context.collection
+        self.startGizmos(context, gen)
         print("Fix generated rig", gen.name)
         if self.useIkFix:
             from .mhx import fixIk
@@ -1120,7 +1119,6 @@ class Rigify:
         gen.show_in_front = True
         gen.DazRig = meta.DazRigType
         name = rig.name
-        coll = getRigCollection(rig)
         if coll:
             if gen.name not in coll.objects:
                 coll.objects.link(gen)
@@ -1259,7 +1257,7 @@ class Rigify:
             "breast.L" :        ("GZM_Pectoral", 1),
             "breast.R" :        ("GZM_Pectoral", 1),
         }
-        self.makeGizmos(None)
+        self.makeGizmos(["GZM_Jaw", "GZM_Circle025", "GZM_Pectoral", "GZM_Tongue"])
         bgrp = gen.pose.bone_groups.new(name="DAZ")
         bgrp.color_set = 'CUSTOM'
         bgrp.colors.normal = (1.0, 0.5, 0)

@@ -588,9 +588,8 @@ class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh)
         ob = context.object
         mat = ob.data.materials[ob.active_material_index]
         tree = findTree(mat)
-
-        coll = context.collection
         empty = bpy.data.objects.new(fname, None)
+        coll = getCollection(ob)
         coll.objects.link(empty)
 
         for item in self.shows:

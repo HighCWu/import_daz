@@ -176,7 +176,7 @@ class DAZ_OT_AddVisibility(DazPropsOperator, MeshSelection, SingleGroup, IsArmat
 
 
     def addCollections(self, context, rig, selected):
-        rigcoll = getRigCollection(rig)
+        rigcoll = getCollection(rig)
         if rigcoll is None:
             raise DazError("No collection found")
         print("Create visibility collections for %s:" % rig.name)
@@ -204,13 +204,6 @@ def createSubCollection(coll, cname):
     subcoll = bpy.data.collections.new(cname)
     coll.children.link(subcoll)
     return subcoll
-
-
-def getRigCollection(rig):
-    for coll in bpy.data.collections:
-        if rig in coll.objects.values():
-            return coll
-    return None
 
 
 def moveToCollection(ob, newcoll):

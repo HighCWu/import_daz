@@ -1352,10 +1352,9 @@ def addMannequins(self, context):
     # Create group/collection
     mangrp = None
     scn = context.scene
-    coll = context.collection
+    coll = rigcoll = getCollection(rig)
     if self.useGroup:
-        from .hide import getRigCollection, createSubCollection
-        rigcoll = getRigCollection(rig)
+        from .hide import createSubCollection
         coll = createSubCollection(rigcoll, self.group)
 
     # Add mannequin objects for selected meshes
@@ -1788,7 +1787,7 @@ class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
         if rig is None or not rig.type == 'ARMATURE':
             raise DazError("Object has no armature parent")
         coll = context.scene.collection
-        hidden = createHiddenCollection(context, None)
+        hidden = createHiddenCollection(context, rig)
         self.hiddenLayers = 30*[False] + [True,False]
         activateObject(context, ob)
 

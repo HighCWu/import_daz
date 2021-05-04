@@ -70,11 +70,6 @@ def setActiveObject(context, ob):
     except:
         return False
 
-def inSceneLayer(context, ob):
-    if getHideViewport(ob):
-        return False
-    return inCollection(context.view_layer.layer_collection, ob)
-
 def inCollection(layer, ob):
     if layer.hide_viewport:
         return False
@@ -85,6 +80,11 @@ def inCollection(layer, ob):
             return True
     return False
 
+def getCollection(ob):
+    for coll in bpy.data.collections:
+        if ob.name in coll.objects.keys():
+            return coll
+    return bpy.context.scene.collection
 
 def activateObject(context, ob):
     try:

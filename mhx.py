@@ -465,7 +465,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         if self.useKeepRig:
             self.saveExistingRig(context)
         self.createBoneGroups(rig)
-        self.startGizmos(context)
+        self.startGizmos(context, rig)
 
         #-------------------------------------------------------------
         #   MHX skeleton

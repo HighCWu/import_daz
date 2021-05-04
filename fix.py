@@ -289,10 +289,10 @@ class Fixer(DriverUser):
 #-------------------------------------------------------------
 
 class GizmoUser:
-    def startGizmos(self, context):
+    def startGizmos(self, context, ob):
         from .node import createHiddenCollection
         self.gizmos = {}
-        self.hidden = createHiddenCollection(context, None)
+        self.hidden = createHiddenCollection(context, ob)
 
 
     def makeGizmos(self, gnames):
@@ -321,6 +321,8 @@ class GizmoUser:
         self.hidden.objects.link(ob)
         ob.parent = parent
         self.gizmos[gname] = ob
+        ob.hide_render = True
+        ob.hide_viewport = True
         return ob
 
 
@@ -793,7 +795,7 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
                 pole.roll = eb.roll
 
         bpy.ops.object.mode_set(mode='OBJECT')
-        self.startGizmos(context)
+        self.startGizmos(context, rig)
         gzmBall = self.makeEmptyGizmo("GZM_Ball", 'SPHERE')
         gzmCube = self.makeEmptyGizmo("GZM_Cube", 'CUBE')
         gzmCone = self.makeEmptyGizmo("GZM_Cone", 'CONE')
@@ -867,7 +869,7 @@ class DAZ_OT_AddWinder(DazOperator, GizmoUser, IsArmature):
             raise DazError("No active posebone")
         bname = pb.name
         wname = "Wind"+bname
-        self.startGizmos(context)
+        self.startGizmos(context, rig)
         self.makeGizmos(["GZM_Knuckle"])
         gizmo = self.gizmos["GZM_Knuckle"]
 
