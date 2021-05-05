@@ -92,6 +92,7 @@ class GlobalSettings:
         self.useLimitLoc = True
         self.useLockRot = True
         self.useLimitRot = True
+        self.displayLimitRot = False
         self.useConnectClose = False
 
         self.useInstancing = True
@@ -149,6 +150,7 @@ class GlobalSettings:
         "DazUseLimitLoc" : "useLimitLoc",
         "DazUseLockRot" : "useLockRot",
         "DazUseLimitRot" : "useLimitRot",
+        "DazDisplayLimitRot" : "displayLimitRot",
 
         # Meshes
         "DazUseInstancing" : "useInstancing",

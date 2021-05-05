@@ -150,7 +150,8 @@ class DAZ_OT_LoadRootPaths(DazOperator, SingleFile, JsonFile):
         self.layout.prop(self, "useCloud")
 
     def execute(self, context):
-        struct = GS.openFile(self.filepath)
+        from .fileutils import openSettingsFile
+        struct = openSettingsFile(self.filepath)
         if struct:
             print("Load root paths from", self.filepath)
             GS.readDazPaths(struct, self)
@@ -240,6 +241,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseLimitLoc")
         box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLimitRot")
+        box.prop(scn, "DazDisplayLimitRot")
         box.prop(scn, "DazUseLegacyLocks")
 
         box = col.box()
@@ -522,6 +524,10 @@ def register():
     bpy.types.Scene.DazUseLimitRot = BoolProperty(
         name = "Rotation Limits",
         description = "Use rotation limits")
+
+    bpy.types.Scene.DazDisplayLimitRot = BoolProperty(
+        name = "Display Rotation Limits",
+        description = "Display rotation limits as IK limits")
 
     bpy.types.Object.DazHasLocLocks = BoolProperty(default=False)
     bpy.types.Object.DazHasRotLocks = BoolProperty(default=False)

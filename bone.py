@@ -854,6 +854,10 @@ class BoneInstance(Instance):
                     setattr(cns, "use_limit_%s" % xyz, True)
                     setattr(cns, "min_%s" % xyz, minr)
                     setattr(cns, "max_%s" % xyz, maxr)
+                    if GS.displayLimitRot:
+                        setattr(pb, "use_ik_limit_%s" % xyz, True)
+                        setattr(pb, "ik_min_%s" % xyz, minr)
+                        setattr(pb, "ik_max_%s" % xyz, maxr)
 
 
     def setLocationLockDaz(self, pb):
