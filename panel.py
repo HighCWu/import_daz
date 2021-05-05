@@ -382,8 +382,8 @@ class DAZ_PT_Utils(bpy.types.Panel):
             layout.operator("daz.set_silent_mode", text="Silent Mode OFF")
         layout.operator("daz.get_finger_print")
         layout.operator("daz.inspect_prop_groups")
-        layout.operator("daz.inspect_prop_dependencies")
         layout.operator("daz.inspect_world_matrix")
+        layout.operator("daz.enable_all_layers")
 
     def propRow(self, layout, rna, prop):
         row = layout.row()

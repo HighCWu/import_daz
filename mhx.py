@@ -342,7 +342,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         name = "Knee Parent",
         description = "Parent of knee pole target")
 
-    useRenameFaceBones : BoolProperty(
+    useRenameBones : BoolProperty(
         name = "Rename Face Bones",
         description = "Rename face bones from l/r prefix to .L/.R suffix",
         default = True
@@ -401,11 +401,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         "thighBend.R" : "thigh.bend.R",
     }
 
-    BreastBones = [
-        ("breast.L", "lPectoral", L_LEXTRA),
-        ("breast.R", "rPectoral", L_REXTRA),
-    ]
-
     DrivenParents = {
         "lowerFaceRig" :        "lowerJaw",
         drvBone("lowerTeeth") : "lowerJaw",
@@ -423,7 +418,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.layout.prop(self, "useKeepRig")
         self.layout.prop(self, "elbowParent")
         self.layout.prop(self, "kneeParent")
-        self.layout.prop(self, "useRenameFaceBones")
+        self.layout.prop(self, "useRenameBones")
 
 
     def invoke(self, context, event):
@@ -1148,7 +1143,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                     "foot", "foot.fk", "toe", "toe.fk",
                     "foot.rev", "toe.rev",
                     "knee.pt.ik", "elbow.pt.ik", "elbowPoleA", "kneePoleA",
-                    "breast",
                    ],
             'YXZ' : ["hand", "hand.fk", "hand.ik", "hand0.ik"],
         }

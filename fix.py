@@ -342,7 +342,7 @@ class GizmoUser:
             pb.custom_shape_scale = scale
 
 
-    def renameFaceBones(self, rig):
+    def renameFaceBones(self, rig, extra=[]):
 
         def renameFaceBone(bone):
             bname = bone.name
@@ -362,11 +362,12 @@ class GizmoUser:
                 renamed[bname] = newname
                 bone.name = newname
 
-        if not self.useRenameFaceBones:
+        if not self.useRenameBones:
             return
         renamed = {}
         for pb in rig.pose.bones:
-            if self.isFaceBone(pb):
+            if (self.isFaceBone(pb) or
+                pb.name[1:] in extra):
                 renameFaceBone(pb.bone)
         for pb in rig.pose.bones:
             for cns in pb.constraints:

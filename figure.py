@@ -1637,6 +1637,33 @@ class DAZ_OT_CopyDazProps(DazOperator, IsObject):
             if key[0:3] == "Daz" and key not in trg.keys():
                 trg[key] = value
 
+#-------------------------------------------------------------
+#   For debugging
+#-------------------------------------------------------------
+
+class DAZ_OT_InspectWorldMatrix(DazOperator, IsObject):
+    bl_idname = "daz.inspect_world_matrix"
+    bl_label = "Inspect World Matrix"
+    bl_description = "List world matrix of active object"
+
+    def run(self, context):
+        ob = context.object
+        print("World Matrix", ob.name)
+        print(ob.matrix_world)
+
+
+class DAZ_OT_EnableAllLayers(DazOperator, IsArmature):
+    bl_idname = "daz.enable_all_layers"
+    bl_label = "Enable All Layers"
+    bl_description = "Enable all bone layers"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        rig = context.object
+        rig.data.layers = 32*[True]
+        for bone in rig.data.bones:
+            bone.hide_select = False
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -1660,6 +1687,8 @@ classes = [
     DAZ_OT_SnapSimpleIK,
     DAZ_OT_UpdateRigVersion,
     DAZ_OT_CopyDazProps,
+    DAZ_OT_InspectWorldMatrix,
+    DAZ_OT_EnableAllLayers,
 ]
 
 def register():

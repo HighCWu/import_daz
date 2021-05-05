@@ -293,55 +293,6 @@ class DAZ_OT_InspectPropGroups(DazOperator, IsArmature):
                             print("    ", pg.display())
 
 #-------------------------------------------------------------
-#   Dependencies
-#   For debugging
-#-------------------------------------------------------------
-
-def clearDependecies():
-    global theDependecies
-    theDependecies = {}
-
-clearDependecies()
-
-
-def addDependency(key, prop, factor):
-    global theDependecies
-    if key not in theDependecies.keys():
-        deps = theDependecies[key] = []
-    else:
-        deps = theDependecies[key]
-    deps.append((prop,factor))
-
-
-class DAZ_OT_InspectPropDependencies(DazOperator, IsMeshArmature):
-    bl_idname = "daz.inspect_prop_dependencies"
-    bl_label = "Inspect Prop Dependencies"
-    bl_description = "List properties depending on other properties"
-
-    def run(self, context):
-        global theDependecies
-        print("--- Property dependencies from latest load ---")
-        deps = list(theDependecies.items())
-        deps.sort()
-        for key,dep in deps:
-            if len(dep) > 0:
-                prop,val = dep[0]
-                print("  %-24s: %6.4f %-24s" % (key, val, prop))
-            for prop,val in dep[1:]:
-                print("  %-24s: %6.4f %-24s" % ("", val, prop))
-
-
-class DAZ_OT_InspectWorldMatrix(DazOperator, IsObject):
-    bl_idname = "daz.inspect_world_matrix"
-    bl_label = "Inspect World Matrix"
-    bl_description = "List world matrix of active object"
-
-    def run(self, context):
-        ob = context.object
-        print("World Matrix", ob.name)
-        print(ob.matrix_world)
-
-#-------------------------------------------------------------
 #   Initialize
 #-------------------------------------------------------------
 
@@ -382,8 +333,6 @@ classes = [
     DazTextGroup,
     DazMorphGroup,
     DAZ_OT_InspectPropGroups,
-    DAZ_OT_InspectPropDependencies,
-    DAZ_OT_InspectWorldMatrix,
     ]
 
 def register():

@@ -149,8 +149,6 @@ def setupTables(meta):
     MetaDisconnect = [hips, neck]
 
     MetaParents = {
-        "breast.L" : chest,
-        "breast.R" : chest,
         "shoulder.L" : chest1,
         "shoulder.R" : chest1,
     }
@@ -226,14 +224,6 @@ def setupTables(meta):
     "palm.04.R" :       "rCarpal4",
     }
 
-    BreastBones = {
-    "breast.L" :        "lPectoral",
-    "breast.R" :        "rPectoral",
-    }
-    if meta.DazUseBreasts:
-        RigifySkeleton = addDicts([RigifySkeleton, BreastBones])
-
-
     GenesisCarpals = {
     "palm.01.L" :        (("lCarpal1", "lIndex1"), ["lCarpal1"]),
     "palm.02.L" :        (("lCarpal1", "lMid1"), []),
@@ -244,7 +234,6 @@ def setupTables(meta):
     "palm.02.R" :        (("rCarpal1", "rMid1"), []),
     "palm.03.R" :        (("rCarpal2", "rRing1"), ["rCarpal2"]),
     "palm.04.R" :        (("rCarpal2", "rPinky1"), []),
-
     }
 
     GenesisSpine = [
@@ -399,9 +388,9 @@ class Rigify:
         description = "Keep existing armature and meshes in a new collection",
         default = False)
 
-    useRenameFaceBones : BoolProperty(
-        name = "Rename Face Bones",
-        description = "Rename face bones from l/r prefix to .L/.R suffix",
+    useRenameBones : BoolProperty(
+        name = "Rename Left-Right Bones",
+        description = "Rename bones from l/r prefix to .L/.R suffix",
         default = True)
 
     GroupBones = [("Face ", R_FACE, 2, 6),
@@ -489,11 +478,6 @@ class Rigify:
                 pelvis = meta.data.edit_bones["pelvis"+suffix]
                 pelvis.head = hip.head
                 pelvis.tail = thigh.head
-
-            #if "breast"+suffix in meta.data.edit_bones.keys():
-            #    breast = meta.data.edit_bones["breast"+suffix]
-            #    breast.head[0] = breast.tail[0]
-            #    breast.head[2] = breast.tail[2]
 
             foot.head = shin.tail
             toe.head = foot.tail
@@ -696,18 +680,6 @@ class Rigify:
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
-    def deleteIfNotExist(self, bnames, rig, meta, context):
-        setActiveObject(context, meta)
-        bpy.ops.object.mode_set(mode='EDIT')
-        for dname,mname in bnames:
-            if (dname not in rig.data.bones.keys() and
-                mname in meta.data.edit_bones.keys()):
-                eb = meta.data.edit_bones[mname]
-                meta.data.edit_bones.remove(eb)
-        bpy.ops.object.mode_set(mode='OBJECT')
-        setActiveObject(context, rig)
-
-
     def checkRigifyEnabled(self, context):
         for addon in context.user_preferences.addons:
             if addon.module == "rigify":
@@ -788,7 +760,6 @@ class Rigify:
 
         meta.DazPre278 = ("hips" in meta.data.bones.keys())
         meta.DazRigifyType = getRigType(rig)
-        meta.DazUseBreasts = (not meta.DazPre278 and rig.data.DazExtraDrivenBones)
         meta.DazUseSplitNeck = (not meta.DazPre278 and meta.DazRigifyType in ["genesis3", "genesis8"])
         if meta.DazUseSplitNeck:
             self.splitNeck(meta)
@@ -804,11 +775,6 @@ class Rigify:
             self.fixCarpals(rig)
             self.splitBone(rig, "chest", "chestUpper")
             self.splitBone(rig, "abdomen", "abdomen2")
-            delbones = [
-                ("lPectoral", "breast.L"),
-                ("rPectoral", "breast.R"),
-            ]
-            self.deleteIfNotExist(delbones, rig, meta, context)
         elif meta.DazRigifyType in ["genesis3", "genesis8"]:
             mergeBonesAndVgroups(rig, Genesis3Mergers, Genesis3Parents, context)
             self.reparentBones(rig, Genesis3Toes)
@@ -920,11 +886,6 @@ class Rigify:
 
         print("  Setup extras")
         extras = self.setupExtras(rig, rigifySkel, spineBones)
-        if meta.DazUseBreasts:
-            for prefix in ["l", "r"]:
-                dname = drvBone(prefix+"Pectoral")
-                extras[dname] = dname
-
         print("  Get driven bones")
         driven = {}
         for pb in rig.pose.bones:
@@ -981,13 +942,6 @@ class Rigify:
                     print("Bones:", bones)
                     msg = ("Bone %s has no parent %s" % (dbone.name, dbone.parent))
                     raise DazError(msg)
-
-        if meta.DazUseBreasts:
-            for prefix,suffix in [("l", ".L"), ("r", ".R")]:
-                db = gen.data.edit_bones[drvBone(prefix + "Pectoral")]
-                eb = gen.data.edit_bones["breast" + suffix]
-                db.parent = eb.parent
-                eb.parent = db
 
         bpy.ops.object.mode_set(mode='POSE')
 
@@ -1110,8 +1064,11 @@ class Rigify:
         self.fixBoneDrivers(gen, correctives)
 
         # Face bone gizmos
+        rename = ["Pectoral", "Eye", "Ear"]
+        rename += [bone.name[1:] for bone in gen.data.bones
+            if bone.name[1:].startswith(("BigToe", "SmallToe"))]
+        self.renameFaceBones(gen, rename)
         self.addGizmos(gen)
-        self.renameFaceBones(gen)
 
         #Clean up
         print("  Clean up")
@@ -1248,14 +1205,12 @@ class Rigify:
     def addGizmos(self, gen):
         gizmos = {
             "lowerJaw" :        ("GZM_Jaw", 1),
-            "rEye" :            ("GZM_Circle025", 1),
-            "lEye" :            ("GZM_Circle025", 1),
-            "rEar" :            ("GZM_Circle025", 1.5),
-            "lEar" :            ("GZM_Circle025", 1.5),
-            "lPectoral" :       ("GZM_Pectoral", 1),
-            "rPectoral" :       ("GZM_Pectoral", 1),
-            "breast.L" :        ("GZM_Pectoral", 1),
-            "breast.R" :        ("GZM_Pectoral", 1),
+            "eye.L" :           ("GZM_Circle025", 1),
+            "eye.R" :           ("GZM_Circle025", 1),
+            "ear.L" :           ("GZM_Circle025", 1.5),
+            "ear.R" :           ("GZM_Circle025", 1.5),
+            "pectoral.L" :      ("GZM_Pectoral", 1),
+            "pectoral.R" :      ("GZM_Pectoral", 1),
         }
         self.makeGizmos(["GZM_Jaw", "GZM_Circle025", "GZM_Pectoral", "GZM_Tongue"])
         bgrp = gen.pose.bone_groups.new(name="DAZ")
@@ -1271,6 +1226,9 @@ class Rigify:
             elif pb.name[0:6] == "tongue":
                 self.addGizmo(pb, "GZM_Tongue", 1)
                 pb.bone_group = bgrp
+            elif pb.name.startswith(("bigToe", "smallToe")):
+                self.addGizmo(pb, "GZM_Circle", 0.4)
+                pb.bone_group = bgrp
             elif pb.name in gizmos.keys():
                 gizmo,scale = gizmos[pb.name]
                 self.addGizmo(pb, gizmo, scale)
@@ -1278,7 +1236,6 @@ class Rigify:
 
         # Hide some bones on a hidden layer
         for rname in [
-            #"breast.L", "breast.R",
             "upperTeeth", "lowerTeeth",
             ]:
             if rname in gen.pose.bones.keys():
@@ -1315,7 +1272,7 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, GizmoUser, BendTwi
         self.layout.prop(self, "useIkFix")
         self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "useKeepRig")
-        self.layout.prop(self, "useRenameFaceBones")
+        self.layout.prop(self, "useRenameBones")
 
     def run(self, context):
         from time import perf_counter
@@ -1447,7 +1404,6 @@ classes = [
 def register():
     bpy.types.Object.DazRigifyType = StringProperty(default="")
     bpy.types.Object.DazRigType = StringProperty(default="")
-    bpy.types.Object.DazUseBreasts = BoolProperty(default=False)
     bpy.types.Object.DazUseSplitNeck = BoolProperty(default=False)
     bpy.types.Object.DazPre278 = BoolProperty(default=False)
 

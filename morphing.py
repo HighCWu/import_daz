@@ -685,7 +685,6 @@ class MorphLoader(LoadMorph):
     def getAllMorphs(self, namepaths, context):
         from time import perf_counter
         from .asset import clearAssets
-        from .propgroups import clearDependecies
         from .driver import setBoolProp
 
         if self.mesh:
@@ -697,8 +696,6 @@ class MorphLoader(LoadMorph):
         LS.forMorphLoad(ob)
         if not self.usePropDrivers:
             self.rig = None
-        clearDependecies()
-        #self.initJcmFiles(context)
 
         self.errors = {}
         t1 = perf_counter()
