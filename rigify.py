@@ -51,6 +51,18 @@ R_HELP = 30
 R_FIN = 31
 
 def setupTables(meta):
+    def deleteChildren(eb, meta):
+        for child in eb.children:
+            deleteChildren(child, meta)
+            meta.data.edit_bones.remove(child)
+
+    def deleteBones(meta, bnames):
+        ebones = meta.data.edit_bones
+        rembones = [ebones[bname] for bname in bnames if bname in ebones.keys()]
+        print("REM", rembones)
+        for eb in rembones:
+            ebones.remove(eb)
+
     global MetaBones, MetaParents, MetaDisconnect, RigifyParams
     global RigifySkeleton, GenesisCarpals, GenesisSpine
     global Genesis3Spine, Genesis3Mergers, Genesis3Parents
@@ -116,6 +128,7 @@ def setupTables(meta):
         bpy.ops.object.mode_set(mode='EDIT')
         eb = meta.data.edit_bones[head]
         deleteChildren(eb, meta)
+        deleteBones(meta, ["breast.L", "breast.R"])
         bpy.ops.object.mode_set(mode='OBJECT')
 
         MetaBones = {
@@ -319,12 +332,6 @@ def setupTables(meta):
     }
 
     return rigtype, hips, head
-
-
-def deleteChildren(eb, meta):
-    for child in eb.children:
-        deleteChildren(child, meta)
-        meta.data.edit_bones.remove(child)
 
 
 class DazBone:
