@@ -151,7 +151,7 @@ class Instance(Accessor, Channels, SimNode):
         self.center = Vector((0,0,0))
         self.cpoint = Vector((0,0,0))
         self.wmat = self.wrot = self.wscale = Matrix()
-        self.refgroup = None
+        self.refcoll = None
         self.isGroupNode = False
         self.isStrandHair = False
         self.ignore = False
@@ -319,49 +319,39 @@ class Instance(Accessor, Channels, SimNode):
 
     def buildNodeInstance(self, context):
         ob = self.node2.rna
-        if self.node2.refgroup:
-            refgroup = self.node2.refgroup
+        if self.node2.refcoll:
+            refcoll = self.node2.refcoll
         else:
-            refgroup = self.getInstanceGroup(ob)
-        if refgroup is None:
-            refgroup,empty = self.makeNewRefgroup(context, ob)
-        self.duplicate(self.rna, refgroup)
+            refcoll = self.getInstanceColl(ob)
+        if refcoll is None:
+            refcoll = self.makeNewRefColl(context, ob)
+        empty = self.rna
+        empty.instance_type = 'COLLECTION'
+        empty.instance_collection = refcoll
 
 
-    def makeNewRefgroup(self, context, ob):
+    def makeNewRefColl(self, context, ob):
         refname = ob.name + " REF"
-        refgroup = bpy.data.collections.new(name=refname)
-        if LS.refGroups is None:
-            LS.refGroups = bpy.data.collections.new(name=LS.collection.name + " REFS")
-            context.scene.collection.children.link(LS.refGroups)
-        LS.refGroups.children.link(refgroup)
-        layer = findLayerCollection(context.view_layer.layer_collection, refgroup)
-        layer.exclude = True
+        refcoll = bpy.data.collections.new(name=refname)
+        if LS.refColls is None:
+            LS.refColls = bpy.data.collections.new(name=LS.collection.name + " REFS")
+            context.scene.collection.children.link(LS.refColls)
+        LS.refColls.children.link(refcoll)
 
-        obname = ob.name
-        ob.name = refname
-        empty = bpy.data.objects.new(obname, None)
+        LS.duplis[refname] = Dupli(ob, refcoll)
         if self.node2:
-            self.node2.refgroup = refgroup
-        self.duplicate(empty, refgroup)
-        wmat = ob.matrix_world.copy()
-        LS.duplis.append((self, ob, empty, wmat, refgroup))
-        return refgroup,empty
+            self.node2.refcoll = refcoll
+        return refcoll
 
 
-    def getInstanceGroup(self, ob):
+    def getInstanceColl(self, ob):
         if ob.instance_type == 'COLLECTION':
-            for ob1 in ob.instance_collection.objects:
-                group = self.getInstanceGroup(ob1)
-                if group:
-                    return group
+            #for ob1 in ob.instance_collection.objects:
+            #    coll = self.getInstanceColl(ob1)
+            #    if coll:
+            #        return coll
             return ob.instance_collection
         return None
-
-
-    def duplicate(self, empty, group):
-        empty.instance_type = 'COLLECTION'
-        empty.instance_collection = group
 
 
     def poseRig(self, context):
@@ -482,59 +472,69 @@ class Instance(Accessor, Channels, SimNode):
             lsmat = self.wsmat
         return orient.inverted() @ lsmat @ orient
 
+#-------------------------------------------------------------
+#   Dupli
+#-------------------------------------------------------------
 
-def transformDuplis():
-    for inst,ob,empty,wmat,refgroup in LS.duplis:
-        empty.parent = ob.parent
-        setWorldMatrix(empty, wmat)
+class Dupli:
+    def __init__(self, ob, refcoll):
+        self.object = ob
+        self.refcoll = refcoll
+        obname = ob.name
+        ob.name = refcoll.name
+        self.empty = bpy.data.objects.new(obname, None)
+        self.empty.instance_type = 'COLLECTION'
+        self.empty.instance_collection = self.refcoll
+
+
+    def addToRefColl(self, ob):
+        if ob.name not in self.refcoll.objects:
+            self.refcoll.objects.link(ob)
+            #try:
+            #    self.refcoll.objects.link(ob)
+            #except RuntimeError:
+            #    print("Cannot link '%s' to '%s'" % (ob.name, self.refcoll.name))
         for child in ob.children:
-            addToRefgroup(child, refgroup, inst)
+            self.addToRefColl(child)
+
+
+    def excludeRefColl(self, toplayer):
+        layer = findLayerCollection(toplayer, self.refcoll)
+        layer.exclude = True
+
+
+    def transformEmpty(self):
+        ob = self.object
+        wmat = ob.matrix_world.copy()
+        self.empty.parent = ob.parent
+        setWorldMatrix(self.empty, wmat)
+        copyCollections(ob, self.empty)
         ob.parent = None
         ob.matrix_world = Matrix()
-        inst.collection.objects.link(empty)
+
+
+def transformDuplis(context):
+    def unlinkRecursive(ob):
         unlinkAll(ob)
-        refgroup.objects.link(ob)
+        for child in ob.children:
+            unlinkRecursive(child)
+
+    for dupli in LS.duplis.values():
+        dupli.transformEmpty()
+    for dupli in LS.duplis.values():
+        unlinkRecursive(dupli.object)
+    for dupli in LS.duplis.values():
+        dupli.addToRefColl(dupli.object)
+    toplayer = context.view_layer.layer_collection
+    for dupli in LS.duplis.values():
+        dupli.excludeRefColl(toplayer)
 
 
-def addToRefgroup(ob, refgroup, inst):
-    if ob.name in inst.collection.objects:
-        inst.collection.objects.unlink(ob)
-    if ob.name not in refgroup.objects:
-        try:
-            refgroup.objects.link(ob)
-        except RuntimeError:
-            print("Cannot link '%s' to '%s'" % (ob.name, refgroup.name))
-            pass
-    if checkDependency(ob, ob):
-        refgroup.objects.unlink(ob)
-    for child in ob.children:
-        addToRefgroup(child, refgroup, inst)
-
-
-def checkDependency(empty, ob):
-    dupli = getDupli(ob)
-    if dupli:
-        if empty.name in dupli.objects:
-            print("DEPENDENCY", empty.name)
-            return True
-        else:
-            for ob in dupli.objects:
-                if checkDependency(empty, ob):
-                    return True
-    else:
-        return False
-
-
-def getDupli(empty):
-    if empty.instance_type == 'COLLECTION':
-        return empty.instance_collection
-    return None
-
-
-def printExtra(self, name):
-    print(name, self.id)
-    for extra in self.extra:
-        print("  ", extra.keys())
+def copyCollections(src, trg):
+    for coll in bpy.data.collections:
+        if (src.name in coll.objects and
+            trg.name not in coll.objects):
+            coll.objects.link(trg)
 
 
 def findLayerCollection(layer, coll):

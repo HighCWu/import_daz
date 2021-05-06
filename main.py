@@ -235,7 +235,7 @@ class ImportDAZ(DazOperator, DazOptions, MultiFile):
             inst.finalize(context)
 
         from .node import transformDuplis
-        transformDuplis()
+        transformDuplis(context)
 
         if LS.useMaterials:
             for asset in main.materials:

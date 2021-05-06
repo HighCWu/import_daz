@@ -379,8 +379,8 @@ class LocalSettings:
 
         self.collection = None
         self.hdcollection = None
-        self.refGroups = None
-        self.duplis = []
+        self.refColls = None
+        self.duplis = {}
         self.fps = 30
         self.integerFrames = True
         self.missingAssets = {}
