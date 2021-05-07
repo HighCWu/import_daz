@@ -318,29 +318,29 @@ class Instance(Accessor, Channels, SimNode):
 
 
     def buildNodeInstance(self, context):
-        ob = self.node2.rna
-        if self.node2.refcoll:
-            refcoll = self.node2.refcoll
+        parent = self.node2
+        ob = parent.rna
+        if parent.refcoll:
+            refcoll = parent.refcoll
         else:
             refcoll = self.getInstanceColl(ob)
         if refcoll is None:
-            refcoll = self.makeNewRefColl(context, ob)
+            refcoll = self.makeNewRefColl(context, ob, parent.collection)
+            parent.refcoll = refcoll
         empty = self.rna
         empty.instance_type = 'COLLECTION'
         empty.instance_collection = refcoll
+        addToCollection(empty, parent.collection)
 
 
-    def makeNewRefColl(self, context, ob):
+    def makeNewRefColl(self, context, ob, parcoll):
         refname = ob.name + " REF"
         refcoll = bpy.data.collections.new(name=refname)
         if LS.refColls is None:
             LS.refColls = bpy.data.collections.new(name=LS.collection.name + " REFS")
             context.scene.collection.children.link(LS.refColls)
         LS.refColls.children.link(refcoll)
-
-        LS.duplis[refname] = Dupli(ob, refcoll)
-        if self.node2:
-            self.node2.refcoll = refcoll
+        LS.duplis[refname] = Dupli(ob, refcoll, parcoll)
         return refcoll
 
 
@@ -477,23 +477,22 @@ class Instance(Accessor, Channels, SimNode):
 #-------------------------------------------------------------
 
 class Dupli:
-    def __init__(self, ob, refcoll):
+    def __init__(self, ob, refcoll, parcoll):
         self.object = ob
         self.refcoll = refcoll
+        self.parcoll = parcoll
         obname = ob.name
         ob.name = refcoll.name
         self.empty = bpy.data.objects.new(obname, None)
         self.empty.instance_type = 'COLLECTION'
         self.empty.instance_collection = self.refcoll
+        parcoll.objects.link(self.empty)
 
 
     def addToRefColl(self, ob):
-        if ob.name not in self.refcoll.objects:
-            self.refcoll.objects.link(ob)
-            #try:
-            #    self.refcoll.objects.link(ob)
-            #except RuntimeError:
-            #    print("Cannot link '%s' to '%s'" % (ob.name, self.refcoll.name))
+        if ob.name in self.parcoll.objects:
+            self.parcoll.objects.unlink(ob)
+        addToCollection(ob, self.refcoll)
         for child in ob.children:
             self.addToRefColl(child)
 
@@ -503,26 +502,30 @@ class Dupli:
         layer.exclude = True
 
 
+    def storeTransforms(self, wmats):
+        ob = self.object
+        wmat = ob.matrix_world.copy()
+        wmats[ob.name] = (ob, wmat)
+        for child in ob.children:
+            wmat = child.matrix_world.copy()
+            wmats[child.name] = (child, wmat)
+
+
     def transformEmpty(self):
         ob = self.object
         wmat = ob.matrix_world.copy()
         self.empty.parent = ob.parent
         setWorldMatrix(self.empty, wmat)
-        copyCollections(ob, self.empty)
         ob.parent = None
         ob.matrix_world = Matrix()
 
 
 def transformDuplis(context):
-    def unlinkRecursive(ob):
-        unlinkAll(ob)
-        for child in ob.children:
-            unlinkRecursive(child)
-
+    wmats = {}
+    for dupli in LS.duplis.values():
+        dupli.storeTransforms(wmats)
     for dupli in LS.duplis.values():
         dupli.transformEmpty()
-    for dupli in LS.duplis.values():
-        unlinkRecursive(dupli.object)
     for dupli in LS.duplis.values():
         dupli.addToRefColl(dupli.object)
     toplayer = context.view_layer.layer_collection
@@ -535,6 +538,15 @@ def copyCollections(src, trg):
         if (src.name in coll.objects and
             trg.name not in coll.objects):
             coll.objects.link(trg)
+
+
+def addToCollection(ob, coll):
+    if ob.name not in coll.objects:
+        try:
+            coll.objects.link(ob)
+        except RuntimeError:
+            pass
+        #    print("Cannot link '%s' to '%s'" % (ob.name, coll.name))
 
 
 def findLayerCollection(layer, coll):
