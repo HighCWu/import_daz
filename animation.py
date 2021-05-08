@@ -41,19 +41,11 @@ from .fileutils import MultiFile, SingleFile, JsonFile, JsonExportFile, DufFile
 #   Alias
 #-------------------------------------------------------------
 
-theAliases = None
-
-def getAlias(key):
-    global theAliases
-    if theAliases is None:
-        from .load_json import loadJson
-        folder = os.path.dirname(__file__)
-        filepath = os.path.join(folder, "data/alias.json")
-        theAliases = loadJson(filepath)
-    if key in theAliases.keys():
-        return theAliases[key]
-    else:
-        return None
+def getAlias(rig, key):
+    pgs = rig.DazAlias
+    if key in pgs.keys():
+        return pgs[key].s
+    return None
 
 #-------------------------------------------------------------
 #   Convert between frames and vectors
@@ -773,7 +765,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         key = unquote(key)
         if key in rig.keys():
             return key
-        alias = getAlias(key)
+        alias = getAlias(rig, key)
         if alias and alias in rig.keys():
             print("Alias", key, alias)
             return alias

@@ -133,7 +133,42 @@ class LoadMorph(DriverUser):
             return " #"
         elif self.rig:
             self.makeFormulas(asset, skey)
+        aliaspath = self.getAliasFile(filepath)
+        if aliaspath is not None:
+            self.loadAlias(aliaspath)
         return " *"
+
+
+    def getAliasFile(self, filepath):
+        folder = os.path.dirname(filepath)
+        file1 = os.path.basename(filepath)
+        for file in os.listdir(folder):
+            if (file[0:5] == "alias" and
+                file.endswith(file1)):
+                return os.path.join(folder, file)
+        return None
+
+
+    def loadAlias(self, filepath):
+        from .load_json import loadJson
+        struct = loadJson(filepath)
+        if "modifier_library" in struct.keys():
+            for mod in struct["modifier_library"]:
+                if "channel" in mod.keys():
+                    channel = mod["channel"]
+                    if ("type" in channel.keys() and
+                        channel["type"] == "alias"):
+                        alias = channel["name"]
+                        prop = channel["target_channel"].rsplit('#')[-1].split("?")[0]
+                        if alias != prop:
+                            print(" = %s %s" % (prop, alias))
+                            pgs = self.rig.DazAlias
+                            if alias in pgs.keys():
+                                pg = pgs[alias]
+                            else:
+                                pg = pgs.add()
+                                pg.name = alias
+                            pg.s = prop
 
 
     def buildShapekey(self, asset, useBuild=True):

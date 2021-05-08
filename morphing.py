@@ -2311,6 +2311,7 @@ def register():
     for morphset in theMorphSets:
         setattr(bpy.types.Object, "Daz"+morphset, CollectionProperty(type = DazTextGroup))
     bpy.types.Object.DazAutoFollow = CollectionProperty(type = DazTextGroup)
+    bpy.types.Object.DazAlias = CollectionProperty(type = DazStringGroup)
 
     if bpy.app.version < (2,90,0):
         bpy.types.Object.DazActivated = CollectionProperty(type = DazActiveGroup)

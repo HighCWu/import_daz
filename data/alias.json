@@ -1,8 +1,0 @@
-{
-    "facs_ctrl_EyeBlink" : "facs_ctrl_EyesBlink",
-    "facs_ctrl_EyeSquint" : "facs_ctrl_EyesSquint",
-    "facs_ctrl_EyeWide" : "facs_ctrl_EyesWide",
-    "facs_jnt_EyeWideLeft" : "facs_jnt_EyesWideLeft",
-    "facs_jnt_EyeWideRight" : "facs_jnt_EyesWideRight"
-}
-
