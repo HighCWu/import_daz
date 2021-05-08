@@ -2329,7 +2329,6 @@ def register():
         default = "Name")
 
     bpy.types.Scene.DazSelector = CollectionProperty(type = DazSelectGroup)
-    bpy.types.Object.DazPropNames = CollectionProperty(type = DazTextGroup)
 
 
 def unregister():

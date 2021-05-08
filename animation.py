@@ -38,6 +38,24 @@ from .globvars import theDazExtensions
 from .fileutils import MultiFile, SingleFile, JsonFile, JsonExportFile, DufFile
 
 #-------------------------------------------------------------
+#   Alias
+#-------------------------------------------------------------
+
+theAliases = None
+
+def getAlias(key):
+    global theAliases
+    if theAliases is None:
+        from .load_json import loadJson
+        folder = os.path.dirname(__file__)
+        filepath = os.path.join(folder, "data/alias.json")
+        theAliases = loadJson(filepath)
+    if key in theAliases.keys():
+        return theAliases[key]
+    else:
+        return None
+
+#-------------------------------------------------------------
 #   Convert between frames and vectors
 #-------------------------------------------------------------
 
@@ -487,7 +505,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
 
     def prepareRig(self, rig):
-        self.setupRigProps(rig)
         if not self.affectBones:
             return
         if rig.DazRig == "rigify":
@@ -590,7 +607,8 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             from .morphing import getAllLowerMorphNames
             lprops = getAllLowerMorphNames(rig)
             for prop in rig.keys():
-                if prop.lower() in lprops:
+                if (prop.lower() in lprops and
+                    isinstance(rig[prop], float)):
                     rig[prop] = 0.0
                     if self.insertKeys:
                         rig.keyframe_insert(propRef(prop), frame=frame, group=prop)
@@ -662,6 +680,11 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                         if self.affectMorphs:
                             key = self.getRigKey(bname, rig, missing)
                             if key:
+                                oldval = rig[key]
+                                if isinstance(oldval, int):
+                                    value = int(value)
+                                elif isinstance(oldval, float):
+                                    value = float(value)
                                 rig[key] = value
                                 if self.insertKeys:
                                     rig.keyframe_insert(propRef(key), frame=n+offset, group="Morphs")
@@ -747,45 +770,16 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
 
     def getRigKey(self, key, rig, missing):
-        from .modifier import getCanonicalKey
         key = unquote(key)
         if key in rig.keys():
             return key
-        elif rig.DazPropNames:
-            if key in rig.DazPropNames.keys():
-                pg = rig.DazPropNames[key]
-                return pg.text
-        else:
-            lkey = getCanonicalKey(key.lower())
-            if lkey in self.rigProps.keys():
-                return self.rigProps[lkey]
+        alias = getAlias(key)
+        if alias and alias in rig.keys():
+            print("Alias", key, alias)
+            return alias
         if key not in missing:
             missing.append(key)
             return None
-
-
-    def setupRigProps(self, rig):
-        from .modifier import getCanonicalKey
-        if rig.DazPropNames:
-            return
-        if not self.affectMorphs:
-            return
-        synonymList = [
-            ["updown", "up-down", "downup", "down-up"],
-            ["inout", "in-out", "outin", "out-in"],
-            ["cheeks", "cheek"],
-        ]
-        self.rigProps = {}
-        for key in rig.keys():
-            lkey = getCanonicalKey(key.lower())
-            self.rigProps[lkey] = key
-            for syns in synonymList:
-                for syn1 in syns:
-                    if syn1 in lkey:
-                        for syn2 in syns:
-                            if syn1 != syn2:
-                                synkey = lkey.replace(syn1, syn2)
-                                self.rigProps[synkey] = key
 
 
     def transformBone(self, rig, bname, tfm, value, n, offset, twist):
@@ -1506,7 +1500,8 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             for morphset in theStandardMorphSets + theCustomMorphSets:
                 pg = getattr(rig, "Daz"+morphset)
                 for prop in pg.keys():
-                    if prop in rig.keys():
+                    if (prop in rig.keys() and
+                        isinstance(rig[prop], float)):
                         self.morphs[prop]= FakeCurve(rig[prop])
         return locs,rots,quats
 

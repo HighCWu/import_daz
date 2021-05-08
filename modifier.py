@@ -321,8 +321,7 @@ def stripPrefix(prop):
         "ectrlv", "ectrl", "pctrl", "ctrl",
         "phm", "ephm", "pbm", "ppbm", "vsm",
         "pjcm", "ejcm", "jcm", "mcm",
-        "dzu", "dze", "dzv", "dzb",
-        "facs_jnt_", "facs_ctrl_", "facs_",
+        "dzu", "dze", "dzv", "dzb", "facs_",
         ]:
         n = len(prefix)
         if lprop[0:n] == prefix:
