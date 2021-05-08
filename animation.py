@@ -429,6 +429,27 @@ class ActionOptions:
         description = "Finish import with this frame",
         default = 250)
 
+    def draw(self, context):
+        self.layout.separator()
+        self.layout.prop(self, "makeNewAction")
+        if self.makeNewAction:
+            self.layout.prop(self, "actionName")
+        self.layout.prop(self, "fps")
+        self.layout.prop(self, "integerFrames")
+        self.layout.prop(self, "atFrameOne")
+        self.layout.prop(self, "firstFrame")
+        self.layout.prop(self, "lastFrame")
+
+    def clearAction(self, ob):
+        if self.makeNewAction and ob.animation_data:
+            ob.animation_data.action = None
+
+    def nameAction(self, ob):
+        if self.makeNewAction and ob.animation_data:
+            act = ob.animation_data.action
+            if act:
+                act.name = self.actionName
+
 
 class PoseLibOptions:
     makeNewPoseLib : BoolProperty(
@@ -440,6 +461,15 @@ class PoseLibOptions:
         name = "Pose Library Name",
         description = "Name of loaded pose library",
         default = "PoseLib")
+
+    def clearPoseLib(self, ob):
+        if self.makeNewPoseLib and ob.pose_library:
+            ob.pose_library = None
+
+    def namePoseLib(self, ob):
+        if self.makeNewPoseLib and ob.pose_library:
+            if ob.pose_library:
+                ob.pose_library.name = self.poseLibName
 
 
 class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsMeshArmature):
@@ -895,28 +925,6 @@ def getAnimKeys(anim):
     return [key[0:2] for key in anim["keys"]]
 
 
-def clearAction(self, ob):
-    if self.useAction:
-        if self.makeNewAction and ob.animation_data:
-            ob.animation_data.action = None
-    elif self.usePoseLib:
-        if self.makeNewPoseLib and ob.pose_library:
-            ob.pose_library = None
-
-
-def nameAction(self, ob):
-    if self.useAction:
-        if self.makeNewAction and ob.animation_data:
-            act = ob.animation_data.action
-            if act:
-                act.name = self.actionName
-    elif self.usePoseLib:
-        if self.makeNewPoseLib and ob.pose_library:
-            if ob.pose_library:
-                ob.pose_library.name = self.poseLibName
-
-
-
 class StandardAnimation:
 
     def run(self, context):
@@ -931,7 +939,7 @@ class StandardAnimation:
         else:
             self.insertKeys = self.useAction
         self.findDrivers(rig)
-        clearAction(self, rig)
+        self.clearAnimation(rig)
         missing = []
         startframe = offset = scn.frame_current
         props = []
@@ -955,7 +963,7 @@ class StandardAnimation:
         t2 = perf_counter()
         print("File %s imported in %.3f seconds" % (self.filepath, t2-t1))
         scn.frame_current = startframe
-        nameAction(self, rig)
+        self.nameAnimation(rig)
         if not self.affectSelectedOnly:
             self.selectAll(rig, selected)
 
@@ -980,6 +988,20 @@ class StandardAnimation:
             else:
                 bone.select = (bone.name in select)
         return selected
+
+
+    def clearAnimation(self, ob):
+        if self.useAction:
+            self.clearAction(ob)
+        elif self.usePoseLib:
+            self.clearPoseLib(ob)
+
+
+    def nameAnimation(self, ob):
+        if self.useAction:
+            self.nameAction(ob)
+        elif self.usePoseLib:
+            self.namePoseLib(ob)
 
 #-------------------------------------------------------------
 #   Import Node Pose
@@ -1022,15 +1044,7 @@ class ActionBase(ActionOptions, AnimatorBase):
 
     def draw(self, context):
         AnimatorBase.draw(self, context)
-        self.layout.separator()
-        self.layout.prop(self, "makeNewAction")
-        if self.makeNewAction:
-            self.layout.prop(self, "actionName")
-        self.layout.prop(self, "fps")
-        self.layout.prop(self, "integerFrames")
-        self.layout.prop(self, "atFrameOne")
-        self.layout.prop(self, "firstFrame")
-        self.layout.prop(self, "lastFrame")
+        ActionOptions.draw(self, context)
 
 
 class DAZ_OT_ImportAction(HideOperator, ActionBase, StandardAnimation):

@@ -34,6 +34,7 @@ from mathutils import Vector
 from .error import *
 from .utils import *
 from .fileutils import SingleFile, MultiFile, DazImageFile, DatFile
+from .animation import ActionOptions
 from .propgroups import DazTextGroup, DazFloatGroup, DazStringGroup
 from .load_morph import LoadMorph
 from .driver import DriverUser
@@ -2036,10 +2037,10 @@ def autoKeyShape(skeys, key, scn, frame):
         keyShape(skeys, key, frame)
 
 
-def pinProp(rig, scn, key, morphset, category, frame):
+def pinProp(rig, scn, key, morphset, category, frame, value=1.0):
     if rig:
         clearMorphs(rig, morphset, category, scn, frame, True)
-        rig[key] = 1.0
+        rig[key] = value
         autoKeyProp(rig, key, scn, frame, True)
 
 
@@ -2084,14 +2085,28 @@ class DAZ_OT_PinShape(DazOperator, MorphsetString, IsMesh):
 #   Load Moho
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LoadMoho(DazOperator, DatFile, SingleFile):
+class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile):
     bl_idname = "daz.load_moho"
     bl_label = "Load Moho"
     bl_description = "Load Moho (.dat) file"
     bl_options = {'UNDO'}
 
+    emphasis: FloatProperty(
+        name = "Emphasis",
+        description = "Speech strength",
+        min = 0.2, max = 5.0,
+        default = 1.0)
+
+    def draw(self, context):
+        self.layout.prop(self, "makeNewAction")
+        if self.makeNewAction:
+            self.layout.prop(self, "actionName")
+        self.layout.prop(self, "atFrameOne")
+        self.layout.separator()
+        self.layout.prop(self, "emphasis")
+
+
     def run(self, context):
-        from .fileutils import safeOpen
         scn = context.scene
         ob = context.object
         if ob.type == 'ARMATURE':
@@ -2103,29 +2118,96 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, SingleFile):
         if rig is None:
             return
         setActiveObject(context, rig)
+        self.clearAction(rig)
+        self.nameAction(rig)
+        if self.atFrameOne:
+            frame0 = 0
+        else:
+            frame0 = scn.frame_current
         bpy.ops.object.mode_set(mode='POSE')
         auto = scn.tool_settings.use_keyframe_insert_auto
         scn.tool_settings.use_keyframe_insert_auto = True
-        fp = safeOpen(self.filepath, "r")
-        for line in fp:
-            words= line.split()
-            if len(words) < 2:
-                pass
+        frames = self.readMoho()
+        frames = self.improveMoho(frames)
+        for frame,m,moho,value in frames:
+            if moho == "rest":
+                clearMorphs(rig, "Visemes", "", scn, frame, True)
             else:
-                moho = words[1]
-                frame = int(words[0]) + 1
-                if moho == "rest":
-                    clearMorphs(rig, "Visemes", "", scn, frame, True)
-                else:
-                    key = self.getMohoKey(moho, rig)
-                    if key not in rig.keys():
-                        raise DazError("Missing viseme: %s => %s" % (moho, key))
-                    pinProp(rig, scn, key, "Visemes", "", frame)
-        fp.close()
+                key = self.getMohoKey(moho, rig)
+                if key not in rig.keys():
+                    raise DazError("Missing viseme: %s => %s" % (moho, key))
+                pinProp(rig, scn, key, "Visemes", "", frame+frame0, value=value)
         #setInterpolation(rig)
         updateRigDrivers(context, rig)
         scn.tool_settings.use_keyframe_insert_auto = auto
         print("Moho file %s loaded" % self.filepath)
+
+
+    def readMoho(self):
+        from .fileutils import safeOpen
+        frames = []
+        t0 = -1000
+        with safeOpen(self.filepath, "r") as fp:
+            for n,line in enumerate(fp):
+                words= line.split()
+                if len(words) < 2:
+                    pass
+                else:
+                    t = int(words[0]) + 1
+                    frames.append((t, n, words[1], self.emphasis))
+                    t0 = t
+        frames.sort()
+        return frames
+
+
+    def improveMoho(self, frames):
+        openVowels = ["AI", "E", "O"]
+        silentVowels = ["FV", "MBP", "W"]
+        frames = self.stripBeginning(frames)
+        frames.reverse()
+        frames = self.stripBeginning(frames)
+        frames.reverse()
+        prev = "etc"
+        nframes = []
+        for n,frame in enumerate(frames[:-1]):
+            t,m,key,y = frame
+            next = frames[n+1][1]
+            if key == "etc":
+                if (prev == next and
+                    prev in openVowels):
+                        nframe = (t, m, prev, 0.5*y)
+                        nframes.append(nframe)
+            elif key in openVowels:
+                if (prev == next and
+                    prev in silentVowels):
+                    nframe = (t, m, key, 0.5*y)
+                    nframes.append(nframe)
+                else:
+                    nframes.append(frame)
+            else:
+                nframes.append(frame)
+            prev = key
+        nframes.append(frames[-1])
+        return nframes
+
+
+    def stripBeginning(self, frames):
+        rest = None
+        n0 = 0
+        for n,frame in enumerate(frames):
+            key = frame[2]
+            if key == "rest":
+                if rest is None:
+                    rest = frame
+            elif key == "etc":
+                pass
+            else:
+                n0 = n
+                break
+        if rest:
+            return [rest] + frames[n0:]
+        else:
+            return frames[n0:]
 
 
     def getMohoKey(self, moho, rig):
