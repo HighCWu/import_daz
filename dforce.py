@@ -84,23 +84,25 @@ class DynSim(DForce):
 
     def addPinVertexGroup(self, ob, geonode):
         nverts = len(ob.data.vertices)
-        vgrp = ob.vertex_groups.new(name = "DForce Pin")
 
         # Influence group
-        influ = dict([(vn,1.0) for vn in range(nverts)])
         useInflu = False
+        influ = dict([(vn,1.0) for vn in range(nverts)])
         if "influence_weights" in self.extra.keys():
             vcount = self.extra["vertex_count"]
             if vcount == nverts:
                 useInflu = True
+                vgrp = ob.vertex_groups.new(name = "dForce Influence")
                 weights = self.extra["influence_weights"]["values"]
                 for vn,w in weights:
                     influ[vn] = w
+                    vgrp.add([vn], w, 'REPLACE')
             else:
                 msg = ("Influence weight mismatch: %d != %d" % (vcount, nverts))
                 reportError(msg, trigger=(2,4))
 
         # Constant per material vertex group
+        vgrp = ob.vertex_groups.new(name = "dForce Pin")
         geo = geonode.data
         mnums = dict([(mgrp, mn) for mn,mgrp in enumerate(geo.polygon_material_groups)])
         for simset in geonode.simsets:
@@ -169,7 +171,7 @@ class Cloth:
     pinGroup : StringProperty(
         name = "Pin Group",
         description = "Use this group as pin group",
-        default = "DForce Pin")
+        default = "dForce Pin")
 
     simQuality : IntProperty(
         name = "Simulation Quality",
