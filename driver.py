@@ -428,6 +428,19 @@ def setPropMinMax(rna, prop, min, max):
     rna_ui[prop] = struct
 
 
+def getPropMinMax(rna, prop):
+    rna_ui = rna.get('_RNA_UI')
+    min = -1000
+    max = 1000
+    if rna_ui and prop in rna_ui.keys():
+        struct = rna_ui[prop]
+        if "min" in struct.keys():
+            min = struct["min"]
+        if "max" in struct.keys():
+            max = struct["max"]
+    return min,max
+
+
 def truncateProp(prop):
     if len(prop) > 63:
         print('Truncate property "%s"' % prop)

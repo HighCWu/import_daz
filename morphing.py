@@ -2085,7 +2085,7 @@ class DAZ_OT_PinShape(DazOperator, MorphsetString, IsMesh):
 #   Load Moho
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile):
+class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile, IsMeshArmature):
     bl_idname = "daz.load_moho"
     bl_label = "Load Moho"
     bl_description = "Load Moho (.dat) file"
@@ -2097,117 +2097,134 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile):
         min = 0.2, max = 5.0,
         default = 1.0)
 
+    useUpdateLimits : BoolProperty(
+        name = "Update Limits",
+        description = "Update limits of open vowels to account for emphasis",
+        default = True)
+
     def draw(self, context):
+        self.layout.prop(self, "emphasis")
+        self.layout.prop(self, "useUpdateLimits")
+        self.layout.separator()
         self.layout.prop(self, "makeNewAction")
         if self.makeNewAction:
             self.layout.prop(self, "actionName")
         self.layout.prop(self, "atFrameOne")
-        self.layout.separator()
-        self.layout.prop(self, "emphasis")
 
+
+    def prequel(self, context):
+        scn = context.scene
+        self.auto = scn.tool_settings.use_keyframe_insert_auto
+        scn.tool_settings.use_keyframe_insert_auto = True
+        DazOperator.prequel(self, context)
+
+
+    def sequel(self, context):
+        scn = context.scene
+        scn.tool_settings.use_keyframe_insert_auto = self.auto
+        DazOperator.sequel(self, context)
+
+    openVowels = ["AI", "E", "O"]
+    silentVowels = ["FV", "MBP", "WQ"]
 
     def run(self, context):
         scn = context.scene
-        ob = context.object
-        if ob.type == 'ARMATURE':
-            rig = ob
-        elif ob.type == 'MESH':
-            rig = ob.parent
-        else:
-            rig = None
+        rig = getRigFromObject(context.object)
         if rig is None:
-            return
-        setActiveObject(context, rig)
+            raise DazError("No armature found")
+        if self.useUpdateLimits:
+            self.updateLimits(rig)
         self.clearAction(rig)
         self.nameAction(rig)
         if self.atFrameOne:
             frame0 = 0
         else:
-            frame0 = scn.frame_current
-        bpy.ops.object.mode_set(mode='POSE')
-        auto = scn.tool_settings.use_keyframe_insert_auto
-        scn.tool_settings.use_keyframe_insert_auto = True
+            frame0 = scn.frame_current-1
         frames = self.readMoho()
         frames = self.improveMoho(frames)
-        for frame,m,moho,value in frames:
+        for frame,moho,value in frames:
             if moho == "rest":
                 clearMorphs(rig, "Visemes", "", scn, frame, True)
             else:
-                key = self.getMohoKey(moho, rig)
-                if key not in rig.keys():
-                    raise DazError("Missing viseme: %s => %s" % (moho, key))
-                pinProp(rig, scn, key, "Visemes", "", frame+frame0, value=value)
-        #setInterpolation(rig)
-        updateRigDrivers(context, rig)
-        scn.tool_settings.use_keyframe_insert_auto = auto
+                prop = self.getMohoKey(moho, rig)
+                pinProp(rig, scn, prop, "Visemes", "", frame+frame0, value=value)
         print("Moho file %s loaded" % self.filepath)
+
+
+    def updateLimits(self, rig):
+        from .driver import getPropMinMax, setPropMinMax
+        for moho in self.openVowels:
+            prop = self.getMohoKey(moho, rig)
+            min,max = getPropMinMax(rig, prop)
+            if max < self.emphasis:
+                setPropMinMax(rig, prop, min, self.emphasis)
+            final = finalProp(prop)
+            if final in rig.data.keys():
+                min,max = getPropMinMax(rig.data, final)
+                if max < self.emphasis:
+                    setPropMinMax(rig.data, final, min, self.emphasis)
 
 
     def readMoho(self):
         from .fileutils import safeOpen
         frames = []
-        t0 = -1000
         with safeOpen(self.filepath, "r") as fp:
             for n,line in enumerate(fp):
                 words= line.split()
-                if len(words) < 2:
-                    pass
-                else:
-                    t = int(words[0]) + 1
-                    frames.append((t, n, words[1], self.emphasis))
-                    t0 = t
+                if len(words) >= 2 and words[0].isdigit():
+                    frames.append((int(words[0]), n, words[1]))
         frames.sort()
-        return frames
+        return [(t,key,1.0) for t,n,key in frames]
 
 
     def improveMoho(self, frames):
-        openVowels = ["AI", "E", "O"]
-        silentVowels = ["FV", "MBP", "W"]
-        frames = self.stripBeginning(frames)
+        first,frames = self.splitBeginning(frames)
         frames.reverse()
-        frames = self.stripBeginning(frames)
+        last,frames = self.splitBeginning(frames)
+        last.reverse()
         frames.reverse()
-        prev = "etc"
-        nframes = []
+        key0 = "etc"
+        emp = self.emphasis
+        nframes = self.pruneRest(first)
         for n,frame in enumerate(frames[:-1]):
-            t,m,key,y = frame
-            next = frames[n+1][1]
+            t,key,y = frame
+            t1,key1,y1 = frames[n+1]
             if key == "etc":
-                if (prev == next and
-                    prev in openVowels):
-                        nframe = (t, m, prev, 0.5*y)
-                        nframes.append(nframe)
-            elif key in openVowels:
-                if (prev == next and
-                    prev in silentVowels):
-                    nframe = (t, m, key, 0.5*y)
+                if key0 == key1 and key0 in self.openVowels:
+                    nframe = (t, key0, 0.5*emp)
                     nframes.append(nframe)
+            elif key in self.openVowels:
+                if key0 == key1 and key0 in self.silentVowels:
+                    nframe = (t, key, 0.5*emp)
+                elif key1 in self.silentVowels and t1-t <= 3:
+                    nframe = (t, key, 0.5*emp)
                 else:
-                    nframes.append(frame)
+                    nframe = (t, key, emp)
+                nframes.append(nframe)
             else:
                 nframes.append(frame)
-            prev = key
+            key0 = key
         nframes.append(frames[-1])
-        return nframes
+        last = self.pruneRest(last)
+        return nframes + last
 
 
-    def stripBeginning(self, frames):
-        rest = None
-        n0 = 0
-        for n,frame in enumerate(frames):
-            key = frame[2]
-            if key == "rest":
-                if rest is None:
-                    rest = frame
-            elif key == "etc":
-                pass
+    def splitBeginning(self, frames):
+        first = []
+        for frame in frames:
+            if frame[1] in ("rest", "etc"):
+                first.append(frame)
             else:
-                n0 = n
                 break
-        if rest:
-            return [rest] + frames[n0:]
-        else:
-            return frames[n0:]
+        n = len(first)
+        return first, frames[n:]
+
+
+    def pruneRest(self, frames):
+        for frame in frames:
+            if frame[1] == "rest":
+                return [frame]
+        return []
 
 
     def getMohoKey(self, moho, rig):
@@ -2226,8 +2243,10 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile):
         daz = Moho2Daz[moho]
         for pg in rig.DazVisemes:
             if pg.text == daz:
-                return pg.name
-        return None
+                prop = pg.name
+                if prop in rig.keys():
+                    return prop
+        raise DazError("Missing viseme: %s (%s)" % (daz, moho))
 
 #-------------------------------------------------------------
 #   Convert pose to shapekey

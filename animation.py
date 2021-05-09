@@ -417,7 +417,7 @@ class ActionOptions:
     atFrameOne : BoolProperty(
         name = "Start At Frame 1",
         description = "Always start actions at frame 1",
-        default = False)
+        default = True)
 
     firstFrame : IntProperty(
         name = "First Frame",
