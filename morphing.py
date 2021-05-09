@@ -2102,9 +2102,16 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile, IsMeshArm
         description = "Update limits of open vowels to account for emphasis",
         default = True)
 
+    useRelax : BoolProperty(
+        name = "Relax Animation",
+        description = "Relax the Moho animation to make it more natural",
+        default = True)
+
     def draw(self, context):
-        self.layout.prop(self, "emphasis")
-        self.layout.prop(self, "useUpdateLimits")
+        self.layout.prop(self, "useRelax")
+        if self.useRelax:
+            self.layout.prop(self, "emphasis")
+            self.layout.prop(self, "useUpdateLimits")
         self.layout.separator()
         self.layout.prop(self, "makeNewAction")
         if self.makeNewAction:
@@ -2132,22 +2139,23 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile, IsMeshArm
         rig = getRigFromObject(context.object)
         if rig is None:
             raise DazError("No armature found")
-        if self.useUpdateLimits:
-            self.updateLimits(rig)
         self.clearAction(rig)
-        self.nameAction(rig)
         if self.atFrameOne:
             frame0 = 0
         else:
             frame0 = scn.frame_current-1
         frames = self.readMoho()
-        frames = self.improveMoho(frames)
+        if self.useRelax:
+            frames = self.improveMoho(frames)
+            if self.useUpdateLimits:
+                self.updateLimits(rig)
         for frame,moho,value in frames:
             if moho == "rest":
                 clearMorphs(rig, "Visemes", "", scn, frame, True)
             else:
                 prop = self.getMohoKey(moho, rig)
                 pinProp(rig, scn, prop, "Visemes", "", frame+frame0, value=value)
+        self.nameAction(rig)
         print("Moho file %s loaded" % self.filepath)
 
 
