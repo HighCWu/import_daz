@@ -534,8 +534,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             self.boneLayers = setFkIk1(rig, False, self.boneLayers)
         elif rig.DazRig == "rigify2":
             from .rigify import setFkIk2
-            self.boneLayers = setFkIk2(rig, False, self.boneLayers)
-            print("RR2", self.boneLayers)
+            self.boneLayers = setFkIk2(rig, True, self.boneLayers)
         elif rig.MhxRig or rig.DazRig == "mhx":
             from .mhx import setToFk
             self.boneLayers = setToFk(rig, self.boneLayers)

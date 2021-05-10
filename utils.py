@@ -251,6 +251,9 @@ def isDrvBone(string):
 def isFinal(string):
     return (string[-5:] == "(fin)")
 
+def isRest(string):
+    return (string[-5:] == "(rst)")
+
 def drvBone(string):
     if isDrvBone(string):
         return string

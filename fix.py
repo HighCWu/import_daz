@@ -160,11 +160,24 @@ class Fixer(DriverUser):
                 for n,fcu in enumerate(drivers):
                     self.changeTarget(fcu, rna, rig, assoc)
 
+        def getFinDrivers(amt):
+            drivers = {}
+            if amt.animation_data:
+                for fcu in amt.animation_data.drivers:
+                    prop = fcu.data_path[2:-2]
+                    if isFinal(prop) or isRest(prop):
+                        raw = baseProp(prop)
+                        drivers[raw] = fcu
+            return drivers
+
         assoc = dict([(bname,bname) for bname in rig.data.bones.keys()])
         for dname,bname in assoc0.items():
             assoc[dname] = bname
-        changeTargets(rig, rig)
-        changeTargets(rig.data, rig)
+        drivers = getFinDrivers(rig.data)
+        print("    (%s %d)" % (rig.data.name, len(drivers)))
+        for fcu in drivers.values():
+            self.changeTarget(fcu, rig.data, rig, assoc)
+        #changeTargets(rig, rig)
         for ob in rig.children:
             changeTargets(ob, rig)
             if ob.type == 'MESH' and ob.data.shape_keys:

@@ -59,7 +59,6 @@ def setupTables(meta):
     def deleteBones(meta, bnames):
         ebones = meta.data.edit_bones
         rembones = [ebones[bname] for bname in bnames if bname in ebones.keys()]
-        print("REM", rembones)
         for eb in rembones:
             ebones.remove(eb)
 
@@ -429,7 +428,9 @@ class Rigify:
                 eb = rig.data.edit_bones[dname]
                 eb.name = rname
             else:
-                raise DazError("Did not find bone %s     " % dname)
+                msg = ("Did not find bone %s     " % dname)
+                #print("MSG", msg)
+                raise DazError(msg)
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
@@ -776,7 +777,7 @@ class Rigify:
         rig.select_set(True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-        print("  Fix bones")
+        print("  Fix bones", meta.DazRigifyType)
         if meta.DazRigifyType in ["genesis1", "genesis2"]:
             self.fixPelvis(rig)
             self.fixCarpals(rig)
@@ -1098,7 +1099,7 @@ class Rigify:
             deleteObjects(context, [meta])
         activateObject(context, gen)
         gen.name = name
-        setFkIk2(gen, True, gen.data.layers)
+        setFkIk2(gen, False, gen.data.layers)
         F = False
         T = True
         gen.data.layers = (
@@ -1138,10 +1139,7 @@ class Rigify:
         if bname not in rig.pose.bones.keys():
             return False
         pb = rig.pose.bones[bname]
-        for cns in pb.constraints:
-            if cns.type == 'COPY_TRANSFORMS':
-                return True
-        return False
+        return getConstraint(pb, 'COPY_TRANSFORMS')
 
 
     def getChildren(self, pb):
@@ -1360,8 +1358,8 @@ def setFkIk1(rig, ik, layers):
     return layers
 
 
-def setFkIk2(rig, ik, layers):
-    value = float(ik)
+def setFkIk2(rig, fk, layers):
+    value = float(fk)
     for bname in ["upper_arm_parent.L", "upper_arm_parent.R", "thigh_parent.L", "thigh_parent.R"]:
         pb = rig.pose.bones[bname]
         pb["IK_FK"] = value
@@ -1370,9 +1368,9 @@ def setFkIk2(rig, ik, layers):
         pb["neck_follow"] = 1.0-value
         pb["head_follow"] = 1.0-value
     for n in [8, 11, 14, 17]:
-        layers[n] = (not ik)
+        layers[n] = fk
     for n in [7, 10, 13, 16]:
-        layers[n] = ik
+        layers[n] = (not fk)
     return layers
 
 #-------------------------------------------------------------
