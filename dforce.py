@@ -87,11 +87,11 @@ class DynSim(DForce):
 
         # Influence group
         useInflu = False
-        influ = dict([(vn,1.0) for vn in range(nverts)])
         if "influence_weights" in self.extra.keys():
             vcount = self.extra["vertex_count"]
             if vcount == nverts:
                 useInflu = True
+                influ = dict([(vn,0.0) for vn in range(nverts)])
                 vgrp = ob.vertex_groups.new(name = "dForce Influence")
                 weights = self.extra["influence_weights"]["values"]
                 for vn,w in weights:
@@ -100,6 +100,8 @@ class DynSim(DForce):
             else:
                 msg = ("Influence weight mismatch: %d != %d" % (vcount, nverts))
                 reportError(msg, trigger=(2,4))
+        if not useInflu:
+            influ = dict([(vn,1.0) for vn in range(nverts)])
 
         # Constant per material vertex group
         vgrp = ob.vertex_groups.new(name = "dForce Pin")
