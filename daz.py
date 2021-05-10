@@ -325,7 +325,6 @@ def register():
 
     bpy.types.Scene.DazErrorPath = StringProperty(
         name = "Error Path",
-        subtype="DIR_PATH",
         description = "Path to error report file")
 
     bpy.types.Scene.DazUnitScale = FloatProperty(

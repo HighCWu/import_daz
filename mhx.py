@@ -1020,6 +1020,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             forearmIk.use_connect = forearm.use_connect
             handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
             hand0Ik = deriveBone("hand0.ik"+suffix, hand, rig, L_HELP2, forearmIk)
+            upper_armIkTwist = deriveBone("upper_arm.ik.twist"+suffix, upper_arm, rig, L_LEXTRA+dlayer, upper_armIk)
+            forearmIkTwist = deriveBone("forearm.ik.twist"+suffix, forearm, rig, L_LEXTRA+dlayer, forearmIk)
 
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
@@ -1063,6 +1065,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             thighIk = deriveBone("thigh.ik"+suffix, thigh, rig, L_HELP2, thigh.parent)
             shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
             shinIk.use_connect = shin.use_connect
+            thighIkTwist = deriveBone("thigh.ik.twist"+suffix, thigh, rig, L_LEXTRA+dlayer, thighIk)
+            shinIkTwist = deriveBone("shin.ik.twist"+suffix, shin, rig, L_LEXTRA+dlayer, shinIk)
 
             if "heel"+suffix in rig.data.edit_bones.keys():
                 heel = rig.data.edit_bones["heel"+suffix]
@@ -1076,7 +1080,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             locAnkle = foot.head + (shin.tail-shin.head)/4
             ankle = makeBone("ankle"+suffix, rig, foot.head, locAnkle, shin.roll, L_LEXTRA+dlayer, None)
             ankleIk = deriveBone("ankle.ik"+suffix, ankle, rig, L_HELP2, footRev)
-            ankle0Ik = deriveBone("ankle0.ik"+suffix, ankle, rig, L_HELP, shinIk)
+            #ankle0Ik = deriveBone("ankle0.ik"+suffix, ankle, rig, L_HELP, shinIkTwist)
 
             vec = thigh.matrix.to_3x3().col[2]
             vec.normalize()
@@ -1138,8 +1142,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             pb.rotation_mode = 'YZX'
 
         rotmodes = {
-            'YZX': ["shin", "shin.fk", "shin.ik", "ankle",
-                    "forearm", "forearm.fk", "forearm.ik",
+            'YZX': ["shin", "shin.fk", "shin.ik", "thigh.ik.twist", "shin.ik.twist", "ankle",
+                    "forearm", "forearm.fk", "forearm.ik", "upper_arm.ik.twist", "forearm.ik.twist",
                     "foot", "foot.fk", "toe", "toe.fk",
                     "foot.rev", "toe.rev",
                     "knee.pt.ik", "elbow.pt.ik", "elbowPoleA", "kneePoleA",
@@ -1163,6 +1167,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             handFk = getBoneCopy("hand.fk"+suffix, hand, rpbs)
             upper_armIk = rpbs["upper_arm.ik"+suffix]
             forearmIk = rpbs["forearm.ik"+suffix]
+            upper_armIkTwist = rpbs["upper_arm.ik.twist"+suffix]
+            forearmIkTwist = rpbs["forearm.ik.twist"+suffix]
             handIk = rpbs["hand.ik"+suffix]
             hand0Ik = rpbs["hand0.ik"+suffix]
             elbowPt = rpbs["elbow.pt.ik"+suffix]
@@ -1175,8 +1181,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             prop = "MhaArmIk_"+suffix[1]
             setMhxProp(rig.data, prop, 1.0)
-            copyTransformFkIk(upper_arm, upper_armFk, upper_armIk, rig, prop)
-            copyTransformFkIk(forearm, forearmFk, forearmIk, rig, prop)
+            copyTransformFkIk(upper_arm, upper_armFk, upper_armIkTwist, rig, prop)
+            copyTransformFkIk(forearm, forearmFk, forearmIkTwist, rig, prop)
             copyTransformFkIk(hand, handFk, handIk, rig, prop)
             copyTransform(hand0Ik, handIk, rig)
             if self.elbowParent == 'HAND':
@@ -1207,13 +1213,15 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             toe = rpbs["toe"+suffix]
             ankle = rpbs["ankle"+suffix]
             ankleIk = rpbs["ankle.ik"+suffix]
-            ankle0Ik = rpbs["ankle0.ik"+suffix]
+            #ankle0Ik = rpbs["ankle0.ik"+suffix]
             thighFk = getBoneCopy("thigh.fk"+suffix, thigh, rpbs)
             shinFk = getBoneCopy("shin.fk"+suffix, shin, rpbs)
             footFk = getBoneCopy("foot.fk"+suffix, foot, rpbs)
             toeFk = getBoneCopy("toe.fk"+suffix, toe, rpbs)
             thighIk = rpbs["thigh.ik"+suffix]
             shinIk = rpbs["shin.ik"+suffix]
+            thighIkTwist = rpbs["thigh.ik.twist"+suffix]
+            shinIkTwist = rpbs["shin.ik.twist"+suffix]
             kneePt = rpbs["knee.pt.ik"+suffix]
             kneeLink = rpbs["knee.link"+suffix]
             footIk = rpbs["foot.ik"+suffix]
@@ -1234,8 +1242,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             footRev.lock_rotation = (False,True,True)
 
-            copyTransformFkIk(thigh, thighFk, thighIk, rig, prop1)
-            copyTransformFkIk(shin, shinFk, shinIk, rig, prop1)
+            copyTransformFkIk(thigh, thighFk, thighIkTwist, rig, prop1)
+            copyTransformFkIk(shin, shinFk, shinIkTwist, rig, prop1)
             copyTransformFkIk(foot, footFk, footInvIk, rig, (prop1,prop2), "x1*(1-x2)")
             copyTransformFkIk(toe, toeFk, toeInvIk, rig, (prop1,prop2), "x1*(1-x2)")
 
@@ -1249,7 +1257,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 cns.influence = thigh.bone.length/(thigh.bone.length + shin.bone.length)
                 copyTransform(kneePoleP, kneePoleA, rig)
 
-            #hintRotation(shinIk, rig)
             fixIk(rig, [shinIk.name])
             ikConstraint(shinIk, ankleIk, kneePt, -90, 2, rig)
             stretchTo(kneeLink, kneePt, rig)
@@ -1257,14 +1264,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             kneePt.lock_rotation = (True,True,True)
             cns = copyLocation(footFk, ankleIk, rig, (prop1,prop2), "x1*x2")
             cns = copyTransform(ankleIk, ankle, rig, prop2)
-            copyTransform(ankle0Ik, ankleIk, rig, prop2)
+            #copyTransform(ankle0Ik, ankleIk, rig, prop2)
             ankle.lock_rotation = (True,False,True)
             cns = limitRotation(ankle, rig, (prop1,prop2), "x1*x2")
             cns.use_limit_y = True
             cns.min_y = -20*D
             cns.max_y = 20*D
-            cns = copyRotation(shin, ankle0Ik, rig, (prop1,prop2), "x1*x2")
-            cns.use_x = cns.use_z = False
+            #cns = copyRotation(shin, ankle0Ik, rig, (prop1,prop2), "x1*x2")
+            #cns.use_x = cns.use_z = False
 
             prop = "MhaGaze_" + suffix[1]
             setMhxProp(rig.data, prop, 1.0)
@@ -1275,9 +1282,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             self.lockLocations([
                 upper_armFk, forearmFk, handFk,
-                upper_armIk, forearmIk, elbowLink,
+                upper_armIk, forearmIk, upper_armIkTwist, forearmIkTwist, elbowLink,
                 thighFk, shinFk, footFk, toeFk,
-                thighIk, shinIk, kneeLink, footRev, toeRev,
+                thighIk, shinIk, thighIkTwist, shinIkTwist, kneeLink, footRev, toeRev,
             ])
 
         prop = "MhaHintsOn"
@@ -1322,6 +1329,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     def copyLimits(self, rig, bname, suffix):
         fkbone = rig.pose.bones["%s.fk%s" % (bname, suffix)]
         ikbone = rig.pose.bones["%s.ik%s" % (bname, suffix)]
+        iktwist = rig.pose.bones["%s.ik.twist%s" % (bname, suffix)]
+        iktwist.lock_rotation = (True,False,True)
         cns = getConstraint(fkbone, 'LIMIT_ROTATION')
         if cns:
             for n,x in enumerate(["x", "y", "z"]):
@@ -1329,6 +1338,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 setattr(ikbone, "ik_min_%s" % x, getattr(cns, "min_%s" % x))
                 setattr(ikbone, "ik_max_%s" % x, getattr(cns, "max_%s" % x))
                 setattr(ikbone, "lock_ik_%s" % x, fkbone.lock_rotation[n])
+            ikcns = limitRotation(iktwist, rig)
+            ikcns.use_limit_y = True
+            ikcns.min_y = cns.min_y
+            ikcns.max_y = cns.max_y
 
     #-------------------------------------------------------------
     #   Markers
@@ -1483,6 +1496,10 @@ Gizmos = {
     "thigh.fk.R" :      ("GZM_Circle025", 1),
     "shin.fk.L" :       ("GZM_Circle025", 1),
     "shin.fk.R" :       ("GZM_Circle025", 1),
+    "thigh.ik.twist.L": ("GZM_Circle025", 1),
+    "thigh.ik.twist.R": ("GZM_Circle025", 1),
+    "shin.ik.twist.L" : ("GZM_Circle025", 1),
+    "shin.ik.twist.R" : ("GZM_Circle025", 1),
     "foot.fk.L" :       ("GZM_Foot_L", 1),
     "foot.fk.R" :       ("GZM_Foot_R", 1),
     "toe.fk.L" :        ("GZM_Toe_L", 1),
@@ -1518,6 +1535,10 @@ Gizmos = {
     "upper_arm.fk.R" :  ("GZM_Circle025", 1),
     "forearm.fk.L" :    ("GZM_Circle025", 1),
     "forearm.fk.R" :    ("GZM_Circle025", 1),
+    "upper_arm.ik.twist.L" :  ("GZM_Circle025", 1),
+    "upper_arm.ik.twist.R" :  ("GZM_Circle025", 1),
+    "forearm.ik.twist.L" :    ("GZM_Circle025", 1),
+    "forearm.ik.twist.R" :    ("GZM_Circle025", 1),
     "hand.fk.L" :       ("GZM_Hand", 1),
     "hand.fk.R" :       ("GZM_Hand", 1),
     "handTwk.L" :       ("GZM_Circle", 0.4),
