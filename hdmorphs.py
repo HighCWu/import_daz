@@ -883,20 +883,27 @@ class DAZ_OT_SelectJcmFiles(DazOperator, ActiveFileSelector, IsMesh):
 
 
 def addSkeyToUrls(ob, isJcm, asset, skey):
-    from .asset import getDazPath
+    def getPath(url):
+        from .asset import getDazPath
+        path = getDazPath(url)
+        if path:
+            return path
+        else:
+            return ""
+
     if asset.hd_url:
         pgs = ob.data.DazDhdmFiles
         if skey.name not in pgs.keys():
             item = pgs.add()
             item.name = skey.name
-            item.s = getDazPath(asset.hd_url)
+            item.s = getPath(asset.hd_url)
             item.b = False
     if isJcm:
         pgs = ob.data.DazJcmFiles
         if skey.name not in pgs.keys():
             item = pgs.add()
             item.name = skey.name
-            item.s = getDazPath(asset.fileref)
+            item.s = getPath(asset.fileref)
             item.b = False
 
 #-------------------------------------------------------------

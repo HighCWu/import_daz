@@ -212,6 +212,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazVerbosity")
         box.prop(scn, "DazCaseSensitivePaths")
         box.prop(scn, "DazSpeedOptimize")
+        box.prop(scn, "DazScaleMorphs")
 
         box = col.box()
         box.label(text = "Debugging")
@@ -570,6 +571,10 @@ def register():
     bpy.types.Scene.DazSpeedOptimize = BoolProperty(
         name = "Optimize For Speed",
         description = "Optimize for viewport speed")
+
+    bpy.types.Scene.DazScaleMorphs = BoolProperty(
+        name = "Scale Morphs (Experimental)",
+        description = "Create drivers for scale channels too.\nMight contain bugs")
 
     bpy.types.Scene.DazUseInstancing = BoolProperty(
         name = "Use Instancing",

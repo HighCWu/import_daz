@@ -74,7 +74,6 @@ class LoadMorph(DriverUser):
         self.mults = {}
         self.sumdrivers = {}
         self.restdrivers = {}
-        self.parscales = {}
         self.initAmt()
         print("Making morphs")
         self.makeAllMorphs(namepaths, True)
@@ -399,23 +398,12 @@ class LoadMorph(DriverUser):
 
 
     def makeScaleFormula(self, bname, idx, expr):
-        return
+        if not GS.useScaleMorphs:
+            return
         # DS and Blender seem to inherit scale differently
         tfm,pb,prop,factor = self.getBoneData(bname, expr)
         tfm.setScale(self.strength*factor, True, prop, index=idx)
-        self.addScaleToChildren(pb, bname, idx)
         self.addPoseboneDriver(pb, tfm)
-
-
-    def addScaleToChildren(self, pb, bname, idx):
-        for child in pb.children:
-            cname = child.name
-            if cname not in self.parscales.keys():
-                self.parscales[cname] = {}
-            if idx not in self.parscales[cname].keys():
-                self.parscales[cname][idx] = {}
-            self.parscales[cname][idx][bname] = True
-            self.addScaleToChildren(child, bname, idx)
 
     #-------------------------------------------------------------
     #   Add posebone driver
@@ -474,16 +462,6 @@ class LoadMorph(DriverUser):
     def getFactors(self, vec):
         maxfactor = max([abs(factor) for factor in vec])
         return [(idx,factor) for idx,factor in enumerate(vec) if abs(factor) > 0.01*maxfactor]
-
-
-    def addScaleSumDrivers(self):
-        for bname,bstruct in self.parscales.items():
-            pb = self.rig.pose.bones[bname]
-            for idx,istruct in bstruct.items():
-                bname,drivers = self.findSumDriver(pb, "scale", idx, (pb, None, {}))
-                for pname in istruct.keys():
-                    prop = self.getParentScale(pname, idx)
-                    drivers[prop] = -1
 
 
     def findSumDriver(self, pb, channel, idx, data):
@@ -849,7 +827,6 @@ class LoadMorph(DriverUser):
 
     def buildSumDrivers(self):
         print("Building sum drivers")
-        self.addScaleSumDrivers()
         for bname,bdata in self.sumdrivers.items():
             for channel,cdata in bdata.items():
                 for idx,idata in cdata.items():
@@ -865,10 +842,6 @@ class LoadMorph(DriverUser):
                         else:
                             path = self.getOrigo(fcu0, pb, channel, idx)
                             pathids[path] = 'ARMATURE'
-                    elif (bname in self.parscales.keys() and
-                          idx in self.parscales[bname].keys()):
-                        path = self.getUnity(pb, idx)
-                        pathids[path] = 'ARMATURE'
 
                     pb.driver_remove(channel, idx)
                     prefix = self.getChannelPrefix(pb, channel, idx)

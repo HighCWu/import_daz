@@ -60,6 +60,7 @@ class GlobalSettings:
         self.useMakeHiddenSliders = False
         self.showHiddenObjects = False
         self.speedOptimize = True
+        self.useScaleMorphs = True
 
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
@@ -111,6 +112,7 @@ class GlobalSettings:
         "DazErrorPath" : "errorPath",
         "DazCaseSensitivePaths" : "caseSensitivePaths",
         "DazSpeedOptimize" : "speedOptimize",
+        "DazScaleMorphs" : "useScaleMorphs",
 
         # Debugging
         "DazDump" : "useDump",
