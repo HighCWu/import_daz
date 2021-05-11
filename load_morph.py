@@ -303,6 +303,13 @@ class LoadMorph(DriverUser):
             if skey:
                 skey.slider_min = GS.customMin
                 skey.slider_max = GS.customMax
+        elif limits == 'MULTIPLY':
+            min = GS.customMult * asset.min
+            max = GS.customMult * asset.max
+            setFloatProp(rna, prop, 0.0, min, max)
+            if skey:
+                skey.slider_min = min
+                skey.slider_max = max
         else:
             setFloatProp(rna, prop, 0.0, None, None)
             if skey:

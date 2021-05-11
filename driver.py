@@ -430,8 +430,8 @@ def setPropMinMax(rna, prop, min, max):
 
 def getPropMinMax(rna, prop):
     rna_ui = rna.get('_RNA_UI')
-    min = -1000
-    max = 1000
+    min = GS.customMin
+    max = GS.customMax
     if rna_ui and prop in rna_ui.keys():
         struct = rna_ui[prop]
         if "min" in struct.keys():

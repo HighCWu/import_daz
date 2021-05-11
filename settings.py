@@ -84,6 +84,7 @@ class GlobalSettings:
 
         self.customMin = -2.0
         self.customMax = 2.0
+        self.customMult = 2.0
         self.finalLimits = 'DAZ'
         self.rawLimits = 'DAZ'
         self.showFinalProps = False
@@ -137,6 +138,7 @@ class GlobalSettings:
         # Properties
         "DazCustomMin" : "customMin",
         "DazCustomMax" : "customMax",
+        "DazCustomMult" : "customMult",
         "DazFinalLimits" : "finalLimits",
         "DazRawLimits" : "rawLimits",
         "DazShowFinalProps" : "showFinalProps",

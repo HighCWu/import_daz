@@ -228,6 +228,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazRawLimits")
         box.prop(scn, "DazCustomMin")
         box.prop(scn, "DazCustomMax")
+        box.prop(scn, "DazCustomMult")
         box.prop(scn, "DazShowFinalProps")
 
         col = split.column()
@@ -342,17 +343,21 @@ def register():
     bpy.types.Scene.DazCustomMin = FloatProperty(
         name = "Custom Min",
         description = "Custom minimum",
-        default = -2.0,
         min = -10.0, max = 0.0)
 
     bpy.types.Scene.DazCustomMax = FloatProperty(
         name = "Custom Max",
         description = "Custom maximum",
-        default = 2.0,
+        min = 0.0, max = 10.0)
+
+    bpy.types.Scene.DazCustomMult = FloatProperty(
+        name = "Multiplier",
+        description = "Custom multiplier",
         min = 0.0, max = 10.0)
 
     enums = [('DAZ', "DAZ", "Use min and max values from DAZ files if available"),
              ('CUSTOM', "Custom", "Use min and max values from custom sliders"),
+             ('MULTIPLY', "Multiply", "Multiply DAZ limits with multily factor"),
              ('NONE', "None", "Don't limit sliders")]
 
     bpy.types.Scene.DazFinalLimits = EnumProperty(
