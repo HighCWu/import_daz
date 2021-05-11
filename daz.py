@@ -225,11 +225,11 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
         box = col.box()
         box.label(text = "Sliders")
-        box.prop(scn, "DazFinalLimits")
-        box.prop(scn, "DazRawLimits")
+        box.prop(scn, "DazSliderLimits")
+        box.prop(scn, "DazInternalLimits")
+        box.prop(scn, "DazMorphMultiplier")
         box.prop(scn, "DazCustomMin")
         box.prop(scn, "DazCustomMax")
-        box.prop(scn, "DazCustomMult")
         box.prop(scn, "DazShowFinalProps")
 
         col = split.column()
@@ -343,33 +343,32 @@ def register():
 
     bpy.types.Scene.DazCustomMin = FloatProperty(
         name = "Custom Min",
-        description = "Custom minimum",
+        description = "Custom minimum for sliders",
         min = -10.0, max = 0.0)
 
     bpy.types.Scene.DazCustomMax = FloatProperty(
         name = "Custom Max",
-        description = "Custom maximum",
+        description = "Custom maximum for sliders",
         min = 0.0, max = 10.0)
 
-    bpy.types.Scene.DazCustomMult = FloatProperty(
+    bpy.types.Scene.DazMorphMultiplier = FloatProperty(
         name = "Multiplier",
-        description = "Custom multiplier",
+        description = "Morph multiplier. Multiply the min and \nmax values for sliders with this factor",
         min = 0.0, max = 10.0)
 
-    enums = [('DAZ', "DAZ", "Use min and max values from DAZ files if available"),
+    enums = [('DAZ', "DAZ", "Use min and max values from DAZ files if available.\nThe limits are multiplied with the factor below"),
              ('CUSTOM', "Custom", "Use min and max values from custom sliders"),
-             ('MULTIPLY', "Multiply", "Multiply DAZ limits with multily factor"),
              ('NONE', "None", "Don't limit sliders")]
 
-    bpy.types.Scene.DazFinalLimits = EnumProperty(
+    bpy.types.Scene.DazInternalLimits = EnumProperty(
         items = enums,
-        name = "Final Limits",
-        description = "Min and max values for \"final\" sliders")
+        name = "Internal Limits",
+        description = "Internal min and max values for DAZ properties")
 
-    bpy.types.Scene.DazRawLimits = EnumProperty(
+    bpy.types.Scene.DazSliderLimits = EnumProperty(
         items = enums,
-        name = "Raw Limits",
-        description = "Min and max values for \"raw\" sliders")
+        name = "Slider Limits",
+        description = "Min and max values for sliders")
 
     bpy.types.Scene.DazShowFinalProps = BoolProperty(
         name = "Show Final Morph Values",

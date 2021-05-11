@@ -275,14 +275,14 @@ class LoadMorph(DriverUser):
                 setBoolProp(self.rig, raw, asset.value)
                 setBoolProp(self.amt, final, asset.value)
             elif asset.type == "float":
-                self.setFloatLimits(self.rig, raw, GS.rawLimits, asset, skey)
-                self.setFloatLimits(self.amt, final, GS.finalLimits, asset, skey)
+                self.setFloatLimits(self.rig, raw, GS.sliderLimits, asset, skey)
+                self.setFloatLimits(self.amt, final, GS.internalLimits, asset, skey)
             elif asset.type == "int":
                 self.rig[raw] = 0
                 self.amt[final] = 0
             else:
-                self.setFloatLimits(self.rig, raw, GS.rawLimits, asset, skey)
-                self.setFloatLimits(self.amt, final, GS.finalLimits, asset, skey)
+                self.setFloatLimits(self.rig, raw, GS.sliderLimits, asset, skey)
+                self.setFloatLimits(self.amt, final, GS.internalLimits, asset, skey)
                 reportError("BUG: Unknown asset type: %s.\nAsset: %s" % (asset.type, asset), trigger=(2,3))
             if visible:
                 setActivated(self.rig, raw, True)
@@ -293,22 +293,17 @@ class LoadMorph(DriverUser):
     def setFloatLimits(self, rna, prop, limits, asset, skey):
         from .driver import setFloatProp
         if limits == 'DAZ':
-            setFloatProp(rna, prop, 0.0, asset.min, asset.max)
+            min = GS.morphMultiplier * asset.min
+            max = GS.morphMultiplier * asset.max
+            setFloatProp(rna, prop, 0.0, min, max)
             if skey:
-                skey.slider_min = asset.min
-                skey.slider_max = asset.max
+                skey.slider_min = min
+                skey.slider_max = max
         elif limits == 'CUSTOM':
             setFloatProp(rna, prop, 0.0, GS.customMin, GS.customMax)
             if skey:
                 skey.slider_min = GS.customMin
                 skey.slider_max = GS.customMax
-        elif limits == 'MULTIPLY':
-            min = GS.customMult * asset.min
-            max = GS.customMult * asset.max
-            setFloatProp(rna, prop, 0.0, min, max)
-            if skey:
-                skey.slider_min = min
-                skey.slider_max = max
         else:
             setFloatProp(rna, prop, 0.0, None, None)
             if skey:

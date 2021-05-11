@@ -83,11 +83,11 @@ class GlobalSettings:
         self.reuseMaterials = False
         self.hairMaterialMethod = 'HAIR_BSDF'
 
-        self.customMin = -2.0
-        self.customMax = 2.0
-        self.customMult = 2.0
-        self.finalLimits = 'DAZ'
-        self.rawLimits = 'DAZ'
+        self.customMin = -1.0
+        self.customMax = 1.0
+        self.morphMultiplier = 1.0
+        self.internalLimits = 'DAZ'
+        self.sliderLimits = 'DAZ'
         self.showFinalProps = False
 
         self.useLockLoc = True
@@ -140,9 +140,9 @@ class GlobalSettings:
         # Properties
         "DazCustomMin" : "customMin",
         "DazCustomMax" : "customMax",
-        "DazCustomMult" : "customMult",
-        "DazFinalLimits" : "finalLimits",
-        "DazRawLimits" : "rawLimits",
+        "DazMorphMultiplier" : "morphMultiplier",
+        "DazInternalLimits" : "internalLimits",
+        "DazSliderLimits" : "sliderLimits",
         "DazShowFinalProps" : "showFinalProps",
 
         # Rigging
