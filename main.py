@@ -104,6 +104,11 @@ class ImportDAZ(DazOperator, DazOptions, MultiFile):
         box = self.layout.box()
         box.label(text = "For more options, see Global Settings.")
 
+    def storeState(self, context):
+        pass
+
+    def restoreState(self, context):
+        pass
 
     def run(self, context):
         from time import perf_counter
@@ -395,6 +400,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+    def storeState(self, context):
+        pass
+
+    def restoreState(self, context):
+        pass
 
     def run(self, context):
         from .error import setSilentMode

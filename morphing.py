@@ -2119,17 +2119,17 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile, IsMeshArm
         self.layout.prop(self, "atFrameOne")
 
 
-    def prequel(self, context):
+    def storeState(self, context):
         scn = context.scene
         self.auto = scn.tool_settings.use_keyframe_insert_auto
         scn.tool_settings.use_keyframe_insert_auto = True
-        DazOperator.prequel(self, context)
+        DazOperator.storeState(self, context)
 
 
-    def sequel(self, context):
+    def restoreState(self, context):
         scn = context.scene
         scn.tool_settings.use_keyframe_insert_auto = self.auto
-        DazOperator.sequel(self, context)
+        DazOperator.restoreState(self, context)
 
     openVowels = ["AI", "E", "O"]
     silentVowels = ["FV", "MBP", "WQ"]

@@ -610,7 +610,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
         return (bpy.data.filepath and ob and getModifier(ob, 'MULTIRES'))
 
 
-    def prequel(self, context):
+    def storeState(self, context):
         scn = context.scene
         self.engine = scn.render.engine
         scn.render.engine = 'CYCLES'
@@ -624,7 +624,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
         self.object = context.view_layer.objects.active
 
 
-    def sequel(self, context):
+    def restoreState(self, context):
         scn = context.scene
         scn.render.use_bake_multires = self.use_bake_multires
         scn.render.bake_type = self.bake_type

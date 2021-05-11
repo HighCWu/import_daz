@@ -257,6 +257,18 @@ class DazOperator(bpy.types.Operator):
 
 
     def prequel(self, context):
+        self.storeState(context)
+        clearErrorMessage()
+
+
+    def sequel(self, context):
+        wm = bpy.context.window_manager
+        wm.progress_update(100)
+        wm.progress_end()
+        self.restoreState(context)
+
+
+    def storeState(self, context):
         from .utils import getSelectedObjects
         self.mode = None
         self.activeObject = context.object
@@ -267,14 +279,10 @@ class DazOperator(bpy.types.Operator):
                 bpy.ops.object.mode_set(mode='OBJECT')
             except RuntimeError:
                 pass
-        clearErrorMessage()
 
 
-    def sequel(self, context):
+    def restoreState(self, context):
         from .utils import setActiveObject
-        wm = bpy.context.window_manager
-        wm.progress_update(100)
-        wm.progress_end()
         try:
             if self.activeObject:
                 setActiveObject(context, self.activeObject)

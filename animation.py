@@ -290,8 +290,8 @@ class FrameConverter:
 #-------------------------------------------------------------
 
 class HideOperator(DazOperator):
-    def prequel(self, context):
-        DazOperator.prequel(self, context)
+    def storeState(self, context):
+        DazOperator.storeState(self, context)
         rig = context.object
         amt = rig.data
         if amt.DazSimpleIK:
@@ -321,8 +321,8 @@ class HideOperator(DazOperator):
         return ok
 
 
-    def sequel(self, context):
-        DazOperator.sequel(self, context)
+    def restoreState(self, context):
+        DazOperator.restoreState(self, context)
         rig = context.object
         rig.data.layers = self.boneLayers
         for layer in self.layerColls:
