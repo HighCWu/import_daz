@@ -439,7 +439,7 @@ class ConstraintStore:
 
 
     def getFkBone(self, key, rig):
-        if key[-2] == ".":
+        if len(key) > 2 and key[-2] == ".":
             base, suffix = key[:-2], key[-1]
             bname = base + ".fk." + suffix
             if bname in rig.pose.bones.keys():
