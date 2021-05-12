@@ -59,7 +59,7 @@ class GlobalSettings:
         self.zup = True
         self.useMakeHiddenSliders = False
         self.showHiddenObjects = False
-        self.speedOptimize = True
+        self.speedOptimize = False
         self.useScaleMorphs = True
 
         self.materialMethod = 'BSDF'
