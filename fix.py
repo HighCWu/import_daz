@@ -428,7 +428,7 @@ class ConstraintStore:
                 if hasattr(cns, attr):
                     struct[attr] = getattr(cns, attr)
             clist.append(struct)
-        if clist:
+        if clist and key:
             self.constraints[key] = clist
 
 
@@ -454,11 +454,11 @@ class ConstraintStore:
 
     def restoreAllConstraints(self, rig):
         for key,clist in self.constraints.items():
-            pb = self.getFkBone(key, rig)
-            if pb is None:
-                continue
-            for struct in clist:
-                self.restoreConstraint(struct, pb)
+            if key:
+                pb = self.getFkBone(key, rig)
+                if pb:
+                    for struct in clist:
+                        self.restoreConstraint(struct, pb)
 
 
     def restoreConstraints(self, key, pb):
