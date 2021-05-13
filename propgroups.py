@@ -67,6 +67,13 @@ class DazTextGroup(bpy.types.PropertyGroup):
     def __lt__(self, other):
         return (self.text < other.text)
 
+
+class DazMorphInfoGroup(bpy.types.PropertyGroup):
+    morphset : StringProperty()
+    text : StringProperty()
+    bodypart : StringProperty()
+    category : StringProperty()
+
 #-------------------------------------------------------------
 #   Rigidity groups
 #-------------------------------------------------------------
@@ -331,6 +338,7 @@ classes = [
     DazRigidityGroup,
     DazStringStringGroup,
     DazTextGroup,
+    DazMorphInfoGroup,
     DazMorphGroup,
     DAZ_OT_InspectPropGroups,
     ]

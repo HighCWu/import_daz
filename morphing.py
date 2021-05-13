@@ -33,9 +33,9 @@ from bpy_extras.io_utils import ImportHelper
 from mathutils import Vector
 from .error import *
 from .utils import *
-from .fileutils import SingleFile, MultiFile, DazImageFile, DatFile
+from .fileutils import SingleFile, MultiFile, DazImageFile, DatFile, JsonFile
 from .animation import ActionOptions
-from .propgroups import DazTextGroup, DazFloatGroup, DazStringGroup
+from .propgroups import DazTextGroup, DazFloatGroup, DazStringGroup, DazMorphInfoGroup
 from .load_morph import LoadMorph
 from .driver import DriverUser
 
@@ -671,6 +671,7 @@ class MorphLoader(LoadMorph):
         self.rig, self.mesh, self.char = getFingeredCharacter(bpy.context.object)
         if mesh:
             self.mesh = mesh
+        self.category = ""
 
 
     @classmethod
@@ -681,6 +682,23 @@ class MorphLoader(LoadMorph):
 
     def getBodyPart(self, context):
         return self.bodypart
+
+
+    def addUrl(self, asset, aliases, filepath):
+        if self.mesh:
+            pgs = self.mesh.DazMorphUrls
+        else:
+            pgs = self.rig.DazMorphUrls
+        if filepath not in pgs.keys():
+            item = pgs.add()
+            item.name = filepath
+            item.morphset = self.morphset
+            if asset.name in aliases.keys():
+                item.text = aliases[asset.name]
+            else:
+                item.text = asset.name
+            item.category = self.category
+            item.bodypart = self.bodypart
 
 
     def getAllMorphs(self, namepaths, context):
@@ -1068,6 +1086,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
     def run(self, context):
         from .driver import setBoolProp
         namepaths = self.getNamePaths()
+        self.category = self.catname
         msg = self.getAllMorphs(namepaths, context)
         if self.usePropDrivers and self.drivers:
             self.rig.DazCustomMorphs = True
@@ -2358,6 +2377,108 @@ class DAZ_OT_MeshToShape(DazOperator, IsMesh):
             skey.data[v.index].co = v.co
 
 #-------------------------------------------------------------
+#   Save and import favorite morphs
+#-------------------------------------------------------------
+
+class DAZ_OT_SaveFavoriteMorphs(DazOperator, SingleFile, JsonFile, IsArmature):
+    bl_idname = "daz.save_favorite_morphs"
+    bl_label = "Save Favorite Morphs"
+    bl_description = "Save favorite morphs"
+
+    def run(self, context):
+        from .load_json import saveJson
+        rig = context.object
+        struct = { "filetype" : "favorite_morphs" }
+        self.addMorphUrls(rig, struct)
+        for ob in rig.children:
+            self.addMorphUrls(ob, struct)
+        saveJson(struct, self.filepath)
+
+
+    def addMorphUrls(self, ob, struct):
+        if len(ob.DazMorphUrls) == 0:
+            return
+        from urllib.parse import quote
+        from .finger import getFingerPrint
+        url = quote(ob.DazUrl)
+        ostruct = struct[url] = {}
+        ostruct["finger_print"] = getFingerPrint(ob)
+        mstruct = ostruct["morphs"] = {}
+        for item in ob.DazMorphUrls:
+            if item.morphset == "Custom":
+                key = "Custom/%s" % item.category
+            else:
+                key = item.morphset
+            if key not in mstruct.keys():
+                mstruct[key] = []
+            mstruct[key].append((quote(item.name), item.text, item.bodypart))
+
+
+class DAZ_OT_ImportFavoriteMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsArmature):
+    bl_idname = "daz.import_favorite_morphs"
+    bl_label = "Import Favorite Morphs"
+    bl_description = "Import favorite morphs"
+
+    strength = 1.0
+
+    def run(self, context):
+        from .load_json import loadJson
+        struct = loadJson(self.filepath)
+        if ("filetype" not in struct.keys() or
+            struct["filetype"] != "favorite_morphs"):
+            raise DazError("This file does not contain favorite morphs")
+        rig = self.rig = context.object
+        rig.DazMorphUrls.clear()
+        self.loadFavorites(rig, rig, struct, context)
+        for ob in rig.children:
+            if ob.type == 'MESH':
+                self.mesh = ob
+                self.loadFavorites(ob, rig, struct, context)
+
+
+    def loadFavorites(self, ob, rig, struct, context):
+        from urllib.parse import quote
+        from .finger import getFingerPrint
+        url = quote(ob.DazUrl)
+        if url not in struct.keys():
+            return
+        ustruct = struct[url]
+        finger = getFingerPrint(ob)
+        if finger != ustruct["finger_print"]:
+            print("Fingerprint mismatch:\n%s != %s" % (finger, ustruct["finger_print"]))
+            return
+        for key,infos in ustruct["morphs"].items():
+            if infos:
+                if key[0:7] == "Custom/":
+                    self.morphset = "Custom"
+                    self.category = key[7:]
+                    rig.DazCustomMorphs = True
+                else:
+                    self.morphset = key
+                    self.category = ""
+                self.bodypart = infos[0][2]
+                namepaths = dict([(name,unquote(ref)) for ref,name,_ in infos])
+                self.getAllMorphs(namepaths, context)
+
+
+    def addToMorphSet(self, prop, asset, hidden):
+        if self.morphset == "Custom":
+            cats = self.rig.DazMorphCats
+            if self.category not in cats.keys():
+                cat = cats.add()
+                cat.name = self.category
+            else:
+                cat = cats[self.category]
+            if prop not in cat.morphs.keys():
+                item = cat.morphs.add()
+                item.name = prop
+            else:
+                item = cat.morphs[prop]
+            item.text = asset.label
+        else:
+            addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden)
+
+#-------------------------------------------------------------
 #   Property groups, for drivers
 #-------------------------------------------------------------
 
@@ -2406,6 +2527,8 @@ classes = [
     DAZ_OT_ConvertStandardMorphsToShapes,
     DAZ_OT_ConvertCustomMorphsToShapes,
     DAZ_OT_MeshToShape,
+    DAZ_OT_SaveFavoriteMorphs,
+    DAZ_OT_ImportFavoriteMorphs,
 ]
 
 def register():
@@ -2419,6 +2542,7 @@ def register():
     bpy.types.Object.DazMorphPrefixes = BoolProperty(default = True)
     for morphset in theMorphSets:
         setattr(bpy.types.Object, "Daz"+morphset, CollectionProperty(type = DazTextGroup))
+    bpy.types.Object.DazMorphUrls = CollectionProperty(type = DazMorphInfoGroup)
     bpy.types.Object.DazAutoFollow = CollectionProperty(type = DazTextGroup)
     bpy.types.Object.DazAlias = CollectionProperty(type = DazStringGroup)
 

@@ -286,6 +286,9 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowMorphs2", box):
+            box.operator("daz.save_favorite_morphs")
+            box.operator("daz.import_favorite_morphs")
+            box.separator()
             box.operator("daz.add_shape_to_category")
             box.operator("daz.remove_shape_from_category")
             box.operator("daz.rename_category")

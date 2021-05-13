@@ -133,8 +133,10 @@ class LoadMorph(DriverUser):
         elif self.rig:
             self.makeFormulas(asset, skey)
         aliaspath = self.getAliasFile(filepath)
+        aliases = {}
         if aliaspath is not None:
-            self.loadAlias(aliaspath)
+            aliases = self.loadAlias(aliaspath)
+        self.addUrl(asset, aliases, filepath)
         return " *"
 
 
@@ -151,6 +153,7 @@ class LoadMorph(DriverUser):
     def loadAlias(self, filepath):
         from .load_json import loadJson
         struct = loadJson(filepath)
+        aliases = {}
         if "modifier_library" in struct.keys():
             for mod in struct["modifier_library"]:
                 if "channel" in mod.keys():
@@ -168,6 +171,8 @@ class LoadMorph(DriverUser):
                                 pg = pgs.add()
                                 pg.name = alias
                             pg.s = prop
+                            aliases[alias] = prop
+        return aliases
 
 
     def buildShapekey(self, asset, useBuild=True):
@@ -541,7 +546,6 @@ class LoadMorph(DriverUser):
         fcu.driver.type = 'SCRIPTED'
         for bvar in bvars:
             var = fcu.driver.variables.new()
-            print("BV", bvar.name)
             bvar.create(var)
 
         varname = "a"
