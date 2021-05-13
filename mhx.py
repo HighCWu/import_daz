@@ -1020,8 +1020,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             forearmIk.use_connect = forearm.use_connect
             handIk = deriveBone("hand.ik"+suffix, hand, rig, L_LARMIK+dlayer, None)
             hand0Ik = deriveBone("hand0.ik"+suffix, hand, rig, L_HELP2, forearmIk)
-            upper_armIkTwist = deriveBone("upper_arm.ik.twist"+suffix, upper_arm, rig, L_LEXTRA+dlayer, upper_armIk)
-            forearmIkTwist = deriveBone("forearm.ik.twist"+suffix, forearm, rig, L_LEXTRA+dlayer, forearmIk)
+            upper_armIkTwist = deriveBone("upper_arm.ik.twist"+suffix, upper_arm, rig, L_LARMIK+dlayer, upper_armIk)
+            forearmIkTwist = deriveBone("forearm.ik.twist"+suffix, forearm, rig, L_LARMIK+dlayer, forearmIk)
 
             vec = upper_arm.matrix.to_3x3().col[2]
             vec.normalize()
@@ -1065,8 +1065,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             thighIk = deriveBone("thigh.ik"+suffix, thigh, rig, L_HELP2, thigh.parent)
             shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
             shinIk.use_connect = shin.use_connect
-            thighIkTwist = deriveBone("thigh.ik.twist"+suffix, thigh, rig, L_LEXTRA+dlayer, thighIk)
-            shinIkTwist = deriveBone("shin.ik.twist"+suffix, shin, rig, L_LEXTRA+dlayer, shinIk)
+            thighIkTwist = deriveBone("thigh.ik.twist"+suffix, thigh, rig, L_LLEGIK+dlayer, thighIk)
+            shinIkTwist = deriveBone("shin.ik.twist"+suffix, shin, rig, L_LLEGIK+dlayer, shinIk)
 
             if "heel"+suffix in rig.data.edit_bones.keys():
                 heel = rig.data.edit_bones["heel"+suffix]
