@@ -59,7 +59,6 @@ class GlobalSettings:
         self.zup = True
         self.useMakeHiddenSliders = False
         self.showHiddenObjects = False
-        self.speedOptimize = False
         self.useScaleMorphs = True
 
         self.materialMethod = 'BSDF'
@@ -111,7 +110,6 @@ class GlobalSettings:
         "DazVerbosity" : "verbosity",
         "DazErrorPath" : "errorPath",
         "DazCaseSensitivePaths" : "caseSensitivePaths",
-        "DazSpeedOptimize" : "speedOptimize",
         "DazScaleMorphs" : "useScaleMorphs",
 
         # Debugging
