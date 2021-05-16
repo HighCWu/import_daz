@@ -364,16 +364,19 @@ class DAZ_OT_AddShrinkwrap(DazPropsOperator, MeshSelection, IsMesh):
     bl_description = "Add a shrinkwrap modifier covering the active mesh"
     bl_options = {'UNDO'}
 
+    offset : FloatProperty(
+        name = "Offset (mm)",
+        description = "Offset the surface from the character mesh",
+        default = 5.0)
+
     def draw(self, context):
         self.layout.prop(self, "offset")
         MeshSelection.draw(self, context)
-
 
     def run(self, context):
         hum = context.object
         for ob in self.getSelection(context):
             self.createShrinkwrap(ob, hum)
-
 
     def createShrinkwrap(self, ob, hum):
         mod = None
