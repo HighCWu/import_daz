@@ -158,6 +158,10 @@ class GeoNode(Node, SimNode):
                 mod.use_limit_surface = False
 
 
+    def addMappings(self, selmap):
+        self.data.mappings = dict([(key,val) for val,key in selmap["mappings"]])
+
+
     def buildHDMesh(self, ob):
         verts = self.highdef.verts
         uvs = self.highdef.uvs
@@ -299,9 +303,16 @@ class GeoNode(Node, SimNode):
 
 
     def hideVertexGroups(self, hidden):
-        self.hideVertexGroupsMesh(self.rna, hidden)
+        hidden2 = []
+        for pgrp in hidden:
+            mapped = pgrp
+            if pgrp in self.data.mappings.keys():
+                mapped = self.data.mappings[pgrp]
+            if mapped in self.data.polygon_groups:
+                hidden2.append(pgrp)
+        self.hideVertexGroupsMesh(self.rna, hidden2)
         if self.hdobject and self.hdobject != self.rna:
-            self.hideVertexGroupsMesh(self.hdobject.rna, hidden)
+            self.hideVertexGroupsMesh(self.hdobject.rna, hidden2)
 
 
     def hideVertexGroupsMesh(self, ob, hidden):
@@ -313,11 +324,15 @@ class GeoNode(Node, SimNode):
                 idxs.append(vgrp.index)
         vgname = "_HIDDEN_"
         vgrp = ob.vertex_groups.new(name=vgname)
+        vnums = []
         for v in ob.data.vertices:
-            for g in v.groups:
-                if g.group in idxs:
-                    vgrp.add([v.index], 1, 'REPLACE')
-                    break
+            wlist = [(g.weight,n,g.group) for n,g in enumerate(v.groups)]
+            if wlist:
+                wlist.sort()
+                if wlist[-1][2] in idxs:
+                    vnums.append(v.index)
+        for vn in vnums:
+            vgrp.add([vn], 1, 'REPLACE')
         mod = ob.modifiers.new(vgname, 'MASK')
         mod.vertex_group = vgname
         mod.invert_vertex_group = True
@@ -418,6 +433,7 @@ class Geometry(Asset, Channels):
         self.material_indices = []
         self.polygon_material_groups = []
         self.polygon_groups = []
+        self.mappings = {}
         self.material_group_vis = {}
 
         self.material_selection_sets = []

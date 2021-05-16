@@ -621,7 +621,7 @@ class BoneInstance(Instance):
         if hide or not self.getValue(["Visible"], True):
             self.figure.hiddenBones[self.name] = True
             bone = rig.data.bones[self.name]
-            hide = bone.hide = True
+            bone.hide = True
         for child in self.children.values():
             if isinstance(child, BoneInstance):
                 child.buildFormulas(rig, hide)

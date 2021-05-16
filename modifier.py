@@ -428,6 +428,11 @@ class SkinBinding(Modifier):
         ob,rig,geonode = self.getGeoRig(context, inst)
         if ob is None or rig is None or ob.type != 'MESH':
             return
+
+        if "selection_map" in self.skin.keys():
+            selmap = self.skin["selection_map"]
+            geonode.addMappings(selmap[0])
+
         makeArmatureModifier(self.name, context, ob, rig)
         self.addVertexGroups(ob, geonode, rig)
         hdob = geonode.hdobject
