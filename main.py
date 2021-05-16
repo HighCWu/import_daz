@@ -348,9 +348,9 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         description = "Merge separate toes into a single toe bone",
         default = False)
 
-    useTransferJCMs : BoolProperty(
-        name = "Transfer JCMs",
-        description = "Transfer JCMs and flexions from character to clothes",
+    useTransferShapes : BoolProperty(
+        name = "Transfer Shapekeys",
+        description = "Transfer shapekeys from character to clothes",
         default = True)
 
     useMergeGeografts : BoolProperty(
@@ -366,12 +366,22 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
     useExtraFaceBones : BoolProperty(
         name = "Extra Face Bones",
         description = "Add an extra layer of face bones, which can be both driven and posed",
-        default = True)
+        default = False)
 
     useMakeAllBonesPoseable : BoolProperty(
         name = "Make All Bones Poseable",
         description = "Add an extra layer of driven bones, to make them poseable",
         default = False)
+
+    useMorphPreset : BoolProperty(
+        name = "Use Morph Preset",
+        description = "Load a morph preset instead of loading standard morphs",
+        default = False)
+
+    morphPreset : StringProperty(
+        name = "Morph Preset",
+        description = "Path to morph preset file",
+        default = "/preset.json")
 
     useConvertHair : BoolProperty(
         name = "Convert Hair",
@@ -384,6 +394,13 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         self.layout.prop(self, "useMergeMaterials")
         self.layout.prop(self, "useMergeRigs")
         self.layout.prop(self, "useMergeToes")
+        self.layout.prop(self, "useMorphPreset")
+        if self.useMorphPreset:
+            self.layout.prop(self, "morphPreset")
+        else:
+            MorphTypeOptions.draw(self, context)
+        if self.useMorphPreset or self.jcms or self.flexions:
+            self.layout.prop(self, "useTransferShapes")
         self.layout.prop(self, "useMergeGeografts")
         self.layout.prop(self, "useMergeLashes")
         self.layout.prop(self, "useExtraFaceBones")
@@ -391,9 +408,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         self.layout.prop(self, "useConvertHair")
         self.layout.prop(self, "rigType")
         self.layout.prop(self, "mannequinType")
-        MorphTypeOptions.draw(self, context)
-        if self.jcms or self.flexions:
-            self.layout.prop(self, "useTransferJCMs")
 
 
     def invoke(self, context, event):
@@ -524,14 +538,23 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             bpy.ops.daz.merge_materials()
 
         if mainChar and mainRig and mainMesh:
-            if (self.units or
-                self.expressions or
-                self.visemes or
-                self.facs or
-                self.facsexpr or
-                self.body or
-                self.jcms or
-                self.flexions):
+            if self.useMorphPreset:
+                if self.morphPreset[0] == "/":
+                    filepath = os.path.join(GS.presetPath, self.morphPreset[1:])
+                else:
+                    filepath = self.morphPreset
+                if not os.path.exists(filepath):
+                    raise DazError('Preset file\n"%s"\ndoes not exist' % filepath)
+                if activateObject(context, mainRig):
+                    bpy.ops.daz.load_morph_preset(filepath = filepath)
+            elif (self.units or
+                  self.expressions or
+                  self.visemes or
+                  self.facs or
+                  self.facsexpr or
+                  self.body or
+                  self.jcms or
+                  self.flexions):
                 if activateObject(context, mainRig):
                     bpy.ops.daz.import_standard_morphs(
                         units = self.units,
@@ -613,9 +636,9 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
 
     def transferShapes(self, context, ob, meshes, useDrivers, bodypart):
-        if not (self.useTransferJCMs and (self.jcms or self.flexions)):
-            return
         if not (ob and meshes):
+            return
+        if useDrivers and not self.useTransferShapes:
             return
 
         from .fileutils import setSelection
@@ -623,7 +646,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         skeys = ob.data.shape_keys
         if skeys:
             bodyparts = classifyShapekeys(ob, skeys)
-            snames = [sname for sname,bpart in bodyparts.items() if bpart == bodypart]
+            snames = list(bodyparts.keys())
+            #snames = [sname for sname,bpart in bodyparts.items() if bpart in [bodypart,"Custom"]]
             if not snames:
                 return
             activateObject(context, ob)

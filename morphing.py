@@ -2377,18 +2377,18 @@ class DAZ_OT_MeshToShape(DazOperator, IsMesh):
             skey.data[v.index].co = v.co
 
 #-------------------------------------------------------------
-#   Save and import favorite morphs
+#   Save and load morph presets
 #-------------------------------------------------------------
 
-class DAZ_OT_SaveFavoriteMorphs(DazOperator, SingleFile, JsonFile, IsArmature):
-    bl_idname = "daz.save_favorite_morphs"
-    bl_label = "Save Favorite Morphs"
-    bl_description = "Save favorite morphs"
+class DAZ_OT_SaveMorphPreset(DazOperator, SingleFile, JsonFile, IsArmature):
+    bl_idname = "daz.save_morph_preset"
+    bl_label = "Save Morph Preset"
+    bl_description = "Save morph preset"
 
     def run(self, context):
         from .load_json import saveJson
         rig = context.object
-        struct = { "filetype" : "favorite_morphs" }
+        struct = { "filetype" : "morph_preset" }
         self.addMorphUrls(rig, struct)
         for ob in rig.children:
             self.addMorphUrls(ob, struct)
@@ -2402,7 +2402,11 @@ class DAZ_OT_SaveFavoriteMorphs(DazOperator, SingleFile, JsonFile, IsArmature):
         from .finger import getFingerPrint
         url = quote(ob.DazUrl)
         ostruct = struct[url] = {}
-        ostruct["finger_print"] = getFingerPrint(ob)
+        if ob.type == 'MESH':
+            if ob.data.DazFingerPrint:
+                ostruct["finger_print"] = ob.data.DazFingerPrint
+            else:
+                ostruct["finger_print"] = getFingerPrint(ob)
         mstruct = ostruct["morphs"] = {}
         for item in ob.DazMorphUrls:
             if item.morphset == "Custom":
@@ -2414,10 +2418,10 @@ class DAZ_OT_SaveFavoriteMorphs(DazOperator, SingleFile, JsonFile, IsArmature):
             mstruct[key].append((quote(item.name), item.text, item.bodypart))
 
 
-class DAZ_OT_ImportFavoriteMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsArmature):
-    bl_idname = "daz.import_favorite_morphs"
-    bl_label = "Import Favorite Morphs"
-    bl_description = "Import favorite morphs"
+class DAZ_OT_LoadMorphPreset(DazOperator, MorphLoader, SingleFile, JsonFile, IsArmature):
+    bl_idname = "daz.load_morph_preset"
+    bl_label = "Load Morph Preset"
+    bl_description = "Load morph preset"
 
     strength = 1.0
 
@@ -2425,28 +2429,29 @@ class DAZ_OT_ImportFavoriteMorphs(DazOperator, MorphLoader, SingleFile, JsonFile
         from .load_json import loadJson
         struct = loadJson(self.filepath)
         if ("filetype" not in struct.keys() or
-            struct["filetype"] != "favorite_morphs"):
-            raise DazError("This file does not contain favorite morphs")
+            struct["filetype"] != "morph_preset"):
+            raise DazError("This file does not contain a morph preset")
         rig = self.rig = context.object
         rig.DazMorphUrls.clear()
-        self.loadFavorites(rig, rig, struct, context)
+        self.loadPreset(rig, rig, struct, context)
         for ob in rig.children:
             if ob.type == 'MESH':
                 self.mesh = ob
-                self.loadFavorites(ob, rig, struct, context)
+                self.loadPreset(ob, rig, struct, context)
 
 
-    def loadFavorites(self, ob, rig, struct, context):
+    def loadPreset(self, ob, rig, struct, context):
         from urllib.parse import quote
         from .finger import getFingerPrint
         url = quote(ob.DazUrl)
         if url not in struct.keys():
             return
         ustruct = struct[url]
-        finger = getFingerPrint(ob)
-        if finger != ustruct["finger_print"]:
-            print("Fingerprint mismatch:\n%s != %s" % (finger, ustruct["finger_print"]))
-            return
+        if ob.type == 'MESH' and "finger_print" in ustruct.keys():
+            finger = getFingerPrint(ob)
+            if finger != ustruct["finger_print"]:
+                print("Fingerprint mismatch:\n%s != %s" % (finger, ustruct["finger_print"]))
+                return
         for key,infos in ustruct["morphs"].items():
             if infos:
                 if key[0:7] == "Custom/":
@@ -2527,8 +2532,8 @@ classes = [
     DAZ_OT_ConvertStandardMorphsToShapes,
     DAZ_OT_ConvertCustomMorphsToShapes,
     DAZ_OT_MeshToShape,
-    DAZ_OT_SaveFavoriteMorphs,
-    DAZ_OT_ImportFavoriteMorphs,
+    DAZ_OT_SaveMorphPreset,
+    DAZ_OT_LoadMorphPreset,
 ]
 
 def register():
@@ -2554,6 +2559,7 @@ def register():
         bpy.types.Object.DazMorphCats = CollectionProperty(type = DazCategory, override={'LIBRARY_OVERRIDABLE'})
 
     bpy.types.Mesh.DazBodyPart = CollectionProperty(type = DazStringGroup)
+    bpy.types.Mesh.DazFingerPrint = StringProperty(default="")
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],
         name = "Morph")

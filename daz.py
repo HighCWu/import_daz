@@ -204,6 +204,8 @@ class DAZ_OT_GlobalSettings(DazOperator):
             box.operator("daz.add_cloud_dir")
         box.label(text = "Path To Output Errors:")
         box.prop(scn, "DazErrorPath", text="")
+        box.label(text = "Path To Morph Presets:")
+        box.prop(scn, "DazPresetPath", text="")
 
         col = split.column()
         box = col.box()
@@ -327,6 +329,10 @@ def register():
     bpy.types.Scene.DazErrorPath = StringProperty(
         name = "Error Path",
         description = "Path to error report file")
+
+    bpy.types.Scene.DazPresetPath = StringProperty(
+        name = "Preset Path",
+        description = "Path to morph presets")
 
     bpy.types.Scene.DazUnitScale = FloatProperty(
         name = "Unit Scale",

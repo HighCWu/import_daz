@@ -52,6 +52,7 @@ class GlobalSettings:
         self.errorPath = self.fixPath("~/Documents/daz_importer_errors.txt")
         self.settingsPath = self.fixPath("~/import-daz-settings-28x.json")
         self.rootPath = self.fixPath("~/import-daz-paths.json")
+        self.presetPath = self.fixPath("~/Documents/")
 
         self.unitScale = 0.01
         self.verbosity = 2
@@ -109,6 +110,7 @@ class GlobalSettings:
         "DazUnitScale" : "unitScale",
         "DazVerbosity" : "verbosity",
         "DazErrorPath" : "errorPath",
+        "DazPresetPath" : "presetPath",
         "DazCaseSensitivePaths" : "caseSensitivePaths",
         "DazScaleMorphs" : "useScaleMorphs",
 
@@ -182,6 +184,7 @@ class GlobalSettings:
         self.mdlDirs = self.pathsFromScene(scn.DazMDLDirs)
         self.cloudDirs = self.pathsFromScene(scn.DazCloudDirs)
         self.errorPath = self.fixPath(getattr(scn, "DazErrorPath"))
+        self.presetPath = self.fixPath(getattr(scn, "DazPresetPath"))
         self.eliminateDuplicates()
 
 
@@ -218,6 +221,8 @@ class GlobalSettings:
         self.pathsToScene(self.cloudDirs, scn.DazCloudDirs)
         path = self.fixPath(self.errorPath)
         setattr(scn, "DazErrorPath", path)
+        path = self.fixPath(self.presetPath)
+        setattr(scn, "DazPresetPath", path)
 
 
     def load(self, filepath):
