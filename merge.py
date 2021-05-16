@@ -684,12 +684,10 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
 
         print("Merge rigs to %s:" % rig.name)
         bpy.ops.object.mode_set(mode='OBJECT')
-
         for subrig in subrigs:
             if not (subrig.parent and
                     subrig.parent_type == 'BONE'):
                 copyPose(context, rig, subrig)
-
         if self.useApplyRestPose:
             applyRestPoses(context, rig, subrigs)
 
@@ -962,6 +960,15 @@ def applyRestPoses(context, rig, subrigs):
 
 def applyAllObjectTransforms(rigs):
     bpy.ops.object.select_all(action='DESELECT')
+    isBoneParented = False
+    for rig in rigs:
+        if rig.parent and rig.parent_type == 'BONE':
+            rig.select_set(True)
+            isBoneParented = True
+    if isBoneParented:
+        bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        bpy.ops.object.select_all(action='DESELECT')
     for rig in rigs:
         rig.select_set(True)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
