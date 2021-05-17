@@ -381,7 +381,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
     morphPreset : StringProperty(
         name = "Morph Preset",
         description = "Path to morph preset file",
-        default = "/preset.json")
+        default = "preset.json")
 
     useConvertHair : BoolProperty(
         name = "Convert Hair",
@@ -539,12 +539,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
         if mainChar and mainRig and mainMesh:
             if self.useMorphPreset:
-                if self.morphPreset[0] == "/":
-                    filepath = os.path.join(GS.presetPath, self.morphPreset[1:])
-                else:
-                    filepath = self.morphPreset
-                if not os.path.exists(filepath):
-                    raise DazError('Preset file\n"%s"\ndoes not exist' % filepath)
+                from .fileutils import getExistingFilePath
+                filepath = getExistingFilePath(GS.presetPath, self.morphPreset, ".json")
                 if activateObject(context, mainRig):
                     bpy.ops.daz.load_morph_preset(filepath = filepath)
             elif (self.units or

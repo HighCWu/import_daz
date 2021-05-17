@@ -164,8 +164,11 @@ class GlobalSettings:
         "DazSimulation" : "useSimulation",
     }
 
-    def fixPath(self, path):
-        return os.path.expanduser(path).replace("\\", "/")
+    def fixPath(self, path, last=""):
+        filepath = os.path.expanduser(path).replace("\\", "/")
+        if last and filepath[-1] != last:
+            filepath = filepath + last
+        return filepath
 
 
     def getDazPaths(self):
@@ -184,7 +187,7 @@ class GlobalSettings:
         self.mdlDirs = self.pathsFromScene(scn.DazMDLDirs)
         self.cloudDirs = self.pathsFromScene(scn.DazCloudDirs)
         self.errorPath = self.fixPath(getattr(scn, "DazErrorPath"))
-        self.presetPath = self.fixPath(getattr(scn, "DazPresetPath"))
+        self.presetPath = self.fixPath(getattr(scn, "DazPresetPath"), "/")
         self.eliminateDuplicates()
 
 

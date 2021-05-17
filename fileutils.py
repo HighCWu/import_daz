@@ -192,6 +192,17 @@ class CsvFile:
 #   SingleFile and MultiFile
 #-------------------------------------------------------------
 
+def getExistingFilePath(folder, filepath, ext):
+    filepath = os.path.expanduser(filepath).replace("\\", "/")
+    filepath = os.path.splitext(filepath)[0] + ext
+    if len(filepath) < 2 or (filepath[1] != ":" or filepath[0] != "/"):
+        filepath = os.path.join(folder, filepath)
+    if os.path.exists(filepath):
+        return filepath
+    else:
+        raise DazError('File does not exist:\n"%s"' % filepath)
+
+
 class SingleFile(ImportHelper):
     filepath : StringProperty(
         name="File Path",

@@ -2385,6 +2385,14 @@ class DAZ_OT_SaveMorphPreset(DazOperator, SingleFile, JsonFile, IsArmature):
     bl_label = "Save Morph Preset"
     bl_description = "Save morph preset"
 
+    filepath : StringProperty(
+        name="File Path",
+        default = "preset.json")
+
+    def invoke(self, context, event):
+        self.properties.filepath = GS.presetPath
+        return SingleFile.invoke(self, context, event)
+
     def run(self, context):
         from .load_json import saveJson
         rig = context.object
@@ -2424,6 +2432,14 @@ class DAZ_OT_LoadMorphPreset(DazOperator, MorphLoader, SingleFile, JsonFile, IsA
     bl_description = "Load morph preset"
 
     strength = 1.0
+
+    filepath : StringProperty(
+        name="File Path",
+        default = "preset.json")
+
+    def invoke(self, context, event):
+        self.properties.filepath = GS.presetPath
+        return SingleFile.invoke(self, context, event)
 
     def run(self, context):
         from .load_json import loadJson
