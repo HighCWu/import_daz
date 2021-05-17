@@ -1652,7 +1652,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
     def getMorph(self, prop, fcu, anims):
         from .asset import normalizeRef
         anim = {}
-        anim["url"] = "name://@selection#%s:?value" % prop
+        anim["url"] = "name://@selection#%s:?value/value" % prop
         vals = [fcu.evaluate(frame) for frame in range(self.first, self.last+1)]
         anim["keys"] = [(n/self.fps, val) for n,val in enumerate(vals)]
         anims.append(anim)
