@@ -453,13 +453,15 @@ def mergeUVLayers(me, keepIdx, mergeIdx):
 #   Get selected rigs
 #-------------------------------------------------------------
 
-def getSelectedRigs(context):
+def getSelectedRigs(context, useBoneParented):
     rig = context.object
     if rig:
         bpy.ops.object.mode_set(mode='OBJECT')
     subrigs = []
     for ob in getSelectedArmatures(context):
-        if ob != rig:
+        if ob.parent and ob.parent_type == 'BONE' and not useBoneParented:
+            pass
+        elif ob != rig:
             subrigs.append(ob)
     return rig, subrigs
 
@@ -474,7 +476,7 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig,subrigs = getSelectedRigs(context)
+        rig,subrigs = getSelectedRigs(context, True)
         if rig is None:
             print("No poses to copy")
             return
@@ -562,11 +564,6 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         description = "Don't merge armature that belong to different characters",
         default = False)
 
-    useApplyRestPose : BoolProperty(
-        name = "Apply Rest Pose",
-        description = "Apply current pose as rest pose for all armatures",
-        default = False)
-
     useCreateDuplicates : BoolProperty(
         name = "Create Duplicate Bones",
         description = "Create separate bones if several bones with the same name are found",
@@ -580,22 +577,16 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
     def draw(self, context):
         self.layout.prop(self, "clothesLayer")
         self.layout.prop(self, "separateCharacters")
-        self.layout.prop(self, "useApplyRestPose")
         self.layout.prop(self, "useCreateDuplicates")
         self.layout.prop(self, "createMeshCollection")
 
     def __init__(self):
         DriverUser.__init__(self)
 
-
     def run(self, context):
         if not self.separateCharacters:
-            rig,subrigs = getSelectedRigs(context)
-            if not self.useApplyRestPose:
-                wmats,children = self.applyTransforms([(rig, subrigs)])
+            rig,subrigs = getSelectedRigs(context, False)
             self.mergeRigs(context, rig, subrigs)
-            if not self.useApplyRestPose:
-                self.restoreTransforms([rig], wmats, children)
         else:
             rigs = []
             for rig in getSelectedArmatures(context):
@@ -605,57 +596,25 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             for rig in rigs:
                 subrigs = self.getSubRigs(context, rig)
                 pairs.append((rig,subrigs))
-            if not self.useApplyRestPose:
-                wmats,children = self.applyTransforms(pairs)
             for rig,subrigs in pairs:
                 activateObject(context, rig)
                 self.mergeRigs(context, rig, subrigs)
-            if not self.useApplyRestPose:
-                self.restoreTransforms(rigs, wmats, children)
 
 
     def getSubRigs(self, context, rig):
         subrigs = []
         for ob in rig.children:
             if ob.type == 'ARMATURE' and ob.select_get():
-                subrigs.append(ob)
+                if not (ob.parent and ob.parent_type == 'BONE'):
+                    subrigs.append(ob)
                 subrigs += self.getSubRigs(context, ob)
         return subrigs
-
-
-    def applyTransforms(self, pairs):
-        wmats = []
-        children = []
-        rigs = []
-        for rig,subrigs in pairs:
-            wmats.append(rig.matrix_world.copy())
-            rigs.append(rig)
-            self.collectChildren(rig, children)
-            for subrig in subrigs:
-                rigs.append(subrig)
-                self.collectChildren(subrig, children)
-        if applyAllObjectTransforms(rigs):
-            return wmats, children
-        else:
-            return wmats, []
 
 
     def collectChildren(self, subrig, children):
         for ob in subrig.children:
             if ob.type == 'MESH':
                 children.append(ob)
-
-
-    def restoreTransforms(self, rigs, wmats, children):
-        bpy.ops.object.select_all(action='DESELECT')
-        for rig,wmat in zip(rigs, wmats):
-            setWorldMatrix(rig, wmat.inverted())
-            rig.select_set(True)
-        for ob in children:
-            ob.select_set(True)
-        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        for rig,wmat in zip(rigs, wmats):
-            setWorldMatrix(rig, wmat)
 
 
     def mergeRigs(self, context, rig, subrigs):
@@ -688,8 +647,6 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             if not (subrig.parent and
                     subrig.parent_type == 'BONE'):
                 copyPose(context, rig, subrig)
-        if self.useApplyRestPose:
-            applyRestPoses(context, rig, subrigs)
 
         adds, hdadds, removes = self.createNewCollections(rig)
 
@@ -865,7 +822,7 @@ class DAZ_OT_CopyBones(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig,subrigs = getSelectedRigs(context)
+        rig,subrigs = getSelectedRigs(context, True)
         if rig is None:
             raise DazError("No target armature")
         if not subrigs:
@@ -902,7 +859,7 @@ class DAZ_OT_ApplyRestPoses(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig,subrigs = getSelectedRigs(context)
+        rig,subrigs = getSelectedRigs(context, True)
         applyRestPoses(context, rig, subrigs)
 
 
@@ -960,15 +917,6 @@ def applyRestPoses(context, rig, subrigs):
 
 def applyAllObjectTransforms(rigs):
     bpy.ops.object.select_all(action='DESELECT')
-    isBoneParented = False
-    for rig in rigs:
-        if rig.parent and rig.parent_type == 'BONE':
-            rig.select_set(True)
-            isBoneParented = True
-    if isBoneParented:
-        bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
-        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        bpy.ops.object.select_all(action='DESELECT')
     for rig in rigs:
         rig.select_set(True)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)

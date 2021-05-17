@@ -160,7 +160,11 @@ def deleteObjects(context, objects):
 
 def setWorldMatrix(ob, wmat):
     if ob.parent:
-        ob.matrix_parent_inverse = ob.parent.matrix_world.inverted()
+        if ob.parent_type == 'OBJECT':
+            ob.matrix_parent_inverse = ob.parent.matrix_world.inverted()
+        elif ob.parent_type == 'BONE':
+            pb = ob.parent.pose.bones[ob.parent_bone]
+            ob.matrix_parent_inverse = pb.matrix.inverted()
     ob.matrix_world = wmat
     if Vector(ob.location).length < 1e-6:
         ob.location = Zero
