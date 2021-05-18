@@ -453,15 +453,13 @@ def mergeUVLayers(me, keepIdx, mergeIdx):
 #   Get selected rigs
 #-------------------------------------------------------------
 
-def getSelectedRigs(context, useBoneParented):
+def getSelectedRigs(context):
     rig = context.object
     if rig:
         bpy.ops.object.mode_set(mode='OBJECT')
     subrigs = []
     for ob in getSelectedArmatures(context):
-        if ob.parent and ob.parent_type == 'BONE' and not useBoneParented:
-            pass
-        elif ob != rig:
+        if ob != rig:
             subrigs.append(ob)
     return rig, subrigs
 
@@ -476,7 +474,7 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig,subrigs = getSelectedRigs(context, True)
+        rig,subrigs = getSelectedRigs(context)
         if rig is None:
             print("No poses to copy")
             return
@@ -569,6 +567,11 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         description = "Create separate bones if several bones with the same name are found",
         default = False)
 
+    useMergeBoneParented : BoolProperty(
+        name = "Merge Bone Parented Rigs",
+        description = "Also merge rigs that are parented to bones",
+        default = False)
+
     createMeshCollection : BoolProperty(
         name = "Create Mesh Collection",
         description = "Create a new collection and move all meshes to it",
@@ -578,6 +581,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         self.layout.prop(self, "clothesLayer")
         self.layout.prop(self, "separateCharacters")
         self.layout.prop(self, "useCreateDuplicates")
+        self.layout.prop(self, "useMergeBoneParented")
         self.layout.prop(self, "createMeshCollection")
 
     def __init__(self):
@@ -585,8 +589,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
 
     def run(self, context):
         if not self.separateCharacters:
-            rig,subrigs = getSelectedRigs(context, False)
-            self.mergeRigs(context, rig, subrigs)
+            rig,subrigs = getSelectedRigs(context)
+            subrigs,childrigs = self.getChildRigs(subrigs)
+            self.mergeRigs(context, rig, subrigs, childrigs)
         else:
             rigs = []
             for rig in getSelectedArmatures(context):
@@ -595,10 +600,29 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             pairs = []
             for rig in rigs:
                 subrigs = self.getSubRigs(context, rig)
-                pairs.append((rig,subrigs))
-            for rig,subrigs in pairs:
+                subrigs,childrigs = self.getChildRigs(subrigs)
+                pairs.append((rig,subrigs,childrigs))
+            for rig,subrigs,childrigs in pairs:
                 activateObject(context, rig)
-                self.mergeRigs(context, rig, subrigs)
+                self.mergeRigs(context, rig, subrigs, childrigs)
+
+
+    def getChildRigs(self, rigs):
+        subrigs = []
+        childrigs = {}
+        for rig in rigs:
+            if rig.parent and rig.parent_type == 'BONE':
+                childrigs[rig.name] = (rig, rig.parent_bone)
+            else:
+                subrigs.append(rig)
+        if self.useMergeBoneParented:
+            bpy.ops.object.select_all(action='DESELECT')
+            for rig,_ in childrigs.values():
+                rig.select_set(True)
+            bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+            subrigs += [rig for rig,_ in childrigs.values()]
+        return subrigs,childrigs
 
 
     def getSubRigs(self, context, rig):
@@ -617,7 +641,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
                 children.append(ob)
 
 
-    def mergeRigs(self, context, rig, subrigs):
+    def mergeRigs(self, context, rig, subrigs, childrigs):
         LS.forAnimation(None, rig)
         if rig is None:
             raise DazError("No rigs to merge")
@@ -625,7 +649,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         rig.data.layers = 32*[True]
         success = False
         try:
-            self.mergeRigs1(rig, subrigs, context)
+            self.mergeRigs1(rig, subrigs, childrigs, context)
             success = True
         finally:
             rig.data.layers = oldvis
@@ -636,7 +660,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             updateDrivers(rig.data)
 
 
-    def mergeRigs1(self, rig, subrigs, context):
+    def mergeRigs1(self, rig, subrigs, childrigs, context):
         from .proxy import stripName
         from .node import clearParent
         scn = context.scene
@@ -644,9 +668,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         print("Merge rigs to %s:" % rig.name)
         bpy.ops.object.mode_set(mode='OBJECT')
         for subrig in subrigs:
-            if not (subrig.parent and
-                    subrig.parent_type == 'BONE'):
-                copyPose(context, rig, subrig)
+            copyPose(context, rig, subrig)
 
         adds, hdadds, removes = self.createNewCollections(rig)
 
@@ -659,10 +681,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         self.mainBones = [bone.name for bone in rig.data.bones]
         for subrig in subrigs:
             success = True
-            if (subrig.parent and
-                subrig.parent_type == 'BONE'):
-                parbone = subrig.parent_bone
-                clearParent(subrig)
+            if self.useMergeBoneParented and subrig.name in childrigs.keys():
+                parbone = childrigs[subrig.name][1]
             else:
                 parbone = None
 
@@ -822,7 +842,7 @@ class DAZ_OT_CopyBones(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig,subrigs = getSelectedRigs(context, True)
+        rig,subrigs = getSelectedRigs(context)
         if rig is None:
             raise DazError("No target armature")
         if not subrigs:
@@ -859,7 +879,7 @@ class DAZ_OT_ApplyRestPoses(DazOperator, IsArmature):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig,subrigs = getSelectedRigs(context, True)
+        rig,subrigs = getSelectedRigs(context)
         applyRestPoses(context, rig, subrigs)
 
 
