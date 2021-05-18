@@ -404,6 +404,7 @@ class LocalSettings:
         self.singleUser = False
         self.scene = ""
         self.render = None
+        self.hiddenMaterial = None
 
         self.nViewChildren = 0
         self.nRenderChildren = 0

@@ -303,39 +303,10 @@ class GeoNode(Node, SimNode):
 
 
     def hideVertexGroups(self, hidden):
-        hidden2 = []
-        for pgrp in hidden:
-            mapped = pgrp
-            if pgrp in self.data.mappings.keys():
-                mapped = self.data.mappings[pgrp]
-            if mapped in self.data.polygon_groups:
-                hidden2.append(pgrp)
-        self.hideVertexGroupsMesh(self.rna, hidden2)
+        fnums = self.data.getPolyGroup(hidden)
+        self.data.hidePolyGroup(self.rna, fnums)
         if self.hdobject and self.hdobject != self.rna:
-            self.hideVertexGroupsMesh(self.hdobject.rna, hidden2)
-
-
-    def hideVertexGroupsMesh(self, ob, hidden):
-        if not (ob and ob.data):
-            return
-        idxs = []
-        for vgrp in ob.vertex_groups:
-            if vgrp.name in hidden:
-                idxs.append(vgrp.index)
-        vgname = "_HIDDEN_"
-        vgrp = ob.vertex_groups.new(name=vgname)
-        vnums = []
-        for v in ob.data.vertices:
-            wlist = [(g.weight,n,g.group) for n,g in enumerate(v.groups)]
-            if wlist:
-                wlist.sort()
-                if wlist[-1][2] in idxs:
-                    vnums.append(v.index)
-        for vn in vnums:
-            vgrp.add([vn], 1, 'REPLACE')
-        mod = ob.modifiers.new(vgname, 'MASK')
-        mod.vertex_group = vgname
-        mod.invert_vertex_group = True
+            self.data.hidePolyGroup(self.hdobject.rna, fnums)
 
 
 def shiftMesh(ob, mat):
@@ -550,6 +521,46 @@ class Geometry(Asset, Channels):
             return self.material_group_vis[label]
         else:
             return True
+
+
+    def getPolyGroup(self, hidden):
+        polyidxs = dict([(pgrp,n) for n,pgrp in enumerate(self.polygon_groups)])
+        hideidxs = {}
+        for pgrp in hidden:
+            if pgrp in polyidxs.keys():
+                hideidxs[polyidxs[pgrp]] = True
+            elif pgrp in self.mappings.keys():
+                alt = self.mappings[pgrp]
+                if alt in polyidxs.keys():
+                    hideidxs[polyidxs[alt]] = True
+        return [fn for fn,idx in enumerate(self.polygon_indices)
+                if idx in hideidxs.keys()]
+
+
+    def hidePolyGroup(self, ob, fnums):
+        mat = self.getHiddenMaterial()
+        mnum = len(ob.data.materials)
+        ob.data.materials.append(mat)
+        for fn in fnums:
+            f = ob.data.polygons[fn]
+            f.material_index = mnum
+
+
+    def getHiddenMaterial(self):
+        if LS.hiddenMaterial:
+            return LS.hiddenMaterial
+        mat = LS.hiddenMaterial = bpy.data.materials.new("Hidden")
+        mat.use_nodes = True
+        mat.blend_method = 'CLIP'
+        mat.shadow_method = 'NONE'
+        tree = mat.node_tree
+        tree.nodes.clear()
+        node = tree.nodes.new(type = "ShaderNodeBsdfTransparent")
+        node.location = (0,0)
+        output = tree.nodes.new(type = "ShaderNodeOutputMaterial")
+        output.location = (200,0)
+        tree.links.new(node.outputs["BSDF"], output.inputs["Surface"])
+        return mat
 
 
     def preprocess(self, context, inst):
