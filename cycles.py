@@ -161,7 +161,7 @@ class CyclesMaterial(Material):
                         node.inputs[0].default_value /= area
 
 
-    def setTransSettings(self, useRefraction, useBlend):
+    def setTransSettings(self, useRefraction, useBlend, color, alpha):
         LS.usedFeatures["Transparent"] = True
         mat = self.rna
         if useBlend:
@@ -174,6 +174,8 @@ class CyclesMaterial(Material):
             mat.transparent_shadow_method = 'HASHED'
         else:
             mat.shadow_method = 'HASHED'
+        mat.diffuse_color[0:3] = color
+        mat.diffuse_color[3] = alpha
 
 #-------------------------------------------------------------
 #   Cycles node tree
@@ -931,12 +933,12 @@ class CyclesTree:
             node.inputs["Thin Wall"].default_value = 1
             node.inputs["Refraction IOR"].default_value = 1.0
             node.inputs["Refraction Roughness"].default_value = 0.0
-            self.material.setTransSettings(False, True)
+            self.material.setTransSettings(False, True, color, 0.1)
         else:
             node.inputs["Thin Wall"].default_value = 0
             self.linkScalar(roughtex, node, roughness, "Refraction Roughness")
             self.linkScalar(iortex, node, ior, "Refraction IOR")
-            self.material.setTransSettings(True, False)
+            self.material.setTransSettings(True, False, color, 0.4)
         self.linkBumpNormal(node)
         return node, color
 
@@ -957,7 +959,7 @@ class CyclesTree:
                 self.mixWithActive(alpha, tex, node)
             node.inputs["Color"].default_value[0:3] = WHITE
             if alpha < 1 or tex:
-                self.material.setTransSettings(False, False)
+                self.material.setTransSettings(False, False, WHITE, alpha)
             LS.usedFeatures["Transparent"] = True
 
     #-------------------------------------------------------------

@@ -105,7 +105,7 @@ def getSkinMaterial(mat):
 
 
 def setDiffuse(mat, color):
-    mat.diffuse_color = color[0:len(mat.diffuse_color)]
+    mat.diffuse_color[0:3] = color[0:3]
 
 
 def guessMaterialColor(mat, choose, enforce):
@@ -120,7 +120,9 @@ def guessMaterialColor(mat, choose, enforce):
 
     elif choose == 'GUESS':
         color = getSkinMaterial(mat)
-        if color is not None:
+        if mat.diffuse_color[3] < 1.0:
+            pass
+        elif color is not None:
             if color == "Skin":
                 setDiffuse(mat, LS.skinColor)
             elif color == "Red":
@@ -156,9 +158,6 @@ def hasDiffuseTexture(mat, enforce):
         if node is None:
             return True
         color = node.inputs[name].default_value
-        if (False and not isWhite(color) and not enforce):
-            setDiffuse(mat, color)
-            return False
         for link in mat.node_tree.links:
             if (link.to_node == node and
                 link.to_socket.name == name):
