@@ -532,13 +532,13 @@ class CyclesTree:
     def buildOverlay(self):
         if self.getValue(["Diffuse Overlay Weight"], 0):
             self.column += 1
-            weight,wttex = self.getColorTex(["Diffuse Overlay Weight"], "NONE", 0)
+            slot = self.getImageSlot(["Diffuse Overlay Weight"])
+            weight,wttex = self.getColorTex(["Diffuse Overlay Weight"], "NONE", 0, slot=slot)
             if self.getValue(["Diffuse Overlay Weight Squared"], False):
                 power = 4
             else:
                 power = 2
             if wttex:
-                slot = self.getImageSlot(["Diffuse Overlay Weight"])
                 wttex = self.raiseToPower(wttex, power, slot)
             color,tex = self.getColorTex(["Diffuse Overlay Color"], "COLOR", WHITE)
             from .cgroup import DiffuseGroup
@@ -564,11 +564,13 @@ class CyclesTree:
         node = self.addNode("ShaderNodeMath", col=self.column-1)
         node.operation = 'POWER'
         node.inputs[1].default_value = power
+        if slot not in tex.outputs.keys():
+            slot = 0
         self.links.new(tex.outputs[slot], node.inputs[0])
         return node
 
 
-    def getColorTex(self, attr, colorSpace, default, useFactor=True, useTex=True, maxval=0, value=None):
+    def getColorTex(self, attr, colorSpace, default, useFactor=True, useTex=True, maxval=0, value=None, slot=0):
         channel = self.material.getChannel(attr)
         if channel is None:
             return default,None
@@ -587,7 +589,7 @@ class CyclesTree:
             if value < 0:
                 return 0,None
         if useFactor:
-            value,tex = self.multiplyTex(value, tex)
+            value,tex = self.multiplySomeTex(value, tex, slot)
         if isVector(value) and not isVector(default):
             value = (value[0] + value[1] + value[2])/3
         if not isVector(value) and maxval and value > maxval:
@@ -1367,7 +1369,7 @@ class CyclesTree:
 
 
     def fixTex(self, tex, value, invert):
-        _,tex = self.multiplyTex(value, tex)
+        _,tex = self.multiplySomeTex(value, tex)
         if invert:
             return self.invertTex(tex, 3)
         else:
@@ -1383,16 +1385,16 @@ class CyclesTree:
             return None
 
 
-    def multiplyTex(self, value, tex):
+    def multiplySomeTex(self, value, tex, slot=0):
         if isinstance(value, float) or isinstance(value, int):
             if tex and value != 1:
-                tex = self.multiplyScalarTex(value, tex)
+                tex = self.multiplyScalarTex(value, tex, slot)
         elif tex:
-            tex = self.multiplyVectorTex(value, tex)
+            tex = self.multiplyVectorTex(value, tex, slot)
         return value,tex
 
 
-    def multiplyVectorTex(self, color, tex, col=None):
+    def multiplyVectorTex(self, color, tex, slot=0, col=None):
         if isWhite(color):
             return tex
         elif isBlack(color):
@@ -1409,7 +1411,7 @@ class CyclesTree:
         return mix
 
 
-    def multiplyScalarTex(self, value, tex, col=None, slot=0):
+    def multiplyScalarTex(self, value, tex, slot=0, col=None):
         if value == 1:
             return tex
         elif value == 0:

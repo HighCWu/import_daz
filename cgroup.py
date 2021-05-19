@@ -1065,7 +1065,7 @@ class LieGroup(CyclesGroup):
                     node = texnodes[idx][-1]
                     base = texnodes[idx][0]
                     if alpha != 1:
-                        node = self.multiplyScalarTex(alpha, base, 4, "Alpha")
+                        node = self.multiplyScalarTex(alpha, base, "Alpha", 4)
                         self.links.new(node.outputs[0], mix.inputs[0])
                     elif "Alpha" in base.outputs.keys():
                         self.links.new(base.outputs["Alpha"], mix.inputs[0])
