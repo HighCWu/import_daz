@@ -214,6 +214,10 @@ class SingleFile(ImportHelper):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+    def ensureExtension(self, filepath, ext):
+        file = os.path.splitext(filepath)[0]
+        return "%s.%s" % (file, ext)
+
 
 class MultiFile(ImportHelper):
     files : CollectionProperty(

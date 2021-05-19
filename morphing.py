@@ -680,11 +680,11 @@ class MorphLoader(LoadMorph):
         return (ob and ob.DazId)
 
 
-    def getBodyPart(self, context):
-        return self.bodypart
+    def getMorphSet(self, asset):
+        return self.morphset
 
 
-    def addUrl(self, asset, aliases, filepath):
+    def addUrl(self, asset, aliases, filepath, bodypart):
         if self.mesh:
             pgs = self.mesh.DazMorphUrls
         else:
@@ -692,13 +692,13 @@ class MorphLoader(LoadMorph):
         if filepath not in pgs.keys():
             item = pgs.add()
             item.name = filepath
-            item.morphset = self.morphset
+            item.morphset = self.getMorphSet(asset)
             if asset.name in aliases.keys():
                 item.text = aliases[asset.name]
             else:
                 item.text = asset.name
             item.category = self.category
-            item.bodypart = self.bodypart
+            item.bodypart = bodypart
 
 
     def getAllMorphs(self, namepaths, context):
@@ -719,11 +719,11 @@ class MorphLoader(LoadMorph):
         self.errors = {}
         t1 = perf_counter()
         if namepaths:
-            path = list(namepaths.values())[0]
+            path = namepaths[0][0]
             folder = os.path.dirname(path)
         else:
             raise DazError("No morphs selected")
-        self.loadAllMorphs(list(namepaths.items()))
+        self.loadAllMorphs(namepaths)
         t2 = perf_counter()
         print("Folder %s loaded in %.3f seconds" % (folder, t2-t1))
         if self.errors:
@@ -799,16 +799,16 @@ class StandardMorphSelector(Selector):
 
     def getActiveMorphFiles(self, context):
         from .fileutils import getSelection
-        pathdir = {}
+        namepaths = []
         paths = getSelection()
         if paths:
             for path in paths:
                 text = os.path.splitext(os.path.basename(path))[0]
-                pathdir[text] = path
+                namepaths.append((text, path, self.bodypart))
         else:
             for item in self.getSelectedItems():
-                pathdir[item.text] = item.name
-        return pathdir
+                namepaths.append((item.text, item.name, self.bodypart))
+        return namepaths
 
 
     def isActive(self, name, scn):
@@ -949,8 +949,7 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
         setupMorphPaths(scn, False)
         self.rig.DazMorphPrefixes = False
         self.morphsets = {}
-        self.bodyparts = {}
-        self.namepaths = {}
+        self.namepaths = []
         self.addFiles(self.units, "Units", "Face")
         self.addFiles(False, "Head", "Face")
         self.addFiles(self.expressions, "Expressions", "Face")
@@ -975,9 +974,8 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
         for key,filepath in struct.items():
             fileref = self.getFileRef(filepath)
             self.morphsets[fileref] = morphset
-            self.bodyparts[fileref] = bodypart
             if use:
-                self.namepaths[key] = filepath
+                self.namepaths.append((key, filepath, bodypart))
 
 
     def getMorphSet(self, asset):
@@ -996,15 +994,6 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
             else:
                 print(msg)
             return "Standard"
-
-
-    def getBodyPart(self, asset):
-        fileref = unquote(asset.fileref.lower())
-        if fileref in self.bodyparts.keys():
-            return self.bodyparts[fileref]
-        else:
-            print("Missing bodypart", fileref)
-            return "Custom"
 
 
     def addToMorphSet(self, prop, asset, hidden):
@@ -1099,11 +1088,11 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
 
 
     def getNamePaths(self):
-        namepaths = {}
+        namepaths = []
         folder = ""
         for path in self.getMultiFiles(["duf", "dsf"]):
             name = os.path.splitext(os.path.basename(path))[0]
-            namepaths[name] = path
+            namepaths.append((name,path,self.bodypart))
         return namepaths
 
 
@@ -2380,14 +2369,14 @@ class DAZ_OT_MeshToShape(DazOperator, IsMesh):
 #   Save and load morph presets
 #-------------------------------------------------------------
 
-class DAZ_OT_SaveMorphPreset(DazOperator, SingleFile, JsonFile, IsArmature):
-    bl_idname = "daz.save_morph_preset"
-    bl_label = "Save Morph Preset"
-    bl_description = "Save morph preset"
+class DAZ_OT_SaveFavoMorphs(DazOperator, SingleFile, JsonFile, IsArmature):
+    bl_idname = "daz.save_favo_morphs"
+    bl_label = "Save Favorite Morphs"
+    bl_description = "Save favorite morphs"
 
     filepath : StringProperty(
         name="File Path",
-        default = "preset.json")
+        default = "favorites.json")
 
     def invoke(self, context, event):
         self.properties.filepath = GS.presetPath
@@ -2396,11 +2385,12 @@ class DAZ_OT_SaveMorphPreset(DazOperator, SingleFile, JsonFile, IsArmature):
     def run(self, context):
         from .load_json import saveJson
         rig = context.object
-        struct = { "filetype" : "morph_preset" }
+        struct = { "filetype" : "favo_morphs" }
         self.addMorphUrls(rig, struct)
         for ob in rig.children:
             self.addMorphUrls(ob, struct)
-        saveJson(struct, self.filepath)
+        filepath = self.ensureExtension(self.filepath, "json")
+        saveJson(struct, filepath)
 
 
     def addMorphUrls(self, ob, struct):
@@ -2426,16 +2416,16 @@ class DAZ_OT_SaveMorphPreset(DazOperator, SingleFile, JsonFile, IsArmature):
             mstruct[key].append((quote(item.name), item.text, item.bodypart))
 
 
-class DAZ_OT_LoadMorphPreset(DazOperator, MorphLoader, SingleFile, JsonFile, IsArmature):
-    bl_idname = "daz.load_morph_preset"
-    bl_label = "Load Morph Preset"
-    bl_description = "Load morph preset"
+class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsArmature):
+    bl_idname = "daz.load_favo_morphs"
+    bl_label = "Load Favorite Morphs"
+    bl_description = "Load favorite morphs"
 
     strength = 1.0
 
     filepath : StringProperty(
         name="File Path",
-        default = "preset.json")
+        default = "favorites.json")
 
     def invoke(self, context, event):
         self.properties.filepath = GS.presetPath
@@ -2443,9 +2433,10 @@ class DAZ_OT_LoadMorphPreset(DazOperator, MorphLoader, SingleFile, JsonFile, IsA
 
     def run(self, context):
         from .load_json import loadJson
-        struct = loadJson(self.filepath)
+        filepath = self.ensureExtension(self.filepath, "json")
+        struct = loadJson(filepath)
         if ("filetype" not in struct.keys() or
-            struct["filetype"] != "morph_preset"):
+            struct["filetype"] != "favo_morphs"):
             raise DazError("This file does not contain a morph preset")
         rig = self.rig = context.object
         rig.DazMorphUrls.clear()
@@ -2477,8 +2468,7 @@ class DAZ_OT_LoadMorphPreset(DazOperator, MorphLoader, SingleFile, JsonFile, IsA
                 else:
                     self.morphset = key
                     self.category = ""
-                self.bodypart = infos[0][2]
-                namepaths = dict([(name,unquote(ref)) for ref,name,_ in infos])
+                namepaths = [(name, unquote(ref), bodypart) for ref,name,bodypart in infos]
                 self.getAllMorphs(namepaths, context)
 
 
@@ -2548,8 +2538,8 @@ classes = [
     DAZ_OT_ConvertStandardMorphsToShapes,
     DAZ_OT_ConvertCustomMorphsToShapes,
     DAZ_OT_MeshToShape,
-    DAZ_OT_SaveMorphPreset,
-    DAZ_OT_LoadMorphPreset,
+    DAZ_OT_SaveFavoMorphs,
+    DAZ_OT_LoadFavoMorphs,
 ]
 
 def register():

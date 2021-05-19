@@ -79,7 +79,8 @@ class LoadMorph(DriverUser):
         self.makeAllMorphs(namepaths, True)
         if self.loadMissed:
             print("Making missing morphs")
-            self.makeMissingMorphs()
+            bodypart = namepaths[0][2]
+            self.makeMissingMorphs(bodypart)
         if self.rig:
             self.createTmp()
             try:
@@ -100,17 +101,17 @@ class LoadMorph(DriverUser):
         namepaths.sort()
         idx = 0
         npaths = len(namepaths)
-        for name,path in namepaths:
+        for name,path,bodypart in namepaths:
             showProgress(idx, npaths)
             idx += 1
-            char = self.makeSingleMorph(name, path, force)
+            char = self.makeSingleMorph(name, path, bodypart, force)
             print(char, name)
 
     #------------------------------------------------------------------
     #   First pass: collect data
     #------------------------------------------------------------------
 
-    def makeSingleMorph(self, name, filepath, force):
+    def makeSingleMorph(self, name, filepath, bodypart, force):
         from .load_json import loadJson
         from .files import parseAssetFile
         from .modifier import Alias, ChannelAsset
@@ -127,7 +128,7 @@ class LoadMorph(DriverUser):
             return " -"
         elif isinstance(asset, Alias):
             return " _"
-        skey,ok = self.buildShapekey(asset)
+        skey,ok = self.buildShapekey(asset, bodypart)
         if not ok:
             return " #"
         elif self.rig:
@@ -136,7 +137,7 @@ class LoadMorph(DriverUser):
         aliases = {}
         if aliaspath is not None:
             aliases = self.loadAlias(aliaspath)
-        self.addUrl(asset, aliases, filepath)
+        self.addUrl(asset, aliases, filepath, bodypart)
         return " *"
 
 
@@ -175,7 +176,7 @@ class LoadMorph(DriverUser):
         return aliases
 
 
-    def buildShapekey(self, asset, useBuild=True):
+    def buildShapekey(self, asset, bodypart, useBuild=True):
         from .modifier import Morph
         from .driver import makePropDriver
         from .hdmorphs import addSkeyToUrls
@@ -221,7 +222,7 @@ class LoadMorph(DriverUser):
             else:
                 item = pgs.add()
                 item.name = prop
-            item.s = self.getBodyPart(asset)
+            item.s = bodypart
             return skey,True
         else:
             return None,True
@@ -487,7 +488,7 @@ class LoadMorph(DriverUser):
     #   Second pass: Load missing morphs
     #------------------------------------------------------------------
 
-    def makeMissingMorphs(self):
+    def makeMissingMorphs(self, bodypart):
         from .asset import getDazPath
         for fileref in self.loaded:
             self.referred[fileref] = False
@@ -497,7 +498,7 @@ class LoadMorph(DriverUser):
                 path = getDazPath(ref)
                 if path:
                     name = ref.rsplit("/",1)[-1]
-                    namepaths.append((name,path))
+                    namepaths.append((name,path,bodypart))
         self.makeAllMorphs(namepaths, False)
 
     #------------------------------------------------------------------
