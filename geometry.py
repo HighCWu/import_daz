@@ -538,6 +538,8 @@ class Geometry(Asset, Channels):
 
 
     def hidePolyGroup(self, ob, fnums):
+        if not fnums:
+            return
         mat = self.getHiddenMaterial()
         mnum = len(ob.data.materials)
         ob.data.materials.append(mat)
@@ -549,7 +551,8 @@ class Geometry(Asset, Channels):
     def getHiddenMaterial(self):
         if LS.hiddenMaterial:
             return LS.hiddenMaterial
-        mat = LS.hiddenMaterial = bpy.data.materials.new("Hidden")
+        mat = LS.hiddenMaterial = bpy.data.materials.new("HIDDEN")
+        mat.diffuse_color[3] = 0
         mat.use_nodes = True
         mat.blend_method = 'CLIP'
         mat.shadow_method = 'NONE'

@@ -32,14 +32,14 @@ from .utils import *
 from .error import *
 
 SkinMaterials = {
-    "eyelash" : (0, ),
-    "eyelashes" : (0, ),
-    "eyemoisture" : (1, ),
-    "lacrimal" : ("Red", ),
-    "lacrimals" : ("Red", ),
-    "cornea" : (0, ),
-    "tear" : (1, ),
-    "eyereflection" : (1, ),
+    "eyelash" : ("Black", ),
+    "eyelashes" : ("Black", ),
+    "eyemoisture" : ("Invis", ),
+    "lacrimal" : ("Invis", ),
+    "lacrimals" : ("Invis", ),
+    "cornea" : ("Invis", ),
+    "tear" : ("Invis", ),
+    "eyereflection" : ("Invis", ),
 
     "fingernail" : ("Red", ),
     "fingernails" : ("Red", ),
@@ -104,11 +104,6 @@ def getSkinMaterial(mat):
     return None
 
 
-def castsShadow(mat):
-    mattype = getSkinMaterial(mat)
-    return (not isinstance(mattype, int))
-
-
 def setDiffuse(mat, color):
     mat.diffuse_color = color[0:len(mat.diffuse_color)]
 
@@ -126,21 +121,20 @@ def guessMaterialColor(mat, choose, enforce):
     elif choose == 'GUESS':
         color = getSkinMaterial(mat)
         if color is not None:
-            if isinstance(color, int):
-                setDiffuse(mat, (color,color,color,1))
-            else:
-                if color == "Skin":
-                    setDiffuse(mat, LS.skinColor)
-                elif color == "Red":
-                    setDiffuse(mat, (1.0,0,0,1))
-                elif color == "Blue":
-                    setDiffuse(mat, (0,0,1,1))
-                elif color == "Teeth":
-                    setDiffuse(mat, (1,1,1,1))
-                elif color == "White":
-                    setDiffuse(mat, (1,1,1,1))
-                elif color == "Black":
-                    setDiffuse(mat, (0,0,0,1))
+            if color == "Skin":
+                setDiffuse(mat, LS.skinColor)
+            elif color == "Red":
+                setDiffuse(mat, (1,0,0,1))
+            elif color == "Blue":
+                setDiffuse(mat, (0,0,1,1))
+            elif color == "Teeth":
+                setDiffuse(mat, (1,1,1,1))
+            elif color == "White":
+                setDiffuse(mat, (1,1,1,1))
+            elif color == "Black":
+                setDiffuse(mat, (0,0,0,1))
+            elif color == "Invis":
+                setDiffuse(mat, (0.5,0.5,0.5,0))
         else:
             setDiffuse(mat, LS.clothesColor)
 
