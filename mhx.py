@@ -342,12 +342,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         name = "Knee Parent",
         description = "Parent of knee pole target")
 
-    useStretch : BoolProperty(
-        name = "Stretchy bones",
-        description = "Add stretch to arms and legs",
-        default = True
-    )
-
     useRenameBones : BoolProperty(
         name = "Rename Face Bones",
         description = "Rename face bones from l/r prefix to .L/.R suffix",
@@ -424,7 +418,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.layout.prop(self, "useKeepRig")
         self.layout.prop(self, "elbowParent")
         self.layout.prop(self, "kneeParent")
-        self.layout.prop(self, "useStretch")
         self.layout.prop(self, "useRenameBones")
 
 
@@ -1006,8 +999,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             if abs(roll - hand0.roll) > 180*D:
                 roll = normalizeRoll(roll + 180*D)
             hand = makeBone("hand"+suffix, rig, hand0.head, tail, roll, L_HELP, forearm)
-            hand.use_connect = not self.useStretch
-            hand0.use_connect = False
+            hand.use_connect = hand0.use_connect = False
             hand0.parent = hand
 
             size = 10*rig.DazScale
@@ -1021,7 +1013,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             forearmFk = deriveBone("forearm.fk"+suffix, forearm, rig, L_LARMFK+dlayer, upper_armFk)
             forearmFk.use_connect = forearm.use_connect
             handFk = deriveBone("hand.fk"+suffix, hand, rig, L_LARMFK+dlayer, forearmFk)
-            handFk.use_connect = not self.useStretch
+            handFk.use_connect = False
             upper_armIk = deriveBone("upper_arm.ik"+suffix, upper_arm, rig, L_HELP2, armParent)
             forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
             forearmIk.use_connect = forearm.use_connect
@@ -1054,7 +1046,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             foot = setLayer("foot"+suffix, rig, L_HELP)
             toe = setLayer("toe"+suffix, rig, L_HELP)
             foot.tail = toe.head
-            foot.use_connect = not self.useStretch
+            foot.use_connect = False
 
             legSocket = makeBone("legSocket"+suffix, rig, thigh.head, thigh.head+ez, 0, L_LEXTRA+dlayer, thigh.parent)
             legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, hip)
@@ -1288,13 +1280,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             trackTo(eye, gaze, rig, prop)
 
             self.lockLocations([
-                upper_armFk, forearmFk, handFk,
+                upper_armFk, forearmFk,
                 upper_armIk, forearmIk, upper_armIkTwist, forearmIkTwist, elbowLink,
-                thighFk, shinFk, footFk, toeFk,
+                thighFk, shinFk, toeFk,
                 thighIk, shinIk, thighIkTwist, shinIkTwist, kneeLink, footRev, toeRev,
             ])
-            if self.useStretch:
-                handFk.lock_location = footFk.lock_location = (False,False,False)
+            handFk.lock_location = footFk.lock_location = (False,False,False)
 
         prop = "MhaHintsOn"
         setMhxProp(rig.data, prop, True)
