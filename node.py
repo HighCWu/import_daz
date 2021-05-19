@@ -855,6 +855,10 @@ def getBoneMatrix(tfm, pb, test=False):
 
 def setBoneTransform(tfm, pb):
     mat = getBoneMatrix(tfm, pb)
+    if tfm.trans is None and tfm.scale is None:
+        mat = mat.to_quaternion().to_matrix().to_4x4()
+    elif tfm.trans is None:
+        mat.col[3] = (0,0,0,1)
     pb.matrix_basis = mat
 
 

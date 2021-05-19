@@ -718,10 +718,11 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                     if root.parent is None:
                         self.fixScale(root, root.scale[0])
 
-                if rig.DazRig == "mhx" and self.affectBones:
+                if ((rig.DazRig == "mhx" or rig.MhxRig) and self.affectBones and False):
                     for suffix in ["L", "R"]:
                         forearm = rig.pose.bones["forearm.fk."+suffix]
                         hand = rig.pose.bones["hand.fk."+suffix]
+                        #hand.location = Zero
                         hand.rotation_euler[1] = forearm.rotation_euler[1]
                         forearm.rotation_euler[1] = 0
                         if self.insertKeys:

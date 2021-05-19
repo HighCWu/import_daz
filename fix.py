@@ -727,7 +727,7 @@ class BendTwists:
             pb2 = rig.pose.bones[trgname]
             dampedTrack(bend, pb2, rig)
             copyRotation(twist, pb, rig, space='WORLD')
-            if stretch:
+            if stretch and self.useStretch:
                 stretchTo(bend, pb2, rig)
                 stretchTo(twist, pb2, rig)
             if self.addTweakBones:
