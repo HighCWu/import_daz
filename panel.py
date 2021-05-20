@@ -920,25 +920,6 @@ class DAZ_PT_SimpleRig(bpy.types.Panel):
             row.prop(amt, "layers", index=n, toggle=True, text=second)
 
 #------------------------------------------------------------------------
-#    Mhx Layers Panel
-#------------------------------------------------------------------------
-
-class DAZ_PT_Mhx(bpy.types.Panel):
-    bl_label = "MHX"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        return (context.object and context.object.DazRig == "mhx")
-
-    def draw(self, context):
-        self.layout.label(text="MHX RTS has moved.")
-        self.layout.label(text="See https://diffeomorphic.blogspot.com/2021/04/mhx-runtime-system-has-moved.html.")
-
-#------------------------------------------------------------------------
 #   Visibility panels
 #------------------------------------------------------------------------
 
@@ -1004,7 +985,6 @@ classes = [
     DAZ_PT_CustomMorphs,
     DAZ_PT_CustomMeshMorphs,
     DAZ_PT_SimpleRig,
-    DAZ_PT_Mhx,
     DAZ_PT_Visibility,
 ]
 

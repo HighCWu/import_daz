@@ -728,8 +728,10 @@ class BendTwists:
             dampedTrack(bend, pb2, rig)
             copyRotation(twist, pb, rig, space='WORLD')
             if stretch:
-                stretchTo(bend, pb2, rig)
-                stretchTo(twist, pb2, rig)
+                cns = stretchTo(bend, pb2, rig)
+                cns.mute = True
+                cns = stretchTo(twist, pb2, rig)
+                cns.mute = True
             if self.addTweakBones:
                 btwkname = self.getTweakBoneName(bendname)
                 ttwkname = self.getTweakBoneName(twistname)

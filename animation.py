@@ -614,7 +614,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         tfm = Transform()
         if self.affectObject == 'OBJECT':
             tfm.setRna(rig)
-            if self.insertKeys:
+            if self.useInsertKeys:
                 tfm.insertKeys(rig, None, frame, rig.name, self.driven)
         if rig.type != 'ARMATURE':
             return
@@ -622,7 +622,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             for pb in rig.pose.bones:
                 if self.isAvailable(pb, rig):
                     pb.matrix_basis = Matrix()
-                    if self.insertKeys:
+                    if self.useInsertKeys:
                         tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
         if self.affectMorphs:
             from .morphing import getAllLowerMorphNames
@@ -631,7 +631,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 if (prop.lower() in lprops and
                     isinstance(rig[prop], float)):
                     rig[prop] = 0.0
-                    if self.insertKeys:
+                    if self.useInsertKeys:
                         rig.keyframe_insert(propRef(prop), frame=frame, group=prop)
 
 
@@ -689,7 +689,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                         bname in self.KnownRigs):
                         if self.affectObject != 'NONE':
                             tfm.setRna(rig)
-                            if self.insertKeys:
+                            if self.useInsertKeys:
                                 tfm.insertKeys(rig, None, n+offset, rig.name, self.driven)
                     elif rig.type != 'ARMATURE':
                         continue
@@ -707,7 +707,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                                 elif isinstance(oldval, float):
                                     value = float(value)
                                 rig[key] = value
-                                if self.insertKeys:
+                                if self.useInsertKeys:
                                     rig.keyframe_insert(propRef(key), frame=n+offset, group="Morphs")
 
                 for (bname, tfm, value) in twists:
@@ -722,12 +722,16 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                     for suffix in ["L", "R"]:
                         forearm = rig.pose.bones["forearm.fk."+suffix]
                         hand = rig.pose.bones["hand.fk."+suffix]
-                        #hand.location = Zero
-                        hand.rotation_euler[1] = forearm.rotation_euler[1]
-                        forearm.rotation_euler[1] = 0
-                        if self.insertKeys:
-                            tfm.insertKeys(rig, forearm, n+offset, bname, self.driven)
-                            tfm.insertKeys(rig, hand, n+offset, bname, self.driven)
+                        foot = rig.pose.bones["foot.fk."+suffix]
+                        hand.location = foot.location = Zero
+                        if ("MhaForearmsFollow" not in rig.data.keys() or
+                            rig.data["MhaForearmsFollow"]):
+                            hand.rotation_euler[1] = forearm.rotation_euler[1]
+                            forearm.rotation_euler[1] = 0
+                        if self.useInsertKeys:
+                            tfm.insertKeys(rig, forearm, n+offset, forearm.name, self.driven)
+                            tfm.insertKeys(rig, hand, n+offset, hand.name, self.driven)
+                            tfm.insertKeys(rig, foot, n+offset, foot.name, self.driven)
 
                 if self.usePoseLib:
                     name = os.path.splitext(os.path.basename(filepath))[0]
@@ -818,7 +822,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 setBoneTransform(tfm, pb)
                 self.imposeLocks(pb)
                 self.imposeLimits(pb)
-            if self.insertKeys:
+            if self.useInsertKeys:
                 tfm.insertKeys(rig, pb, n+offset, bname, self.driven)
         else:
             pass
@@ -935,9 +939,9 @@ class StandardAnimation:
             selected = self.selectAll(rig, True)
         LS.forAnimation(self, rig)
         if scn.tool_settings.use_keyframe_insert_auto:
-            self.insertKeys = True
+            self.useInsertKeys = True
         else:
-            self.insertKeys = self.useAction
+            self.useInsertKeys = self.useAction
         self.findDrivers(rig)
         self.clearAnimation(rig)
         missing = []
