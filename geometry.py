@@ -1232,6 +1232,32 @@ class DAZ_OT_LoadUV(DazOperator, DazFile, SingleFile, IsMesh):
                     m += 1
 
 #----------------------------------------------------------
+#   Copy UV set
+#----------------------------------------------------------
+
+class DAZ_OT_CopyUV(DazOperator, IsMesh):
+    bl_idname = "daz.copy_uv"
+    bl_label = "Copy UV Set"
+    bl_description = "Copy active UV layer from active mesh to selected meshes"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        from .finger import getFingerPrint
+        src = context.object
+        srcUv = src.data.uv_layers.active
+        if srcUv is None:
+            raise DazError("No active UV layer")
+        srcfinger = getFingerPrint(src)
+        for trg in getSelectedMeshes(context):
+            if trg != src:
+                trgfinger = getFingerPrint(trg)
+                if srcfinger != trgfinger:
+                    raise DazError("Can only copy UV sets between identical meshes")
+                trgUv = makeNewUvloop(trg.data, srcUv.name, True)
+                for srcdata,trgdata in zip(srcUv.data, trgUv.data):
+                    trgdata.uv = srcdata.uv
+
+#----------------------------------------------------------
 #   Prune vertex groups
 #----------------------------------------------------------
 
@@ -1286,6 +1312,7 @@ classes = [
     DAZ_OT_RestoreUDims,
     DAZ_OT_UDimsFromTextures,
     DAZ_OT_LoadUV,
+    DAZ_OT_CopyUV,
     DAZ_OT_LimitVertexGroups,
 ]
 

@@ -232,6 +232,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         box = layout.box()
         if showBox(scn, "DazShowMaterials2", box):
             box.operator("daz.load_uv")
+            box.operator("daz.copy_uv")
             box.operator("daz.prune_uv_maps")
             box.separator()
             box.operator("daz.collapse_udims")
