@@ -284,13 +284,13 @@ class LoadMorph(DriverUser):
                 setBoolProp(self.amt, final, asset.value)
             elif asset.type == "float":
                 self.setFloatLimits(self.rig, raw, GS.sliderLimits, asset, skey)
-                self.setFloatLimits(self.amt, final, GS.internalLimits, asset, skey)
+                self.setFloatLimits(self.amt, final, GS.finalLimits, asset, skey)
             elif asset.type == "int":
                 self.rig[raw] = 0
                 self.amt[final] = 0
             else:
                 self.setFloatLimits(self.rig, raw, GS.sliderLimits, asset, skey)
-                self.setFloatLimits(self.amt, final, GS.internalLimits, asset, skey)
+                self.setFloatLimits(self.amt, final, GS.finalLimits, asset, skey)
                 reportError("BUG: Unknown asset type: %s.\nAsset: %s" % (asset.type, asset), trigger=(2,3))
             if visible:
                 setActivated(self.rig, raw, True)

@@ -86,7 +86,7 @@ class GlobalSettings:
         self.customMin = -1.0
         self.customMax = 1.0
         self.morphMultiplier = 1.0
-        self.internalLimits = 'DAZ'
+        self.finalLimits = 'DAZ'
         self.sliderLimits = 'DAZ'
         self.showFinalProps = False
 
@@ -141,7 +141,7 @@ class GlobalSettings:
         "DazCustomMin" : "customMin",
         "DazCustomMax" : "customMax",
         "DazMorphMultiplier" : "morphMultiplier",
-        "DazInternalLimits" : "internalLimits",
+        "DazFinalLimits" : "finalLimits",
         "DazSliderLimits" : "sliderLimits",
         "DazShowFinalProps" : "showFinalProps",
 

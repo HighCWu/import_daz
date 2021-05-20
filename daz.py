@@ -227,7 +227,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box = col.box()
         box.label(text = "Sliders")
         box.prop(scn, "DazSliderLimits")
-        box.prop(scn, "DazInternalLimits")
+        box.prop(scn, "DazFinalLimits")
         box.prop(scn, "DazMorphMultiplier")
         box.prop(scn, "DazCustomMin")
         box.prop(scn, "DazCustomMax")
@@ -365,10 +365,10 @@ def register():
              ('CUSTOM', "Custom", "Use min and max values from custom sliders"),
              ('NONE', "None", "Don't limit sliders")]
 
-    bpy.types.Scene.DazInternalLimits = EnumProperty(
+    bpy.types.Scene.DazFinalLimits = EnumProperty(
         items = enums,
-        name = "Internal Limits",
-        description = "Internal min and max values for DAZ properties")
+        name = "Final Limits",
+        description = "Final min and max values for DAZ properties,\nwhen all sliders are taken into account")
 
     bpy.types.Scene.DazSliderLimits = EnumProperty(
         items = enums,
