@@ -773,7 +773,8 @@ class StandardMorphLoader(MorphLoader):
     def run(self, context):
         scn = context.scene
         setupMorphPaths(scn, False)
-        self.rig.DazMorphPrefixes = False
+        if self.rig:
+            self.rig.DazMorphPrefixes = False
         namepaths = self.getActiveMorphFiles(context)
         msg = self.getAllMorphs(namepaths, context)
         if msg:
@@ -940,7 +941,8 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
             return
         scn = context.scene
         setupMorphPaths(scn, False)
-        self.rig.DazMorphPrefixes = False
+        if self.rig:
+            self.rig.DazMorphPrefixes = False
         self.morphsets = {}
         self.namepaths = []
         self.addFiles(self.units, "Units", "Face")
