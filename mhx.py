@@ -992,6 +992,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             forearm = setLayer("forearm"+suffix, rig, L_HELP)
             hand0 = setLayer("hand"+suffix, rig, L_DEF)
             hand0.name = "hand0"+suffix
+            forearm.tail = hand0.head
             vec = forearm.tail - forearm.head
             vec.normalize()
             tail = hand0.head + vec*hand0.length
@@ -1045,8 +1046,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             shin = setLayer("shin"+suffix, rig, L_HELP)
             foot = setLayer("foot"+suffix, rig, L_HELP)
             toe = setLayer("toe"+suffix, rig, L_HELP)
+            shin.tail = foot.head
             foot.tail = toe.head
             foot.use_connect = True
+            toe.use_connect = True
 
             legSocket = makeBone("legSocket"+suffix, rig, thigh.head, thigh.head+ez, 0, L_LEXTRA+dlayer, thigh.parent)
             legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, hip)
@@ -1060,6 +1063,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             footFk.use_connect = True
             footFk.layers[L_LEXTRA+dlayer] = True
             toeFk = deriveBone("toe.fk"+suffix, toe, rig, L_LLEGFK+dlayer, footFk)
+            toeFk.use_connect = True
             toeFk.layers[L_LEXTRA+dlayer] = True
             thighIk = deriveBone("thigh.ik"+suffix, thigh, rig, L_HELP2, thigh.parent)
             shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
@@ -1075,7 +1079,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 locFootIk = (foot.head[0], foot.head[1] - 0.5*vec[1], toe.tail[2])
             footIk = makeBone("foot.ik"+suffix, rig, locFootIk, toe.tail, 180*D, L_LLEGIK+dlayer, None)
             toeRev = makeBone("toe.rev"+suffix, rig, toe.tail, toe.head, 0, L_LLEGIK+dlayer, footIk)
+            toeRev.use_connect = True
             footRev = makeBone("foot.rev"+suffix, rig, toe.head, foot.head, 0, L_LLEGIK+dlayer, toeRev)
+            footRev.use_connect = True
             locAnkle = foot.head + (shin.tail-shin.head)/4
             ankle = makeBone("ankle"+suffix, rig, foot.head, locAnkle, shin.roll, L_LEXTRA+dlayer, None)
             ankleIk = deriveBone("ankle.ik"+suffix, ankle, rig, L_HELP2, footRev)
