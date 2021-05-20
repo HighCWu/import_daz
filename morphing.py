@@ -745,15 +745,8 @@ class StandardMorphLoader(MorphLoader):
     suppressError = True
     ignoreHD = False
 
-    def setupCharacter(self, context, rigIsMesh):
+    def setupCharacter(self, context):
         ob = context.object
-        if self.mesh is None and rigIsMesh:
-            if self.rig.DazRig == "genesis3":
-                self.char = "Genesis3-female"
-                #self.mesh = self.rig
-            elif self.rig.DazRig == "genesis8":
-                self.char = "Genesis8-female"
-                #self.mesh = self.rig
         if not self.char:
             from .error import invokeErrorMessage
             msg = ("Can not add morphs to this mesh:\n %s" % ob.name)
@@ -821,7 +814,7 @@ class StandardMorphSelector(Selector):
         global theMorphFiles
         scn = context.scene
         self.selection.clear()
-        if not self.setupCharacter(context, False):
+        if not self.setupCharacter(context):
             return {'FINISHED'}
         setupMorphPaths(scn, False)
         try:
@@ -943,7 +936,7 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
     morphset = "Standard"
 
     def run(self, context):
-        if not self.setupCharacter(context, False):
+        if not self.setupCharacter(context):
             return
         scn = context.scene
         setupMorphPaths(scn, False)

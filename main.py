@@ -373,15 +373,15 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         description = "Add an extra layer of driven bones, to make them poseable",
         default = False)
 
-    useMorphPreset : BoolProperty(
-        name = "Use Morph Preset",
-        description = "Load a morph preset instead of loading standard morphs",
+    useFavoMorphs : BoolProperty(
+        name = "Use Favorite Morphs",
+        description = "Load a favorite morphs instead of loading standard morphs",
         default = False)
 
     morphPreset : StringProperty(
-        name = "Morph Preset",
-        description = "Path to morph preset file",
-        default = "preset.json")
+        name = "Favorite Morphs",
+        description = "Path to file with favorite morphs",
+        default = "favorites.json")
 
     useConvertHair : BoolProperty(
         name = "Convert Hair",
@@ -394,12 +394,12 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         self.layout.prop(self, "useMergeMaterials")
         self.layout.prop(self, "useMergeRigs")
         self.layout.prop(self, "useMergeToes")
-        self.layout.prop(self, "useMorphPreset")
-        if self.useMorphPreset:
+        self.layout.prop(self, "useFavoMorphs")
+        if self.useFavoMorphs:
             self.layout.prop(self, "morphPreset")
         else:
             MorphTypeOptions.draw(self, context)
-        if self.useMorphPreset or self.jcms or self.flexions:
+        if self.useFavoMorphs or self.jcms or self.flexions:
             self.layout.prop(self, "useTransferShapes")
         self.layout.prop(self, "useMergeGeografts")
         self.layout.prop(self, "useMergeLashes")
@@ -538,11 +538,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             bpy.ops.daz.merge_materials()
 
         if mainChar and mainRig and mainMesh:
-            if self.useMorphPreset:
+            if self.useFavoMorphs:
                 from .fileutils import getExistingFilePath
                 filepath = getExistingFilePath(GS.presetPath, self.morphPreset, ".json")
                 if activateObject(context, mainRig):
-                    bpy.ops.daz.load_morph_preset(filepath = filepath)
+                    bpy.ops.daz.load_favo_morphs(filepath = filepath)
             elif (self.units or
                   self.expressions or
                   self.visemes or
