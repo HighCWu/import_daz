@@ -324,9 +324,7 @@ class GizmoUser:
             gizmo = struct[gname]
             me = bpy.data.meshes.new(gname)
             me.from_pydata(gizmo["verts"], gizmo["edges"], [])
-            ob = self.makeGizmo(gname, me)
-            if gizmo["subsurf"]:
-                ob.modifiers.new('SUBSURF', 'SUBSURF')
+            self.makeGizmo(gname, me)
 
 
     def makeGizmo(self, gname, me, parent=None):
