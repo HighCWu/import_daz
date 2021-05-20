@@ -122,7 +122,7 @@ class LoadMorph(DriverUser):
         if not force:
             raw = asset.getName()
             final = finalProp(raw)
-            if raw in self.rig.keys() and final in self.amt.keys():
+            if self.rig and raw in self.rig.keys() and final in self.amt.keys():
                 return " ."
         if not isinstance(asset, ChannelAsset):
             return " -"
@@ -155,7 +155,9 @@ class LoadMorph(DriverUser):
         from .load_json import loadJson
         struct = loadJson(filepath)
         aliases = {}
-        if "modifier_library" in struct.keys():
+        if self.rig is None:
+            return aliases
+        elif "modifier_library" in struct.keys():
             for mod in struct["modifier_library"]:
                 if "channel" in mod.keys():
                     channel = mod["channel"]
@@ -662,6 +664,8 @@ class LoadMorph(DriverUser):
 
 
     def ensureExists(self, raw, final, default):
+        if self.rig is None:
+            return
         if raw not in self.rig.keys():
             self.rig[raw] = default
         if final not in self.amt.keys():

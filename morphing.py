@@ -687,8 +687,10 @@ class MorphLoader(LoadMorph):
     def addUrl(self, asset, aliases, filepath, bodypart):
         if self.mesh:
             pgs = self.mesh.DazMorphUrls
-        else:
+        elif self.rig:
             pgs = self.rig.DazMorphUrls
+        else:
+            return
         if filepath not in pgs.keys():
             item = pgs.add()
             item.name = filepath
@@ -1072,7 +1074,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
         namepaths = self.getNamePaths()
         self.category = self.catname
         msg = self.getAllMorphs(namepaths, context)
-        if self.usePropDrivers and self.drivers:
+        if self.usePropDrivers and self.drivers and self.rig:
             self.rig.DazCustomMorphs = True
         elif self.useMeshCats and self.shapekeys:
             props = self.shapekeys.keys()
@@ -2468,7 +2470,9 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
 
 
     def addToMorphSet(self, prop, asset, hidden):
-        if self.morphset == "Custom":
+        if self.rig is None:
+            return
+        elif self.morphset == "Custom":
             cats = self.rig.DazMorphCats
             if self.category not in cats.keys():
                 cat = cats.add()
