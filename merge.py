@@ -575,7 +575,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
     useMergeBoneParented : BoolProperty(
         name = "Merge Bone Parented Rigs",
         description = "Also merge rigs that are parented to bones",
-        default = False)
+        default = True)
 
     createMeshCollection : BoolProperty(
         name = "Create Mesh Collection",

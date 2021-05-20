@@ -1000,7 +1000,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             if abs(roll - hand0.roll) > 180*D:
                 roll = normalizeRoll(roll + 180*D)
             hand = makeBone("hand"+suffix, rig, hand0.head, tail, roll, L_HELP, forearm)
-            hand.use_connect = hand0.use_connect = True
+            hand.use_connect = True
+            hand0.use_connect = False
             hand0.parent = hand
 
             size = 10*rig.DazScale
@@ -1014,7 +1015,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             forearmFk = deriveBone("forearm.fk"+suffix, forearm, rig, L_LARMFK+dlayer, upper_armFk)
             forearmFk.use_connect = forearm.use_connect
             handFk = deriveBone("hand.fk"+suffix, hand, rig, L_LARMFK+dlayer, forearmFk)
-            handFk.use_connect = False
+            handFk.use_connect = True
             upper_armIk = deriveBone("upper_arm.ik"+suffix, upper_arm, rig, L_HELP2, armParent)
             forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
             forearmIk.use_connect = forearm.use_connect
