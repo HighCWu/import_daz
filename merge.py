@@ -545,10 +545,14 @@ class DAZ_OT_EliminateEmpties(DazOperator):
 #-------------------------------------------------------------
 
 class RigInfo:
-    def __init__(self, rig):
+    def __init__(self, rig, conforms, btn):
         self.name = rig.name
         self.rig = rig
-        self.meshes = self.addMeshes(rig)
+        self.button = btn
+        self.objects = []
+        self.deletes = []
+        self.addObjects(rig)
+        self.conforms = conforms
         if rig.parent and rig.parent_type == 'BONE':
             self.parbone = rig.parent_bone
         else:
@@ -562,18 +566,20 @@ class RigInfo:
         return "%s:%s" % (self.rig.name, bname)
 
 
-    def addMeshes(self, ob):
-        meshes = []
+    def addObjects(self, ob):
         for child in ob.children:
             if getHideViewport(child):
                 continue
-            elif child.type == 'MESH':
+            elif (self.button.useEliminateEmpties and
+                  child.type == 'EMPTY' and
+                  child.instance_type == 'NONE'):
+                self.deletes.append(child)
+                self.addObjects(child)
+            elif child.type != 'ARMATURE':
                 partype = child.parent_type
                 parbone = child.parent_bone
-                meshes.append((child, (partype, parbone)))
-            elif child.type == 'EMPTY':
-                meshes += self.addMeshes(child)
-        return meshes
+                self.objects.append((child, (partype, parbone)))
+                self.addObjects(child)
 
 
     def getEditBones(self, mainbones):
@@ -631,6 +637,18 @@ class RigInfo:
             copyConstraints(subpb, pb, rig)
 
 
+    def reParent(self, rig):
+        subrig = self.rig
+        wmat = subrig.matrix_world.copy()
+        subrig.parent = rig
+        if self.parbone:
+            subrig.parent_type = 'BONE'
+            subrig.parent_bone = self.parbone
+        else:
+            subrig.parent_type = 'OBJECT'
+        subrig.matrix_world = wmat
+
+
     def renameVertexGroups(self, ob):
         for key in self.editbones.keys():
             _,bname = key.split(":", 1)
@@ -661,14 +679,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         description = "Create separate bones if several bones with the same name are found",
         default = False)
 
-    useApplyTransforms : BoolProperty(
-        name = "Apply Transforms",
-        description = "Apply all object level transforms",
-        default = True)
-
-    useMergeBoneParented : BoolProperty(
-        name = "Merge Bone Parented Rigs",
-        description = "Also merge rigs that are parented to bones",
+    useMergeNonConforming : BoolProperty(
+        name = "Merge Non-conforming Rigs",
+        description = "Also merge non-conforming rigs.\n(Bone parented and with no bones in common with main rig)",
         default = True)
 
     createMeshCollection : BoolProperty(
@@ -676,13 +689,18 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         description = "Create a new collection and move all meshes to it",
         default = True)
 
+    useEliminateEmpties : BoolProperty(
+        name = "Eliminate Empties",
+        description = "Eliminate empties without instance groups",
+        default = True)
+
     def draw(self, context):
         self.layout.prop(self, "clothesLayer")
         self.layout.prop(self, "separateCharacters")
         self.layout.prop(self, "useCreateDuplicates")
-        self.layout.prop(self, "useApplyTransforms")
-        self.layout.prop(self, "useMergeBoneParented")
+        self.layout.prop(self, "useMergeNonConforming")
         self.layout.prop(self, "createMeshCollection")
+        self.layout.prop(self, "useEliminateEmpties")
 
     def __init__(self):
         DriverUser.__init__(self)
@@ -690,54 +708,64 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
     def run(self, context):
         if not self.separateCharacters:
             rig,subrigs = getSelectedRigs(context)
-            info,subinfos,childinfos = self.getRigInfos(rig, subrigs)
-            self.mergeRigs(context, info, subinfos, childinfos)
+            info,subinfos = self.getRigInfos(rig, subrigs)
+            self.mergeRigs(context, info, subinfos)
         else:
             rigs = []
             for rig in getSelectedArmatures(context):
                 if rig.parent is None:
                     rigs.append(rig)
-            pairs = []
+            rpairs = []
             for rig in rigs:
                 subrigs = self.getSubRigs(context, rig)
-                info,subinfos,childinfos = self.getRigInfos(rig, subrigs)
-                pairs.append((info,subinfos,childinfos))
-            for info,subinfos,childinfos in pairs:
+                rpairs.append((rig,subrigs))
+            ipairs = []
+            for rig,subrigs in rpairs:
+                info,subinfos = self.getRigInfos(rig, subrigs)
+                ipairs.append((info,subinfos))
+            for info,subinfos in ipairs:
                 activateObject(context, info.rig)
-                self.mergeRigs(context, info, subinfos, childinfos)
+                self.mergeRigs(context, info, subinfos)
 
 
     def getRigInfos(self, rig, subrigs):
         subinfos = []
-        childinfos = {}
-        info = RigInfo(rig)
+        info = RigInfo(rig, True, self)
         for subrig in subrigs:
-            subinfo = RigInfo(subrig)
             if subrig.parent and subrig.parent_type == 'BONE':
-                childinfos[subrig.name] = subinfo
-                if self.useMergeBoneParented:
-                    subinfos.append(subinfo)
+                conforms = self.isConforming(subrig, rig)
             else:
-                subinfos.append(subinfo)
+                conforms = True
+            subinfo = RigInfo(subrig, conforms, self)
+            subinfos.append(subinfo)
 
-        if self.useMergeBoneParented:
-            bpy.ops.object.select_all(action='DESELECT')
-            for ob,_ in info.meshes:
+        bpy.ops.object.select_all(action='DESELECT')
+        for ob,_ in info.objects:
+            ob.select_set(True)
+        for subinfo in subinfos:
+            subinfo.rig.select_set(True)
+            for ob,_ in subinfo.objects:
                 ob.select_set(True)
-            for subinfo in subinfos:
-                subinfo.rig.select_set(True)
-                for ob,_ in subinfo.meshes:
-                    ob.select_set(True)
-            bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
-        return info, subinfos, childinfos
+        bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+        return info, subinfos
+
+
+    def isConforming(self, subrig, rig):
+        if self.useMergeNonConforming:
+            return True
+        for bname in subrig.data.bones.keys():
+            if bname in rig.data.bones.keys():
+                return True
+        return False
 
 
     def applyTransforms(self, infos):
         bpy.ops.object.select_all(action='DESELECT')
         for info in infos:
-            info.rig.select_set(True)
-            for ob,_ in info.meshes:
-                ob.select_set(True)
+            if info.conforms:
+                info.rig.select_set(True)
+                for ob,_ in info.objects:
+                    ob.select_set(True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
 
@@ -745,19 +773,12 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         subrigs = []
         for ob in rig.children:
             if ob.type == 'ARMATURE' and ob.select_get():
-                if not (ob.parent and ob.parent_type == 'BONE'):
-                    subrigs.append(ob)
+                subrigs.append(ob)
                 subrigs += self.getSubRigs(context, ob)
         return subrigs
 
 
-    def collectChildren(self, subrig, children):
-        for ob in subrig.children:
-            if ob.type == 'MESH':
-                children.append(ob)
-
-
-    def mergeRigs(self, context, info, subinfos, childinfos):
+    def mergeRigs(self, context, info, subinfos):
         rig = info.rig
         LS.forAnimation(None, rig)
         if rig is None:
@@ -766,7 +787,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         rig.data.layers = 32*[True]
         success = False
         try:
-            self.mergeRigs1(info, subinfos, childinfos, context)
+            self.mergeRigs1(info, subinfos, context)
             success = True
         finally:
             rig.data.layers = oldvis
@@ -777,14 +798,13 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             updateDrivers(rig.data)
 
 
-    def mergeRigs1(self, info, subinfos, childinfos, context):
+    def mergeRigs1(self, info, subinfos, context):
         from .node import clearParent
         scn = context.scene
         rig = info.rig
 
         print("Merge infos to %s:" % rig.name)
-        if self.useApplyTransforms:
-            self.applyTransforms([info]+subinfos)
+        self.applyTransforms([info]+subinfos)
         if self.useCreateDuplicates:
             mainbones = []
         else:
@@ -797,27 +817,33 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='EDIT')
         for subinfo in subinfos:
-            subinfo.addEditBones(rig, layers)
+            if subinfo.conforms:
+                subinfo.addEditBones(rig, layers)
         bpy.ops.object.mode_set(mode='OBJECT')
-        self.reParent(info, rig, adds, hdadds, removes)
+        self.reparentObjects(info, rig, adds, hdadds, removes)
         for subinfo in subinfos:
-            subinfo.copyPose(context, rig, self)
-            for ob,_ in subinfo.meshes:
-                self.changeArmatureModifier(ob, rig)
-                subinfo.renameVertexGroups(ob)
-            self.reParent(subinfo, rig, adds, hdadds, removes)
-            subinfo.rig.parent = None
-            deleteObjects(context, [subinfo.rig])
+            if subinfo.conforms:
+                subinfo.copyPose(context, rig, self)
+                for ob,_ in subinfo.objects:
+                    if ob.type == 'MESH':
+                        self.changeArmatureModifier(ob, rig)
+                        subinfo.renameVertexGroups(ob)
+                self.reparentObjects(subinfo, rig, adds, hdadds, removes)
+                subinfo.rig.parent = None
+                deleteObjects(context, [subinfo.rig])
+            else:
+                subinfo.reParent(rig)
+                self.reparentObjects(subinfo, subinfo.rig, adds, hdadds, removes)
+            deleteObjects(context, subinfo.deletes)
         activateObject(context, rig)
         self.cleanVertexGroups(rig)
         bpy.ops.object.mode_set(mode='OBJECT')
-        if self.useApplyTransforms:
-            self.applyTransforms([info])
+        self.applyTransforms([info])
 
 
-    def reParent(self, info, rig, adds, hdadds, removes):
+    def reparentObjects(self, info, rig, adds, hdadds, removes):
         from .proxy import stripName
-        for ob,data in info.meshes:
+        for ob,data in info.objects:
             partype, parbone = data
             wmat = ob.matrix_world
             ob.parent = rig
@@ -831,7 +857,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             ob.matrix_world = wmat
             self.addToCollections(ob, adds, hdadds, removes)
             ob.name = stripName(ob.name)
-            ob.data.name = stripName(ob.data.name)
+            if ob.data:
+                ob.data.name = stripName(ob.data.name)
 
 
     def createNewCollections(self, rig):
