@@ -464,36 +464,6 @@ def getSelectedRigs(context):
     return rig, subrigs
 
 #-------------------------------------------------------------
-#   Copy poses
-#-------------------------------------------------------------
-
-class DAZ_OT_CopyPoses(DazOperator, IsArmature):
-    bl_idname = "daz.copy_poses"
-    bl_label = "Copy Poses"
-    bl_description = "Copy active rig pose to selected rigs"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        rig,subrigs = getSelectedRigs(context)
-        if rig is None:
-            print("No poses to copy")
-            return
-        print("Copy pose to %s:" % rig.name)
-        for ob in subrigs:
-            print("  ", ob.name)
-            self.copyPose(context, rig, ob)
-
-    def copyPose(self, context, rig, ob):
-        if not setActiveObject(context, ob):
-            return
-        setWorldMatrix(ob, rig.matrix_world.copy())
-        for cb in rig.pose.bones:
-            if cb.name in ob.pose.bones:
-                pb = ob.pose.bones[cb.name]
-                pb.matrix_basis = cb.matrix_basis.copy()
-        setActiveObject(context, rig)
-
-#-------------------------------------------------------------
 #   Eliminate Empties
 #-------------------------------------------------------------
 
@@ -938,38 +908,29 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
 #   Copy bone locations
 #-------------------------------------------------------------
 
-class DAZ_OT_CopyBones(DazOperator, IsArmature):
-    bl_idname = "daz.copy_bones"
-    bl_label = "Copy Bones"
+class DAZ_OT_CopyBonePoses(DazOperator, IsArmature):
+    bl_idname = "daz.copy_bone_poses"
+    bl_label = "Copy Bone Poses"
     bl_description = "Copy selected rig bone locations to active rig"
     bl_options = {'UNDO'}
 
     def run(self, context):
         rig,subrigs = getSelectedRigs(context)
         if rig is None:
-            raise DazError("No target armature")
-        if not subrigs:
             raise DazError("No source armature")
+        if not subrigs:
+            raise DazError("No target armature")
 
-        print("Copy bones to %s:" % rig.name)
-        ebones = {}
         for subrig in subrigs:
-            print("  ", subrig.name)
             if not setActiveObject(context, subrig):
                 continue
-            bpy.ops.object.mode_set(mode='EDIT')
-            for eb in subrig.data.edit_bones:
-                ebones[eb.name] = (eb.matrix.copy(), eb.parent, eb.length)
-            bpy.ops.object.mode_set(mode='OBJECT')
-
-        setActiveObject(context, rig)
-        bpy.ops.object.mode_set(mode='EDIT')
-        for bname,data in ebones.items():
-            if bname in rig.data.edit_bones.keys():
-                eb = rig.data.edit_bones[bname]
-            else:
-                eb = rig.data.edit_bones.new(bname)
-            eb.matrix,eb.parent,eb.length = data
+            print("Copy bones to %s:" % subrig.name)
+            setWorldMatrix(subrig, rig.matrix_world)
+            updateScene(context)
+            for pb in subrig.pose.bones:
+                if pb.name in rig.pose.bones.keys():
+                    pb.matrix = rig.pose.bones[pb.name].matrix
+                    updateScene(context)
 
 #-------------------------------------------------------------
 #   Apply rest pose
@@ -1220,10 +1181,9 @@ classes = [
     DAZ_OT_MergeGeografts,
     DAZ_OT_CreateGraftGroups,
     DAZ_OT_MergeUVLayers,
-    DAZ_OT_CopyPoses,
     DAZ_OT_MergeRigs,
     DAZ_OT_EliminateEmpties,
-    DAZ_OT_CopyBones,
+    DAZ_OT_CopyBonePoses,
     DAZ_OT_ApplyRestPoses,
     DAZ_OT_ReparentToes,
     DAZ_OT_MergeToes,
