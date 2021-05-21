@@ -481,18 +481,17 @@ class DAZ_OT_CopyPoses(DazOperator, IsArmature):
         print("Copy pose to %s:" % rig.name)
         for ob in subrigs:
             print("  ", ob.name)
-            copyPose(context, rig, ob)
+            self.copyPose(context, rig, ob)
 
-
-def copyPose(context, rig, ob):
-    if not setActiveObject(context, ob):
-        return
-    setWorldMatrix(ob, rig.matrix_world.copy())
-    for cb in rig.pose.bones:
-        if cb.name in ob.pose.bones:
-            pb = ob.pose.bones[cb.name]
-            pb.matrix_basis = cb.matrix_basis.copy()
-    setActiveObject(context, rig)
+    def copyPose(self, context, rig, ob):
+        if not setActiveObject(context, ob):
+            return
+        setWorldMatrix(ob, rig.matrix_world.copy())
+        for cb in rig.pose.bones:
+            if cb.name in ob.pose.bones:
+                pb = ob.pose.bones[cb.name]
+                pb.matrix_basis = cb.matrix_basis.copy()
+        setActiveObject(context, rig)
 
 #-------------------------------------------------------------
 #   Eliminate Empties
@@ -545,6 +544,72 @@ class DAZ_OT_EliminateEmpties(DazOperator):
 #   Merge rigs
 #-------------------------------------------------------------
 
+class RigInfo:
+    def __init__(self, rig):
+        self.name = rig.name
+        self.rig = rig
+        self.meshes = self.addMeshes(rig)
+        if rig.parent and rig.parent_type == 'BONE':
+            self.parbone = rig.parent_bone
+        else:
+            self.parbone = None
+        self.bones = {}
+
+
+    def addMeshes(self, ob):
+        meshes = []
+        for child in ob.children:
+            if getHideViewport(child):
+                continue
+            elif child.type == 'MESH':
+                meshes.append(child)
+            elif child.type == 'EMPTY':
+                meshes += self.addMeshes(child)
+        return meshes
+
+
+    def getEditBones(self, mainbones):
+        bpy.ops.object.mode_set(mode='EDIT')
+        for eb in self.rig.data.edit_bones:
+            if eb.name not in mainbones:
+                if eb.parent:
+                    parent = eb.parent.name
+                else:
+                    parent = None
+                self.bones[eb.name] = (eb.head.copy(), eb.tail.copy(), eb.roll, parent)
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+
+    def addEditBones(self, rig, layers):
+        for bname,data in self.bones.items():
+            if bname not in rig.data.edit_bones.keys():
+                eb = rig.data.edit_bones.new(bname)
+            else:
+                eb = rig.data.edit_bones[bname]
+            eb.head, eb.tail, eb.roll, parent = data
+            eb.layers = layers
+            if parent is None:
+                eb.parent = rig.data.edit_bones[self.parbone]
+            else:
+                eb.parent = rig.data.edit_bones[parent]
+
+
+    def copyPose(self, context, rig, btn):
+        from .figure import copyBoneInfo
+        from .fix import copyConstraints
+        for key in self.rig.data.keys():
+            rig.data[key] = self.rig.data[key]
+        btn.copyDrivers(self.rig.data, rig.data, self.rig, rig)
+        btn.copyDrivers(self.rig, rig, self.rig, rig)
+        setActiveObject(context, rig)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for bname in self.bones.keys():
+            pb = rig.pose.bones[bname]
+            subpb = self.rig.pose.bones[bname]
+            copyBoneInfo(subpb, pb)
+            copyConstraints(subpb, pb, rig)
+
+
 class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
     bl_idname = "daz.merge_rigs"
     bl_label = "Merge Rigs"
@@ -596,8 +661,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
     def run(self, context):
         if not self.separateCharacters:
             rig,subrigs = getSelectedRigs(context)
-            subrigs,childrigs,meshes = self.getChildren(rig, subrigs)
-            self.mergeRigs(context, rig, subrigs, childrigs, meshes)
+            info,subinfos,childinfos = self.getRigInfos(rig, subrigs)
+            self.mergeRigs(context, info, subinfos, childinfos)
         else:
             rigs = []
             for rig in getSelectedArmatures(context):
@@ -606,54 +671,44 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             pairs = []
             for rig in rigs:
                 subrigs = self.getSubRigs(context, rig)
-                subrigs,childrigs,meshes = self.getChildren(rig, subrigs)
-                pairs.append((rig,subrigs,childrigs,meshes))
-            for rig,subrigs,childrigs,meshes in pairs:
-                activateObject(context, rig)
-                self.mergeRigs(context, rig, subrigs, childrigs, meshes)
+                info,subinfos,childinfos = self.getRigInfos(rig, subrigs)
+                pairs.append((info,subinfos,childinfos))
+            for info,subinfos,childinfos in pairs:
+                activateObject(context, info.rig)
+                self.mergeRigs(context, info, subinfos, childinfos)
 
 
-    def getChildren(self, rig, subrigs):
-        nsubrigs = []
-        childrigs = {}
-        meshes = self.addMeshes(rig)
+    def getRigInfos(self, rig, subrigs):
+        subinfos = []
+        childinfos = {}
+        info = RigInfo(rig)
         for subrig in subrigs:
+            subinfo = RigInfo(subrig)
             if subrig.parent and subrig.parent_type == 'BONE':
-                childrigs[subrig.name] = (subrig, subrig.parent_bone)
+                childinfos[subrig.name] = subinfo
                 if self.useMergeBoneParented:
-                    nsubrigs.append(subrig)
-                    meshes += self.addMeshes(subrig)
+                    subinfos.append(subinfo)
             else:
-                nsubrigs.append(subrig)
-                meshes += self.addMeshes(subrig)
+                subinfos.append(subinfo)
+
         if self.useMergeBoneParented:
             bpy.ops.object.select_all(action='DESELECT')
-            for subrig in subrigs:
-                subrig.select_set(True)
-            for ob in meshes:
+            for ob in info.meshes:
                 ob.select_set(True)
+            for subinfo in subinfos:
+                subinfo.rig.select_set(True)
+                for ob in subinfo.meshes:
+                    ob.select_set(True)
             bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
-        return nsubrigs,childrigs,meshes
+        return info, subinfos, childinfos
 
 
-    def addMeshes(self, ob):
-        meshes = []
-        for child in ob.children:
-            if getHideViewport(child):
-                continue
-            elif child.type == 'MESH':
-                meshes.append(child)
-            elif child.type == 'EMPTY':
-                meshes += self.addMeshes(child)
-        return meshes
-
-
-    def applyTransforms(self, rigs, meshes):
+    def applyTransforms(self, infos):
         bpy.ops.object.select_all(action='DESELECT')
-        for rig in rigs:
-            rig.select_set(True)
-        for ob in meshes:
-            ob.select_set(True)
+        for info in infos:
+            info.rig.select_set(True)
+            for ob in info.meshes:
+                ob.select_set(True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
 
@@ -673,7 +728,8 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
                 children.append(ob)
 
 
-    def mergeRigs(self, context, rig, subrigs, childrigs, meshes):
+    def mergeRigs(self, context, info, subinfos, childinfos):
+        rig = info.rig
         LS.forAnimation(None, rig)
         if rig is None:
             raise DazError("No rigs to merge")
@@ -681,7 +737,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         rig.data.layers = 32*[True]
         success = False
         try:
-            self.mergeRigs1(rig, subrigs, childrigs, meshes, context)
+            self.mergeRigs1(info, subinfos, childinfos, context)
             success = True
         finally:
             rig.data.layers = oldvis
@@ -692,49 +748,43 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             updateDrivers(rig.data)
 
 
-    def mergeRigs1(self, rig, subrigs, childrigs, meshes, context):
+    def mergeRigs1(self, info, subinfos, childinfos, context):
         from .proxy import stripName
         from .node import clearParent
         scn = context.scene
+        rig = info.rig
 
-        print("Merge rigs to %s:" % rig.name)
+        print("Merge infos to %s:" % rig.name)
         if self.useApplyTransforms:
-            self.applyTransforms([rig]+subrigs, meshes)
-        for subrig in subrigs:
-            copyPose(context, rig, subrig)
-
+            self.applyTransforms([info]+subinfos)
+        for subinfo in subinfos:
+            subinfo.getEditBones(rig.pose.bones.keys())
         adds, hdadds, removes = self.createNewCollections(rig)
 
-        for ob in meshes:
-            self.changeArmatureModifier(ob, rig)
-            self.addToCollections(ob, adds, hdadds, removes)
-
-        self.mainBones = [bone.name for bone in rig.data.bones]
-        for subrig in subrigs:
-            success = True
-            if self.useMergeBoneParented and subrig.name in childrigs.keys():
-                parbone = childrigs[subrig.name][1]
-            else:
-                parbone = None
-
-            if success:
-                storage = self.addExtraBones(subrig, rig, context, scn, parbone)
-                for ob in meshes:
-                    self.changeArmatureModifier(ob, rig)
-                    self.changeVertexGroupNames(ob, storage)
-                    wmat = ob.matrix_world.copy()
-                    ob.parent = rig
-                    setWorldMatrix(ob, wmat)
-                    self.addToCollections(ob, adds, hdadds, removes)
-                    ob.name = stripName(ob.name)
-                    ob.data.name = stripName(ob.data.name)
-                subrig.parent = None
-                deleteObjects(context, [subrig])
+        layers = (self.clothesLayer-1)*[False] + [True] + (32-self.clothesLayer)*[False]
+        activateObject(context, rig)
+        bpy.ops.object.mode_set(mode='EDIT')
+        for subinfo in subinfos:
+            subinfo.addEditBones(rig, layers)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for subinfo in subinfos:
+            subinfo.copyPose(context, rig, self)
+            for ob in subinfo.meshes:
+                self.changeArmatureModifier(ob, rig)
+                #self.changeVertexGroupNames(ob, storage)
+                wmat = ob.matrix_world.copy()
+                ob.parent = rig
+                setWorldMatrix(ob, wmat)
+                self.addToCollections(ob, adds, hdadds, removes)
+                ob.name = stripName(ob.name)
+                ob.data.name = stripName(ob.data.name)
+                subinfo.rig.parent = None
+                deleteObjects(context, [subinfo.rig])
 
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='OBJECT')
         if self.useApplyTransforms:
-            self.applyTransforms([rig], meshes)
+            self.applyTransforms([info])
 
 
     def createNewCollections(self, rig):
@@ -797,54 +847,6 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
                 mod.object = rig
                 mod.use_deform_preserve_volume = True
 
-
-    def addExtraBones(self, subrig, rig, context, scn, parbone):
-        from .figure import copyBoneInfo
-        from .fix import copyConstraints
-        extras = []
-        for bone in subrig.data.bones:
-            if (bone.name not in self.mainBones or
-                bone.name not in rig.data.bones.keys()):
-                extras.append(bone.name)
-
-        if extras:
-            storage = {}
-            if activateObject(context, subrig):
-                try:
-                    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-                except RuntimeError:
-                    pass
-
-            bpy.ops.object.mode_set(mode='EDIT')
-            for bname in extras:
-                eb = subrig.data.edit_bones[bname]
-                storage[bname] = EditBoneStorage(eb, None)
-            bpy.ops.object.mode_set(mode='OBJECT')
-
-            for key in subrig.data.keys():
-                rig.data[key] = subrig.data[key]
-            self.copyDrivers(subrig.data, rig.data, subrig, rig)
-            self.copyDrivers(subrig, rig, subrig, rig)
-
-            setActiveObject(context, rig)
-            layers = (self.clothesLayer-1)*[False] + [True] + (32-self.clothesLayer)*[False]
-            bpy.ops.object.mode_set(mode='EDIT')
-            for bname in extras:
-                if self.useCreateDuplicates or bname not in rig.data.bones.keys():
-                    eb = storage[bname].createBone(rig, storage, parbone)
-                    eb.layers = layers
-                    storage[bname].realname = eb.name
-            bpy.ops.object.mode_set(mode='OBJECT')
-            for bname in extras:
-                pb = rig.pose.bones[bname]
-                subpb = subrig.pose.bones[bname]
-                copyBoneInfo(subpb, pb)
-                copyConstraints(subpb, pb, rig)
-                pb.bone.layers[self.clothesLayer-1] = True
-            return storage
-        else:
-            return {}
-
 #-------------------------------------------------------------
 #   Copy bone locations
 #-------------------------------------------------------------
@@ -861,25 +863,26 @@ class DAZ_OT_CopyBones(DazOperator, IsArmature):
             raise DazError("No target armature")
         if not subrigs:
             raise DazError("No source armature")
-        copyBones(context, rig, subrigs)
 
+        print("Copy bones to %s:" % rig.name)
+        ebones = {}
+        for subrig in subrigs:
+            print("  ", subrig.name)
+            if not setActiveObject(context, subrig):
+                continue
+            bpy.ops.object.mode_set(mode='EDIT')
+            for eb in subrig.data.edit_bones:
+                ebones[eb.name] = (eb.matrix.copy(), eb.parent, eb.length)
+            bpy.ops.object.mode_set(mode='OBJECT')
 
-def copyBones(context, rig, subrigs):
-    print("Copy bones to %s:" % rig.name)
-    ebones = []
-    for subrig in subrigs:
-        print("  ", subrig.name)
-        if not setActiveObject(context, subrig):
-            continue
+        setActiveObject(context, rig)
         bpy.ops.object.mode_set(mode='EDIT')
-        for eb in subrig.data.edit_bones:
-            ebones.append(EditBoneStorage(eb))
-        bpy.ops.object.mode_set(mode='OBJECT')
-
-    setActiveObject(context, rig)
-    bpy.ops.object.mode_set(mode='EDIT')
-    for storage in ebones:
-        storage.copyBoneLocation(rig)
+        for bname,data in ebones.items():
+            if bname in rig.data.edit_bones.keys():
+                eb = rig.data.edit_bones[bname]
+            else:
+                eb = rig.data.edit_bones.new(bname)
+            eb.matrix,eb.parent,eb.length = data
     bpy.ops.object.mode_set(mode='OBJECT')
 
 #-------------------------------------------------------------
@@ -1122,49 +1125,6 @@ class DAZ_OT_MergeToes(DazOperator, IsArmature):
     def run(self, context):
         rig = context.object
         mergeBonesAndVgroups(rig, GenesisToes, NewParent, context)
-
-#-------------------------------------------------------------
-#   EditBoneStorage
-#-------------------------------------------------------------
-
-class EditBoneStorage:
-    def __init__(self, eb, pname=None):
-        self.name = eb.name
-        self.realname = self.name
-        self.head = eb.head.copy()
-        self.tail = eb.tail.copy()
-        self.roll = eb.roll
-        if eb.parent:
-            self.parent = eb.parent.name
-        else:
-            self.parent = pname
-
-
-    def createBone(self, rig, storage, parbone):
-        eb = rig.data.edit_bones.new(self.name)
-        self.realname = eb.name
-        eb.head = self.head
-        eb.tail = self.tail
-        eb.roll = self.roll
-        if storage and self.parent in storage.keys():
-            pname = storage[self.parent].realname
-        elif self.parent:
-            pname = self.parent
-        elif parbone:
-            pname = parbone
-        else:
-            pname = None
-        if pname is not None:
-            eb.parent = rig.data.edit_bones[pname]
-        return eb
-
-
-    def copyBoneLocation(self, rig):
-        if self.name in rig.data.edit_bones:
-            eb = rig.data.edit_bones[self.name]
-            eb.head = self.head
-            eb.tail = self.tail
-            eb.roll = self.roll
 
 #----------------------------------------------------------
 #   Initialize
