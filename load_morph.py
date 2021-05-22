@@ -538,7 +538,7 @@ class LoadMorph(DriverUser):
 
 
     def buildPropDriver(self, raw, drivers):
-        from .driver import getRnaDriver, Variable
+        from .driver import getRnaDriver, Variable, removeModifiers
         rna,channel = self.getDrivenChannel(raw)
         bvars = []
         string = ""
@@ -556,6 +556,7 @@ class LoadMorph(DriverUser):
         rna.driver_remove(channel)
         fcu = rna.driver_add(channel)
         fcu.driver.type = 'SCRIPTED'
+        removeModifiers(fcu)
         for bvar in bvars:
             var = fcu.driver.variables.new()
             bvar.create(var)
@@ -673,6 +674,7 @@ class LoadMorph(DriverUser):
 
 
     def ensureExists(self, raw, final, default):
+        from .driver import removeModifiers
         if self.rig is None:
             return
         if raw not in self.rig.keys():
@@ -681,6 +683,7 @@ class LoadMorph(DriverUser):
             self.amt[final] = default
             fcu = self.amt.driver_add(propRef(final))
             fcu.driver.type = 'SCRIPTED'
+            removeModifiers(fcu)
             fcu.driver.expression = "a"
             self.addPathVar(fcu, "a", self.rig, propRef(raw))
 
@@ -792,7 +795,7 @@ class LoadMorph(DriverUser):
 
 
     def makeBoneDriver(self, string, vars, channel, rna, path, idx, keep):
-        from .driver import addTransformVar, Variable, getRnaDriver
+        from .driver import addTransformVar, Variable, getRnaDriver, removeModifiers
         bvars = []
         if keep:
             fcu0 = getRnaDriver(rna, path, None)
@@ -810,6 +813,7 @@ class LoadMorph(DriverUser):
         rna.driver_remove(path, idx)
         fcu = rna.driver_add(path, idx)
         fcu.driver.type = 'SCRIPTED'
+        removeModifiers(fcu)
         for bvar in bvars:
             var = fcu.driver.variables.new()
             bvar.create(var)
@@ -932,30 +936,32 @@ class LoadMorph(DriverUser):
 
 
     def getOrigo(self, fcu0, pb, channel, idx):
-        from .driver import Driver
+        from .driver import Driver, removeModifiers
         prefix = self.getChannelPrefix(pb, channel, idx)
         prop = self.getTermDriverName(prefix, 0)
         self.amt[prop] = 0.0
         fcu = self.amt.driver_add(propRef(prop))
         driver = Driver(fcu0, True)
         driver.fill(fcu)
+        removeModifiers(fcu)
         return propRef(prop)
 
 
     def getUnity(self, pb, idx):
-        from .driver import getRnaDriver
+        from .driver import getRnaDriver, removeModifiers
         prop = "Unity"
         self.amt[prop] = 1.0
         path = propRef(prop)
         if not getRnaDriver(self.amt, path):
             fcu = self.amt.driver_add(path)
             fcu.driver.type = 'SCRIPTED'
+            removeModifiers(fcu)
             fcu.driver.expression = "1.0"
         return path
 
 
     def getParentScale(self, pname, idx):
-        from .driver import getRnaDriver
+        from .driver import getRnaDriver, removeModifiers
         prop = "scale:%s:%d" % (pname, idx)
         if prop not in self.amt.keys():
             self.amt[prop] = 0.0
@@ -963,6 +969,7 @@ class LoadMorph(DriverUser):
             return prop
         fcu = self.amt.driver_add(propRef(prop))
         fcu.driver.type = 'SCRIPTED'
+        removeModifiers(fcu)
         fcu.driver.expression = "var-1.0"
         var = fcu.driver.variables.new()
         var.name = "var"

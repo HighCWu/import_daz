@@ -53,7 +53,9 @@ class DriverUser:
 
     def getTmpDriver(self, idx):
         self.tmp.driver_remove("rotation_euler", idx)
-        return self.tmp.driver_add("rotation_euler", idx)
+        fcu = self.tmp.driver_add("rotation_euler", idx)
+        removeModifiers(fcu)
+        return fcu
 
 
     def clearTmpDriver(self, idx):
@@ -96,6 +98,7 @@ class DriverUser:
         fcu3.data_path = channel
         if idx >= 0:
             fcu3.array_index = idx
+        removeModifiers(fcu3)
         self.clearTmpDriver(0)
         return fcu3
 
@@ -305,6 +308,7 @@ class Driver:
     def create(self, rna, fixDrv=False):
         channel,idx = self.getChannel()
         fcu = rna.driver_add(channel, idx)
+        removeModifiers(fcu)
         return self.fill(fcu, fixDrv)
 
 
@@ -377,22 +381,6 @@ class Target:
 #
 #-------------------------------------------------------------
 
-def makeDriver(name, rna, channel, idx, attr, factor, rig):
-    fcurves = rna.driver_add(channel)
-    fcu = fcurves[idx]
-    fcu.driver.type = 'SCRIPTED'
-
-    string = "%.4g" % (factor*attr.value)
-    string = "0"
-    for n,drv in enumerate(attr.drivers.values()):
-        string += "%+.4g*x%d" % (factor*drv[1], n+1)
-    fcu.driver.expression = string
-
-    for n,drv in enumerate(attr.drivers.values()):
-        asset = drv[0].asset
-        addDriverVar(fcu, "x%d" % (n+1), propRef(asset.name), rig)
-
-
 def addTransformVar(fcu, vname, ttype, rig, bname):
     pb = rig.pose.bones[bname]
     var = fcu.driver.variables.new()
@@ -414,7 +402,13 @@ def makePropDriver(path, rna, channel, rig, expr):
     fcu = rna.driver_add(channel)
     fcu.driver.type = 'SCRIPTED'
     fcu.driver.expression = expr
+    removeModifiers(fcu)
     addDriverVar(fcu, "x", path, rig)
+
+
+def removeModifiers(fcu):
+    for mod in list(fcu.modifiers):
+        fcu.modifiers.remove(mod)
 
 #-------------------------------------------------------------
 #   Overridable properties
@@ -810,6 +804,7 @@ class DAZ_OT_EnableDrivers(DazOperator):
             for item in rig.DazDisabledDrivers:
                 pb = rig.pose.bones[item.name]
                 fcu = pb.driver_add(item.channel, item.index)
+                removeModifiers(fcu)
                 fcu.driver.use_self = True
                 fcu.driver.expression = item.expression
             rig.DazDisabledDrivers.clear()
