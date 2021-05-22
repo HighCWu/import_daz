@@ -580,8 +580,16 @@ def getRelativeRef(ref):
 
 
 def getDazPath(ref):
-    global theDazPaths
+    def getExistingPath(filepath):
+        if os.path.exists(filepath):
+            return filepath
+        elif GS.caseSensitivePaths:
+            filepath = fixBrokenPath(filepath)
+            if os.path.exists(filepath):
+                return filepath
+        return None
 
+    global theDazPaths
     path = unquote(ref)
     filepath = path
     if path[2] == ":":
@@ -592,13 +600,14 @@ def getDazPath(ref):
         for folder in theDazPaths:
             filepath = folder + path
             filepath = filepath.replace("//", "/")
-            if os.path.exists(filepath):
-                return filepath
-            elif GS.caseSensitivePaths:
-                filepath = fixBrokenPath(filepath)
-                if os.path.exists(filepath):
-                    return filepath
-
+            okpath = getExistingPath(filepath)
+            if okpath:
+                return okpath
+            words = filepath.rsplit("/", 2)
+            if len(words) == 3 and words[1].lower() == "hiddentemp":
+                okpath = getExistingPath("%s/%s" % (words[0], words[2]))
+                if okpath:
+                    return okpath
     if os.path.exists(filepath):
         if GS.verbosity > 2:
             print("Found", filepath)

@@ -29,7 +29,7 @@ import os
 import bpy
 from .driver import DriverUser
 from .utils import *
-from .error import reportError
+from .error import reportError, DazError
 
 MAX_EXPRESSION_SIZE = 255
 MAX_TERMS = 12
@@ -120,9 +120,7 @@ class LoadMorph(DriverUser):
         fileref = self.getFileRef(filepath)
         self.loaded.append(fileref)
         if not force:
-            raw = asset.getName()
-            final = finalProp(raw)
-            if self.rig and raw in self.rig.keys() and final in self.amt.keys():
+            if self.alreadyLoaded(asset):
                 return " ."
         if not isinstance(asset, ChannelAsset):
             return " -"
@@ -139,6 +137,15 @@ class LoadMorph(DriverUser):
             aliases = self.loadAlias(aliaspath)
         self.addUrl(asset, aliases, filepath, bodypart)
         return " *"
+
+
+    def alreadyLoaded(self, asset):
+        raw = asset.getName()
+        final = finalProp(raw)
+        if self.rig and raw in self.rig.keys() and final in self.amt.keys():
+            self.adjustMults(raw, final)
+            return True
+        return False
 
 
     def getAliasFile(self, filepath):
@@ -270,8 +277,11 @@ class LoadMorph(DriverUser):
         words = filepath.rsplit("/data/",1)
         if len(words) == 2:
             return "/data/%s" % words[1]
+        elif filepath[1:3] == ":/":
+            return filepath
         else:
-            raise RuntimeError("getFileRef", filepath)
+            msg = ('Did not find file:\n"%s"' % filepath)
+            raise DazError(msg)
 
 
     def addNewProp(self, raw, asset=None, skey=None):
@@ -505,11 +515,12 @@ class LoadMorph(DriverUser):
             self.referred[fileref] = False
         namepaths = []
         for ref,unloaded in self.referred.items():
+            path = getDazPath(ref)
+            if path:
+                name = ref.rsplit("/",1)[-1]
+                data = (name,path,bodypart)
             if unloaded:
-                path = getDazPath(ref)
-                if path:
-                    name = ref.rsplit("/",1)[-1]
-                    namepaths.append((name,path,bodypart))
+                namepaths.append(data)
         self.makeAllMorphs(namepaths, False)
 
     #------------------------------------------------------------------
@@ -660,17 +671,36 @@ class LoadMorph(DriverUser):
 
     def multiplyMults(self, fcu, string):
         if self.mult:
-            varname = "M"
             mstring = ""
+            if len(string) > 1 and string[1] == '*' and string[0].isupper():
+                varname = nextLetter(string[0])
+            else:
+                varname = "M"
+                string = "(%s)" % string
+            targets = self.getDriverTargets(fcu)
             for mult in self.mult:
-                mstring += "%s*" % varname
                 multfinal = finalProp(mult)
-                self.ensureExists(mult, multfinal, 1)
-                self.addPathVar(fcu, varname, self.amt, propRef(multfinal))
-                varname = nextLetter(varname)
-            return "%s(%s)" % (mstring, string)
+                if propRef(multfinal) not in targets:
+                    mstring += "%s*" % varname
+                    self.ensureExists(mult, multfinal, 1)
+                    self.addPathVar(fcu, varname, self.amt, propRef(multfinal))
+                    varname = nextLetter(varname)
+            return "%s%s" % (mstring, string)
         else:
             return string
+
+
+    def adjustMults(self, raw, final):
+        from .driver import getRnaDriver
+        self.mult = []
+        if raw in self.mults.keys():
+            self.mult = self.mults[raw]
+        else:
+            return
+        fcu = getRnaDriver(self.amt, propRef(final))
+        if fcu:
+            string = self.multiplyMults(fcu, fcu.driver.expression)
+            fcu.driver.expression = string
 
 
     def ensureExists(self, raw, final, default):

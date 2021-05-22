@@ -150,6 +150,10 @@ class DriverUser:
         return targets
 
 
+    def getDriverTargets(self, fcu):
+        return [var.targets[0].data_path for var in fcu.driver.variables]
+
+
     def setBoneTarget(self, fcu, bname):
         for var in fcu.driver.variables:
             for trg in var.targets:
