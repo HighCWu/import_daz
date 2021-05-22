@@ -411,7 +411,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         ConstraintStore.__init__(self)
         Fixer.__init__(self)
 
-
     def draw(self, context):
         self.layout.prop(self, "addTweakBones")
         self.layout.prop(self, "showLinks")
@@ -424,6 +423,19 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     def invoke(self, context, event):
         self.createBoneGroups(context.object)
         return DazPropsOperator.invoke(self, context, event)
+
+
+    def storeState(self, context):
+        from .driver import muteDazFcurves
+        DazPropsOperator.storeState(self, context)
+        muteDazFcurves(context.object, True)
+
+
+    def restoreState(self, context):
+        from .driver import muteDazFcurves
+        DazPropsOperator.restoreState(self, context)
+        rig = context.object
+        muteDazFcurves(rig, rig.DazDriversDisabled)
 
 
     def createBoneGroups(self, rig):

@@ -1279,6 +1279,22 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, GizmoUser, BendTwi
         self.layout.prop(self, "useKeepRig")
         self.layout.prop(self, "useRenameBones")
 
+
+    def storeState(self, context):
+        from .driver import muteDazFcurves
+        DazPropsOperator.storeState(self, context)
+        rig = context.object
+        self.dazDriversDisabled = rig.DazDriversDisabled
+        muteDazFcurves(rig, True)
+
+
+    def restoreState(self, context):
+        from .driver import muteDazFcurves
+        DazPropsOperator.restoreState(self, context)
+        gen = context.object
+        muteDazFcurves(gen, self.dazDriversDisabled)
+
+
     def run(self, context):
         from time import perf_counter
         t1 = perf_counter()

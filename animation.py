@@ -291,6 +291,7 @@ class FrameConverter:
 
 class HideOperator(DazOperator):
     def storeState(self, context):
+        from .driver import muteDazFcurves
         DazOperator.storeState(self, context)
         rig = context.object
         amt = rig.data
@@ -304,6 +305,7 @@ class HideOperator(DazOperator):
             self.obhides.append((ob, ob.hide_get()))
             ob.hide_set(False)
         self.hideLayerColls(rig, context.view_layer.layer_collection)
+        muteDazFcurves(rig, True)
 
 
     def hideLayerColls(self, rig, layer):
@@ -322,6 +324,7 @@ class HideOperator(DazOperator):
 
 
     def restoreState(self, context):
+        from .driver import muteDazFcurves
         DazOperator.restoreState(self, context)
         rig = context.object
         rig.data.layers = self.boneLayers
@@ -329,6 +332,7 @@ class HideOperator(DazOperator):
             layer.exclude = False
         for ob,hide in self.obhides:
             ob.hide_set(hide)
+        muteDazFcurves(rig, rig.DazDriversDisabled)
 
 #-------------------------------------------------------------
 #   AnimatorBase class

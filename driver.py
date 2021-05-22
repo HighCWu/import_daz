@@ -781,9 +781,8 @@ class DAZ_OT_DisableDrivers(DazOperator):
 
     def run(self, context):
         rig = context.object
-        if rig:
-            muteDazFcurves(rig, True)
-            rig.DazDriversDisabled = True
+        muteDazFcurves(rig, True)
+        rig.DazDriversDisabled = True
 
 
 class DAZ_OT_EnableDrivers(DazOperator):
@@ -799,9 +798,8 @@ class DAZ_OT_EnableDrivers(DazOperator):
 
     def run(self, context):
         rig = context.object
-        if rig:
-            muteDazFcurves(rig, False)
-            rig.DazDriversDisabled = False
+        muteDazFcurves(rig, False)
+        rig.DazDriversDisabled = False
 
 #----------------------------------------------------------
 #   Initialize
