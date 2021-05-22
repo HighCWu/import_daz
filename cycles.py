@@ -392,10 +392,14 @@ class CyclesTree:
         kx = mat.getChannelValue(mat.getChannelHorizontalTiles(), 1)
         ky = mat.getChannelValue(mat.getChannelVerticalTiles(), 1)
         if ox != 0 or oy != 0 or kx != 1 or ky != 1:
-            sx = 1/kx
-            sy = 1/ky
-            dx = -ox/kx
-            dy = oy/ky
+            sx = sy = 1
+            dx = dy = 0
+            if kx != 0:
+                sx = 1/kx
+                dx = -ox/kx
+            if ky != 0:
+                sy = 1/ky
+                dy = oy/ky
             self.mapping = self.addMappingNode((dx,dy,sx,sy,0), None)
             if self.mapping:
                 self.linkVector(self.texco, self.mapping, 0)
@@ -938,7 +942,7 @@ class CyclesTree:
             node.inputs["Thin Wall"].default_value = 0
             self.linkScalar(roughtex, node, roughness, "Refraction Roughness")
             self.linkScalar(iortex, node, ior, "Refraction IOR")
-            self.material.setTransSettings(True, False, color, 0.4)
+            self.material.setTransSettings(True, False, color, 0.2)
         self.linkBumpNormal(node)
         return node, color
 

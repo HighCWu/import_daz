@@ -322,7 +322,7 @@ class PbrTree(CyclesTree):
             # principled specular = 0.5
             # principled ior = iray refraction index
             # principled roughness = iray glossy roughness
-            self.material.setTransSettings(True, False, color, 0.4)
+            self.material.setTransSettings(True, False, color, 0.2)
             transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
             dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
             if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
