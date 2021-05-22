@@ -755,6 +755,19 @@ class DAZ_OT_CopyBoneDrivers(DazOperator, DriverUser, IsArmature):
 #   Disable and enable drivers
 #----------------------------------------------------------
 
+def muteDazFcurves(rig, mute):
+    def isDazFcurve(path):
+        for string in ["(fin)", "(rst)", ":Loc:", ":Rot:", ":Sca:"]:
+            if string in path:
+                return True
+        return False
+
+    if rig and rig.data.animation_data:
+        for fcu in rig.data.animation_data.drivers:
+            if isDazFcurve(fcu.data_path):
+                fcu.mute = mute
+
+
 class DAZ_OT_DisableDrivers(DazOperator):
     bl_idname = "daz.disable_drivers"
     bl_label = "Disable Drivers"
@@ -768,22 +781,8 @@ class DAZ_OT_DisableDrivers(DazOperator):
 
     def run(self, context):
         rig = context.object
-        if rig and rig.animation_data:
-            rig.DazDisabledDrivers.clear()
-            fcus = []
-            for fcu in rig.animation_data.drivers:
-                words = fcu.data_path.split('"')
-                drv = fcu.driver
-                if (words[0] == "pose.bones[" and
-                    "evalMorphs" in drv.expression and
-                    len(drv.variables) == 0):
-                    item = rig.DazDisabledDrivers.add()
-                    item.name = words[1]
-                    item.index = fcu.array_index
-                    item.expression = drv.expression
-                    item.channel = words[2].rsplit(".")[-1]
-                    fcus.append(fcu)
-            removeDriverFCurves(fcus, rig)
+        if rig:
+            muteDazFcurves(rig, True)
             rig.DazDriversDisabled = True
 
 
@@ -801,27 +800,14 @@ class DAZ_OT_EnableDrivers(DazOperator):
     def run(self, context):
         rig = context.object
         if rig:
-            for item in rig.DazDisabledDrivers:
-                pb = rig.pose.bones[item.name]
-                fcu = pb.driver_add(item.channel, item.index)
-                removeModifiers(fcu)
-                fcu.driver.use_self = True
-                fcu.driver.expression = item.expression
-            rig.DazDisabledDrivers.clear()
+            muteDazFcurves(rig, False)
             rig.DazDriversDisabled = False
 
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
-class DazDriverGroup(bpy.types.PropertyGroup):
-    index : IntProperty()
-    expression : StringProperty()
-    channel : StringProperty()
-
 classes = [
-    DazDriverGroup,
-
     DAZ_OT_RetargetDrivers,
     DAZ_OT_CopyProps,
     DAZ_OT_CopyBoneDrivers,
@@ -834,7 +820,6 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.Object.DazDriversDisabled = BoolProperty(default=False)
-    bpy.types.Object.DazDisabledDrivers = CollectionProperty(type = DazDriverGroup)
 
 
 def unregister():

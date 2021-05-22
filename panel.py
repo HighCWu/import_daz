@@ -97,7 +97,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
         box = layout.box()
         if showBox(scn, "DazShowMorphs", box):
             if ob and ob.DazDriversDisabled:
-                box.label(text = "Face drivers disabled")
+                box.label(text = "Morph Drivers Disabled")
                 box.operator("daz.enable_drivers")
             elif ob and ob.type in ['ARMATURE', 'MESH']:
                 if ob.DazMorphPrefixes:
@@ -481,7 +481,7 @@ class DAZ_PT_Morphs:
         layout = self.layout
 
         if rig.DazDriversDisabled:
-            layout.label(text = "Face drivers disabled")
+            layout.label(text = "Morph Drivers Disabled")
             layout.operator("daz.enable_drivers")
             return
 
