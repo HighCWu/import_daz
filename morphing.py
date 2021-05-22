@@ -944,57 +944,42 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
         setupMorphPaths(scn, False)
         if self.rig:
             self.rig.DazMorphPrefixes = False
-        self.morphsets = {}
-        self.namepaths = []
-        self.addFiles(self.units, "Units", "Face")
-        self.addFiles(False, "Head", "Face")
-        self.addFiles(self.expressions, "Expressions", "Face")
-        self.addFiles(self.visemes, "Visemes", "Face")
-        self.addFiles(self.facs, "Facs", "Face")
-        self.addFiles(self.facsexpr, "Facsexpr", "Face")
-        self.addFiles(self.body, "Body", "Body")
-        self.addFiles(self.jcms, "Jcms", "Body")
-        self.addFiles(self.flexions, "Flexions", "Body")
-        msg = self.getAllMorphs(self.namepaths, context)
-        if msg:
+        self.message = None
+        self.loadMorphType(context, self.units, "Units", "Face")
+        self.loadMorphType(context, False, "Head", "Face")
+        self.loadMorphType(context, self.expressions, "Expressions", "Face")
+        self.loadMorphType(context, self.visemes, "Visemes", "Face")
+        self.loadMorphType(context, self.facs, "Facs", "Face")
+        self.loadMorphType(context, self.facsexpr, "Facsexpr", "Face")
+        self.loadMorphType(context, self.body, "Body", "Body")
+        self.loadMorphType(context, self.jcms, "Jcms", "Body")
+        self.loadMorphType(context, self.flexions, "Flexions", "Body")
+        if self.message:
             raise DazError(msg, warning=True)
 
 
-    def addFiles(self, use, morphset, bodypart):
+    def loadMorphType(self, context, use, morphset, bodypart):
+        if not use:
+            return
         try:
             struct = theMorphFiles[self.char][morphset]
         except KeyError:
             msg = ("Character %s does not support feature %s" % (self.char, morphset))
             print(msg)
             return
+        print("Load %s" % morphset)
+        self.morphset = morphset
+        self.namepaths = []
         for key,filepath in struct.items():
             fileref = self.getFileRef(filepath)
-            self.morphsets[fileref] = morphset
-            if use:
-                self.namepaths.append((key, filepath, bodypart))
-
-
-    def getMorphSet(self, asset):
-        if asset is None:
-            return "Standard"
-        fileref = unquote(asset.fileref.lower())
-        if fileref in self.morphsets.keys():
-            return self.morphsets[fileref]
-        else:
-            msg = "Missing morphset: %s" % fileref
-            if GS.verbosity > 2:
-                print("Morphset keys:")
-                for key in self.morphsets.keys():
-                    print("  ", key)
-                raise DazError(msg)
-            else:
-                print(msg)
-            return "Standard"
+            self.namepaths.append((key, filepath, bodypart))
+        msg = self.getAllMorphs(self.namepaths, context)
+        if msg:
+            self.message = msg
 
 
     def addToMorphSet(self, prop, asset, hidden):
-        morphset = self.getMorphSet(asset)
-        self.hideable = (morphset in ["Jcms", "Flexions"])
+        self.hideable = (self.morphset in ["Jcms", "Flexions"])
         StandardMorphLoader.addToMorphSet(self, prop, asset, hidden)
 
 #------------------------------------------------------------------------
