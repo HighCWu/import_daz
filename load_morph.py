@@ -175,7 +175,16 @@ class LoadMorph(DriverUser):
                                 pg.name = alias
                             pg.s = prop
                             aliases[alias] = prop
+                            if "label" in channel.keys():
+                                self.setLabel(prop, channel["label"])
         return aliases
+
+
+    def setLabel(self, prop, label):
+        pgs = self.findPropGroup(prop)
+        if pgs and prop in pgs.keys():
+            item = pgs[prop]
+            item.text = label
 
 
     def buildShapekey(self, asset, bodypart, useBuild=True):

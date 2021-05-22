@@ -173,27 +173,6 @@ def getMorphs(ob, morphset, category=None, activeOnly=False):
                     mdict[key] = skeys.key_blocks[key].value
     return mdict
 
-
-def addToMorphSet(ob, morphset, prop, asset=None, hidden=False, hideable=True):
-    from .modifier import getCanonicalKey
-    pg = getattr(ob, "Daz"+morphset)
-    if prop in pg.keys():
-        item = pg[prop]
-    else:
-        item = pg.add()
-    item.name = prop
-    if asset and asset.name == prop:
-        label = asset.label
-        visible = asset.visible
-    else:
-        label = getCanonicalKey(prop)
-        visible = True
-    if hideable and (hidden or not visible):
-        item.text = "[%s]" % label
-    else:
-        item.text = label
-    return prop
-
 #-------------------------------------------------------------
 #   Classes
 #-------------------------------------------------------------
@@ -739,6 +718,29 @@ class MorphLoader(LoadMorph):
         else:
             msg = None
 
+
+    def addToMorphSet(self, prop, asset, hidden):
+        from .modifier import getCanonicalKey
+        pgs = self.findPropGroup(prop)
+        if pgs is None:
+            return
+        if prop in pgs.keys():
+            item = pgs[prop]
+        else:
+            item = pgs.add()
+            item.name = prop
+        if asset and asset.name == prop:
+            label = asset.label
+            visible = asset.visible
+        else:
+            label = getCanonicalKey(prop)
+            visible = True
+        if self.hideable and (hidden or not visible):
+            item.text = "[%s]" % label
+        else:
+            item.text = label
+        return prop
+
 #------------------------------------------------------------------
 #   Load standard morphs
 #------------------------------------------------------------------
@@ -746,6 +748,7 @@ class MorphLoader(LoadMorph):
 class StandardMorphLoader(MorphLoader):
     suppressError = True
     ignoreHD = False
+    hideable = True
 
     def setupCharacter(self, context):
         ob = context.object
@@ -757,8 +760,8 @@ class StandardMorphLoader(MorphLoader):
         return True
 
 
-    def addToMorphSet(self, prop, asset, hidden):
-        addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden)
+    def findPropGroup(self, prop):
+        return getattr(self.rig, "Daz"+self.morphset)
 
 
     def getMorphFiles(self):
@@ -821,12 +824,12 @@ class StandardMorphSelector(Selector):
             return {'FINISHED'}
         setupMorphPaths(scn, False)
         try:
-            pg = theMorphFiles[self.char][self.morphset]
+            pgs = theMorphFiles[self.char][self.morphset]
         except KeyError:
             msg = ("Character %s does not support feature %s" % (self.char, self.morphset))
             print(msg)
             return {'FINISHED'}
-        for key,path in pg.items():
+        for key,path in pgs.items():
             item = self.selection.add()
             item.name = path
             item.text = key
@@ -905,9 +908,7 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader,
     morphset = "Jcms"
     bodypart = "Body"
     isJcm = True
-
-    def addToMorphSet(self, prop, asset, hidden):
-        addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden, hideable=False)
+    hideable = False
 
 
 class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMesh):
@@ -919,9 +920,7 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoa
     morphset = "Flexions"
     bodypart = "Body"
     isJcm = True
-
-    def addToMorphSet(self, prop, asset, hidden):
-        addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden, hideable=False)
+    hideable = False
 
 #------------------------------------------------------------------------
 #   Import all standard morphs in one bunch, for performance
@@ -995,10 +994,8 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
 
     def addToMorphSet(self, prop, asset, hidden):
         morphset = self.getMorphSet(asset)
-        if morphset in ["Jcms", "Flexions"]:
-            addToMorphSet(self.rig, morphset, prop, asset, hideable=False)
-        else:
-            addToMorphSet(self.rig, morphset, prop, asset, hidden=hidden)
+        self.hideable = (morphset in ["Jcms", "Flexions"])
+        StandardMorphLoader.addToMorphSet(self, prop, asset, hidden)
 
 #------------------------------------------------------------------------
 #   Import general morph or driven pose
@@ -1011,6 +1008,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
     bl_options = {'UNDO'}
 
     morphset = "Custom"
+    hideable = True
 
     catname : StringProperty(
         name = "Category",
@@ -1093,31 +1091,16 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
         return namepaths
 
 
-    def addToMorphSet(self, prop, asset, hidden):
-        from .modifier import getCanonicalKey
+    def findPropGroup(self, prop):
         if self.rig is None:
-            return
+            return None
         cats = self.rig.DazMorphCats
         if self.catname not in cats.keys():
             cat = cats.add()
             cat.name = self.catname
         else:
             cat = cats[self.catname]
-        if prop not in cat.morphs.keys():
-            item = cat.morphs.add()
-            item.name = prop
-        else:
-            item = cat.morphs[prop]
-        if asset and asset.name == prop:
-            label = asset.label
-            visible = asset.visible
-        else:
-            label = getCanonicalKey(prop)
-            visible = True
-        if hidden or not visible:
-            item.text = "[%s]" % label
-        else:
-            item.text = label
+        return cat.morphs
 
 #------------------------------------------------------------------------
 #   Categories
@@ -1188,8 +1171,8 @@ def removeFromPropGroups(rig, prop, keep=False):
 
 def removeFromPropGroup(pgs, prop):
     idxs = []
-    for n,pg in enumerate(pgs):
-        if pg.name == prop:
+    for n,item in enumerate(pgs):
+        if item.name == prop:
             idxs.append(n)
     idxs.reverse()
     for n in idxs:
@@ -1360,14 +1343,14 @@ def getRelevantMorphs(rig, morphset, category):
                 raise DazError("OLD morphs", rig, key)
     elif morphset == "All":
         for mset in theStandardMorphSets:
-            pg = getattr(rig, "Daz"+mset)
-            for key in pg.keys():
+            pgs = getattr(rig, "Daz"+mset)
+            for key in pgs.keys():
                 morphs.append(key)
         for cat in rig.DazMorphCats:
             morphs += [morph.name for morph in cat.morphs]
     else:
-        pg = getattr(rig, "Daz"+morphset)
-        for key in pg.keys():
+        pgs = getattr(rig, "Daz"+morphset)
+        for key in pgs.keys():
             morphs.append(key)
     return morphs
 
@@ -1446,8 +1429,8 @@ def addKeySet(rig, morphset, scn, frame):
                 path = "[" + '"' + morph.name + '"' + "]"
                 aks.paths.add(rig.id_data, path)
     else:
-        pg = getattr(rig, "Daz"+morphset)
-        for key in pg.keys():
+        pgs = getattr(rig, "Daz"+morphset)
+        for key in pgs.keys():
             if key in rig.keys():
                 path = "[" + '"' + key + '"' + "]"
                 aks.paths.add(rig.id_data, path)
@@ -1498,8 +1481,8 @@ class DAZ_OT_KeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
                     if getActivated(rig, rig, morph.name):
                         keyProp(rig, morph.name, frame)
         else:
-            pg = getattr(rig, "Daz" + self.morphset)
-            for key in pg.keys():
+            pgs = getattr(rig, "Daz" + self.morphset)
+            for key in pgs.keys():
                 if getActivated(rig, rig, key):
                     keyProp(rig, key, frame)
 
@@ -1555,8 +1538,8 @@ class DAZ_OT_UnkeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
                     if getActivated(rig, rig, morph.name):
                         unkeyProp(rig, morph.name, frame)
         else:
-            pg = getattr(rig, "Daz" + self.morphset)
-            for key in pg.keys():
+            pgs = getattr(rig, "Daz" + self.morphset)
+            for key in pgs.keys():
                 if getActivated(rig, rig, key):
                     unkeyProp(rig, key, frame)
 
@@ -2254,9 +2237,9 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile, IsMeshArm
             "FV" : "F"
         }
         daz = Moho2Daz[moho]
-        for pg in rig.DazVisemes:
-            if pg.text == daz:
-                prop = pg.name
+        for item in rig.DazVisemes:
+            if item.text == daz:
+                prop = item.name
                 if prop in rig.keys():
                     return prop
         raise DazError("Missing viseme: %s (%s)" % (daz, moho))
@@ -2462,16 +2445,22 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
                     self.morphset = "Custom"
                     self.category = key[7:]
                     rig.DazCustomMorphs = True
+                    self.hideable = True
+                elif key in ["Jcms", "Flexions"]:
+                    self.morphset = key
+                    self.category = ""
+                    self.hideable = False
                 else:
                     self.morphset = key
                     self.category = ""
+                    self.hideable = True
                 namepaths = [(name, unquote(ref), bodypart) for ref,name,bodypart in infos]
                 self.getAllMorphs(namepaths, context)
 
 
-    def addToMorphSet(self, prop, asset, hidden):
+    def findPropGroup(self, prop):
         if self.rig is None:
-            return
+            return None
         elif self.morphset == "Custom":
             cats = self.rig.DazMorphCats
             if self.category not in cats.keys():
@@ -2479,14 +2468,9 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
                 cat.name = self.category
             else:
                 cat = cats[self.category]
-            if prop not in cat.morphs.keys():
-                item = cat.morphs.add()
-                item.name = prop
-            else:
-                item = cat.morphs[prop]
-            item.text = asset.label
+            return cat.morphs
         else:
-            addToMorphSet(self.rig, self.morphset, prop, asset, hidden=hidden)
+            return getattr(self.rig, "Daz"+self.morphset)
 
 #-------------------------------------------------------------
 #   Property groups, for drivers

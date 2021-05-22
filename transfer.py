@@ -353,13 +353,12 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
                     fcu = self.copyDriver(fcu, cskeys)
                     if self.useStrength:
                         from .driver import addDriverVar, setFloatProp, getPropMinMax
-                        from .morphing import addToMorphSet
                         prop = cskey.name
                         min,max = getPropMinMax(src, prop)
                         setFloatProp(trg, prop, 0.0, min, max)
                         fcu.driver.expression = "w+%s" % fcu.driver.expression
                         addDriverVar(fcu, "w", propRef(prop), trg)
-                        addToMorphSet(trg, "AutoFollow", prop, None)
+                        #addToMorphSet(trg, "AutoFollow", prop, None)
                         trg.DazMorphAuto = True
             else:
                 print(" -", sname)
