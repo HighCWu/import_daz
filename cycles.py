@@ -391,7 +391,7 @@ class CyclesTree:
         oy = mat.getChannelValue(mat.getChannelVerticalOffset(), 0)
         kx = mat.getChannelValue(mat.getChannelHorizontalTiles(), 1)
         ky = mat.getChannelValue(mat.getChannelVerticalTiles(), 1)
-        if ox != 0 or oy != 0 or kx != 1 or ky != 1:
+        if ox != 0 or oy != 0 or kx not in [0,1] or ky not in [0,1]:
             sx = sy = 1
             dx = dy = 0
             if kx != 0:

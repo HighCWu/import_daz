@@ -582,7 +582,7 @@ class LoadMorph(DriverUser):
             elif factor == -1:
                 return "-%s" % varname
             else:
-                return "+%g*%s" % (factor, varname)
+                return "%+g*%s" % (factor, varname)
 
         channels = [var.targets[0].data_path for var in fcu.driver.variables]
         for dtype,subraw,factor in drivers[0:MAX_TERMS2]:
@@ -967,19 +967,13 @@ class LoadMorph(DriverUser):
 
 
     def getBatches(self, drivers):
-        def getTermDriverExpr(varname, factor):
-            if factor < 0:
-                return "%g*%s" % (factor, varname)
-            else:
-                return "+%g*%s" % (factor, varname)
-
         batches = []
         string = ""
         nterms = 0
         varname = "a"
         vars = []
         for final,factor in drivers.items():
-            string += getTermDriverExpr(varname, factor)
+            string += "%+.4g*%s" % (factor, varname)
             nterms += 1
             vars.append((varname, final))
             varname = nextLetter(varname)

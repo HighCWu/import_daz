@@ -382,10 +382,10 @@ def makeDriver(name, rna, channel, idx, attr, factor, rig):
     fcu = fcurves[idx]
     fcu.driver.type = 'SCRIPTED'
 
-    string = "%.4f" % (factor*attr.value)
+    string = "%.4g" % (factor*attr.value)
     string = "0"
     for n,drv in enumerate(attr.drivers.values()):
-        string += " + %.4f*x%d" % (factor*drv[1], n+1)
+        string += "%+.4g*x%d" % (factor*drv[1], n+1)
     fcu.driver.expression = string
 
     for n,drv in enumerate(attr.drivers.values()):
