@@ -160,6 +160,9 @@ def copyRotation(bone, target, rig, prop=None, expr="x", space='LOCAL'):
     cns.subtarget = target.name
     cns.owner_space = space
     cns.target_space = space
+    if (bone.rotation_mode != 'QUATERNION' and
+        bone.rotation_mode == target.rotation_mode):
+        cns.euler_order = bone.rotation_mode
     if prop is not None:
         addDriver(cns, "influence", rig, prop, expr)
     return cns
@@ -489,8 +492,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ("shin.L", "lShin", L_LLEGFK),
             ("foot.L", "lFoot", L_LLEGFK),
             ("toe.L", "lToe", L_LLEGFK),
-            ("heel.L", "lHeel", L_TWEAK),
-            ("tarsal.L", "lMetatarsals", L_HELP),
+            ("heel.L", "lHeel", L_LTOE),
+            ("tarsal.L", "lMetatarsals", L_LTOE),
 
             ("thigh.R", "rThigh", L_RLEGFK),
             ("thighBend.R", "rThighBend", L_RLEGFK),
@@ -498,8 +501,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             ("shin.R", "rShin", L_RLEGFK),
             ("foot.R", "rFoot", L_RLEGFK),
             ("toe.R", "rToe", L_RLEGFK),
-            ("heel.R", "rHeel", L_TWEAK),
-            ("tarsal.R", "rMetatarsals", L_HELP),
+            ("heel.R", "rHeel", L_RTOE),
+            ("tarsal.R", "rMetatarsals", L_RTOE),
 
             ("spine", "abdomenLower", L_SPINE),
             ("spine", "abdomen", L_SPINE),
@@ -790,6 +793,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         for pb in rig.pose.bones:
             if pb.name in Gizmos.keys():
                 gizmo,scale = Gizmos[pb.name]
+                self.addGizmo(pb, gizmo, scale)
+            elif pb.name[-2:] in [".L", ".R"] and pb.name[:-2] in LRGizmos.keys():
+                gizmo,scale = LRGizmos[pb.name[:-2]]
                 self.addGizmo(pb, gizmo, scale)
             elif pb.name[0:4] == "palm":
                 self.addGizmo(pb, "GZM_Ellipse", 1)
@@ -1335,6 +1341,18 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.copyLimits(rig, "forearm", suffix)
             self.copyLimits(rig, "thigh", suffix)
             self.copyLimits(rig, "shin", suffix)
+            if "tarsal"+suffix in rig.pose.bones.keys():
+                tarsal = rig.pose.bones["tarsal"+suffix]
+                prop = "MhaToeTarsal_%s" % suffix[1]
+                setMhxProp(rig, prop, 0.0)
+                for toename in ["big_toe", "small_toe_1", "small_toe_2", "small_toe_3", "small_toe_4"]:
+                    bname = "%s.01%s" % (toename, suffix)
+                    if bname in rig.pose.bones.keys():
+                        toe = rig.pose.bones[bname]
+                        cns = copyRotation(toe, tarsal, rig, prop)
+                        #cns.euler_order ='YZX'
+                        cns.use_y = False
+                        cns.mix_mode = 'BEFORE'
 
 
     def unlockYrot(self, rig, bname):
@@ -1488,104 +1506,67 @@ Gizmos = {
     "neck" :            ("GZM_Neck", 1),
     "neck-1" :          ("GZM_Neck", 1),
     "head" :            ("GZM_Head", 1),
-    "pectoral.L" :      ("GZM_Pectoral", 1),
-    "pectoral.R" :      ("GZM_Pectoral", 1),
-    "clavicle.L" :      ("GZM_Ball025End", 1),
-    "clavicle.R" :      ("GZM_Ball025End", 1),
-
-    # Head
-
     "lowerJaw" :        ("GZM_Jaw", 1),
     "rEye" :            ("GZM_Circle025", 1),
     "lEye" :            ("GZM_Circle025", 1),
     "gaze" :            ("GZM_Gaze", 1),
-    "gaze.L" :          ("GZM_Circle025", 1),
-    "gaze.R" :          ("GZM_Circle025", 1),
-
-    "uplid.L" :         ("GZM_UpLid", 1),
-    "uplid.R" :         ("GZM_UpLid", 1),
-    "lolid.L" :         ("GZM_LoLid", 1),
-    "lolid.R" :         ("GZM_LoLid", 1),
-
     "tongue_base" :     ("GZM_Tongue", 1),
     "tongue_mid" :      ("GZM_Tongue", 1),
     "tongue_tip" :      ("GZM_Tongue", 1),
+}
+
+LRGizmos = {
+    "pectoral" :        ("GZM_Pectoral", 1),
+    "clavicle" :        ("GZM_Ball025End", 1),
+
+    # Head
+
+    "rEye" :            ("GZM_Circle025", 1),
+    "lEye" :            ("GZM_Circle025", 1),
+    "gaze" :            ("GZM_Circle025", 1),
+
+    "uplid" :           ("GZM_UpLid", 1),
+    "lolid" :           ("GZM_LoLid", 1),
 
     # Leg
 
-    "thigh.fk.L" :      ("GZM_Circle025", 1),
-    "thigh.fk.R" :      ("GZM_Circle025", 1),
-    "shin.fk.L" :       ("GZM_Circle025", 1),
-    "shin.fk.R" :       ("GZM_Circle025", 1),
-    "thigh.ik.twist.L": ("GZM_Circle025", 1),
-    "thigh.ik.twist.R": ("GZM_Circle025", 1),
-    "shin.ik.twist.L" : ("GZM_Circle025", 1),
-    "shin.ik.twist.R" : ("GZM_Circle025", 1),
-    "foot.fk.L" :       ("GZM_Foot", 1),
-    "foot.fk.R" :       ("GZM_Foot", 1),
-    "toe.fk.L" :        ("GZM_Toe", 1),
-    "toe.fk.R" :        ("GZM_Toe", 1),
-    "legSocket.L" :     ("GZM_Cube", 0.25),
-    "legSocket.R" :     ("GZM_Cube", 0.25),
-    "foot.rev.L" :      ("GZM_FootRev", 1),
-    "foot.rev.R" :      ("GZM_FootRev", 1),
-    "foot.ik.L" :       ("GZM_FootIK", 1),
-    "foot.ik.R" :       ("GZM_FootIK", 1),
-    "toe.rev.L" :       ("GZM_ToeRev", 1),
-    "toe.rev.R" :       ("GZM_ToeRev", 1),
-    "ankle.L" :         ("GZM_Cube", 0.25),
-    "ankle.R" :         ("GZM_Cube", 0.25),
-    "knee.pt.ik.L" :    ("GZM_Cone", 0.25),
-    "knee.pt.ik.R" :    ("GZM_Cone", 0.25),
-    "kneePoleA.L" :     ("GZM_Knuckle", 1),
-    "kneePoleA.R" :     ("GZM_Knuckle", 1),
-
-    "toe.marker.L" :    ("GZM_Ball025", 1),
-    "ball.marker.L" :   ("GZM_Ball025", 1),
-    "heel.marker.L" :   ("GZM_Ball025", 1),
-    "toe.marker.R" :    ("GZM_Ball025", 1),
-    "ball.marker.R" :   ("GZM_Ball025", 1),
-    "heel.marker.R" :   ("GZM_Ball025", 1),
-
+    "thigh.fk" :        ("GZM_Circle025", 1),
+    "shin.fk" :         ("GZM_Circle025", 1),
+    "thigh.ik.twist":   ("GZM_Circle025", 1),
+    "shin.ik.twist" :   ("GZM_Circle025", 1),
+    "foot.fk" :         ("GZM_Foot", 1),
+    "tarsal" :          ("GZM_Foot", 1),
+    "toe.fk" :          ("GZM_Toe", 1),
+    "legSocket" :       ("GZM_Cube", 0.25),
+    "foot.rev" :        ("GZM_FootRev", 1),
+    "foot.ik" :         ("GZM_FootIK", 1),
+    "toe.rev" :         ("GZM_ToeRev", 1),
+    "ankle" :           ("GZM_Cube", 0.25),
+    "knee.pt.ik" :      ("GZM_Cone", 0.25),
+    "kneePoleA" :       ("GZM_Knuckle", 1),
+    "toe.marker" :      ("GZM_Ball025", 1),
+    "ball.marker" :     ("GZM_Ball025", 1),
+    "heel.marker" :     ("GZM_Ball025", 1),
 
     # Arm
-
-    "clavicle.L" :      ("GZM_Shoulder", 1),
-    "clavicle.R" :      ("GZM_Shoulder", 1),
-    "upper_arm.fk.L" :  ("GZM_Circle025", 1),
-    "upper_arm.fk.R" :  ("GZM_Circle025", 1),
-    "forearm.fk.L" :    ("GZM_Circle025", 1),
-    "forearm.fk.R" :    ("GZM_Circle025", 1),
-    "upper_arm.ik.twist.L" :  ("GZM_Circle025", 1),
-    "upper_arm.ik.twist.R" :  ("GZM_Circle025", 1),
-    "forearm.ik.twist.L" :    ("GZM_Circle025", 1),
-    "forearm.ik.twist.R" :    ("GZM_Circle025", 1),
-    "hand.fk.L" :       ("GZM_Hand", 1),
-    "hand.fk.R" :       ("GZM_Hand", 1),
-    "handTwk.L" :       ("GZM_Circle", 0.4),
-    "handTwk.R" :       ("GZM_Circle", 0.4),
-    "armSocket.L" :     ("GZM_Cube", 0.25),
-    "armSocket.R" :     ("GZM_Cube", 0.25),
-    "hand.ik.L" :       ("GZM_HandIK", 1),
-    "hand.ik.R" :       ("GZM_HandIK", 1),
-    "elbow.pt.ik.L" :   ("GZM_Cone", 0.25),
-    "elbow.pt.ik.R" :   ("GZM_Cone", 0.25),
-    "elbowPoleA.L" :    ("GZM_Knuckle", 1),
-    "elbowPoleA.R" :    ("GZM_Knuckle", 1),
+    "clavicle" :        ("GZM_Shoulder", 1),
+    "upper_arm.fk" :    ("GZM_Circle025", 1),
+    "forearm.fk" :      ("GZM_Circle025", 1),
+    "upper_arm.ik.twist" :  ("GZM_Circle025", 1),
+    "forearm.ik.twist" :    ("GZM_Circle025", 1),
+    "hand.fk" :         ("GZM_Hand", 1),
+    "handTwk" :         ("GZM_Circle", 0.4),
+    "armSocket" :       ("GZM_Cube", 0.25),
+    "hand.ik" :         ("GZM_HandIK", 1),
+    "elbow.pt.ik" :     ("GZM_Cone", 0.25),
+    "elbowPoleA" :      ("GZM_Knuckle", 1),
 
     # Finger
-
-    "thumb.L" :         ("GZM_Knuckle", 1),
-    "index.L" :         ("GZM_Knuckle", 1),
-    "middle.L" :        ("GZM_Knuckle", 1),
-    "ring.L" :          ("GZM_Knuckle", 1),
-    "pinky.L":          ("GZM_Knuckle", 1),
-
-    "thumb.R" :         ("GZM_Knuckle", 1),
-    "index.R" :         ("GZM_Knuckle", 1),
-    "middle.R" :        ("GZM_Knuckle", 1),
-    "ring.R" :          ("GZM_Knuckle", 1),
-    "pinky.R" :         ("GZM_Knuckle", 1),
+    "thumb" :           ("GZM_Knuckle", 1),
+    "index" :           ("GZM_Knuckle", 1),
+    "middle" :          ("GZM_Knuckle", 1),
+    "ring" :            ("GZM_Knuckle", 1),
+    "pinky":            ("GZM_Knuckle", 1),
     }
 
 # ---------------------------------------------------------------------
@@ -1678,7 +1659,7 @@ def fixIk(rig, bnames):
 def getMhxProps(amt):
     floats = ["MhaGazeFollowsHead"]
     bools = ["MhaHintsOn"]
-    for prop in ["MhaArmIk", "MhaGaze", "MhaLegIk"]:
+    for prop in ["MhaArmIk", "MhaGaze", "MhaLegIk", "MhaToeTarsal"]:
         floats.append(prop+"_L")
         floats.append(prop+"_R")
     for prop in ["MhaArmHinge", "MhaFingerControl", "MhaLegHinge", "MhaLegIkToAnkle"]:
@@ -1733,6 +1714,7 @@ def initMhxProps():
     bpy.types.Armature.MhaLegHinge_L = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIkToAnkle_L = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIk_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Armature.MhaToeTarsal_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
 
     bpy.types.Armature.MhaArmHinge_R = BoolPropOVR(False)
     bpy.types.Armature.MhaArmIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
@@ -1741,6 +1723,7 @@ def initMhxProps():
     bpy.types.Armature.MhaLegHinge_R = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIkToAnkle_R = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Armature.MhaToeTarsal_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
 
 
 classes = [
