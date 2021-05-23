@@ -511,7 +511,16 @@ def getAllMorphFiles(char, morphset):
     return list(theMorphFiles[char][morphset].values())
 
 
-def setupMorphPaths(scn, force):
+def getMorphPaths(char):
+    setupMorphPaths(False)
+    morphpaths = {}
+    if char in theMorphFiles.keys():
+        for morphset,pgs in theMorphFiles[char].items():
+            morphpaths[morphset] = pgs.values()
+    return morphpaths
+
+
+def setupMorphPaths(force):
     global theMorphFiles, theMorphNames
     from collections import OrderedDict
     from .asset import fixBrokenPath
@@ -561,7 +570,7 @@ def setupMorphPaths(scn, force):
                 excludes += getShortformList(struct["exclude2"])
 
             for dazpath in GS.getDazPaths():
-                folderpath = os.path.join(dazpath, folder)
+                folderpath = "%s/%s" % (dazpath, folder)
                 if not os.path.exists(folderpath) and GS.caseSensitivePaths:
                     folderpath = fixBrokenPath(folderpath)
                 if os.path.exists(folderpath):
@@ -575,7 +584,8 @@ def setupMorphPaths(scn, force):
                         if isright:
                             fname = fname.lower()
                             #fpath = os.path.join(folder, file)
-                            typeFiles[name] = os.path.join(folderpath, file)
+                            string = "%s/%s" % (folderpath, file)
+                            typeFiles[name] = string.replace("//", "/")
                             #prop = BoolProperty(name=name, default=True)
                             #setattr(bpy.types.Scene, "Daz"+name, prop)
                             typeNames[fname] = name
@@ -620,7 +630,7 @@ class DAZ_OT_Update(DazOperator):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        setupMorphPaths(context.scene, True)
+        setupMorphPaths(True)
         print(theMorphFiles.items())
         print("UU", theMorphNames.items())
 
@@ -645,6 +655,8 @@ class DAZ_OT_SelectAllMorphs(DazOperator):
 #------------------------------------------------------------------
 
 class MorphLoader(LoadMorph):
+    loadMissing = True
+
     def __init__(self, rig=None, mesh=None):
         from .finger import getFingeredCharacter
         self.rig, self.mesh, self.char = getFingeredCharacter(bpy.context.object)
@@ -776,8 +788,7 @@ class StandardMorphLoader(MorphLoader):
 
 
     def run(self, context):
-        scn = context.scene
-        setupMorphPaths(scn, False)
+        setupMorphPaths(False)
         if self.rig:
             self.rig.DazMorphPrefixes = False
         namepaths = self.getActiveMorphFiles(context)
@@ -822,7 +833,7 @@ class StandardMorphSelector(Selector):
         self.selection.clear()
         if not self.setupCharacter(context):
             return {'FINISHED'}
-        setupMorphPaths(scn, False)
+        setupMorphPaths(False)
         try:
             pgs = theMorphFiles[self.char][self.morphset]
         except KeyError:
@@ -886,7 +897,7 @@ class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, StandardM
 
     morphset = "Facsexpr"
     bodypart = "Face"
-    loadMissed = False
+    loadMissing = False
 
 
 class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
@@ -940,8 +951,7 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
     def run(self, context):
         if not self.setupCharacter(context):
             return
-        scn = context.scene
-        setupMorphPaths(scn, False)
+        setupMorphPaths(False)
         if self.rig:
             self.rig.DazMorphPrefixes = False
         self.message = None
@@ -1079,6 +1089,8 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
     def findPropGroup(self, prop):
         if self.rig is None:
             return None
+        if self.morphset != "Custom":
+            return getattr(self.rig, "Daz"+self.morphset)
         cats = self.rig.DazMorphCats
         if self.catname not in cats.keys():
             cat = cats.add()
@@ -2036,7 +2048,7 @@ class DAZ_OT_PinProp(DazOperator, MorphsetString, IsMeshArmature):
     def run(self, context):
         rig = getRigFromObject(context.object)
         scn = context.scene
-        setupMorphPaths(scn, False)
+        setupMorphPaths(False)
         pinProp(rig, scn, self.key, self.morphset, self.category, scn.frame_current)
         updateRigDrivers(context, rig)
 

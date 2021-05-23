@@ -43,7 +43,6 @@ MAX_EXPR_LEN = 240
 class LoadMorph(DriverUser):
     morphset = None
     usePropDrivers = True
-    loadMissed = True
     isJcm = False
 
     def __init__(self, rig, mesh):
@@ -77,10 +76,12 @@ class LoadMorph(DriverUser):
         self.initAmt()
         print("Making morphs")
         self.makeAllMorphs(namepaths, True)
-        if self.loadMissed:
+        if self.loadMissing:
             print("Making missing morphs")
             bodypart = namepaths[0][2]
             self.makeMissingMorphs(bodypart)
+        else:
+            print("Cannot make missing morphs for this type")
         if self.rig:
             self.createTmp()
             try:
@@ -513,15 +514,47 @@ class LoadMorph(DriverUser):
         from .asset import getDazPath
         for fileref in self.loaded:
             self.referred[fileref] = False
+        morphset = self.morphset
         namepaths = []
+        groupedpaths,morphfiles = self.setupMorphGroups()
         for ref,unloaded in self.referred.items():
-            path = getDazPath(ref)
-            if path:
-                name = ref.rsplit("/",1)[-1]
-                data = (name,path,bodypart)
             if unloaded:
-                namepaths.append(data)
-        self.makeAllMorphs(namepaths, False)
+                path = getDazPath(ref)
+                if path:
+                    name = ref.rsplit("/",1)[-1]
+                    data = (name,path,bodypart)
+                    morphset = self.getPathMorphSet(path, morphfiles)
+                    if morphset:
+                        groupedpaths[morphset].append(data)
+                    else:
+                        namepaths.append(data)
+        if namepaths:
+            self.makeAllMorphs(namepaths, False)
+        for mset,namepaths in groupedpaths.items():
+            if namepaths:
+                self.morphset = mset
+                self.makeAllMorphs(namepaths, False)
+        self.morphset = morphset
+
+
+    def setupMorphGroups(self):
+        from .morphing import getMorphPaths
+        if self.char is None:
+            return {}, {}
+        morphrefs = {}
+        groupedpaths = {}
+        for morphset,paths in getMorphPaths(self.char).items():
+            groupedpaths[morphset] = []
+            morphrefs[morphset] = [self.getFileRef(path) for path in paths]
+        return groupedpaths, morphrefs
+
+
+    def getPathMorphSet(self, path, morphrefs):
+        ref = self.getFileRef(path)
+        for morphset,refs in morphrefs.items():
+            if ref in refs:
+                return morphset
+        return None
 
     #------------------------------------------------------------------
     #   Third pass: Build the drivers
