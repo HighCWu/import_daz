@@ -363,11 +363,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         description = "Merge separate eyelash mesh to character.\nShapekeys are always transferred first",
         default = False)
 
-    useExtraFaceBones : BoolProperty(
-        name = "Extra Face Bones",
-        description = "Add an extra layer of face bones, which can be both driven and posed",
-        default = False)
-
     useMakeAllBonesPoseable : BoolProperty(
         name = "Make All Bones Poseable",
         description = "Add an extra layer of driven bones, to make them poseable",
@@ -403,7 +398,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             self.layout.prop(self, "useTransferShapes")
         self.layout.prop(self, "useMergeGeografts")
         self.layout.prop(self, "useMergeLashes")
-        self.layout.prop(self, "useExtraFaceBones")
         self.layout.prop(self, "useMakeAllBonesPoseable")
         self.layout.prop(self, "useConvertHair")
         self.layout.prop(self, "rigType")
@@ -516,19 +510,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
                 mainRig = context.object
                 rigs = [mainRig]
 
-            # Eliminate empties
+            # Merge toes
             if activateObject(context, mainRig):
-                bpy.ops.daz.eliminate_empties()
-
-                # Merge toes
                 if self.useMergeToes:
                     print("Merge toes")
                     bpy.ops.daz.merge_toes()
-
-                # Add extra face bones
-                if self.useExtraFaceBones:
-                    print("Add extra face bones")
-                    bpy.ops.daz.add_extra_face_bones()
 
         if mainMesh and activateObject(context, mainMesh):
             # Merge materials

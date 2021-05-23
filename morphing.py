@@ -2439,10 +2439,7 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
         for key,infos in ustruct["morphs"].items():
             if infos:
                 if key[0:7] == "Custom/":
-                    self.morphset = "Custom"
-                    self.category = key[7:]
-                    rig.DazCustomMorphs = True
-                    self.hideable = True
+                    continue
                 elif key in ["Jcms", "Flexions"]:
                     self.morphset = key
                     self.category = ""
@@ -2451,6 +2448,14 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
                     self.morphset = key
                     self.category = ""
                     self.hideable = True
+                namepaths = [(name, unquote(ref), bodypart) for ref,name,bodypart in infos]
+                self.getAllMorphs(namepaths, context)
+        for key,infos in ustruct["morphs"].items():
+            if key[0:7] == "Custom/" and infos:
+                self.morphset = "Custom"
+                self.category = key[7:]
+                rig.DazCustomMorphs = True
+                self.hideable = True
                 namepaths = [(name, unquote(ref), bodypart) for ref,name,bodypart in infos]
                 self.getAllMorphs(namepaths, context)
 
