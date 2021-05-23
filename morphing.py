@@ -2414,7 +2414,7 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
         struct = loadJson(filepath)
         if ("filetype" not in struct.keys() or
             struct["filetype"] != "favo_morphs"):
-            raise DazError("This file does not contain a morph preset")
+            raise DazError("This file does not contain favorite morphs")
         rig = self.rig = context.object
         rig.DazMorphUrls.clear()
         self.loadPreset(rig, rig, struct, context)
@@ -2436,28 +2436,26 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
             if finger != ustruct["finger_print"]:
                 print("Fingerprint mismatch:\n%s != %s" % (finger, ustruct["finger_print"]))
                 return
-        for key,infos in ustruct["morphs"].items():
-            if infos:
-                if key[0:7] == "Custom/":
-                    continue
-                elif key in ["Jcms", "Flexions"]:
-                    self.morphset = key
-                    self.category = ""
-                    self.hideable = False
-                else:
-                    self.morphset = key
-                    self.category = ""
-                    self.hideable = True
-                namepaths = [(name, unquote(ref), bodypart) for ref,name,bodypart in infos]
-                self.getAllMorphs(namepaths, context)
-        for key,infos in ustruct["morphs"].items():
-            if key[0:7] == "Custom/" and infos:
-                self.morphset = "Custom"
-                self.category = key[7:]
+        for morphset in theStandardMorphSets:
+            self.loadMorphSet(context, morphset, ustruct, morphset, "", True)
+        for morphset in theJCMMorphSets:
+            self.loadMorphSet(context, morphset, ustruct, morphset, "", False)
+        for key in ustruct["morphs"].keys():
+            if key[0:7] == "Custom/":
                 rig.DazCustomMorphs = True
-                self.hideable = True
-                namepaths = [(name, unquote(ref), bodypart) for ref,name,bodypart in infos]
-                self.getAllMorphs(namepaths, context)
+                self.loadMorphSet(context, key, ustruct, "Custom", key[7:], True)
+
+
+    def loadMorphSet(self, context, key, ustruct, morphset, cat, hide):
+        if key in ustruct["morphs"].keys():
+            infos = ustruct["morphs"][key]
+            if not infos:
+                return
+            self.morphset = morphset
+            self.category = cat
+            self.hideable = hide
+            namepaths = [(name, unquote(ref), bodypart) for ref,name,bodypart in infos]
+            self.getAllMorphs(namepaths, context)
 
 
     def findPropGroup(self, prop):
