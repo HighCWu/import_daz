@@ -301,7 +301,7 @@ class HideOperator(DazOperator):
         rig.data.layers = 32*[True]
         self.layerColls = []
         self.obhides = []
-        for ob in context.scene.collection.all_objects:
+        for ob in context.view_layer.objects:
             self.obhides.append((ob, ob.hide_get()))
             ob.hide_set(False)
         self.hideLayerColls(rig, context.view_layer.layer_collection)

@@ -186,50 +186,34 @@ class ColorProp:
         default = (0.1, 0.1, 0.5, 1)
     )
 
-class ColorChanger(ColorProp):
     def draw(self, context):
         self.layout.prop(self, "color")
 
-    def run(self, context):
-        scn = context.scene
-        for ob in getSelectedObjects(context):
-            if ob.type == 'ARMATURE':
-                for child in ob.children:
-                    if child.type == 'MESH':
-                        self.changeMeshColor(child, scn)
-            elif ob.type == 'MESH':
-                self.changeMeshColor(ob, scn)
 
-
-class DAZ_OT_ChangeColors(DazPropsOperator, ColorChanger, IsMesh):
+class DAZ_OT_ChangeColors(DazPropsOperator, ColorProp, IsMesh):
     bl_idname = "daz.change_colors"
     bl_label = "Change Colors"
     bl_description = "Change viewport colors of all materials of this object"
     bl_options = {'UNDO'}
 
-    def changeMeshColor(self, ob, scn):
-        if scn.render.engine in ['BLENDER_RENDER', 'BLENDER_GAME']:
-            for mat in ob.data.materials:
-                for mtex in mat.texture_slots:
-                    if mtex and mtex.use_map_color_diffuse:
-                        setDiffuse(mat, self.color)
-                        break
-        else:
+    def run(self, context):
+        for ob in getSelectedMeshes(context):
             for mat in ob.data.materials:
                 setDiffuse(mat, self.color)
 
 
-class DAZ_OT_ChangeSkinColor(DazPropsOperator, ColorChanger, IsMesh):
+class DAZ_OT_ChangeSkinColor(DazPropsOperator, ColorProp, IsMesh):
     bl_idname = "daz.change_skin_color"
     bl_label = "Change Skin Colors"
     bl_description = "Change viewport colors of all materials of this object"
     bl_options = {'UNDO'}
 
-    def changeMeshColor(self, ob, scn):
+    def run(self, context):
         LS.skinColor = self.color
         LS.clothesColor = self.color
-        for mat in ob.data.materials:
-            guessMaterialColor(mat, 'GUESS', True)
+        for ob in getSelectedMeshes(context):
+            for mat in ob.data.materials:
+                guessMaterialColor(mat, 'GUESS', True)
 
 #----------------------------------------------------------
 #   Initialize

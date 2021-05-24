@@ -80,9 +80,8 @@ class MeshSelection:
         scn = context.scene
         pgs = scn.DazSelector
         pgs.clear()
-        for ob in scn.collection.all_objects:
-            if (ob.type == 'MESH' and
-                ob != context.object):
+        for ob in getVisibleMeshes(context):
+            if ob != context.object:
                 pg = pgs.add()
                 pg.text = ob.name
                 pg.select = False

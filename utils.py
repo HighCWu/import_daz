@@ -44,20 +44,24 @@ def setHideViewport(ob, value):
     ob.hide_set(value)
     ob.hide_viewport = value
 
+def getVisibleObjects(context):
+    return [ob for ob in context.view_layer.objects
+        if not (ob.hide_get() or ob.hide_viewport)]
+
 def getVisibleMeshes(context):
-    return [ob for ob in context.scene.collection.all_objects
+    return [ob for ob in context.view_layer.objects
         if ob.type == 'MESH' and not (ob.hide_get() or ob.hide_viewport)]
 
 def getSelectedObjects(context):
-    return [ob for ob in context.scene.collection.all_objects
+    return [ob for ob in context.view_layer.objects
         if ob.select_get() and not (ob.hide_get() or ob.hide_viewport)]
 
 def getSelectedMeshes(context):
-    return [ob for ob in context.scene.collection.all_objects
+    return [ob for ob in context.view_layer.objects
             if ob.select_get() and ob.type == 'MESH' and not (ob.hide_get() or ob.hide_viewport)]
 
 def getSelectedArmatures(context):
-    return [ob for ob in context.scene.collection.all_objects
+    return [ob for ob in context.view_layer.objects
             if ob.select_get() and ob.type == 'ARMATURE' and not (ob.hide_get() or ob.hide_viewport)]
 
 def getActiveObject(context):

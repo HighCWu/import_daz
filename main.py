@@ -434,11 +434,12 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         if not LS.objects:
             raise DazError("No objects found")
         setSilentMode(True)
-        self.rigs = self.getVisibleObjects(context, LS.rigs)
-        self.meshes = self.getVisibleObjects(context, LS.meshes)
-        self.objects = self.getVisibleObjects(context, LS.objects)
-        self.hdmeshes = self.getVisibleObjects(context, LS.hdmeshes)
-        self.hairs = self.getVisibleObjects(context, LS.hairs)
+        visibles = getVisibleObjects(context)
+        self.rigs = self.getTypedObjects(visibles, LS.rigs)
+        self.meshes = self.getTypedObjects(visibles, LS.meshes)
+        self.objects = self.getTypedObjects(visibles, LS.objects)
+        self.hdmeshes = self.getTypedObjects(visibles, LS.hdmeshes)
+        self.hairs = self.getTypedObjects(visibles, LS.hairs)
         for rigname in self.rigs.keys():
             self.treatRig(context, rigname)
         setSilentMode(False)
@@ -446,14 +447,10 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         print("File %s loaded in %.3f seconds" % (self.filepath, time2-time1))
 
 
-    def getVisibleObjects(self, context, struct):
+    def getTypedObjects(self, visibles, struct):
         nstruct = {}
         for key,objects in struct.items():
-            nstruct[key] = [ob for ob in objects if
-                (ob and
-                 ob.name in context.scene.collection.all_objects and
-                 ob.name in context.view_layer.objects and
-                 not (ob.hide_get() or ob.hide_viewport))]
+            nstruct[key] = [ob for ob in objects if (ob and ob in visibles)]
         return nstruct
 
 

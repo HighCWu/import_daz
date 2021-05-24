@@ -877,15 +877,14 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator):
             os.makedirs(texpath)
 
         self.images = []
-        for ob in context.scene.collection.all_objects:
-            if ob.type == 'MESH':
-                for mat in ob.data.materials:
-                    if mat:
-                        if mat.use_nodes:
-                            self.saveNodesInTree(mat.node_tree)
-                for psys in ob.particle_systems:
-                    self.saveTextureSlots(psys.settings)
-                ob.DazLocalTextures = True
+        for ob in getSelectedMeshes(context):
+            for mat in ob.data.materials:
+                if mat:
+                    if mat.use_nodes:
+                        self.saveNodesInTree(mat.node_tree)
+            for psys in ob.particle_systems:
+                self.saveTextureSlots(psys.settings)
+            ob.DazLocalTextures = True
 
         for img in self.images:
             src = bpy.path.abspath(img.filepath)
@@ -1595,13 +1594,13 @@ def checkRenderSettings(context, force):
     msg += checkSettings(scn.eevee, renderSettingsEevee, handle, "Eevee Settings", force)
     msg += checkSettings(scn.render, renderSettingsRender, handle, "Render Settings", force)
 
-    lamps = [ob for ob in scn.collection.all_objects if ob.type == "LIGHT"]
     handle = GS.handleLightSettings
     if force:
         handle = "UPDATE"
-    for lamp in lamps:
-        header = ('Light "%s" settings' % lamp.name)
-        msg += checkSettings(lamp.data, lightSettings, handle, header, force)
+    for light in getVisibleObjects(context):
+        if light.type == 'LIGHT':
+            header = ('Light "%s" settings' % light.name)
+            msg += checkSettings(light.data, lightSettings, handle, header, force)
 
     if msg:
         msg += "See http://diffeomorphic.blogspot.com/2020/04/render-settings.html for details."
@@ -1667,7 +1666,7 @@ def checkSetting(attr, op, val, minval, first, header):
 class DAZ_OT_UpdateSettings(DazOperator):
     bl_idname = "daz.update_settings"
     bl_label = "Update Render Settings"
-    bl_description = "Update render and lamp settings if they are inadequate"
+    bl_description = "Update render and light settings if they are inadequate"
     bl_options = {'UNDO'}
 
     def run(self, context):
