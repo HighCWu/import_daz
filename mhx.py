@@ -1341,16 +1341,16 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.copyLimits(rig, "forearm", suffix)
             self.copyLimits(rig, "thigh", suffix)
             self.copyLimits(rig, "shin", suffix)
-            if "tarsal"+suffix in rig.pose.bones.keys():
-                tarsal = rig.pose.bones["tarsal"+suffix]
+            if "toe"+suffix in rig.pose.bones.keys():
+                toe = rig.pose.bones["toe"+suffix]
                 prop = "MhaToeTarsal_%s" % suffix[1]
-                setMhxProp(rig, prop, 0.0)
+                setMhxProp(rig, prop, False)
                 for toename in ["big_toe", "small_toe_1", "small_toe_2", "small_toe_3", "small_toe_4"]:
                     bname = "%s.01%s" % (toename, suffix)
                     if bname in rig.pose.bones.keys():
-                        toe = rig.pose.bones[bname]
-                        cns = copyRotation(toe, tarsal, rig, prop)
-                        #cns.euler_order ='YZX'
+                        smalltoe = rig.pose.bones[bname]
+                        cns = copyRotation(smalltoe, toe, rig)
+                        cns.mute = True
                         cns.use_y = False
                         cns.mix_mode = 'BEFORE'
 
@@ -1659,7 +1659,7 @@ def fixIk(rig, bnames):
 def getMhxProps(amt):
     floats = ["MhaGazeFollowsHead"]
     bools = ["MhaHintsOn"]
-    for prop in ["MhaArmIk", "MhaGaze", "MhaLegIk", "MhaToeTarsal"]:
+    for prop in ["MhaArmIk", "MhaGaze", "MhaLegIk"]:
         floats.append(prop+"_L")
         floats.append(prop+"_R")
     for prop in ["MhaArmHinge", "MhaFingerControl", "MhaLegHinge", "MhaLegIkToAnkle"]:
@@ -1714,7 +1714,6 @@ def initMhxProps():
     bpy.types.Armature.MhaLegHinge_L = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIkToAnkle_L = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIk_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
-    bpy.types.Armature.MhaToeTarsal_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
 
     bpy.types.Armature.MhaArmHinge_R = BoolPropOVR(False)
     bpy.types.Armature.MhaArmIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
@@ -1723,7 +1722,6 @@ def initMhxProps():
     bpy.types.Armature.MhaLegHinge_R = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIkToAnkle_R = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
-    bpy.types.Armature.MhaToeTarsal_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
 
 
 classes = [
