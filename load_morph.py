@@ -233,6 +233,7 @@ class LoadMorph(DriverUser):
             self.shapekeys[prop] = skey
             addSkeyToUrls(self.mesh, self.isJcm, asset, skey)
             if self.rig:
+                self.addAdjustMult(prop)
                 final = self.addNewProp(prop, None, skey)
                 makePropDriver(propRef(final), skey, "value", self.amt, "x")
             pgs = self.mesh.data.DazBodyPart
@@ -262,6 +263,7 @@ class LoadMorph(DriverUser):
                     continue
                 for idx,expr in data1.items():
                     if key == "value":
+                        self.addAdjustMult(output)
                         self.makeValueFormula(output, expr)
                     elif key == "rotation":
                         self.makeRotFormula(output, idx, expr)
@@ -271,6 +273,18 @@ class LoadMorph(DriverUser):
                         self.makeScaleFormula(output, idx, expr)
                     elif key in ["center_point", "end_point"]:
                         self.ecr = True
+
+
+    def addAdjustMult(self, output):
+        from .driver import setFloatProp
+        if output not in self.mults.keys():
+            prop = self.getAdjuster()
+            if prop not in self.rig.keys():
+                self.addNewProp(prop)
+                final = finalProp(prop)
+                setFloatProp(self.rig, prop, 1.0, 0.0, 1000.0)
+                setFloatProp(self.amt, final, 1.0, 0.0, 1000.0)
+            self.mults[output] = [prop]
 
 
     def getFileRef(self, filepath):
@@ -345,8 +359,6 @@ class LoadMorph(DriverUser):
             prop = expr["prop"]
             self.drivers[output].append(("PROP", prop, expr["factor"]))
         if expr["mult"]:
-            if output not in self.mults.keys():
-                self.mults[output] = []
             mult = expr["mult"]
             self.mults[output].append(mult)
             self.addNewProp(mult)

@@ -460,8 +460,13 @@ class DAZ_PT_Morphs:
         if ob and ob.DazMesh:
             if ob.type == 'MESH' and ob.parent:
                 ob = ob.parent
-            return getattr(ob, "Daz"+self.morphset)
+            return (self.hasTheseMorphs(self, ob) or
+                    "Adjust "+self.morphset in ob.keys())
         return False
+
+
+    def hasTheseMorphs(self, ob):
+        return getattr(ob, "Daz"+self.morphset)
 
 
     def getCurrentRig(self, context):
@@ -486,6 +491,11 @@ class DAZ_PT_Morphs:
             return
 
         scn = context.scene
+        prop = "Adjust " + self.morphset
+        if prop in rig.keys():
+            layout.prop(rig, propRef(prop))
+        if not self.hasTheseMorphs(rig):
+            return
         self.preamble(layout, rig)
         layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
         self.drawItems(scn, rig)
@@ -695,7 +705,7 @@ class CustomDrawItems:
                 box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
                 continue
             box.prop(cat, "active", text=cat.name, icon="DOWNARROW_HLT", emboss=False)
-            self.drawBox(box, cat, scn, ob, filter)
+            self.drawCustomBox(box, cat, scn, ob, filter)
 
 
 class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
@@ -707,14 +717,8 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
 
     morphset = "Custom"
 
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        if ob:
-            if ob.type == 'MESH' and ob.parent:
-                ob = ob.parent
-            return ob.DazCustomMorphs
-        return False
+    def hasTheseMorphs(self, ob):
+        return ob.DazCustomMorphs
 
     def drawItems(self, scn, ob):
         CustomDrawItems.drawItems(self, scn, ob)
@@ -722,7 +726,10 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     def getRna(self, ob):
         return ob
 
-    def drawBox(self, box, cat, scn, rig, filter):
+    def drawCustomBox(self, box, cat, scn, rig, filter):
+        prop = "Adjust Custom/%s" % cat.name
+        if prop in rig.keys():
+            box.prop(rig, propRef(prop))
         split = box.split(factor=0.5)
         self.activateLayout(split, cat.name, rig)
         self.keyLayout(box, cat.name)
@@ -745,9 +752,10 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (ob and ob.type == 'MESH' and
-                (ob.DazMeshMorphs or len(ob.DazAutoFollow) > 0))
+        return (ob and ob.type == 'MESH' and self.hasTheseMorphs(self, ob))
 
+    def hasTheseMorphs(self, ob):
+        return (ob.DazMeshMorphs or len(ob.DazAutoFollow) > 0)
 
     def draw(self, context):
         ob = context.object
@@ -804,7 +812,7 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
         op.category = category
 
 
-    def drawBox(self, box, cat, scn, ob, filter):
+    def drawCustomBox(self, box, cat, scn, ob, filter):
         skeys = ob.data.shape_keys
         if skeys is None:
             return
