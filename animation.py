@@ -720,7 +720,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 # Fix scale: Blender bones inherit scale, DS bones do not
                 for root in rig.pose.bones:
                     if root.parent is None:
-                        self.fixScale(root, root.scale[0])
+                        self.fixScale(root, root.scale)
 
                 if ((rig.DazRig == "mhx" or rig.MhxRig) and self.affectBones and False):
                     for suffix in ["L", "R"]:
@@ -776,6 +776,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
 
     def fixScale(self, pb, pscale):
+        return
         if self.isDazBone(pb):
             scale = pb.scale[0]
             if pb.parent:
