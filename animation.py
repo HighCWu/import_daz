@@ -1484,9 +1484,9 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                 for bname in self.getBoneNames(words[1]):
                     if channel == "location" and bname in locs.keys():
                         locs[bname][idx] = fcu
-                    elif channel == "rotation_euler":
+                    elif channel == "rotation_euler" and bname in rots.keys():
                         rots[bname][idx] = fcu
-                    elif channel == "rotation_quaternion":
+                    elif channel == "rotation_quaternion" and bname in quats.keys():
                         quats[bname][idx] = fcu
             elif words[0] == "[" and self.useMorphs:
                 prop = words[1]
