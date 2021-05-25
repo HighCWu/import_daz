@@ -805,8 +805,6 @@ class StandardMorphLoader(MorphLoader):
 #------------------------------------------------------------------------
 
 class StandardMorphSelector(Selector):
-    strength = 1
-
     def draw(self, context):
         Selector.draw(self, context)
 
@@ -949,7 +947,6 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
     bl_description = "Import all standard morphs of selected types.\nDoing this once is faster than loading individual types"
     bl_options = {'UNDO'}
 
-    strength = 1.0
     morphset = "Standard"
 
     def run(self, context):
@@ -1031,11 +1028,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
         description = "Part of character that the morphs affect",
         default = "Custom")
 
-    strength : FloatProperty(
-        name = "Strength",
-        description = "Multiply morphs with this value",
-        default = 1.0)
-
     treatHD : EnumProperty(
         items = [('ERROR', "Error", "Raise error"),
                  ('CREATE', "Create Shapekey", "Create empty shapekeys"),
@@ -1054,7 +1046,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
             if self.useMeshCats:
                 self.layout.prop(self, "catname")
         self.layout.prop(self, "bodypart")
-        self.layout.prop(self, "strength")
         self.layout.prop(self, "treatHD")
 
 
@@ -2405,8 +2396,6 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
     bl_idname = "daz.load_favo_morphs"
     bl_label = "Load Favorite Morphs"
     bl_description = "Load favorite morphs"
-
-    strength = 1.0
 
     filepath : StringProperty(
         name="File Path",

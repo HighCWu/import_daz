@@ -60,6 +60,10 @@ class LoadMorph(DriverUser):
             self.amt = None
 
 
+    def getAdjuster(self):
+        return None
+
+
     def loadAllMorphs(self, namepaths):
         DriverUser.__init__(self)
         self.alias = {}
@@ -222,9 +226,7 @@ class LoadMorph(DriverUser):
                 reportError(msg, trigger=(2,3))
                 return None,False
         if not asset.rna:
-            asset.buildMorph(self.mesh,
-                             useBuild=useBuild,
-                             strength=self.strength)
+            asset.buildMorph(self.mesh, useBuild=useBuild)
         skey,_,sname = asset.rna
         if skey:
             prop = unquote(skey.name)
@@ -233,9 +235,14 @@ class LoadMorph(DriverUser):
             self.shapekeys[prop] = skey
             addSkeyToUrls(self.mesh, self.isJcm, asset, skey)
             if self.rig:
-                self.addAdjustMult(prop)
-                final = self.addNewProp(prop, None, skey)
-                makePropDriver(propRef(final), skey, "value", self.amt, "x")
+                final = self.addNewProp(prop)
+                adj = self.getAdjuster()
+                if adj:
+                    adjprop = self.adjustProp(adj, prop, final)
+                    makePropDriver(propRef(adjprop), skey, "value", self.amt, "x")
+                    makePropDriver(propRef(adj), skey, "slider_max", self.rig, "x")
+                else:
+                    makePropDriver(propRef(final), skey, "value", self.amt, "x")
             pgs = self.mesh.data.DazBodyPart
             if prop in pgs.keys():
                 item = pgs[prop]
@@ -263,7 +270,6 @@ class LoadMorph(DriverUser):
                     continue
                 for idx,expr in data1.items():
                     if key == "value":
-                        self.addAdjustMult(output)
                         self.makeValueFormula(output, expr)
                     elif key == "rotation":
                         self.makeRotFormula(output, idx, expr)
@@ -275,16 +281,22 @@ class LoadMorph(DriverUser):
                         self.ecr = True
 
 
-    def addAdjustMult(self, output):
-        from .driver import setFloatProp
-        if output not in self.mults.keys():
-            prop = self.getAdjuster()
-            if prop not in self.rig.keys():
-                self.addNewProp(prop)
-                final = finalProp(prop)
-                setFloatProp(self.rig, prop, 1.0, 0.0, 1000.0)
-                setFloatProp(self.amt, final, 1.0, 0.0, 1000.0)
-            self.mults[output] = [prop]
+    def adjustProp(self, adj, prop, final):
+        from .driver import setFloatProp, removeModifiers
+        if adj not in self.rig.keys():
+            self.addNewProp(adj)
+            setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
+        adjprop = ("%s(adj)" % prop)
+        self.amt[adjprop] = 0.0
+        channel = propRef(adjprop)
+        self.amt.driver_remove(channel)
+        fcu = self.amt.driver_add(channel)
+        fcu.driver.type = 'SCRIPTED'
+        removeModifiers(fcu)
+        fcu.driver.expression = "a*b"
+        self.addPathVar(fcu, "a", self.amt, propRef(final))
+        self.addPathVar(fcu, "b", self.rig, propRef(adj))
+        return adjprop
 
 
     def getFileRef(self, filepath):
@@ -360,6 +372,8 @@ class LoadMorph(DriverUser):
             self.drivers[output].append(("PROP", prop, expr["factor"]))
         if expr["mult"]:
             mult = expr["mult"]
+            if output not in self.mults.keys():
+                self.mults[output] = []
             self.mults[output].append(mult)
             self.addNewProp(mult)
         if expr["bone"]:
@@ -422,13 +436,13 @@ class LoadMorph(DriverUser):
 
     def makeRotFormula(self, bname, idx, expr):
         tfm,pb,prop,factor = self.getBoneData(bname, expr)
-        tfm.setRot(self.strength*factor, prop, index=idx)
+        tfm.setRot(factor, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
 
     def makeTransFormula(self, bname, idx, expr):
         tfm,pb,prop,factor = self.getBoneData(bname, expr)
-        tfm.setTrans(self.strength*factor, prop, index=idx)
+        tfm.setTrans(factor, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
 
@@ -437,7 +451,7 @@ class LoadMorph(DriverUser):
             return
         # DS and Blender seem to inherit scale differently
         tfm,pb,prop,factor = self.getBoneData(bname, expr)
-        tfm.setScale(self.strength*factor, True, prop, index=idx)
+        tfm.setScale(factor, True, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
     #-------------------------------------------------------------
@@ -885,6 +899,7 @@ class LoadMorph(DriverUser):
                     string = string0 + string.replace(varname, vname)
                     vars = [(idx, varname.replace(varname, vname), prop)
                         for (idx, varname, prop) in  vars]
+
         rna.driver_remove(path, idx)
         fcu = rna.driver_add(path, idx)
         fcu.driver.type = 'SCRIPTED'
