@@ -2466,6 +2466,13 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
             self.getAllMorphs(namepaths, context)
 
 
+    def getAdjuster(self):
+        if self.morphset == "Custom":
+            return ("Adjust %s/%s" % (self.morphset, self.category))
+        else:
+            return ("Adjust %s" % self.morphset)
+
+
     def findPropGroup(self, prop):
         if self.rig is None:
             return None
