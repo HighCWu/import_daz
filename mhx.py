@@ -82,12 +82,6 @@ def fkLayers():
 #
 #-------------------------------------------------------------
 
-def setLayer(bname, rig, layer):
-    eb = rig.data.edit_bones[bname]
-    eb.layers = layer*[False] + [True] + (31-layer)*[False]
-    return eb
-
-
 def getBoneCopy(bname, model, rpbs):
     pb = rpbs[bname]
     pb.DazRotMode = model.DazRotMode
@@ -994,6 +988,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #   FK/IK
     #-------------------------------------------------------------
 
+    def setLayer(self, bname, rig, layer):
+        eb = rig.data.edit_bones[bname]
+        eb.layers = layer*[False] + [True] + (31-layer)*[False]
+        self.rolls[bname] = eb.roll
+        return eb
+
+
     FkIk = {
         ("thigh.L", "shin.L", "foot.L"),
         ("upper_arm.L", "forearm.L", "toe.L"),
@@ -1003,12 +1004,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def setupFkIk(self, rig):
         bpy.ops.object.mode_set(mode='EDIT')
+        self.rolls = {}
         hip = rig.data.edit_bones["hip"]
         head = rig.data.edit_bones["head"]
         for suffix,dlayer in [(".L",0), (".R",16)]:
-            upper_arm = setLayer("upper_arm"+suffix, rig, L_HELP)
-            forearm = setLayer("forearm"+suffix, rig, L_HELP)
-            hand0 = setLayer("hand"+suffix, rig, L_DEF)
+            upper_arm = self.setLayer("upper_arm"+suffix, rig, L_HELP)
+            forearm = self.setLayer("forearm"+suffix, rig, L_HELP)
+            hand0 = self.setLayer("hand"+suffix, rig, L_DEF)
             hand0.name = "hand0"+suffix
             forearm.tail = hand0.head
             vec = forearm.tail - forearm.head
@@ -1061,10 +1063,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             else:
                 elbowLink.layers = L_HIDE*[False] + [True] + (31-L_HIDE)*[False]
 
-            thigh = setLayer("thigh"+suffix, rig, L_HELP)
-            shin = setLayer("shin"+suffix, rig, L_HELP)
-            foot = setLayer("foot"+suffix, rig, L_HELP)
-            toe = setLayer("toe"+suffix, rig, L_HELP)
+            thigh = self.setLayer("thigh"+suffix, rig, L_HELP)
+            shin = self.setLayer("shin"+suffix, rig, L_HELP)
+            foot = self.setLayer("foot"+suffix, rig, L_HELP)
+            toe = self.setLayer("toe"+suffix, rig, L_HELP)
             shin.tail = foot.head
             foot.tail = toe.head
             foot.use_connect = True
@@ -1138,6 +1140,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             vec.normalize()
             loc = eye.head + vec*rig.DazScale*30
             gaze = makeBone("gaze"+suffix, rig, loc, loc+Vector((0,5*rig.DazScale,0)), 0, L_HEAD, None)
+
+            for bname in ["upper_arm.fk", "forearm.fk", "hand.fk",
+                          "thigh.fk", "shin.fk", "foot.fk", "toe.fk"]:
+                self.rolls[bname+suffix] = rig.data.edit_bones[bname+suffix].roll
 
         lgaze = rig.data.edit_bones["gaze.L"]
         rgaze = rig.data.edit_bones["gaze.R"]
@@ -1333,12 +1339,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #-------------------------------------------------------------
 
     def fixConstraints(self, rig):
-        rolls = {}
-        bpy.ops.object.mode_set(mode='EDIT')
-        for bname in ["hand.fk.L", "hand.fk.R", "hand0.L", "hand0.R"]:
-            rolls[bname] = rig.data.edit_bones[bname].roll
-        bpy.ops.object.mode_set(mode='OBJECT')
-
         for suffix in [".L", ".R"]:
             self.unlockYrot(rig, "upper_arm.fk" + suffix)
             self.unlockYrot(rig, "forearm.fk" + suffix)
@@ -1347,7 +1347,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.copyLimits(rig, "forearm", suffix)
             self.copyLimits(rig, "thigh", suffix)
             self.copyLimits(rig, "shin", suffix)
-            self.flipLimits(rig, "hand.fk" + suffix, "hand0" + suffix, rolls)
+            self.flipLimits(rig, "upper_arm.fk" + suffix, "upper_arm" + suffix)
+            self.flipLimits(rig, "forearm.fk" + suffix, "forearm" + suffix)
+            self.flipLimits(rig, "hand.fk" + suffix, "hand" + suffix)
+            self.flipLimits(rig, "thigh.fk" + suffix, "thigh" + suffix)
+            self.flipLimits(rig, "shin.fk" + suffix, "shin" + suffix)
+            self.flipLimits(rig, "foot.fk" + suffix, "foot" + suffix)
+            self.flipLimits(rig, "toe.fk" + suffix, "toe" + suffix)
             if "toe"+suffix in rig.pose.bones.keys():
                 toe = rig.pose.bones["toe"+suffix]
                 prop = "MhaToeTarsal_%s" % suffix[1]
@@ -1362,11 +1368,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                         cns.mix_mode = 'BEFORE'
 
 
-    def flipLimits(self, rig, bname, oldname, rolls):
-        roll = rolls[bname]
-        oldroll = rolls[oldname]
+    def flipLimits(self, rig, bname, oldname):
+        roll = self.rolls[bname]
+        oldroll = self.rolls[oldname]
         flip = round(2*(roll-oldroll)/math.pi)
         if flip:
+            print("FLIP", bname, flip)
             pb = rig.pose.bones[bname]
             cns = getConstraint(pb, 'LIMIT_ROTATION')
             if cns:
