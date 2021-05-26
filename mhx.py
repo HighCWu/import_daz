@@ -1333,6 +1333,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #-------------------------------------------------------------
 
     def fixConstraints(self, rig):
+        rolls = {}
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bname in ["hand.fk.L", "hand.fk.R", "hand0.L", "hand0.R"]:
+            rolls[bname] = rig.data.edit_bones[bname].roll
+        bpy.ops.object.mode_set(mode='OBJECT')
+
         for suffix in [".L", ".R"]:
             self.unlockYrot(rig, "upper_arm.fk" + suffix)
             self.unlockYrot(rig, "forearm.fk" + suffix)
@@ -1341,6 +1347,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.copyLimits(rig, "forearm", suffix)
             self.copyLimits(rig, "thigh", suffix)
             self.copyLimits(rig, "shin", suffix)
+            self.flipLimits(rig, "hand.fk" + suffix, "hand0" + suffix, rolls)
             if "toe"+suffix in rig.pose.bones.keys():
                 toe = rig.pose.bones["toe"+suffix]
                 prop = "MhaToeTarsal_%s" % suffix[1]
@@ -1353,6 +1360,27 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                         cns.mute = True
                         cns.use_y = False
                         cns.mix_mode = 'BEFORE'
+
+
+    def flipLimits(self, rig, bname, oldname, rolls):
+        roll = rolls[bname]
+        oldroll = rolls[oldname]
+        flip = round(2*(roll-oldroll)/math.pi)
+        if flip:
+            pb = rig.pose.bones[bname]
+            cns = getConstraint(pb, 'LIMIT_ROTATION')
+            if cns:
+                usex, minx, maxx = cns.use_limit_x, cns.min_x, cns.max_x
+                usez, minz, maxz = cns.use_limit_z, cns.min_z, cns.max_z
+                if flip == -1:
+                    cns.use_limit_x, cns.min_x, cns.max_x = usez, minz, maxz
+                    cns.use_limit_z, cns.min_z, cns.max_z = usex, -maxx, -minx
+                elif flip == 1:
+                    cns.use_limit_x, cns.min_x, cns.max_x = usez, -maxz, -minz
+                    cns.use_limit_z, cns.min_z, cns.max_z = usex, minx, maxx
+                elif flip == 2 or flip == -2:
+                    cns.use_limit_x, cns.min_x, cns.max_x = usex, -maxx, -minx
+                    cns.use_limit_z, cns.min_z, cns.max_z = usez, -maxz, -minz
 
 
     def unlockYrot(self, rig, bname):
