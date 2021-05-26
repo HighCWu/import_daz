@@ -675,10 +675,6 @@ class MorphLoader(LoadMorph):
         return self.morphset
 
 
-    def getAdjuster(self):
-        return ("Adjust %s" % self.morphset)
-
-
     def addUrl(self, asset, aliases, filepath, bodypart):
         if self.mesh:
             pgs = self.mesh.DazMorphUrls
@@ -1070,10 +1066,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
             self.mesh.DazMeshMorphs = True
         if msg:
             raise DazError(msg, warning=True)
-
-
-    def getAdjuster(self):
-        return ("Adjust %s/%s" % (self.morphset, self.catname))
 
 
     def getNamePaths(self):
@@ -2453,13 +2445,6 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
             self.hideable = hide
             namepaths = [(name, unquote(ref), bodypart) for ref,name,bodypart in infos]
             self.getAllMorphs(namepaths, context)
-
-
-    def getAdjuster(self):
-        if self.morphset == "Custom":
-            return ("Adjust %s/%s" % (self.morphset, self.category))
-        else:
-            return ("Adjust %s" % self.morphset)
 
 
     def findPropGroup(self, prop):

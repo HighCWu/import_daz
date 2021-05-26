@@ -83,6 +83,7 @@ class GlobalSettings:
         self.reuseMaterials = False
         self.hairMaterialMethod = 'HAIR_BSDF'
 
+        self.useAdjusters = True
         self.customMin = -1.0
         self.customMax = 1.0
         self.morphMultiplier = 1.0
@@ -138,6 +139,7 @@ class GlobalSettings:
         "DazUseReflection" : "useReflection",
 
         # Properties
+        "DazUseAdjusters" : "useAdjusters",
         "DazCustomMin" : "customMin",
         "DazCustomMax" : "customMax",
         "DazMorphMultiplier" : "morphMultiplier",

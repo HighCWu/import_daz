@@ -225,7 +225,8 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazMergeShells")
 
         box = col.box()
-        box.label(text = "Sliders")
+        box.label(text = "Morphs")
+        box.prop(scn, "DazUseAdjusters")
         box.prop(scn, "DazSliderLimits")
         box.prop(scn, "DazFinalLimits")
         box.prop(scn, "DazMorphMultiplier")
@@ -345,6 +346,10 @@ def register():
         name = "Verbosity",
         description = "Controls the number of warning messages when loading files",
         min=1, max = 5)
+
+    bpy.types.Scene.DazUseAdjusters = BoolProperty(
+        name = "Use Adjusters",
+        description = "Add extra sliders to adjust the overall strength\nof translation channels (shapekeys and locations)")
 
     bpy.types.Scene.DazCustomMin = FloatProperty(
         name = "Custom Min",

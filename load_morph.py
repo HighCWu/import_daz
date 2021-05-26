@@ -60,10 +60,6 @@ class LoadMorph(DriverUser):
             self.amt = None
 
 
-    def getAdjuster(self):
-        return None
-
-
     def loadAllMorphs(self, namepaths):
         DriverUser.__init__(self)
         self.alias = {}
@@ -236,10 +232,9 @@ class LoadMorph(DriverUser):
             addSkeyToUrls(self.mesh, self.isJcm, asset, skey)
             if self.rig:
                 final = self.addNewProp(prop)
-                adj = self.getAdjuster()
+                adj = self.getAdjuster(False)
                 if adj:
-                    adjprop = self.adjustProp(adj, prop, final)
-                    makePropDriver(propRef(adjprop), skey, "value", self.amt, "x")
+                    self.driveAdjustedShapekey(skey, adj, final)
                     makePropDriver(propRef(adj), skey, "slider_max", self.rig, "x")
                 else:
                     makePropDriver(propRef(final), skey, "value", self.amt, "x")
@@ -281,22 +276,34 @@ class LoadMorph(DriverUser):
                         self.ecr = True
 
 
-    def adjustProp(self, adj, prop, final):
-        from .driver import setFloatProp, removeModifiers
-        if adj not in self.rig.keys():
-            self.addNewProp(adj)
-            setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
-        adjprop = ("%s(adj)" % prop)
-        self.amt[adjprop] = 0.0
-        channel = propRef(adjprop)
-        self.amt.driver_remove(channel)
-        fcu = self.amt.driver_add(channel)
+    def getAdjuster(self, useBone):
+        from .driver import setFloatProp, makePropDriver
+        if GS.useAdjusters:
+            if useBone:
+                adj = "Adjust Bone Translations"
+                max = 10000
+            else:
+                adj = "Adjust Shapekeys"
+                max = 10
+            if adj not in self.rig.keys():
+                final = self.addNewProp(adj)
+                setFloatProp(self.rig, adj, 1.0, 0.0, max)
+                setFloatProp(self.amt, final, 1.0, 0.0, max)
+                makePropDriver(propRef(adj), self.amt, propRef(final), self.rig, "x")
+            return adj
+        else:
+            return None
+
+
+    def driveAdjustedShapekey(self, skey, adj, final):
+        from .driver import removeModifiers
+        skey.driver_remove("value")
+        fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
         removeModifiers(fcu)
         fcu.driver.expression = "a*b"
         self.addPathVar(fcu, "a", self.amt, propRef(final))
         self.addPathVar(fcu, "b", self.rig, propRef(adj))
-        return adjprop
 
 
     def getFileRef(self, filepath):
@@ -1072,12 +1079,15 @@ class LoadMorph(DriverUser):
         return prop
 
 
-    def getBatches(self, drivers):
+    def getBatches(self, drivers, prefix):
         batches = []
         string = ""
         nterms = 0
         varname = "a"
         vars = []
+        adj = None
+        if prefix[-6:-1] == ":Loc:":
+            adj = self.getAdjuster(True)
         for final,factor in drivers.items():
             string += "%+.4g*%s" % (factor, varname)
             nterms += 1
@@ -1085,18 +1095,24 @@ class LoadMorph(DriverUser):
             varname = nextLetter(varname)
             if (nterms > MAX_TERMS or
                 len(string) > MAX_EXPR_LEN):
+                if adj:
+                    string = "L*(%s)" % string
+                    vars.append(("L", finalProp(adj)))
                 batches.append((string, vars))
                 string = ""
                 nterms = 0
                 varname = "a"
                 vars = []
         if vars:
+            if adj:
+                string = "L*(%s)" % string
+                vars.append(("L", finalProp(adj)))
             batches.append((string, vars))
         return batches
 
 
     def addSumDriver(self, prefix, drivers, pathids):
-        batches = self.getBatches(drivers)
+        batches = self.getBatches(drivers, prefix)
         sumfcu = self.getTmpDriver(0)
         sumfcu.driver.type = 'SUM'
         for n,batch in enumerate(batches):

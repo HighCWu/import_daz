@@ -430,16 +430,14 @@ class DAZ_PT_Posing(bpy.types.Panel):
         op = layout.operator("daz.clear_morphs")
         op.morphset = "All"
         op.category = ""
+        layout.operator("daz.prune_action")
         layout.separator()
         layout.operator("daz.save_pose_preset")
-        layout.separator()
-        layout.operator("daz.save_poses")
-        layout.operator("daz.load_poses")
-        layout.separator()
-        layout.operator("daz.prune_action")
-        layout.operator("daz.rotate_bones")
 
         layout.separator()
+        if "Adjust Bone Translations" in ob.keys():
+            layout.prop(ob, propRef("Adjust Bone Translations"))
+            layout.prop(ob, propRef("Adjust Shapekeys"))
         split = layout.split(factor=0.6)
         icon = 'CHECKBOX_HLT' if ob.DazLocLocks else 'CHECKBOX_DEHLT'
         layout.operator("daz.toggle_loc_locks", icon=icon, emboss=False)
@@ -449,6 +447,13 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.toggle_loc_limits", icon=icon, emboss=False)
         icon = 'CHECKBOX_HLT' if ob.DazRotLimits else 'CHECKBOX_DEHLT'
         layout.operator("daz.toggle_rot_limits", icon=icon, emboss=False)
+
+        return
+        layout.separator()
+        layout.operator("daz.save_poses")
+        layout.operator("daz.load_poses")
+        layout.separator()
+        layout.operator("daz.rotate_bones")
 
 
 class DAZ_PT_Morphs:
@@ -460,8 +465,7 @@ class DAZ_PT_Morphs:
         if ob and ob.DazMesh:
             if ob.type == 'MESH' and ob.parent:
                 ob = ob.parent
-            return (self.hasTheseMorphs(self, ob) or
-                    "Adjust "+self.morphset in ob.keys())
+            return self.hasTheseMorphs(self, ob)
         return False
 
 
@@ -491,9 +495,6 @@ class DAZ_PT_Morphs:
             return
 
         scn = context.scene
-        prop = "Adjust " + self.morphset
-        if prop in rig.keys():
-            layout.prop(rig, propRef(prop))
         if not self.hasTheseMorphs(rig):
             return
         self.preamble(layout, rig)
@@ -727,9 +728,6 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
         return ob
 
     def drawCustomBox(self, box, cat, scn, rig, filter):
-        prop = "Adjust Custom/%s" % cat.name
-        if prop in rig.keys():
-            box.prop(rig, propRef(prop))
         split = box.split(factor=0.5)
         self.activateLayout(split, cat.name, rig)
         self.keyLayout(box, cat.name)
