@@ -486,7 +486,7 @@ class BoneInstance(Instance):
             flip = self.FX
             self.axes = [0,1,2]
             self.flipped = [False,False,False]
-            self.flopped = [False,False,True]
+            self.flopped = [False,True,True]
         elif xyz == 'YXZ':
             # Apparently not used
             euler = Euler((0, pi/2, 0))
@@ -498,7 +498,7 @@ class BoneInstance(Instance):
             euler = Euler((pi/2, 0, 0))
             flip = self.FX
             self.axes = [0,2,1]
-            self.flipped = [False,False,False]
+            self.flipped = [False,True,False]
             self.flopped = [False,False,False]
         elif xyz == 'XZY':  #
             euler = Euler((0, 0, pi/2))
