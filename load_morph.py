@@ -74,6 +74,8 @@ class LoadMorph(DriverUser):
         self.sumdrivers = {}
         self.restdrivers = {}
         self.initAmt()
+        self.getAdjustedBones()
+
         print("Making morphs")
         self.makeAllMorphs(namepaths, True)
         if self.loadMissing:
@@ -234,7 +236,7 @@ class LoadMorph(DriverUser):
                 final = self.addNewProp(prop)
                 adj = self.getAdjuster(False)
                 if adj:
-                    self.driveAdjustedShapekey(skey, adj, final)
+                    self.adjustShapekey(skey, adj, final)
                     makePropDriver(propRef(adj), skey, "slider_max", self.rig, "x")
                 else:
                     makePropDriver(propRef(final), skey, "value", self.amt, "x")
@@ -281,10 +283,10 @@ class LoadMorph(DriverUser):
         if GS.useAdjusters:
             if useBone:
                 adj = "Adjust Bone Translations"
-                max = 10000
+                max = 10000.0
             else:
                 adj = "Adjust Shapekeys"
-                max = 10
+                max = 10.0
             if adj not in self.rig.keys():
                 final = self.addNewProp(adj)
                 setFloatProp(self.rig, adj, 1.0, 0.0, max)
@@ -295,7 +297,7 @@ class LoadMorph(DriverUser):
             return None
 
 
-    def driveAdjustedShapekey(self, skey, adj, final):
+    def adjustShapekey(self, skey, adj, final):
         from .driver import removeModifiers
         skey.driver_remove("value")
         fcu = skey.driver_add("value")
@@ -304,6 +306,33 @@ class LoadMorph(DriverUser):
         fcu.driver.expression = "a*b"
         self.addPathVar(fcu, "a", self.amt, propRef(final))
         self.addPathVar(fcu, "b", self.rig, propRef(adj))
+
+
+    def getAdjustedBones(self):
+        self.adjustedBones = {}
+        if self.rig.animation_data:
+            for fcu in self.rig.animation_data.drivers:
+                words = fcu.data_path.split('"')
+                if (len(words) > 3 and
+                    words[3] == "Limit Location"):
+                    self.adjustedBones[words[1]] = True
+
+
+    def adjustTranslation(self, adj, pb, string, vars):
+        if pb is None:
+            return string
+        from .driver import makePropDriver
+        string = "L*(%s)" % string
+        vars.append(("L", finalProp(adj)))
+        if pb.name in self.adjustedBones.keys():
+            return string
+        cns = getConstraint(pb, 'LIMIT_LOCATION')
+        if cns:
+            self.adjustedBones[pb.name] = True
+            for channel in ["min_x", "min_y", "min_z", "max_x", "max_y", "max_z"]:
+                factor = getattr(cns, channel)
+                makePropDriver(propRef(adj), cns, channel, self.rig, "%g*x" % factor)
+        return string
 
 
     def getFileRef(self, filepath):
@@ -1086,8 +1115,11 @@ class LoadMorph(DriverUser):
         varname = "a"
         vars = []
         adj = None
-        if prefix[-6:-1] == ":Loc:":
+        pb = None
+        bname = prefix[:-6]
+        if prefix[-6:-1] == ":Loc:" and bname in self.rig.pose.bones.keys():
             adj = self.getAdjuster(True)
+            pb = self.rig.pose.bones[bname]
         for final,factor in drivers.items():
             string += "%+.4g*%s" % (factor, varname)
             nterms += 1
@@ -1095,18 +1127,14 @@ class LoadMorph(DriverUser):
             varname = nextLetter(varname)
             if (nterms > MAX_TERMS or
                 len(string) > MAX_EXPR_LEN):
-                if adj:
-                    string = "L*(%s)" % string
-                    vars.append(("L", finalProp(adj)))
+                string = self.adjustTranslation(adj, pb, string, vars)
                 batches.append((string, vars))
                 string = ""
                 nterms = 0
                 varname = "a"
                 vars = []
         if vars:
-            if adj:
-                string = "L*(%s)" % string
-                vars.append(("L", finalProp(adj)))
+            string = self.adjustTranslation(adj, pb, string, vars)
             batches.append((string, vars))
         return batches
 
