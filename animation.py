@@ -720,7 +720,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 # Fix scale: Blender bones inherit scale, DS bones do not
                 for root in rig.pose.bones:
                     if root.parent is None:
-                        self.fixScale(root, root.scale)
+                        self.fixScale(root, One)
 
                 if ((rig.DazRig == "mhx" or rig.MhxRig) and self.affectBones and False):
                     for suffix in ["L", "R"]:
@@ -776,18 +776,15 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
 
     def fixScale(self, pb, pscale):
-        return
         if self.isDazBone(pb):
-            scale = pb.scale[0]
-            if pb.parent:
-                if abs(pscale - 1) > 1e-4:
-                    if self.inheritsScale(pb):
-                        scale = scale * pscale
-                    else:
-                        for n in range(3):
-                            pb.scale[n] /= pscale
+            scale = pb.scale.copy()
+            if (scale-One).length < 1e-5:
+                scale = One
+            if pb.bone.inherit_scale not in ['NONE', 'NONE_LEGACY']:
+                for n in range(3):
+                    pb.scale[n] /= pscale[n]
         else:
-            scale = pscale
+            scale = One
         for child in pb.children:
             self.fixScale(child, scale)
 
@@ -1445,24 +1442,25 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         self.setupConverter(rig)
         act = None
         self.morphs = {}
+        self.locs = {}
+        self.rots = {}
+        self.quats = {}
+        self.scales = {}
         if self.useAction:
             if rig.animation_data:
                 act = rig.animation_data.action
             if act:
-                locs,rots,quats = self.getFcurves(rig, act)
+                self.getFcurves(rig, act)
         if not act:
-            locs,rots,quats = self.getFakeCurves(rig)
+            self.getFakeCurves(rig)
         if self.useBones:
             self.setupFlipper(rig)
-            self.setupFrames(rig, locs, rots, quats)
+            self.setupFrames(rig)
         self.saveFile(rig)
 
 
     def getFcurves(self, rig, act):
         from .morphing import theStandardMorphSets, theCustomMorphSets
-        quats = {}
-        rots = {}
-        locs = {}
         if self.useMorphs:
             morphsets = [getattr(rig, "Daz"+morphset)
                 for morphset in theStandardMorphSets + theCustomMorphSets]
@@ -1470,11 +1468,12 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         for pb in rig.pose.bones:
             for bname in self.getBoneNames(pb.name):
                 if pb.rotation_mode == 'QUATERNION':
-                    quats[bname] = 4*[None]
+                    self.quats[bname] = 4*[None]
                 else:
-                    rots[bname] = 3*[None]
+                    self.rots[bname] = 3*[None]
+                self.scales[bname] = 3*[None]
                 if pb.name == "hip":
-                    locs[bname] = 3*[None]
+                    self.locs[bname] = 3*[None]
 
         for fcu in act.fcurves:
             channel = fcu.data_path.rsplit(".",1)[-1]
@@ -1482,35 +1481,34 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             if words[0] == "pose.bones[" and self.useBones:
                 idx = fcu.array_index
                 for bname in self.getBoneNames(words[1]):
-                    if channel == "location" and bname in locs.keys():
-                        locs[bname][idx] = fcu
-                    elif channel == "rotation_euler" and bname in rots.keys():
-                        rots[bname][idx] = fcu
-                    elif channel == "rotation_quaternion" and bname in quats.keys():
-                        quats[bname][idx] = fcu
+                    if channel == "location" and bname in self.locs.keys():
+                        self.locs[bname][idx] = fcu
+                    elif channel == "rotation_euler" and bname in self.rots.keys():
+                        self.rots[bname][idx] = fcu
+                    elif channel == "rotation_quaternion" and bname in self.quats.keys():
+                        self.quats[bname][idx] = fcu
+                    elif channel == "scale" and bname in self.scales.keys():
+                        self.scales[bname][idx] = fcu
             elif words[0] == "[" and self.useMorphs:
                 prop = words[1]
                 if prop in rig.keys():
                     for morphset in morphsets:
                         if prop in morphset.keys():
                             self.morphs[prop] = fcu
-        return locs,rots,quats
 
 
     def getFakeCurves(self, rig):
         from .morphing import theStandardMorphSets, theCustomMorphSets
-        quats = {}
-        rots = {}
-        locs = {}
         if self.useBones:
             for pb in rig.pose.bones:
                 for bname in self.getBoneNames(pb.name):
                     if pb.rotation_mode == 'QUATERNION':
-                        quats[bname] = [FakeCurve(t) for t in pb.rotation_quaternion]
+                        self.quats[bname] = [FakeCurve(t) for t in pb.rotation_quaternion]
                     else:
-                        rots[bname] = [FakeCurve(t) for t in pb.rotation_euler]
+                        self.rots[bname] = [FakeCurve(t) for t in pb.rotation_euler]
+                    self.scales[bname] = [FakeCurve(t) for t in pb.scale]
                     if bname == "hip":
-                        locs[bname] = [FakeCurve(t) for t in pb.location]
+                        self.locs[bname] = [FakeCurve(t) for t in pb.location]
         if self.useMorphs:
             for morphset in theStandardMorphSets + theCustomMorphSets:
                 pg = getattr(rig, "Daz"+morphset)
@@ -1518,7 +1516,6 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                     if (prop in rig.keys() and
                         isinstance(rig[prop], float)):
                         self.morphs[prop]= FakeCurve(rig[prop])
-        return locs,rots,quats
 
 
     def setupFlipper(self, rig):
@@ -1540,29 +1537,45 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                     idxs.append(idx)
 
 
-    def setupFrames(self, rig, locs, rots, quats):
+    def setupFrames(self, rig):
         self.Ls = {}
         for frame in range(self.first, self.last+1):
             L = self.Ls[frame] = {}
+            smats = {}
             for pb in rig.pose.bones:
                 for bname in self.getBoneNames(pb.name):
-                    if bname in quats.keys():
+                    if bname in self.quats.keys():
                         quat = pb.rotation_quaternion
-                        for idx,fcu in enumerate(quats[bname]):
+                        for idx,fcu in enumerate(self.quats[bname]):
                             if fcu:
                                 quat[idx] = fcu.evaluate(frame)
                         mat = quat.to_matrix().to_4x4()
-                    elif bname in rots.keys():
+                    elif bname in self.rots.keys():
                         rot = pb.rotation_euler
-                        for idx,fcu in enumerate(rots[bname]):
+                        for idx,fcu in enumerate(self.rots[bname]):
                             if fcu:
                                 rot[idx] = fcu.evaluate(frame)
                         mat = rot.to_matrix().to_4x4()
                     else:
                         continue
-                    if bname in locs.keys():
+
+                    if bname in self.scales.keys():
+                        scale = pb.scale.copy()
+                        for idx,fcu in enumerate(self.scales[bname]):
+                            if fcu:
+                                scale[idx] = fcu.evaluate(frame)
+                        smat = Matrix.Diagonal(scale)
+                        if (pb.parent and
+                            pb.parent.name in smats.keys() and
+                            pb.bone.inherit_scale not in ['NONE', 'NONE_LEGACY']):
+                            psmat = smats[pb.parent.name]
+                            smat = smat @ psmat
+                        mat = mat @ smat.to_4x4()
+                        smats[pb.name] = smat
+
+                    if bname in self.locs.keys():
                         loc = pb.location
-                        for idx,fcu in enumerate(locs[bname]):
+                        for idx,fcu in enumerate(self.locs[bname]):
                             if fcu:
                                 loc[idx] = fcu.evaluate(frame)
                         mat.col[3][0:3] = loc
@@ -1653,6 +1666,8 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                         self.getTrans(bname, locs, 1/rig.DazScale, anims)
                     rots = [L.to_euler(pb.DazRotMode) for L in Ls]
                     self.getRot(bname, rots, 1/D, anims)
+                    scales = [L.to_scale() for L in Ls]
+                    self.getScale(bname, scales, anims)
         if self.useMorphs:
             for prop,fcu in self.morphs.items():
                 self.getMorph(prop, fcu, anims)
@@ -1685,6 +1700,29 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             rots = self.correct180(rots)
             anim["keys"] = [(n/self.fps, rot) for n,rot in enumerate(rots)]
             anims.append(anim)
+
+
+    def getScale(self, bname, vecs, anims):
+        general = True
+        for vec in vecs:
+            if (abs(vec[0]-vec[1]) > 1e-5 or
+                abs(vec[0]-vec[2]) > 1e-5 or
+                abs(vec[1]-vec[2]) > 1e-5):
+                general = False
+                break
+        if general:
+            anim = {}
+            anim["url"] = "name://@selection/%s:?scale/general/value" % bname
+            scales = [vec[0] for vec in vecs]
+            anim["keys"] = [(n/self.fps, scale) for n,scale in enumerate(scales)]
+            anims.append(anim)
+        else:
+            for idx,x in enumerate(["x","y","z"]):
+                anim = {}
+                anim["url"] = "name://@selection/%s:?scale/%s/value" % (bname, x)
+                scales = [vec[idx] for vec in vecs]
+                anim["keys"] = [(n/self.fps, scale) for n,scale in enumerate(scales)]
+                anims.append(anim)
 
 
     def correct180(self, rots):
