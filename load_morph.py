@@ -235,7 +235,7 @@ class LoadMorph(DriverUser):
             addSkeyToUrls(self.mesh, self.isJcm, asset, skey)
             if self.rig:
                 final = self.addNewProp(prop)
-                adj = self.getAdjuster(False)
+                adj = self.getAdjuster()
                 if adj:
                     self.adjustShapekey(skey, adj, final)
                     makePropDriver(propRef(adj), skey, "slider_max", self.rig, "x")
@@ -279,19 +279,14 @@ class LoadMorph(DriverUser):
                         self.ecr = True
 
 
-    def getAdjuster(self, useBone):
+    def getAdjuster(self):
         from .driver import setFloatProp, makePropDriver
         if GS.useAdjusters:
-            if useBone:
-                adj = "Adjust Bone Translations"
-                max = 10000.0
-            else:
-                adj = "Adjust Shapekeys"
-                max = 10.0
+            adj = self.getAdjustProp()
             if adj not in self.rig.keys():
                 final = self.addNewProp(adj)
-                setFloatProp(self.rig, adj, 1.0, 0.0, max)
-                setFloatProp(self.amt, final, 1.0, 0.0, max)
+                setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
+                setFloatProp(self.amt, final, 1.0, 0.0, 1000.0)
                 makePropDriver(propRef(adj), self.amt, propRef(final), self.rig, "x")
             return adj
         else:
@@ -1159,7 +1154,7 @@ class LoadMorph(DriverUser):
         pb = None
         bname = prefix[:-6]
         if prefix[-6:-1] == ":Loc:" and bname in self.rig.pose.bones.keys():
-            adj = self.getAdjuster(True)
+            adj = self.getAdjuster()
             pb = self.rig.pose.bones[bname]
         for final,factor in drivers.items():
             string += "%+.4g*%s" % (factor, varname)

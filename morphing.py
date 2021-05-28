@@ -656,13 +656,13 @@ class DAZ_OT_SelectAllMorphs(DazOperator):
 
 class MorphLoader(LoadMorph):
     loadMissing = True
+    category = ""
 
     def __init__(self, rig=None, mesh=None):
         from .finger import getFingeredCharacter
         self.rig, self.mesh, self.char = getFingeredCharacter(bpy.context.object)
         if mesh:
             self.mesh = mesh
-        self.category = ""
 
 
     @classmethod
@@ -673,6 +673,10 @@ class MorphLoader(LoadMorph):
 
     def getMorphSet(self, asset):
         return self.morphset
+
+
+    def getAdjustProp(self):
+        return "Adjust %s" % self.morphset
 
 
     def addUrl(self, asset, aliases, filepath, bodypart):
@@ -1002,7 +1006,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
     morphset = "Custom"
     hideable = True
 
-    catname : StringProperty(
+    category : StringProperty(
         name = "Category",
         default = "Shapes")
 
@@ -1036,11 +1040,11 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
     def draw(self, context):
         self.layout.prop(self, "usePropDrivers")
         if self.usePropDrivers:
-            self.layout.prop(self, "catname")
+            self.layout.prop(self, "category")
         else:
             self.layout.prop(self, "useMeshCats")
             if self.useMeshCats:
-                self.layout.prop(self, "catname")
+                self.layout.prop(self, "category")
         self.layout.prop(self, "bodypart")
         self.layout.prop(self, "treatHD")
 
@@ -1056,13 +1060,12 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
     def run(self, context):
         from .driver import setBoolProp
         namepaths = self.getNamePaths()
-        self.category = self.catname
         msg = self.getAllMorphs(namepaths, context)
-        if self.usePropDrivers and self.drivers and self.rig:
+        if self.usePropDrivers and self.rig:
             self.rig.DazCustomMorphs = True
         elif self.useMeshCats and self.shapekeys:
             props = self.shapekeys.keys()
-            addToCategories(self.mesh, props, self.catname)
+            addToCategories(self.mesh, props, self.category)
             self.mesh.DazMeshMorphs = True
         if msg:
             raise DazError(msg, warning=True)
@@ -1077,34 +1080,42 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
         return namepaths
 
 
+    def getAdjustProp(self):
+        self.rig.DazCustomMorphs = True
+        if self.category not in self.rig.DazMorphCats.keys():
+            cat = self.rig.DazMorphCats.add()
+            cat.name = self.category
+        return "Adjust Custom/%s" % self.category
+
+
     def findPropGroup(self, prop):
         if self.rig is None:
             return None
         if self.morphset != "Custom":
             return getattr(self.rig, "Daz"+self.morphset)
         cats = self.rig.DazMorphCats
-        if self.catname not in cats.keys():
+        if self.category not in cats.keys():
             cat = cats.add()
-            cat.name = self.catname
+            cat.name = self.category
         else:
-            cat = cats[self.catname]
+            cat = cats[self.category]
         return cat.morphs
 
 #------------------------------------------------------------------------
 #   Categories
 #------------------------------------------------------------------------
 
-def addToCategories(ob, props, catname):
+def addToCategories(ob, props, category):
     from .driver import setBoolProp
     from .modifier import getCanonicalKey
 
     if props and ob is not None:
         cats = dict([(cat.name,cat) for cat in ob.DazMorphCats])
-        if catname not in cats.keys():
+        if category not in cats.keys():
             cat = ob.DazMorphCats.add()
-            cat.name = catname
+            cat.name = category
         else:
-            cat = cats[catname]
+            cat = cats[category]
         setBoolProp(cat, "active", True)
         for prop in props:
             if prop not in cat.morphs.keys():
@@ -1890,9 +1901,9 @@ class DAZ_OT_RemoveShapeFromCategory(DazOperator, AddRemoveDriver, CustomSelecto
         return ""
 
 
-    def removeFromCategory(self, ob, props, catname):
-        if catname in ob.DazMorphCats.keys():
-            cat = ob.DazMorphCats[catname]
+    def removeFromCategory(self, ob, props, category):
+        if category in ob.DazMorphCats.keys():
+            cat = ob.DazMorphCats[category]
             for prop in props:
                 removeFromPropGroup(cat.morphs, prop)
 
@@ -2445,6 +2456,17 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
             self.hideable = hide
             namepaths = [(name, unquote(ref), bodypart) for ref,name,bodypart in infos]
             self.getAllMorphs(namepaths, context)
+
+
+    def getAdjustProp(self):
+        if self.morphset == "Custom":
+            self.rig.DazCustomMorphs = True
+            if self.category not in self.rig.DazMorphCats.keys():
+                cat = self.rig.DazMorphCats.add()
+                cat.name = self.category
+            return "Adjust Custom/%s" % self.category
+        else:
+            return "Adjust %s" % self.morphset
 
 
     def findPropGroup(self, prop):
