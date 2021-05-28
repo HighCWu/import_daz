@@ -335,6 +335,10 @@ def getConstraint(ob, type):
     return None
 
 
+def inheritScale(pb):
+    return (pb.bone.inherit_scale not in ['NONE', 'NONE_LEGACY'])
+
+
 def hasPoseBones(rig, bnames):
     for bname in bnames:
         if bname not in rig.pose.bones.keys():

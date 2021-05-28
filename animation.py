@@ -720,7 +720,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 # Fix scale: Blender bones inherit scale, DS bones do not
                 for root in rig.pose.bones:
                     if root.parent is None:
-                        self.fixScale(root, One)
+                        self.fixScale(root, Matrix.Identity(3), n+offset)
 
                 if ((rig.DazRig == "mhx" or rig.MhxRig) and self.affectBones and False):
                     for suffix in ["L", "R"]:
@@ -775,26 +775,23 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                     bframe[cname][comp] = y
 
 
-    def fixScale(self, pb, pscale):
-        if self.isDazBone(pb):
-            scale = pb.scale.copy()
-            if (scale-One).length < 1e-5:
-                scale = One
-            if pb.bone.inherit_scale not in ['NONE', 'NONE_LEGACY']:
-                for n in range(3):
-                    pb.scale[n] /= pscale[n]
-        else:
-            scale = One
+    def fixScale(self, pb, parscale, frame):
+        isZero = False
+        scale = Matrix.Diagonal(pb.scale)
+        if inheritScale(pb):
+            smat = scale @ parscale.inverted()
+            pb.scale = smat.to_scale()
+            for n in range(3):
+                if abs(pb.scale[n]-1) < 1e-5:
+                    pb.scale[n] = 1
+                elif abs(pb.scale[n]) < 1e-5:
+                    isZero = True
+        if isZero:
+            scale = Matrix.Identity(3)
+        if self.useInsertKeys:
+            pb.keyframe_insert("scale", frame=frame, group=pb.name)
         for child in pb.children:
-            self.fixScale(child, scale)
-
-
-    def isDazBone(self, pb):
-        return ("DazHead" in pb.bone.keys())
-
-
-    def inheritsScale(self, pb):
-        return (pb.name[-5:] == "Twist")
+            self.fixScale(child, scale, frame)
 
 
     def getRigKey(self, key, rig, missing):
@@ -1567,7 +1564,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                         smat = Matrix.Diagonal(scale)
                         if (pb.parent and
                             pb.parent.name in smats.keys() and
-                            pb.bone.inherit_scale not in ['NONE', 'NONE_LEGACY']):
+                            inheritScale(pb)):
                             psmat = smats[pb.parent.name]
                             smat = smat @ psmat
                         mat = mat @ smat.to_4x4()
@@ -1683,12 +1680,22 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         anims.append(anim)
 
 
+    def addKeys(self, xs, anim, eps):
+        if len(xs) == 0:
+            return
+        maxdiff = max([abs(x-xs[0]) for x in xs])
+        if maxdiff < eps:
+            anim["keys"] = [(0, xs[0])]
+        else:
+            anim["keys"] = [(n/self.fps, x) for n,x in enumerate(xs)]
+
+
     def getTrans(self, bname, vecs, factor, anims):
         for idx,x in enumerate(["x","y","z"]):
             anim = {}
             anim["url"] = "name://@selection/%s:?translation/%s/value" % (bname, x)
             locs = [vec[idx]*factor for vec in vecs]
-            anim["keys"] = [(n/self.fps, loc) for n,loc in enumerate(locs)]
+            self.addKeys(locs, anim, 1e-5)
             anims.append(anim)
 
 
@@ -1698,7 +1705,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             anim["url"] = "name://@selection/%s:?rotation/%s/value" % (bname, x)
             rots = [vec[idx]*factor for vec in vecs]
             rots = self.correct180(rots)
-            anim["keys"] = [(n/self.fps, rot) for n,rot in enumerate(rots)]
+            self.addKeys(rots, anim, 1e-3)
             anims.append(anim)
 
 
@@ -1714,14 +1721,14 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             anim = {}
             anim["url"] = "name://@selection/%s:?scale/general/value" % bname
             scales = [vec[0] for vec in vecs]
-            anim["keys"] = [(n/self.fps, scale) for n,scale in enumerate(scales)]
+            self.addKeys(scales, anim, 1e-4)
             anims.append(anim)
         else:
             for idx,x in enumerate(["x","y","z"]):
                 anim = {}
                 anim["url"] = "name://@selection/%s:?scale/%s/value" % (bname, x)
                 scales = [vec[idx] for vec in vecs]
-                anim["keys"] = [(n/self.fps, scale) for n,scale in enumerate(scales)]
+                self.addKeys(scales, anim, 1e-4)
                 anims.append(anim)
 
 
