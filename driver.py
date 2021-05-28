@@ -207,10 +207,10 @@ class DriverUser:
 #   Check if RNA is driven
 #-------------------------------------------------------------
 
-def isDriven(rna, channel):
+def isDriven(rna, channel, idx):
     if rna.animation_data:
         for fcu in rna.animation_data.drivers:
-            if fcu.data_path == channel:
+            if fcu.data_path == channel and fcu.array_index == idx:
                 return True
     return False
 

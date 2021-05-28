@@ -90,6 +90,7 @@ class LoadMorph(DriverUser):
                 self.buildDrivers()
                 self.buildSumDrivers()
                 self.buildRestDrivers()
+                self.correctScaleParents()
             finally:
                 self.deleteTmp()
             self.rig.update_tag()
@@ -975,10 +976,16 @@ class LoadMorph(DriverUser):
                 for idx,idata in cdata.items():
                     pb,fcu0,drivers = idata
                     pathids = {}
-                    if ((channel == "rotation_quaternion" and idx == 0) or
-                        (channel == "scale")):
-                        path = self.getUnity(pb, idx)
+                    if channel == "rotation_quaternion" and idx == 0:
+                        path = self.getConstant("Unity", 1.0, pb, idx)
                         pathids[path] = 'ARMATURE'
+                    elif channel == "scale":
+                        path = self.getConstant("Unity", 1.0, pb, idx)
+                        pathids[path] = 'ARMATURE'
+                        if inheritScale(pb) and pb.parent:
+                            nprop = self.getNegativeScaleProp(pb.parent, idx)
+                            if nprop:
+                                pathids[propRef(nprop)] = 'ARMATURE'
                     if fcu0:
                         if fcu0.driver.type == 'SUM':
                             self.recoverOldDrivers(fcu0, drivers)
@@ -1073,17 +1080,51 @@ class LoadMorph(DriverUser):
         return propRef(prop)
 
 
-    def getUnity(self, pb, idx):
+    def getConstant(self, prop, value, pb, idx):
         from .driver import getRnaDriver, removeModifiers
-        prop = "Unity"
-        self.amt[prop] = 1.0
+        self.amt[prop] = value
         path = propRef(prop)
         if not getRnaDriver(self.amt, path):
             fcu = self.amt.driver_add(path)
             fcu.driver.type = 'SCRIPTED'
             removeModifiers(fcu)
-            fcu.driver.expression = "1.0"
+            fcu.driver.expression = "%.1f" % value
         return path
+
+
+    def getNegativeScaleProp(self, pb, idx):
+        from .driver import isDriven, getRnaDriver, removeModifiers
+        channel = 'pose.bones["%s"].scale' % pb.name
+        if isDriven(self.rig, channel, idx):
+            prefix = self.getChannelPrefix(pb, "scale", idx)
+            nprop = prefix+":neg"
+            self.amt[nprop] = 0.0
+            if not getRnaDriver(self.amt, propRef(nprop)):
+                fcu = self.amt.driver_add(propRef(nprop))
+                fcu.driver.type = 'SCRIPTED'
+                removeModifiers(fcu)
+                fcu.driver.expression = "1-a"
+                self.addPathVar(fcu, "a", self.rig, "%s[%d]" % (channel, idx))
+            return nprop
+        else:
+            return None
+
+
+    def correctScaleParents(self):
+        from .driver import isDriven, removeModifiers
+        for pb in self.rig.pose.bones:
+            if inheritScale(pb) and pb.parent:
+                channel = 'pose.bones["%s"].scale' % pb.name
+                for idx in range(3):
+                    if not isDriven(self.rig, channel, idx):
+                        nprop = self.getNegativeScaleProp(pb.parent, idx)
+                        if nprop:
+                            fcu = self.rig.driver_add(channel, idx)
+                            fcu.driver.type = 'SUM'
+                            removeModifiers(fcu)
+                            path = self.getConstant("Unity", 1.0, pb, idx)
+                            self.addPathVar(fcu, "a", self.amt, path)
+                            self.addPathVar(fcu, "b", self.amt, propRef(nprop))
 
 
     def getParentScale(self, pname, idx):
