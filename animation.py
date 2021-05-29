@@ -378,13 +378,18 @@ class AffectOptions:
 
     reportMissingMorphs : BoolProperty(
         name = "Report Missing Morphs",
-        description = "Print a list of missing morphs.",
+        description = "Print a list of missing morphs",
         default = False)
 
     affectSelectedOnly : BoolProperty(
         name = "Selected Bones Only",
-        description = "Only animate selected bones.",
+        description = "Only animate selected bones",
         default = False)
+
+    affectScale : BoolProperty(
+        name = "Affect Scale",
+        description = "Include bone scale in animation",
+        default = True)
 
     ignoreLimits : BoolProperty(
         name = "Ignore Limits",
@@ -488,6 +493,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         layout = self.layout
         layout.prop(self, "affectBones")
         if self.affectBones:
+            layout.prop(self, "affectScale")
             layout.prop(self, "affectSelectedOnly")
             layout.prop(self, "affectDrivenBones")
         layout.label(text="Object Transformations Affect:")
@@ -661,15 +667,20 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 for key,channel in channels.items():
                     if key in ["rotation", "translation"]:
                         self.addFrames(bname, channel, 3, key, frames, default=(0,0,0))
-                    elif key == "scale":
+                    elif key == "scale" and self.affectScale:
                         self.addFrames(bname, channel, 3, key, frames, default=(1,1,1))
-                    elif key == "general_scale":
+                    elif key == "general_scale" and self.affectScale:
                         self.addFrames(bname, channel, 1, key, frames)
 
             for vname, channels in vanim.items():
                 self.addFrames(vname, {0: channels}, 1, "value", frames)
 
-            for n,frame in frames.items():
+            if not frames:
+                continue
+            lframes = list(frames.items())
+            lframes.sort()
+            self.clearScales(rig, lframes[0][0]+offset)
+            for n,frame in lframes:
                 twists = []
                 for bname in frame.keys():
                     bframe = frame[bname]
@@ -681,9 +692,11 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                         elif key == "rotation":
                             tfm.setRot(bframe["rotation"], prop)
                         elif key == "scale":
-                            tfm.setScale(bframe["scale"], False, prop)
+                            if self.affectScale:
+                                tfm.setScale(bframe["scale"], False, prop)
                         elif key == "general_scale":
-                            tfm.setGeneral(bframe["general_scale"], False, prop)
+                            if self.affectScale:
+                                tfm.setGeneral(bframe["general_scale"], False, prop)
                         elif key == "value":
                             value = bframe["value"][0]
                         else:
@@ -717,11 +730,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 for (bname, tfm, value) in twists:
                     self.transformBone(rig, bname, tfm, value, n, offset, True)
 
-                # Fix scale: Blender bones inherit scale, DS bones do not
-                for root in rig.pose.bones:
-                    if root.parent is None:
-                        self.fixScale(root, Matrix.Identity(3), n+offset)
-
                 if ((rig.DazRig == "mhx" or rig.MhxRig) and self.affectBones and False):
                     for suffix in ["L", "R"]:
                         forearm = rig.pose.bones["forearm.fk."+suffix]
@@ -737,10 +745,13 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                             tfm.insertKeys(rig, hand, n+offset, hand.name, self.driven)
                             tfm.insertKeys(rig, foot, n+offset, foot.name, self.driven)
 
+                self.saveScales(rig, n+offset)
+
                 if self.usePoseLib:
                     name = os.path.splitext(os.path.basename(filepath))[0]
                     self.addToPoseLib(rig, name)
 
+            self.fixScales(rig)
             offset += n + 1
         return offset,prop
 
@@ -775,23 +786,32 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                     bframe[cname][comp] = y
 
 
-    def fixScale(self, pb, parscale, frame):
-        isZero = False
-        scale = Matrix.Diagonal(pb.scale)
-        if inheritScale(pb):
-            smat = scale @ parscale.inverted()
-            pb.scale = smat.to_scale()
-            for n in range(3):
-                if abs(pb.scale[n]-1) < 1e-5:
-                    pb.scale[n] = 1
-                elif abs(pb.scale[n]) < 1e-5:
-                    isZero = True
-        if isZero:
-            scale = Matrix.Identity(3)
-        if self.useInsertKeys:
-            pb.keyframe_insert("scale", frame=frame, group=pb.name)
-        for child in pb.children:
-            self.fixScale(child, scale, frame)
+    def clearScales(self, rig, frame):
+        if not self.affectScale:
+            return
+        self.scales = {}
+        for pb in rig.pose.bones:
+            pb.scale = One
+            if self.useInsertKeys:
+                pb.keyframe_insert("scale", frame=frame, group=pb.name)
+
+
+    def saveScales(self, rig, frame):
+        if not self.affectScale:
+            return
+        self.scales[frame] = dict([(pb.name, Matrix.Diagonal(pb.scale)) for pb in rig.pose.bones])
+
+
+    def fixScales(self, rig):
+        if not self.affectScale:
+            return
+        for frame,smats in self.scales.items():
+            for pb in rig.pose.bones:
+                if pb.parent and inheritScale(pb):
+                    smat = smats[pb.name] @ smats[pb.parent.name].inverted()
+                    pb.scale = smat.to_scale()
+                    if self.useInsertKeys:
+                        pb.keyframe_insert("scale", frame=frame, group=pb.name)
 
 
     def getRigKey(self, key, rig, missing):

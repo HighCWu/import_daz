@@ -144,6 +144,10 @@ class Transform:
         return mat
 
 
+    def hasNoScale(self):
+        return ((self.scale is None or (self.scale-One).length == 0.0) and self.general == 1)
+
+
     def setRna(self, rna):
         rna.location = d2b(self.evalTrans())
         rot = d2bu(self.evalRot())
