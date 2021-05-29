@@ -747,11 +747,10 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
                 self.saveScales(rig, n+offset)
 
-                if self.usePoseLib:
-                    name = os.path.splitext(os.path.basename(filepath))[0]
-                    self.addToPoseLib(rig, name)
-
             self.fixScales(rig)
+            if self.usePoseLib:
+                name = os.path.splitext(os.path.basename(filepath))[0]
+                self.addToPoseLib(rig, name)
             offset += n + 1
         return offset,prop
 
@@ -791,9 +790,10 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             return
         self.scales = {}
         for pb in rig.pose.bones:
-            pb.scale = One
-            if self.useInsertKeys:
-                pb.keyframe_insert("scale", frame=frame, group=pb.name)
+            if self.isAvailable(pb, rig):
+                pb.scale = One
+                if self.useInsertKeys:
+                    pb.keyframe_insert("scale", frame=frame, group=pb.name)
 
 
     def saveScales(self, rig, frame):
@@ -807,7 +807,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             return
         for frame,smats in self.scales.items():
             for pb in rig.pose.bones:
-                if pb.parent and inheritScale(pb):
+                if pb.parent and inheritScale(pb) and self.isAvailable(pb, rig):
                     smat = smats[pb.name] @ smats[pb.parent.name].inverted()
                     pb.scale = smat.to_scale()
                     if self.useInsertKeys:
