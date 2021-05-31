@@ -1562,13 +1562,13 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             for pb in rig.pose.bones:
                 for bname in self.getBoneNames(pb.name):
                     if bname in self.quats.keys():
-                        quat = pb.rotation_quaternion
+                        quat = pb.rotation_quaternion.copy()
                         for idx,fcu in enumerate(self.quats[bname]):
                             if fcu:
                                 quat[idx] = fcu.evaluate(frame)
                         mat = quat.to_matrix().to_4x4()
                     elif bname in self.rots.keys():
-                        rot = pb.rotation_euler
+                        rot = pb.rotation_euler.copy()
                         for idx,fcu in enumerate(self.rots[bname]):
                             if fcu:
                                 rot[idx] = fcu.evaluate(frame)
@@ -1591,7 +1591,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                         smats[pb.name] = smat
 
                     if bname in self.locs.keys():
-                        loc = pb.location
+                        loc = pb.location.copy()
                         for idx,fcu in enumerate(self.locs[bname]):
                             if fcu:
                                 loc[idx] = fcu.evaluate(frame)
@@ -1614,7 +1614,6 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                     if root in rig.pose.bones.keys():
                         pb = rig.pose.bones[root]
                         self.setupConvBones(pb)
-            print("C", self.conv)
         else:
             roots = [pb for pb in rig.pose.bones if pb.parent is None]
             for pb in roots:
@@ -1639,6 +1638,22 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             return self.conv[bname]
         else:
             return []
+
+
+    def getTwistBone(self, bname):
+        if "TWIST-" + bname in self.conv.keys():
+            twidxs = {
+                "lShldrTwist" : 0,
+                "lForearmTwist" : 0,
+                "lThighTwist" : 1,
+                "rShldrTwist" : 0,
+                "rForearmTwist" : 0,
+                "rThighTwist" : 1,
+            }
+            twname = self.conv["TWIST-" + bname][0]
+            return twname, twidxs[twname]
+        else:
+            return None, 0
 
 
     def saveFile(self, rig):
@@ -1682,7 +1697,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                         locs = [L.col[3] for L in Ls]
                         self.getTrans(bname, locs, 1/rig.DazScale, anims)
                     rots = [L.to_euler(pb.DazRotMode) for L in Ls]
-                    self.getRot(bname, rots, 1/D, anims)
+                    self.getRot(bname, pb, rots, 1/D, anims)
                     scales = [L.to_scale() for L in Ls]
                     self.getScale(bname, scales, anims)
         if self.useMorphs:
@@ -1719,12 +1734,28 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             anims.append(anim)
 
 
-    def getRot(self, bname, vecs, factor, anims):
+    def getRot(self, bname, pb, vecs, factor, anims):
+        twname,twidx = self.getTwistBone(pb.name)
         for idx,x in enumerate(["x","y","z"]):
             anim = {}
             anim["url"] = "name://@selection/%s:?rotation/%s/value" % (bname, x)
-            rots = [vec[idx]*factor for vec in vecs]
-            rots = self.correct180(rots)
+            if twname and idx == twidx:
+                rots = [0.0 for vec in vecs]
+            else:
+                rots = [vec[idx]*factor for vec in vecs]
+                rots = self.correct180(rots)
+            self.addKeys(rots, anim, 1e-3)
+            anims.append(anim)
+        if twname is None:
+            return
+        for idx,x in enumerate(["x","y","z"]):
+            anim = {}
+            anim["url"] = "name://@selection/%s:?rotation/%s/value" % (twname, x)
+            if idx == twidx:
+                rots = [vec[idx]*factor for vec in vecs]
+                rots = self.correct180(rots)
+            else:
+                rots = [0.0 for vec in vecs]
             self.addKeys(rots, anim, 1e-3)
             anims.append(anim)
 
