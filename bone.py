@@ -518,7 +518,7 @@ class BoneInstance(Instance):
             flip = self.FZ
             self.axes = [1,2,0]
             self.flipped = [True,True,True]
-            self.flopped = [False,True,False]
+            self.flopped = [True,True,False]
 
         self.testPrint("AXES")
         rmat = euler.to_matrix().to_4x4()
@@ -530,6 +530,8 @@ class BoneInstance(Instance):
         vec = tail-head
         yaxis = Vector(omat.col[1][0:3])
         if vec.dot(yaxis) < 0:
+            if self.test:
+                print("FLOP", self.name)
             self.flipped = self.flopped
             return omat @ flip
         else:
@@ -850,7 +852,7 @@ class BoneInstance(Instance):
                         maxr = -tmp
                     xyz = self.IndexComp[idx]
                     if self.test:
-                        print("LLL", pb.name, n, limit, self.flipped[n], minr, maxr)
+                        print("RRR", pb.name, n, limit, self.flipped[n], xyz, minr, maxr)
                     setattr(cns, "use_limit_%s" % xyz, True)
                     setattr(cns, "min_%s" % xyz, minr)
                     setattr(cns, "max_%s" % xyz, maxr)
@@ -879,6 +881,8 @@ class BoneInstance(Instance):
                         mind = -maxd
                         maxd = -tmp
                     xyz = self.IndexComp[idx]
+                    if self.test:
+                        print("LLL", pb.name, n, limit, self.flipped[n], xyz, mind, maxd)
                     setattr(cns, "use_min_%s" % xyz, True)
                     setattr(cns, "use_max_%s" % xyz, True)
                     setattr(cns, "min_%s" % xyz, mind*LS.scale)
