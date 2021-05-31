@@ -306,7 +306,7 @@ class LoadMorph(DriverUser):
 
     def getAdjustedBones(self):
         self.adjustedBones = {}
-        if self.rig.animation_data:
+        if self.rig and self.rig.animation_data:
             for fcu in self.rig.animation_data.drivers:
                 words = fcu.data_path.split('"')
                 if (len(words) > 3 and
