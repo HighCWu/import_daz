@@ -770,7 +770,8 @@ def getRnaName(string):
 
 class ToggleLocks:
     def run(self, context):
-        rig = context.object
+        from .morphing import getRigFromObject
+        rig = getRigFromObject(context.object)
         if getattr(rig, self.attr):
             for pb in rig.pose.bones:
                 setattr(pb, self.attr, getattr(pb, self.lock))
@@ -791,10 +792,6 @@ class DAZ_OT_ToggleRotLocks(DazOperator, ToggleLocks):
     attr = "DazRotLocks"
     lock = "lock_rotation"
 
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.DazHasRotLocks)
-
 
 class DAZ_OT_ToggleLocLocks(DazOperator, ToggleLocks):
     bl_idname = "daz.toggle_loc_locks"
@@ -805,9 +802,6 @@ class DAZ_OT_ToggleLocLocks(DazOperator, ToggleLocks):
     attr = "DazLocLocks"
     lock = "lock_location"
 
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.DazHasLocLocks)
 
 #----------------------------------------------------------
 #   Toggle Limits
@@ -815,7 +809,8 @@ class DAZ_OT_ToggleLocLocks(DazOperator, ToggleLocks):
 
 class ToggleLimits:
     def run(self, context):
-        rig = context.object
+        from .morphing import getRigFromObject
+        rig = getRigFromObject(context.object)
         for pb in rig.pose.bones:
             for cns in pb.constraints:
                 if cns.type == self.type:
@@ -832,10 +827,6 @@ class DAZ_OT_ToggleRotLimits(DazOperator, ToggleLimits):
     type = "LIMIT_ROTATION"
     attr = "DazRotLimits"
 
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.DazHasRotLimits)
-
 
 class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits):
     bl_idname = "daz.toggle_loc_limits"
@@ -845,10 +836,6 @@ class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits):
 
     type = "LIMIT_LOCATION"
     attr = "DazLocLimits"
-
-    @classmethod
-    def poll(self, context):
-        return (context.object and context.object.DazHasLocLimits)
 
 #-------------------------------------------------------------
 #   Simple IK

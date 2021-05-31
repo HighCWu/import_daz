@@ -412,11 +412,17 @@ class DAZ_PT_Posing(bpy.types.Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
-    def poll(cls, context):
-        return (context.object and context.object.type == 'ARMATURE')
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type in ['ARMATURE', 'MESH'])
+
 
     def draw(self, context):
+        from .morphing import getRigFromObject
         ob = context.object
+        rig = getRigFromObject(ob)
+        if rig is None:
+            return
         scn = context.scene
         layout = self.layout
 
@@ -435,14 +441,17 @@ class DAZ_PT_Posing(bpy.types.Panel):
         layout.operator("daz.save_pose_preset")
 
         layout.separator()
+        prop = "Adjust Morph Strength"
+        if prop in rig.keys():
+            layout.prop(rig, propRef(prop))
         split = layout.split(factor=0.6)
-        icon = 'CHECKBOX_HLT' if ob.DazLocLocks else 'CHECKBOX_DEHLT'
+        icon = 'CHECKBOX_HLT' if rig.DazLocLocks else 'CHECKBOX_DEHLT'
         layout.operator("daz.toggle_loc_locks", icon=icon, emboss=False)
-        icon = 'CHECKBOX_HLT' if ob.DazRotLocks else 'CHECKBOX_DEHLT'
+        icon = 'CHECKBOX_HLT' if rig.DazRotLocks else 'CHECKBOX_DEHLT'
         layout.operator("daz.toggle_rot_locks", icon=icon, emboss=False)
-        icon = 'CHECKBOX_HLT' if ob.DazLocLimits else 'CHECKBOX_DEHLT'
+        icon = 'CHECKBOX_HLT' if rig.DazLocLimits else 'CHECKBOX_DEHLT'
         layout.operator("daz.toggle_loc_limits", icon=icon, emboss=False)
-        icon = 'CHECKBOX_HLT' if ob.DazRotLimits else 'CHECKBOX_DEHLT'
+        icon = 'CHECKBOX_HLT' if rig.DazRotLimits else 'CHECKBOX_DEHLT'
         layout.operator("daz.toggle_rot_limits", icon=icon, emboss=False)
 
         return

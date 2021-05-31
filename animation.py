@@ -289,7 +289,7 @@ class FrameConverter:
 #   HideOperator class
 #-------------------------------------------------------------
 
-class HideOperator(DazOperator):
+class HideOperator(DazOperator, IsArmature):
     def storeState(self, context):
         from .driver import muteDazFcurves
         DazOperator.storeState(self, context)
@@ -1188,14 +1188,15 @@ def findAction(aname):
 #   Clear pose
 #----------------------------------------------------------
 
-class DAZ_OT_ClearPose(DazOperator, IsArmature):
+class DAZ_OT_ClearPose(DazOperator, IsMeshArmature):
     bl_idname = "daz.clear_pose"
     bl_label = "Clear Pose"
     bl_description = "Clear all bones and object transformations"
     bl_options = {'UNDO'}
 
     def run(self, context):
-        rig = context.object
+        from .morphing import getRigFromObject
+        rig = getRigFromObject(context.object)
         unit = Matrix()
         setWorldMatrix(rig, unit)
         for pb in rig.pose.bones:

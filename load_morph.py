@@ -235,7 +235,7 @@ class LoadMorph(DriverUser):
             addSkeyToUrls(self.mesh, self.isJcm, asset, skey)
             if self.rig:
                 final = self.addNewProp(prop)
-                adj = self.getAdjuster()
+                adj = self.getAdjuster(True)
                 if adj:
                     self.adjustShapekey(skey, adj, final)
                     makePropDriver(propRef(adj), skey, "slider_max", self.rig, "x")
@@ -279,18 +279,22 @@ class LoadMorph(DriverUser):
                         self.ecr = True
 
 
-    def getAdjuster(self):
+    def getAdjuster(self, useGlobal):
         from .driver import setFloatProp, makePropDriver
-        if GS.useAdjusters:
-            adj = self.getAdjustProp()
-            if adj not in self.rig.keys():
-                final = self.addNewProp(adj)
-                setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
-                setFloatProp(self.amt, final, 1.0, 0.0, 1000.0)
-                makePropDriver(propRef(adj), self.amt, propRef(final), self.rig, "x")
-            return adj
+        if useGlobal:
+            if GS.useAdjusters not in ['STRENGTH', 'BOTH']:
+                return None
+            adj = "Adjust Morph Strength"
         else:
-            return None
+            if GS.useAdjusters not in ['TYPE', 'BOTH']:
+                return None
+            adj = self.getAdjustProp()
+        if adj not in self.rig.keys():
+            final = finalProp(adj)
+            setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
+            setFloatProp(self.amt, final, 1.0, 0.0, 1000.0)
+            makePropDriver(propRef(adj), self.amt, propRef(final), self.rig, "x")
+        return adj
 
 
     def adjustShapekey(self, skey, adj, final):
@@ -670,10 +674,8 @@ class LoadMorph(DriverUser):
             if raw not in self.rig.keys():
                 self.rig[raw] = 0.0
         string,rdrivers = self.addDriverVars(fcu, string, varname, raw, drivers)
-        self.mult = []
-        if raw in self.mults.keys():
-            self.mult = self.mults[raw]
-        string = self.multiplyMults(fcu, string)
+        if self.getMultipliers(raw):
+            string = self.multiplyMults(fcu, string)
         fcu.driver.expression = string
         if rdrivers:
             self.extendPropDriver(fcu, raw, rdrivers)
@@ -760,6 +762,17 @@ class LoadMorph(DriverUser):
         return rna, channel
 
 
+    def getMultipliers(self, raw):
+        adj = self.getAdjuster(False)
+        if adj:
+            self.mult = [adj]
+        else:
+            self.mult = []
+        if raw and raw in self.mults.keys():
+            self.mult += self.mults[raw]
+        return self.mult
+
+
     def multiplyMults(self, fcu, string):
         if self.mult:
             mstring = ""
@@ -783,12 +796,10 @@ class LoadMorph(DriverUser):
 
     def adjustMults(self, raw, final):
         from .driver import getRnaDriver
-        self.mult = []
-        if raw in self.mults.keys():
-            self.mult = self.mults[raw]
+        if self.getMultipliers(raw):
+            fcu = getRnaDriver(self.amt, propRef(final))
         else:
             return
-        fcu = getRnaDriver(self.amt, propRef(final))
         if fcu:
             string = self.multiplyMults(fcu, fcu.driver.expression)
             fcu.driver.expression = string
@@ -939,7 +950,8 @@ class LoadMorph(DriverUser):
         for bvar in bvars:
             var = fcu.driver.variables.new()
             bvar.create(var)
-        string = self.multiplyMults(fcu, string)
+        if self.getMultipliers(None):
+            string = self.multiplyMults(fcu, string)
         if GS.useMakeHiddenSliders and isPath(path):
             final = unPath(path)
             if isFinal(final):
@@ -1154,7 +1166,7 @@ class LoadMorph(DriverUser):
         pb = None
         bname = prefix[:-6]
         if prefix[-6:-1] == ":Loc:" and bname in self.rig.pose.bones.keys():
-            adj = self.getAdjuster()
+            adj = self.getAdjuster(True)
             pb = self.rig.pose.bones[bname]
         for final,factor in drivers.items():
             string += "%+.4g*%s" % (factor, varname)
