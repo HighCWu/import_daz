@@ -1412,6 +1412,16 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         description = "Include bones in the pose preset",
         default = True)
 
+    includeLocks : BoolProperty(
+        name = "Include Locked Channels",
+        description = "Include locked bone channels in the pose preset",
+        default = False)
+
+    useScale : BoolProperty(
+        name = "Use Scale",
+        description = "Include bone scale transforms in the pose preset",
+        default = True)
+
     useFaceBones : BoolProperty(
         name = "Use Face Bones",
         description = "Include face bones in the pose preset",
@@ -1443,6 +1453,8 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         self.layout.prop(self, "website")
         self.layout.prop(self, "useBones")
         if self.useBones:
+            self.layout.prop(self, "includeLocks")
+            self.layout.prop(self, "useScale")
             self.layout.prop(self, "useFaceBones")
         self.layout.prop(self, "useMorphs")
         self.layout.prop(self, "useAction")
@@ -1489,7 +1501,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                 else:
                     self.rots[bname] = 3*[None]
                 self.scales[bname] = 3*[None]
-                if pb.name == "hip":
+                if isLocationUnlocked(pb):
                     self.locs[bname] = 3*[None]
 
         for fcu in act.fcurves:
@@ -1504,7 +1516,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                         self.rots[bname][idx] = fcu
                     elif channel == "rotation_quaternion" and bname in self.quats.keys():
                         self.quats[bname][idx] = fcu
-                    elif channel == "scale" and bname in self.scales.keys():
+                    elif self.useScale and channel == "scale" and bname in self.scales.keys():
                         self.scales[bname][idx] = fcu
             elif words[0] == "[" and self.useMorphs:
                 prop = words[1]
@@ -1523,8 +1535,9 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                         self.quats[bname] = [FakeCurve(t) for t in pb.rotation_quaternion]
                     else:
                         self.rots[bname] = [FakeCurve(t) for t in pb.rotation_euler]
-                    self.scales[bname] = [FakeCurve(t) for t in pb.scale]
-                    if bname == "hip":
+                    if self.useScale:
+                        self.scales[bname] = [FakeCurve(t) for t in pb.scale]
+                    if isLocationUnlocked(pb):
                         self.locs[bname] = [FakeCurve(t) for t in pb.location]
         if self.useMorphs:
             for morphset in theStandardMorphSets + theCustomMorphSets:
@@ -1576,7 +1589,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                     else:
                         continue
 
-                    if bname in self.scales.keys():
+                    if self.useScale and bname in self.scales.keys():
                         scale = pb.scale.copy()
                         for idx,fcu in enumerate(self.scales[bname]):
                             if fcu:
@@ -1693,13 +1706,14 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             for pb in rig.pose.bones:
                 for bname in self.getBoneNames(pb.name):
                     Ls = [self.Ls[frame][bname] for frame in range(self.first, self.last+1)]
-                    if pb.name == "hip":
+                    if isLocationUnlocked(pb):
                         locs = [L.col[3] for L in Ls]
-                        self.getTrans(bname, locs, 1/rig.DazScale, anims)
+                        self.getTrans(bname, pb, locs, 1/rig.DazScale, anims)
                     rots = [L.to_euler(pb.DazRotMode) for L in Ls]
                     self.getRot(bname, pb, rots, 1/D, anims)
-                    scales = [L.to_scale() for L in Ls]
-                    self.getScale(bname, scales, anims)
+                    if self.useScale:
+                        scales = [L.to_scale() for L in Ls]
+                        self.getScale(bname, pb, scales, anims)
         if self.useMorphs:
             for prop,fcu in self.morphs.items():
                 self.getMorph(prop, fcu, anims)
@@ -1725,8 +1739,10 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             anim["keys"] = [(n/self.fps, x) for n,x in enumerate(xs)]
 
 
-    def getTrans(self, bname, vecs, factor, anims):
+    def getTrans(self, bname, pb, vecs, factor, anims):
         for idx,x in enumerate(["x","y","z"]):
+            if not self.includeLocks and pb.DazLocLocks[idx]:
+                continue
             anim = {}
             anim["url"] = "name://@selection/%s:?translation/%s/value" % (bname, x)
             locs = [vec[idx]*factor for vec in vecs]
@@ -1737,30 +1753,29 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
     def getRot(self, bname, pb, vecs, factor, anims):
         twname,twidx = self.getTwistBone(pb.name)
         for idx,x in enumerate(["x","y","z"]):
+            if ((not self.includeLocks and pb.DazRotLocks[idx]) or
+                (twname and idx == twidx)):
+                continue
             anim = {}
             anim["url"] = "name://@selection/%s:?rotation/%s/value" % (bname, x)
-            if twname and idx == twidx:
-                rots = [0.0 for vec in vecs]
-            else:
-                rots = [vec[idx]*factor for vec in vecs]
-                rots = self.correct180(rots)
+            rots = [vec[idx]*factor for vec in vecs]
+            rots = self.correct180(rots)
             self.addKeys(rots, anim, 1e-3)
             anims.append(anim)
         if twname is None:
             return
         for idx,x in enumerate(["x","y","z"]):
+            if idx != twidx:
+                continue
             anim = {}
             anim["url"] = "name://@selection/%s:?rotation/%s/value" % (twname, x)
-            if idx == twidx:
-                rots = [vec[idx]*factor for vec in vecs]
-                rots = self.correct180(rots)
-            else:
-                rots = [0.0 for vec in vecs]
+            rots = [vec[idx]*factor for vec in vecs]
+            rots = self.correct180(rots)
             self.addKeys(rots, anim, 1e-3)
             anims.append(anim)
 
 
-    def getScale(self, bname, vecs, anims):
+    def getScale(self, bname, pb, vecs, anims):
         general = True
         for vec in vecs:
             if (abs(vec[0]-vec[1]) > 1e-5 or

@@ -179,9 +179,7 @@ class Transform:
             return
         if pb.bone.use_connect or pb.name in driven:
             return
-        if (pb.lock_location[0] == False or
-            pb.lock_location[1] == False or
-            pb.lock_location[2] == False):
+        if isLocationUnlocked(pb):
             pb.keyframe_insert("location", frame=frame, group=group)
 
 

@@ -308,6 +308,12 @@ def hasObjectTransforms(ob):
             ob.scale != One)
 
 
+def isLocationUnlocked(pb):
+    return (pb.lock_location[0] == False or
+            pb.lock_location[1] == False or
+            pb.lock_location[2] == False)
+
+
 def match(tests, string):
     for test in tests:
         if test in string:
