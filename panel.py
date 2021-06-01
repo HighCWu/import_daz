@@ -241,6 +241,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.replace_shells")
             box.separator()
             box.operator("daz.make_decal")
+            box.operator("daz.make_shader_groups")
 
 
         layout.separator()

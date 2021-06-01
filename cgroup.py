@@ -31,8 +31,8 @@ import bpy
 from .cycles import CyclesTree
 from .pbr import PbrTree
 from .material import WHITE
-from .utils import LS, GS
-from .error import reportError
+from .utils import *
+from .error import *
 
 # ---------------------------------------------------------------------
 #   CyclesGroup
@@ -1109,3 +1109,91 @@ def setMixOperation(mix, map):
     else:
         print("MIX", asset, map.operation)
     return alpha
+
+#----------------------------------------------------------
+#   Make shader group
+#----------------------------------------------------------
+
+class DAZ_OT_MakeShaderGroups(DazPropsOperator, IsMesh):
+    bl_idname = "daz.make_shader_groups"
+    bl_label = "Make Shader Groups"
+    bl_description = "Create shader groups for the active material"
+    bl_options = {'UNDO'}
+
+    groups = {
+        "useFresnel" : (FresnelGroup, "DAZ Fresnel", []),
+        "useEmission" : (EmissionGroup, "DAZ Emission", []),
+        "useOneSided" : (OneSidedGroup, "DAZ One-Sided", []),
+        "useOverlay" : (DiffuseGroup, "DAZ Overlay", []),
+        "useGlossy" : (GlossyGroup, "DAZ Glossy", []),
+        "useTopCoat" : (TopCoatGroup, "DAZ Top Coat", []),
+        "useRefraction" : (RefractionGroup, "DAZ Refraction", []),
+        "useFakeCaustics" : (FakeCausticsGroup, "DAZ Fake Caustics", [WHITE]),
+        "useTransparent" : (TransparentGroup, "DAZ Transparent", []),
+        "useTranslucent" : (TranslucentGroup, "DAZ Translucent", []),
+        "useSSS" : (SSSGroup, "DAZ SSS", []),
+        "useRayClip" : (RayClipGroup, "DAZ Ray Clip", []),
+        "useDualLobeUber" : (DualLobeGroupUberIray, "DAZ Dual Lobe Uber", []),
+        "useDualLobePBR" : (DualLobeGroupPBRSkin, "DAZ Dual Lobe PBR", []),
+        "useVolume" : (VolumeGroup, "DAZ Volume", []),
+        "useNormal" : (NormalGroup, "DAZ Normal", ["uvname"]),
+        "useDisplacement" : (DisplacementGroup, "DAZ Displacement", []),
+        "useDecal" : (DecalGroup, "DAZ Decal", [None, None]),
+    }
+
+    useFresnel : BoolProperty(name="Fresnel", default=False)
+    useEmission : BoolProperty(name="Emission", default=False)
+    useOneSided : BoolProperty(name="One Sided", default=False)
+    useOverlay : BoolProperty(name="Diffuse Overlay", default=False)
+    useGlossy : BoolProperty(name="Glossy", default=False)
+    useTopCoat : BoolProperty(name="Top Coat", default=False)
+    useRefraction : BoolProperty(name="Refraction", default=False)
+    useFakeCaustics : BoolProperty(name="Fake Caustics", default=False)
+    useTransparent : BoolProperty(name="Transparent", default=False)
+    useTranslucent : BoolProperty(name="Translucent", default=False)
+    useSSS : BoolProperty(name="Subsurface Scattering", default=False)
+    useRayClip : BoolProperty(name="Ray Clip", default=False)
+    useDualLobeUber : BoolProperty(name="Dual Lobe (Uber Shader)", default=False)
+    useDualLobePBR : BoolProperty(name="Dual Lobe (PBR Skin)", default=False)
+    useVolume : BoolProperty(name="Volume", default=False)
+    useNormal : BoolProperty(name="Normal", default=False)
+    useDisplacement : BoolProperty(name="Displacement", default=False)
+    useDecal : BoolProperty(name="Decal", default=False)
+
+    def draw(self, context):
+        for key in self.groups.keys():
+            self.layout.prop(self, key)
+
+
+    def run(self, context):
+        from .cycles import CyclesMaterial, CyclesTree
+        ob = context.object
+        mat = ob.data.materials[ob.active_material_index]
+        if mat is None:
+            raise DazError("No active material")
+        cmat = CyclesMaterial("")
+        ctree = CyclesTree(cmat)
+        ctree.nodes = mat.node_tree.nodes
+        ctree.links = mat.node_tree.links
+        ctree.column = 0
+        for key in self.groups.keys():
+            if getattr(self, key):
+                group,gname,args = self.groups[key]
+                ctree.column += 1
+                node = ctree.addGroup(group, gname, args=args)
+
+#----------------------------------------------------------
+#   Initialize
+#----------------------------------------------------------
+
+classes = [
+    DAZ_OT_MakeShaderGroups,
+]
+
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+def unregister():
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
