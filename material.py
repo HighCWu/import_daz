@@ -182,11 +182,12 @@ class Material(Asset, Channels):
         if self.uv_set:
             self.uv_sets[self.uv_set.name] = self.uv_set
         geonode = self.geometry
-        if geonode and isinstance(geonode, GeoNode):
+        if (isinstance(geonode, GeoNode) and
+            geonode.data and
+            geonode.data.uv_sets):
             for uv,uvset in geonode.data.uv_sets.items():
                 if uvset:
                     self.uv_sets[uv] = self.uv_sets[uvset.name] = uvset
-            #geonode.materials[self.name] = self
         for shell in self.shells.values():
             shell.material.shader = self.shader
 
