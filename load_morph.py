@@ -53,6 +53,10 @@ class LoadMorph(DriverUser):
         self.mults = {}
 
 
+    def getAdjustProp(self):
+        return None
+
+
     def initAmt(self):
         if self.rig:
             self.amt = self.rig.data
@@ -289,7 +293,7 @@ class LoadMorph(DriverUser):
             if GS.useAdjusters not in ['TYPE', 'BOTH']:
                 return None
             adj = self.getAdjustProp()
-        if adj not in self.rig.keys():
+        if adj and adj not in self.rig.keys():
             final = finalProp(adj)
             setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
             setFloatProp(self.amt, final, 1.0, 0.0, 1000.0)
