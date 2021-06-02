@@ -48,6 +48,19 @@ theCustomMorphSets = ["Custom"]
 theJCMMorphSets = ["Jcms", "Flexions"]
 theMorphSets = theStandardMorphSets + theCustomMorphSets + theJCMMorphSets + ["Visibility"]
 
+theAdjusters = {
+    "Standard" : "Adjust Standard",
+    "Custom" : "Adjust Custom",
+    "Units" : "Adjust Units",
+    "Expressions" : "Adjust Expressions",
+    "Visemes" : "Adjust Visemes",
+    "Facs" : "Adjust FACS",
+    "Facsexpr" : "Adjust FACS Expressions",
+    "Body" : "Adjust Body Morphs",
+    "Head" : "Adjust Head Morphs",
+    "Jcms" : "Adjust JCMs",
+    "Flexions" : "Adjust Flexions",
+}
 
 def getMorphs0(ob, morphset, sets, category):
     if morphset == "All":
@@ -676,7 +689,7 @@ class MorphLoader(LoadMorph):
 
 
     def getAdjustProp(self):
-        return "Adjust %s" % self.morphset
+        return self.adjuster
 
 
     def addUrl(self, asset, aliases, filepath, bodypart):
@@ -792,6 +805,8 @@ class StandardMorphLoader(MorphLoader):
 
 
     def run(self, context):
+        global theAdjusters
+        self.adjuster = theAdjusters[self.morphset]
         setupMorphPaths(False)
         if self.rig:
             self.rig.DazMorphPrefixes = False
@@ -980,6 +995,7 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
             return
         print("Load %s" % morphset)
         self.morphset = morphset
+        self.adjuster = theAdjusters[morphset]
         self.namepaths = []
         for key,filepath in struct.items():
             fileref = self.getFileRef(filepath)
@@ -2437,12 +2453,15 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
                 print("Fingerprint mismatch:\n%s != %s" % (finger, ustruct["finger_print"]))
                 return
         for morphset in theStandardMorphSets:
+            self.adjuster = theAdjusters[morphset]
             self.loadMorphSet(context, morphset, ustruct, morphset, "", True)
         for morphset in theJCMMorphSets:
+            self.adjuster = theAdjusters[morphset]
             self.loadMorphSet(context, morphset, ustruct, morphset, "", False)
         for key in ustruct["morphs"].keys():
             if key[0:7] == "Custom/":
                 rig.DazCustomMorphs = True
+                self.adjuster = "Adjust %s" % key
                 self.loadMorphSet(context, key, ustruct, "Custom", key[7:], True)
 
 
@@ -2456,17 +2475,6 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
             self.hideable = hide
             namepaths = [(name, unquote(ref), bodypart) for ref,name,bodypart in infos]
             self.getAllMorphs(namepaths, context)
-
-
-    def getAdjustProp(self):
-        if self.morphset == "Custom":
-            self.rig.DazCustomMorphs = True
-            if self.category not in self.rig.DazMorphCats.keys():
-                cat = self.rig.DazMorphCats.add()
-                cat.name = self.category
-            return "Adjust Custom/%s" % self.category
-        else:
-            return "Adjust %s" % self.morphset
 
 
     def findPropGroup(self, prop):

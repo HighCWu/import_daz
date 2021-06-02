@@ -300,20 +300,21 @@ class LoadMorph(DriverUser):
 
 
     def getLocalAdjuster(self):
-        from .driver import setFloatProp, makePropDriver
         if GS.useAdjusters not in ['TYPE', 'BOTH']:
             return None
         adj = self.getAdjustProp()
-        if adj and adj not in self.rig.keys():
-            setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
-        return adj
+        return self.getAdjuster(adj)
 
 
     def getGlobalAdjuster(self):
-        from .driver import setFloatProp, makePropDriver
         if GS.useAdjusters not in ['STRENGTH', 'BOTH']:
             return None
         adj = "Adjust Morph Strength"
+        return self.getAdjuster(adj)
+
+
+    def getAdjuster(self, adj):
+        from .driver import setFloatProp, makePropDriver
         if adj and adj not in self.rig.keys():
             final = finalProp(adj)
             setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
@@ -699,12 +700,7 @@ class LoadMorph(DriverUser):
 
         varname = "a"
         if self.visible[raw] or not self.primary[raw]:
-            adj = self.getLocalAdjuster()
-            if adj:
-                string += " K*%s" % varname
-                self.addPathVar(fcu, "K", self.rig, propRef(adj))
-            else:
-                string += varname
+            string += varname
             self.addPathVar(fcu, varname, self.rig, propRef(raw))
             if raw not in self.rig.keys():
                 self.rig[raw] = 0.0
@@ -798,7 +794,11 @@ class LoadMorph(DriverUser):
 
 
     def getMultipliers(self, raw):
-        self.mult = []
+        adj = self.getLocalAdjuster()
+        if adj:
+            self.mult = [adj]
+        else:
+            self.mult = []
         if raw and raw in self.mults.keys():
             self.mult += self.mults[raw]
         return self.mult
