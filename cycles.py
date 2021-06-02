@@ -88,6 +88,7 @@ class CyclesMaterial(Material):
 
     def postbuild(self):
         geonode = self.geometry
+        me = None
         if geonode and geonode.data and geonode.data.rna:
             geo = geonode.data
             me = geo.rna
@@ -104,8 +105,12 @@ class CyclesMaterial(Material):
             if self.geobump:
                 area = geo.getBumpArea(me, self.geobump.keys())
                 self.correctBumpArea(area)
+
         if self.tree:
-            self.tree.prune()
+            if GS.pruneNodes:
+                marked = pruneNodeTree(self.tree)
+                if isinstance(self.tree, CyclesTree):
+                    self.tree.selectDiffuse(marked)
 
 
     def addGeoBump(self, tex, socket):
@@ -129,7 +134,7 @@ class CyclesMaterial(Material):
             density = width * height / area
             if density == 0.0:
                 continue
-            link = self.tree.getLinkTo(tex, "Vector")
+            link = getLinkTo(self.tree, tex, "Vector")
             if link and link.from_node.type == 'MAPPING':
                 scale = link.from_node.inputs["Scale"]
                 density *= scale.default_value[0] * scale.default_value[1]
@@ -313,7 +318,8 @@ class CyclesTree:
         group.create(node, nname, self)
         group.addNodes((shmat, shell.uv))
         node.inputs["Influence"].default_value = 1.0
-        shell.tree = node.node_tree
+        shell.tree = shmat.tree = node.node_tree
+        shmat.geometry = self.material.geometry
         return node
 
 
@@ -438,15 +444,6 @@ class CyclesTree:
                 mapping.use_min = mapping.use_max = 1
             return mapping
         return None
-
-
-    def prune(self):
-        if GS.pruneNodes:
-            from .material import pruneNodeTree
-            marked = pruneNodeTree(self)
-            if self.diffuseTex and marked[self.diffuseTex.name]:
-                self.diffuseTex.select = True
-                self.nodes.active = self.diffuseTex
 
 #-------------------------------------------------------------
 #   Bump
@@ -1181,22 +1178,6 @@ class CyclesTree:
             mat.cycles.displacement_method = 'BOTH'
 
 
-    def getLinkFrom(self, node, slot):
-        for link in self.links:
-            if (link.from_node == node and
-                link.from_socket.name == slot):
-                return link
-        return None
-
-
-    def getLinkTo(self, node, slot):
-        for link in self.links:
-            if (link.to_node == node and
-                link.to_socket.name == slot):
-                return link
-        return None
-
-
     def addSingleTexture(self, col, asset, map, colorSpace):
         isnew = False
         img = asset.buildCycles(colorSpace)
@@ -1473,12 +1454,17 @@ class CyclesTree:
         else:
             return tex2
 
+
+    def selectDiffuse(self, marked):
+        if self.diffuseTex and marked[self.diffuseTex.name]:
+            self.diffuseTex.select = True
+            self.nodes.active = self.diffuseTex
+
 #-------------------------------------------------------------
 #   Utilities
 #-------------------------------------------------------------
 
 def findTree(mat):
-    from .cycles import CyclesTree
     tree = CyclesTree(None)
     tree.nodes = mat.node_tree.nodes
     tree.links = mat.node_tree.links
@@ -1527,3 +1513,41 @@ def findLinksTo(tree, ntype):
         if link.to_node.type == ntype:
             links.append(link)
     return links
+
+
+def getLinkTo(tree, node, slot):
+    for link in tree.links:
+        if (link.to_node == node and
+            link.to_socket.name == slot):
+            return link
+    return None
+
+
+def pruneNodeTree(tree):
+    marked = {}
+    output = False
+    for node in tree.nodes:
+        marked[node.name] = False
+        if "Output" in node.name:
+            marked[node.name] = True
+            output = True
+    if not output:
+        print("No output node")
+        return marked
+    nmarked = 0
+    n = 1
+    while n > nmarked:
+        nmarked = n
+        n = 1
+        for link in tree.links:
+            if marked[link.to_node.name]:
+                marked[link.from_node.name] = True
+                n += 1
+
+    for node in tree.nodes:
+        node.select = False
+        if not marked[node.name]:
+            tree.nodes.remove(node)
+    return marked
+
+

@@ -821,7 +821,11 @@ class Geometry(Asset, Channels):
         if bump not in self.bumpareas.keys():
             area = 0.0
             for mn,dmat in enumerate(self.dmaterials):
-                if bump in dmat.geobump.keys():
+                use = (bump in dmat.geobump.keys())
+                for shell in dmat.shells.values():
+                    if bump in shell.material.geobump.keys():
+                        use = True
+                if use:
                     area += sum([f.area for f in me.polygons if f.material_index == mn])
             self.bumpareas[bump] = area
         return self.bumpareas[bump]

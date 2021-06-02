@@ -1510,38 +1510,11 @@ class DAZ_OT_PruneNodeTrees(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
+        from .cycles import pruneNodeTree
         for ob in getSelectedMeshes(context):
             for mat in ob.data.materials:
                 if mat.node_tree:
                     pruneNodeTree(mat.node_tree)
-
-
-def pruneNodeTree(tree):
-    marked = {}
-    output = False
-    for node in tree.nodes:
-        marked[node.name] = False
-        if "Output" in node.name:
-            marked[node.name] = True
-            output = True
-    if not output:
-        print("No output node")
-        return marked
-    nmarked = 0
-    n = 1
-    while n > nmarked:
-        nmarked = n
-        n = 1
-        for link in tree.links:
-            if marked[link.to_node.name]:
-                marked[link.from_node.name] = True
-                n += 1
-
-    for node in tree.nodes:
-        node.select = False
-        if not marked[node.name]:
-            tree.nodes.remove(node)
-    return marked
 
 #----------------------------------------------------------
 #   Render settings

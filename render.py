@@ -179,6 +179,7 @@ class WorldTree(CyclesTree):
 
 
     def build(self):
+        from .cycles import pruneNodeTree
         backdrop = self.material.backdrop
         background = self.material.background
         envmap = self.material.envmap
@@ -202,7 +203,7 @@ class WorldTree(CyclesTree):
         output = self.addNode("ShaderNodeOutputWorld")
         if socket:
             self.links.new(socket, output.inputs["Surface"])
-        self.prune()
+        pruneNodeTree(self)
 
 
     def buildEnvmap(self, envmap):
