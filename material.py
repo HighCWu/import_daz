@@ -77,6 +77,7 @@ class Material(Asset, Channels):
         self.dualLobeWeight = 0
         self.translucent = False
         self.isHair = False
+        self.isShellMat = False
 
 
     def __repr__(self):

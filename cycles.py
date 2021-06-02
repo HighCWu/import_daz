@@ -110,7 +110,7 @@ class CyclesMaterial(Material):
 
     def addGeoBump(self, tex, socket):
         bumpmin = self.getValue("getChannelBumpMin", -0.01)
-        bumpmax = self.getValue("getChannelBumpMax", -0.01)
+        bumpmax = self.getValue("getChannelBumpMax", 0.01)
         socket.default_value = (bumpmax-bumpmin) * LS.scale
         key = tex.name
         if key not in self.geobump.keys():
@@ -174,8 +174,9 @@ class CyclesMaterial(Material):
             mat.transparent_shadow_method = 'HASHED'
         else:
             mat.shadow_method = 'HASHED'
-        mat.diffuse_color[0:3] = color
-        mat.diffuse_color[3] = alpha
+        if not self.isShellMat:
+            mat.diffuse_color[0:3] = color
+            mat.diffuse_color[3] = alpha
 
 #-------------------------------------------------------------
 #   Cycles node tree
@@ -282,6 +283,7 @@ class CyclesTree:
 
     def addShellGroup(self, shell, push):
         shmat = shell.material
+        shmat.isShellMat = True
         shname = shell.name
         if (shmat.getValue("getChannelCutoutOpacity", 1) == 0 or
             shmat.getValue("getChannelOpacity", 1) == 0):
@@ -761,11 +763,12 @@ class CyclesTree:
             if self.bumptex:
                 self.links.new(self.bumptex.outputs[0], top.inputs["Height"])
                 self.material.addGeoBump(self.bumptex, top.inputs["Distance"])
+            self.linkNormal(top)
         elif bumptex:
             self.links.new(bumptex.outputs[0], top.inputs["Height"])
             self.material.addGeoBump(bumptex, top.inputs["Distance"])
+            self.linkBumpNormal(top)
         top.inputs["Bump"].default_value = bump * GS.bumpFactor
-        self.linkNormal(top)
         self.mixWithActive(weight, weighttex, top)
 
 #-------------------------------------------------------------
