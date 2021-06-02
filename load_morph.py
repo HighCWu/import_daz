@@ -1124,7 +1124,14 @@ class LoadMorph(DriverUser):
                 fcu.driver.type = 'SCRIPTED'
                 removeModifiers(fcu)
                 fcu.driver.expression = "1-a"
-                self.addPathVar(fcu, "a", self.rig, "%s[%d]" % (channel, idx))
+                var = fcu.driver.variables.new()
+                var.name = "a"
+                var.type = 'TRANSFORMS'
+                trg = var.targets[0]
+                trg.id = self.rig
+                trg.bone_target = pb.name
+                trg.transform_type = 'SCALE_%s' % chr(ord('X')+idx)
+                trg.transform_space = 'LOCAL_SPACE'
             return nprop
         else:
             return None
@@ -1145,28 +1152,6 @@ class LoadMorph(DriverUser):
                             path = self.getConstant("Unity", 1.0, pb, idx)
                             self.addPathVar(fcu, "a", self.amt, path)
                             self.addPathVar(fcu, "b", self.amt, propRef(nprop))
-
-
-    def getParentScale(self, pname, idx):
-        from .driver import getRnaDriver, removeModifiers
-        prop = "scale:%s:%d" % (pname, idx)
-        if prop not in self.amt.keys():
-            self.amt[prop] = 0.0
-        if getRnaDriver(self.amt, propRef(prop)):
-            return prop
-        fcu = self.amt.driver_add(propRef(prop))
-        fcu.driver.type = 'SCRIPTED'
-        removeModifiers(fcu)
-        fcu.driver.expression = "var-1.0"
-        var = fcu.driver.variables.new()
-        var.name = "var"
-        var.type = 'TRANSFORMS'
-        trg = var.targets[0]
-        trg.id = self.rig
-        trg.bone_target = pname
-        trg.transform_type = 'SCALE_%s' % chr(ord('X')+idx)
-        trg.transform_space = 'LOCAL_SPACE'
-        return prop
 
 
     def getBatches(self, drivers, prefix):
