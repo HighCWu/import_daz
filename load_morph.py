@@ -239,12 +239,10 @@ class LoadMorph(DriverUser):
             addSkeyToUrls(self.mesh, self.isJcm, asset, skey)
             if self.rig:
                 final = self.addNewProp(prop)
-                adj = self.getAdjuster(True)
+                adj = self.getGlobalAdjuster()
+                self.adjustShapekey(skey, adj, final)
                 if adj:
-                    self.adjustShapekey(skey, adj, final)
                     makePropDriver(propRef(adj), skey, "slider_max", self.rig, "x")
-                else:
-                    makePropDriver(propRef(final), skey, "value", self.amt, "x")
             pgs = self.mesh.data.DazBodyPart
             if prop in pgs.keys():
                 item = pgs[prop]
@@ -283,16 +281,39 @@ class LoadMorph(DriverUser):
                         self.ecr = True
 
 
-    def getAdjuster(self, useGlobal):
+    def adjustProp(self, adj, prop, final):
+        from .driver import setFloatProp, removeModifiers
+        if adj not in self.rig.keys():
+            self.addNewProp(adj)
+            setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
+        adjprop = ("%s(adj)" % prop)
+        self.amt[adjprop] = 0.0
+        channel = propRef(adjprop)
+        self.amt.driver_remove(channel)
+        fcu = self.amt.driver_add(channel)
+        fcu.driver.type = 'SCRIPTED'
+        removeModifiers(fcu)
+        fcu.driver.expression = "a*b"
+        self.addPathVar(fcu, "a", self.amt, propRef(final))
+        self.addPathVar(fcu, "b", self.rig, propRef(adj))
+        return adjprop
+
+
+    def getLocalAdjuster(self):
         from .driver import setFloatProp, makePropDriver
-        if useGlobal:
-            if GS.useAdjusters not in ['STRENGTH', 'BOTH']:
-                return None
-            adj = "Adjust Morph Strength"
-        else:
-            if GS.useAdjusters not in ['TYPE', 'BOTH']:
-                return None
-            adj = self.getAdjustProp()
+        if GS.useAdjusters not in ['TYPE', 'BOTH']:
+            return None
+        adj = self.getAdjustProp()
+        if adj and adj not in self.rig.keys():
+            setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
+        return adj
+
+
+    def getGlobalAdjuster(self):
+        from .driver import setFloatProp, makePropDriver
+        if GS.useAdjusters not in ['STRENGTH', 'BOTH']:
+            return None
+        adj = "Adjust Morph Strength"
         if adj and adj not in self.rig.keys():
             final = finalProp(adj)
             setFloatProp(self.rig, adj, 1.0, 0.0, 1000.0)
@@ -307,12 +328,17 @@ class LoadMorph(DriverUser):
         fcu = skey.driver_add("value")
         fcu.driver.type = 'SCRIPTED'
         removeModifiers(fcu)
-        fcu.driver.expression = "a*b"
         self.addPathVar(fcu, "a", self.amt, propRef(final))
-        self.addPathVar(fcu, "b", self.rig, propRef(adj))
+        if adj:
+            self.addPathVar(fcu, "L", self.rig, propRef(adj))
+            fcu.driver.expression = "L*a"
+        else:
+            fcu.driver.expression = "a"
 
 
     def getAdjustedBones(self):
+        if GS.useAdjusters not in ['STRENGTH', 'BOTH']:
+            return
         self.adjustedBones = {}
         if self.rig and self.rig.animation_data:
             for fcu in self.rig.animation_data.drivers:
@@ -323,7 +349,7 @@ class LoadMorph(DriverUser):
 
 
     def adjustTranslation(self, adj, pb, string, vars):
-        if pb is None:
+        if pb is None or GS.useAdjusters not in ['STRENGTH', 'BOTH']:
             return string
         from .driver import makePropDriver
         string = "L*(%s)" % string
@@ -673,7 +699,12 @@ class LoadMorph(DriverUser):
 
         varname = "a"
         if self.visible[raw] or not self.primary[raw]:
-            string += varname
+            adj = self.getLocalAdjuster()
+            if adj:
+                string += " K*%s" % varname
+                self.addPathVar(fcu, "K", self.rig, propRef(adj))
+            else:
+                string += varname
             self.addPathVar(fcu, varname, self.rig, propRef(raw))
             if raw not in self.rig.keys():
                 self.rig[raw] = 0.0
@@ -767,11 +798,7 @@ class LoadMorph(DriverUser):
 
 
     def getMultipliers(self, raw):
-        adj = self.getAdjuster(False)
-        if adj:
-            self.mult = [adj]
-        else:
-            self.mult = []
+        self.mult = []
         if raw and raw in self.mults.keys():
             self.mult += self.mults[raw]
         return self.mult
@@ -853,14 +880,6 @@ class LoadMorph(DriverUser):
         if "points" in expr.keys():
             uvec,xys = getSplinePoints(expr, pb, comp)
             self.makeSplineBoneDriver(path, uvec, xys, rna, channel, -1, bname, keep)
-        elif isinstance(expr["factor"], list):
-            print("FOO", expr)
-            halt
-            uvecs = []
-            for factor in expr["factor"]:
-                uvec = unit*getBoneVector(factor, comp, pb)
-                uvecs.append(uvec)
-            self.makeProductBoneDriver(path, uvecs, rna, channel, -1, bname, keep)
         else:
             factor = expr["factor"]
             uvec = unit*getBoneVector(factor, comp, pb)
@@ -885,18 +904,6 @@ class LoadMorph(DriverUser):
         var,vars,umax = self.getVarData(vec, bname)
         string = getMult(umax, var)
         self.makeBoneDriver(string, vars, channel, rna, path, idx, keep)
-
-
-    def makeProductBoneDriver(self, channel, vecs, rna, path, idx, bname, keep):
-        string = ""
-        vars = []
-        for vec in vecs:
-            string1,vars1 = self.getVarData(vec, bname)
-            if string1:
-                vars += vars1
-                string += ("*min(1,max(0,%s))" % string1)
-        if string:
-            self.makeBoneDriver(string, vars, channel, rna, path, idx, keep)
 
 
     def makeSplineBoneDriver(self, channel, uvec, points, rna, path, idx, bname, keep):
@@ -954,8 +961,6 @@ class LoadMorph(DriverUser):
         for bvar in bvars:
             var = fcu.driver.variables.new()
             bvar.create(var)
-        if self.getMultipliers(None):
-            string = self.multiplyMults(fcu, string)
         if GS.useMakeHiddenSliders and isPath(path):
             final = unPath(path)
             if isFinal(final):
@@ -964,6 +969,10 @@ class LoadMorph(DriverUser):
                 self.rig[raw] = 0.0
                 self.addPathVar(fcu, "u", self.rig, propRef(raw))
                 self.addToMorphSet(raw, None, True)
+        adj = self.getLocalAdjuster()
+        if adj:
+            string = "K*(%s)" % string
+            self.addPathVar(fcu, "K", self.rig, propRef(adj))
         fcu.driver.expression = string
         if channel == "rotation":
             ttypes = ["ROT_X", "ROT_Y", "ROT_Z"]
@@ -1170,7 +1179,7 @@ class LoadMorph(DriverUser):
         pb = None
         bname = prefix[:-6]
         if prefix[-6:-1] == ":Loc:" and bname in self.rig.pose.bones.keys():
-            adj = self.getAdjuster(True)
+            adj = self.getGlobalAdjuster()
             pb = self.rig.pose.bones[bname]
         for final,factor in drivers.items():
             string += "%+.4g*%s" % (factor, varname)
