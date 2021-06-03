@@ -1153,6 +1153,11 @@ class DAZ_OT_ImportPose(HideOperator, PoseBase, StandardAnimation):
     bl_description = "Import a pose from DAZ pose preset file(s)"
     bl_options = {'UNDO'}
 
+    def draw(self, context):
+        PoseBase.draw(self, context)
+        toolset = context.scene.tool_settings
+        self.layout.prop(toolset, "use_keyframe_insert_auto")
+
     def run(self, context):
         StandardAnimation.run(self, context)
 
@@ -1162,6 +1167,11 @@ class DAZ_OT_ImportNodePose(HideOperator, NodePose, PoseBase, StandardAnimation)
     bl_label = "Import Pose From Scene"
     bl_description = "Import a pose from DAZ scene file(s) (not pose preset files)"
     bl_options = {'UNDO'}
+
+    def draw(self, context):
+        PoseBase.draw(self, context)
+        toolset = context.scene.tool_settings
+        self.layout.prop(toolset, "use_keyframe_insert_auto")
 
     def run(self, context):
         StandardAnimation.run(self, context)
