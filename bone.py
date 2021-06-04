@@ -405,6 +405,10 @@ class BoneInstance(Instance):
             head,tail,orient,xyz,wsmat = self.getHeadTail(center)
             eb = rig.data.edit_bones.new(self.name)
             figure.bones[self.name] = eb.name
+            if (head-tail).length < 1e-5:
+                print("NO LEN", self.name)
+                print("HT", head, tail)
+                halt
             eb.parent = parent
             eb.head = d2b(head)
             eb.tail = d2b(tail)

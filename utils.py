@@ -213,6 +213,10 @@ def updateObject(context, ob):
 def updateDrivers(rna):
     if rna:
         rna.update_tag()
+        if rna.animation_data:
+            for fcu in rna.animation_data.drivers:
+                if fcu.driver.type == 'SCRIPTED':
+                    fcu.driver.expression = str(fcu.driver.expression)
 
 def updateRigDrivers(context, rig):
     updateScene(context)
