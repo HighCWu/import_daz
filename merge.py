@@ -596,6 +596,8 @@ class RigInfo:
         from .fix import copyConstraints
         for key in self.rig.data.keys():
             rig.data[key] = self.rig.data[key]
+        self.copyProps(self.rig, rig)
+        self.copyProps(self.rig.data, rig.data)
         btn.copyDrivers(self.rig.data, rig.data, self.rig, rig)
         btn.copyDrivers(self.rig, rig, self.rig, rig)
         setActiveObject(context, rig)
@@ -605,6 +607,25 @@ class RigInfo:
             subpb, pb.matrix = data
             copyBoneInfo(subpb, pb)
             copyConstraints(subpb, pb, rig)
+
+
+    def copyProps(self, src, trg):
+        from .driver import getPropMinMax, setPropMinMax, setFloatProp, setBoolProp
+        for prop,value in src.items():
+            if (prop[0] != "_" and
+                prop[0:3] != "Daz" and
+                prop not in trg.keys()):
+                if isinstance(value,float):
+                    min,max = getPropMinMax(src, prop)
+                    setFloatProp(trg, prop, value, min, max)
+                elif isinstance(value,int):
+                    min,max = getPropMinMax(src, prop)
+                    trg[prop] = value
+                    setPropMinMax(trg, prop, min, max)
+                elif isinstance(value,bool):
+                    setBoolProp(trg, prop, value)
+                elif isinstance(value,str):
+                    trg[prop] = value
 
 
     def reParent(self, rig):
