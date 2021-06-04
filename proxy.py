@@ -1774,11 +1774,28 @@ class DAZ_OT_CopyModifiers(DazPropsOperator, IsMesh):
 #   Make custom shapes from mesh
 #----------------------------------------------------------
 
-class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
+class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
     bl_idname = "daz.make_gizmos"
     bl_label = "Make Custom Shapes"
     bl_description = "Make custom shapes from the active mesh to its parent"
     bl_options = {'UNDO'}
+
+    drivingLayer : IntProperty(
+        name = "Driving Layer",
+        description = "Bone layer for driving bones",
+        min = 1, max = 32,
+        default = 4)
+
+    nonDrivingLayer : IntProperty(
+        name = "Non-Driving Layer",
+        description = "Bone layer for non-driving bones",
+        min = 1, max = 32,
+        default = 5)
+
+    def draw(self, context):
+        self.layout.prop(self, "drivingLayer")
+        self.layout.prop(self, "nonDrivingLayer")
+
 
     def run(self, context):
         from .node import createHiddenCollection
@@ -1788,7 +1805,10 @@ class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
             raise DazError("Object has no armature parent")
         coll = context.scene.collection
         hidden = createHiddenCollection(context, rig)
-        self.hiddenLayers = 30*[False] + [True,False]
+        rig.data.layers[self.drivingLayer-1] = True
+        rig.data.layers[self.nonDrivingLayer-1] = True
+        self.drivingLayers = (self.drivingLayer-1)*[False] + [True] + (32-self.drivingLayer)*[False]
+        self.nonDrivingLayers = (self.nonDrivingLayer-1)*[False] + [True] + (32-self.nonDrivingLayer)*[False]
         activateObject(context, ob)
 
         vgnames,vgverts,vgfaces = self.getVertexGroupMesh(ob)
@@ -1827,7 +1847,7 @@ class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
                 pb.custom_shape = gzm
                 pb.bone.show_wire = True
                 pb.lock_rotation = (True,True,True)
-                self.hideUnused(pb, drivers)
+                self.assignLayer(pb, drivers)
             coll.objects.unlink(gzm)
         unlinkAll(ob)
 
@@ -1896,11 +1916,13 @@ class DAZ_OT_MakeGizmos(DazOperator, IsMesh):
         return drivers
 
 
-    def hideUnused(self, pb, drivers):
-        if pb.name not in drivers.keys():
-            pb.bone.layers = self.hiddenLayers
+    def assignLayer(self, pb, drivers):
+        if pb.name in drivers.keys():
+            pb.bone.layers = self.drivingLayers
+        else:
+            pb.bone.layers = self.nonDrivingLayers
         for child in pb.children:
-            self.hideUnused(child, drivers)
+            self.assignLayer(child, drivers)
 
 #----------------------------------------------------------
 #   Initialize
