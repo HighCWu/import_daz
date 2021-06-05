@@ -1001,6 +1001,8 @@ class LoadMorph(DriverUser):
                     if fcu0:
                         if fcu0.driver.type == 'SUM':
                             self.recoverOldDrivers(fcu0, drivers)
+                        elif channel == "scale":
+                            pass
                         else:
                             path = self.getOrigo(fcu0, pb, channel, idx)
                             pathids[path] = 'ARMATURE'

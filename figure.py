@@ -477,6 +477,15 @@ class ExtraBones(DriverUser):
                     trg.data_path = self.replaceDataPathDrv(trg.data_path)
 
 
+    def correctScaleDriver(self, fcu, pb):
+        for var in fcu.driver.variables:
+            if var.name == "parscale":
+                for trg in var.targets:
+                    bname = trg.bone_target
+                    if bname in self.bnames and not isFinal(bname):
+                        trg.bone_target = drvBone(bname)
+
+
     def replaceDataPathDrv(self, string):
         words = string.split('"')
         if words[0] == "pose.bones[":
@@ -574,7 +583,10 @@ class ExtraBones(DriverUser):
             for driver in bdrivers:
                 fcu = self.getTmpDriver(0)
                 driver.fill(fcu)
-                self.correctDriver(fcu, rig)
+                if driver.data_path.endswith(".scale"):
+                    self.correctScaleDriver(fcu, pb)
+                else:
+                    self.correctDriver(fcu, rig)
                 fcu2 = rig.animation_data.drivers.from_existing(src_driver=fcu)
                 fcu2.data_path = driver.data_path.replace(propRef(bname), propRef(drvBone(bname)))
                 fcu2.array_index = driver.array_index
