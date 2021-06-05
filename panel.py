@@ -27,7 +27,6 @@
 
 import bpy
 from .utils import *
-from . import addon_updater_ops
 from .buildnumber import BUILD
 
 #----------------------------------------------------------
@@ -53,12 +52,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
         scn = context.scene
         ob = context.object
         layout = self.layout
-
-        addon_updater_ops.check_for_update_background()
-        if addon_updater_ops.updater.update_ready:
-            #layout.label(text="Custom update message", icon="INFO")
-            addon_updater_ops.update_notice_box_ui(self, context)
-            layout.separator()
 
         layout.operator("daz.import_daz")
         layout.separator()
