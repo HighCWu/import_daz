@@ -516,7 +516,6 @@ class LoadMorph(DriverUser):
     def makeScaleFormula(self, bname, idx, expr):
         if not GS.useScaleMorphs:
             return
-        # DS and Blender seem to inherit scale differently
         tfm,pb,prop,factor = self.getBoneData(bname, expr)
         tfm.setScale(factor, True, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
@@ -999,13 +998,6 @@ class LoadMorph(DriverUser):
                     if channel == "rotation_quaternion" and idx == 0:
                         path = self.getConstant("Unity", 1.0, pb, idx)
                         pathids[path] = 'ARMATURE'
-                    elif channel == "scale":
-                        path = self.getConstant("Unity", 1.0, pb, idx)
-                        pathids[path] = 'ARMATURE'
-                        if inheritScale(pb) and pb.parent:
-                            nprop = self.getNegativeScaleProp(pb.parent, idx)
-                            if nprop:
-                                pathids[propRef(nprop)] = 'ARMATURE'
                     if fcu0:
                         if fcu0.driver.type == 'SUM':
                             self.recoverOldDrivers(fcu0, drivers)
@@ -1016,9 +1008,16 @@ class LoadMorph(DriverUser):
                     pb.driver_remove(channel, idx)
                     prefix = self.getChannelPrefix(pb, channel, idx)
                     fcu = self.addSumDriver(prefix, drivers, pathids)
-                    sumfcu = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
-                    sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
-                    sumfcu.array_index = idx
+                    if channel == "scale":
+                        sumfcu = self.amt.animation_data.drivers.from_existing(src_driver=fcu)
+                        prop = self.getFinalScaleProp(pb, idx)
+                        self.amt[prop] = 0.0
+                        sumfcu.data_path = propRef(prop)
+                        self.addScaleDriver(pb, idx)
+                    else:
+                        sumfcu = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
+                        sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
+                        sumfcu.array_index = idx
                     self.clearTmpDriver(0)
             print(" + %s" % bname)
 
@@ -1026,6 +1025,10 @@ class LoadMorph(DriverUser):
     def getChannelPrefix(self, pb, channel, idx):
         key = channel[0:3].capitalize()
         return "%s:%s:%s" % (pb.name, key, idx)
+
+
+    def getFinalScaleProp(self, pb, idx):
+        return "%s:Sca:%d" % (pb.name, idx)
 
 
     def getTermDriverName(self, prefix, n):
@@ -1112,46 +1115,48 @@ class LoadMorph(DriverUser):
         return path
 
 
-    def getNegativeScaleProp(self, pb, idx):
-        from .driver import isDriven, getRnaDriver, removeModifiers
-        channel = 'pose.bones["%s"].scale' % pb.name
-        if isDriven(self.rig, channel, idx):
-            prefix = self.getChannelPrefix(pb, "scale", idx)
-            nprop = prefix+":neg"
-            self.amt[nprop] = 0.0
-            if not getRnaDriver(self.amt, propRef(nprop)):
-                fcu = self.amt.driver_add(propRef(nprop))
-                fcu.driver.type = 'SCRIPTED'
-                removeModifiers(fcu)
-                fcu.driver.expression = "1-a"
-                var = fcu.driver.variables.new()
-                var.name = "a"
-                var.type = 'TRANSFORMS'
-                trg = var.targets[0]
-                trg.id = self.rig
-                trg.bone_target = pb.name
-                trg.transform_type = 'SCALE_%s' % chr(ord('X')+idx)
-                trg.transform_space = 'LOCAL_SPACE'
-            return nprop
+    def addScaleDriver(self, pb, idx):
+        from .driver import removeModifiers
+        fcu = pb.driver_add("scale", idx)
+        fcu.driver.type = 'SCRIPTED'
+        removeModifiers(fcu)
+        if pb.parent and inheritScale(pb):
+            prop = self.getFinalScaleProp(pb, idx)
+            fcu.driver.expression = "(1+a)/parscale"
+            self.addPathVar(fcu, "a", self.amt, propRef(prop))
+            self.correctScaleFcurve(fcu, pb, idx)
         else:
-            return None
+            fcu.driver.expression = "1+a"
+            self.addPathVar(fcu, "a", self.amt, propRef(prop))
+        return fcu
+
+
+    def correctScaleFcurve(self, fcu, pb, idx):
+        var = fcu.driver.variables.new()
+        var.name = "parscale"
+        var.type = 'TRANSFORMS'
+        trg = var.targets[0]
+        trg.id = self.rig
+        trg.bone_target = pb.parent.name
+        trg.transform_type = 'SCALE_%s' % chr(ord('X')+idx)
+        trg.transform_space = 'LOCAL_SPACE'
 
 
     def correctScaleParents(self):
-        from .driver import isDriven, removeModifiers
+        from .driver import getDriver, removeModifiers
         for pb in self.rig.pose.bones:
             if inheritScale(pb) and pb.parent:
+                parchannel = 'pose.bones["%s"].scale' % pb.parent.name
                 channel = 'pose.bones["%s"].scale' % pb.name
                 for idx in range(3):
-                    if not isDriven(self.rig, channel, idx):
-                        nprop = self.getNegativeScaleProp(pb.parent, idx)
-                        if nprop:
-                            fcu = self.rig.driver_add(channel, idx)
-                            fcu.driver.type = 'SUM'
+                    if getDriver(self.rig, parchannel, idx):
+                        fcu = getDriver(self.rig, channel, idx)
+                        if fcu is None:
+                            fcu = pb.driver_add("scale", idx)
+                            fcu.driver.type = 'SCRIPTED'
                             removeModifiers(fcu)
-                            path = self.getConstant("Unity", 1.0, pb, idx)
-                            self.addPathVar(fcu, "a", self.amt, path)
-                            self.addPathVar(fcu, "b", self.amt, propRef(nprop))
+                            fcu.driver.expression = "1/parscale"
+                            self.correctScaleFcurve(fcu, pb, idx)
 
 
     def getBatches(self, drivers, prefix):

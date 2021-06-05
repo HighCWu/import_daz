@@ -500,6 +500,8 @@ class ExtraBones(DriverUser):
 
 
     def combineDrvSimple(self, fcu, var, trg, varnames):
+        if var.name == "parscale":
+            return
         from .driver import Target
         vname2 = var.name+"2"
         if vname2 in varnames.keys():
@@ -566,7 +568,7 @@ class ExtraBones(DriverUser):
         return boneDrivers, sumDrivers
 
 
-    def restoreBoneSumDrivers(self, rig, drivers, fixDrv):
+    def restoreBoneSumDrivers(self, rig, drivers):
         for bname,bdrivers in drivers.items():
             pb = rig.pose.bones[drvBone(bname)]
             for driver in bdrivers:
@@ -665,9 +667,9 @@ class ExtraBones(DriverUser):
         for bname in self.bnames:
             self.addFinBone(rig, bname)
         print("  Restore bone drivers")
-        self.restoreBoneSumDrivers(rig, boneDrivers, False)
+        self.restoreBoneSumDrivers(rig, boneDrivers)
         print("  Restore sum drivers")
-        self.restoreBoneSumDrivers(rig, sumDrivers, True)
+        self.restoreBoneSumDrivers(rig, sumDrivers)
         print("  Update scripted drivers")
         self.updateScriptedDrivers(rig.data)
         print("  Update drivers")
