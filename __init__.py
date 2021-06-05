@@ -94,9 +94,6 @@ from .settings import GS
 def menu_func_import(self, context):
     self.layout.operator(daz.ImportDAZ.bl_idname, text="DAZ Native (.duf, .dsf)")
 
-classes = (
-    ImportDazPreferences,
-)
 
 def register():
     convert.initialize()
@@ -133,15 +130,10 @@ def register():
     else:
         bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 
-    for cls in classes:
-        bpy.utils.register_class(cls)
     settings.GS.loadDefaults()
 
 
 def unregister():
-    for cls in reversed(classes):
-        bpy.utils.unregister_class(cls)
-
     animation.uninitialize()
     convert.uninitialize()
     propgroups.uninitialize()
