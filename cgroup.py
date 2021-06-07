@@ -30,7 +30,7 @@ import bpy
 
 from .cycles import CyclesTree
 from .pbr import PbrTree
-from .material import WHITE
+from .material import WHITE, BLACK
 from .utils import *
 from .error import *
 
@@ -90,7 +90,7 @@ class ShellGroup(MaterialGroup):
 
 
     def create(self, node, name, parent):
-        MaterialGroup.create(self, node, name, parent, 8)
+        MaterialGroup.create(self, node, name, parent, 10)
         self.group.inputs.new("NodeSocketFloat", "Influence")
         self.group.inputs.new("NodeSocketShader", "Cycles")
         self.group.inputs.new("NodeSocketShader", "Eevee")
@@ -112,11 +112,12 @@ class ShellGroup(MaterialGroup):
         mult.operation = 'MULTIPLY'
         self.links.new(self.inputs.outputs["Influence"], mult.inputs[0])
         self.linkScalar(tex, mult, alpha, 1)
-        self.addOutput(mult, self.getCyclesSocket(), "Cycles")
-        self.addOutput(mult, self.getEeveeSocket(), "Eevee")
+        transp = self.blacken()
+        self.addOutput(mult, transp, self.getCyclesSocket(), "Cycles")
+        self.addOutput(mult, transp, self.getEeveeSocket(), "Eevee")
         self.buildDisplacementNodes()
         if self.displacement:
-            mult2 = self.addNode("ShaderNodeMath", 7)
+            mult2 = self.addNode("ShaderNodeMath", 9)
             mult2.label = "Multiply Displacement"
             mult2.operation = 'MULTIPLY'
             self.links.new(mult.outputs[0], mult2.inputs[0])
@@ -126,8 +127,13 @@ class ShellGroup(MaterialGroup):
             self.links.new(self.inputs.outputs["Displacement"], self.outputs.inputs["Displacement"])
 
 
-    def addOutput(self, mult, socket, slot):
-        mix = self.addNode("ShaderNodeMixShader", 7)
+class OpaqueShellGroup(ShellGroup):
+    def blacken(self):
+        return None
+
+
+    def addOutput(self, mult, _transp, socket, slot):
+        mix = self.addNode("ShaderNodeMixShader", 8)
         mix.inputs[0].default_value = 1
         self.links.new(mult.outputs[0], mix.inputs[0])
         self.links.new(self.inputs.outputs[slot], mix.inputs[1])
@@ -135,16 +141,52 @@ class ShellGroup(MaterialGroup):
         self.links.new(mix.outputs[0], self.outputs.inputs[slot])
 
 
-class ShellCyclesGroup(ShellGroup, CyclesTree):
+class RefractiveShellGroup(ShellGroup):
+    def blacken(self):
+        transp = self.addNode("ShaderNodeBsdfTransparent", 7)
+        transp.inputs[0].default_value[0:3] = BLACK
+        for node in self.nodes:
+            if node.type == 'GROUP' and "Refraction Color" in node.inputs.keys():
+                node.inputs["Refraction Color"].default_value[0:3] = BLACK
+            elif node.type == 'BSDF_PRINCIPLED':
+                node.inputs["Base Color"].default_value[0:3] = BLACK
+        return transp
+
+
+    def addOutput(self, mult, transp, socket, slot):
+        mix = self.addNode("ShaderNodeMixShader", 8)
+        mix.inputs[0].default_value = 1
+        self.links.new(mult.outputs[0], mix.inputs[0])
+        self.links.new(transp.outputs[0], mix.inputs[1])
+        self.links.new(socket, mix.inputs[2])
+        add = self.addNode("ShaderNodeAddShader", 9)
+        self.links.new(mix.outputs[0], add.inputs[0])
+        self.links.new(self.inputs.outputs[slot], add.inputs[1])
+        self.links.new(add.outputs[0], self.outputs.inputs[slot])
+
+
+class OpaqueShellCyclesGroup(OpaqueShellGroup, CyclesTree):
     def create(self, node, name, parent):
         CyclesTree.__init__(self, parent.material)
-        ShellGroup.create(self, node, name, parent)
+        OpaqueShellGroup.create(self, node, name, parent)
 
 
-class ShellPbrGroup(ShellGroup, PbrTree):
+class OpaqueShellPbrGroup(OpaqueShellGroup, PbrTree):
     def create(self, node, name, parent):
         PbrTree.__init__(self, parent.material)
-        ShellGroup.create(self, node, name, parent)
+        OpaqueShellGroup.create(self, node, name, parent)
+
+
+class RefractiveShellCyclesGroup(RefractiveShellGroup, CyclesTree):
+    def create(self, node, name, parent):
+        CyclesTree.__init__(self, parent.material)
+        RefractiveShellGroup.create(self, node, name, parent)
+
+
+class RefractiveShellPbrGroup(RefractiveShellGroup, PbrTree):
+    def create(self, node, name, parent):
+        PbrTree.__init__(self, parent.material)
+        RefractiveShellGroup.create(self, node, name, parent)
 
 
 # ---------------------------------------------------------------------

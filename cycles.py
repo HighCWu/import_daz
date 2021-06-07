@@ -308,11 +308,17 @@ class CyclesTree:
             node.inputs["Influence"].default_value = 1.0
             return node
         if self.type == 'CYCLES':
-            from .cgroup import ShellCyclesGroup
-            group = ShellCyclesGroup(push)
+            from .cgroup import OpaqueShellCyclesGroup, RefractiveShellCyclesGroup
+            if shmat.refractive:
+                group = RefractiveShellCyclesGroup(push)
+            else:
+                group = OpaqueShellCyclesGroup(push)
         elif self.type == 'PBR':
-            from .cgroup import ShellPbrGroup
-            group = ShellPbrGroup(push)
+            from .cgroup import OpaqueShellPbrGroup, RefractiveShellPbrGroup
+            if shmat.refractive:
+                group = RefractiveShellPbrGroup(push)
+            else:
+                group = OpaqueShellPbrGroup(push)
         else:
             raise RuntimeError("Bug Cycles type %s" % self.type)
         group.create(node, nname, self)
