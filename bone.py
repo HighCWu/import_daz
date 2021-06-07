@@ -522,7 +522,7 @@ class BoneInstance(Instance):
             flip = self.FZ
             self.axes = [1,2,0]
             self.flipped = [True,True,True]
-            self.flopped = [True,True,True]
+            self.flopped = [True,True,False]
 
         self.testPrint("AXES")
         rmat = euler.to_matrix().to_4x4()
