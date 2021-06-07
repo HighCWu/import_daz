@@ -34,7 +34,7 @@ bl_info = {
     "location": "UI > Daz Importer",
     "description": "Import native DAZ files (.duf, .dsf)",
     "warning": "",
-    "wiki_url": "http://diffeomorphic.blogspot.se/p/daz-importer-version-15.html",
+    "wiki_url": "http://diffeomorphic.blogspot.se/p/daz-importer-version-16.html",
     "tracker_url": "https://bitbucket.org/Diffeomorphic/import_daz/issues?status=new&status=open",
     "category": "Import-Export"}
 
@@ -74,8 +74,6 @@ def importModules():
 
 import bpy
 importModules()
-if panel.UseAddonUpdater:
-    from . import updater
 
 #----------------------------------------------------------
 #   Import documented functions available for external scripting
@@ -92,8 +90,6 @@ from .hdmorphs import get_dhdm_files, get_jcm_files
 #----------------------------------------------------------
 
 def register():
-    if panel.UseAddonUpdater:
-        updater.register(bl_info)
     convert.register()
     propgroups.register()
     daz.register()
@@ -129,8 +125,6 @@ def register():
 
 
 def unregister():
-    if panel.UseAddonUpdater:
-        updater.unregister()
     animation.unregister()
     convert.unregister()
     propgroups.unregister()

@@ -29,9 +29,6 @@ import bpy
 from .utils import *
 from .buildnumber import BUILD
 
-UseAddonUpdater = (bpy.app.version < (2,93,0))
-#UseAddonUpdater = False
-
 #----------------------------------------------------------
 #   Panels
 #----------------------------------------------------------
@@ -55,10 +52,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
         scn = context.scene
         ob = context.object
         layout = self.layout
-
-        if UseAddonUpdater:
-            from .updater import drawUpdateButton
-            drawUpdateButton(self, context)
 
         layout.operator("daz.import_daz")
         layout.separator()
