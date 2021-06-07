@@ -1057,7 +1057,7 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
             addToLayer(footIK, "IK Leg", rig, "IK")
 
             if genesis == "G38":
-                handIK.custom_shape_scale = 1.5
+                setCustomShapeScale(handIK, 1.5)
                 shldrBend = rpbs[prefix+"ShldrBend"]
                 IK.limitBone(shldrBend, False, rig, armProp)
                 shldrTwist = rpbs[prefix+"ShldrTwist"]
@@ -1067,7 +1067,7 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
                 forearmTwist = rpbs[prefix+"ForearmTwist"]
                 IK.limitBone(forearmTwist, True, rig, armProp)
 
-                footIK.custom_shape_scale = 3.0
+                setCustomShapeScale(footIK, 3.0)
                 thighBend = rpbs[prefix+"ThighBend"]
                 IK.limitBone(thighBend, False, rig, legProp, stiffness=(0,0,0.326))
                 thighTwist = rpbs[prefix+"ThighTwist"]
@@ -1077,13 +1077,13 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
                 fixIk(rig, [shin.name])
 
             elif genesis == "G12":
-                handIK.custom_shape_scale = 3.0
+                setCustomShapeScale(handIK, 3.0)
                 shldr = rpbs[prefix+"Shldr"]
                 IK.limitBone(shldr, False, rig, armProp)
                 forearm = rpbs[prefix+"ForeArm"]
                 IK.limitBone(forearm, False, rig, armProp)
 
-                footIK.custom_shape_scale = 1.5
+                setCustomShapeScale(footIK, 1.5)
                 thigh = rpbs[prefix+"Thigh"]
                 IK.limitBone(thigh, False, rig, legProp)
                 shin = rpbs[prefix+"Shin"]
@@ -1424,7 +1424,7 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
                 addToLayer(pb, "FK Arm", rig, "FK")
             elif pb.name.endswith("HandIK"):
                 pb.custom_shape = csHandIk
-                pb.custom_shape_scale = 1.8
+                setCustomShapeScale(pb, 1.8)
                 addToLayer(pb, "IK Arm", rig, "IK")
             elif pb.name[1:7] == "Carpal":
                 pb.custom_shape = csCarpal
@@ -1437,7 +1437,7 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
                 addToLayer(pb, "FK Leg", rig, "FK")
             elif pb.name.endswith("FootIK"):
                 pb.custom_shape = csFoot
-                pb.custom_shape_scale = 1.8
+                setCustomShapeScale(pb, 1.8)
                 addToLayer(pb, "IK Leg", rig, "IK")
             elif pb.name[1:4] == "Toe":
                 pb.custom_shape = csToe
@@ -1509,7 +1509,7 @@ class DAZ_OT_AddCustomShapes(DazOperator, IsArmature):
         s = width/pb.bone.length
         circle = makeCustomShape("CS_" + pb.name, "CircleY", (0,tail/s,0))
         pb.custom_shape = circle
-        pb.custom_shape_scale = s
+        setCustomShapeScale(pb, s)
 
 
 class DAZ_OT_RemoveCustomShapes(DazOperator, IsArmature):
@@ -1637,6 +1637,13 @@ class DAZ_OT_CopyDazProps(DazOperator, IsObject):
         for key,value in src.items():
             if key[0:3] == "Daz" and key not in trg.keys():
                 trg[key] = value
+
+
+def setCustomShapeScale(pb, scale):
+    if hasattr(pb, "custom_shape_scale"):
+        pb.custom_shape_scale = scale
+    else:
+        pb.custom_shape_scale_xyz = scale
 
 #-------------------------------------------------------------
 #   For debugging
