@@ -1643,7 +1643,7 @@ def setCustomShapeScale(pb, scale):
     if hasattr(pb, "custom_shape_scale"):
         pb.custom_shape_scale = scale
     else:
-        pb.custom_shape_scale_xyz = scale
+        pb.custom_shape_scale_xyz = (scale, scale, scale)
 
 #-------------------------------------------------------------
 #   For debugging
