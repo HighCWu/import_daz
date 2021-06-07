@@ -417,9 +417,13 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
     def run(self, context):
         from .error import setSilentMode
         from time import perf_counter
-        from .fileutils import setSelection
+        from .fileutils import setSelection, getExistingFilePath
         time1 = perf_counter()
         setSelection([self.filepath])
+        self.favopath = None
+        if self.useFavoMorphs:
+            self.favopath = getExistingFilePath(GS.presetPath, self.morphPreset, ".json")
+
         try:
             bpy.ops.daz.import_daz(
                 skinColor = self.skinColor,
@@ -522,10 +526,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
         if mainChar and mainRig and mainMesh:
             if self.useFavoMorphs:
-                from .fileutils import getExistingFilePath
-                filepath = getExistingFilePath(GS.presetPath, self.morphPreset, ".json")
-                if activateObject(context, mainRig):
-                    bpy.ops.daz.load_favo_morphs(filepath = filepath)
+                if activateObject(context, mainRig) and self.favopath:
+                    bpy.ops.daz.load_favo_morphs(filepath = self.favopath)
             elif (self.units or
                   self.expressions or
                   self.visemes or
