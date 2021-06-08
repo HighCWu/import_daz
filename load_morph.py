@@ -704,6 +704,10 @@ class LoadMorph(DriverUser):
             if raw not in self.rig.keys():
                 self.rig[raw] = 0.0
         string,rdrivers = self.addDriverVars(fcu, string, varname, raw, drivers)
+        if not string:
+            print("Empty string: %s" % raw)
+            rna.driver_remove(channel)
+            return
         if self.getMultipliers(raw):
             string = self.multiplyMults(fcu, string)
         fcu.driver.expression = string
@@ -806,7 +810,9 @@ class LoadMorph(DriverUser):
     def multiplyMults(self, fcu, string):
         if self.mult:
             mstring = ""
-            if len(string) > 1 and string[1] == '*' and string[0].isupper():
+            if len(string) == 0:
+                reportError("Trying to multiply empty string", trigger=(1,1))
+            elif len(string) > 1 and string[1] == '*' and string[0].isupper():
                 varname = nextLetter(string[0])
             else:
                 varname = "M"
