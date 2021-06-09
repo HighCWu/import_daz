@@ -57,14 +57,6 @@ class FigureInstance(Instance):
         pass
 
 
-    def preprocess(self, struct):
-        from .bone import BoneInstance
-        Instance.preprocess(self, struct)
-        for child in self.children.values():
-            if isinstance(child, BoneInstance):
-                child.listBones()
-
-
     def postbuild(self, context):
         Instance.postbuild(self, context)
         if LS.fitFile:
@@ -323,7 +315,7 @@ class Figure(Node):
         bpy.ops.object.mode_set(mode='EDIT')
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
-                child.buildEdit(self, rig, None, center, False)
+                child.buildEdit(self, inst, rig, None, center, False)
         rig.DazRig = self.rigtype
 
         bpy.ops.object.mode_set(mode='OBJECT')

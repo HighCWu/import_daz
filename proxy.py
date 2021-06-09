@@ -1806,7 +1806,7 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
         coll = context.scene.collection
         hidden = createHiddenCollection(context, rig)
         rig.data.layers[self.drivingLayer-1] = True
-        rig.data.layers[self.nonDrivingLayer-1] = True
+        rig.data.layers[self.nonDrivingLayer-1] = False
         self.drivingLayers = (self.drivingLayer-1)*[False] + [True] + (32-self.drivingLayer)*[False]
         self.nonDrivingLayers = (self.nonDrivingLayer-1)*[False] + [True] + (32-self.nonDrivingLayer)*[False]
         activateObject(context, ob)
@@ -1846,10 +1846,20 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
                 pb = rig.pose.bones[bname]
                 pb.custom_shape = gzm
                 pb.bone.show_wire = True
-                pb.lock_rotation = (True,True,True)
                 self.assignLayer(pb, drivers)
+                if len(pb.children) == 1:
+                    self.inheritLimits(pb, pb.children[0], rig)
             coll.objects.unlink(gzm)
         unlinkAll(ob)
+
+
+    def inheritLimits(self, pb, pb2, rig):
+        if pb2.name.startswith(pb.name):
+            from .fix import copyConstraints
+            pb.lock_location = pb2.lock_location
+            pb.lock_rotation = pb2.lock_rotation
+            if getConstraint(pb2, 'LIMIT_LOCATION'):
+                copyConstraints(pb2, pb, rig)
 
 
     def getVertexGroupMesh(self, ob):
@@ -1917,7 +1927,8 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
 
 
     def assignLayer(self, pb, drivers):
-        if pb.name in drivers.keys():
+        if (pb.name in drivers.keys() or
+            pb.name in ["Face_Controls_XYZ", "Eyes", "l_Brow_Up", "r_Brow_Up"]):
             pb.bone.layers = self.drivingLayers
         else:
             pb.bone.layers = self.nonDrivingLayers

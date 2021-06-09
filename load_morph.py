@@ -450,7 +450,7 @@ class LoadMorph(DriverUser):
                     self.drivers[output] = []
                 self.drivers[output].append(("BONE", bname, expr))
             else:
-                print("Missing bone:", expr["bone"])
+                print("Missing bone (makeValueFormula):", expr["bone"])
 
 
     def getRealBone(self, bname):
@@ -1266,8 +1266,12 @@ def buildBoneFormula(asset, rig, errors):
         lm = LoadMorph(rig, None)
         for idx,expr in exprs.items():
             bname = expr["bone"]
+            if (bname not in rig.pose.bones.keys() and
+                bname[-2:] == "-1"):
+                bname = bname[:-2]
+                print("TRY", bname)
             if bname not in rig.pose.bones.keys():
-                print("Missing bone:", bname)
+                print("Missing bone (buildValueDriver):", bname)
                 continue
             final = finalProp(raw)
             if final not in rig.data.keys():

@@ -745,7 +745,7 @@ class DAZ_OT_CopyBoneDrivers(DazOperator, DriverUser, IsArmature):
                     words[0] == "pose.bones["):
                     bname = words[1]
                     if bname not in rig2.data.bones.keys():
-                        print("Missing bone:", bname)
+                        print("Missing bone (copyBoneDrivers):", bname)
                         continue
                     fcu2 = self.copyDriver(fcu, rig2)
                     self.setId(fcu2, rig1, rig2)

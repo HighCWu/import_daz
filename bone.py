@@ -337,6 +337,7 @@ class BoneInstance(Instance):
         self.flipped = [False,False,False]
         self.flopped = [False,False,False]
         self.isPosed = False
+        self.isBuilt = False
         self.test = (self.name in [])
 
 
@@ -349,16 +350,6 @@ class BoneInstance(Instance):
         pname = (self.parent.id if self.parent else None)
         fname = (self.figure.name if self.figure else None)
         return "<BoneInst %s N: %s F: %s T: %s P: %s R:%s>" % (self.id, self.node.name, fname, self.target, pname, self.rna)
-
-
-    def listBones(self):
-        if self.target:
-            print("Bone with target:", self)
-        else:
-            self.figure.bones[self.node.name] = self
-        for child in self.children.values():
-            if isinstance(child, BoneInstance):
-                child.listBones()
 
 
     def parentObject(self, context, ob):
@@ -398,13 +389,19 @@ class BoneInstance(Instance):
     FX = Matrix.Rotation(pi, 4, 'X')
     FZ = Matrix.Rotation(pi, 4, 'Z')
 
-    def buildEdit(self, figure, rig, parent, center, isFace):
+    def buildEdit(self, figure, figinst, rig, parent, center, isFace):
         if self.name in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[self.name]
+            if self.name in figinst.bones.keys():
+                bone = figinst.bones[self.name]
+                self.axes = bone.axes
+                self.flipped = bone.flipped
+                self.flopped = bone.flopped
         else:
             head,tail,orient,xyz,wsmat = self.getHeadTail(center)
             eb = rig.data.edit_bones.new(self.name)
             figure.bones[self.name] = eb.name
+            figinst.bones[self.name] = self
             if (head-tail).length < 1e-5:
                 print("NO LEN", self.name)
                 print("HT", head, tail)
@@ -433,7 +430,6 @@ class BoneInstance(Instance):
                 flip = self.FX
                 if GS.orientMethod == 'DAZ STUDIO':
                     omat,flip = self.flipAxes(omat, xyz)
-                    #self.printRollDiff(omat, eb, figure, isFace)
 
                 #  engetudouiti's fix for posed bones
                 rmat = wsmat.to_4x4()
@@ -465,22 +461,8 @@ class BoneInstance(Instance):
             isFace = True
         for child in self.children.values():
             if isinstance(child, BoneInstance):
-                child.buildEdit(figure, rig, eb, center, isFace)
-
-
-    def printRollDiff(self, omat, eb, figure, isFace):
-        bmat = eb.matrix.copy()
-        self.findRoll(self, eb, figure, isFace)
-        roll = eb.roll
-        eb.matrix = omat
-        diff = 90*int(round((roll - eb.roll)/pi*2))
-        if diff < 0:
-            diff += 360
-        elif diff >= 360:
-            diff -= 360
-        if diff != 0 and not isFace:
-            print('    "%s" : %d,' % (eb.name, diff))
-        eb.matrix = bmat
+                child.buildEdit(figure, figinst, rig, eb, center, isFace)
+        self.isBuilt = True
 
 
     def flipAxes(self, omat, xyz):
@@ -524,7 +506,8 @@ class BoneInstance(Instance):
             self.flipped = [True,True,True]
             self.flopped = [True,True,False]
 
-        self.testPrint("AXES")
+        if self.test:
+            print("AXES", self.name, xyz, self.axes)
         rmat = euler.to_matrix().to_4x4()
         omat = omat @ rmat
         return omat, flip
@@ -580,7 +563,6 @@ class BoneInstance(Instance):
         elif offset == 180:
             f[i] = not f[i]
             f[k] = not f[k]
-        self.testPrint("CORR")
 
 
     def correctLength(self, eb, length):
@@ -822,7 +804,8 @@ class BoneInstance(Instance):
                     locks[idx] = True
                 else:
                     limits[idx] = (comp["min"], comp["max"])
-                    useLimits = True
+                    if comp["min"] != -180 or comp["max"] != 180:
+                        useLimits = True
         return locks,limits,useLimits
 
 
@@ -886,7 +869,7 @@ class BoneInstance(Instance):
                         maxd = -tmp
                     xyz = self.IndexComp[idx]
                     if self.test:
-                        print("LLL", pb.name, n, limit, self.flipped[n], xyz, mind, maxd)
+                        print("LLL", pb.name, n, self.axes, limit, self.flipped[n], xyz, mind, maxd)
                     setattr(cns, "use_min_%s" % xyz, True)
                     setattr(cns, "use_max_%s" % xyz, True)
                     setattr(cns, "min_%s" % xyz, mind*LS.scale)
