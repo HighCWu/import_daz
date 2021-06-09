@@ -926,6 +926,11 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphL
     morphset = "Body"
     bodypart = "Body"
 
+    def run(self, context):
+        if self.rig and self.rig.data.DazSimpleIK:
+            raise DazError("Cannot add body morphs to an armature with simple IK")
+        StandardMorphLoader.run(self, context)
+
 
 class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMesh):
     bl_idname = "daz.import_jcms"

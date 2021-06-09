@@ -925,7 +925,6 @@ class SimpleIK:
 
 
     def limitBone(self, pb, twist, rig, prop, stiffness=(0,0,0)):
-        from .mhx import addDriver
         pb.lock_ik_x = pb.lock_rotation[0]
         pb.lock_ik_y = pb.lock_rotation[1]
         pb.lock_ik_z = pb.lock_rotation[2]
@@ -942,7 +941,10 @@ class SimpleIK:
         pb.ik_stiffness_y = stiffness[1]
         pb.ik_stiffness_z = stiffness[2]
 
+        pb.driver_remove("rotation_euler")
+
         if False:
+            from .mhx import addDriver
             cns = getConstraint(pb, 'LIMIT_ROTATION')
             if cns:
                 pb.use_ik_limit_x = cns.use_limit_x
@@ -1047,6 +1049,8 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
             copyRotation(hand, handIK, rig, prop=armProp, space='WORLD')
             handIK.custom_shape = csHandIk
             addToLayer(handIK, "IK Arm", rig, "IK")
+            collar = rpbs[prefix+"Collar"]
+            collar.driver_remove("rotation_euler")
 
             legProp = "DazLegIK_" + suffix
             foot = rpbs[prefix+"Foot"]
