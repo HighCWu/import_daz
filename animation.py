@@ -556,6 +556,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         values = {}
         animations.append((bones, values))
         self.parseAnimations(struct, bones, values)
+        self.completeAnimations(bones)
         return animations
 
 
@@ -594,6 +595,55 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                     raise DazError(msg)
         elif self.verbose:
             print("No animations in this file")
+
+
+    def completeAnimations(self, bones):
+        def addMissing(t, y, y0, miss, anim):
+            if miss:
+                if y0 is None:
+                    for t1 in miss:
+                        anim.append((t1,y))
+                else:
+                    k = (y-y0)/(t-t0)
+                    for t1 in miss:
+                        y1 = y0 + k*(t1-t0)
+                        anim.append((t1,y1))
+
+        frames = {}
+        for bname in bones.keys():
+            for channel in bones[bname].keys():
+                for idx in bones[bname][channel].keys():
+                    for t,y in bones[bname][channel][idx]:
+                        frames[t] = True
+        if not frames:
+            return
+        frames = list(frames)
+        frames.sort()
+        for bname in bones.keys():
+            for channel in bones[bname].keys():
+                for idx,anim in bones[bname][channel].items():
+                    if len(anim) == len(frames):
+                        continue
+                    kpts = dict(anim)
+                    anim = []
+                    miss = []
+                    t0 = 0.0
+                    y0 = None
+                    for t in frames:
+                        if t in kpts.keys():
+                            y = kpts[t]
+                            addMissing(t, y, y0, miss, anim)
+                            anim.append((t,y))
+                            miss = []
+                            t0 = t
+                            y0 = y
+                        else:
+                            miss.append(t)
+                    if miss:
+                        y = anim[-1][1]
+                        for t1 in miss:
+                            anim.append((t1,y))
+                    bones[bname][channel][idx] = anim
 
 
     def isAvailable(self, pb, rig):
