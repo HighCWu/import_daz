@@ -719,6 +719,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
         node = tree.nodes.new(type = "ShaderNodeTexImage")
         node.location = (200,0)
         node.image = img
+        node.interpolation = GS.imageInterpolation
         node.extension = 'CLIP'
         node.select = True
         tree.nodes.active = node

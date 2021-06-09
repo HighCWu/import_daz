@@ -267,6 +267,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazReuseMaterials")
         box.prop(scn, "DazBumpFactor")
         box.prop(scn, "DazFakeCaustics")
+        box.prop(scn, "DazImageInterpolation")
         box.prop(scn, "DazHandleRenderSettings")
         box.prop(scn, "DazHandleLightSettings")
         box.separator()
@@ -636,6 +637,14 @@ def register():
     bpy.types.Scene.DazUseReflection = BoolProperty(
         name = "Reflection",
         description = "Use reflection maps")
+
+    bpy.types.Scene.DazImageInterpolation = EnumProperty(
+        items = [('Linear', "Linear", "Linear"),
+                 ('Closest', "Closest", "Closest"),
+                 ('Cubic', "Cubic", "Cubic"),
+                 ('Smart', "Smart", "Smart")],
+        name = "Interpolation",
+        description = "Image interpolation")
 
     bpy.types.Material.DazRenderEngine = StringProperty(default='NONE')
     bpy.types.Material.DazShader = StringProperty(default='NONE')

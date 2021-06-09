@@ -82,6 +82,7 @@ class GlobalSettings:
         self.useWorld = 'DOME'
         self.reuseMaterials = False
         self.hairMaterialMethod = 'HAIR_BSDF'
+        self.imageInterpolation = 'Cubic'
 
         self.useAdjusters = 'TYPE'
         self.customMin = -1.0
@@ -137,6 +138,7 @@ class GlobalSettings:
         "DazUseDisplacement" : "useDisplacement",
         "DazUseEmission" : "useEmission",
         "DazUseReflection" : "useReflection",
+        "DazImageInterpolation" : "imageInterpolation",
 
         # Properties
         "DazUseAdjusters" : "useAdjusters",

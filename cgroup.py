@@ -1012,6 +1012,7 @@ class DecalGroup(CyclesGroup):
 
         tex = self.addNode("ShaderNodeTexImage", 2)
         tex.image = img
+        tex.interpolation = GS.imageInterpolation
         tex.extension = 'CLIP'
         self.links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
 

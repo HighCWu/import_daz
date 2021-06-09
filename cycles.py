@@ -1206,6 +1206,7 @@ class CyclesTree:
     def addTextureNode(self, col, img, imgname, colorSpace):
         node = self.addNode("ShaderNodeTexImage", col)
         node.image = img
+        node.interpolation = GS.imageInterpolation
         node.label = imgname.rsplit("/",1)[-1]
         self.setColorSpace(node, colorSpace)
         node.name = imgname
