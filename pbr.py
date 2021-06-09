@@ -86,25 +86,6 @@ class PbrTree(CyclesTree):
             self.links.new(self.normal.outputs["Normal"], pbr.inputs["Clearcoat Normal"])
 
 
-    def getLink(self, node, slot):
-        for link in self.links:
-            if (link.to_node == node and
-                link.to_socket.name == slot):
-                return link
-        return None
-
-
-    def removeLink(self, node, slot):
-        link = self.getLink(node, slot)
-        if link:
-           self.links.remove(link)
-
-
-    def replaceSlot(self, node, slot, value):
-        node.inputs[slot].default_value = value
-        self.removeLink(node, slot)
-
-
     def buildCutout(self):
         if "Alpha" in self.pbr.inputs.keys() and not self.postPBR:
             alpha,tex = self.getColorTex("getChannelCutoutOpacity", "NONE", 1)

@@ -1466,6 +1466,25 @@ class CyclesTree:
             self.diffuseTex.select = True
             self.nodes.active = self.diffuseTex
 
+
+    def getLink(self, node, slot):
+        for link in self.links:
+            if (link.to_node == node and
+                link.to_socket.name == slot):
+                return link
+        return None
+
+
+    def removeLink(self, node, slot):
+        link = self.getLink(node, slot)
+        if link:
+           self.links.remove(link)
+
+
+    def replaceSlot(self, node, slot, value):
+        node.inputs[slot].default_value = value
+        self.removeLink(node, slot)
+
 #-------------------------------------------------------------
 #   Utilities
 #-------------------------------------------------------------

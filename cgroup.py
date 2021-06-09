@@ -148,8 +148,12 @@ class RefractiveShellGroup(ShellGroup):
         for node in self.nodes:
             if node.type == 'GROUP' and "Refraction Color" in node.inputs.keys():
                 node.inputs["Refraction Color"].default_value[0:3] = BLACK
+                self.removeLink(node, "Refraction Color")
             elif node.type == 'BSDF_PRINCIPLED':
                 node.inputs["Base Color"].default_value[0:3] = BLACK
+                self.removeLink(node, "Base Color")
+                node.inputs["Transmission"].default_value = 0
+                self.removeLink(node, "Transmission")
         return transp
 
 
