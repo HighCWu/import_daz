@@ -518,18 +518,32 @@ class ExtraBones(DriverUser):
         fcu.driver.expression = expr
 
 
-    def addFinBone(self, rig, bname):
+    def addFinBone(self, rig, bname, boneDrivers):
+        def addFields(cns, rig, bname):
+            cns.target = rig
+            cns.subtarget = bname
+            cns.target_space = 'POSE'
+            cns.owner_space = 'POSE'
+            cns.influence = 1.0
+
         from .driver import addTransformVar
         pb = rig.pose.bones[bname]
         fb = rig.pose.bones[finBone(bname)]
-        cns = fb.constraints.new('COPY_ROTATION')
-        cns.target = rig
-        cns.subtarget = bname
-        if pb.parent.rotation_mode != 'QUATERNION':
-            cns.euler_order = pb.parent.rotation_mode
-        cns.target_space = 'POSE'
-        cns.owner_space = 'POSE'
-        cns.influence = 1.0
+        isLoc = isRot = False
+        for drv in boneDrivers[bname]:
+            channel = drv.data_path.rsplit(".",1)[-1]
+            if channel == "location":
+                isLoc = True
+            elif channel in ["rotation_euler", "rotation_quaternion"]:
+                isRot = True
+        if isRot:
+            cns = fb.constraints.new('COPY_ROTATION')
+            if pb.parent.rotation_mode != 'QUATERNION':
+                cns.euler_order = pb.parent.rotation_mode
+            addFields(cns, rig, bname)
+        if isLoc:
+            cns = fb.constraints.new('COPY_LOCATION')
+            addFields(cns, rig, bname)
 
 
     def updateScriptedDrivers(self, rna):
@@ -537,10 +551,10 @@ class ExtraBones(DriverUser):
             fcus = [fcu for fcu in rna.animation_data.drivers
                     if fcu.driver.type == 'SCRIPTED']
             for fcu in fcus:
+                channel = fcu.data_path
                 for btarget in self.getBoneTargets(fcu):
                     bname = baseBone(btarget[1])
-                    if bname and bname in self.bnames:
-                        channel = fcu.data_path
+                    if bname and bname in self.bnames and fcu.driver:
                         fcu2 = self.getTmpDriver(0)
                         self.copyFcurve(fcu, fcu2)
                         rna.driver_remove(channel)
@@ -669,7 +683,7 @@ class ExtraBones(DriverUser):
 
         print("  Add fin bone drivers")
         for bname in self.bnames:
-            self.addFinBone(rig, bname)
+            self.addFinBone(rig, bname, boneDrivers)
         print("  Restore bone drivers")
         self.restoreBoneSumDrivers(rig, boneDrivers)
         print("  Restore sum drivers")

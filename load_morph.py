@@ -1288,7 +1288,11 @@ def buildBoneFormula(asset, rig, errors):
             if driven in rig.pose.bones.keys():
                 pb = rig.pose.bones[driven]
                 buildChannel(expr["rotation"], pb, "rotation_euler")
-        elif "value" in expr.keys():
+        if "translation" in expr.keys():
+            if driven in rig.pose.bones.keys():
+                pb = rig.pose.bones[driven]
+                buildChannel(expr["translation"], pb, "location")
+        if "value" in expr.keys():
             buildValueDriver(expr["value"], driven)
 
 #------------------------------------------------------------------

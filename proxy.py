@@ -1780,21 +1780,27 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
     bl_description = "Make custom shapes from the active mesh to its parent"
     bl_options = {'UNDO'}
 
-    drivingLayer : IntProperty(
-        name = "Driving Layer",
-        description = "Bone layer for driving bones",
+    usedLayer : IntProperty(
+        name = "Used Layer",
+        description = "Bone layer for bones with shapekeys",
         min = 1, max = 32,
         default = 4)
 
-    nonDrivingLayer : IntProperty(
-        name = "Non-Driving Layer",
-        description = "Bone layer for non-driving bones",
+    unusedLayer : IntProperty(
+        name = "Unused Layer",
+        description = "Bone layer for bones without shapekeys",
         min = 1, max = 32,
         default = 5)
 
+    deleteUnused : BoolProperty(
+        name = "Delete Unused",
+        description = "Delete unused bones",
+        default = True)
+
     def draw(self, context):
-        self.layout.prop(self, "drivingLayer")
-        self.layout.prop(self, "nonDrivingLayer")
+        self.layout.prop(self, "usedLayer")
+        self.layout.prop(self, "unusedLayer")
+        self.layout.prop(self, "deleteUnused")
 
 
     def run(self, context):
@@ -1805,10 +1811,10 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
             raise DazError("Object has no armature parent")
         coll = context.scene.collection
         hidden = createHiddenCollection(context, rig)
-        rig.data.layers[self.drivingLayer-1] = True
-        rig.data.layers[self.nonDrivingLayer-1] = False
-        self.drivingLayers = (self.drivingLayer-1)*[False] + [True] + (32-self.drivingLayer)*[False]
-        self.nonDrivingLayers = (self.nonDrivingLayer-1)*[False] + [True] + (32-self.nonDrivingLayer)*[False]
+        rig.data.layers[self.usedLayer-1] = True
+        rig.data.layers[self.unusedLayer-1] = False
+        self.usedLayers = (self.usedLayer-1)*[False] + [True] + (32-self.usedLayer)*[False]
+        self.unusedLayers = (self.unusedLayer-1)*[False] + [True] + (32-self.unusedLayer)*[False]
         activateObject(context, ob)
 
         vgnames,vgverts,vgfaces = self.getVertexGroupMesh(ob)
@@ -1841,16 +1847,26 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
 
         bpy.ops.object.mode_set(mode='OBJECT')
         drivers = self.getDrivers(rig.data)
+        unused = {}
         for bname,gzm in gizmos:
             if bname in rig.pose.bones.keys():
                 pb = rig.pose.bones[bname]
                 pb.custom_shape = gzm
                 pb.bone.show_wire = True
-                self.assignLayer(pb, drivers)
+                self.assignLayer(pb, drivers, unused)
                 if len(pb.children) == 1:
                     self.inheritLimits(pb, pb.children[0], rig)
             coll.objects.unlink(gzm)
         unlinkAll(ob)
+
+        if self.deleteUnused:
+            activateObject(context, rig)
+            bpy.ops.object.mode_set(mode='EDIT')
+            for bname in unused.keys():
+                eb = rig.data.edit_bones[bname]
+                rig.data.edit_bones.remove(eb)
+            bpy.ops.object.mode_set(mode='OBJECT')
+
 
 
     def inheritLimits(self, pb, pb2, rig):
@@ -1926,14 +1942,14 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
         return drivers
 
 
-    def assignLayer(self, pb, drivers):
-        if (pb.name in drivers.keys() or
-            pb.name in ["Face_Controls_XYZ", "Eyes", "l_Brow_Up", "r_Brow_Up"]):
-            pb.bone.layers = self.drivingLayers
+    def assignLayer(self, pb, drivers, unused):
+        if pb.custom_shape:
+            pb.bone.layers = self.usedLayers
         else:
-            pb.bone.layers = self.nonDrivingLayers
+            pb.bone.layers = self.unusedLayers
+            unused[pb.name] = True
         for child in pb.children:
-            self.assignLayer(child, drivers)
+            self.assignLayer(child, drivers, unused)
 
 #----------------------------------------------------------
 #   Initialize
