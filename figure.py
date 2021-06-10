@@ -957,7 +957,10 @@ class SimpleIK:
 class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
     bl_idname = "daz.add_simple_ik"
     bl_label = "Add Simple IK"
-    bl_description = "Add Simple IK constraints to the active rig"
+    bl_description = (
+        "Add Simple IK constraints to the active rig.\n" +
+        "This will not work if the rig has body morphs affecting arms and legs,\n" +
+        "and the bones have been made poseable")
     bl_options = {'UNDO'}
 
     usePoleTargets : BoolProperty(
