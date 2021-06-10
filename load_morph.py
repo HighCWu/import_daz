@@ -44,6 +44,7 @@ class LoadMorph(DriverUser):
     morphset = None
     usePropDrivers = True
     isJcm = False
+    iked = []
 
     def __init__(self, rig, mesh):
         self.rig = rig
@@ -1000,6 +1001,9 @@ class LoadMorph(DriverUser):
             for channel,cdata in bdata.items():
                 for idx,idata in cdata.items():
                     pb,fcu0,drivers = idata
+                    if pb in self.iked:
+                        print("IKE", pb.name)
+                        continue
                     pathids = {}
                     if channel == "rotation_quaternion" and idx == 0:
                         path = self.getConstant("Unity", 1.0, pb, idx)

@@ -1041,8 +1041,6 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
             copyRotation(hand, handIK, rig, prop=armProp, space='WORLD')
             handIK.custom_shape = csHandIk
             addToLayer(handIK, "IK Arm", rig, "IK")
-            collar = rpbs[prefix+"Collar"]
-            collar.driver_remove("rotation_euler")
 
             legProp = "DazLegIK_" + suffix
             foot = rpbs[prefix+"Foot"]

@@ -770,6 +770,20 @@ class MorphLoader(LoadMorph):
             item.text = label
         return prop
 
+
+    def findIked(self):
+        self.iked = []
+        if self.rig and self.rig.data.DazSimpleIK:
+            for pb in self.rig.pose.bones:
+                cns = getConstraint(pb, 'IK')
+                if cns:
+                    par = pb
+                    for n in range(cns.chain_count):
+                        if par is None:
+                            break
+                        self.iked.append(par)
+                        par = par.parent
+
 #------------------------------------------------------------------
 #   Load standard morphs
 #------------------------------------------------------------------
@@ -810,6 +824,7 @@ class StandardMorphLoader(MorphLoader):
         setupMorphPaths(False)
         if self.rig:
             self.rig.DazMorphPrefixes = False
+            self.findIked()
         namepaths = self.getActiveMorphFiles(context)
         msg = self.getAllMorphs(namepaths, context)
         if msg:
@@ -927,8 +942,6 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphL
     bodypart = "Body"
 
     def run(self, context):
-        if self.rig and self.rig.data.DazSimpleIK:
-            raise DazError("Cannot add body morphs to an armature with simple IK")
         StandardMorphLoader.run(self, context)
 
 
@@ -1082,6 +1095,7 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
 
     def run(self, context):
         from .driver import setBoolProp
+        self.findIked()
         namepaths = self.getNamePaths()
         msg = self.getAllMorphs(namepaths, context)
         if self.usePropDrivers and self.rig:
