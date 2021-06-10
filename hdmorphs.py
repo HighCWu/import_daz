@@ -825,14 +825,14 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, NormalAdder, ScalarDispAdder
 def get_dhdm_files(ob=None):
     return getHDFiles(ob, "DazDhdmFiles")
 
-def get_jcm_files(ob=None):
-    return getHDFiles(ob, "DazJcmFiles")
+def get_morph_files(ob=None):
+    return getHDFiles(ob, "DazMorphFiles")
 
 def get_dhdm_directories(ob=None):
     return getHDDirs(ob, "DazDhdmFiles")
 
-def get_jcm_directories(ob=None):
-    return getHDDirs(ob, "DazJcmFiles")
+def get_morph_directories(ob=None):
+    return getHDDirs(ob, "DazMorphFiles")
 
 
 def getHDFiles(ob, attr):
@@ -889,15 +889,15 @@ class DAZ_OT_SelectDhdmFiles(DazOperator, ActiveFileSelector, IsMesh):
     attr = "DazDhdmFiles"
 
 
-class DAZ_OT_SelectJcmFiles(DazOperator, ActiveFileSelector, IsMesh):
-    bl_idname = "daz.select_jcm_files"
-    bl_label = "Select JCM Files"
-    bl_description = "Make list of JCM files to be used with the HD Morphs DAZ add-on"
+class DAZ_OT_SelectMorphFiles(DazOperator, ActiveFileSelector, IsMesh):
+    bl_idname = "daz.select_morph_files"
+    bl_label = "Select Morph Files"
+    bl_description = "Make list of morph files to be used with the HD Morphs DAZ add-on"
 
-    attr = "DazJcmFiles"
+    attr = "DazMorphFiles"
 
 
-def addSkeyToUrls(ob, isJcm, asset, skey):
+def addSkeyToUrls(ob, asset, skey):
     def getPath(url):
         from .asset import getDazPath
         path = getDazPath(url)
@@ -913,13 +913,13 @@ def addSkeyToUrls(ob, isJcm, asset, skey):
             item.name = skey.name
             item.s = getPath(asset.hd_url)
             item.b = False
-    if isJcm:
-        pgs = ob.data.DazJcmFiles
-        if skey.name not in pgs.keys():
-            item = pgs.add()
-            item.name = skey.name
-            item.s = getPath(asset.fileref)
-            item.b = False
+
+    pgs = ob.data.DazMorphFiles
+    if skey.name not in pgs.keys():
+        item = pgs.add()
+        item.name = skey.name
+        item.s = getPath(asset.fileref)
+        item.b = False
 
 #-------------------------------------------------------------
 #   Initialize
@@ -932,12 +932,12 @@ classes = [
     DAZ_OT_BakeMaps,
     DAZ_OT_LoadBakedMaps,
     DAZ_OT_SelectDhdmFiles,
-    DAZ_OT_SelectJcmFiles,
+    DAZ_OT_SelectMorphFiles,
 ]
 
 def register():
     bpy.types.Mesh.DazDhdmFiles = CollectionProperty(type = DazStringBoolGroup)
-    bpy.types.Mesh.DazJcmFiles = CollectionProperty(type = DazStringBoolGroup)
+    bpy.types.Mesh.DazMorphFiles = CollectionProperty(type = DazStringBoolGroup)
     for cls in classes:
         bpy.utils.register_class(cls)
 

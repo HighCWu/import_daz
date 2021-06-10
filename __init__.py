@@ -83,7 +83,7 @@ from .error import getErrorMessage, setSilentMode
 from .fileutils import setSelection, getSelection, clearSelection
 from .morphing import getMorphs
 from .settings import GS
-from .hdmorphs import get_dhdm_files, get_jcm_files, get_dhdm_directories, get_jcm_directories
+from .hdmorphs import get_dhdm_files, get_morph_files, get_dhdm_directories, get_morph_directories
 
 #----------------------------------------------------------
 #   Register

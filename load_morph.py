@@ -237,7 +237,7 @@ class LoadMorph(DriverUser):
             self.alias[prop] = skey.name
             skey.name = prop
             self.shapekeys[prop] = skey
-            addSkeyToUrls(self.mesh, self.isJcm, asset, skey)
+            addSkeyToUrls(self.mesh, asset, skey)
             if self.rig:
                 final = self.addNewProp(prop)
                 adj = self.getGlobalAdjuster()

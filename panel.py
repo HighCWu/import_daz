@@ -212,7 +212,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
                 box.operator("daz.load_baked_maps")
                 box.separator()
             box.operator("daz.select_dhdm_files")
-            box.operator("daz.select_jcm_files")
+            box.operator("daz.select_morph_files")
             box.separator()
             box.operator("daz.load_normal_map")
             box.operator("daz.load_scalar_disp")

@@ -385,8 +385,7 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
         asset.buildMorph(trg, useBuild=True)
         if asset.rna:
             skey,_,_ = asset.rna
-            isJcm = (skey.name in src.data.DazJcmFiles.keys())
-            addSkeyToUrls(trg, isJcm, asset, skey)
+            addSkeyToUrls(trg, asset, skey)
             return skey
         else:
             return None
