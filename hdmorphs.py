@@ -823,18 +823,35 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, NormalAdder, ScalarDispAdder
 #----------------------------------------------------------
 
 def get_dhdm_files(ob=None):
+    return getHDFiles(ob, "DazDhdmFiles")
+
+def get_jcm_files(ob=None):
+    return getHDFiles(ob, "DazJcmFiles")
+
+def get_dhdm_directories(ob=None):
+    return getHDDirs(ob, "DazDhdmFiles")
+
+def get_jcm_directories(ob=None):
+    return getHDDirs(ob, "DazJcmFiles")
+
+
+def getHDFiles(ob, attr):
     if ob is None:
         ob = bpy.context.object
     if ob and ob.type == 'MESH':
-        return [item.s for item in ob.data.DazDhdmFiles if item.b]
+        return [item.s for item in getattr(ob.data, attr) if item.b]
     return []
 
 
-def get_jcm_files(ob=None):
+def getHDDirs(ob, attr):
     if ob is None:
         ob = bpy.context.object
     if ob and ob.type == 'MESH':
-        return [item.s for item in ob.data.DazJcmFiles if item.b]
+        folders = {}
+        for item in getattr(ob.data, attr):
+            folder = os.path.dirname(item.s)
+            folders[folder] = True
+        return list(folders.keys())
     return []
 
 
@@ -862,9 +879,6 @@ class ActiveFileSelector(Selector):
             if item.name in pgs.keys():
                 item2 = pgs[item.name]
                 item2.b = item.select
-        print(self.attr)
-        for item in pgs:
-            print("  ", item.b, item.s)
 
 
 class DAZ_OT_SelectDhdmFiles(DazOperator, ActiveFileSelector, IsMesh):
