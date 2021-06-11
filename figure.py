@@ -521,7 +521,7 @@ class ExtraBones(DriverUser):
         fcu.driver.expression = expr
 
 
-    def addFinBone(self, rig, bname, boneDrivers):
+    def addFinBone(self, rig, bname, boneDrivers, sumDrivers):
         def addFields(cns, rig, bname):
             cns.target = rig
             cns.subtarget = bname
@@ -529,22 +529,33 @@ class ExtraBones(DriverUser):
             cns.owner_space = 'POSE'
             cns.influence = 1.0
 
+        def isSuchDriver(bname, drivers):
+            isLoc = isRot = isScale = False
+            if bname in drivers.keys():
+                for drv in drivers[bname]:
+                    channel = drv.data_path.rsplit(".",1)[-1]
+                    if channel == "location":
+                        isLoc = True
+                    elif channel in ["rotation_euler", "rotation_quaternion"]:
+                        isRot = True
+                    elif channel == "scale":
+                        isScale = True
+            return isLoc, isRot, isScale
+
         pb = rig.pose.bones[bname]
         fb = rig.pose.bones[finBone(bname)]
-        isLoc = isRot = False
-        for drv in boneDrivers[bname]:
-            channel = drv.data_path.rsplit(".",1)[-1]
-            if channel == "location":
-                isLoc = True
-            elif channel in ["rotation_euler", "rotation_quaternion"]:
-                isRot = True
-        if isRot:
+        isLoc1,isRot1,isScale1 = isSuchDriver(bname, boneDrivers)
+        isLoc2,isRot2,isScale2 = isSuchDriver(bname, sumDrivers)
+        if isLoc1 or isLoc2:
+            cns = fb.constraints.new('COPY_LOCATION')
+            addFields(cns, rig, bname)
+        if isRot1 or isRot2:
             cns = fb.constraints.new('COPY_ROTATION')
             if pb.parent.rotation_mode != 'QUATERNION':
                 cns.euler_order = pb.parent.rotation_mode
             addFields(cns, rig, bname)
-        if isLoc:
-            cns = fb.constraints.new('COPY_LOCATION')
+        if isScale1 or isScale2:
+            cns = fb.constraints.new('COPY_SCALE')
             addFields(cns, rig, bname)
 
 
@@ -685,7 +696,7 @@ class ExtraBones(DriverUser):
 
         print("  Add fin bone drivers")
         for bname in self.bnames:
-            self.addFinBone(rig, bname, boneDrivers)
+            self.addFinBone(rig, bname, boneDrivers, sumDrivers)
         print("  Restore bone drivers")
         self.restoreBoneSumDrivers(rig, boneDrivers)
         print("  Restore sum drivers")
