@@ -390,14 +390,8 @@ class BoneInstance(Instance):
     FZ = Matrix.Rotation(pi, 4, 'Z')
 
     def buildEdit(self, figure, figinst, rig, parent, center, isFace):
-        if self.name in rig.data.edit_bones.keys():
-            eb = rig.data.edit_bones[self.name]
-            if self.name in figinst.bones.keys():
-                bone = figinst.bones[self.name]
-                self.axes = bone.axes
-                self.flipped = bone.flipped
-                self.flopped = bone.flopped
-        else:
+        self.makeNameUnique(rig.data.edit_bones)
+        if True:
             head,tail,orient,xyz,wsmat = self.getHeadTail(center)
             eb = rig.data.edit_bones.new(self.name)
             figure.bones[self.name] = eb.name
@@ -463,6 +457,20 @@ class BoneInstance(Instance):
             if isinstance(child, BoneInstance):
                 child.buildEdit(figure, figinst, rig, eb, center, isFace)
         self.isBuilt = True
+
+
+    def makeNameUnique(self, ebones):
+        if self.name not in ebones.keys():
+            return
+        orig = self.name
+        if len(self.name) < 2:
+            self.name = "%s-1" % self.name
+        while self.name in ebones.keys():
+            if self.name[-2] == "-" and self.name[-1].isdigit():
+                self.name = "%s-%d" % (self.name[:-2], 1+int(self.name[-1]))
+            else:
+                self.name = "%s-1" % self.name
+        print("Bone name made unique: %s => %s" % (orig, self.name))
 
 
     def flipAxes(self, omat, xyz):

@@ -1820,7 +1820,7 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
         vgnames,vgverts,vgfaces = self.getVertexGroupMesh(ob)
         euler = Euler((0,180*D,90*D))
         mat = euler.to_matrix()*(1.0/rig.DazScale)
-        gizmos = []
+        self.gizmos = []
         for idx,verts in vgverts.items():
             if not verts:
                 continue
@@ -1831,29 +1831,31 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
             me = bpy.data.meshes.new(gname)
             me.from_pydata(verts, [], faces)
             gzm = bpy.data.objects.new(gname, me)
-            gizmos.append((key,gzm))
+            self.gizmos.append((key,gzm))
             coll.objects.link(gzm)
             hidden.objects.link(gzm)
             gzm.select_set(True)
 
-        self.removeInteriors(gizmos, context)
+        self.removeInteriors(context)
 
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname,gzm in gizmos:
+        for bname,gzm in self.gizmos:
             if bname in rig.data.edit_bones.keys():
                 eb = rig.data.edit_bones[bname]
                 eb.use_deform = False
 
         bpy.ops.object.mode_set(mode='OBJECT')
-        drivers = self.getDrivers(rig.data)
-        unused = {}
-        for bname,gzm in gizmos:
+        self.drivers = {}
+        self.getDrivers(rig)
+        self.getDrivers(rig.data)
+        self.unused = {}
+        for bname,gzm in self.gizmos:
             if bname in rig.pose.bones.keys():
                 pb = rig.pose.bones[bname]
                 pb.custom_shape = gzm
                 pb.bone.show_wire = True
-                self.assignLayer(pb, drivers, unused)
+                self.assignLayer(pb)
                 if len(pb.children) == 1:
                     self.inheritLimits(pb, pb.children[0], rig)
             coll.objects.unlink(gzm)
@@ -1862,7 +1864,7 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
         if self.deleteUnused:
             activateObject(context, rig)
             bpy.ops.object.mode_set(mode='EDIT')
-            for bname in unused.keys():
+            for bname in self.unused.keys():
                 eb = rig.data.edit_bones[bname]
                 rig.data.edit_bones.remove(eb)
             bpy.ops.object.mode_set(mode='OBJECT')
@@ -1909,12 +1911,12 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
         return verts
 
 
-    def removeInteriors(self, gizmos, context):
+    def removeInteriors(self, context):
         from .tables import getVertEdges, getEdgeFaces
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
-        for _bname,ob in gizmos:
+        for _bname,ob in self.gizmos:
             vertedges = getVertEdges(ob)
             edgefaces = getEdgeFaces(ob, vertedges)
             verts = ob.data.vertices
@@ -1930,26 +1932,25 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
-    def getDrivers(self, amt):
-        if not (amt and amt.animation_data):
-            return {}
-        drivers = {}
-        for fcu in amt.animation_data.drivers:
+    def getDrivers(self, rna):
+        if not (rna and rna.animation_data):
+            return
+        for fcu in rna.animation_data.drivers:
             for var in fcu.driver.variables:
                 if var.type == 'TRANSFORMS':
                     for trg in var.targets:
-                        drivers[trg.bone_target] = True
-        return drivers
+                        self.drivers[trg.bone_target] = True
 
 
-    def assignLayer(self, pb, drivers, unused):
+    def assignLayer(self, pb):
         if pb.custom_shape:
             pb.bone.layers = self.usedLayers
         else:
             pb.bone.layers = self.unusedLayers
-            unused[pb.name] = True
+            if pb.name not in self.drivers.keys():
+                self.unused[pb.name] = True
         for child in pb.children:
-            self.assignLayer(child, drivers, unused)
+            self.assignLayer(child)
 
 #----------------------------------------------------------
 #   Initialize
