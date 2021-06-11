@@ -511,14 +511,14 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
     def getSingleAnimation(self, filepath, context, offset, missing):
         from .load_json import loadJson
         if filepath is None:
-            return
+            return offset,None
         ext = os.path.splitext(filepath)[1]
         if ext in [".duf", ".dsf"]:
             struct = loadJson(filepath, False)
         else:
             raise DazError("Wrong type of file: %s" % filepath)
         if "scene" not in struct.keys():
-            return offset
+            return offset,None
         animations = self.parseScene(struct["scene"])
         rig = context.object
         if rig.type == 'ARMATURE':

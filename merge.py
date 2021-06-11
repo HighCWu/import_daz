@@ -540,11 +540,6 @@ class RigInfo:
         for child in ob.children:
             if getHideViewport(child):
                 continue
-            elif (self.button.useEliminateEmpties and
-                  child.type == 'EMPTY' and
-                  child.instance_type == 'NONE'):
-                self.deletes.append(child)
-                self.addObjects(child)
             elif child.type != 'ARMATURE':
                 partype = child.parent_type
                 parbone = child.parent_bone
@@ -680,18 +675,12 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         description = "Create a new collection and move all meshes to it",
         default = True)
 
-    useEliminateEmpties : BoolProperty(
-        name = "Eliminate Empties",
-        description = "Eliminate empties without instance groups",
-        default = True)
-
     def draw(self, context):
         self.layout.prop(self, "clothesLayer")
         self.layout.prop(self, "separateCharacters")
         self.layout.prop(self, "useCreateDuplicates")
         self.layout.prop(self, "useMergeNonConforming")
         self.layout.prop(self, "createMeshCollection")
-        self.layout.prop(self, "useEliminateEmpties")
 
     def __init__(self):
         DriverUser.__init__(self)

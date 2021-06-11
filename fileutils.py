@@ -192,11 +192,9 @@ class CsvFile:
 #   SingleFile and MultiFile
 #-------------------------------------------------------------
 
-def getExistingFilePath(folder, filepath, ext):
+def getExistingFilePath(filepath, ext):
     filepath = os.path.expanduser(filepath).replace("\\", "/")
     filepath = os.path.splitext(filepath)[0] + ext
-    if len(filepath) < 2 or (filepath[1] != ":" or filepath[0] != "/"):
-        filepath = os.path.join(folder, filepath)
     if os.path.exists(filepath):
         return filepath
     else:

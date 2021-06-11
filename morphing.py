@@ -2392,10 +2392,9 @@ class DAZ_OT_SaveFavoMorphs(DazOperator, SingleFile, JsonFile, IsArmature):
 
     filepath : StringProperty(
         name="File Path",
-        default = "favorites.json")
+        default = "")
 
     def invoke(self, context, event):
-        self.properties.filepath = GS.presetPath
         return SingleFile.invoke(self, context, event)
 
     def run(self, context):
@@ -2439,10 +2438,9 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
 
     filepath : StringProperty(
         name="File Path",
-        default = "favorites.json")
+        default = "")
 
     def invoke(self, context, event):
-        self.properties.filepath = GS.presetPath
         return SingleFile.invoke(self, context, event)
 
     def run(self, context):

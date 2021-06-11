@@ -316,6 +316,7 @@ class Figure(Node):
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
                 child.buildEdit(self, inst, rig, None, center, False)
+        self.rigtype = getRigType1(inst.bones.keys())
         rig.DazRig = self.rigtype
 
         bpy.ops.object.mode_set(mode='OBJECT')

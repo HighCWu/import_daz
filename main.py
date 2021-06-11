@@ -333,6 +333,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         description = "Add mannequin to meshes of this type",
         default = 'NONE')
 
+    useEliminateEmpties : BoolProperty(
+        name = "Eliminate Empties",
+        description = "Delete non-hidden empties, parenting its children to its parent instead",
+        default = True)
+
     useMergeRigs : BoolProperty(
         name = "Merge Rigs",
         description = "Merge all rigs to the main character rig",
@@ -373,11 +378,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         description = "Load a favorite morphs instead of loading standard morphs",
         default = False)
 
-    morphPreset : StringProperty(
-        name = "Favorite Morphs",
-        description = "Path to file with favorite morphs",
-        default = "favorites.json")
-
     useConvertHair : BoolProperty(
         name = "Convert Hair",
         description = "Convert strand-based hair to particle hair",
@@ -387,11 +387,12 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         DazOptions.draw(self, context)
         self.layout.separator()
         self.layout.prop(self, "useMergeMaterials")
+        self.layout.prop(self, "useEliminateEmpties")
         self.layout.prop(self, "useMergeRigs")
         self.layout.prop(self, "useMergeToes")
         self.layout.prop(self, "useFavoMorphs")
         if self.useFavoMorphs:
-            self.layout.prop(self, "morphPreset")
+            self.layout.prop(context.scene, "DazFavoPath")
         else:
             MorphTypeOptions.draw(self, context)
         if self.useFavoMorphs or self.jcms or self.flexions:
@@ -419,10 +420,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         from time import perf_counter
         from .fileutils import setSelection, getExistingFilePath
         time1 = perf_counter()
+        scn = context.scene
         setSelection([self.filepath])
         self.favopath = None
         if self.useFavoMorphs:
-            self.favopath = getExistingFilePath(GS.presetPath, self.morphPreset, ".json")
+            self.favopath = getExistingFilePath(scn.DazFavoPath, ".json")
 
         try:
             bpy.ops.daz.import_daz(
@@ -444,6 +446,14 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         self.objects = self.getTypedObjects(visibles, LS.objects)
         self.hdmeshes = self.getTypedObjects(visibles, LS.hdmeshes)
         self.hairs = self.getTypedObjects(visibles, LS.hairs)
+
+        if self.useEliminateEmpties:
+            bpy.ops.object.select_all(action='DESELECT')
+            for objects in LS.objects.values():
+                for ob in objects:
+                    ob.select_set(True)
+            bpy.ops.daz.eliminate_empties()
+
         for rigname in self.rigs.keys():
             self.treatRig(context, rigname)
         setSilentMode(False)
@@ -481,11 +491,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             print("Main character:", mainChar)
         else:
             print("Did not recognize main character", mainMesh)
-
-        empties = []
-        for ob in objects:
-            if ob.type == None:
-                empties.append(ob)
 
         geografts = []
         lashes = []
@@ -744,6 +749,12 @@ classes = [
 ]
 
 def register():
+    bpy.types.Scene.DazFavoPath = StringProperty(
+        name = "Favorite Morphs",
+        description = "Path to favorite morphs",
+        subtype = 'FILE_PATH',
+        default = "")
+
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
