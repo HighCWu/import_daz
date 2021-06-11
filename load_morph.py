@@ -684,7 +684,7 @@ class LoadMorph(DriverUser):
             if not self.primary[raw]:
                 self.extendPropDriver(fcu0, raw, drivers)
                 return
-            btargets = self.getBoneTargets(fcu0)
+            btargets = self.getVarBoneTargets(fcu0)
             if btargets:
                 varname = btargets[-1][0]
                 string = self.extractBoneExpression(fcu0.driver.expression, varname)
@@ -949,7 +949,7 @@ class LoadMorph(DriverUser):
         if keep:
             fcu0 = getRnaDriver(rna, path, None)
             if fcu0 and fcu0.driver.type == 'SCRIPTED':
-                btargets = self.getBoneTargets(fcu0)
+                btargets = self.getVarBoneTargets(fcu0)
                 if btargets:
                     varname = btargets[-1][0]
                     string0 = self.extractBoneExpression(fcu0.driver.expression, varname)

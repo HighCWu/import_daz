@@ -140,11 +140,20 @@ class DriverUser:
                     trg.bone_target = assoc[trg.bone_target]
 
 
-    def getBoneTargets(self, fcu):
+    def getTargetBones(self, fcu):
+        targets = {}
+        for var in fcu.driver.variables:
+            if var.type == 'TRANSFORMS':
+                for trg in var.targets:
+                    targets[trg.bone_target] = True
+        return targets.keys()
+
+
+    def getVarBoneTargets(self, fcu):
         targets = []
         for var in fcu.driver.variables:
-            for trg in var.targets:
-                if trg.bone_target:
+            if var.type == 'TRANSFORMS':
+                for trg in var.targets:
                     targets.append((var.name, trg.bone_target, var))
         targets.sort()
         return targets

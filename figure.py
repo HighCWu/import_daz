@@ -503,6 +503,9 @@ class ExtraBones(DriverUser):
     def combineDrvSimple(self, fcu, var, trg, varnames):
         if var.name == "parscale":
             return
+        bones = self.getTargetBones(fcu)
+        if trg.bone_target in bones:
+            return
         from .driver import Target
         vname2 = var.name+"2"
         if vname2 in varnames.keys():
@@ -526,7 +529,6 @@ class ExtraBones(DriverUser):
             cns.owner_space = 'POSE'
             cns.influence = 1.0
 
-        from .driver import addTransformVar
         pb = rig.pose.bones[bname]
         fb = rig.pose.bones[finBone(bname)]
         isLoc = isRot = False
@@ -552,7 +554,7 @@ class ExtraBones(DriverUser):
                     if fcu.driver.type == 'SCRIPTED']
             for fcu in fcus:
                 channel = fcu.data_path
-                for btarget in self.getBoneTargets(fcu):
+                for btarget in self.getVarBoneTargets(fcu):
                     bname = baseBone(btarget[1])
                     if bname and bname in self.bnames and fcu.driver:
                         fcu2 = self.getTmpDriver(0)
