@@ -378,6 +378,10 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         description = "Load a favorite morphs instead of loading standard morphs",
         default = False)
 
+    favoPath : StringProperty(
+        name = "Favorite Morphs",
+        description = "Path to favorite morphs")
+
     useConvertHair : BoolProperty(
         name = "Convert Hair",
         description = "Convert strand-based hair to particle hair",
@@ -392,7 +396,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         self.layout.prop(self, "useMergeToes")
         self.layout.prop(self, "useFavoMorphs")
         if self.useFavoMorphs:
-            self.layout.prop(context.scene, "DazFavoPath")
+            self.layout.prop(self, "favoPath")
         else:
             MorphTypeOptions.draw(self, context)
         if self.useFavoMorphs or self.jcms or self.flexions:
@@ -406,6 +410,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
 
     def invoke(self, context, event):
+        self.favoPath = context.scene.DazFavoPath
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
@@ -422,9 +427,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         time1 = perf_counter()
         scn = context.scene
         setSelection([self.filepath])
-        self.favopath = None
         if self.useFavoMorphs:
-            self.favopath = getExistingFilePath(scn.DazFavoPath, ".json")
+            self.favoPath = getExistingFilePath(self.favoPath, ".json")
 
         try:
             bpy.ops.daz.import_daz(
@@ -457,6 +461,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         for rigname in self.rigs.keys():
             self.treatRig(context, rigname)
         setSilentMode(False)
+        context.scene.DazFavoPath = self.favoPath
         time2 = perf_counter()
         print("File %s loaded in %.3f seconds" % (self.filepath, time2-time1))
 
@@ -531,8 +536,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
         if mainChar and mainRig and mainMesh:
             if self.useFavoMorphs:
-                if activateObject(context, mainRig) and self.favopath:
-                    bpy.ops.daz.load_favo_morphs(filepath = self.favopath)
+                if activateObject(context, mainRig) and self.favoPath:
+                    bpy.ops.daz.load_favo_morphs(filepath = self.favoPath)
             elif (self.units or
                   self.expressions or
                   self.visemes or

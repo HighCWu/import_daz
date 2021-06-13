@@ -267,7 +267,6 @@ class Figure(Node):
         self.bones = {}
         self.presentation = None
         self.figure = self
-        self.rigtype = "Unknown"
 
 
     def __repr__(self):
@@ -289,7 +288,6 @@ class Figure(Node):
         from .asset import Asset
         scn = context.scene
 
-        self.rigtype = getRigType1(inst.bones.keys())
         center = d2b(inst.attributes["center_point"])
         Asset.build(self, context, inst)
         for geo in inst.geometries:
@@ -298,7 +296,6 @@ class Figure(Node):
         amt = self.data = bpy.data.armatures.new(inst.name)
         self.buildObject(context, inst, center)
         rig = self.rna
-        inst.addLSRig(rig)
         amt.display_type = 'STICK'
         rig.show_in_front = True
         rig.DazOrientMethod = GS.orientMethod
@@ -315,8 +312,8 @@ class Figure(Node):
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
                 child.buildEdit(self, inst, rig, None, center, False)
-        self.rigtype = getRigType1(inst.bones.keys())
-        rig.DazRig = self.rigtype
+        rig.DazRig = self.rigtype = getRigType1(inst.bones.keys())
+        inst.addLSRig(rig)
 
         bpy.ops.object.mode_set(mode='OBJECT')
         for child in inst.children.values():
@@ -369,7 +366,7 @@ def getRigType1(bones):
     elif "ball.marker.L" in bones:
         return "mhx"
     else:
-        return "Unknown"
+        return ""
 
 
 class LegacyFigure(Figure):

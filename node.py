@@ -163,7 +163,7 @@ class Instance(Accessor, Channels, SimNode):
         self.restdata = None
         self.wsmat = self.U3
         self.lsmat = None
-        self.mainFigure = False
+        self.rigtype = node.rigtype
         node.clearTransforms()
         SimNode.__init__(self)
 
@@ -184,18 +184,14 @@ class Instance(Accessor, Channels, SimNode):
 
 
     def isMainFigure(self, level):
-        from .bone import BoneInstance
+        from .figure import FigureInstance
         par = self.parent
-        while isinstance(par, BoneInstance):
+        while par and not isinstance(par, FigureInstance):
             par = par.parent
         if par is None:
             return True
-        elif par.mainFigure:
-            return False
-        elif level == 0:
-            return True
         else:
-            return par.isMainFigure(level-1)
+            return False
 
 
     def preprocess(self, context):
@@ -605,6 +601,7 @@ class Node(Asset, Formula, Channels):
         self.attributes = self.defaultAttributes()
         self.origAttrs = self.defaultAttributes()
         self.figure = None
+        self.rigtype = ""
 
 
     def defaultAttributes(self):
