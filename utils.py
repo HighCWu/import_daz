@@ -318,13 +318,6 @@ def isLocationUnlocked(pb):
             pb.lock_location[2] == False)
 
 
-def match(tests, string):
-    for test in tests:
-        if test in string:
-            return test
-    return None
-
-
 def sorted(seq):
     slist = list(seq)
     slist.sort()

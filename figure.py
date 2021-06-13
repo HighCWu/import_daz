@@ -187,8 +187,7 @@ class FigureInstance(Instance):
 
 
     def addLSRig(self, rig):
-        if (LS.rigname is None or
-            not isinstance(self.parent, FigureInstance)):
+        if LS.rigname is None or self.isMainFigure(5):
             LS.rigname = rig.name
             LS.rigs[LS.rigname] = []
             LS.meshes[LS.rigname] = []
@@ -349,22 +348,28 @@ def getRigType(data):
 
 
 def getRigType1(bones):
-    if match(["abdomenLower", "lShldrBend", "rShldrBend"], bones):
+    def match(tests, bones):
+        for test in tests:
+            if test not in bones:
+                return False
+        return True
+
+    if match(["abdomenLower", "lShldrBend", "lMid3", "rMid3", "lSmallToe2_2", "rSmallToe2_2", "lNasolabialLower"], bones):
         if "lHeel" in bones:
             return "genesis3"
         else:
             return "genesis8"
-    elif match(["abdomenLower", "lShldrBend", "lJawClench"], bones):
-        return "genesis8"
-    elif match(["abdomen", "lShldr", "rShldr"], bones):
+    elif match(["abdomen", "lShldr", "lMid3", "rMid3", "upperJaw"], bones):
         if "lSmallToe1" in bones:
             return "genesis2"
+        elif "lToe" in bones:
+            return "genesis"
         else:
-            return "genesis1"
+            return ""
     elif "ball.marker.L" in bones:
         return "mhx"
     else:
-        return ""
+        return "Unknown"
 
 
 class LegacyFigure(Figure):

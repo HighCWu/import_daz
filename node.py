@@ -163,6 +163,7 @@ class Instance(Accessor, Channels, SimNode):
         self.restdata = None
         self.wsmat = self.U3
         self.lsmat = None
+        self.mainFigure = False
         node.clearTransforms()
         SimNode.__init__(self)
 
@@ -180,6 +181,21 @@ class Instance(Accessor, Channels, SimNode):
 
     def getSelfId(self):
         return self.id
+
+
+    def isMainFigure(self, level):
+        from .bone import BoneInstance
+        par = self.parent
+        while isinstance(par, BoneInstance):
+            par = par.parent
+        if par is None:
+            return True
+        elif par.mainFigure:
+            return False
+        elif level == 0:
+            return True
+        else:
+            return par.isMainFigure(level-1)
 
 
     def preprocess(self, context):
