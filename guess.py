@@ -92,6 +92,8 @@ SkinMaterials = {
     "labia" : ("Skin", ),
     "anus" : ("Skin", ),
     "vagina" : ("Skin", ),
+    "rectum" : ("Skin", ),
+    "torso_back" : ("Skin", ),
 }
 
 def getSkinMaterial(mat):

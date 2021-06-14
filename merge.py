@@ -746,7 +746,10 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
                 info.rig.select_set(True)
                 for ob,_ in info.objects:
                     ob.select_set(True)
-        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        try:
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        except RuntimeError:
+            print("Failed to apply transform")
 
 
     def getSubRigs(self, context, rig):

@@ -299,6 +299,7 @@ class Figure(Node):
         amt.display_type = 'STICK'
         rig.show_in_front = True
         rig.DazOrientMethod = GS.orientMethod
+        inst.addLSRig(rig)
         for geonode in inst.geometries:
             geonode.parent = geonode.figure = self
             geonode.rna.parent = rig
@@ -312,10 +313,9 @@ class Figure(Node):
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
                 child.buildEdit(self, inst, rig, None, center, False)
-        rig.DazRig = self.rigtype = getRigType1(inst.bones.keys())
-        inst.addLSRig(rig)
 
         bpy.ops.object.mode_set(mode='OBJECT')
+        rig.DazRig = self.rigtype = getRigType1(inst.bones.keys())
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
                 child.buildBoneProps(rig, center)

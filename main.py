@@ -494,8 +494,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             mainChar = None
         if mainChar:
             print("Main character:", mainChar)
-        else:
-            print("Did not recognize main character", mainMesh)
+        elif mainMesh:
+            print("Did not recognize main character", mainMesh.name)
 
         geografts = []
         lashes = []
