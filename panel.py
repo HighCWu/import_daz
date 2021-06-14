@@ -462,9 +462,9 @@ class DAZ_PT_Morphs:
     @classmethod
     def poll(self, context):
         ob = context.object
-        if ob and ob.DazMesh:
-            if ob.type == 'MESH' and ob.parent:
-                ob = ob.parent
+        if ob and ob.type == 'MESH':
+            ob = ob.parent
+        if ob and ob.type == 'ARMATURE':
             return (self.hasTheseMorphs(self, ob) or self.hasAdjustProp(self, ob))
         return False
 

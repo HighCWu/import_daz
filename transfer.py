@@ -431,7 +431,9 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
                 ys = [abs(co[n]-ycenter[n]) for co in ycoords]
                 xdim += sum(xs)
                 ydim += sum(ys)
-
+            if xdim == 0 or ydim == 0:
+                print("Rigidity division by zero")
+                continue
             scale = ydim/xdim
             smat = Matrix.Identity(3)
             for n,smode in enumerate(scalemodes):
