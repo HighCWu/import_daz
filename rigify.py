@@ -813,7 +813,7 @@ class Rigify:
 
         self.fixHands(meta)
         self.fitLimbs(meta, hip)
-        if self.useCustomLayers:
+        if self.useCustomLayers and not meta.DazPre278:
             self.addGroupBones(meta, rig)
 
         for eb in meta.data.edit_bones:
@@ -827,7 +827,7 @@ class Rigify:
         self.reparentBones(meta, MetaParents)
         print("  Add props to rigify")
         connect,disconnect = self.addRigifyProps(meta)
-        if self.useCustomLayers:
+        if self.useCustomLayers and not meta.DazPre278:
             self.setupGroupBones(meta)
 
         print("  Set connected")
@@ -926,7 +926,7 @@ class Rigify:
 
         # Group bones
         print("  Create group bones")
-        if self.useCustomLayers:
+        if self.useCustomLayers and not meta.DazPre278:
             for data in self.GroupBones:
                 eb = gen.data.edit_bones[data[0]]
                 eb.layers = helpLayers
@@ -1099,7 +1099,10 @@ class Rigify:
             deleteObjects(context, [meta])
         activateObject(context, gen)
         gen.name = name
-        setFkIk2(gen, False, gen.data.layers)
+        if meta.DazPre278:
+            setFkIk1(gen, True, gen.data.layers)
+        else:
+            setFkIk2(gen, False, gen.data.layers)
         F = False
         T = True
         gen.data.layers = (
@@ -1367,7 +1370,7 @@ def setFkIk1(rig, ik, layers):
     value = float(ik)
     for bname in ["hand.ik.L", "hand.ik.R", "foot.ik.L", "foot.ik.R"]:
         pb = rig.pose.bones[bname]
-        pb["ik_fk_switch"] = value
+        pb["ik_fk_switch"] = pb["ikfk_switch"] = value
     if "head.001" in rig.pose.bones.keys():
         pb = rig.pose.bones["head.001"]
         pb["neck_follow"] = value
