@@ -58,6 +58,10 @@ class LoadMorph(DriverUser):
         return None
 
 
+    def addToMorphSet(self, prop, asset, hidden):
+        return
+
+
     def initAmt(self):
         if self.rig:
             self.amt = self.rig.data
