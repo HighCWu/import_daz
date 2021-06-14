@@ -1969,7 +1969,6 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
             if words[0] == "pose.bones[":
                 pb1 = rig.pose.bones[words[1]]
                 channel = words[-1].rsplit(".",1)[-1]
-                print("REM", pb1.name, channel, fcu.array_index)
                 pb1.driver_remove(channel, fcu.array_index)
 
 

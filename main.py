@@ -682,10 +682,15 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         meshes = []
         for mesh in getMeshChildren(rig):
             if mesh != ob:
+                isLash = False
                 for vgname in mesh.vertex_groups.keys():
                     if vgname[1:7] == "Eyelid":
-                        meshes.append(mesh)
+                        isLash = True
+                    elif vgname in ["lEye", "head"]:
+                        isLash = False
                         break
+                if isLash:
+                    meshes.append(mesh)
         return meshes
 
 #------------------------------------------------------------------
