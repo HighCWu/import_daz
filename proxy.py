@@ -1855,7 +1855,7 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
                 pb = rig.pose.bones[bname]
                 pb.custom_shape = gzm
                 pb.bone.show_wire = True
-                self.assignLayer(pb)
+                self.assignLayer(pb, rig)
                 if len(pb.children) == 1:
                     self.inheritLimits(pb, pb.children[0], rig)
             coll.objects.unlink(gzm)
@@ -1939,18 +1939,52 @@ class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
             for var in fcu.driver.variables:
                 if var.type == 'TRANSFORMS':
                     for trg in var.targets:
-                        self.drivers[trg.bone_target] = True
+                        bname = trg.bone_target
+                        if bname not in self.drivers.keys():
+                            self.drivers[bname] = []
+                        self.drivers[bname].append(fcu)
 
 
-    def assignLayer(self, pb):
-        if pb.custom_shape:
+    def assignLayer(self, pb, rig):
+        if pb.name in self.drivers.keys():
             pb.bone.layers = self.usedLayers
+            if not pb.custom_shape:
+                self.modifyDriver(pb, rig)
         else:
             pb.bone.layers = self.unusedLayers
             if pb.name not in self.drivers.keys():
                 self.unused[pb.name] = True
         for child in pb.children:
-            self.assignLayer(child)
+            self.assignLayer(child, rig)
+
+
+    def modifyDriver(self, pb, rig):
+        bname = pb.name
+        if bname[-2] == "-" and bname[-1].isdigit():
+            self.replaceDriverTarget(bname, bname[:-2], rig)
+        self.unused[bname] = True
+        pb.bone.layers = self.unusedLayers
+        for fcu in self.drivers[bname]:
+            words = fcu.data_path.split('"')
+            if words[0] == "pose.bones[":
+                pb1 = rig.pose.bones[words[1]]
+                channel = words[-1].rsplit(".",1)[-1]
+                print("REM", pb1.name, channel, fcu.array_index)
+                pb1.driver_remove(channel, fcu.array_index)
+
+
+    def replaceDriverTarget(self, bname, bname1, rig):
+        if bname1 in rig.pose.bones.keys():
+            pb1 = rig.pose.bones[bname1]
+            pb1.bone.layers = self.usedLayers
+            self.drivers[bname1] = []
+            if bname1 in self.unused.keys():
+                del self.unused[bname1]
+            for fcu in self.drivers[bname]:
+                for var in fcu.driver.variables:
+                    for trg in var.targets:
+                        if trg.bone_target == bname:
+                            trg.bone_target = bname1
 
 #----------------------------------------------------------
 #   Initialize
