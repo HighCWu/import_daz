@@ -1824,6 +1824,23 @@ class AddRemoveDriver:
         return self.invokeDialog(context)
 
 
+    def createRawFinPair(self, rig, raw, rna, channel, value, min, max):
+        from .driver import addDriverVar, setFloatProp, removeModifiers
+        final = finalProp(raw)
+        setFloatProp(rig, raw, value, min, max)
+        setFloatProp(rig.data, final, value, min, max)
+        fcu = rig.data.driver_add(propRef(final))
+        removeModifiers(fcu)
+        fcu.driver.type = 'SCRIPTED'
+        addDriverVar(fcu, "a", propRef(raw), rig)
+        fcu.driver.expression = "a"
+        fcu = rna.driver_add(channel)
+        removeModifiers(fcu)
+        fcu.driver.type = 'SCRIPTED'
+        addDriverVar(fcu, "a", propRef(final), rig.data)
+        fcu.driver.expression = "a"
+
+
 class DAZ_OT_AddShapeToCategory(DazOperator, AddRemoveDriver, Selector, CustomEnums, CategoryString, IsMesh):
     bl_idname = "daz.add_shape_to_category"
     bl_label = "Add Shapekey To Category"
@@ -1878,16 +1895,12 @@ class DAZ_OT_AddShapekeyDrivers(DazOperator, AddRemoveDriver, Selector, Category
 
 
     def handleShapekey(self, sname, rig, ob):
-        from .driver import getShapekeyDriver, addDriverVar, setFloatProp
+        from .driver import getShapekeyDriver
         skeys = ob.data.shape_keys
         skey = skeys.key_blocks[sname]
         if getShapekeyDriver(skeys, skey.name):
             raise DazError("Shapekey %s is already driven" % skey.name)
-        setFloatProp(rig, sname, skey.value, skey.slider_min, skey.slider_max)
-        fcu = skey.driver_add("value")
-        fcu.driver.type = 'SCRIPTED'
-        addDriverVar(fcu, "a", propRef(sname), rig)
-        fcu.driver.expression = "a"
+        self.createRawFinPair(rig, sname, skey, "value", skey.value, skey.slider_min, skey.slider_max)
         addToCategories(rig, [sname], self.category)
         rig.DazCustomMorphs = True
 
@@ -1952,24 +1965,16 @@ class DAZ_OT_RemoveShapekeyDrivers(DazOperator, AddRemoveDriver, CustomSelector,
     bl_options = {'UNDO'}
 
     def handleShapekey(self, sname, rig, ob):
-        #skey = ob.data.shape_keys.key_blocks[sname]
-        self.removeShapekeyDriver(ob, sname)
+        skey = ob.data.shape_keys.key_blocks[sname]
+        skey.driver_remove("value")
         rig = ob.parent
-        if (rig and rig.type == 'ARMATURE' and
-            sname in rig.keys()):
-            del rig[sname]
-
-
-    def removeShapekeyDriver(self, ob, sname):
-        adata = ob.data.shape_keys.animation_data
-        if (adata and adata.drivers):
-            for fcu in adata.drivers:
-                words = fcu.data_path.split('"')
-                if (words[0] == "key_blocks[" and
-                    words[1] == sname):
-                    ob.data.shape_keys.driver_remove(fcu.data_path)
-                    return
-        #raise DazError("Did not find driver for shapekey %s" % skey.name)
+        if rig and rig.type == 'ARMATURE':
+            final = finalProp(sname)
+            rig.data.driver_remove(propRef(final))
+            if final in rig.data.keys():
+                del rig.data[final]
+            if sname in rig.keys():
+                del rig[sname]
 
 
     def includeShapekey(self, skeys, sname):
