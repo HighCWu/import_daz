@@ -1025,17 +1025,26 @@ class LoadMorph(DriverUser):
                     prefix = self.getChannelPrefix(pb, channel, idx)
                     fcu = self.addSumDriver(prefix, drivers, pathids)
                     if channel == "scale":
+                        self.ensureAnimData(self.amt)
                         sumfcu = self.amt.animation_data.drivers.from_existing(src_driver=fcu)
                         prop = self.getFinalScaleProp(pb, idx)
                         self.amt[prop] = 0.0
                         sumfcu.data_path = propRef(prop)
                         self.addScaleDriver(pb, idx)
                     else:
+                        self.ensureAnimData(self.rig)
                         sumfcu = self.rig.animation_data.drivers.from_existing(src_driver=fcu)
                         sumfcu.data_path = 'pose.bones["%s"].%s' % (pb.name, channel)
                         sumfcu.array_index = idx
                     self.clearTmpDriver(0)
             print(" + %s" % bname)
+
+
+    def ensureAnimData(self, rna):
+        if rna.animation_data is None:
+            print("Make dummy driver for %s" % rna)
+            rna["Dummy"] = 0.0
+            fcu = rna.driver_add(propRef("Dummy"))
 
 
     def getChannelPrefix(self, pb, channel, idx):
@@ -1064,6 +1073,7 @@ class LoadMorph(DriverUser):
                 self.recoverOldDrivers(fcu, drivers)
             self.amt.driver_remove(propRef(rest))
             fcu = self.addSumDriver(rest, drivers, {})
+            self.ensureAnimData(self.amt)
             sumfcu = self.amt.animation_data.drivers.from_existing(src_driver=fcu)
             self.amt.driver_remove(rest)
             sumfcu.data_path = propRef(rest)
@@ -1222,6 +1232,7 @@ class LoadMorph(DriverUser):
             for varname,final in vars:
                 self.addPathVar(fcu, varname, self.amt, propRef(final))
             pathids[path] = 'ARMATURE'
+            self.ensureAnimData(self.amt)
             fcu2 = self.amt.animation_data.drivers.from_existing(src_driver=fcu)
             fcu2.data_path = path
             self.clearTmpDriver(1)
