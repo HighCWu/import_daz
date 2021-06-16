@@ -293,6 +293,8 @@ class WorldTree(CyclesTree):
 
     def getImage(self, channel, colorSpace):
         assets,maps = self.material.getTextures(channel)
+        if not assets:
+            return None
         asset = assets[0]
         img = asset.images[colorSpace]
         if img is None:
