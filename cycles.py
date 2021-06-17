@@ -799,10 +799,14 @@ class CyclesTree:
             return
         self.column += 1
         mat = self.material.rna
-        color,tex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
+        color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
+        if coltex is None:
+            coltex = self.diffuseTex
+            if coltex is None:
+                return
         from .cgroup import TranslucentGroup
         node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=100)
-        self.linkColor(tex, node, color, "Color")
+        self.linkColor(coltex, node, color, "Color")
         node.inputs["Scale"].default_value = 1
         radius,radtex = self.getSSSRadius(color)
         self.linkColor(radtex, node, radius, "Radius")
