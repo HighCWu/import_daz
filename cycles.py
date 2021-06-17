@@ -59,7 +59,7 @@ class CyclesMaterial(Material):
 
     def guessColor(self):
         from .guess import guessMaterialColor
-        guessMaterialColor(self.rna, GS.viewportColors, False)
+        guessMaterialColor(self.rna, GS.viewportColors, False, LS.clothesColor)
 
 
     def build(self, context):

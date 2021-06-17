@@ -566,6 +566,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
                     ob.select_set(True)
                 print("Merge geografts")
                 bpy.ops.daz.merge_geografts()
+                if GS.viewportColors == 'GUESS':
+                    from .guess import guessMaterialColor
+                    LS.skinColor = self.skinColor
+                    for mat in mainMesh.data.materials:
+                        guessMaterialColor(mat, 'GUESS', True, LS.skinColor)
 
         # Merge lashes
         if lashes:

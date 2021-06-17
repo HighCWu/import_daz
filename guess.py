@@ -110,7 +110,7 @@ def setDiffuse(mat, color):
     mat.diffuse_color[0:3] = color[0:3]
 
 
-def guessMaterialColor(mat, choose, enforce):
+def guessMaterialColor(mat, choose, enforce, default):
     from random import random
     if (mat is None or
         not hasDiffuseTexture(mat, enforce)):
@@ -140,7 +140,7 @@ def guessMaterialColor(mat, choose, enforce):
             elif color == "Invis":
                 setDiffuse(mat, (0.5,0.5,0.5,0))
         else:
-            setDiffuse(mat, LS.clothesColor)
+            setDiffuse(mat, default)
 
 
 def hasDiffuseTexture(mat, enforce):
@@ -215,7 +215,7 @@ class DAZ_OT_ChangeSkinColor(DazPropsOperator, ColorProp, IsMesh):
         LS.clothesColor = self.color
         for ob in getSelectedMeshes(context):
             for mat in ob.data.materials:
-                guessMaterialColor(mat, 'GUESS', True)
+                guessMaterialColor(mat, 'GUESS', True, self.color)
 
 #----------------------------------------------------------
 #   Initialize
