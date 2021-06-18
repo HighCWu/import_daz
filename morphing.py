@@ -1197,19 +1197,32 @@ def removeFromPropGroup(pgs, prop):
 #   Remove category
 #------------------------------------------------------------------------
 
-class DAZ_OT_RemoveCategories(DazOperator, Selector, IsMeshArmature):
+class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
     bl_idname = "daz.remove_categories"
     bl_label = "Remove Categories"
     bl_description = "Remove selected categories and associated drivers"
     bl_options = {'UNDO'}
 
-    deleteShapekeys : BoolProperty(
+    useDeleteShapekeys : BoolProperty(
         name = "Delete Shapekeys",
         description = "Delete both drivers and shapekeys",
         default = True)
 
+    useDeleteProps : BoolProperty(
+        name = "Delete Properties",
+        description = "Delete object and armature properties associated with this morph",
+        default = True)
+
+    useDeleteDrivers : BoolProperty(
+        name = "Delete Drivers",
+        description = "Delete drivers associated with this morph",
+        default = True)
+
     def drawExtra(self, context):
-        self.layout.prop(self, "deleteShapekeys")
+        self.layout.prop(self, "useDeleteShapekeys")
+        self.layout.prop(self, "useDeleteProps")
+        if not self.useDeleteProps:
+            self.layout.prop(self, "useDeleteDrivers")
 
     def run(self, context):
         items = [(item.index, item.name) for item in self.getSelectedItems()]
@@ -1240,25 +1253,30 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsMeshArmature):
                 rest = restProp(raw)
                 if raw in rig.keys():
                     rig[raw] = 0.0
-                self.removePropDrivers(rig, propRef(raw), rig)
-                self.removePropDrivers(amt, propRef(final), amt)
-                self.removePropDrivers(amt, propRef(rest), amt)
+                if self.useDeleteProps or self.useDeleteDrivers:
+                    self.removePropDrivers(rig, propRef(raw), rig)
+                    self.removePropDrivers(amt, propRef(final), amt)
+                    self.removePropDrivers(amt, propRef(rest), amt)
                 for ob in rig.children:
                     if ob.type == 'MESH':
                         self.removePropDrivers(ob.data.shape_keys, propRef(raw), rig)
                         self.removePropDrivers(ob.data.shape_keys, propRef(final), amt)
-                        if self.deleteShapekeys and ob.data.shape_keys:
+                        if self.useDeleteShapekeys and ob.data.shape_keys:
                             if raw in ob.data.shape_keys.key_blocks.keys():
                                 skey = ob.data.shape_keys.key_blocks[raw]
                                 ob.shape_key_remove(skey)
                 if raw in rig.keys():
-                    self.removeFromPropGroups(rig, raw, False)
-                if final in amt.keys():
-                    amt[final] = 0.0
-                    del amt[final]
-                if rest in amt.keys():
-                    amt[rest] = 0.0
-                    del amt[rest]
+                    self.removeFromPropGroups(rig, raw)
+                if self.useDeleteProps:
+                    if raw in rig.keys():
+                        rig[raw] = 0.0
+                        del rig[raw]
+                    if final in amt.keys():
+                        amt[final] = 0.0
+                        del amt[final]
+                    if rest in amt.keys():
+                        amt[rest] = 0.0
+                        del amt[rest]
             rig.DazMorphCats.remove(idx)
         if len(rig.DazMorphCats) == 0:
             rig.DazCustomMorphs = False
@@ -1302,24 +1320,15 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsMeshArmature):
                 pass
 
 
-    def removeFromPropGroups(self, rig, prop, keep=False):
+    def removeFromPropGroups(self, rig, prop):
         from .propgroups import getAllPropGroups
         for pb in rig.pose.bones:
             pgs = getAllPropGroups(pb)
             for pg in pgs:
                 removeFromPropGroup(pg, prop)
-
         for morphset in theStandardMorphSets:
             pgs = getattr(rig, "Daz" + morphset)
             removeFromPropGroup(pgs, prop)
-
-        if not keep:
-            rig[prop] = 0
-            del rig[prop]
-            for ob in rig.children:
-                if prop in ob.keys():
-                    ob[prop] = 0
-                    del ob[prop]
 
 
     def selectCondition(self, item):
