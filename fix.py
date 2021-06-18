@@ -388,6 +388,25 @@ class GizmoUser:
                     cns.subtarget in renamed.keys()):
                     cns.subtarget = renamed[cns.subtarget]
 
+#-------------------------------------------------------------
+#   Replace left-right prefix with suffix
+#-------------------------------------------------------------
+
+class DAZ_OT_ChangePrefixToSuffix(DazOperator, GizmoUser, IsArmature):
+    bl_idname = "daz.change_prefix_to_suffix"
+    bl_label = "Change Prefix To Suffix"
+    bl_description = "Change l/r prefix to .L/.R suffix,\nto use Blender symmetry tools"
+    bl_options = {'UNDO'}
+
+    useRenameBones = True
+
+    def run(self, context):
+        rig = context.object
+        self.renameFaceBones(rig)
+
+
+    def isFaceBone(self, pb):
+        return True
 
 #-------------------------------------------------------------
 #   Constraints class
@@ -796,16 +815,16 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
         bpy.ops.object.mode_set(mode='EDIT')
         for bname, clen, pbones, root in ikgoals:
             eb = rig.data.edit_bones[bname]
-            goal = rig.data.edit_bones.new(bname+"Goal")
-            goalname = goal.name
+            goalname = self.combineName(bname, "Goal")
+            goal = rig.data.edit_bones.new(goalname)
             goal.head = eb.tail
             goal.tail = 2*eb.tail - eb.head
             goal.roll = eb.roll
             if self.usePoleTargets:
                 for n in range(clen//2):
                     eb = eb.parent
-                pole = rig.data.edit_bones.new(bname+"Pole")
-                polename = pole.name
+                polename = self.combineName(bname, "Pole")
+                pole = rig.data.edit_bones.new(polename)
                 pole.head = eb.head + eb.length * eb.x_axis
                 pole.tail = eb.tail + eb.length * eb.x_axis
                 pole.roll = eb.roll
@@ -824,7 +843,8 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
             rmat = pb.bone.matrix_local
             root.custom_shape = gzmCube
 
-            goal = rig.pose.bones[bname+"Goal"]
+            goalname = self.combineName(bname, "Goal")
+            goal = rig.pose.bones[goalname]
             goal.rotation_mode = pb.rotation_mode
             goal.bone.use_local_location = True
             goal.matrix_basis = rmat.inverted() @ pb.matrix
@@ -865,6 +885,14 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
             if self.disableBones:
                 for pb in pbones:
                     pb.bone.hide_select = True
+
+
+    def combineName(self, bname, string):
+        if bname[-2:].lower() in [".l", ".r", "_l", "_r"]:
+            return "%s%s%s" % (bname[:-2], string, bname[-2:])
+        else:
+            return "%s%s" % (bname, string)
+
 
 #-------------------------------------------------------------
 #   Add Winder
@@ -930,6 +958,7 @@ class DAZ_OT_AddWinder(DazOperator, GizmoUser, IsArmature):
 classes = [
     DAZ_OT_AddIkGoals,
     DAZ_OT_AddWinder,
+    DAZ_OT_ChangePrefixToSuffix,
 ]
 
 def register():
