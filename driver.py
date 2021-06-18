@@ -543,40 +543,10 @@ def removeDriverFCurves(fcus, rig):
             pass
 
 
-def removePropDrivers(rna, paths=None, rig=None, force=False):
-    if rna is None or rna.animation_data is None:
-        return False
-    fcus = []
-    keep = False
-    for fcu in rna.animation_data.drivers:
-        if paths is None:
-            fcus.append(fcu)
-        elif force or len(fcu.driver.variables) == 1:
-            if matchesPaths(fcu.driver.variables[0], paths, rig):
-                fcus.append(fcu)
-        else:
-            for var in fcu.driver.variables:
-                if matchesPaths(var, paths, rig):
-                    keep = True
-    for fcu in fcus:
-        if fcu.data_path:
-            try:
-                rna.driver_remove(fcu.data_path)
-            except TypeError:
-                pass
-    return keep
-
-
 def isPropDriver(fcu):
     vars = fcu.driver.variables
     return (len(vars) > 0 and vars[0].type == 'SINGLE_PROP')
 
-
-def matchesPaths(var, paths, rig):
-    if var.type == 'SINGLE_PROP':
-        trg = var.targets[0]
-        return (trg.id == rig and trg.data_path in paths)
-    return False
 
 #----------------------------------------------------------
 #   Bone sum drivers
