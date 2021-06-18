@@ -217,14 +217,9 @@ class PbrTree(CyclesTree):
         wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         if wt == 0:
             return
-        color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", BLACK)
+        color,coltex = self.getTranslucency()
         if isBlack(color):
             return
-        # In some scenes the translucency texture is lost. Why?
-        if coltex is None:
-            coltex = self.diffuseTex
-            if coltex is None:
-                return
         # a 2.5 gamma for the translucency texture is used to avoid the "white skin" effect
         gamma = self.addNode("ShaderNodeGamma", col=3)
         gamma.inputs["Gamma"].default_value = 2.5

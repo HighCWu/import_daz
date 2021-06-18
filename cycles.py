@@ -799,11 +799,9 @@ class CyclesTree:
             return
         self.column += 1
         mat = self.material.rna
-        color,coltex = self.getColorTex("getChannelTranslucencyColor", "COLOR", WHITE)
-        if coltex is None:
-            coltex = self.diffuseTex
-            if coltex is None:
-                return
+        color,coltex = self.getTranslucency()
+        if isBlack(color):
+            return
         from .cgroup import TranslucentGroup
         node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=100)
         self.linkColor(coltex, node, color, "Color")
@@ -818,6 +816,13 @@ class CyclesTree:
         self.mixWithActive(fac, factex, node)
         LS.usedFeatures["Transparent"] = True
         self.endSSS()
+
+
+    def getTranslucency(self):
+        color,tex = self.getColorTex(["Translucency Color"], "COLOR", BLACK)
+        if tex is None and GS.useFakeTranslucencyTexture:
+            tex = self.diffuseTex
+        return color,tex
 
 
     def setMultiplier(self, node, fac):

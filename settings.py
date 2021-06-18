@@ -73,6 +73,7 @@ class GlobalSettings:
 
         self.bumpFactor = 1.0
         self.useFakeCaustics = True
+        self.useFakeTranslucencyTexture = False
         self.handleRenderSettings = "UPDATE"
         self.handleLightSettings = "WARN"
         self.useDisplacement = True
@@ -131,6 +132,7 @@ class GlobalSettings:
         "DazReuseMaterials" : "reuseMaterials",
         "DazBumpFactor" : "bumpFactor",
         "DazFakeCaustics" : "useFakeCaustics",
+        "DazFakeTranslucencyTexture" : "useFakeTranslucencyTexture",
         "DazHandleRenderSettings" : "handleRenderSettings",
         "DazHandleLightSettings" : "handleLightSettings",
         "DazUseDisplacement" : "useDisplacement",

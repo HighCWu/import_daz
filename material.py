@@ -316,9 +316,6 @@ class Material(Asset, Channels):
     def getChannelIOR(self):
         return self.getChannel(["ior", "Refraction Index"])
 
-    def getChannelTranslucencyColor(self):
-        return self.getChannel(["Translucency Color"])
-
     def getChannelTranslucencyWeight(self):
         return self.getChannel(["translucency", "Translucency Weight"])
 
