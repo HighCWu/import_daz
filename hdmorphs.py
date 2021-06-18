@@ -435,6 +435,9 @@ class NormalAdder:
                     tree.links.new(normal.outputs["Normal"], node.inputs["Normal"])
 
         for ob,amt,fname,prop,filepath in args:
+            if not os.path.exists(filepath):
+                print("No such file: %s" % filepath)
+                continue
             tex = tree.addImageTexNode(filepath, fname, -1)
             tree.links.new(texco.outputs["UV"], tex.inputs["Vector"])
 
@@ -812,7 +815,7 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, NormalAdder, ScalarDispAdder
         basename = self.getBaseName(ob)
         imgname = self.getImageName(basename, tile)
         filepath = self.getImagePath(imgname, False)
-        args = [(ob, imgname, None, filepath)]
+        args = [(ob, None, imgname, None, filepath)]
         if self.bakeType == 'NORMALS':
             self.loadNormalMaps(mat, args, 0)
         elif self.bakeType == 'DISPLACEMENT':
