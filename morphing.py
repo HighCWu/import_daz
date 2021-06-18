@@ -1184,27 +1184,6 @@ class DAZ_OT_RenameCategory(DazPropsOperator, CustomEnums, CategoryString, IsMes
         cat = rig.DazMorphCats[self.custom]
         cat.name = self.category
 
-
-def removeFromPropGroups(rig, prop, keep=False):
-    from .propgroups import getAllPropGroups
-    for pb in rig.pose.bones:
-        pgs = getAllPropGroups(pb)
-        for pg in pgs:
-            removeFromPropGroup(pg, prop)
-
-    for morphset in theStandardMorphSets:
-        pgs = getattr(rig, "Daz" + morphset)
-        removeFromPropGroup(pgs, prop)
-
-    if not keep:
-        rig[prop] = 0
-        del rig[prop]
-        for ob in rig.children:
-            if prop in ob.keys():
-                ob[prop] = 0
-                del ob[prop]
-
-
 def removeFromPropGroup(pgs, prop):
     idxs = []
     for n,item in enumerate(pgs):
@@ -1213,6 +1192,146 @@ def removeFromPropGroup(pgs, prop):
     idxs.reverse()
     for n in idxs:
         pgs.remove(n)
+
+#------------------------------------------------------------------------
+#   Remove category
+#------------------------------------------------------------------------
+
+class DAZ_OT_RemoveCategories(DazOperator, Selector, IsMeshArmature):
+    bl_idname = "daz.remove_categories"
+    bl_label = "Remove Categories"
+    bl_description = "Remove selected categories and associated drivers"
+    bl_options = {'UNDO'}
+
+    deleteShapekeys : BoolProperty(
+        name = "Delete Shapekeys",
+        description = "Delete both drivers and shapekeys",
+        default = True)
+
+    def drawExtra(self, context):
+        self.layout.prop(self, "deleteShapekeys")
+
+    def run(self, context):
+        items = [(item.index, item.name) for item in self.getSelectedItems()]
+        items.sort()
+        items.reverse()
+        ob = context.object
+        if ob.type == 'ARMATURE':
+            self.runRig(context, ob, items)
+        elif ob.type == 'MESH':
+            self.runMesh(context, ob, items)
+
+
+    def runMesh(self, context, ob, items):
+        for idx,key in items:
+            cat = ob.DazMorphCats[key]
+            ob.DazMorphCats.remove(idx)
+        if len(ob.DazMorphCats) == 0:
+            ob.DazMeshMorphs = False
+
+
+    def runRig(self, context, rig, items):
+        amt = rig.data
+        for idx,key in items:
+            cat = rig.DazMorphCats[key]
+            for pg in cat.morphs:
+                raw = pg.name
+                final = finalProp(raw)
+                rest = restProp(raw)
+                if raw in rig.keys():
+                    rig[raw] = 0.0
+                self.removePropDrivers(rig, propRef(raw), rig)
+                self.removePropDrivers(amt, propRef(final), amt)
+                self.removePropDrivers(amt, propRef(rest), amt)
+                for ob in rig.children:
+                    if ob.type == 'MESH':
+                        self.removePropDrivers(ob.data.shape_keys, propRef(raw), rig)
+                        self.removePropDrivers(ob.data.shape_keys, propRef(final), amt)
+                        if self.deleteShapekeys and ob.data.shape_keys:
+                            if raw in ob.data.shape_keys.key_blocks.keys():
+                                skey = ob.data.shape_keys.key_blocks[raw]
+                                ob.shape_key_remove(skey)
+                if raw in rig.keys():
+                    self.removeFromPropGroups(rig, raw, False)
+                if final in amt.keys():
+                    amt[final] = 0.0
+                    del amt[final]
+                if rest in amt.keys():
+                    amt[rest] = 0.0
+                    del amt[rest]
+            rig.DazMorphCats.remove(idx)
+        if len(rig.DazMorphCats) == 0:
+            rig.DazCustomMorphs = False
+
+
+    def removePropDrivers(self, rna, path, rig):
+        def matchesPath(var, path, rig):
+            if var.type == 'SINGLE_PROP':
+                trg = var.targets[0]
+                return (trg.id == rig and trg.data_path == path)
+            return False
+
+        if rna is None or rna.animation_data is None:
+            return
+        fcus = []
+        for fcu in rna.animation_data.drivers:
+            if fcu.data_path == path:
+                fcus.append(fcu)
+                continue
+            vars = []
+            keep = False
+            for var in fcu.driver.variables:
+                if matchesPath(var, path, rig):
+                    vars.append(var)
+                else:
+                    keep = True
+            if keep:
+                if fcu.driver.type == 'SCRIPTED':
+                    string = fcu.driver.expression
+                    for var in vars:
+                        string = string.replace(var.name, "0")
+                    fcu.driver.expression = string
+                for var in vars:
+                    fcu.driver.variables.remove(var)
+            else:
+                fcus.append(fcu)
+        for fcu in fcus:
+            try:
+                rna.driver_remove(fcu.data_path, fcu.array_index)
+            except TypeError:
+                pass
+
+
+    def removeFromPropGroups(self, rig, prop, keep=False):
+        from .propgroups import getAllPropGroups
+        for pb in rig.pose.bones:
+            pgs = getAllPropGroups(pb)
+            for pg in pgs:
+                removeFromPropGroup(pg, prop)
+
+        for morphset in theStandardMorphSets:
+            pgs = getattr(rig, "Daz" + morphset)
+            removeFromPropGroup(pgs, prop)
+
+        if not keep:
+            rig[prop] = 0
+            del rig[prop]
+            for ob in rig.children:
+                if prop in ob.keys():
+                    ob[prop] = 0
+                    del ob[prop]
+
+
+    def selectCondition(self, item):
+        return True
+
+
+    def getKeys(self, rig, ob):
+        keys = []
+        for cat in ob.DazMorphCats:
+            key = cat.name
+            keys.append((key,key,key))
+        return keys
 
 #------------------------------------------------------------------------
 #   Apply morphs
@@ -2542,6 +2661,7 @@ classes = [
     DAZ_OT_AddShapeToCategory,
     DAZ_OT_RemoveShapeFromCategory,
     DAZ_OT_RenameCategory,
+    DAZ_OT_RemoveCategories,
     DAZ_OT_Prettify,
     DAZ_OT_ActivateAll,
     DAZ_OT_DeactivateAll,
