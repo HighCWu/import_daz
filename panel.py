@@ -273,7 +273,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.copy_bone_poses")
             box.separator()
             box.operator("daz.add_ik_goals")
-            box.operator("daz.add_winder")
+            box.operator("daz.add_winders")
             box.operator("daz.change_prefix_to_suffix")
             box.separator()
             box.operator("daz.update_rig_version")

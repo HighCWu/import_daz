@@ -898,19 +898,56 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
 #   Add Winder
 #-------------------------------------------------------------
 
-class DAZ_OT_AddWinder(DazOperator, GizmoUser, IsArmature):
-    bl_idname = "daz.add_winder"
-    bl_label = "Add Winder"
-    bl_description = "Add winder to active posebone"
+class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
+    bl_idname = "daz.add_winders"
+    bl_label = "Add Winders"
+    bl_description = "Add winders to selected posebones"
     bl_options = {'UNDO'}
 
+    layer : IntProperty(
+        name = "Bone Layer",
+        description = "Bone layer for the winder bones",
+        min = 1, max = 32,
+        default = 4)
+
+    useLockLoc : BoolProperty(
+        name = "Lock Location",
+        description = "Lock winder location even if original bone is not locked",
+        default = True)
+
+    def draw(self, context):
+        self.layout.prop(self, "layer")
+        self.layout.prop(self, "useLockLoc")
+
+
     def run(self, context):
-        from .mhx import copyRotation, copyScale
-        bpy.ops.object.mode_set(mode='POSE')
         rig = context.object
-        pb = bpy.context.active_pose_bone
-        if pb is None:
-            raise DazError("No active posebone")
+        layers = (self.layer-1)*[False] + [True] + (32-self.layer)*[False]
+        for pb in self.findPoseRoots(rig):
+            self.addWinder(context, pb, rig, layers)
+
+
+    def findPoseRoots(self, rig):
+        proots = {}
+        for pb in rig.pose.bones:
+            if pb.bone.select and len(pb.children) == 1:
+                proots[pb.name] = pb
+        removes = {}
+        for proot in proots.values():
+            pb = proot
+            while len(pb.children) == 1:
+                pb = pb.children[0]
+                removes[pb.name] = True
+            if len(pb.children) > 0:
+                removes[proot.name] = True
+        for bname in removes.keys():
+            if bname in proots.keys():
+                del proots[bname]
+        return proots.values()
+
+
+    def addWinder(self, context, pb, rig, layers):
+        from .mhx import copyRotation, copyScale
         bname = pb.name
         wname = "Wind"+bname
         self.startGizmos(context, rig)
@@ -924,6 +961,7 @@ class DAZ_OT_AddWinder(DazOperator, GizmoUser, IsArmature):
         tarb.tail = eb.tail
         tarb.roll = eb.roll
         tarb.parent = eb.parent
+        tarb.layers = layers
         n = 1
         length = eb.length
         while eb.children and len(eb.children) == 1:
@@ -933,21 +971,26 @@ class DAZ_OT_AddWinder(DazOperator, GizmoUser, IsArmature):
             length += eb.length
 
         bpy.ops.object.mode_set(mode='POSE')
-        target = rig.pose.bones[wname]
-        target.custom_shape = gizmo
-        target.bone.show_wire = True
-        target.rotation_mode = pb.rotation_mode
-        target.matrix_basis = pb.matrix_basis
+        winder = rig.pose.bones[wname]
+        winder.custom_shape = gizmo
+        winder.bone.show_wire = True
+        winder.rotation_mode = pb.rotation_mode
+        winder.matrix_basis = pb.matrix_basis
+        winder.lock_location = pb.lock_location
+        winder.lock_rotation = pb.lock_rotation
+        winder.lock_scale = pb.lock_scale
+        if self.useLockLoc:
+            winder.lock_location = (True, True, True)
 
         infl = 2*pb.bone.length/length
-        cns1 = copyRotation(pb, target, rig)
+        cns1 = copyRotation(pb, winder, rig)
         cns1.influence = infl
-        cns2 = copyScale(pb, target, rig)
+        cns2 = copyScale(pb, winder, rig)
         cns2.influence = infl
         while pb.children and len(pb.children) == 1:
             pb = pb.children[0]
             infl = 2*pb.bone.length/length
-            cns1 = copyRotation(pb, target, rig)
+            cns1 = copyRotation(pb, winder, rig)
             cns1.use_offset = True
             cns1.influence = infl
 
@@ -957,7 +1000,7 @@ class DAZ_OT_AddWinder(DazOperator, GizmoUser, IsArmature):
 
 classes = [
     DAZ_OT_AddIkGoals,
-    DAZ_OT_AddWinder,
+    DAZ_OT_AddWinders,
     DAZ_OT_ChangePrefixToSuffix,
 ]
 
