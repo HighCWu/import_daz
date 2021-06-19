@@ -1220,9 +1220,9 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
 
     def drawExtra(self, context):
         self.layout.prop(self, "useDeleteShapekeys")
-        self.layout.prop(self, "useDeleteProps")
-        if not self.useDeleteProps:
-            self.layout.prop(self, "useDeleteDrivers")
+        self.layout.prop(self, "useDeleteDrivers")
+        if self.useDeleteDrivers:
+            self.layout.prop(self, "useDeleteProps")
 
     def run(self, context):
         items = [(item.index, item.name) for item in self.getSelectedItems()]
@@ -1253,7 +1253,7 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
                 rest = restProp(raw)
                 if raw in rig.keys():
                     rig[raw] = 0.0
-                if self.useDeleteProps or self.useDeleteDrivers:
+                if self.useDeleteDrivers:
                     self.removePropDrivers(rig, propRef(raw), rig)
                     self.removePropDrivers(amt, propRef(final), amt)
                     self.removePropDrivers(amt, propRef(rest), amt)
@@ -1267,7 +1267,7 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
                                 ob.shape_key_remove(skey)
                 if raw in rig.keys():
                     self.removeFromPropGroups(rig, raw)
-                if self.useDeleteProps:
+                if self.useDeleteProps and self.useDeleteDrivers:
                     if raw in rig.keys():
                         rig[raw] = 0.0
                         del rig[raw]
