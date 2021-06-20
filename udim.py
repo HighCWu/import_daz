@@ -41,19 +41,8 @@ def getTargetMaterial(scn, context):
     return [(mat.name, mat.name, mat.name) for mat in ob.data.materials]
 
 
-class DAZ_OT_UdimizeMaterials(DazOperator):
-    bl_idname = "daz.make_udim_materials"
-    bl_label = "Make UDIM Materials"
-    bl_description = "Combine materials of selected mesh into a single UDIM material"
-    bl_options = {'UNDO'}
-
+class MaterialSelector:
     umats : CollectionProperty(type = DazUdimGroup)
-    trgmat : EnumProperty(items=getTargetMaterial, name="Active")
-
-    useFixTiles : BoolProperty(
-        name = "Fix UV tiles",
-        description =  "Move UV vertices to the right tile automatically",
-        default = True)
 
     @classmethod
     def poll(self, context):
@@ -62,11 +51,49 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
 
 
     def draw(self, context):
+        for umat in self.umats:
+            self.layout.prop(umat, "bool", text=umat.name)
+
+
+    def isUdimMaterial(self, mat, color):
+        if mat.diffuse_color[0:3] == color:
+            return True
+        from .guess import getSkinMaterial
+        return (getSkinMaterial(mat) in ["Red", "Teeth"])
+
+
+    def shiftUVs(self, mat, mn, ob, tile):
+        ushift = tile - mat.DazUDim
+        print(" Shift", mat.name, mn, ushift)
+        uvloop = ob.data.uv_layers.active
+        m = 0
+        for fn,f in enumerate(ob.data.polygons):
+            if f.material_index == mn:
+                for n in range(len(f.vertices)):
+                    uvloop.data[m].uv[0] += ushift
+                    m += 1
+            else:
+                m += len(f.vertices)
+
+
+class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
+    bl_idname = "daz.make_udim_materials"
+    bl_label = "Make UDIM Materials"
+    bl_description = "Combine materials of selected mesh into a single UDIM material"
+    bl_options = {'UNDO'}
+
+    trgmat : EnumProperty(items=getTargetMaterial, name="Active")
+
+    useFixTiles : BoolProperty(
+        name = "Fix UV tiles",
+        description =  "Move UV vertices to the right tile automatically",
+        default = True)
+
+    def draw(self, context):
         self.layout.prop(self, "useFixTiles")
         self.layout.prop(self, "trgmat")
         self.layout.label(text="Materials To Merge")
-        for umat in self.umats:
-            self.layout.prop(umat, "bool", text=umat.name)
+        MaterialSelector.draw(self, context)
 
 
     def invoke(self, context, event):
@@ -75,6 +102,12 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
             from .error import invokeErrorMessage
             invokeErrorMessage("Save local textures first")
             return {'CANCELLED'}
+        self.collectMaterials(ob)
+        context.window_manager.invoke_props_dialog(self)
+        return {'RUNNING_MODAL'}
+
+
+    def collectMaterials(self, ob):
         from .guess import getSkinMaterial
         from .material import WHITE
         color = WHITE
@@ -87,15 +120,6 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
             item = self.umats.add()
             item.name = mat.name
             item.bool = self.isUdimMaterial(mat, color)
-        context.window_manager.invoke_props_dialog(self)
-        return {'RUNNING_MODAL'}
-
-
-    def isUdimMaterial(self, mat, color):
-        if mat.diffuse_color[0:3] == color:
-            return True
-        from .guess import getSkinMaterial
-        return (getSkinMaterial(mat) in ["Red", "Teeth"])
 
 
     def run(self, context):
@@ -179,20 +203,6 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
                 return
 
 
-    def shiftUVs(self, mat, mn, ob, tile):
-        ushift = tile - mat.DazUDim
-        print(" Shift", mat.name, mn, ushift)
-        uvloop = ob.data.uv_layers.active
-        m = 0
-        for fn,f in enumerate(ob.data.polygons):
-            if f.material_index == mn:
-                for n in range(len(f.vertices)):
-                    uvloop.data[m].uv[0] += ushift
-                    m += 1
-            else:
-                m += len(f.vertices)
-
-
     def getChannels(self, mat):
         channels = {}
         for node in mat.node_tree.nodes:
@@ -240,43 +250,42 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
 #   Set Udims to given tile
 #----------------------------------------------------------
 
-class DAZ_OT_SetUDims(DazOperator):
+class DAZ_OT_SetUDims(DazOperator, MaterialSelector):
     bl_idname = "daz.set_udims"
     bl_label = "Set UDIM Tile"
-    bl_description = (
-        "Move all UV coordinates to specified UV tile\n" +
-        "Do this on geografts before merging.")
+    bl_description = "Move all UV coordinates of selected materials to specified UV tile"
     bl_options = {'UNDO'}
 
     tile : IntProperty(name="Tile", min=1001, max=1100, default=1001)
 
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.type == 'MESH' and not ob.DazUDimsCollapsed)
-
     def draw(self, context):
         self.layout.prop(self, "tile")
+        MaterialSelector.draw(self, context)
 
-    def run(self, context):
-        bpy.ops.object.mode_set(mode='OBJECT')
-        for ob in getSelectedMeshes(context):
-            self.setUDims(ob)
 
     def invoke(self, context, event):
+        self.umats.clear()
+        for mat in context.object.data.materials:
+            item = self.umats.add()
+            item.name = mat.name
+            item.bool = False
         context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
-    def setUDims(self, ob):
+
+    def run(self, context):
         from .material import addUdim
-        from .geometry import addUdimsToUVs
+        ob = context.object
         vdim = (self.tile - 1001)//10
-        udim = self.tile - 1001 - 10*vdim
-        addUdimsToUVs(ob, False, udim, vdim)
-        for mn,mat in enumerate(ob.data.materials):
-            addUdim(mat, udim - mat.DazUDim, vdim - mat.DazVDim)
-            mat.DazUDim = udim
-            mat.DazVDim = vdim
+        udim = self.tile - 10*vdim
+        tile = self.tile - 1001
+        for mn,umat in enumerate(self.umats):
+            if umat.bool:
+                mat = ob.data.materials[umat.name]
+                self.shiftUVs(mat, mn, ob, tile)
+                addUdim(mat, udim - mat.DazUDim, vdim - mat.DazVDim)
+                mat.DazUDim = udim
+                mat.DazVDim = vdim
 
 #----------------------------------------------------------
 #   Initialize
