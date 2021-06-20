@@ -39,11 +39,19 @@ from .driver import DriverUser
 #   Merge geografts
 #-------------------------------------------------------------
 
-class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
+class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh):
     bl_idname = "daz.merge_geografts"
     bl_label = "Merge Geografts"
     bl_description = "Merge selected geografts to active object"
     bl_options = {'UNDO'}
+
+    useMergeUvLayers : BoolProperty(
+        name = "Merge UV Layers",
+        description = "Merge active render UV layers to a single layer",
+        default = True)
+
+    def draw(self, context):
+        self.layout.prop(self, "useMergeUvLayers")
 
     def __init__(self):
         DriverUser.__init__(self)
@@ -55,11 +63,13 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
 
         # Find anatomies and move graft verts into position
         anatomies = []
+        auvnames = []
         for aob in getSelectedMeshes(context):
             if (aob != cob and
                 aob.data.DazGraftGroup):
                 anatomies.append(aob)
-                #self.removeMultires(aob)
+                uvname = self.getActiveUvLayer(aob)[1]
+                auvnames.append(uvname)
 
         if len(anatomies) < 1:
             raise DazError("At least two meshes must be selected.\nGeografts selected and target active.")
@@ -204,8 +214,36 @@ class DAZ_OT_MergeGeografts(DazOperator, MaterialMerger, DriverUser, IsMesh):
                 dists.sort()
                 pair.a = dists[0][1]
 
+        # Merge UV layers
+        if self.useMergeUvLayers:
+            self.mergeUvLayers(cob, auvnames)
         self.copyShapeKeyDrivers(cob, drivers)
         updateDrivers(cob)
+
+
+    def getActiveUvLayer(self, ob):
+        for idx,uvlayer in enumerate(ob.data.uv_layers):
+            if uvlayer.active_render:
+                return idx, uvlayer.name
+        return 0, None
+
+
+    def mergeUvLayers(self, cob, auvnames):
+        idx0 = self.getActiveUvLayer(cob)[0]
+        idxs = []
+        for idx,uvlayer in enumerate(cob.data.uv_layers):
+            if idx != idx0:
+                uvname = uvlayer.name
+                if uvname in auvnames:
+                    idxs.append(idx)
+                elif len(uvname) > 4 and uvname[-3] == "." and uvname[-3:].isdigit():
+                    uvname = uvname[:-4]
+                    if uvname in auvnames:
+                        idxs.append(idx)
+        if idxs:
+            idxs.reverse()
+        for idx in idxs:
+            mergeUvLayers(cob.data, idx0, idx)
 
 
     def replaceTexco(self, ob):
@@ -362,7 +400,7 @@ class DAZ_OT_CreateGraftGroups(DazOperator):
 #   Merge UV sets
 #-------------------------------------------------------------
 
-def getUVLayers(scn, context):
+def getUvLayers(scn, context):
     ob = context.object
     enums = []
     for n,uv in enumerate(ob.data.uv_layers):
@@ -371,7 +409,7 @@ def getUVLayers(scn, context):
     return enums
 
 
-class DAZ_OT_MergeUVLayers(DazPropsOperator, IsMesh):
+class DAZ_OT_MergeUvLayers(DazPropsOperator, IsMesh):
     bl_idname = "daz.merge_uv_layers"
     bl_label = "Merge UV Layers"
     bl_description = ("Merge an UV layer to the active render layer.\n" +
@@ -380,7 +418,7 @@ class DAZ_OT_MergeUVLayers(DazPropsOperator, IsMesh):
     bl_options = {'UNDO'}
 
     layer : EnumProperty(
-        items = getUVLayers,
+        items = getUvLayers,
         name = "Layer To Merge",
         description = "UV layer that is merged with the active render layer")
 
@@ -405,13 +443,13 @@ class DAZ_OT_MergeUVLayers(DazPropsOperator, IsMesh):
         if self.keepIdx < 0:
             raise DazError("No active UV layer found")
         mergeIdx = int(self.layer)
-        mergeUVLayers(context.object.data, self.keepIdx, mergeIdx)
+        mergeUvLayers(context.object.data, self.keepIdx, mergeIdx)
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
-def mergeUVLayers(me, keepIdx, mergeIdx):
+def mergeUvLayers(me, keepIdx, mergeIdx):
     def replaceUVMapNodes(me, mergeLayer):
         for mat in me.materials:
             texco = None
@@ -1193,7 +1231,7 @@ class DAZ_OT_MergeToes(DazOperator, IsArmature):
 classes = [
     DAZ_OT_MergeGeografts,
     DAZ_OT_CreateGraftGroups,
-    DAZ_OT_MergeUVLayers,
+    DAZ_OT_MergeUvLayers,
     DAZ_OT_MergeRigs,
     DAZ_OT_EliminateEmpties,
     DAZ_OT_CopyBonePoses,

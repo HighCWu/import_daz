@@ -670,13 +670,13 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
 
     def mergeLashes(self, ob):
-        from .merge import mergeUVLayers
+        from .merge import mergeUvLayers
         nlayers = len(ob.data.uv_layers)
         bpy.ops.object.join()
         idxs = list(range(nlayers, len(ob.data.uv_layers)))
         idxs.reverse()
         for idx in idxs:
-            mergeUVLayers(ob.data, 0, idx)
+            mergeUvLayers(ob.data, 0, idx)
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
