@@ -31,78 +31,59 @@ from random import random
 from .utils import *
 from .error import *
 
-SkinMaterials = {
-    "eyelash" : ("Black", ),
-    "eyelashes" : ("Black", ),
-    "eyemoisture" : ("Invis", ),
-    "lacrimal" : ("Invis", ),
-    "lacrimals" : ("Invis", ),
-    "cornea" : ("Invis", ),
-    "tear" : ("Invis", ),
-    "eyereflection" : ("Invis", ),
-
-    "fingernail" : ("Red", ),
-    "fingernails" : ("Red", ),
-    "toenail" : ("Red", ),
-    "toenails" : ("Red", ),
-    "lip" : ("Red", ),
-    "lips" : ("Red", ),
-    "mouth" : ("Red", ),
-    "tongue" : ("Red", ),
-    "innermouth" : ("Red", ),
-    "gums" : ("Red", ),
-    "teeth" : ("Teeth", ),
-    "pupil" : ("Black", ),
-    "pupils" : ("Black", ),
-    "sclera" : ("White", ),
-    "iris" : ("Blue", ),
-    "irises" : ("Blue", ),
-
-    "skinface" : ("Skin", ),
-    "face" : ("Skin", ),
-    "nostril" : ("Skin", ),
-    "nostrils" : ("Skin", ),
-    "skinhead" : ("Skin", ),
-    "eyebrow" : ("Skin", ),
-    "head" : ("Skin", ),
-    "ears" : ("Skin", ),
-    "skinleg" : ("Skin", ),
-    "legs" : ("Skin", ),
-    "skintorso" : ("Skin", ),
-    "torso" : ("Skin", ),
-    "body" : ("Skin", ),
-    "eyesocket" : ("Skin", ),
-    "skinarm" : ("Skin", ),
-    "arms" : ("Skin", ),
-    "skinneck" : ("Skin", ),
-    "neck" : ("Skin", ),
-    "nipple" : ("Skin", ),
-    "nipples" : ("Skin", ),
-    "skinforearm" : ("Skin", ),
-    "forearms" : ("Skin", ),
-    "skinfoot" : ("Skin", ),
-    "feet" : ("Skin", ),
-    "skinhip" : ("Skin", ),
-    "hips" : ("Skin", ),
-    "shoulders" : ("Skin", ),
-    "skinhand" : ("Skin", ),
-    "hands" : ("Skin", ),
-
-    "genitalia" : ("Skin", ),
-    "labia" : ("Skin", ),
-    "anus" : ("Skin", ),
-    "vagina" : ("Skin", ),
-    "rectum" : ("Skin", ),
-    "gp_torso_back" : ("Skin", ),
-}
-
 def getSkinMaterial(mat):
+    SkinMaterials = {
+        "eyelash" : "Black",
+        "eyelashes" : "Black",
+        "eyemoisture" : "Invis",
+        "lacrimal" : "Invis",
+        "lacrimals" : "Invis",
+        "cornea" : "Invis",
+        "tear" : "Invis",
+        "eyereflection" : "Invis",
+
+        "fingernail" : "Red",
+        "fingernails" : "Red",
+        "toenail" : "Red",
+        "toenails" : "Red",
+        "lip" : "Red",
+        "lips" : "Red",
+        "mouth" : "Red",
+        "tongue" : "Red",
+        "innermouth" : "Red",
+        "gums" : "Red",
+        "teeth" : "Teeth",
+        "pupil" : "Black",
+        "pupils" : "Black",
+        "sclera" : "White",
+        "iris" : "Blue",
+        "irises" : "Blue",
+
+        "skinface" : "Skin",
+        "face" : "Skin",
+        "head" : "Skin",
+        "ears" : "Skin",
+        "skinleg" : "Skin",
+        "legs" : "Skin",
+        "skintorso" : "Skin",
+        "torso" : "Skin",
+        "body" : "Skin",
+        "skinarm" : "Skin",
+        "arms" : "Skin",
+        "feet" : "Skin",
+        "skinhip" : "Skin",
+        "hips" : "Skin",
+        "shoulders" : "Skin",
+        "skinhand" : "Skin",
+        "hands" : "Skin",
+    }
+
     mname = mat.name.lower().split("-")[0].split(".")[0].split(" ")[0].split("&")[0]
     if mname in SkinMaterials.keys():
-        return SkinMaterials[mname][0]
+        return SkinMaterials[mname]
     mname2 = mname.rsplit("_", 2)[-1]
     if mname2 in SkinMaterials.keys():
-        return SkinMaterials[mname2][0]
+        return SkinMaterials[mname2]
     return None
 
 
@@ -126,7 +107,7 @@ def guessMaterialColor(mat, choose, enforce, default):
             pass
         elif color is not None:
             if color == "Skin":
-                setDiffuse(mat, LS.skinColor)
+                setDiffuse(mat, default)
             elif color == "Red":
                 setDiffuse(mat, (1,0,0,1))
             elif color == "Blue":
@@ -211,8 +192,6 @@ class DAZ_OT_ChangeSkinColor(DazPropsOperator, ColorProp, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        LS.skinColor = self.color
-        LS.clothesColor = self.color
         for ob in getSelectedMeshes(context):
             for mat in ob.data.materials:
                 guessMaterialColor(mat, 'GUESS', True, self.color)

@@ -75,18 +75,27 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
             from .error import invokeErrorMessage
             invokeErrorMessage("Save local textures first")
             return {'CANCELLED'}
+        from .guess import getSkinMaterial
+        from .material import WHITE
+        color = WHITE
+        for mat in ob.data.materials:
+            if getSkinMaterial(mat) == "Skin":
+                color = mat.diffuse_color[0:3]
+                break
         self.umats.clear()
         for mat in ob.data.materials:
             item = self.umats.add()
             item.name = mat.name
-            item.bool = self.isUdimMaterial(mat)
+            item.bool = self.isUdimMaterial(mat, color)
         context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
 
-    def isUdimMaterial(self, mat):
+    def isUdimMaterial(self, mat, color):
+        if mat.diffuse_color[0:3] == color:
+            return True
         from .guess import getSkinMaterial
-        return (getSkinMaterial(mat) in ["Skin", "Red", "Teeth"])
+        return (getSkinMaterial(mat) in ["Red", "Teeth"])
 
 
     def run(self, context):
@@ -135,12 +144,13 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
                         img.name = "%s%d%s" % (basename, atile, os.path.splitext(img.name)[1])
 
             img = anode.image
+            tile0 = img.tiles[0]
             for udim,mname in udims.items():
                 if udim == 0:
-                    tile.number = 1001
-                    tile.label = mname
+                    tile0.number = 1001
+                    tile0.label = mname
                 else:
-                    tile = img.tiles.new(tile_number=1001+udim, label=mname)
+                    img.tiles.new(tile_number=1001+udim, label=mname)
 
         for f in ob.data.polygons:
             if f.material_index in mnums:

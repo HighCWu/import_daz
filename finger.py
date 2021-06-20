@@ -79,7 +79,9 @@ def getFingerPrint(ob):
 
 
 def getFingeredCharacter(ob, verbose=True):
-    if ob.type == 'MESH':
+    if ob is None:
+        return None,None,""
+    elif ob.type == 'MESH':
         finger = getFingerPrint(ob)
         if finger in FingerPrints.keys():
             char = FingerPrints[finger]
