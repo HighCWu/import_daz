@@ -50,6 +50,11 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
     umats : CollectionProperty(type = DazUdimGroup)
     trgmat : EnumProperty(items=getTargetMaterial, name="Active")
 
+    useFixTiles : BoolProperty(
+        name = "Fix UV tiles",
+        description =  "Move UV vertices to the right tile automatically",
+        default = True)
+
     @classmethod
     def poll(self, context):
         ob = context.object
@@ -58,6 +63,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
 
     def draw(self, context):
         self.layout.prop(self, "trgmat")
+        self.layout.prop(self, "useFixTiles")
         self.layout.label(text="Materials To Merge")
         for umat in self.umats:
             self.layout.prop(umat, "bool", text=umat.name)
@@ -90,22 +96,15 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
         mats = []
         mnums = []
         amat = None
-        tile0 = False
         for mn,umat in enumerate(self.umats):
             if umat.bool:
                 mat = ob.data.materials[umat.name]
                 mats.append(mat)
-                if amat is None:
+                mnums.append(mn)
+                if amat is None or mat.name == self.trgmat:
                     amat = mat
                     amnum = mn
-                    tile0 = (mat.DazUDim == 0)
-                elif not tile0 and mat.DazUDim == 0:
-                    mnums.append(amnum)
-                    amat = mat
-                    amnum = mn
-                    tile0 = True
-                else:
-                    mnums.append(mn)
+                    atile = 1001 + mat.DazUDim
 
         if amat is None:
             raise DazError("No materials selected")
@@ -113,6 +112,12 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
         self.nodes = {}
         for mat in mats:
             self.nodes[mat.name] = self.getChannels(mat)
+
+        if self.useFixTiles:
+            for f in ob.data.polygons:
+                f.select = False
+            for mn,mat in zip(mnums, mats):
+                self.fixTiles(mat, mn, ob)
 
         for key,anode in self.nodes[amat.name].items():
             anode.image.source = "TILED"
@@ -127,17 +132,15 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
                     if mat.DazUDim not in udims.keys():
                         udims[mat.DazUDim] = mat.name
                     if mat == amat:
-                        img.name = basename + "1001" + os.path.splitext(img.name)[1]
+                        img.name = "%s%d%s" % (basename, atile, os.path.splitext(img.name)[1])
 
             img = anode.image
-            tile = img.tiles[0]
-            tile.number = 1001 + amat.DazUDim
-            tile.label = amat.name
             for udim,mname in udims.items():
-                print("  UDIM", udim, mname)
-                if udim != amat.DazUDim:
+                if udim == 0:
+                    tile.number = 1001
+                    tile.label = mname
+                else:
                     tile = img.tiles.new(tile_number=1001+udim, label=mname)
-
 
         for f in ob.data.polygons:
             if f.material_index in mnums:
@@ -147,6 +150,37 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
         for mn in mnums:
             if mn != amnum:
                 ob.data.materials.pop(index=mn)
+
+
+    def fixTiles(self, mat, mn, ob):
+        for node in self.nodes[mat.name].values():
+            if node.image:
+                imgname = node.image.name
+                if imgname[-4:].isdigit():
+                    tile = int(imgname[-4:]) - 1001
+                elif (imgname[-8:-4].isdigit() and
+                      imgname[-4] == "." and
+                      imgname[-3:].isdigit()):
+                    tile = int(imgname[-8:-4]) - 1001
+                else:
+                    continue
+                if mat.DazUDim != tile:
+                    self.shiftUVs(mat, mn, ob, tile)
+                return
+
+
+    def shiftUVs(self, mat, mn, ob, tile):
+        ushift = tile - mat.DazUDim
+        print(" Shift", mat.name, mn, ushift)
+        uvloop = ob.data.uv_layers.active
+        m = 0
+        for fn,f in enumerate(ob.data.polygons):
+            if f.material_index == mn:
+                for n in range(len(f.vertices)):
+                    uvloop.data[m].uv[0] += ushift
+                    m += 1
+            else:
+                m += len(f.vertices)
 
 
     def getChannels(self, mat):
@@ -187,7 +221,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
         fname,ext = os.path.splitext(bpy.path.basename(src))
         trg = os.path.join(folder, basename + du + ext)
         if src != trg and not os.path.exists(trg):
-            #print("Copy %s\n => %s" % (src, trg))
+            print("Copy %s\n => %s" % (src, trg))
             copyfile(src, trg)
         img.filepath = bpy.path.relpath(trg)
 
