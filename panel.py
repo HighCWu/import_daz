@@ -122,12 +122,10 @@ class DAZ_PT_Setup(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowFinish", box):
-            if bpy.app.version >= (2,82,0):
-                box.operator("daz.set_udims")
             box.operator("daz.merge_geografts")
+            box.operator("daz.merge_uv_layers")
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.make_udim_materials")
-            box.operator("daz.merge_uv_layers")
             box.separator()
             box.operator("daz.make_all_bones_poseable")
             box.operator("daz.optimize_pose")
@@ -230,6 +228,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.collapse_udims")
             box.operator("daz.restore_udims")
             box.operator("daz.udims_from_textures")
+            if bpy.app.version >= (2,82,0):
+                box.operator("daz.set_udims")
             box.separator()
             box.operator("daz.remove_shells")
             box.operator("daz.replace_shells")

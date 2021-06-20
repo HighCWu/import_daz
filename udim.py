@@ -62,8 +62,8 @@ class DAZ_OT_UdimizeMaterials(DazOperator):
 
 
     def draw(self, context):
-        self.layout.prop(self, "trgmat")
         self.layout.prop(self, "useFixTiles")
+        self.layout.prop(self, "trgmat")
         self.layout.label(text="Materials To Merge")
         for umat in self.umats:
             self.layout.prop(umat, "bool", text=umat.name)
