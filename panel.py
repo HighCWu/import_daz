@@ -275,6 +275,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.add_ik_goals")
             box.operator("daz.add_winders")
             box.operator("daz.change_prefix_to_suffix")
+            box.operator("daz.lock_bones")
             box.separator()
             box.operator("daz.update_rig_version")
             box.operator("daz.convert_mhx_actions")
