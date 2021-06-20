@@ -838,18 +838,32 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #   Backbone
     #-------------------------------------------------------------
 
-    BackBones = ["spine", "spine-1", "chest", "chest-1"]
-
     def addBack(self, rig):
+        BackBones = ["spine", "spine-1", "chest", "chest-1"]
+        NeckBones = ["neck", "neckLower", "neckUpper", "head"]
+
         bpy.ops.object.mode_set(mode='EDIT')
         spine = rig.data.edit_bones["spine"]
-        chest = rig.data.edit_bones["chest"]
+        if "chest-1" in rig.data.edit_bones:
+            chest = rig.data.edit_bones["chest-1"]
+        else:
+            chest = rig.data.edit_bones["chest"]
         makeBone("back", rig, spine.head, chest.tail, 0, L_MAIN, spine.parent)
-
+        if "neck" in rig.data.edit_bones:
+            neck = rig.data.edit_bones["neck"]
+        else:
+            neck = rig.data.edit_bones["neckLower"]
+        head = rig.data.edit_bones["head"]
+        makeBone("neckhead", rig, neck.head, head.tail, 0, L_MAIN, neck.parent)
         bpy.ops.object.mode_set(mode='POSE')
-        back = rig.pose.bones["back"]
+        self.addBackWinder(rig, "back", BackBones)
+        self.addBackWinder(rig, "neckhead", NeckBones)
+
+
+    def addBackWinder(self, rig, bname, bones):
+        back = rig.pose.bones[bname]
         back.rotation_mode = 'YZX'
-        for bname in self.BackBones:
+        for bname in bones:
             if bname in rig.pose.bones.keys():
                 pb = rig.pose.bones[bname]
                 cns = copyRotation(pb, back, rig)
@@ -1528,6 +1542,7 @@ def connectToParent(rig):
 Gizmos = {
     "master" :          ("GZM_Master", 1),
     "back" :            ("GZM_Knuckle", 1),
+    "neckhead" :            ("GZM_Knuckle", 1),
 
     #Spine
     "root" :            ("GZM_CrownHips", 1),
