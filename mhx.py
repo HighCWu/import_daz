@@ -1017,6 +1017,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     }
 
     def setupFkIk(self, rig):
+        stretchy = True
         bpy.ops.object.mode_set(mode='EDIT')
         self.rolls = {}
         hip = rig.data.edit_bones["hip"]
@@ -1034,7 +1035,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             if abs(roll - hand0.roll) > 180*D:
                 roll = normalizeRoll(roll + 180*D)
             hand = makeBone("hand"+suffix, rig, hand0.head, tail, roll, L_HELP, forearm)
-            hand.use_connect = True
+            hand.use_connect = not stretchy
             hand0.use_connect = False
             hand0.parent = hand
 
@@ -1049,7 +1050,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             forearmFk = deriveBone("forearm.fk"+suffix, forearm, rig, L_LARMFK+dlayer, upper_armFk)
             forearmFk.use_connect = forearm.use_connect
             handFk = deriveBone("hand.fk"+suffix, hand, rig, L_LARMFK+dlayer, forearmFk)
-            handFk.use_connect = True
+            handFk.use_connect = not stretchy
             upper_armIk = deriveBone("upper_arm.ik"+suffix, upper_arm, rig, L_HELP2, armParent)
             forearmIk = deriveBone("forearm.ik"+suffix, forearm, rig, L_HELP2, upper_armIk)
             forearmIk.use_connect = forearm.use_connect
@@ -1083,7 +1084,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             toe = self.setLayer("toe"+suffix, rig, L_HELP)
             shin.tail = foot.head
             foot.tail = toe.head
-            foot.use_connect = True
+            foot.use_connect = not stretchy
             toe.use_connect = True
 
             legSocket = makeBone("legSocket"+suffix, rig, thigh.head, thigh.head+ez, 0, L_LEXTRA+dlayer, thigh.parent)
@@ -1095,7 +1096,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             shinFk = deriveBone("shin.fk"+suffix, shin, rig, L_LLEGFK+dlayer, thighFk)
             shinFk.use_connect = shin.use_connect
             footFk = deriveBone("foot.fk"+suffix, foot, rig, L_LLEGFK+dlayer, shinFk)
-            footFk.use_connect = True
+            footFk.use_connect = not stretchy
             footFk.layers[L_LEXTRA+dlayer] = True
             toeFk = deriveBone("toe.fk"+suffix, toe, rig, L_LLEGFK+dlayer, footFk)
             toeFk.use_connect = True
@@ -1340,7 +1341,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         gaze1 = rpbs["gaze1"]
         copyTransform(gaze1, gaze0, rig, prop)
         for prop in ["MhaArmStretch_L", "MhaArmStretch_R", "MhaLegStretch_L", "MhaLegStretch_R"]:
-            setMhxProp(rig, prop, False)
+            setMhxProp(rig, prop, True)
 
 
     def lockLocations(self, bones):

@@ -748,9 +748,7 @@ class BendTwists:
             copyRotation(twist, pb, rig, space='WORLD')
             if stretch:
                 cns = stretchTo(bend, pb2, rig)
-                cns.mute = True
                 cns = stretchTo(twist, pb2, rig)
-                cns.mute = True
             if self.addTweakBones:
                 btwkname = self.getTweakBoneName(bendname)
                 ttwkname = self.getTweakBoneName(twistname)
