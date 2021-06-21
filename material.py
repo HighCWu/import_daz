@@ -996,9 +996,6 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
                 return True
         elif mat1.use_nodes or mat2.use_nodes:
             return False
-        elif self.areSameInternal(mat1.texture_slots, mat2.texture_slots, mname1, mname2):
-            print(mat1.name, "=", mat2.name)
-            return True
         else:
             return False
 
@@ -1138,43 +1135,6 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
             key2 = self.fixKey(key1, mname1, mname2)
             if key2 not in struct2.keys():
                 return False
-        return True
-
-
-    def areSameInternal(self, mtexs1, mtexs2, mname1, mname2):
-        if len(mtexs1) != len(mtexs2):
-            return False
-        if len(mtexs1) == 0:
-            return True
-
-        deadMtexProps = [
-            "name", "output_node",
-        ]
-        mtexProps = self.getRelevantProps(mtexs1[0], deadMtexProps)
-
-        for n,mtex1 in enumerate(mtexs1):
-            mtex2 = mtexs2[n]
-            if mtex1 is None and mtex2 is None:
-                continue
-            if mtex1 is None or mtex2 is None:
-                return False
-            if not self.haveSameAttrs(mtex1, mtex2, mtexProps, mname1, mname2):
-                return False
-            if hasattr(mtex1.texture, "image"):
-                img1 = mtex1.texture.image
-            else:
-                img1 = None
-            if hasattr(mtex2.texture, "image"):
-                img2 = mtex2.texture.image
-            else:
-                img2 = None
-            if img1 is None and img2 is None:
-                continue
-            if img1 is None or img2 is None:
-                return False
-            if img1.filepath != img2.filepath:
-                return False
-
         return True
 
 # ---------------------------------------------------------------------

@@ -89,8 +89,14 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
         description =  "Move UV vertices to the right tile automatically",
         default = True)
 
+    useMergeMaterials : BoolProperty(
+        name = "Merge Materials",
+        description = "Merge materials and not only textures.\nIf on, some info may be lost.\nIf off, Merge Materials must be called afterwards",
+        default = False)
+
     def draw(self, context):
         self.layout.prop(self, "useFixTiles")
+        self.layout.prop(self, "useMergeMaterials")
         self.layout.prop(self, "trgmat")
         self.layout.label(text="Materials To Merge")
         MaterialSelector.draw(self, context)
@@ -160,12 +166,15 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
             for mat in mats:
                 nodes = self.nodes[mat.name]
                 if key in nodes.keys():
-                    img = nodes[key].image
+                    node = nodes[key]
+                    img = node.image
                     self.updateImage(img, basename, mat.DazUDim)
                     if mat.DazUDim not in udims.keys():
                         udims[mat.DazUDim] = mat.name
                     if mat == amat:
-                        img.name = "%s%d%s" % (basename, atile, os.path.splitext(img.name)[1])
+                        img.name = self.makeImageName(basename, atile, img)
+                        node.label = basename
+                        node.name = basename
 
             img = anode.image
             tile0 = img.tiles[0]
@@ -176,14 +185,30 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
                 else:
                     img.tiles.new(tile_number=1001+udim, label=mname)
 
-        for f in ob.data.polygons:
-            if f.material_index in mnums:
-                f.material_index = amnum
+        if self.useMergeMaterials:
+            for f in ob.data.polygons:
+                if f.material_index in mnums:
+                    f.material_index = amnum
 
-        mnums.reverse()
-        for mn in mnums:
-            if mn != amnum:
-                ob.data.materials.pop(index=mn)
+            mnums.reverse()
+            for mn in mnums:
+                if mn != amnum:
+                    ob.data.materials.pop(index=mn)
+        else:
+            anodes = self.nodes[amat.name]
+            for mat in mats:
+                if mat != amat:
+                    nodes = self.nodes[mat.name]
+                    for key,node in nodes.items():
+                        if key in anodes.keys():
+                            anode = anodes[key]
+                            img = node.image = anode.image
+                            node.extension = "CLIP"
+                            node.label = anode.label
+
+
+    def makeImageName(self, basename, tile, img):
+        return "%s%s" % (basename, os.path.splitext(img.name)[1])
 
 
     def fixTiles(self, mat, mn, ob):
@@ -227,9 +252,8 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
     def getBaseName(self, string, udim):
         du = str(1001 + udim)
         if string[-4:] == du:
-            return string[:-4]
-        else:
-            return string
+            string = string[:-4]
+        return string
 
 
     def updateImage(self, img, basename, udim):
@@ -244,7 +268,6 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
             print("Copy %s\n => %s" % (src, trg))
             copyfile(src, trg)
         img.filepath = bpy.path.relpath(trg)
-
 
 #----------------------------------------------------------
 #   Set Udims to given tile
