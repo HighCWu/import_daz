@@ -959,11 +959,26 @@ class MaterialMerger:
                 pset.material_slot = self.newname[matslot]
 
 
-class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
+class DAZ_OT_MergeMaterials(DazPropsOperator, MaterialMerger, IsMesh):
     bl_idname = "daz.merge_materials"
     bl_label = "Merge Materials"
     bl_description = "Merge identical materials"
     bl_options = {'UNDO'}
+
+    ignoreStrength : BoolProperty(
+        name = "Ignore Strength",
+        description = "Merge materials even if some scalar values differ.\nOften needed to merge materials with bump maps",
+        default = False)
+
+    ignoreColor : BoolProperty(
+        name = "Ignore Color",
+        description = "Merge materials even if some vector values differ",
+        default = False)
+
+    def draw(self, context):
+        self.layout.prop(self, "ignoreStrength")
+        self.layout.prop(self, "ignoreColor")
+
 
     def run(self, context):
         for ob in getSelectedMeshes(context):
@@ -1122,10 +1137,12 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
                 val2 = socket2.default_value
                 if (hasattr(val1, "__len__") and
                     hasattr(val2, "__len__")):
+                    if self.ignoreColor:
+                        continue
                     for m in range(len(val1)):
                         if val1[m] != val2[m]:
                             return False
-                elif val1 != val2:
+                elif val1 != val2 and not self.ignoreStrength:
                     return False
             elif hasattr(socket2, "default_value"):
                 return False
