@@ -92,7 +92,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
     useMergeMaterials : BoolProperty(
         name = "Merge Materials",
         description = "Merge materials and not only textures.\nIf on, some info may be lost.\nIf off, Merge Materials must be called afterwards",
-        default = False)
+        default = True)
 
     def draw(self, context):
         self.layout.prop(self, "useFixTiles")
@@ -205,6 +205,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
                             img = node.image = anode.image
                             node.extension = "CLIP"
                             node.label = anode.label
+                            node.name = anode.name
 
 
     def makeImageName(self, basename, tile, img):

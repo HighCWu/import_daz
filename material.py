@@ -994,8 +994,6 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
             if self.areSameCycles(mat1.node_tree, mat2.node_tree, mname1, mname2):
                 print(mat1.name, "=", mat2.name)
                 return True
-        elif mat1.use_nodes or mat2.use_nodes:
-            return False
         else:
             return False
 
@@ -1012,7 +1010,9 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
     def haveSameAttrs(self, rna1, rna2, props, mname1, mname2):
         for prop in props:
             attr1 = attr2 = None
-            if hasattr(rna1, prop) and hasattr(rna2, prop):
+            if prop[0] == "_" or prop[0:3] == "Daz":
+                pass
+            elif hasattr(rna1, prop) and hasattr(rna2, prop):
                 attr1 = getattr(rna1, prop)
                 if prop == "name":
                     attr1 = self.fixKey(attr1, mname1, mname2)
@@ -1043,13 +1043,24 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
 
 
     def areSameCycles(self, tree1, tree2, mname1, mname2):
-        if not self.haveSameKeys(tree1.nodes, tree2.nodes, mname1, mname2):
+        def rehash(struct):
+            nstruct = {}
+            for key,node in struct.items():
+                if node.name[0:2] == "T_":
+                    nstruct[node.name] = node
+                else:
+                    nstruct[key] = node
+            return nstruct
+
+        nodes1 = rehash(tree1.nodes)
+        nodes2 = rehash(tree2.nodes)
+        if not self.haveSameKeys(nodes1, nodes2, mname1, mname2):
             return False
         if not self.haveSameKeys(tree1.links, tree2.links, mname1, mname2):
             return False
-        for key1,node1 in tree1.nodes.items():
+        for key1,node1 in nodes1.items():
             key2 = self.fixKey(key1, mname1, mname2)
-            node2 = tree2.nodes[key2]
+            node2 = nodes2[key2]
             if not self.areSameNode(node1, node2, mname1, mname2):
                 return False
         for link1 in tree1.links:
@@ -1099,11 +1110,11 @@ class DAZ_OT_MergeMaterials(DazOperator, MaterialMerger, IsMesh):
         )
 
 
-    def haveSameInputs(self, nodes1, nodes2):
-        if len(nodes1.inputs) != len(nodes2.inputs):
+    def haveSameInputs(self, node1, node2):
+        if len(node1.inputs) != len(node2.inputs):
             return False
-        for n,socket1 in enumerate(nodes1.inputs):
-            socket2 = nodes2.inputs[n]
+        for n,socket1 in enumerate(node1.inputs):
+            socket2 = node2.inputs[n]
             if hasattr(socket1, "default_value"):
                 if not hasattr(socket2, "default_value"):
                     return False
