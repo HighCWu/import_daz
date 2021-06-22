@@ -221,6 +221,11 @@ class FresnelGroup(CyclesGroup):
         divide.inputs[0].default_value = 1.0
         self.links.new(self.inputs.outputs["IOR"], divide.inputs[1])
 
+        power = self.addNode("ShaderNodeMath", 1)
+        power.operation = 'POWER'
+        self.links.new(self.inputs.outputs["Roughness"], power.inputs[0])
+        power.inputs[1].default_value = self.exponent
+
         bump = self.addNode("ShaderNodeBump", 1)
         self.links.new(self.inputs.outputs["Normal"], bump.inputs["Normal"])
         bump.inputs["Strength"].default_value = 0
@@ -231,7 +236,7 @@ class FresnelGroup(CyclesGroup):
         self.links.new(divide.outputs["Value"], mix1.inputs[2])
 
         mix2 = self.addNode("ShaderNodeMixRGB", 2)
-        self.links.new(self.inputs.outputs["Roughness"], mix2.inputs["Fac"])
+        self.links.new(power.outputs[0], mix2.inputs["Fac"])
         self.links.new(bump.outputs[0], mix2.inputs[1])
         self.links.new(geo.outputs["Incoming"], mix2.inputs[2])
 
@@ -239,6 +244,14 @@ class FresnelGroup(CyclesGroup):
         self.links.new(mix1.outputs[0], fresnel.inputs["IOR"])
         self.links.new(mix2.outputs[0], fresnel.inputs["Normal"])
         self.links.new(fresnel.outputs["Fac"], self.outputs.inputs["Fac"])
+
+
+class UberFresnelGroup(FresnelGroup):
+    exponent = 2
+
+
+class PBRSkinFresnelGroup(FresnelGroup):
+    exponent = 4
 
 # ---------------------------------------------------------------------
 #   Mix Group. Mixes Cycles and Eevee
@@ -487,7 +500,7 @@ class RefractionGroup(MixGroup):
         self.links.new(refr.outputs[0], thin.inputs[1])
         self.links.new(trans.outputs[0], thin.inputs[2])
 
-        fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 2)
+        fresnel = self.addGroup(UberFresnelGroup, "DAZ Fresnel Uber", 2)
         self.links.new(self.inputs.outputs["Fresnel IOR"], fresnel.inputs["IOR"])
         self.links.new(self.inputs.outputs["Glossy Roughness"], fresnel.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
@@ -759,7 +772,7 @@ class DualLobeGroupPBRSkin(DualLobeGroup):
     lobe2Normal = True
 
     def addFresnel(self, useNormal, roughness):
-        fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel", 1)
+        fresnel = self.addGroup(PBRSkinFresnelGroup, "DAZ Fresnel PBR", 1)
         self.links.new(self.inputs.outputs["IOR"], fresnel.inputs["IOR"])
         self.links.new(self.inputs.outputs[roughness], fresnel.inputs["Roughness"])
         self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
@@ -1168,7 +1181,8 @@ class DAZ_OT_MakeShaderGroups(DazPropsOperator, IsMesh):
     bl_options = {'UNDO'}
 
     groups = {
-        "useFresnel" : (FresnelGroup, "DAZ Fresnel", []),
+        "useUberFresnel" : (UberFresnelGroup, "DAZ Fresnel Uber", []),
+        "usePBRFresnel" : (PBRSkinFresnelGroup, "DAZ Fresnel PBR", []),
         "useEmission" : (EmissionGroup, "DAZ Emission", []),
         "useOneSided" : (OneSidedGroup, "DAZ One-Sided", []),
         "useOverlay" : (DiffuseGroup, "DAZ Overlay", []),
