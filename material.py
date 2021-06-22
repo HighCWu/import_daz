@@ -876,7 +876,7 @@ class DAZ_OT_SaveLocalTextures(DazPropsOperator):
             os.makedirs(texpath)
 
         self.images = []
-        for ob in getSelectedMeshes(context):
+        for ob in getVisibleMeshes(context):
             for mat in ob.data.materials:
                 if mat:
                     if mat.use_nodes:
