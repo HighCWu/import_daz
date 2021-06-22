@@ -92,7 +92,7 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
     useMergeMaterials : BoolProperty(
         name = "Merge Materials",
         description = "Merge materials and not only textures.\nIf on, some info may be lost.\nIf off, Merge Materials must be called afterwards",
-        default = True)
+        default = False)
 
     def draw(self, context):
         self.layout.prop(self, "useFixTiles")
@@ -245,6 +245,8 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
                     return self.getChannel(link.to_node, links)
                 elif link.to_node.type == "BSDF_PRINCIPLED":
                     return ("PBR_%s" % link.to_socket.name)
+                elif link.to_node.type == 'GROUP':
+                    return link.to_node.node_tree.name
                 else:
                     return link.to_node.type
         return None
@@ -254,17 +256,18 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
         du = str(1001 + udim)
         if string[-4:] == du:
             string = string[:-4]
+            if string[-1] in ["_", "-"]:
+                string = string[:-1]
         return string
 
 
     def updateImage(self, img, basename, udim):
         from shutil import copyfile
-        du = str(1001 + udim)
         src = bpy.path.abspath(img.filepath)
         src = bpy.path.reduce_dirs([src])[0]
         folder = os.path.dirname(src)
         fname,ext = os.path.splitext(bpy.path.basename(src))
-        trg = os.path.join(folder, basename + du + ext)
+        trg = os.path.join(folder, "%s_%d%s" % (basename, 1001+udim, ext))
         if src != trg and not os.path.exists(trg):
             print("Copy %s\n => %s" % (src, trg))
             copyfile(src, trg)
