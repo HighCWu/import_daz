@@ -1009,6 +1009,8 @@ class DAZ_OT_MergeMaterials(DazPropsOperator, MaterialMerger, IsMesh):
             if self.areSameCycles(mat1.node_tree, mat2.node_tree, mname1, mname2):
                 print(mat1.name, "=", mat2.name)
                 return True
+            else:
+                return False
         else:
             return False
 
@@ -1025,7 +1027,9 @@ class DAZ_OT_MergeMaterials(DazPropsOperator, MaterialMerger, IsMesh):
     def haveSameAttrs(self, rna1, rna2, props, mname1, mname2):
         for prop in props:
             attr1 = attr2 = None
-            if prop[0] == "_" or prop[0:3] == "Daz":
+            if (prop[0] == "_" or
+                prop[0:3] == "Daz" or
+                prop in ["select"]):
                 pass
             elif hasattr(rna1, prop) and hasattr(rna2, prop):
                 attr1 = getattr(rna1, prop)
@@ -1044,11 +1048,11 @@ class DAZ_OT_MergeMaterials(DazPropsOperator, MaterialMerger, IsMesh):
             isinstance(attr1, float) or
             isinstance(attr1, str)):
             return (attr1 == attr2)
-        if isinstance(attr1, bpy.types.Image):
+        elif isinstance(attr1, bpy.types.Image):
             return (isinstance(attr2, bpy.types.Image) and (attr1.name == attr2.name))
-        if (isinstance(attr1, set) and isinstance(attr2, set)):
+        elif (isinstance(attr1, set) and isinstance(attr2, set)):
             return True
-        if hasattr(attr1, "__len__") and hasattr(attr2, "__len__"):
+        elif hasattr(attr1, "__len__") and hasattr(attr2, "__len__"):
             if (len(attr1) != len(attr2)):
                 return False
             for n in range(len(attr1)):
@@ -1063,6 +1067,8 @@ class DAZ_OT_MergeMaterials(DazPropsOperator, MaterialMerger, IsMesh):
             for key,node in struct.items():
                 if node.name[0:2] == "T_":
                     nstruct[node.name] = node
+                elif node.type == 'GROUP':
+                    nstruct[node.node_tree.name] = node
                 else:
                     nstruct[key] = node
             return nstruct
@@ -1104,25 +1110,36 @@ class DAZ_OT_MergeMaterials(DazPropsOperator, MaterialMerger, IsMesh):
             return False
         deadNodeProps = ["dimensions", "location"]
         nodeProps = self.getRelevantProps(node1, deadNodeProps)
-        if not self.haveSameAttrs(node1, node2, nodeProps, mname1, mname2):
-            return False
-        if not self.haveSameInputs(node1, node2):
-            return False
         if node1.type == 'GROUP':
             if node1.node_tree != node2.node_tree:
                 return False
+        elif not self.haveSameAttrs(node1, node2, nodeProps, mname1, mname2):
+            return False
+        if not self.haveSameInputs(node1, node2):
+            return False
         return True
 
 
     def areSameLink(self, link1, link2, mname1, mname2):
-        fromname1 = self.fixKey(link1.from_node.name, mname1, mname2)
-        toname1 = self.fixKey(link1.to_node.name, mname1, mname2)
+        fromname1 = self.getNodeName(link1.from_node)
+        toname1 = self.getNodeName(link1.to_node)
+        fromname2 = self.getNodeName(link2.from_node)
+        toname2 = self.getNodeName(link2.to_node)
+        fromname1 = self.fixKey(fromname1, mname1, mname2)
+        toname1 = self.fixKey(toname1, mname1, mname2)
         return (
-            (fromname1 == link2.from_node.name) and
-            (toname1 == link2.to_node.name) and
+            (fromname1 == fromname2) and
+            (toname1 == toname2) and
             (link1.from_socket.name == link2.from_socket.name) and
             (link1.to_socket.name == link2.to_socket.name)
         )
+
+
+    def getNodeName(self, node):
+        if node.type == 'GROUP':
+            return node.node_tree.name
+        else:
+            return node.name
 
 
     def haveSameInputs(self, node1, node2):
@@ -1160,6 +1177,8 @@ class DAZ_OT_MergeMaterials(DazPropsOperator, MaterialMerger, IsMesh):
     def haveSameKeys(self, struct1, struct2, mname1, mname2):
         m = len(mname1)
         for key1 in struct1.keys():
+            if key1 in ["interface"]:
+                continue
             key2 = self.fixKey(key1, mname1, mname2)
             if key2 not in struct2.keys():
                 return False
