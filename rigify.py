@@ -1092,6 +1092,10 @@ class Rigify:
             if gen.name in scn.collection.objects:
                 scn.collection.objects.unlink(gen)
                 scn.collection.objects.unlink(meta)
+        if meta.DazPre278:
+            setFkIk1(gen, True, gen.data.layers)
+        else:
+            setFkIk2(gen, False, gen.data.layers)
         activateObject(context, rig)
         deleteObjects(context, [rig])
         if self.useDeleteMeta:
@@ -1099,10 +1103,6 @@ class Rigify:
             deleteObjects(context, [meta])
         activateObject(context, gen)
         gen.name = name
-        if meta.DazPre278:
-            setFkIk1(gen, True, gen.data.layers)
-        else:
-            setFkIk2(gen, False, gen.data.layers)
         F = False
         T = True
         gen.data.layers = (
