@@ -685,11 +685,8 @@ class CyclesTree:
         if isBlack(color) or strength == 0:
             return
 
-        from .cgroup import UberFresnelGroup, PBRSkinFresnelGroup
-        if self.material.shader == 'PBRSKIN':
-            fresnel = self.addGroup(PBRSkinFresnelGroup, "DAZ Fresnel PBR")
-        else:
-            fresnel = self.addGroup(UberFresnelGroup, "DAZ Fresnel Uber")
+        from .cgroup import FresnelGroup
+        fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel")
         ior,iortex = self.getFresnelIOR()
         self.linkScalar(iortex, fresnel, ior, "IOR")
         self.linkBumpNormal(fresnel)

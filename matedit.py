@@ -57,13 +57,9 @@ TweakableChannels = OrderedDict([
     ("Glossy Roughness", ("DAZ Glossy", "Roughness", 1)),
     ("Glossy Strength", ("DAZ Glossy", "Fac", 1)),
 
-    ("Fresnel Uber", None),
-    ("Fresnel Uber IOR", ("DAZ Fresnel Uber", "IOR", 1)),
-    ("Fresnel Uber Roughness", ("DAZ Fresnel Uber", "Roughness", 1)),
-
-    ("Fresnel PBR", None),
-    ("Fresnel PBR IOR", ("DAZ Fresnel PBR", "IOR", 1)),
-    ("Fresnel PBR Roughness", ("DAZ Fresnel PBR", "Roughness", 1)),
+    ("Fresnel", None),
+    ("Fresnel IOR", ("DAZ Fresnel", "IOR", 1)),
+    ("Fresnel Roughness", ("DAZ Fresnel", "Roughness", 1)),
 
     ("Dual Lobe Uber", None),
     ("Dual Lobe Uber Weight", ("DAZ Dual Lobe Uber", "Weight", 1)),
