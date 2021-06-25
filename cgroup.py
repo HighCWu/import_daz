@@ -767,6 +767,7 @@ class DualLobeGroupUberIray(DualLobeGroup):
     def addFresnel(self, useNormal, roughness):
         fresnel = self.addGroup(UberFresnelGroup, "DAZ Fresnel Uber", 1)
         self.links.new(self.inputs.outputs["IOR"], fresnel.inputs["IOR"])
+        self.links.new(self.inputs.outputs[roughness], fresnel.inputs["Roughness"])
         if useNormal:
             self.links.new(self.inputs.outputs["Normal"], fresnel.inputs["Normal"])
         return fresnel
