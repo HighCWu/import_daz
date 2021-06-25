@@ -750,15 +750,21 @@ class CyclesTree:
             #   [ "Reflectivity", "Weighted", "Fresnel", "Custom Curve" ]
             # Top Coat Bump Mode
             #   [ "Height Map", "Normal Map" ]
-            refl,refltex = self.getColorTex(["Reflectivity"], "NONE", 0, useFactor=False)
+            lmode = self.getValue(["Top Coat Layering Mode"], 0)
+            if lmode == 2:  # Fresnel
+                refltex = None
+                weight = topweight
+            else:
+                refl,refltex = self.getColorTex(["Reflectivity"], "NONE", 0, useFactor=False)
+                weight = 0.05 * topweight * refl
             bump,bumptex = self.getColorTex(["Top Coat Bump"], "NONE", 0, useFactor=False)
         else:
             refl,refltex = self.getColorTex(["Top Coat Reflectivity"], "NONE", 0, useFactor=False)
+            weight = 0.05 * topweight * refl
             bump = self.getValue(["Top Coat Bump Weight"], 0)
             bump *= self.bumpval
             bumptex = None
 
-        weight = 0.05 * topweight * refl
         _,tex = self.getColorTex(["Top Coat Weight"], "NONE", 0, value=weight)
         weighttex = self.multiplyTexs(tex, refltex)
         color,coltex = self.getColorTex(["Top Coat Color"], "COLOR", WHITE)
