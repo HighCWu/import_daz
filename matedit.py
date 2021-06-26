@@ -231,16 +231,6 @@ class ChannelSetter:
             socket.default_value = self.getValue(item.color, ncomps)
 
 
-    def setChannelInternal(self, mat, item):
-        nodeType, slot, useAttr, factorAttr, ncomps, fromType = getTweakableChannel(item.name)
-        if not useAttr:
-            return
-        for mtex in mat.texture_slots:
-            if mtex and getattr(mtex, useAttr):
-                value = getattr(mtex, factorAttr)
-                setattr(mtex, factorAttr, self.factor*value)
-
-
     def addSlots(self, context):
         ob = context.object
         ob.DazSlots.clear()
@@ -467,6 +457,7 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, LaunchEditor, IsMesh)
                 item.name = key
                 item.show = False
                 continue
+        context.object.DazTweakMaterials = "Skin"
         self.getAffectedMaterials(context)
         self.addSlots(context)
         return DazPropsOperator.invoke(self, context, event)
@@ -480,13 +471,8 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, LaunchEditor, IsMesh)
 
     def setChannel(self, ob, item):
         for mat in ob.data.materials:
-            if mat:
-                if self.skipMaterial(mat, ob):
-                    continue
-                elif mat.use_nodes:
-                    self.setChannelCycles(mat, item)
-                else:
-                    self.setChannelInternal(mat, item)
+            if mat and not self.skipMaterial(mat, ob):
+                self.setChannelCycles(mat, item)
 
 
     def getObjectSlot(self, mat, key):
@@ -641,16 +627,10 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
     def resetObject(self, ob):
         for mat in ob.data.materials:
             if mat:
-                if mat.use_nodes:
-                    for item in mat.DazSlots:
-                        self.setChannelCycles(mat, item)
-                        item.new = True
-                    mat.DazSlots.clear()
-                else:
-                    for item in mat.DazSlots:
-                        self.setChannelInternal(mat, item)
-                        item.new = True
-                    mat.DazSlots.clear()
+                for item in mat.DazSlots:
+                    self.setChannelCycles(mat, item)
+                    item.new = True
+                mat.DazSlots.clear()
 
 
     def setOriginal(self, socket, ncomps, item, key):
