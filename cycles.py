@@ -808,7 +808,8 @@ class CyclesTree:
 
 
     def buildTranslucency(self):
-        if not self.checkTranslucency():
+        if (GS.materialMethod == 'PRINCIPLED' or
+            not self.checkTranslucency()):
             return
         fac = self.getValue("getChannelTranslucencyWeight", 0)
         effect = self.getValue(["Base Color Effect"], 0)
@@ -819,10 +820,14 @@ class CyclesTree:
         color,coltex = self.getTranslucency()
         if isBlack(color):
             return
-        from .cgroup import TranslucentGroup
-        node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=100)
+
+        from .cgroup import TranslucentGroup, SSSGroup
+        if GS.materialMethod == 'BSDF':
+            node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=100)
+        elif GS.materialMethod == 'BSDF_SSS':
+            node = self.addSSSNode()
         self.linkColor(coltex, node, color, "Color")
-        node.inputs["Scale"].default_value = 1
+        node.inputs["Gamma"].default_value = 2.5
         radius,radtex = self.getSSSRadius(color)
         self.linkColor(radtex, node, radius, "Radius")
         self.linkBumpNormal(node)
@@ -845,6 +850,25 @@ class CyclesTree:
     def setMultiplier(self, node, fac):
         if node and node.type == 'MATH':
             node.inputs[0].default_value = fac
+
+    def addSSSNode(self):
+        from .cgroup import SSSGroup
+        node = self.addGroup(SSSGroup, "DAZ SSS", size=150)
+        sssmode = self.getValue(["SSS Mode"], 0)
+        # [ "Mono", "Chromatic" ]
+        ssscolor = WHITE
+        ssstex = None
+        if sssmode == 1:
+            ssscolor,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK)
+        elif sssmode == 0:
+            sss,ssstex = self.getColorTex(["SSS Amount"], "NONE", 0.0)
+            ssscolor = (sss,sss,sss)
+        self.linkColor(ssstex, node, ssscolor, "SSS Color")
+        transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
+        self.linkColor(transtex, node, transcolor, "Transmitted Color")
+        node.inputs["Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
+        return node
+
 
 #-------------------------------------------------------------
 #   Subsurface
@@ -1110,15 +1134,18 @@ class CyclesTree:
             return 0, WHITE, None, False
 
 
+    def switchColor(self, switch, color, tex):
+        if switch:
+            return  self.invertColor(color, tex, 6)
+        else:
+            return color,tex
+
+
     def buildVolumeTransmission(self, transcolor, transtex, switch):
         from .cgroup import VolumeGroup
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
         if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
-            if switch:
-                color,tex = self.invertColor(transcolor, transtex, 6)
-            else:
-                color,tex = transcolor,transtex
-            #absorb = self.addNode(6, "ShaderNodeVolumeAbsorption")
+            color,tex = self.switchColor(switch, transcolor, transtex)
             self.volume = self.addGroup(VolumeGroup, "DAZ Volume")
             self.volume.inputs["Absorbtion Density"].default_value = 100/dist
             self.linkColor(tex, self.volume, color, "Absorbtion Color")
@@ -1134,10 +1161,7 @@ class CyclesTree:
         sss = self.getValue(["SSS Amount"], 0.0)
         dist = self.getValue("getChannelScatterDist", 0.0)
         if not (sssmode == 0 or isBlack(ssscolor) or isWhite(ssscolor) or dist == 0.0):
-            if switch:
-                color,tex = ssscolor,ssstex
-            else:
-                color,tex = self.invertColor(ssscolor, ssstex, 6)
+            color,tex = self.switchColor(switch, ssscolor, ssstex)
             if self.volume is None:
                 self.volume = self.addGroup(VolumeGroup, "DAZ Volume")
             self.linkColor(tex, self.volume, color, "Scatter Color")

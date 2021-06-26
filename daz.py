@@ -36,7 +36,8 @@ from .fileutils import SingleFile, JsonFile, JsonExportFile
 #   Classes
 #------------------------------------------------------------------
 
-EnumsMaterials = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
+EnumsMaterials = [('BSDF', "BSDF (Volume)", "BSDF using translucency and volume (Cycles, full IRAY materials)"),
+                  ('BSDF_SSS', "BSDF (SSS)", "BSDF using subsurface scattering (Eevee and Cycles)"),
                   ('PRINCIPLED', "Principled", "Principled (Eevee and Cycles)")]
 
 EnumsHair = [('HAIR_BSDF', "Hair BSDF", "Hair BSDF (Cycles)"),
