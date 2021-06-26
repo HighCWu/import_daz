@@ -745,21 +745,28 @@ class CyclesTree:
         topweight = self.getValue(["Top Coat Weight"], 0)
         if topweight == 0:
             return
+
+        # Top Coat Layering Mode
+        #   [ "Reflectivity", "Weighted", "Fresnel", "Custom Curve" ]
+        lmode = self.getValue(["Top Coat Layering Mode"], 0)
+        fresnel = refltex = None
+        if lmode == 2:  # Fresnel
+            from .cgroup import FresnelGroup
+            weight = 0.5
+            fresnel = self.addGroup(FresnelGroup, "DAZ Fresnel")
+            ior,iortex = self.getColorTex(["Top Coat IOR"], "NONE", 1.45)
+            self.linkScalar(iortex, fresnel, ior, "IOR")
+
         if self.material.shader == 'UBER_IRAY':
-            # Top Coat Layering Mode
-            #   [ "Reflectivity", "Weighted", "Fresnel", "Custom Curve" ]
             # Top Coat Bump Mode
             #   [ "Height Map", "Normal Map" ]
-            lmode = self.getValue(["Top Coat Layering Mode"], 0)
-            if lmode == 2:  # Fresnel
-                refltex = None
-                weight = topweight
-            else:
+            if not fresnel:
                 refl,refltex = self.getColorTex(["Reflectivity"], "NONE", 0, useFactor=False)
                 weight = 0.05 * topweight * refl
             bump,bumptex = self.getColorTex(["Top Coat Bump"], "NONE", 0, useFactor=False)
         else:
-            refl,refltex = self.getColorTex(["Top Coat Reflectivity"], "NONE", 0, useFactor=False)
+            if not fresnel:
+                refl,refltex = self.getColorTex(["Top Coat Reflectivity"], "NONE", 0, useFactor=False)
             weight = 0.05 * topweight * refl
             bump = self.getValue(["Top Coat Bump Weight"], 0)
             bump *= self.bumpval
@@ -771,8 +778,11 @@ class CyclesTree:
         roughness,roughtex = self.getColorTex(["Top Coat Roughness"], "NONE", 0)
         if roughness == 0:
             glossiness,glosstex = self.getColorTex(["Top Coat Glossiness"], "NONE", 1)
-            roughness = 1-glossiness
+            roughness = 1 - glossiness
             roughtex = self.invertTex(glosstex, 5)
+            fresnelRough = 1 - glossiness**2
+        else:
+            fresnelRough = roughness
 
         from .cgroup import TopCoatGroup
         self.column += 1
@@ -790,6 +800,10 @@ class CyclesTree:
             self.linkBumpNormal(top)
         top.inputs["Bump"].default_value = bump * GS.bumpFactor
         self.mixWithActive(weight, weighttex, top)
+        if fresnel:
+            self.linkScalar(roughtex, fresnel, fresnelRough, "Roughness")
+            self.linkBumpNormal(fresnel)
+            self.links.new(fresnel.outputs[0], top.inputs["Fac"])
 
 #-------------------------------------------------------------
 #   Translucency
