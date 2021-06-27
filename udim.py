@@ -41,7 +41,7 @@ def getTargetMaterial(scn, context):
     return [(mat.name, mat.name, mat.name) for mat in ob.data.materials]
 
 
-class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
+class DAZ_OT_UdimizeMaterials(DazPropsOperator, MaterialSelector):
     bl_idname = "daz.make_udim_materials"
     bl_label = "Make UDIM Materials"
     bl_description = "Combine materials of selected mesh into a single UDIM material"
@@ -73,7 +73,8 @@ class DAZ_OT_UdimizeMaterials(DazOperator, MaterialSelector):
             from .error import invokeErrorMessage
             invokeErrorMessage("Save local textures first")
             return {'CANCELLED'}
-        return MaterialSelector.invoke(self, context, event)
+        self.setupMaterials(ob)
+        return DazPropsOperator.invoke(self, context, event)
 
 
     def isDefaultActive(self, mat):
@@ -246,7 +247,7 @@ def shiftUVs(mat, mn, ob, tile):
 #   Set Udims to given tile
 #----------------------------------------------------------
 
-class DAZ_OT_SetUDims(DazOperator, MaterialSelector):
+class DAZ_OT_SetUDims(DazPropsOperator, MaterialSelector):
     bl_idname = "daz.set_udims"
     bl_label = "Set UDIM Tile"
     bl_description = "Move all UV coordinates of selected materials to specified UV tile"
@@ -258,8 +259,15 @@ class DAZ_OT_SetUDims(DazOperator, MaterialSelector):
         self.layout.prop(self, "tile")
         MaterialSelector.draw(self, context)
 
+
+    def invoke(self, context, event):
+        self.setupMaterials(context.object)
+        return DazPropsOperator.invoke(self, context, event)
+
+
     def isDefaultActive(self, mat):
         return False
+
 
     def run(self, context):
         from .material import addUdim

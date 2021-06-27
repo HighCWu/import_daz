@@ -70,14 +70,20 @@ class MaterialSelector:
         row = self.layout.row()
         row.operator("daz.select_skin_materials")
         row.operator("daz.select_skin_red_materials")
-        for umat in self.umats:
-            self.layout.prop(umat, "bool", text=umat.name)
+        umats = self.umats
+        while umats:
+            row = self.layout.row()
+            row.prop(umats[0], "bool", text=umats[0].name)
+            if len(umats) > 1:
+                row.prop(umats[1], "bool", text=umats[1].name)
+                umats = umats[2:]
+            else:
+                umats = []
 
 
-    def invoke(self, context, event):
+    def setupMaterials(self, ob):
         from .guess import getSkinMaterial
         self.skinColor = WHITE
-        ob = context.object
         for mat in ob.data.materials:
             if getSkinMaterial(mat) == "Skin":
                 self.skinColor = mat.diffuse_color[0:3]
@@ -88,8 +94,14 @@ class MaterialSelector:
             item.name = mat.name
             item.bool = self.isDefaultActive(mat)
         setMaterialSelector(self)
-        context.window_manager.invoke_props_dialog(self)
-        return {'RUNNING_MODAL'}
+
+
+    def useMaterial(self, mat):
+        if mat.name in self.umats.keys():
+            item = self.umats[mat.name]
+            return item.bool
+        else:
+            return False
 
 
     def selectAll(self, context):
@@ -109,7 +121,6 @@ class MaterialSelector:
         ob = context.object
         for mat,item in zip(ob.data.materials, self.umats.values()):
             item.bool = self.isSkinRedMaterial(mat)
-
 
     def isSkinRedMaterial(self, mat):
         if mat.diffuse_color[0:3] == self.skinColor:
@@ -377,23 +388,8 @@ class ChannelSetter:
         mat = ob.data.materials[ob.DazActiveMaterial]
         if mat.use_nodes:
             return self.getChannelCycles(mat, nodeType, slot, ncomps, fromType)
-        elif useAttr:
-            return self.getChannelInternal(mat, useAttr, factorAttr)
-        return None,0
-
-
-    def skipMaterial(self, mat, ob):
-        item = ob.DazAffectedMaterials[mat.name]
-        return (not item.active)
-
-
-    def getAffectedMaterials(self, context):
-        ob = context.object
-        ob.DazAffectedMaterials.clear()
-        for mat in ob.data.materials:
-            item = ob.DazAffectedMaterials.add()
-            item.name = mat.name
-            item.active = self.isAffected(ob, mat)
+        else:
+            return None,0
 
 
     def getChannelCycles(self, mat, nodeType, slot, ncomps, fromType):
@@ -436,39 +432,6 @@ class ChannelSetter:
                 return value
 
 
-    def isAffected(self, ob, mat):
-        if ob.data.DazMaterialSets:
-            if ob.DazTweakMaterials in ob.data.DazMaterialSets.keys():
-                items = ob.data.DazMaterialSets[ob.DazTweakMaterials]
-                mname = mat.name.split(".",1)[0].split("-",1)[0]
-                return (mname in items.names.keys())
-
-        from .guess import getSkinMaterial
-        if self.isRefractive(mat):
-            return (ob.DazTweakMaterials in ["Refractive", "All"])
-        mattype = getSkinMaterial(mat)
-        if ob.DazTweakMaterials == "Skin":
-            return (mattype == "Skin")
-        elif ob.DazTweakMaterials == "Skin-Lips-Nails":
-            return (mattype in ["Skin", "Red"])
-        else:
-            return (ob.DazTweakMaterials not in ["Refractive", "None"])
-
-
-    def isRefractive(self, mat):
-        if mat.use_nodes:
-            for node in mat.node_tree.nodes.values():
-                if node.type in ["BSDF_TRANSPARENT", "BSDF_REFRACTION"]:
-                    return True
-                elif node.type == "BSDF_PRINCIPLED":
-                    if (self.inputDiffers(node, "Alpha", 1) or
-                        self.inputDiffers(node, "Transmission", 0)):
-                        return True
-                elif node.type == "GROUP":
-                    return (node.node_tree.name in ["DAZ Transparent", "DAZ Refraction"])
-            return False
-
-
     def inputDiffers(self, node, slot, value):
         if slot in node.inputs.keys():
             if node.inputs[slot].default_value != value:
@@ -497,64 +460,31 @@ class ChannelSetter:
         return False
 
 # ---------------------------------------------------------------------
-#   Update button
-# ---------------------------------------------------------------------
-
-class DAZ_OT_ChangeTweakType(bpy.types.Operator, ChannelSetter):
-    bl_idname = "daz.change_tweak_type"
-    bl_label = "Change Material Selection"
-    bl_description = "Change the selection of materials to tweak"
-
-    def draw(self, context):
-        ob = context.object
-        self.layout.prop(ob, "DazTweakMaterials")
-        self.layout.prop(ob, "DazActiveMaterial")
-
-    def execute(self, context):
-        self.addSlots(context)
-        self.getAffectedMaterials(context)
-        return {'PASS_THROUGH'}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.invoke_props_dialog(self)
-        return {'RUNNING_MODAL'}
-
-# ---------------------------------------------------------------------
 #   Launch button
 # ---------------------------------------------------------------------
 
-class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, LaunchEditor, IsMesh):
+class DAZ_OT_LaunchEditor(DazPropsOperator, MaterialSelector, ChannelSetter, LaunchEditor, IsMesh):
     bl_idname = "daz.launch_editor"
     bl_label = "Launch Material Editor"
     bl_description = "Edit materials of selected meshes"
     bl_options = {'UNDO'}
 
     def draw(self, context):
+        MaterialSelector.draw(self, context)
         ob = context.object
-        layout = self.layout
-        affmats = list(ob.DazAffectedMaterials.items())
-        while affmats:
-            row = layout.row()
-            for mname,item in affmats[0:3]:
-                row.prop(item, "active", text="")
-                row.label(text=mname)
-            affmats = affmats[3:]
-        layout.operator("daz.change_tweak_type")
-        layout.label(text = "Active material: %s" % ob.DazActiveMaterial)
-
-        layout.separator()
+        self.layout.label(text = "Active material: %s" % ob.DazActiveMaterial)
+        self.layout.separator()
         showing = False
         for key in TweakableChannels.keys():
             if TweakableChannels[key] is None:
                 if self.shows[key].show:
-                    layout.prop(self.shows[key], "show", icon="DOWNARROW_HLT", emboss=False, text=key)
+                    self.layout.prop(self.shows[key], "show", icon="DOWNARROW_HLT", emboss=False, text=key)
                 else:
-                    layout.prop(self.shows[key], "show", icon="RIGHTARROW", emboss=False, text=key)
+                    self.layout.prop(self.shows[key], "show", icon="RIGHTARROW", emboss=False, text=key)
                 showing = self.shows[key].show
             elif showing and key in ob.DazSlots.keys():
                 item = ob.DazSlots[key]
-                row = layout.row()
+                row = self.layout.row()
                 if key[0:11] == "Principled ":
                     text = item.name[11:]
                 else:
@@ -571,6 +501,8 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, LaunchEditor, IsMesh)
 
 
     def invoke(self, context, event):
+        ob = context.object
+        self.setupMaterials(ob)
         self.shows.clear()
         for key in TweakableChannels.keys():
             if TweakableChannels[key] is None:
@@ -578,10 +510,12 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, LaunchEditor, IsMesh)
                 item.name = key
                 item.show = False
                 continue
-        context.object.DazTweakMaterials = "Skin"
-        self.getAffectedMaterials(context)
         self.addSlots(context)
         return DazPropsOperator.invoke(self, context, event)
+
+
+    def isDefaultActive(self, mat):
+        return (mat.diffuse_color[0:3] == self.skinColor)
 
 
     def run(self, context):
@@ -592,7 +526,7 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, ChannelSetter, LaunchEditor, IsMesh)
 
     def setChannel(self, ob, item):
         for mat in ob.data.materials:
-            if mat and not self.skipMaterial(mat, ob):
+            if mat and self.useMaterial(mat):
                 self.setChannelCycles(mat, item)
 
 
@@ -757,8 +691,8 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
     def setOriginal(self, socket, ncomps, item, key):
         pass
 
-    def skipMaterial(self, mat, ob):
-        return False
+    def useMaterial(self, mat):
+        return True
 
     def multiplyTex(self, node, fromsocket, tosocket, tree, item):
         pass
@@ -935,7 +869,6 @@ classes = [
     DAZ_OT_SelectSkinMaterials,
     DAZ_OT_SelectSkinRedMaterials,
     DAZ_OT_LaunchEditor,
-    DAZ_OT_ChangeTweakType,
     DAZ_OT_ResetMaterial,
     DAZ_OT_MakeDecal,
     DAZ_OT_SetShellVisibility,
@@ -952,7 +885,6 @@ def register():
 
     bpy.types.Material.DazSlots = CollectionProperty(type = EditSlotGroup)
     bpy.types.Object.DazSlots = CollectionProperty(type = EditSlotGroup)
-    bpy.types.Object.DazAffectedMaterials = CollectionProperty(type = DazActiveGroup)
     bpy.types.Scene.DazFloats = CollectionProperty(type = DazFloatGroup)
 
     from .globvars import getMaterialEnums
@@ -960,11 +892,6 @@ def register():
         items = getMaterialEnums,
         name = "Active Material",
         description = "Material actually being edited")
-
-    bpy.types.Object.DazTweakMaterials = EnumProperty(
-        items = getTweakMaterials,
-        name = "Material Type",
-        description = "Type of materials to tweak")
 
 
 def unregister():
