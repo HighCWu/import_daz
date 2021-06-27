@@ -33,6 +33,7 @@ from .error import *
 from .utils import *
 from .material import WHITE, isWhite
 from collections import OrderedDict
+from .globvars import getMaterialEnums
 from .fileutils import SingleFile, ImageFile
 
 #-------------------------------------------------------------
@@ -60,7 +61,7 @@ class MaterialSelector:
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (ob and ob.type == 'MESH' and len(ob.data.materials) > 0)
+        return (ob and ob.type == 'MESH' and ob.active_material)
 
 
     def draw(self, context):
@@ -385,7 +386,7 @@ class ChannelSetter:
 
     def getChannel(self, ob, key):
         nodeType, slot, useAttr, factorAttr, ncomps, fromType = getTweakableChannel(key)
-        mat = ob.data.materials[ob.DazActiveMaterial]
+        mat = ob.active_material
         if mat.use_nodes:
             return self.getChannelCycles(mat, nodeType, slot, ncomps, fromType)
         else:
@@ -472,7 +473,7 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, MaterialSelector, ChannelSetter, Lau
     def draw(self, context):
         MaterialSelector.draw(self, context)
         ob = context.object
-        self.layout.label(text = "Active material: %s" % ob.DazActiveMaterial)
+        self.layout.label(text="Active Material: %s" % ob.active_material.name)
         self.layout.separator()
         showing = False
         for key in TweakableChannels.keys():
@@ -886,12 +887,6 @@ def register():
     bpy.types.Material.DazSlots = CollectionProperty(type = EditSlotGroup)
     bpy.types.Object.DazSlots = CollectionProperty(type = EditSlotGroup)
     bpy.types.Scene.DazFloats = CollectionProperty(type = DazFloatGroup)
-
-    from .globvars import getMaterialEnums
-    bpy.types.Object.DazActiveMaterial = EnumProperty(
-        items = getMaterialEnums,
-        name = "Active Material",
-        description = "Material actually being edited")
 
 
 def unregister():
