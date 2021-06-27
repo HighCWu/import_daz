@@ -35,8 +35,132 @@ from .material import WHITE, isWhite
 from collections import OrderedDict
 from .fileutils import SingleFile, ImageFile
 
+#-------------------------------------------------------------
+#   Material selector
+#-------------------------------------------------------------
+
+def getMaterialSelector():
+    global theMaterialSelector
+    return theMaterialSelector
+
+
+def setMaterialSelector(selector):
+    global theMaterialSelector
+    theMaterialSelector = selector
+
+
+class DazMaterialGroup(bpy.types.PropertyGroup):
+    name : StringProperty()
+    bool : BoolProperty()
+
+
+class MaterialSelector:
+    umats : CollectionProperty(type = DazMaterialGroup)
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'MESH' and len(ob.data.materials) > 0)
+
+
+    def draw(self, context):
+        row = self.layout.row()
+        row.operator("daz.select_all_materials")
+        row.operator("daz.select_no_material")
+        row = self.layout.row()
+        row.operator("daz.select_skin_materials")
+        row.operator("daz.select_skin_red_materials")
+        for umat in self.umats:
+            self.layout.prop(umat, "bool", text=umat.name)
+
+
+    def invoke(self, context, event):
+        from .guess import getSkinMaterial
+        self.skinColor = WHITE
+        ob = context.object
+        for mat in ob.data.materials:
+            if getSkinMaterial(mat) == "Skin":
+                self.skinColor = mat.diffuse_color[0:3]
+                break
+        self.umats.clear()
+        for mat in ob.data.materials:
+            item = self.umats.add()
+            item.name = mat.name
+            item.bool = self.isDefaultActive(mat)
+        setMaterialSelector(self)
+        context.window_manager.invoke_props_dialog(self)
+        return {'RUNNING_MODAL'}
+
+
+    def selectAll(self, context):
+        for item in self.umats.values():
+            item.bool = True
+
+    def selectNone(self, context):
+        for item in self.umats.values():
+            item.bool = False
+
+    def selectSkin(self, context):
+        ob = context.object
+        for mat,item in zip(ob.data.materials, self.umats.values()):
+            item.bool = (mat.diffuse_color[0:3] == self.skinColor)
+
+    def selectSkinRed(self, context):
+        ob = context.object
+        for mat,item in zip(ob.data.materials, self.umats.values()):
+            item.bool = self.isSkinRedMaterial(mat)
+
+
+    def isSkinRedMaterial(self, mat):
+        if mat.diffuse_color[0:3] == self.skinColor:
+            return True
+        from .guess import getSkinMaterial
+        return (getSkinMaterial(mat) == "Red")
+
+#-------------------------------------------------------------
+#   Select all and none
+#-------------------------------------------------------------
+
+class DAZ_OT_SelectAllMaterials(bpy.types.Operator):
+    bl_idname = "daz.select_all_materials"
+    bl_label = "All"
+    bl_description = "Select all materials"
+
+    def execute(self, context):
+        getMaterialSelector().selectAll(context)
+        return {'PASS_THROUGH'}
+
+
+class DAZ_OT_SelectSkinMaterials(bpy.types.Operator):
+    bl_idname = "daz.select_skin_materials"
+    bl_label = "Skin"
+    bl_description = "Select skin materials"
+
+    def execute(self, context):
+        getMaterialSelector().selectSkin(context)
+        return {'PASS_THROUGH'}
+
+
+class DAZ_OT_SelectSkinRedMaterials(bpy.types.Operator):
+    bl_idname = "daz.select_skin_red_materials"
+    bl_label = "Skin-Lips-Nails"
+    bl_description = "Select all skin or red materials"
+
+    def execute(self, context):
+        getMaterialSelector().selectSkinRed(context)
+        return {'PASS_THROUGH'}
+
+
+class DAZ_OT_SelectNoMaterial(bpy.types.Operator):
+    bl_idname = "daz.select_no_material"
+    bl_label = "None"
+    bl_description = "Select no material"
+
+    def execute(self, context):
+        getMaterialSelector().selectNone(context)
+        return {'PASS_THROUGH'}
+
 # ---------------------------------------------------------------------
-#   material.py
 #   Tweak bump strength and height
 #
 #   (node type, socket, BI use, BI factor, # components, comes from)
@@ -803,8 +927,13 @@ class DAZ_OT_ReplaceShells(DazPropsOperator, ShellRemover, IsMesh):
 #----------------------------------------------------------
 
 classes = [
+    DazMaterialGroup,
     EditSlotGroup,
     ShowGroup,
+    DAZ_OT_SelectAllMaterials,
+    DAZ_OT_SelectNoMaterial,
+    DAZ_OT_SelectSkinMaterials,
+    DAZ_OT_SelectSkinRedMaterials,
     DAZ_OT_LaunchEditor,
     DAZ_OT_ChangeTweakType,
     DAZ_OT_ResetMaterial,
