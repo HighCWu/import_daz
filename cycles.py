@@ -822,7 +822,7 @@ class CyclesTree:
 
 
     def buildTranslucency(self):
-        if (GS.materialMethod == 'PRINCIPLED' or
+        if (GS.materialMethod != 'BSDF' or
             not self.checkTranslucency()):
             return
         fac = self.getValue("getChannelTranslucencyWeight", 0)
@@ -831,62 +831,53 @@ class CyclesTree:
             return
         self.column += 1
         mat = self.material.rna
-        color,coltex = self.getTranslucency()
+        color,tex = self.getTranslucentColor()
         if isBlack(color):
             return
 
-        from .cgroup import TranslucentGroup, SSSGroup
-        if GS.materialMethod == 'BSDF':
-            node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=100)
-        elif GS.materialMethod == 'BSDF_SSS':
-            node = self.addSSSNode()
-        self.linkColor(coltex, node, color, "Color")
-        node.inputs["Gamma"].default_value = 2.5
-        radius,radtex = self.getSSSRadius(color)
+        from .cgroup import TranslucentGroup
+        node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=150)
+        self.linkColor(tex, node, color, "Translucent Color")
+        ssscolor,ssstex,sssmode = self.getSSSColor()
+        self.linkColor(tex, node, color, "SSS Color")
+        node.inputs["Scale"].default_value = 1.0
+        radius,radtex = self.getSSSRadius(color, ssscolor, ssstex, sssmode)
         self.linkColor(radtex, node, radius, "Radius")
+        node.inputs["Cycles Mix Factor"].default_value = 0.0
+        node.inputs["Eevee Mix Factor"].default_value = 1.0
         self.linkBumpNormal(node)
+
         fac,factex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         if effect == 1: # Scatter and transmit
             fac = 0.5 + fac/2
-            self.setMultiplier(factex, fac)
+            if factex and factex.type == 'MATH':
+                factex.inputs[0].default_value = fac
         self.mixWithActive(fac, factex, node)
         LS.usedFeatures["Transparent"] = True
         self.endSSS()
 
 
-    def getTranslucency(self):
+    def getTranslucentColor(self):
         color,tex = self.getColorTex(["Translucency Color"], "COLOR", BLACK)
         if tex is None and GS.useFakeTranslucencyTexture:
             tex = self.diffuseTex
         return color,tex
 
 
-    def setMultiplier(self, node, fac):
-        if node and node.type == 'MATH':
-            node.inputs[0].default_value = fac
-
-    def addSSSNode(self):
-        from .cgroup import SSSGroup
-        node = self.addGroup(SSSGroup, "DAZ SSS", size=150)
+    def getSSSColor(self):
         sssmode = self.getValue(["SSS Mode"], 0)
         # [ "Mono", "Chromatic" ]
-        ssscolor = WHITE
-        ssstex = None
         if sssmode == 1:
-            ssscolor,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK)
+            color,tex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK)
         elif sssmode == 0:
-            sss,ssstex = self.getColorTex(["SSS Amount"], "NONE", 0.0)
-            ssscolor = (sss,sss,sss)
-        self.linkColor(ssstex, node, ssscolor, "SSS Color")
-        transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
-        self.linkColor(transtex, node, transcolor, "Transmitted Color")
-        node.inputs["Anisotropy"].default_value = self.getValue(["SSS Direction"], 0)
-        return node
+            sss,tex = self.getColorTex(["SSS Amount"], "NONE", 0.0)
+            if sss > 1:
+                sss = 1
+            color = (sss,sss,sss)
+        else:
+            color,tex = WHITE,None
+        return color,tex,sssmode
 
-
-#-------------------------------------------------------------
-#   Subsurface
-#-------------------------------------------------------------
 
     def endSSS(self):
         LS.usedFeatures["SSS"] = True
@@ -895,29 +886,25 @@ class CyclesTree:
             mat.use_sss_translucency = True
 
 
-    def getSSSRadius(self, color):
+    def getSSSRadius(self, color, ssscolor, ssstex, sssmode):
         # if there's no volume we use the sss to make translucency
         # please note that here we only use the iray base translucency color with no textures
         # as for blender 2.8x eevee doesn't support nodes in the radius channel so we deal with it
         if self.material.thinWall:
             return color,None
 
-        sssmode = self.getValue(["SSS Mode"], 0)
-        # [ "Mono", "Chromatic" ]
-        if sssmode == 1:    # Chromatic
-            sss,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK)
-            if isWhite(sss):
-                sss = BLACK
+        if sssmode == 1 and isWhite(ssscolor):
+            ssscolor = BLACK
         elif sssmode == 0:  # Mono
             s,ssstex = self.getColorTex("getChannelSSSAmount", "NONE", 0)
             if s > 1:
                 s = 1
-            sss = Vector((s,s,s))
+            ssscolor = Vector((s,s,s))
         trans,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
         if isWhite(trans):
             trans = BLACK
 
-        rad,radtex = self.sumColors(sss, ssstex, trans, transtex)
+        rad,radtex = self.sumColors(ssscolor, ssstex, trans, transtex)
         radius = rad * 2.0 * LS.scale
         return radius,radtex
 
@@ -1113,7 +1100,8 @@ class CyclesTree:
 
     def buildVolume(self):
         if (self.material.thinWall or
-            GS.materialMethod != "BSDF"):
+            GS.materialMethod != "BSDF" or
+            not GS.useVolume):
             return
         useSSS = self.isEnabled("Sub Surface")
         useTrans = self.isEnabled("Transmission")

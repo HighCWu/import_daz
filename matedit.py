@@ -76,16 +76,13 @@ TweakableChannels = OrderedDict([
     ("Dual Lobe PBR Strength", ("DAZ Dual Lobe PBR", "Fac", 1)),
 
     ("Translucency", None),
-    ("Translucency Color", ("DAZ Translucent", "Color", 4)),
+    ("Translucency Color", ("DAZ Translucent", "Translucent Color", 4)),
+    ("SSS Color", ("DAZ Translucent", "SSS Color", 4)),
     ("Translucency Strength", ("DAZ Translucent", "Fac", 1)),
-    ("Translucent Gamma", ("DAZ Translucent", "Gamma", 1)),
-    ("Translucent Radius", ("DAZ Translucent", "Radius", 3)),
-
-    ("Subsurface", None),
-    ("Subsurface Color", ("DAZ SSS", "Color", 4)),
-    ("Subsurface Strength", ("DAZ SSS", "Fac", 1)),
-    ("Subsurface Gamma", ("DAZ SSS", "Gamma", 1)),
-    ("Subsurface Radius", ("DAZ SSS", "Radius", 3)),
+    ("Translucency Scale", ("DAZ Translucent", "Scale", 1)),
+    ("Translucency Radius", ("DAZ Translucent", "Radius", 3)),
+    ("Cycles Mix Factor", ("DAZ Translucent", "Cycles Mix Factor", 1)),
+    ("Eevee Mix Factor", ("DAZ Translucent", "Eevee Mix Factor", 1)),
 
     ("Principled", None),
     ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", 4)),

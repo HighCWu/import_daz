@@ -79,6 +79,7 @@ class GlobalSettings:
         self.useDisplacement = True
         self.useEmission = True
         self.useReflection = True
+        self.useVolume = True
         self.useWorld = 'DOME'
         self.reuseMaterials = False
         self.hairMaterialMethod = 'HAIR_BSDF'
@@ -138,6 +139,7 @@ class GlobalSettings:
         "DazUseDisplacement" : "useDisplacement",
         "DazUseEmission" : "useEmission",
         "DazUseReflection" : "useReflection",
+        "DazUseVolume" : "useVolume",
         "DazImageInterpolation" : "imageInterpolation",
 
         # Properties

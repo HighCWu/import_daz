@@ -36,8 +36,7 @@ from .fileutils import SingleFile, JsonFile, JsonExportFile
 #   Classes
 #------------------------------------------------------------------
 
-EnumsMaterials = [('BSDF', "BSDF (Volume)", "BSDF using translucency and volume (Cycles, full IRAY materials)"),
-                  ('BSDF_SSS', "BSDF (SSS)", "BSDF using subsurface scattering (Eevee and Cycles)"),
+EnumsMaterials = [('BSDF', "BSDF", "BSDF (Cycles, full IRAY materials)"),
                   ('PRINCIPLED', "Principled", "Principled (Eevee and Cycles)")]
 
 EnumsHair = [('HAIR_BSDF', "Hair BSDF", "Hair BSDF (Cycles)"),
@@ -274,6 +273,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseDisplacement")
         box.prop(scn, "DazUseEmission")
         box.prop(scn, "DazUseReflection")
+        box.prop(scn, "DazUseVolume")
 
         row = self.layout.row()
         row.operator("daz.load_root_paths")
@@ -637,6 +637,10 @@ def register():
     bpy.types.Scene.DazUseReflection = BoolProperty(
         name = "Reflection",
         description = "Use reflection maps")
+
+    bpy.types.Scene.DazUseVolume = BoolProperty(
+        name = "Volume",
+        description = "Use volume node in BSDF tree")
 
     bpy.types.Scene.DazImageInterpolation = EnumProperty(
         items = [('Linear', "Linear", "Linear"),

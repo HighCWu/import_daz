@@ -597,74 +597,51 @@ class TranslucentGroup(MixGroup):
 
     def __init__(self):
         MixGroup.__init__(self)
-        self.insockets += ["Color", "Gamma", "Radius", "Normal"]
+        self.insockets += [
+            "Translucent Color", "SSS Color", "Scale", "Radius",
+            "Cycles Mix Factor", "Eevee Mix Factor", "Normal"]
 
 
     def create(self, node, name, parent):
-        MixGroup.create(self, node, name, parent, 3)
-        self.group.inputs.new("NodeSocketColor", "Color")
-        self.group.inputs.new("NodeSocketFloat", "Gamma")
+        MixGroup.create(self, node, name, parent, 4)
+        self.group.inputs.new("NodeSocketColor", "Translucent Color")
+        self.group.inputs.new("NodeSocketColor", "SSS Color")
+        self.group.inputs.new("NodeSocketFloat", "Scale")
         self.group.inputs.new("NodeSocketVector", "Radius")
+        self.group.inputs.new("NodeSocketFloat", "Cycles Mix Factor")
+        self.group.inputs.new("NodeSocketFloat", "Eevee Mix Factor")
         self.group.inputs.new("NodeSocketVector", "Normal")
 
 
     def addNodes(self, args=None):
         MixGroup.addNodes(self, args)
-        trans = self.addTranslucent()
-        sss = self.addSSS()
-        self.linkOutput(trans, sss)
-
-
-    def addTranslucent(self):
         trans = self.addNode("ShaderNodeBsdfTranslucent", 1)
-        self.links.new(self.inputs.outputs["Color"], trans.inputs["Color"])
+        self.links.new(self.inputs.outputs["Translucent Color"], trans.inputs["Color"])
         self.links.new(self.inputs.outputs["Normal"], trans.inputs["Normal"])
-        return trans
 
-
-    def addSSS(self):
         gamma = self.addNode("ShaderNodeGamma", 1)
-        self.links.new(self.inputs.outputs["Color"], gamma.inputs["Color"])
+        self.links.new(self.inputs.outputs["SSS Color"], gamma.inputs["Color"])
         gamma.inputs["Gamma"].default_value = 2.5
-        self.links.new(self.inputs.outputs["Gamma"], gamma.inputs["Gamma"])
 
         sss = self.addNode("ShaderNodeSubsurfaceScattering", 1)
         sss.falloff = 'RANDOM_WALK'
         self.links.new(gamma.outputs["Color"], sss.inputs["Color"])
+        self.links.new(self.inputs.outputs["Scale"], sss.inputs["Scale"])
         self.links.new(self.inputs.outputs["Radius"], sss.inputs["Radius"])
         self.links.new(self.inputs.outputs["Normal"], sss.inputs["Normal"])
-        return sss
 
+        cmix = self.addNode("ShaderNodeMixShader", 2)
+        self.links.new(self.inputs.outputs["Cycles Mix Factor"], cmix.inputs[0])
+        self.links.new(trans.outputs[0], cmix.inputs[1])
+        self.links.new(sss.outputs[0], cmix.inputs[2])
 
-    def linkOutput(self, trans, sss):
-        self.links.new(trans.outputs[0], self.mix1.inputs[2])
-        self.links.new(sss.outputs[0], self.mix2.inputs[2])
+        emix = self.addNode("ShaderNodeMixShader", 2)
+        self.links.new(self.inputs.outputs["Eevee Mix Factor"], emix.inputs[0])
+        self.links.new(trans.outputs[0], emix.inputs[1])
+        self.links.new(sss.outputs[0], emix.inputs[2])
 
-# ---------------------------------------------------------------------
-#   SSS Group
-# ---------------------------------------------------------------------
-
-class SSSGroup(TranslucentGroup):
-
-    def __init__(self):
-        TranslucentGroup.__init__(self)
-        self.insockets += ["SSS Color", "Transmitted Color", "Anisotropy"]
-
-
-    def create(self, node, name, parent):
-        TranslucentGroup.create(self, node, name, parent)
-        self.group.inputs.new("NodeSocketColor", "SSS Color")
-        self.group.inputs.new("NodeSocketColor", "Transmitted Color")
-        self.group.inputs.new("NodeSocketFloat", "Anisotropy")
-
-
-    def addTranslucent(self):
-        pass
-
-
-    def linkOutput(self, trans, sss):
-        self.links.new(sss.outputs[0], self.mix1.inputs[2])
-        self.links.new(sss.outputs[0], self.mix2.inputs[2])
+        self.links.new(cmix.outputs[0], self.mix1.inputs[2])
+        self.links.new(emix.outputs[0], self.mix2.inputs[2])
 
 # ---------------------------------------------------------------------
 #   Ray Clip Group
@@ -1207,7 +1184,6 @@ class DAZ_OT_MakeShaderGroups(DazPropsOperator, IsMesh):
         "useFakeCaustics" : (FakeCausticsGroup, "DAZ Fake Caustics", [WHITE]),
         "useTransparent" : (TransparentGroup, "DAZ Transparent", []),
         "useTranslucent" : (TranslucentGroup, "DAZ Translucent", []),
-        "useSSS" : (SSSGroup, "DAZ SSS", []),
         "useRayClip" : (RayClipGroup, "DAZ Ray Clip", []),
         "useDualLobeUber" : (DualLobeGroupUberIray, "DAZ Dual Lobe Uber", []),
         "useDualLobePBR" : (DualLobeGroupPBRSkin, "DAZ Dual Lobe PBR", []),
