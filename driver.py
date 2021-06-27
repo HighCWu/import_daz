@@ -661,9 +661,9 @@ class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
     def getOldData(self, trg, prop):
         from .morphing import getMorphCategory
         if not trg.id:
-            return GS.sliderMin, GS.sliderMax, "Shapes"
-        min = GS.sliderMin
-        max = GS.sliderMax
+            return GS.customMin, GS.customMax, "Shapes"
+        min = GS.customMin
+        max = GS.customMax
         rna_ui = trg.id.get('_RNA_UI')
         if rna_ui and "min" in rna_ui.keys():
             min = rna_ui["min"]
