@@ -502,10 +502,10 @@ class BoneInstance(Instance):
             self.flopped = [False,True,False]
         elif xyz == 'ZXY':
             # Eyes and eyelids
-            euler = Euler((pi/2, 0, -pi/2))
+            euler = Euler((pi/2, 0, 0))
             flip = self.FZ
-            self.axes = [2,0,1]
-            self.flipped = [True,False,True]
+            self.axes = [0,2,1]
+            self.flipped = [False,True,False]
             self.flopped = [False,False,False]
         elif xyz == 'XYZ':  #
             euler = Euler((pi/2, pi/2, 0))

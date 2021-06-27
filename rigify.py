@@ -788,9 +788,10 @@ class Rigify:
             self.reparentBones(rig, Genesis3Toes)
             self.renameBones(rig, Genesis3Renames)
         else:
+            msg = "Cannot rigify %s %s" % (meta.DazRigifyType, rig.name)
             activateObject(context, meta)
             deleteObjects(context, [meta])
-            raise DazError("Cannot rigify %s %s" % (meta.DazRigifyType, rig.name))
+            raise DazError(msg)
 
         print("  Connect to parent")
         connectToParent(rig)

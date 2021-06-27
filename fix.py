@@ -403,6 +403,7 @@ class DAZ_OT_ChangePrefixToSuffix(DazOperator, GizmoUser, IsArmature):
     def run(self, context):
         rig = context.object
         self.renameFaceBones(rig)
+        rig.DazRig = ""
 
 
     def isFaceBone(self, pb):
