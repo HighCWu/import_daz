@@ -48,10 +48,10 @@ def getSkinMaterial(mat):
         "toenails" : "Red",
         "lip" : "Red",
         "lips" : "Red",
-        "mouth" : "Red",
-        "tongue" : "Red",
-        "innermouth" : "Red",
-        "gums" : "Red",
+        "mouth" : "Mouth",
+        "tongue" : "Mouth",
+        "innermouth" : "Mouth",
+        "gums" : "Mouth",
         "teeth" : "Teeth",
         "pupil" : "Black",
         "pupils" : "Black",
@@ -110,6 +110,8 @@ def guessMaterialColor(mat, choose, enforce, default):
                 setDiffuse(mat, default)
             elif color == "Red":
                 setDiffuse(mat, (1,0,0,1))
+            elif color == "Mouth":
+                setDiffuse(mat, (0.8,0,0,1))
             elif color == "Blue":
                 setDiffuse(mat, (0,0,1,1))
             elif color == "Teeth":
