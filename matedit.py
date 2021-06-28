@@ -214,6 +214,7 @@ TweakableChannels = OrderedDict([
     ("Translucency", None),
     ("Translucency Color", ("DAZ Translucent", "Translucent Color", 4)),
     ("SSS Color", ("DAZ Translucent", "SSS Color", 4)),
+    ("SSS Gamma", ("DAZ Translucent", "Gamma", 1)),
     ("Translucency Strength", ("DAZ Translucent", "Fac", 1)),
     ("Translucency Scale", ("DAZ Translucent", "Scale", 1)),
     ("Translucency Radius", ("DAZ Translucent", "Radius", 3)),

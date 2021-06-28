@@ -598,7 +598,7 @@ class TranslucentGroup(MixGroup):
     def __init__(self):
         MixGroup.__init__(self)
         self.insockets += [
-            "Translucent Color", "SSS Color", "Scale", "Radius",
+            "Translucent Color", "SSS Color", "Gamma", "Scale", "Radius",
             "Cycles Mix Factor", "Eevee Mix Factor", "Normal"]
 
 
@@ -606,6 +606,7 @@ class TranslucentGroup(MixGroup):
         MixGroup.create(self, node, name, parent, 4)
         self.group.inputs.new("NodeSocketColor", "Translucent Color")
         self.group.inputs.new("NodeSocketColor", "SSS Color")
+        self.group.inputs.new("NodeSocketFloat", "Gamma")
         self.group.inputs.new("NodeSocketFloat", "Scale")
         self.group.inputs.new("NodeSocketVector", "Radius")
         self.group.inputs.new("NodeSocketFloat", "Cycles Mix Factor")
@@ -621,7 +622,7 @@ class TranslucentGroup(MixGroup):
 
         gamma = self.addNode("ShaderNodeGamma", 1)
         self.links.new(self.inputs.outputs["SSS Color"], gamma.inputs["Color"])
-        gamma.inputs["Gamma"].default_value = 2.5
+        self.links.new(self.inputs.outputs["Gamma"], gamma.inputs["Gamma"])
 
         sss = self.addNode("ShaderNodeSubsurfaceScattering", 1)
         sss.falloff = 'RANDOM_WALK'

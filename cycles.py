@@ -833,10 +833,12 @@ class CyclesTree:
             return
 
         from .cgroup import TranslucentGroup
-        node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=150)
+        node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=200)
+        node.width = 200
         self.linkColor(tex, node, color, "Translucent Color")
         ssscolor,ssstex,sssmode = self.getSSSColor()
         self.linkColor(tex, node, color, "SSS Color")
+        node.inputs["Gamma"].default_value = 2.5
         node.inputs["Scale"].default_value = 1.0
         radius,radtex = self.getSSSRadius(color, ssscolor, ssstex, sssmode)
         self.linkColor(radtex, node, radius, "Radius")
