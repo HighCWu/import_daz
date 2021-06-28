@@ -58,31 +58,51 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
 
 
     def run(self, context):
+        from .finger import isCharacter
         cob = context.object
         ncverts = len(cob.data.vertices)
+        chars = {ncverts : cob}
+        prio = {ncverts : False}
+        for ob in getSelectedMeshes(context):
+            nverts = len(ob.data.vertices)
+            if nverts not in chars.keys() or isCharacter(ob):
+                chars[nverts] = ob
+                prio[nverts] = (not (not ob.data.DazGraftGroup))
 
-        # Find anatomies and move graft verts into position
-        anatomies = []
-        auvnames = []
+        grafts = dict([(ncverts, []) for ncverts in chars.keys()])
+        ngrafts = 0
         for aob in getSelectedMeshes(context):
-            if (aob != cob and
-                aob.data.DazGraftGroup):
-                anatomies.append(aob)
-                uvname = self.getActiveUvLayer(aob)[1]
-                auvnames.append(uvname)
-
-        if len(anatomies) < 1:
-            raise DazError("At least two meshes must be selected.\nGeografts selected and target active.")
-
-        for aob in anatomies:
-            if aob.data.DazVertexCount != ncverts:
-                if cob.data.DazVertexCount == len(aob.data.vertices):
-                    msg = ("Meshes selected in wrong order.\nGeografts selected and target active.   ")
+            if aob.data.DazGraftGroup:
+                ncverts = aob.data.DazVertexCount
+                if ncverts in grafts.keys():
+                    grafts[ncverts].append(aob)
+                    ngrafts += 1
                 else:
-                    msg = ("Geograft %s fits mesh with %d vertices,      \nbut %s has %d vertices." %
-                        (aob.name, aob.data.DazVertexCount, cob.name, ncverts))
-                raise DazError(msg)
+                    print("No matching mesh found for geograft %s" % aob.name)
+        if ngrafts == 0:
+            raise DazError("No geograft selected")
 
+        for ncverts,cob in chars.items():
+            if prio[ncverts]:
+                self.mergeGeografts(context, ncverts, cob, grafts[ncverts])
+        for ncverts,cob in chars.items():
+            if not prio[ncverts]:
+                self.mergeGeografts(context, ncverts, cob, grafts[ncverts])
+
+
+    def mergeGeografts(self, context, ncverts, cob, anatomies):
+        if not anatomies:
+            return
+        try:
+            cob.data
+        except ReferenceError:
+            print("No ref")
+            return
+
+        auvnames = []
+        for aob in anatomies:
+            uvname = self.getActiveUvLayer(aob)[1]
+            auvnames.append(uvname)
         cname = self.getUvName(cob.data)
         drivers = {}
 

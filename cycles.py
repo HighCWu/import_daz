@@ -60,13 +60,13 @@ class CyclesMaterial(Material):
     def guessColor(self):
         from .guess import guessMaterialColor
         from .geometry import GeoNode
-        from .finger import getFingeredCharacter
+        from .finger import isCharacter
         color = LS.clothesColor
         if isinstance(self.geometry, GeoNode):
             ob = self.geometry.rna
             if ob is None:
                 pass
-            elif getFingeredCharacter(ob, verbose=False)[2]:
+            elif isCharacter(ob):
                 color = LS.skinColor
             elif ob.data and ob.data.DazGraftGroup:
                 color = LS.skinColor

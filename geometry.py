@@ -583,7 +583,7 @@ class Geometry(Asset, Channels):
         if GS.mergeShells:
             if inst.node2:
                 missing = self.addShells(inst.node2, inst, self.material_group_vis)
-                for mname,shmat,uv,idx in missing:
+                for mname,shmat,uv in missing:
                     msg = ("Missing shell material\n" +
                            "Material: %s\n" % mname +
                            "Node: %s\n" % geonode.name +

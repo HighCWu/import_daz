@@ -488,8 +488,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         else:
             mainMesh = None
         if mainRig:
-            from .finger import getFingeredCharacter
-            _,_,mainChar = getFingeredCharacter(mainRig)
+            from .finger import isCharacter
+            mainChar = isCharacter(mainRig)
         else:
             mainChar = None
         if mainChar:

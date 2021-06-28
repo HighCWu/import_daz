@@ -107,19 +107,8 @@ def getFingeredCharacter(ob, verbose=True):
         return None,None,""
 
 
-def isCharacter(node):
-    from .asset import Asset
-    if isinstance(node, Asset):
-        ob = node.rna
-    else:
-        ob = node
-    if ob and ob.type == 'ARMATURE':
-        for child in ob.children:
-            if child.type == 'MESH':
-                finger = getFingerPrint(child)
-                if finger in FingerPrints.keys():
-                    return True
-    return False
+def isCharacter(ob):
+    return getFingeredCharacter(ob, verbose=False)[2]
 
 
 class DAZ_OT_GetFingerPrint(bpy.types.Operator, IsMeshArmature):
