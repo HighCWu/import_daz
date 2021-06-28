@@ -778,11 +778,8 @@ class CyclesTree:
         roughness,roughtex = self.getColorTex(["Top Coat Roughness"], "NONE", 0)
         if roughness == 0:
             glossiness,glosstex = self.getColorTex(["Top Coat Glossiness"], "NONE", 1)
-            roughness = 1 - glossiness
+            roughness = 1 - glossiness**2
             roughtex = self.invertTex(glosstex, 5)
-            fresnelRough = 1 - glossiness**2
-        else:
-            fresnelRough = roughness
 
         from .cgroup import TopCoatGroup
         self.column += 1
@@ -801,7 +798,7 @@ class CyclesTree:
         top.inputs["Bump"].default_value = bump * GS.bumpFactor
         self.mixWithActive(weight, weighttex, top)
         if fresnel:
-            self.linkScalar(roughtex, fresnel, fresnelRough, "Roughness")
+            self.linkScalar(roughtex, fresnel, roughness, "Roughness")
             self.linkBumpNormal(fresnel)
             self.links.new(fresnel.outputs[0], top.inputs["Fac"])
 
