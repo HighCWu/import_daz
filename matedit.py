@@ -499,9 +499,12 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, MaterialSelector, ChannelSetter, Lau
                     row.prop(item, "vector", text="")
                 else:
                     print("WAHT")
+        self.layout.operator("daz.update_materials")
 
 
     def invoke(self, context, event):
+        global theMaterialEditor
+        theMaterialEditor = self
         ob = context.object
         self.setupMaterials(ob)
         self.shows.clear()
@@ -512,7 +515,8 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, MaterialSelector, ChannelSetter, Lau
                 item.show = False
                 continue
         self.addSlots(context)
-        return DazPropsOperator.invoke(self, context, event)
+        wm = context.window_manager
+        return wm.invoke_popup(self, width=300)
 
 
     def isDefaultActive(self, mat):
@@ -575,6 +579,17 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, MaterialSelector, ChannelSetter, Lau
             tree.links.new(fromsocket, mult.inputs[1])
             tree.links.new(mult.outputs[0], tosocket)
             return mult
+
+
+class DAZ_OT_UpdateMaterials(bpy.types.Operator):
+    bl_idname = "daz.update_materials"
+    bl_label = "Update Materials"
+    bl_description = "Update Materials"
+
+    def execute(self, context):
+        global theMaterialEditor
+        theMaterialEditor.run(context)
+        return {'PASS_THROUGH'}
 
 # ---------------------------------------------------------------------
 #   Make Decal
@@ -870,6 +885,7 @@ classes = [
     DAZ_OT_SelectSkinMaterials,
     DAZ_OT_SelectSkinRedMaterials,
     DAZ_OT_LaunchEditor,
+    DAZ_OT_UpdateMaterials,
     DAZ_OT_ResetMaterial,
     DAZ_OT_MakeDecal,
     DAZ_OT_SetShellVisibility,
