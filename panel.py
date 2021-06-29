@@ -207,6 +207,9 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         if showBox(scn, "DazShowHDMesh", box):
+            if bpy.app.version >= (2,90,0):
+                box.operator("daz.make_multires")
+                box.separator()
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.bake_maps")
                 box.operator("daz.load_baked_maps")
@@ -223,7 +226,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         box = layout.box()
         if showBox(scn, "DazShowMaterials2", box):
             box.operator("daz.load_uv")
-            box.operator("daz.copy_uv")
             box.operator("daz.prune_uv_maps")
             box.separator()
             box.operator("daz.collapse_udims")
@@ -250,8 +252,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.get_finger_print")
             box.operator("daz.separate_loose_parts")
             box.operator("daz.mesh_add_pinning")
-            if bpy.app.version >= (2,90,0):
-                box.operator("daz.make_multires")
 
         layout.separator()
         box = layout.box()

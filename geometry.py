@@ -136,7 +136,9 @@ class GeoNode(Node, SimNode):
             multi = False
             if GS.useMultires:
                 multi = addMultires(context, hdob, False)
-            if not multi and len(hdob.data.vertices) == len(ob.data.vertices):
+            if multi:
+                copyExtraUvlayers(ob, hdob)
+            elif len(hdob.data.vertices) == len(ob.data.vertices):
                 print("HD mesh same as base mesh:", ob.name)
                 self.hdobject = inst.hdobject = None
                 deleteObjects(context, [hdob])
@@ -145,8 +147,9 @@ class GeoNode(Node, SimNode):
 
         if ob and self.data:
             self.data.buildRigidity(ob)
-            if self.hdobject and self.hdobject != ob:
-                self.data.buildRigidity(self.hdobject)
+            hdob = self.hdobject
+            if hdob and hdob != ob:
+                self.data.buildRigidity(hdob)
 
         if (self.type == "subdivision_surface" and
             self.data and
@@ -175,7 +178,8 @@ class GeoNode(Node, SimNode):
         me.from_pydata(verts, [], faces)
         print("HD mesh %s built" % me.name)
         uvlayers = ob.data.uv_layers
-        addUvs(me, uvlayers[0].name, uvs, uvfaces)
+        if len(uvlayers) > 0:
+            addUvs(me, uvlayers[0].name, uvs, uvfaces)
         for f in me.polygons:
             f.material_index = mnums[f.index]
             f.use_smooth = True
@@ -359,14 +363,17 @@ def addMultires(context, hdob, strict):
 class DAZ_OT_MakeMultires(DazOperator, IsMesh):
     bl_idname = "daz.make_multires"
     bl_label = "Make Multires"
-    bl_description = "Convert HD mesh into mesh with multires modifier, and add vertex groups"
+    bl_description = "Convert HD mesh into mesh with multires modifier,\nand add vertex groups and extra UV layers"
     bl_options = {'UNDO'}
 
     def run(self, context):
         from .modifier import makeArmatureModifier, copyVertexGroups
+        meshes = getSelectedMeshes(context)
+        if len(meshes) != 2:
+            raise DazError("Two meshes must be selected, \none subdivided and one at base resolution.")
         hdob = context.object
         baseob = None
-        for ob in getSelectedMeshes(context):
+        for ob in meshes:
             if ob != hdob:
                 if len(hdob.data.vertices) > len(ob.data.vertices):
                     baseob = ob
@@ -374,15 +381,21 @@ class DAZ_OT_MakeMultires(DazOperator, IsMesh):
                     hdob = ob
                     baseob = context.object
                 break
-        if baseob is None:
-            raise DazError("Two meshes must be selected, \none subdivided and one at base resolution.")
         addMultires(context, hdob, True)
+        copyExtraUvlayers(baseob, hdob)
         rig = baseob.parent
         if not (rig and rig.type == 'ARMATURE'):
             return
         hdob.parent = rig
         makeArmatureModifier(rig.name, context, hdob, rig)
         copyVertexGroups(baseob, hdob)
+
+
+def copyExtraUvlayers(ob, hdob):
+    for uvlayer in ob.data.uv_layers[1:]:
+        hdlayer = makeNewUvloop(hdob.data, uvlayer.name, False)
+        for data,hddata in zip(uvlayer.data, hdlayer.data):
+            hddata.uv = data.uv
 
 #-------------------------------------------------------------
 #   Geometry Asset
@@ -1236,32 +1249,6 @@ class DAZ_OT_LoadUV(DazOperator, DazFile, SingleFile, IsMesh):
                     m += 1
 
 #----------------------------------------------------------
-#   Copy UV set
-#----------------------------------------------------------
-
-class DAZ_OT_CopyUV(DazOperator, IsMesh):
-    bl_idname = "daz.copy_uv"
-    bl_label = "Copy UV Set"
-    bl_description = "Copy active UV layer from active mesh to selected meshes"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        from .finger import getFingerPrint
-        src = context.object
-        srcUv = src.data.uv_layers.active
-        if srcUv is None:
-            raise DazError("No active UV layer")
-        srcfinger = getFingerPrint(src)
-        for trg in getSelectedMeshes(context):
-            if trg != src:
-                trgfinger = getFingerPrint(trg)
-                if srcfinger != trgfinger:
-                    raise DazError("Can only copy UV sets between identical meshes")
-                trgUv = makeNewUvloop(trg.data, srcUv.name, True)
-                for srcdata,trgdata in zip(srcUv.data, trgUv.data):
-                    trgdata.uv = srcdata.uv
-
-#----------------------------------------------------------
 #   Prune vertex groups
 #----------------------------------------------------------
 
@@ -1316,7 +1303,6 @@ classes = [
     DAZ_OT_RestoreUDims,
     DAZ_OT_UDimsFromTextures,
     DAZ_OT_LoadUV,
-    DAZ_OT_CopyUV,
     DAZ_OT_LimitVertexGroups,
 ]
 
