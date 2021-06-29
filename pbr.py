@@ -217,13 +217,14 @@ class PbrTree(CyclesTree):
         wt,wttex = self.getColorTex("getChannelTranslucencyWeight", "NONE", 0)
         if wt == 0:
             return
-        color,coltex = self.getTranslucency()
+        color,coltex = self.getTranslucentColor()
         if isBlack(color):
             return
         # a 2.5 gamma for the translucency texture is used to avoid the "white skin" effect
         gamma = self.addNode("ShaderNodeGamma", col=3)
         gamma.inputs["Gamma"].default_value = 2.5
-        radius,radtex = self.getSSSRadius(color)
+        ssscolor,ssstex,sssmode = self.getSSSColor()
+        radius,radtex = self.getSSSRadius(color, ssscolor, ssstex, sssmode)
         self.linkColor(coltex, gamma, color, "Color")
         self.links.new(gamma.outputs[0], self.pbr.inputs["Subsurface Color"])
         self.linkScalar(wttex, self.pbr, wt, "Subsurface")

@@ -836,13 +836,13 @@ class CyclesTree:
         node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=200)
         node.width = 200
         self.linkColor(tex, node, color, "Translucent Color")
-        ssscolor,ssstex,sssmode = self.getSSSColor()
         self.linkColor(tex, node, color, "SSS Color")
         node.inputs["Gamma"].default_value = 2.5
         node.inputs["Scale"].default_value = 1.0
+        ssscolor,ssstex,sssmode = self.getSSSColor()
         radius,radtex = self.getSSSRadius(color, ssscolor, ssstex, sssmode)
         self.linkColor(radtex, node, radius, "Radius")
-        node.inputs["Cycles Mix Factor"].default_value = 0.0
+        node.inputs["Cycles Mix Factor"].default_value = (not GS.useVolume)
         node.inputs["Eevee Mix Factor"].default_value = 1.0
         self.linkBumpNormal(node)
 

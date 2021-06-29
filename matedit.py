@@ -342,18 +342,22 @@ class ChannelSetter:
                 self.setSocket(socket, ncomps, item)
                 fromnode,fromsocket = self.getFromNode(mat, node, socket)
                 if fromnode:
-                    if fromnode.type == "MIX_RGB":
-                        if ncomps == 1:
-                            ncomps = 4
-                            num = item.number
-                            item.color = (num,num,num,1)
-                        self.setSocket(fromnode.inputs[1], ncomps, item)
+                    if fromnode.type in "MIX_RGB":
+                        self.ensureColor(ncomps, item)
+                        self.setSocket(fromnode.inputs[1], 4, item)
                     elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY':
                         self.setSocket(fromnode.inputs[0], 1, item)
                     elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY_ADD':
                         self.setSocket(fromnode.inputs[1], 1, item)
-                    elif fromnode.type == "TEX_IMAGE":
+                    elif fromnode.type in ["TEX_IMAGE", "GAMMA"]:
                         self.multiplyTex(node, fromsocket, socket, mat.node_tree, item)
+
+
+    def ensureColor(self, ncomps, item):
+        if ncomps == 1:
+            ncomps = 4
+            num = item.number
+            item.color = (num,num,num,1)
 
 
     def setSocket(self, socket, ncomps, item):
@@ -404,6 +408,8 @@ class ChannelSetter:
                     if fromnode.type == "MIX_RGB":
                         return fromnode.inputs[1].default_value, ncomps
                     elif fromnode.type == "MATH" and fromnode.operation == 'MULTIPLY':
+                        return fromnode.inputs[0].default_value, ncomps
+                    elif fromnode.type == "GAMMA":
                         return fromnode.inputs[0].default_value, ncomps
                     elif fromnode.type == "TEX_IMAGE":
                         return WHITE, ncomps
@@ -521,7 +527,7 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, MaterialSelector, ChannelSetter, Lau
 
 
     def isDefaultActive(self, mat):
-        return (mat.diffuse_color[0:3] == self.skinColor)
+        return self.isSkinRedMaterial(mat)
 
 
     def run(self, context):
@@ -565,7 +571,7 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, MaterialSelector, ChannelSetter, Lau
         x,y = node.location
         if item.ncomps == 4 and not isWhite(item.color):
             mix = tree.nodes.new(type = "ShaderNodeMixRGB")
-            mix.location = (x-XSIZE,y-YSIZE)
+            mix.location = (x-XSIZE+50,y-YSIZE-50)
             mix.blend_type = 'MULTIPLY'
             mix.inputs[0].default_value = 1.0
             mix.inputs[1].default_value = item.color
@@ -574,7 +580,7 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, MaterialSelector, ChannelSetter, Lau
             return mix
         elif item.ncomps == 1 and item.number != 1.0:
             mult = tree.nodes.new(type = "ShaderNodeMath")
-            mult.location = (x-XSIZE,y-YSIZE)
+            mult.location = (x-XSIZE+50,y-YSIZE-50)
             mult.operation = 'MULTIPLY'
             mult.inputs[0].default_value = item.number
             tree.links.new(fromsocket, mult.inputs[1])
