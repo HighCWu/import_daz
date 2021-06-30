@@ -291,7 +291,6 @@ class EditSlotGroup(bpy.types.PropertyGroup):
         subtype = "COLOR",
         size = 4,
         min = 0.0,
-        max = 1.0,
         default = (1,1,1,1)
     )
 
@@ -299,7 +298,6 @@ class EditSlotGroup(bpy.types.PropertyGroup):
         name = "Vector",
         size = 3,
         min = 0.0,
-        max = 1.0,
         default = (0,0,0)
     )
 
