@@ -373,7 +373,7 @@ class DAZ_PT_Utils(bpy.types.Panel):
             box.label(text = "No active bone")
 
         layout.separator()
-        from .error import getSilentMode
+        from .api import getSilentMode
         if getSilentMode():
             layout.operator("daz.set_silent_mode", text="Silent Mode ON")
         else:

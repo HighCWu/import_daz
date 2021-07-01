@@ -63,7 +63,7 @@ def importModules():
                     "guess", "convert", "files", "main", "finger",
                     "matedit", "tables", "proxy", "rigify", "merge", "hide",
                     "mhx", "layers", "hair", "transfer", "dforce",
-                    "hdmorphs", "facecap"]
+                    "hdmorphs", "facecap", "api"]
         if bpy.app.version >= (2,82,0):
             modnames += ["udim"]
         anchor = os.path.basename(__file__[0:-12])
@@ -74,16 +74,7 @@ def importModules():
 
 import bpy
 importModules()
-
-#----------------------------------------------------------
-#   Import documented functions available for external scripting
-#----------------------------------------------------------
-
-from .error import getErrorMessage, setSilentMode
-from .fileutils import setSelection, getSelection, clearSelection
-from .morphing import getMorphs
-from .settings import GS
-from .hdmorphs import get_dhdm_files, get_morph_files, get_dhdm_directories, get_morph_directories
+from .api import *
 
 #----------------------------------------------------------
 #   Register

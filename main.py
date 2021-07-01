@@ -421,9 +421,9 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         pass
 
     def run(self, context):
-        from .error import setSilentMode
         from time import perf_counter
-        from .fileutils import setSelection, getExistingFilePath
+        from .api import setSilentMode, setSelection
+        from .fileutils import getExistingFilePath
         time1 = perf_counter()
         scn = context.scene
         setSelection([self.filepath])
@@ -637,7 +637,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         if useDrivers and not self.useTransferShapes:
             return
 
-        from .fileutils import setSelection
+        from .api import setSelection
         from .morphing import classifyShapekeys
         skeys = ob.data.shape_keys
         if skeys:

@@ -128,24 +128,7 @@ def getMorphCategory(rig, prop):
     return "Shapes"
 
 
-def getMorphs(ob, morphset, category=None, activeOnly=False):
-    """getMorphs(ob, type, category=None, activeOnly=False)
-    Get all morph names and values of the specified type from the object.
-
-    Returns:
-    A dictonary of morph names - morph values for all morphs in the specified morphsets.
-
-    Arguments:
-    ?ob: Object (armature or mesh) which owns the morphs
-
-    ?type: Either a string in ["Units", "Expressions", "Visemes", "Facs", "Facsexpr", "Body", "Custom", "Jcms", "Flexions"],
-        or a list of such strings, or the keyword "All" signifying all morphset in the list.
-
-    ?category (optional): The category name for Custom morphs.
-
-    ?activeOnly (optional): Active morphs only (default False).
-    """
-
+def getMorphsExternal(ob, morphset, category, activeOnly):
     def isActiveKey(key, rig):
         if rig:
             return (key in rig.DazActivated.keys() and
@@ -356,7 +339,7 @@ class Selector():
 
 
     def getSelectedProps(self):
-        from .fileutils import getSelection
+        from .api import getSelection
         if getSelection():
             return getSelection()
         else:
@@ -365,7 +348,7 @@ class Selector():
 
     def invokeDialog(self, context):
         setSelector(self)
-        from .fileutils import clearSelection
+        from .api import clearSelection
         clearSelection()
         wm = context.window_manager
         ncols = len(self.selection)//self.nrows + 1
@@ -840,7 +823,7 @@ class StandardMorphSelector(Selector):
 
 
     def getActiveMorphFiles(self, context):
-        from .fileutils import getSelection
+        from .api import getSelection
         namepaths = []
         paths = getSelection()
         if paths:
@@ -1085,9 +1068,9 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
 
     def invoke(self, context, event):
         from .fileutils import getFolders
-        folders = getFolders(self.mesh, context.scene, ["Morphs/", ""])
+        folders = getFolders(self.mesh, ["Morphs/", ""])
         if not folders:
-            folders = getFolders(self.rig, context.scene, ["Morphs/", ""])
+            folders = getFolders(self.rig, ["Morphs/", ""])
         if folders:
             self.properties.filepath = folders[0]
         return MultiFile.invoke(self, context, event)

@@ -825,19 +825,6 @@ class DAZ_OT_LoadBakedMaps(DazPropsOperator, Baker, NormalAdder, ScalarDispAdder
 #   Select .dhdm and jcm files
 #----------------------------------------------------------
 
-def get_dhdm_files(ob=None):
-    return getHDFiles(ob, "DazDhdmFiles")
-
-def get_morph_files(ob=None):
-    return getHDFiles(ob, "DazMorphFiles")
-
-def get_dhdm_directories(ob=None):
-    return getHDDirs(ob, "DazDhdmFiles")
-
-def get_morph_directories(ob=None):
-    return getHDDirs(ob, "DazMorphFiles")
-
-
 def getHDFiles(ob, attr):
     if ob is None:
         ob = bpy.context.object

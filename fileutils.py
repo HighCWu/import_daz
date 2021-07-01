@@ -74,7 +74,7 @@ def safeOpen(filepath, rw, dirMustExist=False, fileMustExist=False, mustOpen=Fal
 #   Open and check for case change
 #-------------------------------------------------------------
 
-def getFolders(ob, scn, subdirs):
+def getFolders(ob, subdirs):
     if ob is None:
         return []
     fileref = ob.DazUrl.split("#")[0]
@@ -89,46 +89,6 @@ def getFolders(ob, scn, subdirs):
             if os.path.exists(folder):
                 folders.append(folder)
     return folders
-
-#-------------------------------------------------------------
-#   Active file paths used from python
-#-------------------------------------------------------------
-
-def clearSelection():
-    """getSelection()
-
-    Clear the active file selection to be loaded by consecutive operators.
-    """
-    global theFilePaths
-    theFilePaths = []
-    print("File paths cleared")
-
-def getSelection():
-    """getSelection()
-
-    Get the active file selection to be loaded by consecutive operators.
-
-    Returns:
-    The active list of file paths (strings).
-    """
-    global theFilePaths
-    return theFilePaths
-
-def setSelection(files):
-    """setSelection(files)
-
-    Set the active file selection to be loaded by consecutive operators.
-
-    Arguments:
-    ?files: A list of file paths (strings).
-    """
-    global theFilePaths
-    if isinstance(files, list):
-        theFilePaths = files
-    else:
-        raise DazError("File paths must be a list of strings")
-
-clearSelection()
 
 #-------------------------------------------------------------
 #    File extensions
@@ -226,6 +186,7 @@ class MultiFile(ImportHelper):
         subtype='DIR_PATH')
 
     def invoke(self, context, event):
+        from .api import clearSelection
         clearSelection()
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
@@ -257,6 +218,7 @@ class MultiFile(ImportHelper):
                 return None
 
 
+        from .api import getSelection
         filepaths = []
         paths = getSelection()
         if paths:
