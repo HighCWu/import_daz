@@ -903,11 +903,17 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
     bl_description = "Add winders to selected posebones"
     bl_options = {'UNDO'}
 
-    layer : IntProperty(
-        name = "Bone Layer",
+    winderLayer : IntProperty(
+        name = "Winder Layer",
         description = "Bone layer for the winder bones",
         min = 1, max = 32,
-        default = 4)
+        default = 1)
+
+    windedLayer : IntProperty(
+        name = "Winded Layer",
+        description = "Bone layer for the winded bones",
+        min = 1, max = 32,
+        default = 2)
 
     useLockLoc : BoolProperty(
         name = "Lock Location",
@@ -915,15 +921,17 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
         default = True)
 
     def draw(self, context):
-        self.layout.prop(self, "layer")
+        self.layout.prop(self, "winderLayer")
+        self.layout.prop(self, "windedLayer")
         self.layout.prop(self, "useLockLoc")
 
 
     def run(self, context):
         rig = context.object
-        layers = (self.layer-1)*[False] + [True] + (32-self.layer)*[False]
+        self.winderLayers = (self.winderLayer-1)*[False] + [True] + (32-self.winderLayer)*[False]
+        self.windedLayers = (self.windedLayer-1)*[False] + [True] + (32-self.windedLayer)*[False]
         for pb in self.findPoseRoots(rig):
-            self.addWinder(context, pb, rig, layers)
+            self.addWinder(context, pb, rig)
 
 
     def findPoseRoots(self, rig):
@@ -945,7 +953,7 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
         return proots.values()
 
 
-    def addWinder(self, context, pb, rig, layers):
+    def addWinder(self, context, pb, rig):
         from .mhx import copyRotation, copyScale
         bname = pb.name
         wname = "Wind"+bname
@@ -960,7 +968,7 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
         tarb.tail = eb.tail
         tarb.roll = eb.roll
         tarb.parent = eb.parent
-        tarb.layers = layers
+        tarb.layers = self.winderLayers
         n = 1
         length = eb.length
         while eb.children and len(eb.children) == 1:
@@ -986,12 +994,14 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
         cns1.influence = infl
         cns2 = copyScale(pb, winder, rig)
         cns2.influence = infl
+        pb.bone.layers = self.windedLayers
         while pb.children and len(pb.children) == 1:
             pb = pb.children[0]
             infl = 2*pb.bone.length/length
             cns1 = copyRotation(pb, winder, rig)
             cns1.use_offset = True
             cns1.influence = infl
+            pb.bone.layers = self.windedLayers
 
 #----------------------------------------------------------
 #   Initialize
