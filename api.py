@@ -26,17 +26,11 @@
 # either expressed or implied, of the FreeBSD Project.
 
 #----------------------------------------------------------
-#
-#----------------------------------------------------------
-
-from .settings import GS
-
-#----------------------------------------------------------
 #   Api functions available for external scripting
 #----------------------------------------------------------
 
-def getErrorMessage():
-    """getErrorMessage()
+def get_error_message():
+    """get_error_message()
 
     Get the current error message.
 
@@ -48,13 +42,13 @@ def getErrorMessage():
     return theMessage
 
 
-def getSilentMode():
+def get_silent_mode():
     global theSilentMode
     return theSilentMode
 
 
-def setSilentMode(value):
-    """setSilentMode(value)
+def set_silent_mode(value):
+    """set_silent_mode(value)
 
     In silent mode, operators fail silently if they encounters an error.
     This is useful for scripting.
@@ -65,11 +59,11 @@ def setSilentMode(value):
     global theSilentMode
     theSilentMode = value
 
-setSilentMode(False)
+set_silent_mode(False)
 
 
-def getMorphs(ob, morphset, category=None, activeOnly=False):
-    """getMorphs(ob, type, category=None, activeOnly=False)
+def get_morphs(ob, morphset, category=None, activeOnly=False):
+    """get_morphs(ob, type, category=None, activeOnly=False)
     Get all morph names and values of the specified type from the object.
 
     Returns:
@@ -85,15 +79,15 @@ def getMorphs(ob, morphset, category=None, activeOnly=False):
 
     ?activeOnly (optional): Active morphs only (default False).
     """
-    from .morphing import getMorphs
+    from .morphing import getMorphsExternal
     getMorphsExternal(ob, morphset, category, activeOnly)
 
 #-------------------------------------------------------------
 #   Active file paths used from python
 #-------------------------------------------------------------
 
-def clearSelection():
-    """getSelection()
+def clear_selection():
+    """get_selection()
 
     Clear the active file selection to be loaded by consecutive operators.
     """
@@ -102,8 +96,8 @@ def clearSelection():
     print("File paths cleared")
 
 
-def getSelection():
-    """getSelection()
+def get_selection():
+    """get_selection()
 
     Get the active file selection to be loaded by consecutive operators.
 
@@ -114,8 +108,8 @@ def getSelection():
     return theFilePaths
 
 
-def setSelection(files):
-    """setSelection(files)
+def set_selection(files):
+    """set_selection(files)
 
     Set the active file selection to be loaded by consecutive operators.
 
@@ -128,10 +122,10 @@ def setSelection(files):
     else:
         raise DazError("File paths must be a list of strings")
 
-clearSelection()
+clear_selection()
 
 #-------------------------------------------------------------
-#   Paths used by Xin's
+#   Paths used by Xin's HD-morphs add-on
 #-------------------------------------------------------------
 
 def get_default_morph_directories(ob):

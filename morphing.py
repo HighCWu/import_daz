@@ -88,7 +88,7 @@ def getMorphs0(ob, morphset, sets, category):
             prunePropGroup(ob, pg, morphset)
             return [pg]
     else:
-        raise DazError("BUG getMorphs: %s %s" % (morphset, sets))
+        raise DazError("BUG get_morphs: %s %s" % (morphset, sets))
 
 
 def prunePropGroup(ob, pg, morphset):
@@ -137,12 +137,12 @@ def getMorphsExternal(ob, morphset, category, activeOnly):
             return True
 
     if not isinstance(ob, bpy.types.Object):
-        raise DazError("getMorphs: First argument must be a Blender object, but got '%s'" % ob)
+        raise DazError("get_morphs: First argument must be a Blender object, but got '%s'" % ob)
     morphset = morphset.capitalize()
     if morphset == "All":
         morphset = theMorphSets
     elif morphset not in theMorphSets:
-        raise DazError("getMorphs: Morphset must be 'All' or one of %s, not '%s'" % (theMorphSets, morphset))
+        raise DazError("get_morphs: Morphset must be 'All' or one of %s, not '%s'" % (theMorphSets, morphset))
     pgs = getMorphs0(ob, morphset, None, category)
     mdict = {}
     rig = None
@@ -339,17 +339,17 @@ class Selector():
 
 
     def getSelectedProps(self):
-        from .api import getSelection
-        if getSelection():
-            return getSelection()
+        from .api import get_selection
+        if get_selection():
+            return get_selection()
         else:
             return [item.name for item in self.getSelectedItems()]
 
 
     def invokeDialog(self, context):
         setSelector(self)
-        from .api import clearSelection
-        clearSelection()
+        from .api import clear_selection
+        clear_selection()
         wm = context.window_manager
         ncols = len(self.selection)//self.nrows + 1
         if ncols > self.ncols:
@@ -823,9 +823,9 @@ class StandardMorphSelector(Selector):
 
 
     def getActiveMorphFiles(self, context):
-        from .api import getSelection
+        from .api import get_selection
         namepaths = []
-        paths = getSelection()
+        paths = get_selection()
         if paths:
             for path in paths:
                 text = os.path.splitext(os.path.basename(path))[0]

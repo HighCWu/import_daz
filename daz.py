@@ -53,8 +53,8 @@ class DAZ_OT_SetSilentMode(bpy.types.Operator):
     bl_description = "Toggle silent mode on or off (error popups off or on)"
 
     def execute(self, context):
-        from .api import getSilentMode, setSilentMode
-        setSilentMode(not getSilentMode())
+        from .api import get_silent_mode, set_silent_mode
+        set_silent_mode(not get_silent_mode())
         return {'FINISHED'}
 
 #-------------------------------------------------------------

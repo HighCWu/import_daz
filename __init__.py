@@ -74,6 +74,7 @@ def importModules():
 
 import bpy
 importModules()
+from .settings import GS
 from .api import *
 
 #----------------------------------------------------------

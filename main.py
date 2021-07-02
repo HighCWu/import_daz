@@ -422,11 +422,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
     def run(self, context):
         from time import perf_counter
-        from .api import setSilentMode, setSelection
+        from .api import set_silent_mode, set_selection
         from .fileutils import getExistingFilePath
         time1 = perf_counter()
         scn = context.scene
-        setSelection([self.filepath])
+        set_selection([self.filepath])
         if self.useFavoMorphs:
             self.favoPath = getExistingFilePath(self.favoPath, ".json")
 
@@ -443,7 +443,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
         if not LS.objects:
             raise DazError("No objects found")
-        setSilentMode(True)
+        set_silent_mode(True)
         visibles = getVisibleObjects(context)
         self.rigs = self.getTypedObjects(visibles, LS.rigs)
         self.meshes = self.getTypedObjects(visibles, LS.meshes)
@@ -460,7 +460,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
         for rigname in self.rigs.keys():
             self.treatRig(context, rigname)
-        setSilentMode(False)
+        set_silent_mode(False)
         context.scene.DazFavoPath = self.favoPath
         time2 = perf_counter()
         print("File %s loaded in %.3f seconds" % (self.filepath, time2-time1))
@@ -637,7 +637,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         if useDrivers and not self.useTransferShapes:
             return
 
-        from .api import setSelection
+        from .api import set_selection
         from .morphing import classifyShapekeys
         skeys = ob.data.shape_keys
         if skeys:
@@ -654,7 +654,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
                     selected = True
             if not selected:
                 return
-            setSelection(snames)
+            set_selection(snames)
             if not useDrivers:
                 bpy.ops.daz.transfer_shapekeys(useDrivers=False)
             else:

@@ -65,12 +65,12 @@ class ErrorOperator(bpy.types.Operator):
 
 def invokeErrorMessage(value, warning=False):
     global theMessage
-    from .api import getSilentMode
+    from .api import get_silent_mode
     if warning:
         theMessage = "WARNING:\n" + value
     else:
         theMessage = "ERROR:\n" + value
-    if getSilentMode():
+    if get_silent_mode():
         print(theMessage)
     else:
         bpy.ops.daz.error('INVOKE_DEFAULT')
