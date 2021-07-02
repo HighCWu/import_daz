@@ -98,6 +98,7 @@ class CyclesMaterial(Material):
 
 
     def postbuild(self):
+        Material.postbuild(self)
         geonode = self.geometry
         me = None
         if geonode and geonode.data and geonode.data.rna:

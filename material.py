@@ -166,10 +166,6 @@ class Material(Asset, Channels):
             self.shader = 'DAZ'
 
 
-    def guessColor(self):
-        return
-
-
     def build(self, context):
         from .geometry import Geometry, GeoNode
         if self.dontBuild():
@@ -207,7 +203,12 @@ class Material(Asset, Channels):
 
 
     def postbuild(self):
-        pass
+        if LS.useMaterials:
+            self.guessColor()
+
+
+    def guessColor(self):
+        return
 
 
     def getUvKey(self, key, struct):

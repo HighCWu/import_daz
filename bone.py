@@ -1001,10 +1001,6 @@ class Bone(Node):
         pass
 
 
-    def postprocess(self, context, inst):
-        pass
-
-
     def poseRig(self, context, inst):
         pass
 

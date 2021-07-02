@@ -411,9 +411,6 @@ class Asset(Accessor):
             self.build(context)
 
 
-    def postprocess(self, context, inst):
-        return
-
     def connect(self, struct):
         pass
 

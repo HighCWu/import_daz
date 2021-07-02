@@ -130,6 +130,7 @@ class GeoNode(Node, SimNode):
             hdob = bpy.data.objects.new(ob.name + "_HD", me)
             self.hdobject = inst.hdobject = hdob
             LS.hdmeshes[LS.rigname].append(hdob)
+            hdob.DazVisibilityDrivers = ob.DazVisibilityDrivers
             self.addHDMaterials(ob.data.materials, "")
             center = Vector((0,0,0))
             self.arrangeObject(hdob, inst, context, center)
@@ -231,6 +232,8 @@ class GeoNode(Node, SimNode):
 
 
     def finishHD(self, context, ob, hdob, inst):
+        if hdob != ob:
+            self.copyHDMaterials(ob, hdob, context, inst)
         if LS.hdcollection is None:
             from .main import makeRootCollection
             LS.hdcollection = makeRootCollection(LS.collection.name + "_HD", context)
@@ -252,18 +255,14 @@ class GeoNode(Node, SimNode):
 
     def postbuild(self, context, inst):
         ob = self.rna
-        hdob = self.hdobject
         if ob:
             pruneUvMaps(ob)
             self.addLSMesh(ob, inst, None)
-        if hdob and hdob != ob:
-            self.buildHighDef(context, inst)
 
 
-    def buildHighDef(self, context, inst):
-        me = self.hdobject.data
+    def copyHDMaterials(self, ob, hdob, context, inst):
         matgroups = [(mname,mn) for mn,mname in enumerate(self.highdef.matgroups)]
-        matnames = [(pg.name,pg.text) for pg in me.DazHDMaterials]
+        matnames = [(pg.name,pg.text) for pg in hdob.data.DazHDMaterials]
         matgroups.sort()
         matnames.sort()
         diff = len(matnames) - len(matgroups)
@@ -279,12 +278,34 @@ class GeoNode(Node, SimNode):
             else:
                 matnums.append((mn, mname))
                 n += 1
+
+        uvmap = None
+        if (len(ob.data.vertices) != len(hdob.data.vertices) and
+            len(ob.data.uv_layers) > 1):
+            uvmap = hdob.data.uv_layers[0].name
         matnums.sort()
         for _,mname in matnums:
             mat = bpy.data.materials[mname]
-            me.materials.append(mat)
-
+            if uvmap:
+                mat = self.fixHDMaterial(mat, uvmap)
+            hdob.data.materials.append(mat)
         inst.parentObject(context, self.hdobject)
+
+
+    def fixHDMaterial(self, mat, uvmap):
+        keep = True
+        for node in mat.node_tree.nodes:
+            if node.type in ['UVMAP', 'NORMAL_MAP']:
+                keep = False
+                break
+        if keep:
+            return mat
+        else:
+            nmat = mat.copy()
+            for node in nmat.node_tree.nodes:
+                if node.type in ['UVMAP', 'NORMAL_MAP']:
+                    node.uv_map = uvmap
+            return nmat
 
 
     def setHideInfo(self):

@@ -228,10 +228,6 @@ class ImportDAZ(DazOperator, DazOptions, MultiFile):
             asset.postbuild()
 
         print("Postprocessing...")
-        for asset,inst in main.nodes:
-            asset.postprocess(context, inst)
-        for asset,inst in main.modifiers:
-            asset.postprocess(context, inst)
         for asset,inst in main.modifiers:
             asset.postbuild(context, inst)
         for _,inst in main.nodes:
@@ -241,10 +237,6 @@ class ImportDAZ(DazOperator, DazOptions, MultiFile):
 
         from .node import transformDuplis
         transformDuplis(context)
-
-        if LS.useMaterials:
-            for asset in main.materials:
-                asset.guessColor()
 
         t2 = perf_counter()
         print('File "%s" loaded in %.3f seconds' % (filepath, t2-t1))
