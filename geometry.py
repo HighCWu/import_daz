@@ -137,11 +137,13 @@ class GeoNode(Node, SimNode):
             if GS.useMultires:
                 multi = addMultires(context, hdob, False)
             if multi:
-                copyExtraUvlayers(ob, hdob)
+                copyUvLayers(ob, hdob)
             elif len(hdob.data.vertices) == len(ob.data.vertices):
                 print("HD mesh same as base mesh:", ob.name)
                 self.hdobject = inst.hdobject = None
                 deleteObjects(context, [hdob])
+            else:
+                self.addHDUvs(ob, hdob)
         elif LS.useHDObjects:
             self.hdobject = inst.hdobject = ob
 
@@ -167,23 +169,27 @@ class GeoNode(Node, SimNode):
 
     def buildHDMesh(self, ob):
         verts = self.highdef.verts
-        uvs = self.highdef.uvs
         hdfaces = self.highdef.faces
         faces = self.stripNegatives([f[0] for f in hdfaces])
-        uvfaces = self.stripNegatives([f[1] for f in hdfaces])
         mnums = [f[4] for f in hdfaces]
         nverts = len(verts)
         me = bpy.data.meshes.new(ob.data.name + "_HD")
         print("Build HD mesh for %s: %d verts, %d faces" % (ob.name, nverts, len(faces)))
         me.from_pydata(verts, [], faces)
         print("HD mesh %s built" % me.name)
-        uvlayers = ob.data.uv_layers
-        if len(uvlayers) > 0:
-            addUvs(me, uvlayers[0].name, uvs, uvfaces)
         for f in me.polygons:
             f.material_index = mnums[f.index]
             f.use_smooth = True
         return me
+
+
+    def addHDUvs(self, ob, hdob):
+        uvs = self.highdef.uvs
+        hdfaces = self.highdef.faces
+        uvfaces = self.stripNegatives([f[1] for f in hdfaces])
+        uvlayers = ob.data.uv_layers
+        if len(uvlayers) > 0:
+            addUvs(hdob.data, uvlayers[0].name, uvs, uvfaces)
 
 
     def addHDMaterials(self, mats, prefix):
@@ -382,7 +388,7 @@ class DAZ_OT_MakeMultires(DazOperator, IsMesh):
                     baseob = context.object
                 break
         addMultires(context, hdob, True)
-        copyExtraUvlayers(baseob, hdob)
+        copyUvLayers(baseob, hdob)
         rig = baseob.parent
         if not (rig and rig.type == 'ARMATURE'):
             return
@@ -391,8 +397,11 @@ class DAZ_OT_MakeMultires(DazOperator, IsMesh):
         copyVertexGroups(baseob, hdob)
 
 
-def copyExtraUvlayers(ob, hdob):
-    for uvlayer in ob.data.uv_layers[1:]:
+def copyUvLayers(ob, hdob):
+    for uvlayer in list(hdob.data.uv_layers):
+        print("DEL", uvlayer.name)
+        hdob.data.uv_layers.remove(uvlayer)
+    for uvlayer in ob.data.uv_layers:
         hdlayer = makeNewUvloop(hdob.data, uvlayer.name, False)
         for data,hddata in zip(uvlayer.data, hdlayer.data):
             hddata.uv = data.uv
