@@ -481,19 +481,21 @@ class ConstraintStore:
                         self.restoreConstraint(struct, pb)
 
 
-    def restoreConstraints(self, key, pb):
+    def restoreConstraints(self, key, pb, target=None):
         if key not in self.constraints.keys():
             return
         clist = self.constraints[key]
         for struct in clist:
-            self.restoreConstraint(struct, pb)
+            self.restoreConstraint(struct, pb, target)
 
 
-    def restoreConstraint(self, struct, pb):
+    def restoreConstraint(self, struct, pb, target=None):
         cns = pb.constraints.new(struct["type"])
         for attr,value in struct.items():
             if attr != "type":
                 setattr(cns, attr, value)
+        if target and hasattr(cns, "target"):
+            cns.target = target
 
 
     def removeConstraints(self, pb):

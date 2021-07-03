@@ -357,12 +357,12 @@ class DazBone:
         self.store.storeConstraints(pb.name, pb)
 
 
-    def setPose(self, pb):
+    def setPose(self, pb, rig):
         pb.rotation_mode = self.rotation_mode
         pb.lock_location = self.lock_location
         pb.lock_rotation = self.lock_rotation
         pb.lock_scale = self.lock_scale
-        self.store.restoreConstraints(pb.name, pb)
+        self.store.restoreConstraints(pb.name, pb, target=rig)
 
 
 def addDicts(structs):
@@ -646,6 +646,10 @@ class Rigify:
                 if pname in extras.keys() or pname in taken:
                     break
                 extras[pname] = pname
+                if isDrvBone(pname):
+                    fname = finBone(bone.name)
+                    if fname in rig.data.bones.keys():
+                        extras[fname] = fname
                 bone = bone.parent
         return extras
 
@@ -961,7 +965,7 @@ class Rigify:
                 continue
             if rname in gen.pose.bones.keys():
                 pb = gen.pose.bones[rname]
-                dazBones[dname].setPose(pb)
+                dazBones[dname].setPose(pb, gen)
                 mhxlayer,unlock = getBoneLayer(pb, gen)
                 layer = MhxRigifyLayer[mhxlayer]
                 pb.bone.layers = layer*[False] + [True] + (31-layer)*[False]
