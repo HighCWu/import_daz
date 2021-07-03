@@ -248,8 +248,9 @@ class DAZ_OT_GlobalSettings(DazOperator):
 
         box = col.box()
         box.label(text = "Meshes")
-        box.prop(scn, "DazBuildHighdef")
+        box.prop(scn, "DazHighdef")
         box.prop(scn, "DazMultires")
+        box.prop(scn, "DazMultiUvsets")
         box.prop(scn, "DazUseAutoSmooth")
         box.prop(scn, "DazUseInstancing")
         box.prop(scn, "DazSimulation")
@@ -586,13 +587,17 @@ def register():
         name = "Use Instancing",
         description = "Use instancing for DAZ instances")
 
-    bpy.types.Scene.DazBuildHighdef = BoolProperty(
+    bpy.types.Scene.DazHighdef = BoolProperty(
         name = "Build HD Meshes",
         description = "Build HD meshes if included in .dbz file")
 
     bpy.types.Scene.DazMultires = BoolProperty(
         name = "Add Multires",
         description = "Add multires modifier to HD meshes and rebuild lower subdivision levels")
+
+    bpy.types.Scene.DazMultiUvsets = BoolProperty(
+        name = "Multiple UV sets",
+        description = "Use multiple UV sets for HD meshes with multires modifiers")
 
     bpy.types.Scene.DazUseAutoSmooth = BoolProperty(
         name = "Auto Smooth",

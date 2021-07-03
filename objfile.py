@@ -167,7 +167,7 @@ def loadDbzFile(filepath):
                 props = figure["node"]["properties"]
             dbz.objects[name].append(DBZObject(verts, uvs, edges, faces, matgroups, props, 0, center))
 
-        if "hd vertices" in figure.keys():
+        if GS.useHighDef and "hd vertices" in figure.keys():
             LS.useHDObjects = True
             if name not in dbz.hdobjects.keys():
                 dbz.hdobjects[name] = []

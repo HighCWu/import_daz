@@ -101,8 +101,9 @@ class GlobalSettings:
         self.useConnectClose = False
 
         self.useInstancing = True
-        self.buildHighdef = True
+        self.useHighDef = True
         self.useMultires = True
+        self.useMultiUvsets = False
         self.useMultiShapes = True
         self.useAutoSmooth = False
         self.useSimulation = True
@@ -164,8 +165,9 @@ class GlobalSettings:
 
         # Meshes
         "DazUseInstancing" : "useInstancing",
-        "DazBuildHighdef" : "buildHighdef",
+        "DazHighdef" : "useHighDef",
         "DazMultires" : "useMultires",
+        "DazMultiUvsets" : "useMultiUvsets",
         "DazUseAutoSmooth" : "useAutoSmooth",
         "DazSimulation" : "useSimulation",
     }
