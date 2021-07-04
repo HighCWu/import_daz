@@ -134,20 +134,15 @@ class GeoNode(Node, SimNode):
             self.addHDMaterials(ob.data.materials, "")
             center = Vector((0,0,0))
             self.arrangeObject(hdob, inst, context, center)
-            if not GS.useMultiUvsets:
-                self.addHDUvs(ob, hdob)
+            self.addHDUvs(ob, hdob)
             multi = False
             if GS.useMultires:
                 multi = addMultires(context, hdob, False)
-            if multi:
-                if GS.useMultiUvsets:
-                    copyUvLayers(ob, hdob)
-            elif len(hdob.data.vertices) == len(ob.data.vertices):
+            if (not multi and
+                len(hdob.data.vertices) == len(ob.data.vertices)):
                 print("HD mesh same as base mesh:", ob.name)
                 self.hdobject = inst.hdobject = None
                 deleteObjects(context, [hdob])
-            elif GS.useMultiUvsets:
-                self.addHDUvs(ob, hdob)
         elif LS.useHDObjects:
             self.hdobject = inst.hdobject = ob
 
@@ -283,9 +278,7 @@ class GeoNode(Node, SimNode):
                 n += 1
 
         uvmap = None
-        if ((not GS.useMultiUvsets or
-             len(ob.data.vertices) != len(hdob.data.vertices)) and
-            len(ob.data.uv_layers) > 1):
+        if len(ob.data.uv_layers) > 1:
             uvmap = hdob.data.uv_layers[0].name
         matnums.sort()
         for _,mname in matnums:
