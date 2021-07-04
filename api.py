@@ -141,10 +141,10 @@ def get_morph_files(ob=None):
     return getHDFiles(ob, "DazMorphFiles")
 
 def get_dhdm_directories(ob=None):
-    from .hdmorphs import getHDFiles
+    from .hdmorphs import getHDDirs
     return getHDDirs(ob, "DazDhdmFiles")
 
 def get_morph_directories(ob=None):
-    from .hdmorphs import getHDFiles
+    from .hdmorphs import getHDDirs
     return getHDDirs(ob, "DazMorphFiles")
 
