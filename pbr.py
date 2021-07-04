@@ -226,7 +226,7 @@ class PbrTree(CyclesTree):
         ssscolor,ssstex,sssmode = self.getSSSColor()
         radius,radtex = self.getSSSRadius(color, ssscolor, ssstex, sssmode)
         self.linkColor(coltex, gamma, color, "Color")
-        self.pbr.subsurface_method = 'RANDOM_WALK'
+        #self.pbr.subsurface_method = 'RANDOM_WALK'
         self.links.new(gamma.outputs[0], self.pbr.inputs["Subsurface Color"])
         self.linkScalar(wttex, self.pbr, wt, "Subsurface")
         self.linkColor(radtex, self.pbr, radius, "Subsurface Radius")
