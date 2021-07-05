@@ -257,6 +257,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box = split.box()
         box.label(text = "Materials")
         box.prop(scn, "DazMaterialMethod")
+        box.prop(scn, "DazSSSMethod")
         box.prop(scn, "DazRefractiveMethod")
         box.prop(scn, "DazHairMaterialMethod")
         box.separator()
@@ -483,6 +484,13 @@ def register():
         name = "Method",
         description = "Material Method",
         default = 'BSDF')
+
+    bpy.types.Scene.DazSSSMethod = EnumProperty(
+        items = [('BURLEY', "Christensen-Burley", "Chiristensen-Burley"),
+                 ('RANDOM_WALK', "Random Walk", "Random walk")],
+        name = "SSS Method",
+        description = "Method for subsurface scattering",
+        default = 'RANDOM_WALK')
 
     bpy.types.Scene.DazRefractiveMethod = EnumProperty(
         items = [('BSDF', "BSDF", "Add BSDF refractive node group"),

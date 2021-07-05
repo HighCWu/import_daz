@@ -63,6 +63,7 @@ class GlobalSettings:
 
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
+        self.sssMethod = 'RANDOM_WALK'
         self.viewportColors = 'GUESS'
         self.orientMethod = 'DAZ STUDIO'
         self.useQuaternions = False
@@ -126,6 +127,7 @@ class GlobalSettings:
 
         # Materials
         "DazMaterialMethod" : "materialMethod",
+        "DazSSSMethod" : "sssMethod",
         "DazRefractiveMethod" : "refractiveMethod",
         "DazHairMaterialMethod" : "hairMaterialMethod",
         "DazViewportColor" : "viewportColors",
