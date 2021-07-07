@@ -1552,6 +1552,11 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         self.saveFile(rig)
 
 
+    def isLocUnlocked(self, pb, bname):
+        return (isLocationUnlocked(pb) and
+                bname not in ["lHand", "rHand", "lFoot", "rFoot"])
+
+
     def getFcurves(self, rig, act):
         from .morphing import theStandardMorphSets, theCustomMorphSets
         if self.useMorphs:
@@ -1565,7 +1570,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                 else:
                     self.rots[bname] = 3*[None]
                 self.scales[bname] = 3*[None]
-                if isLocationUnlocked(pb):
+                if self.isLocUnlocked(pb, bname):
                     self.locs[bname] = 3*[None]
 
         for fcu in act.fcurves:
@@ -1601,7 +1606,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                         self.rots[bname] = [FakeCurve(t) for t in pb.rotation_euler]
                     if self.useScale:
                         self.scales[bname] = [FakeCurve(t) for t in pb.scale]
-                    if isLocationUnlocked(pb):
+                    if self.isLocUnlocked(pb, bname):
                         self.locs[bname] = [FakeCurve(t) for t in pb.location]
         if self.useMorphs:
             for morphset in theStandardMorphSets + theCustomMorphSets:
@@ -1686,11 +1691,13 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                 if dbone not in self.conv.keys():
                     self.conv[dbone] = []
                 self.conv[dbone].append(mbone)
-            if self.useFaceBones:
-                for root in ["head", "DEF-spine.007"]:
-                    if root in rig.pose.bones.keys():
-                        pb = rig.pose.bones[root]
+            for root in ["head", "DEF-spine.007"]:
+                if root in rig.pose.bones.keys():
+                    pb = rig.pose.bones[root]
+                    if self.useFaceBones:
                         self.setupConvBones(pb)
+                    else:
+                        self.removeConvChildren(pb, list(self.conv.keys()))
         else:
             roots = [pb for pb in rig.pose.bones if pb.parent is None]
             for pb in roots:
@@ -1698,16 +1705,26 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
 
 
     def setupConvBones(self, pb):
-        if pb.name[-2:] == ".L":
+        if isDrvBone(pb.name) or isFinal(pb.name):
+            bname = None
+        elif pb.name[-2:] == ".L":
             bname = "l%s%s" % (pb.name[0].upper(), pb.name[1:-2])
         elif pb.name[-2:] == ".R":
             bname = "r%s%s" % (pb.name[0].upper(), pb.name[1:-2])
         else:
             bname = pb.name
-        self.conv[pb.name] = [bname]
-        if pb.name != "head" or self.useFaceBones:
+        if bname:
+            self.conv[pb.name] = [bname]
+        if bname != "head" or self.useFaceBones:
             for child in pb.children:
                 self.setupConvBones(child)
+
+
+    def removeConvChildren(self, pb, conv):
+        for child in pb.children:
+            if child.name in conv:
+                del self.conv[child.name]
+            self.removeConvChildren(child, conv)
 
 
     def getBoneNames(self, bname):
@@ -1770,8 +1787,8 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             for pb in rig.pose.bones:
                 for bname in self.getBoneNames(pb.name):
                     Ls = [self.Ls[frame][bname] for frame in range(self.first, self.last+1)]
-                    if isLocationUnlocked(pb):
-                        locs = [L.col[3] for L in Ls]
+                    if self.isLocUnlocked(pb, bname):
+                        locs = [L.to_translation() for L in Ls]
                         self.getTrans(bname, pb, locs, 1/rig.DazScale, anims)
                     rots = [L.to_euler(pb.DazRotMode) for L in Ls]
                     self.getRot(bname, pb, rots, 1/D, anims)
