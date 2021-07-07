@@ -213,13 +213,14 @@ TweakableChannels = OrderedDict([
 
     ("Translucency", None),
     ("Translucency Color", ("DAZ Translucent", "Translucent Color", 4)),
-    ("SSS Color", ("DAZ Translucent", "SSS Color", 4)),
-    ("SSS Gamma", ("DAZ Translucent", "Gamma", 1)),
+    ("Translucency SSS Color", ("DAZ Translucent", "SSS Color", 4)),
+    ("Translucency Transmitted Color", ("DAZ Translucent", "Transmitted Color", 4)),
+    ("Translucency SSS Gamma", ("DAZ Translucent", "Gamma", 1)),
     ("Translucency Strength", ("DAZ Translucent", "Fac", 1)),
     ("Translucency Scale", ("DAZ Translucent", "Scale", 1)),
     ("Translucency Radius", ("DAZ Translucent", "Radius", 3)),
-    ("Cycles Mix Factor", ("DAZ Translucent", "Cycles Mix Factor", 1)),
-    ("Eevee Mix Factor", ("DAZ Translucent", "Eevee Mix Factor", 1)),
+    ("Translucency Cycles Mix Factor", ("DAZ Translucent", "Cycles Mix Factor", 1)),
+    ("Translucency Eevee Mix Factor", ("DAZ Translucent", "Eevee Mix Factor", 1)),
 
     ("Principled", None),
     ("Principled Base Color", ("BSDF_PRINCIPLED", "Base Color", 4)),
@@ -256,9 +257,9 @@ TweakableChannels = OrderedDict([
     ("Refraction Color", ("DAZ Refraction", "Refraction Color", 4)),
     ("Refraction Roughness", ("DAZ Refraction", "Refraction Roughness", 1)),
     ("Refraction IOR", ("DAZ Refraction", "Refraction IOR", 1)),
-    ("Ref Fresnel IOR", ("DAZ Refraction", "Fresnel IOR", 1)),
-    ("Ref Glossy Color", ("DAZ Refraction", "Glossy Color", 4)),
-    ("Ref Glossy Roughness", ("DAZ Refraction", "Glossy Roughness", 1)),
+    ("Refraction Fresnel IOR", ("DAZ Refraction", "Fresnel IOR", 1)),
+    ("Refraction Glossy Color", ("DAZ Refraction", "Glossy Color", 4)),
+    ("Refraction Glossy Roughness", ("DAZ Refraction", "Glossy Roughness", 1)),
     ("Refraction Strength", ("DAZ Refraction", "Fac", 1)),
 
     ("Transparent", None),
@@ -290,18 +291,19 @@ class EditSlotGroup(bpy.types.PropertyGroup):
         name = "Color",
         subtype = "COLOR",
         size = 4,
-        min = 0.0,
+        min = 0.0, max = 1.0,
         default = (1,1,1,1)
     )
 
     vector : FloatVectorProperty(
         name = "Vector",
         size = 3,
+        precision = 4,
         min = 0.0,
         default = (0,0,0)
     )
 
-    number : FloatProperty(default = 0.0, precision=4)
+    number : FloatProperty(default = 0.0, min = 0.0, precision=4)
     new : BoolProperty()
 
 
@@ -481,8 +483,11 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, MaterialSelector, ChannelSetter, Lau
         self.layout.label(text="Active Material: %s" % ob.active_material.name)
         self.layout.separator()
         showing = False
+        section = ""
         for key in TweakableChannels.keys():
             if TweakableChannels[key] is None:
+                section = key
+                nchars = len(section)
                 if self.shows[key].show:
                     self.layout.prop(self.shows[key], "show", icon="DOWNARROW_HLT", emboss=False, text=key)
                 else:
@@ -491,8 +496,8 @@ class DAZ_OT_LaunchEditor(DazPropsOperator, MaterialSelector, ChannelSetter, Lau
             elif showing and key in ob.DazSlots.keys():
                 item = ob.DazSlots[key]
                 row = self.layout.row()
-                if key[0:11] == "Principled ":
-                    text = item.name[11:]
+                if key[0:nchars] == section:
+                    text = item.name[nchars+1:]
                 else:
                     text = item.name
                 row.label(text=text)
