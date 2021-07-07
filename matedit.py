@@ -212,10 +212,8 @@ TweakableChannels = OrderedDict([
     ("Dual Lobe PBR Strength", ("DAZ Dual Lobe PBR", "Fac", 1)),
 
     ("Translucency", None),
-    ("Translucency Color", ("DAZ Translucent", "Translucent Color", 4)),
-    ("Translucency SSS Color", ("DAZ Translucent", "SSS Color", 4)),
-    ("Translucency Transmitted Color", ("DAZ Translucent", "Transmitted Color", 4)),
-    ("Translucency SSS Gamma", ("DAZ Translucent", "Gamma", 1)),
+    ("Translucency Color", ("DAZ Translucent", "Color", 4)),
+    ("Translucency Gamma", ("DAZ Translucent", "Gamma", 1)),
     ("Translucency Strength", ("DAZ Translucent", "Fac", 1)),
     ("Translucency Scale", ("DAZ Translucent", "Scale", 1)),
     ("Translucency Radius", ("DAZ Translucent", "Radius", 3)),
