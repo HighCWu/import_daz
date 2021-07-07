@@ -157,11 +157,13 @@ class FrameConverter:
 
     def getConv(self, bones, rig):
         from .figure import getRigType
-        from .convert import getConverter
+        from .convert import getConverter, SourceRig
         stype = None
         conv = {}
         twists = {}
-        if (rig.DazRig == "mhx" or
+        if self.convertPoses:
+            stype = SourceRig[self.srcCharacter]
+        elif (rig.DazRig == "mhx" or
             rig.DazRig[0:6] == "rigify"):
             stype = "genesis8"
         else:
@@ -895,7 +897,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 tfm.insertKeys(rig, pb, n+offset, bname, self.driven)
         else:
             pass
-            #print("NOT AVIL", pb.name)
 
 
     def imposeLocks(self, pb):
@@ -1452,6 +1453,8 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
     bl_label = "Save Pose Preset"
     bl_description = "Save the active action as a pose preset,\nto be used in DAZ Studio"
     bl_options = {'UNDO'}
+
+    convertPoses = False
 
     author : StringProperty(
         name = "Author",
