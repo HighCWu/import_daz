@@ -301,7 +301,7 @@ class EditSlotGroup(bpy.types.PropertyGroup):
         default = (0,0,0)
     )
 
-    number : FloatProperty(default = 0.0, min = 0.0, precision=4)
+    number : FloatProperty(default = 0.0, precision=4)
     new : BoolProperty()
 
 
