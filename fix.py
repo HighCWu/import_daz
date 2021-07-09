@@ -1005,6 +1005,41 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
             cns1.influence = infl
             pb.bone.layers = self.windedLayers
 
+
+#-------------------------------------------------------------
+#   Retarget armature
+#-------------------------------------------------------------
+
+def getArmatureEnums(scn, context):
+    coll = context.scene.collection
+    return [(rig.name, rig.name, rig.name) for rig in coll.all_objects if rig.type == 'ARMATURE']
+
+
+class DAZ_OT_RetargetArmatureModifiers(DazPropsOperator, IsMesh):
+    bl_idname = "daz.retarget_armature_modifiers"
+    bl_label = "Retarget Armature Modifiers"
+    bl_description = "Change the target of armature modifiers of selected meshes"
+    bl_options = {'UNDO'}
+
+    rig : EnumProperty(
+        items = getArmatureEnums,
+        name = "Rig",
+        description = "The new target armature")
+
+    def draw(self, context):
+        self.layout.prop(self, "rig")
+
+    def run(self, context):
+        if self.rig in bpy.data.objects.keys():
+            rig = bpy.data.objects[self.rig]
+        else:
+            raise DazError("No armature found")
+        for ob in getSelectedMeshes(context):
+            mod = getModifier(ob, 'ARMATURE')
+            if mod is None:
+                continue
+            mod.object = rig
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -1013,6 +1048,7 @@ classes = [
     DAZ_OT_AddIkGoals,
     DAZ_OT_AddWinders,
     DAZ_OT_ChangePrefixToSuffix,
+    DAZ_OT_RetargetArmatureModifiers,
 ]
 
 def register():
