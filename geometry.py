@@ -29,6 +29,7 @@ import math
 from mathutils import Vector, Matrix
 import os
 import bpy
+import bmesh
 from collections import OrderedDict
 from .asset import Asset
 from .channels import Channels
@@ -160,6 +161,7 @@ class GeoNode(Node, SimNode):
             mod.levels = self.data.SubDIALevel
             if hasattr(mod, "use_limit_surface"):
                 mod.use_limit_surface = False
+            self.data.creaseEdges(context, ob)
 
 
     def addMappings(self, selmap):
@@ -490,19 +492,19 @@ class Geometry(Asset, Channels):
         Channels.parse(self, struct)
 
         self.verts = d2bList(struct["vertices"]["values"])
-        if "polyline_list" in struct.keys():
-            self.polylines = struct["polyline_list"]["values"]
         fdata = struct["polylist"]["values"]
         self.faces = [ f[2:] for f in fdata]
         self.polygon_indices = [f[0] for f in fdata]
         self.polygon_groups = struct["polygon_groups"]["values"]
         self.material_indices = [f[1] for f in fdata]
         self.polygon_material_groups = struct["polygon_material_groups"]["values"]
-        if "edge_weights" in struct.keys():
-            self.edge_weights = struct["edge_weights"]["values"]
 
         for key,data in struct.items():
-            if key == "default_uv_set":
+            if key == "polyline_list":
+                self.polylines = data["values"]
+            elif key == "edge_weights":
+                self.edge_weights = data["values"]
+            elif key == "default_uv_set":
                 uvset = self.getTypedAsset(data, Uvset)
                 if uvset:
                     self.default_uv_set = self.uv_sets[uvset.name] = uvset
@@ -816,14 +818,28 @@ class Geometry(Asset, Channels):
         ob = bpy.data.objects.new(inst.name, me)
         if hasShells:
             ob.DazVisibilityDrivers = True
+        return ob
+
+
+    def creaseEdges(self, context, ob):
         if self.edge_weights:
             from .tables import getVertEdges
             vertedges = getVertEdges(ob)
-            for vn1,vn2,weight in self.edge_weights:
+            weights = {}
+            for vn1,vn2,w in self.edge_weights:
                 for e in vertedges[vn1]:
                     if vn2 in e.vertices:
-                        e.crease = weight - math.floor(weight - 1e-4)
-        return ob
+                        weights[e.index] = w
+            activateObject(context, ob)
+            bpy.ops.object.mode_set(mode='EDIT')
+            bm = bmesh.from_edit_mesh(ob.data)
+            bm.edges.ensure_lookup_table()
+            creaseLayer = bm.edges.layers.crease.verify()
+            for en,w in weights.items():
+                e = bm.edges[en]
+                e[creaseLayer] = w - math.floor(w - 1e-4)
+            bmesh.update_edit_mesh(ob.data)
+            bpy.ops.object.mode_set(mode='OBJECT')
 
 
     def addMaterials(self, me, geonode, context):
