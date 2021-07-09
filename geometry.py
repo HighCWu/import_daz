@@ -835,11 +835,13 @@ class Geometry(Asset, Channels):
             bm = bmesh.from_edit_mesh(ob.data)
             bm.edges.ensure_lookup_table()
             creaseLayer = bm.edges.layers.crease.verify()
+            level = max(1, self.SubDIALevel + self.SubDRenderLevel)
             for en,w in weights.items():
                 e = bm.edges[en]
-                e[creaseLayer] = w - math.floor(w - 1e-4)
+                e[creaseLayer] = min(1.0, w/level)
             bmesh.update_edit_mesh(ob.data)
             bpy.ops.object.mode_set(mode='OBJECT')
+            self.edge_weights = []
 
 
     def addMaterials(self, me, geonode, context):
