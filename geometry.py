@@ -444,6 +444,7 @@ class Geometry(Asset, Channels):
         self.material_indices = []
         self.polygon_material_groups = []
         self.polygon_groups = []
+        self.edge_weights = []
         self.mappings = {}
         self.material_group_vis = {}
 
@@ -497,6 +498,8 @@ class Geometry(Asset, Channels):
         self.polygon_groups = struct["polygon_groups"]["values"]
         self.material_indices = [f[1] for f in fdata]
         self.polygon_material_groups = struct["polygon_material_groups"]["values"]
+        if "edge_weights" in struct.keys():
+            self.edge_weights = struct["edge_weights"]["values"]
 
         for key,data in struct.items():
             if key == "default_uv_set":
@@ -813,6 +816,13 @@ class Geometry(Asset, Channels):
         ob = bpy.data.objects.new(inst.name, me)
         if hasShells:
             ob.DazVisibilityDrivers = True
+        if self.edge_weights:
+            from .tables import getVertEdges
+            vertedges = getVertEdges(ob)
+            for vn1,vn2,weight in self.edge_weights:
+                for e in vertedges[vn1]:
+                    if vn2 in e.vertices:
+                        e.crease = weight - math.floor(weight - 1e-4)
         return ob
 
 

@@ -43,11 +43,9 @@ def getVertFaces(ob, verts=None, faces=None, faceverts=None):
 
 def getVertEdges(ob):
     nverts = len(ob.data.vertices)
-    nedges = len(ob.data.edges)
-    edgeverts = dict([(e.index, e.vertices) for e in ob.data.edges])
     vertedges = dict([(vn,[]) for vn in range(nverts)])
     for e in ob.data.edges:
-        for vn in edgeverts[e.index]:
+        for vn in e.vertices:
             vertedges[vn].append(e)
     return vertedges
 
