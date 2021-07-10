@@ -167,8 +167,9 @@ class FrameConverter:
             rig.DazRig[0:6] == "rigify"):
             stype = "genesis8"
         else:
-            stype = getRigType(bones)
+            stype = getRigType(bones, False)
         if stype:
+            print("Auto-detected %s character in duf/dsf file" % stype)
             conv,twists = getConverter(stype, rig)
             if not conv:
                 conv = {}

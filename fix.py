@@ -1036,9 +1036,17 @@ class DAZ_OT_RetargetArmatureModifiers(DazPropsOperator, IsMesh):
             raise DazError("No armature found")
         for ob in getSelectedMeshes(context):
             mod = getModifier(ob, 'ARMATURE')
-            if mod is None:
-                continue
-            mod.object = rig
+            if mod:
+                mod.object = rig
+            if ob.parent and ob.parent_type == 'BONE':
+                wmat = ob.matrix_world.copy()
+                bname = ob.parent_bone
+                ob.parent = rig
+                ob.parent_type = 'BONE'
+                ob.parent_bone = bname
+                ob.matrix_world = wmat
+            else:
+                ob.parent = rig
 
 #----------------------------------------------------------
 #   Initialize

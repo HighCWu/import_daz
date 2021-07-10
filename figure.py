@@ -315,7 +315,7 @@ class Figure(Node):
                 child.buildEdit(self, inst, rig, None, center, False)
 
         bpy.ops.object.mode_set(mode='OBJECT')
-        rig.DazRig = self.rigtype = getRigType1(inst.bones.keys())
+        rig.DazRig = self.rigtype = getRigType1(inst.bones.keys(), True)
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
                 child.buildBoneProps(rig, center)
@@ -337,33 +337,41 @@ def getModifierPath(moddir, folder, tfile):
     return None
 
 
-def getRigType(data):
+def getRigType(data, strict):
     if isinstance(data, bpy.types.Object):
-        return getRigType1(data.pose.bones.keys())
+        return getRigType1(data.pose.bones.keys(), strict)
     else:
-        return getRigType1(data)
+        return getRigType1(data, strict)
 
 
-def getRigType1(bones):
+def getRigType1(bones, strict):
     def match(tests, bones):
         for test in tests:
             if test not in bones:
                 return False
         return True
 
-    if match(["abdomenLower", "lShldrBend", "lMid3", "rMid3", "lSmallToe2_2", "rSmallToe2_2", "lNasolabialLower"], bones):
-        if "lHeel" in bones:
-            return "genesis3"
-        else:
-            return "genesis8"
-    elif match(["abdomen", "lShldr", "lMid3", "rMid3", "upperJaw"], bones):
-        if "lSmallToe1" in bones:
-            return "genesis2"
-        elif "lToe" in bones:
-            return "genesis"
-        else:
-            return ""
-    elif "ball.marker.L" in bones:
+    strictBones = {
+        "genesis12" : ["abdomen", "lShldr", "lMid3", "rMid3", "upperJaw"],
+        "genesis38" : ["abdomenLower", "lShldrBend", "lMid3", "rMid3", "lSmallToe2_2", "rSmallToe2_2", "lNasolabialLower"],
+    }
+
+    laxBones = {
+        "genesis12" : ["abdomen", "lShldr"],
+        "genesis38" : ["abdomenLower", "lShldrBend"],
+    }
+
+    if strict:
+        if match(strictBones["genesis38"], bones):
+            return ("genesis3" if "lHeel" in bones else "genesis8")
+        elif match(strictBones["genesis12"], bones):
+            return ("genesis2" if "lSmallToe1" in bones else "genesis")
+    else:
+        if match(laxBones["genesis38"], bones):
+            return ("genesis3" if "lHeel" in bones else "genesis8")
+        elif match(laxBones["genesis12"], bones):
+            return ("genesis2" if "lSmallToe1" in bones else "genesis")
+    if "ball.marker.L" in bones:
         return "mhx"
     else:
         return ""

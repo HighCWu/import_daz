@@ -771,7 +771,7 @@ class Rigify:
         cns.mute = True
 
         meta.DazPre278 = ("hips" in meta.data.bones.keys())
-        meta.DazRigifyType = getRigType(rig)
+        meta.DazRigifyType = getRigType(rig, True)
         meta.DazUseSplitNeck = (not meta.DazPre278 and meta.DazRigifyType in ["genesis3", "genesis8"])
         if meta.DazUseSplitNeck:
             self.splitNeck(meta)
