@@ -189,7 +189,7 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
         # Select verts on common boundary
         names = []
         for aob in anatomies:
-            aob.select_set(True)
+            selectSet(aob, True)
             names.append(aob.name)
             for pair in aob.data.DazGraftGroup:
                 aob.data.vertices[pair.a].select = True
@@ -779,11 +779,11 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
 
         bpy.ops.object.select_all(action='DESELECT')
         for ob,_ in info.objects:
-            ob.select_set(True)
+            selectSet(ob, True)
         for subinfo in subinfos:
-            subinfo.rig.select_set(True)
+            selectSet(subinfo.rig, True)
             for ob,_ in subinfo.objects:
-                ob.select_set(True)
+                selectSet(ob, True)
         bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
         return info, subinfos
 
@@ -801,9 +801,9 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         bpy.ops.object.select_all(action='DESELECT')
         for info in infos:
             if info.conforms:
-                info.rig.select_set(True)
+                selectSet(info.rig, True)
                 for ob,_ in info.objects:
-                    ob.select_set(True)
+                    selectSet(ob, True)
         try:
             bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         except RuntimeError:
@@ -1073,14 +1073,14 @@ def applyRestPoses(context, rig, subrigs):
 def applyAllObjectTransforms(rigs):
     bpy.ops.object.select_all(action='DESELECT')
     for rig in rigs:
-        rig.select_set(True)
+        selectSet(rig, True)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     bpy.ops.object.select_all(action='DESELECT')
     try:
         for rig in rigs:
             for ob in rig.children:
                 if ob.type == 'MESH':
-                    ob.select_set(True)
+                    selectSet(ob, True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         return True
     except RuntimeError:

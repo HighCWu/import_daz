@@ -102,6 +102,14 @@ def activateObject(context, ob):
         return False
 
 
+def selectSet(ob, value):
+    try:
+        ob.select_set(value)
+        return True
+    except RuntimeError:
+        return False
+
+
 def selectObjects(context, objects):
     if context.object:
         try:
