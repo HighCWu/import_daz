@@ -80,7 +80,7 @@ def get_morphs(ob, morphset, category=None, activeOnly=False):
     ?activeOnly (optional): Active morphs only (default False).
     """
     from .morphing import getMorphsExternal
-    getMorphsExternal(ob, morphset, category, activeOnly)
+    return getMorphsExternal(ob, morphset, category, activeOnly)
 
 #-------------------------------------------------------------
 #   Active file paths used from python
