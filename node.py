@@ -573,6 +573,9 @@ def findLayerCollection(layer, coll):
 
 def createHiddenCollection(context, ob):
     parcoll = getCollection(ob)
+    for coll in parcoll.children:
+        if coll.name.startswith("Hidden"):
+            return coll
     coll = bpy.data.collections.new(name="Hidden")
     parcoll.children.link(coll)
     layer = findLayerCollection(context.view_layer.layer_collection, coll)

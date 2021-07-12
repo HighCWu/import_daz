@@ -329,6 +329,9 @@ class GizmoUser:
 
 
     def makeGizmo(self, gname, me, parent=None):
+        for gname1 in self.hidden.objects.keys():
+            if gname1.startswith(gname):
+                return self.hidden.objects[gname1]
         ob = bpy.data.objects.new(gname, me)
         self.hidden.objects.link(ob)
         ob.parent = parent
@@ -339,6 +342,9 @@ class GizmoUser:
 
 
     def makeEmptyGizmo(self, gname, dtype):
+        for gname1 in self.hidden.objects.keys():
+            if gname1.startswith(gname):
+                return self.hidden.objects[gname1]
         empty = self.makeGizmo(gname, None)
         empty.empty_display_type = dtype
         return empty

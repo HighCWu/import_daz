@@ -982,7 +982,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
 class DAZ_OT_CopyBonePoses(DazOperator, IsArmature):
     bl_idname = "daz.copy_bone_poses"
     bl_label = "Copy Bone Poses"
-    bl_description = "Copy selected rig bone locations to active rig"
+    bl_description = "Copy bone pose from active rig to selected rigs"
     bl_options = {'UNDO'}
 
     def run(self, context):
@@ -997,11 +997,13 @@ class DAZ_OT_CopyBonePoses(DazOperator, IsArmature):
                 continue
             print("Copy bones to %s:" % subrig.name)
             setWorldMatrix(subrig, rig.matrix_world)
-            updateScene(context)
+            #updateScene(context)
+            bpy.context.view_layer.update()
             for pb in subrig.pose.bones:
                 if pb.name in rig.pose.bones.keys():
                     pb.matrix = rig.pose.bones[pb.name].matrix
-                    updateScene(context)
+                    bpy.context.view_layer.update()
+                    #updateScene(context)
 
 #-------------------------------------------------------------
 #   Apply rest pose

@@ -267,8 +267,9 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         if showBox(scn, "DazShowRigging2", box):
             box.operator("daz.remove_custom_shapes")
             box.separator()
-            box.operator("daz.convert_rig")
             box.operator("daz.retarget_armature_modifiers")
+            box.separator()
+            box.operator("daz.convert_rig")
             box.operator("daz.add_extra_face_bones")
             box.operator("daz.copy_bone_poses")
             box.separator()
