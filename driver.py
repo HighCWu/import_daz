@@ -499,6 +499,8 @@ def getIdType(rna):
         return 'ARMATURE'
     elif isinstance(rna, bpy.types.Object):
         return 'OBJECT'
+    elif isinstance(rna, bpy.types.Mesh):
+        return 'MESH'
     else:
         raise RuntimeError("BUG addDriverVar", rna)
 

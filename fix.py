@@ -322,16 +322,28 @@ class GizmoUser:
         if gnames is None:
             gnames = struct.keys()
         for gname in gnames:
-            gizmo = struct[gname]
-            me = bpy.data.meshes.new(gname)
-            me.from_pydata(gizmo["verts"], gizmo["edges"], [])
+            if gname in bpy.data.meshes.keys():
+                me = bpy.data.meshes[gname]
+            else:
+                gizmo = struct[gname]
+                me = bpy.data.meshes.new(gname)
+                me.from_pydata(gizmo["verts"], gizmo["edges"], [])
             self.makeGizmo(gname, me)
 
 
-    def makeGizmo(self, gname, me, parent=None):
+    def getOldGizmo(self, gname):
         for gname1 in self.hidden.objects.keys():
             if gname1.startswith(gname):
-                return self.hidden.objects[gname1]
+                ob = self.hidden.objects[gname1]
+                self.gizmos[gname] = ob
+                return ob
+        return None
+
+
+    def makeGizmo(self, gname, me, parent=None):
+        ob = self.getOldGizmo(gname)
+        if ob is not None:
+            return ob
         ob = bpy.data.objects.new(gname, me)
         self.hidden.objects.link(ob)
         ob.parent = parent
@@ -342,9 +354,9 @@ class GizmoUser:
 
 
     def makeEmptyGizmo(self, gname, dtype):
-        for gname1 in self.hidden.objects.keys():
-            if gname1.startswith(gname):
-                return self.hidden.objects[gname1]
+        ob = self.getOldGizmo(gname)
+        if ob is not None:
+            return ob
         empty = self.makeGizmo(gname, None)
         empty.empty_display_type = dtype
         return empty
@@ -967,6 +979,7 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
         wname = "Wind"+bname
         self.startGizmos(context, rig)
         self.makeGizmos(["GZM_Knuckle"])
+        print("GGG", self.gizmos.keys())
         gizmo = self.gizmos["GZM_Knuckle"]
 
         bpy.ops.object.mode_set(mode='EDIT')

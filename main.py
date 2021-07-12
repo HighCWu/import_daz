@@ -634,8 +634,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         skeys = ob.data.shape_keys
         if skeys:
             bodyparts = classifyShapekeys(ob, skeys)
-            snames = list(bodyparts.keys())
-            #snames = [sname for sname,bpart in bodyparts.items() if bpart in [bodypart,"Custom"]]
+            snames = [sname for sname,bpart in bodyparts.items() if bpart in [bodypart, "All"]]
             if not snames:
                 return
             activateObject(context, ob)

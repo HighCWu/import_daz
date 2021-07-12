@@ -434,10 +434,10 @@ class CustomSelector(Selector, CustomEnums):
 
 class JCMSelector(Selector):
     bodypart : EnumProperty(
-        items = [("All", "All", "All"),
-                 ("Face", "Face", "Face"),
-                 ("Body", "Body", "Body"),
-                 ("Custom", "Custom", "Custom")],
+        items = [("All", "All", "All. Easy import transfers these shapekeys to all meshes"),
+                 ("Face", "Face", "Face. Easy import transfers these shapekeys to lashes"),
+                 ("Body", "Body", "Body. Easy import transfers these shapekeys to clothes and geografts"),
+                 ("Custom", "Custom", "Custom. Easy import does not transfer these shapekeys")],
         name = "Body part",
         description = "Part of character that the morphs affect",
         default = "All")
