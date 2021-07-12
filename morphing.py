@@ -109,7 +109,7 @@ def getAllLowerMorphNames(rig):
     for morphset in theStandardMorphSets:
         pg = getattr(rig, "Daz"+morphset)
         props += [prop.lower() for prop in pg.keys()]
-    return props
+    return [prop for prop in props if "jcm" not in prop]
 
 
 def getMorphList(ob, morphset, sets=None):
@@ -1733,8 +1733,8 @@ class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
 
     allShapes : BoolProperty(
         name = "All Shapekeys",
-        description = "Update all shapekey sliders",
-        default = True)
+        description = "Update all shapekey sliders.\nCan give undesirable effects on JCMs",
+        default = False)
 
     def draw(self, context):
         scn = context.scene

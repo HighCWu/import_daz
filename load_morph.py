@@ -418,7 +418,7 @@ class LoadMorph(DriverUser):
 
     def setFloatLimits(self, rna, prop, limits, asset, skey):
         from .driver import setFloatProp
-        if limits == 'DAZ':
+        if limits == 'DAZ' or "jcm" in prop.lower():
             min = GS.morphMultiplier * asset.min
             max = GS.morphMultiplier * asset.max
             setFloatProp(rna, prop, 0.0, min, max)
