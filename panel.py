@@ -145,6 +145,10 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.create_meta")
             box.operator("daz.rigify_meta")
             box.separator()
+            box.operator("daz.copy_pose")
+            box.operator("daz.apply_rest_pose")
+            box.operator("daz.retarget_armature_modifier")
+            box.separator()
             box.operator("daz.add_mannequin")
 
 
@@ -267,11 +271,8 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         if showBox(scn, "DazShowRigging2", box):
             box.operator("daz.remove_custom_shapes")
             box.separator()
-            box.operator("daz.retarget_armature_modifiers")
-            box.separator()
             box.operator("daz.convert_rig")
             box.operator("daz.add_extra_face_bones")
-            box.operator("daz.copy_bone_poses")
             box.separator()
             box.operator("daz.add_ik_goals")
             box.operator("daz.add_winders")

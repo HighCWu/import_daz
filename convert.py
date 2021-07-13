@@ -345,6 +345,12 @@ SourceRig = {
     "genesis_3_male" : "genesis3",
     "genesis_8_female" : "genesis8",
     "genesis_8_male" : "genesis8",
+    "victoria_4" : "genesis3",
+    "victoria_7" : "genesis3",
+    "victoria_8" : "genesis8",
+    "michael_4" : "genesis3",
+    "michael_7" : "genesis3",
+    "michael_8" : "genesis8",
 }
 
 class DAZ_OT_ConvertRigPose(DazPropsOperator):

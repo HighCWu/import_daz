@@ -1034,8 +1034,8 @@ def getArmatureEnums(scn, context):
     return [(rig.name, rig.name, rig.name) for rig in coll.all_objects if rig.type == 'ARMATURE']
 
 
-class DAZ_OT_RetargetArmatureModifiers(DazPropsOperator, IsMesh):
-    bl_idname = "daz.retarget_armature_modifiers"
+class DAZ_OT_RetargetArmatureModifier(DazPropsOperator, IsMesh):
+    bl_idname = "daz.retarget_armature_modifier"
     bl_label = "Retarget Armature Modifiers"
     bl_description = "Change the target of armature modifiers of selected meshes"
     bl_options = {'UNDO'}
@@ -1075,7 +1075,7 @@ classes = [
     DAZ_OT_AddIkGoals,
     DAZ_OT_AddWinders,
     DAZ_OT_ChangePrefixToSuffix,
-    DAZ_OT_RetargetArmatureModifiers,
+    DAZ_OT_RetargetArmatureModifier,
 ]
 
 def register():

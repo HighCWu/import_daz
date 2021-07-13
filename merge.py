@@ -979,10 +979,10 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
 #   Copy bone locations
 #-------------------------------------------------------------
 
-class DAZ_OT_CopyBonePoses(DazOperator, IsArmature):
-    bl_idname = "daz.copy_bone_poses"
-    bl_label = "Copy Bone Poses"
-    bl_description = "Copy bone pose from active rig to selected rigs"
+class DAZ_OT_CopyPose(DazOperator, IsArmature):
+    bl_idname = "daz.copy_pose"
+    bl_label = "Copy Pose"
+    bl_description = "Copy pose from active rig to selected rigs"
     bl_options = {'UNDO'}
 
     def run(self, context):
@@ -1256,7 +1256,7 @@ classes = [
     DAZ_OT_MergeUvLayers,
     DAZ_OT_MergeRigs,
     DAZ_OT_EliminateEmpties,
-    DAZ_OT_CopyBonePoses,
+    DAZ_OT_CopyPose,
     DAZ_OT_ApplyRestPoses,
     DAZ_OT_ReparentToes,
     DAZ_OT_MergeToes,
