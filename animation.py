@@ -367,7 +367,12 @@ class AffectOptions:
 
     affectMorphs : BoolProperty(
         name = "Affect Morphs",
-        description = "Animate morph properties.",
+        description = "Animate morph properties",
+        default = True)
+
+    clearMorphs : BoolProperty(
+        name = "Clear Morphs",
+        description = "Clear all morph properties before loading new ones",
         default = True)
 
     affectObject : EnumProperty(
@@ -398,11 +403,6 @@ class AffectOptions:
         name = "Ignore Limits",
         description = "Set pose even if outside limit constraints",
         default = True)
-
-    ignoreLocks : BoolProperty(
-        name = "Ignore Locks",
-        description = "Set pose even for locked bones",
-        default = False)
 
 
 class ActionOptions:
@@ -503,9 +503,9 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         layout.prop(self, "affectObject", expand=True)
         layout.prop(self, "affectMorphs")
         if self.affectMorphs:
+            layout.prop(self, "clearMorphs")
             layout.prop(self, "reportMissingMorphs")
         layout.prop(self, "ignoreLimits")
-        layout.prop(self, "ignoreLocks")
         layout.prop(self, "convertPoses")
         if self.convertPoses:
             layout.prop(self, "srcCharacter")
@@ -687,7 +687,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                     pb.matrix_basis = Matrix()
                     if self.useInsertKeys:
                         tfm.insertKeys(rig, pb, frame, pb.name, self.driven)
-        if self.affectMorphs:
+        if self.affectMorphs and self.clearMorphs:
             from .morphing import getAllLowerMorphNames
             lprops = getAllLowerMorphNames(rig)
             for prop in rig.keys():
@@ -901,8 +901,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
 
     def imposeLocks(self, pb):
-        if self.ignoreLocks:
-            return
         for n in range(3):
             if pb.lock_location[n]:
                 pb.location[n] = 0
