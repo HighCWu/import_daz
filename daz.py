@@ -223,14 +223,12 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazMergeShells")
 
         box = col.box()
-        box.label(text = "Morphs")
-        box.prop(scn, "DazUseAdjusters")
-        box.prop(scn, "DazSliderLimits")
-        box.prop(scn, "DazFinalLimits")
-        box.prop(scn, "DazMorphMultiplier")
-        box.prop(scn, "DazCustomMin")
-        box.prop(scn, "DazCustomMax")
-        box.prop(scn, "DazShowFinalProps")
+        box.label(text = "Meshes")
+        box.prop(scn, "DazHighdef")
+        box.prop(scn, "DazMultires")
+        box.prop(scn, "DazUseAutoSmooth")
+        box.prop(scn, "DazUseInstancing")
+        box.prop(scn, "DazSimulation")
 
         col = split.column()
         box = col.box()
@@ -247,12 +245,15 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUseLegacyLocks")
 
         box = col.box()
-        box.label(text = "Meshes")
-        box.prop(scn, "DazHighdef")
-        box.prop(scn, "DazMultires")
-        box.prop(scn, "DazUseAutoSmooth")
-        box.prop(scn, "DazUseInstancing")
-        box.prop(scn, "DazSimulation")
+        box.label(text = "Morphs")
+        box.prop(scn, "DazUseAdjusters")
+        box.prop(scn, "DazSliderLimits")
+        box.prop(scn, "DazFinalLimits")
+        box.prop(scn, "DazMorphMultiplier")
+        box.prop(scn, "DazCustomMin")
+        box.prop(scn, "DazCustomMax")
+        box.prop(scn, "DazShowFinalProps")
+        box.prop(scn, "DazStripCategory")
 
         box = split.box()
         box.label(text = "Materials")
@@ -385,6 +386,10 @@ def register():
     bpy.types.Scene.DazShowFinalProps = BoolProperty(
         name = "Show Final Morph Values",
         description = "Display the \"final\" values of morphs")
+
+    bpy.types.Scene.DazStripCategory = BoolProperty(
+        name = "Strip Category",
+        description = "Strip category from morph names")
 
     bpy.types.Scene.DazMakeHiddenSliders = BoolProperty(
         name = "Make Hidden Sliders",

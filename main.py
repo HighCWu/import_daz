@@ -353,12 +353,12 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
     useMergeGeografts : BoolProperty(
         name = "Merge Geografts",
         description = "Merge selected geografts to active object.\nDoes not work with nested geografts.\nShapekeys are always transferred first",
-        default = True)
+        default = False)
 
     useMergeLashes : BoolProperty(
         name = "Merge Lashes",
         description = "Merge separate eyelash mesh to character.\nShapekeys are always transferred first",
-        default = True)
+        default = False)
 
     useMakeAllBonesPoseable : BoolProperty(
         name = "Make All Bones Poseable",

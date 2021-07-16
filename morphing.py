@@ -747,6 +747,9 @@ class MorphLoader(LoadMorph):
         else:
             label = getCanonicalKey(prop)
             visible = True
+        n = len(self.category)
+        if GS.useStripCategory and self.category and label[0:n] == self.category:
+            label = label[n:]
         if self.hideable and (hidden or not visible):
             item.text = "[%s]" % label
         else:
