@@ -938,7 +938,7 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
     useLockLoc : BoolProperty(
         name = "Lock Location",
         description = "Lock winder location even if original bone is not locked",
-        default = True)
+        default = False)
 
     def draw(self, context):
         self.layout.prop(self, "winderLayer")
@@ -974,12 +974,11 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
 
 
     def addWinder(self, context, pb, rig):
-        from .mhx import copyRotation, copyScale
+        from .mhx import copyRotation, copyScale, copyLocation
         bname = pb.name
         wname = "Wind"+bname
         self.startGizmos(context, rig)
         self.makeGizmos(["GZM_Knuckle"])
-        print("GGG", self.gizmos.keys())
         gizmo = self.gizmos["GZM_Knuckle"]
 
         bpy.ops.object.mode_set(mode='EDIT')
@@ -1015,6 +1014,9 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
         cns1.influence = infl
         cns2 = copyScale(pb, winder, rig)
         cns2.influence = infl
+        if not self.useLockLoc:
+            cns3 = copyLocation(pb, winder, rig)
+            cns3.influence = infl
         pb.bone.layers = self.windedLayers
         while pb.children and len(pb.children) == 1:
             pb = pb.children[0]
@@ -1034,9 +1036,9 @@ def getArmatureEnums(scn, context):
     return [(rig.name, rig.name, rig.name) for rig in coll.all_objects if rig.type == 'ARMATURE']
 
 
-class DAZ_OT_RetargetArmatureModifier(DazPropsOperator, IsMesh):
-    bl_idname = "daz.retarget_armature_modifier"
-    bl_label = "Retarget Armature Modifiers"
+class DAZ_OT_ChangeArmature(DazPropsOperator, IsMesh):
+    bl_idname = "daz.change_armature"
+    bl_label = "Change Armature"
     bl_description = "Change the target of armature modifiers of selected meshes"
     bl_options = {'UNDO'}
 
@@ -1075,7 +1077,7 @@ classes = [
     DAZ_OT_AddIkGoals,
     DAZ_OT_AddWinders,
     DAZ_OT_ChangePrefixToSuffix,
-    DAZ_OT_RetargetArmatureModifier,
+    DAZ_OT_ChangeArmature,
 ]
 
 def register():

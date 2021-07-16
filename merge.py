@@ -103,6 +103,7 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
         for aob in anatomies:
             uvname = self.getActiveUvLayer(aob)[1]
             auvnames.append(uvname)
+            self.copyBodyPart(aob, cob)
         cname = self.getUvName(cob.data)
         drivers = {}
 
@@ -283,6 +284,16 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
                     if link.from_node == texco:
                         mat.node_tree.links.new(uvmap.outputs["UV"], link.to_socket)
                 mat.node_tree.nodes.remove(texco)
+
+
+    def copyBodyPart(self, aob, cob):
+        apgs = aob.data.DazBodyPart
+        cpgs = cob.data.DazBodyPart
+        for sname,apg in apgs.items():
+            if sname not in cpgs.keys():
+                cpg = cpgs.add()
+                cpg.name = sname
+                cpg.s = apg.s
 
 
     def moveGraftVerts(self, aob, cob):

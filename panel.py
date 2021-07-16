@@ -65,8 +65,12 @@ class DAZ_PT_Setup(bpy.types.Panel):
         if showBox(scn, "DazShowCorrections", box):
             box.operator("daz.eliminate_empties")
             box.operator("daz.merge_rigs")
-            box.operator("daz.apply_rest_pose")
             box.operator("daz.merge_toes")
+            box.separator()
+            box.operator("daz.copy_pose")
+            box.operator("daz.apply_rest_pose")
+            box.operator("daz.change_armature")
+            box.separator()
             box.operator("daz.make_gizmos")
 
         layout.separator()
@@ -144,10 +148,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.convert_to_rigify")
             box.operator("daz.create_meta")
             box.operator("daz.rigify_meta")
-            box.separator()
-            box.operator("daz.copy_pose")
-            box.operator("daz.apply_rest_pose")
-            box.operator("daz.retarget_armature_modifier")
             box.separator()
             box.operator("daz.add_mannequin")
 
