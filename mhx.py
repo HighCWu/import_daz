@@ -301,7 +301,7 @@ def applyBoneChildren(context, rig):
 #   Convert to MHX button
 #-------------------------------------------------------------
 
-class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, GizmoUser, IsArmature):
+class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, GizmoUser):
     bl_idname = "daz.convert_to_mhx"
     bl_label = "Convert To MHX"
     bl_description = "Convert rig to MHX"
@@ -348,6 +348,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     boneGroups : CollectionProperty(
         type = DazPairGroup,
         name = "Bone Groups")
+
+
+    @classmethod
+    def poll(self, context):
+        ob = context.object
+        return (ob and ob.type == 'ARMATURE' and ob.DazRig.startswith("genesis"))
 
 
     DefaultBoneGroups = [

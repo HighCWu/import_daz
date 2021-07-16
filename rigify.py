@@ -403,13 +403,13 @@ class Rigify:
                   ("Face (detail) ", R_DETAIL, 2, 3),
                   ("Custom ", R_CUSTOM, 13, 6)]
 
-    def setupDazSkeleton(self, meta):
+    def setupDazSkeleton(self, rig):
         rigifySkel = RigifySkeleton
-        if meta.DazRigifyType in ["genesis1", "genesis2"]:
+        if rig.DazRig in ["genesis1", "genesis2"]:
             rigifySkel["chestUpper"] = "chestUpper"
             rigifySkel["abdomen2"] = "abdomen2"
             spineBones = Genesis3Spine
-        elif meta.DazRigifyType in ["genesis3", "genesis8"]:
+        elif rig.DazRig in ["genesis3", "genesis8"]:
             spineBones = Genesis3Spine
 
         dazskel = {}
@@ -771,28 +771,29 @@ class Rigify:
         cns.mute = True
 
         meta.DazPre278 = ("hips" in meta.data.bones.keys())
-        meta.DazRigifyType = getRigType(rig, True)
-        meta.DazUseSplitNeck = (not meta.DazPre278 and meta.DazRigifyType in ["genesis3", "genesis8"])
+        meta.DazMeta = True
+        meta.DazRig = "metarig"
+        meta.DazUseSplitNeck = (not meta.DazPre278 and rig.DazRig in ["genesis3", "genesis8"])
         if meta.DazUseSplitNeck:
             self.splitNeck(meta)
-        meta.DazRigType,hips,head = setupTables(meta)
+        meta.DazRigifyType,hips,head = setupTables(meta)
 
         activateObject(context, rig)
         rig.select_set(True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-        print("  Fix bones", meta.DazRigifyType)
-        if meta.DazRigifyType in ["genesis1", "genesis2"]:
+        print("  Fix bones", rig.DazRig)
+        if rig.DazRig in ["genesis1", "genesis2"]:
             self.fixPelvis(rig)
             self.fixCarpals(rig)
             self.splitBone(rig, "chest", "chestUpper")
             self.splitBone(rig, "abdomen", "abdomen2")
-        elif meta.DazRigifyType in ["genesis3", "genesis8"]:
+        elif rig.DazRig in ["genesis3", "genesis8"]:
             mergeBonesAndVgroups(rig, Genesis3Mergers, Genesis3Parents, context)
             self.reparentBones(rig, Genesis3Toes)
             self.renameBones(rig, Genesis3Renames)
         else:
-            msg = "Cannot rigify %s %s" % (meta.DazRigifyType, rig.name)
+            msg = "Cannot rigify %s %s" % (rig.DazRig, rig.name)
             activateObject(context, meta)
             deleteObjects(context, [meta])
             raise DazError(msg)
@@ -800,7 +801,7 @@ class Rigify:
         print("  Connect to parent")
         connectToParent(rig)
         print("  Setup DAZ skeleton")
-        rigifySkel, spineBones, dazSkel = self.setupDazSkeleton(meta)
+        rigifySkel, spineBones, dazSkel = self.setupDazSkeleton(rig)
         dazBones = self.getDazBones(rig)
 
         # Fit metarig to default DAZ rig
@@ -812,7 +813,7 @@ class Rigify:
         self.fitToDaz(meta, rigifySkel, dazBones)
         hip = self.fitHip(meta, hips, dazBones)
 
-        if meta.DazRigifyType in ["genesis3", "genesis8"]:
+        if rig.DazRig in ["genesis3", "genesis8"]:
             eb = meta.data.edit_bones[head]
             eb.tail = eb.head + 1.0*(eb.tail - eb.head)
 
@@ -882,7 +883,7 @@ class Rigify:
         try:
             bpy.ops.pose.rigify_generate()
         except:
-            raise DazError("Cannot rigify %s rig %s    " % (meta.DazRigifyType, rig.name))
+            raise DazError("Cannot rigify %s rig %s    " % (rig.DazRig, rig.name))
 
         scn = context.scene
         gen = context.object
@@ -894,7 +895,7 @@ class Rigify:
 
         print("  Setup DAZ Skeleton")
         setActiveObject(context, rig)
-        rigifySkel, spineBones, dazSkel = self.setupDazSkeleton(meta)
+        rigifySkel, spineBones, dazSkel = self.setupDazSkeleton(rig)
         dazBones = self.getDazBones(rig)
 
         print("  Setup extras")
@@ -974,7 +975,7 @@ class Rigify:
                 self.copyBoneInfo(dname, rname, rig, gen)
 
         # Rescale custom shapes
-        if meta.DazRigifyType in ["genesis3", "genesis8"]:
+        if rig.DazRig in ["genesis3", "genesis8"]:
             self.fixCustomShape(gen, ["head", "spine_fk.007"], 4)
         if bpy.app.version >= (2,82,0):
             self.fixCustomShape(gen, ["chest"], 1, Vector((0,-100*rig.DazScale,0)))
@@ -988,7 +989,7 @@ class Rigify:
 
         # Some more bones
         from .convert import getConverterEntry
-        conv = getConverterEntry("genesis-" + meta.DazRigType)
+        conv = getConverterEntry("genesis-" + meta.DazRigifyType)
         for srcname,trgname in conv.items():
             self.copyBoneInfo(srcname, trgname, rig, gen)
 
@@ -1087,7 +1088,7 @@ class Rigify:
         print("  Clean up")
         gen.data.display_type = 'WIRE'
         gen.show_in_front = True
-        gen.DazRig = meta.DazRigType
+        gen.DazRig = meta.DazRigifyType
         name = rig.name
         if coll:
             if gen.name not in coll.objects:
@@ -1274,7 +1275,7 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, GizmoUser, BendTwi
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (ob and ob.type == 'ARMATURE' and not ob.DazRigifyType)
+        return (ob and ob.type == 'ARMATURE' and ob.DazRig.startswith("genesis"))
 
     def __init__(self):
         Fixer.__init__(self)
@@ -1336,7 +1337,7 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists):
     @classmethod
     def poll(self, context):
         ob = context.object
-        return (ob and ob.type == 'ARMATURE' and not ob.DazRigifyType)
+        return (ob and ob.type == 'ARMATURE' and ob.DazRig.startswith("genesis"))
 
     def run(self, context):
         if self.useKeepRig:
@@ -1362,7 +1363,7 @@ class DAZ_OT_RigifyMetaRig(DazPropsOperator, Rigify, Fixer, GizmoUser, BendTwist
 
     @classmethod
     def poll(self, context):
-        return (context.object and context.object.DazRigifyType)
+        return (context.object and context.object.DazMeta)
 
     def run(self, context):
         self.rigifyMeta(context)
@@ -1431,8 +1432,8 @@ classes = [
 ]
 
 def register():
+    bpy.types.Object.DazMeta = BoolProperty(default=False)
     bpy.types.Object.DazRigifyType = StringProperty(default="")
-    bpy.types.Object.DazRigType = StringProperty(default="")
     bpy.types.Object.DazUseSplitNeck = BoolProperty(default=False)
     bpy.types.Object.DazPre278 = BoolProperty(default=False)
 
