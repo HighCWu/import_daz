@@ -1091,22 +1091,23 @@ class Rigify:
         gen.DazRig = meta.DazRigifyType
         name = rig.name
         if coll:
+            if gen.name in scn.collection.objects:
+                scn.collection.objects.unlink(gen)
+                scn.collection.objects.unlink(meta)
             if gen.name not in coll.objects:
                 coll.objects.link(gen)
             if meta.name not in coll.objects:
                 coll.objects.link(meta)
-            if gen.name in scn.collection.objects:
-                scn.collection.objects.unlink(gen)
-                scn.collection.objects.unlink(meta)
+
         if meta.DazPre278:
             setFkIk1(gen, True, gen.data.layers)
         else:
             setFkIk2(gen, False, gen.data.layers)
-        activateObject(context, rig)
-        deleteObjects(context, [rig])
+        if activateObject(context, rig):
+            deleteObjects(context, [rig])
         if self.useDeleteMeta:
-            activateObject(context, meta)
-            deleteObjects(context, [meta])
+            if activateObject(context, meta):
+                deleteObjects(context, [meta])
         activateObject(context, gen)
         gen.name = name
         F = False
@@ -1114,9 +1115,7 @@ class Rigify:
         gen.data.layers = (
             F,T,F,T, F,F,F,T, F,F,T,F, F,T,F,F,
             T,F,F,F, F,F,F,F, F,F,F,F, T,F,F,F)
-        bpy.ops.object.mode_set(mode='POSE')
         print("Rigify created")
-        return gen
 
 
     def copyBoneProp(self, fcu, rig, gen, pb):

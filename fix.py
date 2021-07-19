@@ -256,7 +256,7 @@ class Fixer(DriverUser):
         objects = []
         findChildrenRecursive(rig, objects)
         for ob in objects:
-            ob.select_set(True)
+            selectSet(ob, True)
         bpy.ops.object.duplicate()
         coll = bpy.data.collections.new(name=dazName(rig.name))
         mcoll = bpy.data.collections.new(name=dazName(rig.name) + " Meshes")
