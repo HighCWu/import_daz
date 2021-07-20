@@ -808,14 +808,21 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
         description = "Disable all bones in the IK chains",
         default = False)
 
+    fromRoots : BoolProperty(
+        name = "From Root Bones",
+        description = "Select IK chains from root bones",
+        default = True)
+
     def draw(self, context):
+        self.layout.prop(self, "fromRoots")
+        self.layout.separator()
         self.layout.prop(self, "usePoleTargets")
         self.layout.prop(self, "hideBones")
         self.layout.prop(self, "lockBones")
         self.layout.prop(self, "disableBones")
 
-    def run(self, context):
-        rig = context.object
+
+    def ikGoalsFromSelected(self, rig):
         ikgoals = []
         for pb in rig.pose.bones:
             if pb.bone.select and not pb.children:
@@ -830,6 +837,31 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
                     root = pbones[-1]
                     pbones = pbones[:-1]
                     ikgoals.append((pb.name, clen-1, pbones, root))
+        return ikgoals
+
+
+    def ikGoalsFromRoots(self, rig):
+        ikgoals = []
+        for root in rig.pose.bones:
+            if root.bone.select:
+                clen = 0
+                pbones = []
+                pb = root
+                while pb and len(pb.children) == 1:
+                    pb = pb.children[0]
+                    pbones.append(pb)
+                    clen += 1
+                if clen > 2:
+                    ikgoals.append((pb.name, clen-1, pbones, root))
+        return ikgoals
+
+
+    def run(self, context):
+        rig = context.object
+        if self.fromRoots:
+            ikgoals = self.ikGoalsFromRoots(rig)
+        else:
+            ikgoals = self.ikGoalsFromSelected(rig)
 
         bpy.ops.object.mode_set(mode='EDIT')
         for bname, clen, pbones, root in ikgoals:
