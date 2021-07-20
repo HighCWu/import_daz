@@ -77,7 +77,7 @@ class FigureInstance(Instance):
 
     def finalize(self, context):
         from .finger import getFingeredCharacter
-        rig,mesh,char = getFingeredCharacter(self.rna)
+        rig,mesh,char,modded = getFingeredCharacter(self.rna, False)
         if rig and mesh:
             if mesh.name == self.name:
                 mesh.name += " Mesh"

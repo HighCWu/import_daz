@@ -767,33 +767,43 @@ class Morph(FormulaAsset):
 
 
     def buildMorph(self, ob,
+                   modded = False,
                    useBuild=True,
                    strength=1):
+
+        def buildShapeKey(ob, skey, strength):
+            if strength != 1:
+                scale = LS.scale
+                LS.scale *= strength
+            for v in ob.data.vertices:
+                skey.data[v.index].co = v.co
+            if GS.zup:
+                if modded:
+                    pgs = ob.data.DazOrigVerts
+                    for delta in self.deltas:
+                        vn = pgs[str(delta[0])].a
+                        if vn < 100:
+                            print("MMY", delta[0], vn)
+                        if vn >= 0:
+                            skey.data[vn].co += d2b90(delta[1:])
+                else:
+                    for delta in self.deltas:
+                        vn = delta[0]
+                        skey.data[vn].co += d2b90(delta[1:])
+            else:
+                for delta in self.deltas:
+                    vn = delta[0]
+                    skey.data[vn].co += d2b00(delta[1:])
+            if strength != 1:
+                LS.scale = scale
+
         sname = self.getName()
         rig = ob.parent
         skey = addShapekey(ob, sname)
         skey.value = self.value
         self.rna = (skey, ob, sname)
         if useBuild:
-            self.buildShapeKey(ob, skey, strength)
-
-
-    def buildShapeKey(self, ob, skey, strength=1):
-        if strength != 1:
-            scale = LS.scale
-            LS.scale *= strength
-        for v in ob.data.vertices:
-            skey.data[v.index].co = v.co
-        if GS.zup:
-            for delta in self.deltas:
-                vn = delta[0]
-                skey.data[vn].co += d2b90(delta[1:])
-        else:
-            for delta in self.deltas:
-                vn = delta[0]
-                skey.data[vn].co += d2b00(delta[1:])
-        if strength != 1:
-            LS.scale = scale
+            buildShapeKey(ob, skey, strength)
 
 
 def addShapekey(ob, sname):

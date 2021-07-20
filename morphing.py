@@ -656,7 +656,7 @@ class MorphLoader(LoadMorph):
 
     def __init__(self, rig=None, mesh=None):
         from .finger import getFingeredCharacter
-        self.rig, self.mesh, self.char = getFingeredCharacter(bpy.context.object)
+        self.rig, self.mesh, self.char, self.modded = getFingeredCharacter(bpy.context.object, True)
         if mesh:
             self.mesh = mesh
 
@@ -2706,7 +2706,6 @@ def register():
         bpy.types.Object.DazMorphCats = CollectionProperty(type = DazCategory, override={'LIBRARY_OVERRIDABLE'})
 
     bpy.types.Mesh.DazBodyPart = CollectionProperty(type = DazStringGroup)
-    bpy.types.Mesh.DazFingerPrint = StringProperty(default="")
     bpy.types.Scene.DazMorphCatsContent = EnumProperty(
         items = [],
         name = "Morph")

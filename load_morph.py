@@ -139,7 +139,7 @@ class LoadMorph(DriverUser):
             return " -"
         elif isinstance(asset, Alias):
             return " _"
-        skey,ok = self.buildShapekey(asset, bodypart)
+        skey,ok = self.buildShape(asset, bodypart)
         if not ok:
             return " #"
         elif self.rig:
@@ -207,7 +207,7 @@ class LoadMorph(DriverUser):
             item.text = label
 
 
-    def buildShapekey(self, asset, bodypart, useBuild=True):
+    def buildShape(self, asset, bodypart, useBuild=True):
         from .modifier import Morph
         from .driver import makePropDriver
         from .hdmorphs import addSkeyToUrls
@@ -216,9 +216,15 @@ class LoadMorph(DriverUser):
                 asset.deltas):
             return None,True
         useBuild = True
+        if self.modded:
+            finger = self.mesh.data.DazFingerPrint
+            nverts = int(finger.split("-")[0])
+        else:
+            nverts = len(self.mesh.data.vertices)
+        print("MMM", self.mesh.name, len(self.mesh.data.vertices), nverts)
         if asset.vertex_count < 0:
             print("Vertex count == %d" % asset.vertex_count)
-        elif asset.vertex_count != len(self.mesh.data.vertices):
+        elif asset.vertex_count != nverts:
             msg = ("Vertex count mismatch: %d != %d" % (asset.vertex_count, len(self.mesh.data.vertices)))
             if GS.verbosity > 2:
                 print(msg)
@@ -234,7 +240,7 @@ class LoadMorph(DriverUser):
                 reportError(msg, trigger=(2,3))
                 return None,False
         if not asset.rna:
-            asset.buildMorph(self.mesh, useBuild=useBuild)
+            asset.buildMorph(self.mesh, modded=self.modded, useBuild=useBuild)
         skey,_,sname = asset.rna
         if skey:
             prop = unquote(skey.name)

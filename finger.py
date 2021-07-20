@@ -78,37 +78,43 @@ def getFingerPrint(ob):
         return ("%d-%d-%d" % (len(ob.data.vertices), len(ob.data.edges), len(ob.data.polygons)))
 
 
-def getFingeredCharacter(ob, verbose=True):
+def getFingeredCharacter(ob, useOrig, verbose=True):
+    modded = False
     if ob is None:
-        return None,None,""
+        return None,None,"",False
     elif ob.type == 'MESH':
         finger = getFingerPrint(ob)
         if finger in FingerPrints.keys():
             char = FingerPrints[finger]
+        elif useOrig and ob.data.DazFingerPrint in FingerPrints.keys():
+            char = FingerPrints[ob.data.DazFingerPrint]
+            modded = True
         else:
             if verbose:
                 print("Did not find fingerprint", finger)
             char = ""
-        return ob.parent,ob,char
+        return ob.parent,ob,char,modded
 
     elif ob.type == 'ARMATURE':
         for child in ob.children:
             if child.type == 'MESH':
                 finger = getFingerPrint(child)
                 if finger in FingerPrints.keys():
-                    return ob,child,FingerPrints[finger]
+                    return ob,child,FingerPrints[finger],False
+                elif useOrig and child.data.DazFingerPrint in FingerPrints.keys():
+                    return ob,child,FingerPrints[child.data.DazFingerPrint],True
         #print("Found no recognized mesh type")
-        return ob,None,""
+        return ob,None,"",False
 
     else:
         ob = ob.parent
         if ob and ob.type == 'ARMATURE':
-            return getFingeredCharacter(ob)
-        return None,None,""
+            return getFingeredCharacter(ob, useOrig)
+        return None,None,"",False
 
 
 def isCharacter(ob):
-    return getFingeredCharacter(ob, verbose=False)[2]
+    return getFingeredCharacter(ob, False, verbose=False)[2]
 
 
 class DAZ_OT_GetFingerPrint(bpy.types.Operator, IsMeshArmature):
@@ -126,7 +132,7 @@ class DAZ_OT_GetFingerPrint(bpy.types.Operator, IsMeshArmature):
     def invoke(self, context, event):
         ob = context.object
         self.lines = ["Fingerprint for %s" % ob.name]
-        rig,mesh,char = getFingeredCharacter(ob)
+        rig,mesh,char,modded = getFingeredCharacter(ob,False)
         if mesh:
             finger = getFingerPrint(mesh)
             mesh = mesh.name

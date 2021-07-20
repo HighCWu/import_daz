@@ -158,13 +158,24 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
                     cob.data.vertices[vn].select = True
                     vdeleted[vn] = True
 
-        # Build association table between new and old vertex numbers
+        # Build association tables between new and old vertex numbers
         assoc = {}
         vn2 = 0
         for vn in range(nverts):
             if not vdeleted[vn]:
                 assoc[vn] = vn2
                 vn2 += 1
+
+        pgs = cob.data.DazOrigVerts
+        if len(pgs) > 0:
+            vn2 = 0
+            for vn,pg in enumerate(pgs):
+                if vdeleted[vn]:
+                    pg.a = -1
+                    print("PG", pg.name, pg.a)
+                else:
+                    pg.a = vn2
+                    vn2 += 1
 
         # Delete the masked verts
         bpy.ops.object.mode_set(mode='EDIT')
