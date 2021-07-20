@@ -219,9 +219,9 @@ class LoadMorph(DriverUser):
         if self.modded:
             finger = self.mesh.data.DazFingerPrint
             nverts = int(finger.split("-")[0])
+            return None,True
         else:
             nverts = len(self.mesh.data.vertices)
-        print("MMM", self.mesh.name, len(self.mesh.data.vertices), nverts)
         if asset.vertex_count < 0:
             print("Vertex count == %d" % asset.vertex_count)
         elif asset.vertex_count != nverts:

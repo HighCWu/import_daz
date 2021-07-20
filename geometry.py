@@ -818,7 +818,6 @@ class Geometry(Asset, Channels):
         ob = bpy.data.objects.new(inst.name, me)
         from .finger import getFingerPrint
         me.DazFingerPrint = getFingerPrint(ob)
-        print("MOD", me.DazFingerPrint)
 
         for n in range(len(verts)):
             item = me.DazOrigVerts.add()
@@ -1376,7 +1375,7 @@ def register():
 
     bpy.types.Mesh.DazRigidityGroups = CollectionProperty(type = DazRigidityGroup)
     bpy.types.Mesh.DazOrigVerts = CollectionProperty(type = DazIntGroup)
-    bpy.types.Mesh.DazFingerPrint = StringProperty(default="")
+    bpy.types.Mesh.DazFingerPrint = StringProperty(name = "Original Fingerprint", default="")
     bpy.types.Mesh.DazGraftGroup = CollectionProperty(type = DazPairGroup)
     bpy.types.Mesh.DazMaskGroup = CollectionProperty(type = DazIntGroup)
     bpy.types.Mesh.DazMatNums = CollectionProperty(type = DazIntGroup)

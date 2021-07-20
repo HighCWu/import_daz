@@ -172,7 +172,6 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
             for vn,pg in enumerate(pgs):
                 if vdeleted[vn]:
                     pg.a = -1
-                    print("PG", pg.name, pg.a)
                 else:
                     pg.a = vn2
                     vn2 += 1
