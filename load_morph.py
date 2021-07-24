@@ -216,10 +216,10 @@ class LoadMorph(DriverUser):
                 asset.deltas):
             return None,True
         useBuild = True
-        if self.modded:
+        if self.modded and GS.useModifiedMesh:
             finger = self.mesh.data.DazFingerPrint
             nverts = int(finger.split("-")[0])
-            return None,True
+            #return None,True
         else:
             nverts = len(self.mesh.data.vertices)
         if asset.vertex_count < 0:
@@ -240,7 +240,7 @@ class LoadMorph(DriverUser):
                 reportError(msg, trigger=(2,3))
                 return None,False
         if not asset.rna:
-            asset.buildMorph(self.mesh, modded=self.modded, useBuild=useBuild)
+            asset.buildMorph(self.mesh, useBuild=useBuild)
         skey,_,sname = asset.rna
         if skey:
             prop = unquote(skey.name)

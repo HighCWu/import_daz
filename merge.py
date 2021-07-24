@@ -166,15 +166,8 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
                 assoc[vn] = vn2
                 vn2 += 1
 
-        pgs = cob.data.DazOrigVerts
-        if len(pgs) > 0:
-            vn2 = 0
-            for vn,pg in enumerate(pgs):
-                if vdeleted[vn]:
-                    pg.a = -1
-                else:
-                    pg.a = vn2
-                    vn2 += 1
+        # Original vertex locations
+        origlocs = [v.co.copy() for v in cob.data.vertices]
 
         # Delete the masked verts
         bpy.ops.object.mode_set(mode='EDIT')
@@ -244,6 +237,19 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
                 dists = [((x-y).length, vn) for vn,y in selected.items()]
                 dists.sort()
                 pair.a = dists[0][1]
+
+        #
+        vn = 0
+        eps = 1e-3*cob.DazScale
+        for vn0,r in enumerate(origlocs):
+            item = cob.data.DazOrigVerts.add()
+            item.name = str(vn0)
+            v = cob.data.vertices[vn]
+            if (v.co - r).length > eps:
+                item.a = -1
+            else:
+                item.a = vn
+                vn += 1
 
         # Merge UV layers
         if self.useMergeUvLayers:

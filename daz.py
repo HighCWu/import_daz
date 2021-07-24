@@ -254,6 +254,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazCustomMax")
         box.prop(scn, "DazShowFinalProps")
         box.prop(scn, "DazStripCategory")
+        box.prop(scn, "DazUseModifiedMesh")
 
         box = split.box()
         box.label(text = "Materials")
@@ -390,6 +391,10 @@ def register():
     bpy.types.Scene.DazStripCategory = BoolProperty(
         name = "Strip Category",
         description = "Strip category from morph names")
+
+    bpy.types.Scene.DazUseModifiedMesh = BoolProperty(
+        name = "Load To Modified Meshes",
+        description = "Load morphs to meshes that have been modified by merging geografts or lashes.\nWarning: can give incorrect shapekeys if meshes have been modified in edit mode")
 
     bpy.types.Scene.DazMakeHiddenSliders = BoolProperty(
         name = "Make Hidden Sliders",

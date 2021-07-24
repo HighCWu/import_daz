@@ -818,11 +818,6 @@ class Geometry(Asset, Channels):
         ob = bpy.data.objects.new(inst.name, me)
         from .finger import getFingerPrint
         me.DazFingerPrint = getFingerPrint(ob)
-
-        for n in range(len(verts)):
-            item = me.DazOrigVerts.add()
-            item.name = str(n)
-            item.a = n
         if hasShells:
             ob.DazVisibilityDrivers = True
         return ob

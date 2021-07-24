@@ -767,7 +767,6 @@ class Morph(FormulaAsset):
 
 
     def buildMorph(self, ob,
-                   modded = False,
                    useBuild=True,
                    strength=1):
 
@@ -778,12 +777,11 @@ class Morph(FormulaAsset):
             for v in ob.data.vertices:
                 skey.data[v.index].co = v.co
             if GS.zup:
-                if modded:
+                if isModifiedMesh(ob):
                     pgs = ob.data.DazOrigVerts
                     for delta in self.deltas:
-                        vn = pgs[str(delta[0])].a
-                        if vn < 100:
-                            print("MMY", delta[0], vn)
+                        vn0 = delta[0]
+                        vn = pgs[str(vn0)].a
                         if vn >= 0:
                             skey.data[vn].co += d2b90(delta[1:])
                 else:

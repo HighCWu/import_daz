@@ -328,6 +328,10 @@ def isLocationUnlocked(pb):
             pb.lock_location[2] == False)
 
 
+def isModifiedMesh(ob):
+    return (len(ob.data.DazOrigVerts) > 0)
+
+
 def sorted(seq):
     slist = list(seq)
     slist.sort()

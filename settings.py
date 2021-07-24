@@ -94,6 +94,7 @@ class GlobalSettings:
         self.sliderLimits = 'DAZ'
         self.showFinalProps = False
         self.useStripCategory = False
+        self.useModifiedMesh = False
 
         self.useLockLoc = True
         self.useLimitLoc = True
@@ -154,6 +155,7 @@ class GlobalSettings:
         "DazSliderLimits" : "sliderLimits",
         "DazShowFinalProps" : "showFinalProps",
         "DazStripCategory" : "useStripCategory",
+        "DazUseModifiedMesh" : "useModifiedMesh",
 
         # Rigging
         "DazOrientMethod" : "orientMethod",
