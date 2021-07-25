@@ -937,6 +937,12 @@ class Rigify:
                 eb = gen.data.edit_bones[data[0]]
                 eb.layers = helpLayers
 
+        # Gaze bones
+        print("  Create gaze bones")
+        for suffix in [".L", ".R"]:
+            self.addSingleGazeBone(gen, suffix, R_FACE)
+        self.addCombinedGazeBone(gen, R_FACE, R_HELP)
+
         # Add parents to extra bones
         print("  Add parents to extra bones")
         for dname,rname in extras.items():
@@ -1076,6 +1082,11 @@ class Rigify:
             else:
                 correctives[dname] = rname
         self.fixBoneDrivers(gen, correctives)
+
+        # Gaze bones
+        for suffix in [".L", ".R"]:
+            self.addGazeConstraint(gen, suffix)
+        self.addGazeFollowsHead(gen)
 
         # Face bone gizmos
         rename = ["Pectoral", "Eye", "Ear"]
@@ -1224,8 +1235,11 @@ class Rigify:
             "ear.R" :           ("GZM_Circle025", 1.5),
             "pectoral.L" :      ("GZM_Pectoral", 1),
             "pectoral.R" :      ("GZM_Pectoral", 1),
+            "gaze" :            ("GZM_Gaze", 1),
+            "gaze.L" :          ("GZM_Circle025", 1),
+            "gaze.R" :          ("GZM_Circle025", 1),
         }
-        self.makeGizmos(["GZM_Jaw", "GZM_Circle025", "GZM_Pectoral", "GZM_Tongue"])
+        self.makeGizmos(["GZM_Jaw", "GZM_Circle025", "GZM_Gaze", "GZM_Pectoral", "GZM_Tongue"])
         bgrp = gen.pose.bone_groups.new(name="DAZ")
         bgrp.color_set = 'CUSTOM'
         bgrp.colors.normal = (1.0, 0.5, 0)

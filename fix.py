@@ -298,6 +298,51 @@ class Fixer(DriverUser):
     def isEyeLid(self, pb):
         return ("eyelid" in pb.name.lower())
 
+    #-------------------------------------------------------------
+    #   Gaze Bones
+    #-------------------------------------------------------------
+
+    def addSingleGazeBone(self, rig, suffix, headLayer):
+        from .mhx import makeBone
+        prefix = suffix[1].lower()
+        eye = rig.data.edit_bones[prefix + "Eye"]
+        vec = eye.tail-eye.head
+        vec.normalize()
+        loc = eye.head + vec*rig.DazScale*30
+        gaze = makeBone("gaze"+suffix, rig, loc, loc+Vector((0,5*rig.DazScale,0)), 0, headLayer, None)
+
+
+    def addCombinedGazeBone(self, rig, headLayer, helpLayer):
+        from .mhx import makeBone, deriveBone
+        lgaze = rig.data.edit_bones["gaze.L"]
+        rgaze = rig.data.edit_bones["gaze.R"]
+        head = rig.data.edit_bones["head"]
+        loc = (lgaze.head + rgaze.head)/2
+        gaze0 = makeBone("gaze0", rig, loc, loc+Vector((0,15*rig.DazScale,0)), 0, helpLayer, head)
+        gaze1 = deriveBone("gaze1", gaze0, rig, helpLayer, None)
+        gaze = deriveBone("gaze", gaze0, rig, headLayer, gaze1)
+        lgaze.parent = gaze
+        rgaze.parent = gaze
+
+
+    def addGazeConstraint(self, rig, suffix):
+        from .mhx import setMhxProp, trackTo
+        prop = "MhaGaze_" + suffix[1]
+        setMhxProp(rig, prop, 1.0)
+        prefix = suffix[1].lower()
+        eye = rig.pose.bones[prefix+"Eye"]
+        gaze = rig.pose.bones["gaze"+suffix]
+        trackTo(eye, gaze, rig, prop)
+
+
+    def addGazeFollowsHead(self, rig):
+        from .mhx import setMhxProp, copyTransform
+        prop = "MhaGazeFollowsHead"
+        setMhxProp(rig, prop, 1.0)
+        gaze0 = rig.pose.bones["gaze0"]
+        gaze1 = rig.pose.bones["gaze1"]
+        copyTransform(gaze1, gaze0, rig, prop)
+
 #-------------------------------------------------------------
 #   Gizmos (custom shapes)
 #-------------------------------------------------------------

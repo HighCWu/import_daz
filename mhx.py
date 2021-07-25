@@ -1027,7 +1027,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         bpy.ops.object.mode_set(mode='EDIT')
         self.rolls = {}
         hip = rig.data.edit_bones["hip"]
-        head = rig.data.edit_bones["head"]
         for suffix,dlayer in [(".L",0), (".R",16)]:
             upper_arm = self.setLayer("upper_arm"+suffix, rig, L_HELP)
             forearm = self.setLayer("forearm"+suffix, rig, L_HELP)
@@ -1155,25 +1154,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             footInvIk = deriveBone("foot.inv.ik"+suffix, foot, rig, L_HELP2, footRev)
             toeInvIk = deriveBone("toe.inv.ik"+suffix, toe, rig, L_HELP2, toeRev)
 
-            prefix = suffix[1].lower()
-            eye = rig.data.edit_bones[prefix + "Eye"]
-            vec = eye.tail-eye.head
-            vec.normalize()
-            loc = eye.head + vec*rig.DazScale*30
-            gaze = makeBone("gaze"+suffix, rig, loc, loc+Vector((0,5*rig.DazScale,0)), 0, L_HEAD, None)
+            self.addSingleGazeBone(rig, suffix, L_HEAD)
 
             for bname in ["upper_arm.fk", "forearm.fk", "hand.fk",
                           "thigh.fk", "shin.fk", "foot.fk", "toe.fk"]:
                 self.rolls[bname+suffix] = rig.data.edit_bones[bname+suffix].roll
 
-        lgaze = rig.data.edit_bones["gaze.L"]
-        rgaze = rig.data.edit_bones["gaze.R"]
-        loc = (lgaze.head + rgaze.head)/2
-        gaze0 = makeBone("gaze0", rig, loc, loc+Vector((0,15*rig.DazScale,0)), 0, L_HELP, head)
-        gaze1 = deriveBone("gaze1", gaze0, rig, L_HELP, None)
-        gaze = deriveBone("gaze", gaze0, rig, L_HEAD, gaze1)
-        lgaze.parent = gaze
-        rgaze.parent = gaze
+        self.addCombinedGazeBone(rig, L_HEAD, L_HELP)
 
         from .figure import copyBoneInfo
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -1324,12 +1311,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             #cns = copyRotation(shin, ankle0Ik, rig, (prop1,prop2), "x1*x2")
             #cns.use_x = cns.use_z = False
 
-            prop = "MhaGaze_" + suffix[1]
-            setMhxProp(rig, prop, 1.0)
-            prefix = suffix[1].lower()
-            eye = rpbs[prefix+"Eye"]
-            gaze = rpbs["gaze"+suffix]
-            trackTo(eye, gaze, rig, prop)
+            self.addGazeConstraint(rig, suffix)
 
             self.lockLocations([
                 upper_armFk, forearmFk,
@@ -1341,11 +1323,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
         prop = "MhaHintsOn"
         setMhxProp(rig, prop, True)
-        prop = "MhaGazeFollowsHead"
-        setMhxProp(rig, prop, 1.0)
-        gaze0 = rpbs["gaze0"]
-        gaze1 = rpbs["gaze1"]
-        copyTransform(gaze1, gaze0, rig, prop)
+        self.addGazeFollowsHead(rig)
         for prop in ["MhaArmStretch_L", "MhaArmStretch_R", "MhaLegStretch_L", "MhaLegStretch_R"]:
             setMhxProp(rig, prop, True)
 

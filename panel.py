@@ -990,6 +990,28 @@ class DAZ_PT_Visibility(bpy.types.Panel):
                 op = self.layout.operator("daz.toggle_vis", text=prop[3:], icon=icon, emboss=False)
                 op.name = prop
 
+#------------------------------------------------------------------------
+#   DAZ Rigify props panels
+#------------------------------------------------------------------------
+
+class DAZ_PT_DazRigifyProps(bpy.types.Panel):
+    bl_label = "DAZ Rigify Properties"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Item"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        ob = context.object
+        return (ob and ob.DazRig in ["rigify", "rigify2"])
+
+    def draw(self, context):
+        amt = context.object.data
+        self.layout.prop(amt, propRef("MhaGazeFollowsHead"), text="Gaze Follows Head")
+        self.layout.prop(amt, propRef("MhaGaze_L"), text="Left Gaze")
+        self.layout.prop(amt, propRef("MhaGaze_R"), text="Right Gaze")
+
 #-------------------------------------------------------------
 #   Initialize
 #-------------------------------------------------------------
@@ -1013,6 +1035,7 @@ classes = [
     DAZ_PT_CustomMeshMorphs,
     DAZ_PT_SimpleRig,
     DAZ_PT_Visibility,
+    DAZ_PT_DazRigifyProps,
 ]
 
 
