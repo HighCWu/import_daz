@@ -1004,7 +1004,9 @@ class DAZ_PT_DazRigifyProps(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         ob = context.object
-        return (ob and ob.DazRig in ["rigify", "rigify2"])
+        return (ob and
+                ob.DazRig in ["rigify", "rigify2"] and
+                "MhaGazeFollowsHead" in ob.data.keys())
 
     def draw(self, context):
         amt = context.object.data

@@ -229,7 +229,7 @@ def trackTo(pb, target, rig, prop=None, expr="x"):
     cns.target = rig
     cns.subtarget = target.name
     cns.track_axis = 'TRACK_Y'
-    cns.up_axis = 'UP_X'
+    cns.up_axis = 'UP_Z'
     if prop is not None:
         cns.influence = 0.0
         addDriver(cns, "influence", rig, prop, expr)
