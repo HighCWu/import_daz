@@ -495,9 +495,9 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             nmeshes = [mainMesh]
             lmeshes = self.getLashes(mainRig, mainMesh)
             for ob in meshes[1:]:
-                if ob.data.DazGraftGroup and self.useMergeGeografts:
+                if ob.data.DazGraftGroup:
                     geografts.append(ob)
-                elif ob in lmeshes and self.useMergeLashes:
+                elif ob in lmeshes:
                     lashes.append(ob)
                 else:
                     nmeshes.append(ob)
@@ -552,8 +552,9 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
         # Merge geografts
         if geografts:
-            self.transferShapes(context, mainMesh, geografts, False, "Body")
-            if activateObject(context, mainMesh):
+            if self.useTransferShapes or self.useMergeGeografts:
+                self.transferShapes(context, mainMesh, geografts, self.useMergeGeografts, "Body")
+            if self.useMergeGeografts and activateObject(context, mainMesh):
                 for ob in geografts:
                     ob.select_set(True)
                 print("Merge geografts")
@@ -566,15 +567,17 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
         # Merge lashes
         if lashes:
-            self.transferShapes(context, mainMesh, lashes, False, "Face")
-            if activateObject(context, mainMesh):
+            if self.useTransferShapes or self.useMergeLashes:
+                self.transferShapes(context, mainMesh, lashes, self.useMergeLashes, "Face")
+            if self.useMergeLashes and activateObject(context, mainMesh):
                 for ob in lashes:
                     ob.select_set(True)
                 print("Merge lashes")
                 self.mergeLashes(mainMesh)
 
         # Transfer shapekeys to clothes
-        self.transferShapes(context, mainMesh, meshes[1:], True, "Body")
+        if self.useTransferShapes:
+            self.transferShapes(context, mainMesh, meshes[1:], False, "Body")
 
         if mainRig and activateObject(context, mainRig):
             # Make all bones poseable
@@ -623,12 +626,9 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             activateObject(context, mainRig)
 
 
-    def transferShapes(self, context, ob, meshes, useDrivers, bodypart):
+    def transferShapes(self, context, ob, meshes, skipDrivers, bodypart):
         if not (ob and meshes):
             return
-        if useDrivers and not self.useTransferShapes:
-            return
-
         from .api import set_selection
         from .morphing import classifyShapekeys
         skeys = ob.data.shape_keys
@@ -646,10 +646,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             if not selected:
                 return
             set_selection(snames)
-            if not useDrivers:
-                bpy.ops.daz.transfer_shapekeys(useDrivers=False)
-            else:
-                bpy.ops.daz.transfer_shapekeys(useDrivers=True)
+            bpy.ops.daz.transfer_shapekeys(useDrivers=(not skipDrivers))
 
 
     def useTransferTo(self, mesh):

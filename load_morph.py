@@ -981,7 +981,10 @@ class LoadMorph(DriverUser):
             final = unPath(path)
             if isFinal(final):
                 raw = baseProp(final)
-                string = "u+" + string
+                if string[0] == "-":
+                    string = "u%s" % string
+                else:
+                    string = "u+%s" % string
                 self.rig[raw] = 0.0
                 self.addPathVar(fcu, "u", self.rig, propRef(raw))
                 self.addToMorphSet(raw, None, True)
