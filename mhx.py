@@ -675,7 +675,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.collectDeformBones(rig)
         bpy.ops.object.mode_set(mode='POSE')
         showProgress(23, 25, "  Rename face bones")
-        self.renameFaceBones(rig)
+        self.renameFaceBones(rig, ["Eye", "Ear"])
         showProgress(24, 25, "  Add bone groups")
         self.addBoneGroups(rig)
         rig.MhxRig = True
@@ -799,6 +799,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 self.addGizmo(pb, gizmo, scale)
             elif pb.name[0:4] == "palm":
                 self.addGizmo(pb, "GZM_Ellipse", 1)
+            elif pb.name[0:6] == "tongue":
+                self.addGizmo(pb, "GZM_Tongue", 1)
             elif self.isFaceBone(pb) and not self.isEyeLid(pb):
                 self.addGizmo(pb, "GZM_Circle", 0.2)
             else:
@@ -1110,7 +1112,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
             shinIk.use_connect = shin.use_connect
             thighIkTwist = deriveBone("thigh.ik.twist"+suffix, thigh, rig, L_LLEGIK+dlayer, thighIk)
+            thighIkTwist.layers[L_LEXTRA+dlayer] = True
             shinIkTwist = deriveBone("shin.ik.twist"+suffix, shin, rig, L_LLEGIK+dlayer, shinIk)
+            shinIkTwist.layers[L_LEXTRA+dlayer] = True
 
             if "heel"+suffix in rig.data.edit_bones.keys():
                 heel = rig.data.edit_bones["heel"+suffix]
@@ -1136,6 +1140,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 kneePoleA = makeBone("kneePoleA"+suffix, rig, legSocket.head, legSocket.head-ez, 0, L_LLEGIK+dlayer, legSocket)
                 kneePoleP = makeBone("kneePoleP"+suffix, rig, shin.head, shin.head-ez, 0, L_HELP2, hip)
                 kneePar = kneePoleP
+                kneePoleA.layers[L_LEXTRA+dlayer] = True
             elif self.kneeParent == 'HIP':
                 kneePar = hip
             elif self.kneeParent == 'MASTER':
@@ -1544,10 +1549,9 @@ Gizmos = {
     "lowerJaw" :        ("GZM_Jaw", 1),
     "rEye" :            ("GZM_Circle025", 1),
     "lEye" :            ("GZM_Circle025", 1),
+    "rEar" :            ("GZM_Circle025", 1.5),
+    "lEar" :            ("GZM_Circle025", 1.5),
     "gaze" :            ("GZM_Gaze", 1),
-    "tongue_base" :     ("GZM_Tongue", 1),
-    "tongue_mid" :      ("GZM_Tongue", 1),
-    "tongue_tip" :      ("GZM_Tongue", 1),
 }
 
 LRGizmos = {
@@ -1556,8 +1560,6 @@ LRGizmos = {
 
     # Head
 
-    "rEye" :            ("GZM_Circle025", 1),
-    "lEye" :            ("GZM_Circle025", 1),
     "gaze" :            ("GZM_Circle025", 1),
 
     "uplid" :           ("GZM_UpLid", 1),
