@@ -2585,7 +2585,7 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsMe
             else:
                 finger = getFingerPrint(ob)
             if finger != ustruct["finger_print"]:
-                print("Fingerprint mismatch:\n%s %s != %s" % (finger, ustruct["finger_print"]))
+                print("Fingerprint mismatch:\n%s != %s" % (finger, ustruct["finger_print"]))
                 return
         for morphset in theStandardMorphSets:
             self.adjuster = theAdjusters[morphset]

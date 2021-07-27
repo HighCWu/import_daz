@@ -984,6 +984,7 @@ class DAZ_OT_MergeMaterials(DazPropsOperator, MaterialMerger, IsMesh):
     def run(self, context):
         for ob in getSelectedMeshes(context):
            self.mergeMaterials(ob)
+           self.removeUnusedMaterials(ob)
 
 
     def keepMaterial(self, mn, mat, ob):
@@ -1184,6 +1185,19 @@ class DAZ_OT_MergeMaterials(DazPropsOperator, MaterialMerger, IsMesh):
             if key2 not in struct2.keys():
                 return False
         return True
+
+
+    def removeUnusedMaterials(self, ob):
+        nmats = len(ob.data.materials)
+        used = dict([(mn,False) for mn in range(nmats)])
+        for f in ob.data.polygons:
+            used[f.material_index] = True
+        used = list(used.items())
+        used.sort()
+        used.reverse()
+        for n,use in used:
+            if not use:
+                ob.data.materials.pop(index=n)
 
 # ---------------------------------------------------------------------
 #   Copy materials
