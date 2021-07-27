@@ -661,12 +661,6 @@ class MorphLoader(LoadMorph):
             self.mesh = mesh
 
 
-    @classmethod
-    def poll(self, context):
-        ob = context.object
-        return (ob and ob.DazId)
-
-
     def getMorphSet(self, asset):
         return self.morphset
 
@@ -2504,7 +2498,7 @@ class DAZ_OT_MeshToShape(DazOperator, IsMesh):
 #   Save and load morph presets
 #-------------------------------------------------------------
 
-class DAZ_OT_SaveFavoMorphs(DazOperator, SingleFile, JsonFile, IsArmature):
+class DAZ_OT_SaveFavoMorphs(DazOperator, SingleFile, JsonFile, IsMeshArmature):
     bl_idname = "daz.save_favo_morphs"
     bl_label = "Save Favorite Morphs"
     bl_description = "Save favorite morphs"
@@ -2518,7 +2512,7 @@ class DAZ_OT_SaveFavoMorphs(DazOperator, SingleFile, JsonFile, IsArmature):
 
     def run(self, context):
         from .load_json import saveJson
-        rig = context.object
+        rig = self.rig = getRigFromObject(context.object)
         struct = { "filetype" : "favo_morphs" }
         self.addMorphUrls(rig, struct)
         for ob in rig.children:
@@ -2550,7 +2544,7 @@ class DAZ_OT_SaveFavoMorphs(DazOperator, SingleFile, JsonFile, IsArmature):
             mstruct[key].append((quote(item.name), item.text, item.bodypart))
 
 
-class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsArmature):
+class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsMeshArmature):
     bl_idname = "daz.load_favo_morphs"
     bl_label = "Load Favorite Morphs"
     bl_description = "Load favorite morphs"
@@ -2569,7 +2563,7 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsAr
         if ("filetype" not in struct.keys() or
             struct["filetype"] != "favo_morphs"):
             raise DazError("This file does not contain favorite morphs")
-        rig = self.rig = context.object
+        rig = self.rig = getRigFromObject(context.object)
         rig.DazMorphUrls.clear()
         self.loadPreset(rig, rig, struct, context)
         for ob in rig.children:
