@@ -2553,6 +2553,14 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsMe
         name="File Path",
         default = "")
 
+    ignoreFinger : BoolProperty(
+        name = "Ignore Fingerprint",
+        description = "Ignore the mesh fingerprint which describes the mesh topology",
+        default = False)
+
+    def draw(self, context):
+        self.layout.prop(self, "ignoreFinger")
+
     def invoke(self, context, event):
         return SingleFile.invoke(self, context, event)
 
@@ -2579,7 +2587,9 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsMe
         if url not in struct.keys():
             return
         ustruct = struct[url]
-        if ob.type == 'MESH' and "finger_print" in ustruct.keys():
+        if (ob.type == 'MESH' and
+            "finger_print" in ustruct.keys() and
+            not self.ignoreFinger):
             if ob.data.DazFingerPrint:
                 finger = ob.data.DazFingerPrint
             else:
