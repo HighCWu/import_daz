@@ -789,10 +789,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                         hand = rig.pose.bones["hand.fk."+suffix]
                         foot = rig.pose.bones["foot.fk."+suffix]
                         hand.location = foot.location = Zero
-                        if ("MhaForearmsFollow" not in rig.data.keys() or
-                            rig.data["MhaForearmsFollow"]):
-                            hand.rotation_euler[1] = forearm.rotation_euler[1]
-                            forearm.rotation_euler[1] = 0
+                        self.fixForearmFollow("MhaForearmFollow_" + suffix, rig, hand, forearm)
                         if self.useInsertKeys:
                             tfm.insertKeys(rig, forearm, n+offset, forearm.name, self.driven)
                             tfm.insertKeys(rig, hand, n+offset, hand.name, self.driven)
@@ -806,6 +803,18 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                 self.addToPoseLib(rig, name)
             offset += n + 1
         return offset,prop
+
+
+    def fixForearmFollow(self, prop, rig, hand, forearm):
+        if "MhaForearmsFollow" in rig.data.keys():
+            fix = rig.data["MhaForearmsFollow"]
+        elif prop in rig.data.key():
+            fix = rig.data[prop]
+        else:
+            fix = True
+        if fix:
+            hand.rotation_euler[1] = forearm.rotation_euler[1]
+            forearm.rotation_euler[1] = 0
 
 
     def addFrames(self, bname, channel, nmax, cname, frames, default=None):

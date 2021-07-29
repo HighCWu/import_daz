@@ -1358,6 +1358,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.flipLimits(rig, "shin.fk" + suffix, "shin" + suffix)
             self.flipLimits(rig, "foot.fk" + suffix, "foot" + suffix)
             self.flipLimits(rig, "toe.fk" + suffix, "toe" + suffix)
+            self.unlimitYrot(rig, "hand.fk" + suffix)
             if "toe"+suffix in rig.pose.bones.keys():
                 toe = rig.pose.bones["toe"+suffix]
                 prop = "MhaToeTarsal_%s" % suffix[1]
@@ -1402,6 +1403,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             cns.use_limit_y = True
             cns.min_y = -90*D
             cns.max_y = 90*D
+
+
+    def unlimitYrot(self, rig, bname):
+        pb = rig.pose.bones[bname]
+        cns = getConstraint(pb, 'LIMIT_ROTATION')
+        if cns:
+            cns.use_limit_y = False
 
 
     def copyLimits(self, rig, bname, suffix):
