@@ -50,8 +50,14 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
         description = "Merge active render UV layers to a single layer",
         default = True)
 
+    useVertexTable : BoolProperty(
+        name = "Add Vertex Table",
+        description = "Add a table with vertex numbers before and after merge",
+        default = True)
+
     def draw(self, context):
         self.layout.prop(self, "useMergeUvLayers")
+        self.layout.prop(self, "useVertexTable")
 
     def __init__(self):
         DriverUser.__init__(self)
@@ -167,7 +173,8 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
                 vn2 += 1
 
         # Original vertex locations
-        origlocs = [v.co.copy() for v in cob.data.vertices]
+        if self.useVertexTable:
+            origlocs = [v.co.copy() for v in cob.data.vertices]
 
         # Delete the masked verts
         bpy.ops.object.mode_set(mode='EDIT')
@@ -238,18 +245,22 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
                 dists.sort()
                 pair.a = dists[0][1]
 
-        #
-        vn = 0
-        eps = 1e-3*cob.DazScale
-        for vn0,r in enumerate(origlocs):
-            item = cob.data.DazOrigVerts.add()
-            item.name = str(vn0)
-            v = cob.data.vertices[vn]
-            if (v.co - r).length > eps:
-                item.a = -1
-            else:
-                item.a = vn
-                vn += 1
+        # Create a vertex table
+        if self.useVertexTable:
+            vn = 0
+            eps = 1e-3*cob.DazScale
+            for vn0,r in enumerate(origlocs):
+                item = cob.data.DazOrigVerts.add()
+                item.name = str(vn0)
+                v = cob.data.vertices[vn]
+                if (v.co - r).length > eps:
+                    item.a = -1
+                else:
+                    item.a = vn
+                    vn += 1
+        else:
+            cob.data.DazFingerPrint = ""
+
 
         # Merge UV layers
         if self.useMergeUvLayers:
