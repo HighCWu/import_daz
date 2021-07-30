@@ -2503,10 +2503,6 @@ class DAZ_OT_SaveFavoMorphs(DazOperator, SingleFile, JsonFile, IsMeshArmature):
     bl_label = "Save Favorite Morphs"
     bl_description = "Save favorite morphs"
 
-    filepath : StringProperty(
-        name="File Path",
-        default = "")
-
     def invoke(self, context, event):
         return SingleFile.invoke(self, context, event)
 
@@ -2548,10 +2544,6 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsMe
     bl_idname = "daz.load_favo_morphs"
     bl_label = "Load Favorite Morphs"
     bl_description = "Load favorite morphs"
-
-    filepath : StringProperty(
-        name="File Path",
-        default = "")
 
     ignoreFinger : BoolProperty(
         name = "Ignore Fingerprint",
