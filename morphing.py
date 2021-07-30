@@ -2513,7 +2513,7 @@ class DAZ_OT_SaveFavoMorphs(DazOperator, SingleFile, JsonFile, IsMeshArmature):
         self.addMorphUrls(rig, struct)
         for ob in rig.children:
             self.addMorphUrls(ob, struct)
-        filepath = self.ensureExtension(self.filepath, "json")
+        filepath = bpy.path.ensure_ext(self.filepath, ".json")
         saveJson(struct, filepath)
 
 
@@ -2558,7 +2558,7 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsMe
 
     def run(self, context):
         from .load_json import loadJson
-        filepath = self.ensureExtension(self.filepath, "json")
+        filepath = bpy.path.ensure_ext(self.filepath, ".json")
         struct = loadJson(filepath)
         if ("filetype" not in struct.keys() or
             struct["filetype"] != "favo_morphs"):

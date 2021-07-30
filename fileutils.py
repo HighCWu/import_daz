@@ -153,8 +153,8 @@ class CsvFile:
 #-------------------------------------------------------------
 
 def getExistingFilePath(filepath, ext):
+    filepath = bpy.path.ensure_ext(bpy.path.abspath(filepath), ext)
     filepath = os.path.expanduser(filepath).replace("\\", "/")
-    filepath = os.path.splitext(filepath)[0] + ext
     if os.path.exists(filepath):
         return filepath
     else:
@@ -171,10 +171,6 @@ class SingleFile(ImportHelper):
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
-
-    def ensureExtension(self, filepath, ext):
-        file = os.path.splitext(filepath)[0]
-        return "%s.%s" % (file, ext)
 
 
 class MultiFile(ImportHelper):
