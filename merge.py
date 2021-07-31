@@ -52,7 +52,10 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
 
     useVertexTable : BoolProperty(
         name = "Add Vertex Table",
-        description = "Add a table with vertex numbers before and after merge",
+        description = (
+            "Add a table with vertex numbers before and after merge.\n"+
+            "Makes it possible to add morphs after merge,\n"+
+            "but affects viewport performance"),
         default = True)
 
     def draw(self, context):

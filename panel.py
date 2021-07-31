@@ -131,6 +131,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.set_udims")
                 box.operator("daz.make_udim_materials")
+            box.operator("daz.finalize_meshes")
             box.separator()
             box.operator("daz.make_all_bones_poseable")
             box.operator("daz.optimize_pose")

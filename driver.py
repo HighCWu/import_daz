@@ -751,6 +751,18 @@ def muteDazFcurves(rig, mute):
         for fcu in rig.data.animation_data.drivers:
             if isDazFcurve(fcu.data_path):
                 fcu.mute = mute
+    for ob in rig.children:
+        if ob.type == 'MESH':
+            skeys = ob.data.shape_keys
+            if skeys and skeys.animation_data:
+                for fcu in skeys.animation_data.drivers:
+                    words = fcu.data_path.split('"')
+                    if words[0] == "key_blocks[":
+                        fcu.mute = mute
+                        sname = words[1]
+                        if sname in skeys.key_blocks.keys():
+                            skey = skeys.key_blocks[sname]
+                            skey.mute = mute
 
 
 class DAZ_OT_DisableDrivers(DazOperator):

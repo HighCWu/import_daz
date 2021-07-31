@@ -1350,6 +1350,38 @@ class DAZ_OT_LimitVertexGroups(DazPropsOperator, IsMesh):
                 vgrp.add([vn], w, 'REPLACE')
 
 #----------------------------------------------------------
+#   Finalize meshes
+#----------------------------------------------------------
+
+class DAZ_OT_FinalizeMeshes(DazOperator, IsMeshArmature):
+    bl_idname = "daz.finalize_meshes"
+    bl_label = "Finalize Meshes"
+    bl_description = "Remove internal properties from meshes.\nDisables some tools but may improve performance"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        from .morphing import getRigFromObject
+        ob = context.object
+        rig = getRigFromObject(ob)
+        for ob1 in rig.children:
+            if ob1.type == 'MESH':
+                self.finalizeMesh(ob1.data)
+        if ob.type == 'MESH' and ob not in rig.children:
+            self.finalizeMesh(ob.data)
+
+
+    def finalizeMesh(self, me):
+        from .morphing import getRigFromObject
+        me.DazRigidityGroups.clear()
+        me.DazOrigVerts.clear()
+        me.DazFingerPrint = ""
+        me.DazGraftGroup.clear()
+        me.DazMaskGroup.clear()
+        me.DazMatNums.clear()
+        me.DazMaterialSets.clear()
+        me.DazHDMaterials.clear()
+
+#----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
@@ -1361,6 +1393,7 @@ classes = [
     DAZ_OT_UDimsFromTextures,
     DAZ_OT_LoadUV,
     DAZ_OT_LimitVertexGroups,
+    DAZ_OT_FinalizeMeshes,
 ]
 
 def register():
