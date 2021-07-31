@@ -319,6 +319,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         default = True
     )
 
+    useFingerIk : BoolProperty(
+        name = "Finger IK",
+        description = "Generate IK controls for fingers",
+        default = False)
+
     useKeepRig : BoolProperty(
         name = "Keep DAZ Rig",
         description = "Keep existing armature and meshes in a new collection",
@@ -417,6 +422,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     def draw(self, context):
         self.layout.prop(self, "addTweakBones")
         self.layout.prop(self, "showLinks")
+        self.layout.prop(self, "useFingerIk")
         self.layout.prop(self, "useKeepRig")
         self.layout.prop(self, "elbowParent")
         self.layout.prop(self, "kneeParent")
@@ -967,11 +973,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
     def addLongFingers(self, rig):
+        bpy.ops.object.mode_set(mode='EDIT')
         for suffix,dlayer in [(".L",0), (".R",16)]:
-            prop = "MhaFingerControl_" + suffix[1]
-            setMhxProp(rig, prop, True)
-
-            bpy.ops.object.mode_set(mode='EDIT')
+            hand = rig.data.edit_bones["hand"+suffix]
             for m in range(5):
                 if m == 0:
                     fing1 = rig.data.edit_bones[self.linkName(0, 1, suffix)]
@@ -981,8 +985,21 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                     palm = rig.data.edit_bones[self.palmName(m, suffix)]
                 fing3 = rig.data.edit_bones[self.linkName(m, 2, suffix)]
                 makeBone(self.longName(m, suffix), rig, fing1.head, fing3.tail, fing1.roll, L_LHAND+dlayer, palm)
+                vec = fing3.tail - fing3.head
+                makeBone("ik_" + self.longName(m, suffix), rig, fing3.tail, fing3.tail+vec, fing3.roll, L_LFINGER+dlayer, hand)
 
-            bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode='POSE')
+        for suffix,dlayer in [(".L",0), (".R",16)]:
+            prop1 = "MhaFingerControl_%s" % suffix[1]
+            setMhxProp(rig, prop1, True)
+            if self.useFingerIk:
+                prop2 = "MhaFingerIk_%s" % suffix[1]
+                setMhxProp(rig, prop2, False)
+                props = (prop1,prop2)
+                expr = "x1*(1-x2)"
+            else:
+                props = prop1
+                expr = "x"
             thumb1 = rig.data.bones[self.linkName(0, 0, suffix)]
             thumb1.layers[L_LHAND+dlayer] = True
             for m in range(5):
@@ -996,13 +1013,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 fing = rig.pose.bones[self.linkName(m, n0, suffix)]
                 fing.lock_rotation = (False,True,False)
                 long.rotation_mode = fing.rotation_mode
-                cns = copyRotation(fing, long, rig, prop)
+                cns = copyRotation(fing, long, rig, props, expr)
                 cns.use_y = cns.use_z = False
                 cns.use_offset = True
                 for n in range(n0+1,3):
                     fing = rig.pose.bones[self.linkName(m, n, suffix)]
                     fing.lock_rotation = (False,True,True)
-                    cns = copyRotation(fing, long, rig, prop)
+                    cns = copyRotation(fing, long, rig, props, expr)
                     cns.use_y = cns.use_z = False
                     cns.use_offset = True
 
@@ -1359,6 +1376,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.flipLimits(rig, "foot.fk" + suffix, "foot" + suffix)
             self.flipLimits(rig, "toe.fk" + suffix, "toe" + suffix)
             self.unlimitYrot(rig, "hand.fk" + suffix)
+            if self.useFingerIk:
+                self.addFingerIk(rig, suffix)
             if "toe"+suffix in rig.pose.bones.keys():
                 toe = rig.pose.bones["toe"+suffix]
                 prop = "MhaToeTarsal_%s" % suffix[1]
@@ -1419,15 +1438,39 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         iktwist.lock_rotation = (True,False,True)
         cns = getConstraint(fkbone, 'LIMIT_ROTATION')
         if cns:
-            for n,x in enumerate(["x", "y", "z"]):
-                setattr(ikbone, "use_ik_limit_%s" % x, getattr(cns, "use_limit_%s" % x))
-                setattr(ikbone, "ik_min_%s" % x, getattr(cns, "min_%s" % x))
-                setattr(ikbone, "ik_max_%s" % x, getattr(cns, "max_%s" % x))
-                setattr(ikbone, "lock_ik_%s" % x, fkbone.lock_rotation[n])
+            self.setIkLimits(cns, fkbone, ikbone)
             ikcns = limitRotation(iktwist, rig)
             ikcns.use_limit_y = True
             ikcns.min_y = cns.min_y
             ikcns.max_y = cns.max_y
+
+
+    def setIkLimits(self, cns, fkbone, ikbone):
+        for n,x in enumerate(["x", "y", "z"]):
+            setattr(ikbone, "use_ik_limit_%s" % x, getattr(cns, "use_limit_%s" % x))
+            setattr(ikbone, "ik_min_%s" % x, getattr(cns, "min_%s" % x))
+            setattr(ikbone, "ik_max_%s" % x, getattr(cns, "max_%s" % x))
+            setattr(ikbone, "lock_ik_%s" % x, fkbone.lock_rotation[n])
+            #if fkbone.lock_rotation[n]:
+            #    setattr(ikbone, "ik_stiffness_%s" % x, 0.99)
+
+
+    def addFingerIk(self, rig, suffix):
+        prop = "MhaFingerIk_%s" % suffix[1]
+        n0 = 1
+        for m in range(5):
+            for n in range(n0,3):
+                bname = self.linkName(m, n, suffix)
+                pb = rig.pose.bones[bname]
+                cns = getConstraint(pb, 'LIMIT_ROTATION')
+                if cns:
+                    self.setIkLimits(cns, pb, pb)
+                    addDriver(cns, "influence", rig, prop, "1-x")
+            bname = "ik_" + self.longName(m, suffix)
+            target = rig.pose.bones[bname]
+            cns = ikConstraint(pb, target, None, 0, 3-n0, rig, prop, "x")
+            cns.use_rotation = True
+            n0 = 0
 
     #-------------------------------------------------------------
     #   Markers
@@ -1612,6 +1655,12 @@ LRGizmos = {
     "middle" :          ("GZM_Knuckle", 1),
     "ring" :            ("GZM_Knuckle", 1),
     "pinky":            ("GZM_Knuckle", 1),
+
+    "ik_thumb" :        ("GZM_Cone", 0.4),
+    "ik_index" :        ("GZM_Cone", 0.4),
+    "ik_middle" :       ("GZM_Cone", 0.4),
+    "ik_ring" :         ("GZM_Cone", 0.4),
+    "ik_pinky":         ("GZM_Cone", 0.4),
     }
 
 # ---------------------------------------------------------------------
@@ -1755,6 +1804,7 @@ def initMhxProps():
     bpy.types.Armature.MhaArmHinge_L = BoolPropOVR(False)
     bpy.types.Armature.MhaArmIk_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
     bpy.types.Armature.MhaFingerControl_L = BoolPropOVR(False)
+    bpy.types.Armature.MhaFingerIk_L = BoolPropOVR(False)
     bpy.types.Armature.MhaGaze_L = FloatPropOVR(0.0, min=0.0, max=1.0)
     bpy.types.Armature.MhaLegHinge_L = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIkToAnkle_L = BoolPropOVR(False)
@@ -1763,6 +1813,7 @@ def initMhxProps():
     bpy.types.Armature.MhaArmHinge_R = BoolPropOVR(False)
     bpy.types.Armature.MhaArmIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
     bpy.types.Armature.MhaFingerControl_R = BoolPropOVR(False)
+    bpy.types.Armature.MhaFingerIk_R = BoolPropOVR(False)
     bpy.types.Armature.MhaGaze_R = FloatPropOVR(0.0, min=0.0, max=1.0)
     bpy.types.Armature.MhaLegHinge_R = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIkToAnkle_R = BoolPropOVR(False)
