@@ -384,6 +384,11 @@ class Rigify:
         description = "Display layers for face and custom bones.\nNot for Rigify legacy",
         default = True)
 
+    useFingerIk : BoolProperty(
+        name = "Finger IK",
+        description = "Generate IK controls for fingers",
+        default = False)
+
     useIkFix : BoolProperty(
         name = "IK Fix",
         description = "Add limits to IK bones, to prevent poor bending",
@@ -559,6 +564,7 @@ class Rigify:
                 elif pb["rigify_type"] == "limbs.super_finger":
                     connect += self.getChildren(pb)
                     pb.rigify_parameters.primary_rotation_axis = 'X'
+                    pb.rigify_parameters.make_extra_ik_control = self.useFingerIk
                 elif pb["rigify_type"] == "limbs.super_limb":
                     pb.rigify_parameters.rotation_axis = 'x'
                     pb.rigify_parameters.auto_align_extremity = self.useAutoAlign
@@ -1095,6 +1101,10 @@ class Rigify:
         self.renameFaceBones(gen, rename)
         self.addGizmos(gen)
 
+        # Finger IK
+        if self.useFingerIk:
+            self.fixFingerIk(rig, gen)
+
         #Clean up
         print("  Clean up")
         gen.data.display_type = 'WIRE'
@@ -1269,6 +1279,33 @@ class Rigify:
                 pb = gen.pose.bones[rname]
                 pb.bone.layers = 29*[False] + [True] + 2*[False]
 
+
+    def fixFingerIk(self, rig, gen):
+        for suffix in ["L", "R"]:
+            for dfing,rfing in [
+                ("Thumb", "thumb"),
+                ("Index", "f_index"),
+                ("Mid", "f_middle"),
+                ("Ring", "f_ring"),
+                ("Pinky", "f_pinky")]:
+                for link in range(1,4):
+                    dname = "%s%s%d" % (suffix.lower(), dfing, link)
+                    rname = "ORG-%s.%02d.%s" % (rfing, link, suffix)
+                    db = rig.pose.bones[dname]
+                    pb = gen.pose.bones[rname]
+                    for n,attr in [(0,"lock_ik_x"), (1,"lock_ik_y"), (2,"lock_ik_z")]:
+                        if False and db.lock_rotation[n]:
+                            setattr(pb, attr, True)
+                    cns = getConstraint(db, 'LIMIT_ROTATION')
+                    if cns:
+                        for comp in ["x", "y", "z"]:
+                            if getattr(cns, "use_limit_%s" % comp):
+                                dmin = getattr(cns, "min_%s" % comp)
+                                dmax = getattr(cns, "max_%s" % comp)
+                                setattr(pb, "use_ik_limit_%s" % comp, True)
+                                setattr(pb, "ik_min_%s" % comp, dmin)
+                                setattr(pb, "ik_max_%s" % comp, dmax)
+
 #-------------------------------------------------------------
 #  Buttons
 #-------------------------------------------------------------
@@ -1297,6 +1334,7 @@ class DAZ_OT_ConvertToRigify(DazPropsOperator, Rigify, Fixer, GizmoUser, BendTwi
         self.layout.prop(self, "useAutoAlign")
         self.layout.prop(self, "useDeleteMeta")
         self.layout.prop(self, "useIkFix")
+        self.layout.prop(self, "useFingerIk")
         self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "useKeepRig")
         self.layout.prop(self, "useRenameBones")
@@ -1344,6 +1382,7 @@ class DAZ_OT_CreateMeta(DazPropsOperator, Rigify, Fixer, BendTwists):
         Fixer.__init__(self)
 
     def draw(self, context):
+        self.layout.prop(self, "useFingerIk")
         self.layout.prop(self, "useCustomLayers")
         self.layout.prop(self, "useKeepRig")
 
