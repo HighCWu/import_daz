@@ -721,22 +721,6 @@ class DAZ_OT_ResetMaterial(DazOperator, ChannelSetter, IsMesh):
     def multiplyTex(self, node, fromsocket, tosocket, tree, item):
         pass
 
-
-def getTweakMaterials(scn, context):
-    ob = context.object
-    default = [("Opaque", "Opaque", "Opaque"),
-               ("Refractive", "Refractive", "Refractive"),
-               ("All", "All", "All"),
-               ("None", "None", "None")
-              ]
-    if ob.data.DazMaterialSets:
-        return default + [(key,key,key) for key in ob.data.DazMaterialSets.keys()]
-    else:
-        return default + [
-                ("Skin", "Skin", "Skin"),
-                ("Skin-Lips-Nails", "Skin-Lips-Nails", "Skin-Lips-Nails"),
-                ]
-
 # ---------------------------------------------------------------------
 #   Set Shell Visibility
 # ---------------------------------------------------------------------

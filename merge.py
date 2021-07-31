@@ -179,15 +179,15 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
         if self.useVertexTable:
             origlocs = [v.co.copy() for v in cob.data.vertices]
 
-        # Delete the masked verts
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.delete(type='VERT')
-        bpy.ops.object.mode_set(mode='OBJECT')
-
         # If cob is itself a geograft, store locations
         if cob.data.DazGraftGroup:
             verts = cob.data.vertices
             locations = dict([(pair.a, verts[pair.a].co.copy()) for pair in cob.data.DazGraftGroup])
+
+        # Delete the masked verts
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.delete(type='VERT')
+        bpy.ops.object.mode_set(mode='OBJECT')
 
         # Select nothing
         for aob in anatomies:
