@@ -477,11 +477,12 @@ class Instance(Accessor, Channels, SimNode):
 
     def getLocalMatrix(self, wsmat, orient):
         # global_rotation = parent.global_rotation * orientation * rotation * (orientation)-1
-        self.wsmat = wsmat
+        lsmat = self.wsmat = wsmat
         if self.parent:
-            lsmat = self.parent.wsmat.inverted() @ self.wsmat
-        else:
-            lsmat = self.wsmat
+            try:
+                lsmat = self.parent.wsmat.inverted() @ wsmat
+            except ValueError:
+                print("Failed to invert parent matrix")
         return orient.inverted() @ lsmat @ orient
 
 #-------------------------------------------------------------
