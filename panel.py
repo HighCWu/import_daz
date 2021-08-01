@@ -70,8 +70,6 @@ class DAZ_PT_Setup(bpy.types.Panel):
             box.operator("daz.copy_pose")
             box.operator("daz.apply_rest_pose")
             box.operator("daz.change_armature")
-            box.separator()
-            box.operator("daz.make_gizmos")
 
         layout.separator()
         box = layout.box()
@@ -131,6 +129,7 @@ class DAZ_PT_Setup(bpy.types.Panel):
             if bpy.app.version >= (2,82,0):
                 box.operator("daz.set_udims")
                 box.operator("daz.make_udim_materials")
+            box.operator("daz.convert_widgets")
             box.operator("daz.finalize_meshes")
             box.separator()
             box.operator("daz.make_all_bones_poseable")

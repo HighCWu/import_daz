@@ -1774,10 +1774,10 @@ class DAZ_OT_CopyModifiers(DazPropsOperator, IsMesh):
 #   Make custom shapes from mesh
 #----------------------------------------------------------
 
-class DAZ_OT_MakeGizmos(DazPropsOperator, IsMesh):
-    bl_idname = "daz.make_gizmos"
-    bl_label = "Make Custom Shapes"
-    bl_description = "Make custom shapes from the active mesh to its parent"
+class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
+    bl_idname = "daz.convert_widgets"
+    bl_label = "Convert To Widgets"
+    bl_description = "Convert the active mesh to custom shapes for the parent armature bones"
     bl_options = {'UNDO'}
 
     usedLayer : IntProperty(
@@ -2007,7 +2007,7 @@ classes = [
     DAZ_OT_SeparateLooseParts,
     DAZ_OT_MakeDeflection,
     DAZ_OT_CopyModifiers,
-    DAZ_OT_MakeGizmos,
+    DAZ_OT_ConvertWidgets,
 ]
 
 def register():
