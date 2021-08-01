@@ -589,7 +589,7 @@ class BendTwists:
 
         rotmodes = {}
         bpy.ops.object.mode_set(mode='POSE')
-        for bname,tname,_stretch in self.BendTwists:
+        for bname,tname,_stretch,_isShin in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
             if not (bendname in rig.pose.bones.keys() and
                     twistname in rig.pose.bones.keys()):
@@ -602,7 +602,7 @@ class BendTwists:
             self.removeConstraints(pb)
 
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname,tname,_stretch in self.BendTwists:
+        for bname,tname,_stretch,_isShin in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
             if not (bendname in rig.data.edit_bones.keys() and
                     twistname in rig.data.edit_bones.keys()):
@@ -633,7 +633,7 @@ class BendTwists:
                 pb.DazRotMode = rotmode
 
         from .figure import copyBoneInfo
-        for bname,tname,_stretch in self.BendTwists:
+        for bname,tname,_stretch,_isShin in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
             if not bendname in rig.data.bones.keys():
                 continue
@@ -642,7 +642,7 @@ class BendTwists:
             copyBoneInfo(srcbone, trgbone)
 
         bpy.ops.object.mode_set(mode='EDIT')
-        for bname,tname,_stretch in self.BendTwists:
+        for bname,tname,_stretch,_isShin in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
             if bendname in rig.data.edit_bones.keys():
                 eb = rig.data.edit_bones[bendname]
@@ -659,7 +659,7 @@ class BendTwists:
 
         bpy.ops.object.mode_set(mode='OBJECT')
         for ob in rig.children:
-            for bname,tname,_stretch in self.BendTwists:
+            for bname,tname,_stretch,_isShin in self.BendTwists:
                 bend,twist = self.getBendTwistNames(bname)
                 self.joinVertexGroups(ob, bname, bend, twist)
 
@@ -706,7 +706,7 @@ class BendTwists:
         tweakLayer = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
         bpy.ops.object.mode_set(mode='EDIT')
 
-        for bname,_,_ in self.BendTwists:
+        for bname,_,_,_ in self.BendTwists:
             eb = rig.data.edit_bones[bname]
             vec = eb.tail - eb.head
             bendname,twistname = self.getSubBoneNames(bname)
@@ -799,10 +799,10 @@ class BendTwists:
 
     def constrainBendTwists(self, rig):
         from .utils import hasPoseBones
-        from .mhx import dampedTrack, copyRotation, stretchTo
+        from .mhx import dampedTrack, copyRotation, stretchTo, addDriver, setMhxProp
         bpy.ops.object.mode_set(mode='POSE')
         gizmo = "GZM_Ball025"
-        for bname,trgname,stretch in self.BendTwists:
+        for bname,trgname,stretch,isShin in self.BendTwists:
             bendname,twistname = self.getSubBoneNames(bname)
             if not hasPoseBones(rig, [bname, bendname, twistname]):
                 continue
@@ -810,8 +810,15 @@ class BendTwists:
             bend = rig.pose.bones[bendname]
             twist = rig.pose.bones[twistname]
             pb2 = rig.pose.bones[trgname]
-            dampedTrack(bend, pb2, rig)
-            copyRotation(twist, pb, rig, space='WORLD')
+            cns1 = dampedTrack(bend, pb2, rig)
+            cns2 = copyRotation(twist, pb, rig, space='WORLD')
+            if isShin:
+                prop = "MhaDazShin_%s" % bname[-1]
+                setMhxProp(rig, prop, False)
+                addDriver(cns1, "mute", rig, prop, "x")
+                addDriver(cns2, "mute", rig, prop, "x")
+                cns3 = copyRotation(bend, pb, rig, space='WORLD')
+                addDriver(cns3, "mute", rig, prop, "not(x)")
             if stretch:
                 cns = stretchTo(bend, pb2, rig)
                 cns = stretchTo(twist, pb2, rig)

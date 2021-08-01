@@ -383,14 +383,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     ]
 
     BendTwists = [
-        ("shin.L", "foot.L", True),
-        ("thigh.L", "shin.L", False),
-        ("forearm.L", "hand.L", True),
-        ("upper_arm.L", "forearm.L", False),
-        ("shin.R", "foot.R", True),
-        ("thigh.R", "shin.R", False),
-        ("forearm.R", "hand.R", True),
-        ("upper_arm.R", "forearm.R", False),
+        ("shin.L", "foot.L", True, True),
+        ("thigh.L", "shin.L", False, False),
+        ("forearm.L", "hand.L", True, False),
+        ("upper_arm.L", "forearm.L", False, False),
+        ("shin.R", "foot.R", True, True),
+        ("thigh.R", "shin.R", False, False),
+        ("forearm.R", "hand.R", True, False),
+        ("upper_arm.R", "forearm.R", False, False),
         ]
 
     Knees = [
@@ -1809,6 +1809,7 @@ def initMhxProps():
     bpy.types.Armature.MhaLegHinge_L = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIkToAnkle_L = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIk_L = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Armature.MhaDazShin_L = BoolPropOVR(False)
 
     bpy.types.Armature.MhaArmHinge_R = BoolPropOVR(False)
     bpy.types.Armature.MhaArmIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
@@ -1818,6 +1819,7 @@ def initMhxProps():
     bpy.types.Armature.MhaLegHinge_R = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIkToAnkle_R = BoolPropOVR(False)
     bpy.types.Armature.MhaLegIk_R = FloatPropOVR(0.0, precision=3, min=0.0, max=1.0)
+    bpy.types.Armature.MhaDazShin_R = BoolPropOVR(False)
 
 
 classes = [
