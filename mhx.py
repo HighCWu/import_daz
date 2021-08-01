@@ -128,15 +128,17 @@ def copyTransform(bone, target, rig, prop=None, expr="x"):
     return cns
 
 
-def copyTransformFkIk(bone, boneFk, boneIk, rig, prop=None, expr="x"):
+def copyTransformFkIk(bone, boneFk, boneIk, rig, prop1, prop2=None):
     if boneFk is not None:
         cnsFk = copyTransform(bone, boneFk, rig)
         cnsFk.name = "FK"
         cnsFk.influence = 1.0
     if boneIk is not None:
-        cnsIk = copyTransform(bone, boneIk, rig, prop, expr)
+        cnsIk = copyTransform(bone, boneIk, rig, prop1)
         cnsIk.name = "IK"
         cnsIk.influence = 0.0
+        if prop2:
+            addDriver(cnsIk, "mute", rig, prop2, "x")
 
 
 def copyLocation(bone, target, rig, prop=None, expr="x"):
@@ -996,10 +998,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 prop2 = "MhaFingerIk_%s" % suffix[1]
                 setMhxProp(rig, prop2, False)
                 props = (prop1,prop2)
-                expr = "x1*(1-x2)"
+                expr = "(x2 or not(x1))"
             else:
                 props = prop1
-                expr = "x"
+                expr = "not(x)"
             thumb1 = rig.data.bones[self.linkName(0, 0, suffix)]
             thumb1.layers[L_LHAND+dlayer] = True
             for m in range(5):
@@ -1013,15 +1015,17 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 fing = rig.pose.bones[self.linkName(m, n0, suffix)]
                 fing.lock_rotation = (False,True,False)
                 long.rotation_mode = fing.rotation_mode
-                cns = copyRotation(fing, long, rig, props, expr)
+                cns = copyRotation(fing, long, rig)
                 cns.use_y = cns.use_z = False
                 cns.use_offset = True
+                addDriver(cns, "mute", rig, props, expr)
                 for n in range(n0+1,3):
                     fing = rig.pose.bones[self.linkName(m, n, suffix)]
                     fing.lock_rotation = (False,True,True)
-                    cns = copyRotation(fing, long, rig, props, expr)
+                    cns = copyRotation(fing, long, rig)
                     cns.use_y = cns.use_z = False
                     cns.use_offset = True
+                    addDriver(cns, "mute", rig, props, expr)
 
     #-------------------------------------------------------------
     #   FK/IK
@@ -1236,8 +1240,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             prop = "MhaArmHinge_" + suffix[1]
             setMhxProp(rig, prop, False)
-            copyTransform(armParent, armSocket, rig, prop, "1-x")
-            copyLocation(armParent, armSocket, rig, prop, "x")
+            cns = copyTransform(armParent, armSocket, rig)
+            addDriver(cns, "mute", rig, prop, "x")
+            cns = copyLocation(armParent, armSocket, rig)
+            addDriver(cns, "mute", rig, prop, "not(x)")
 
             prop = "MhaArmIk_"+suffix[1]
             setMhxProp(rig, prop, 1.0)
@@ -1292,8 +1298,10 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             prop = "MhaLegHinge_" + suffix[1]
             setMhxProp(rig, prop, False)
-            copyTransform(legParent, legSocket, rig, prop, "1-x")
-            copyLocation(legParent, legSocket, rig, prop, "x")
+            cns = copyTransform(legParent, legSocket, rig)
+            addDriver(cns, "mute", rig, prop, "x")
+            cns = copyLocation(legParent, legSocket, rig)
+            addDriver(cns, "mute", rig, prop, "not(x)")
 
             prop1 = "MhaLegIk_"+suffix[1]
             setMhxProp(rig, prop1, 1.0)
@@ -1304,8 +1312,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
             copyTransformFkIk(thigh, thighFk, thighIkTwist, rig, prop1)
             copyTransformFkIk(shin, shinFk, shinIkTwist, rig, prop1)
-            copyTransformFkIk(foot, footFk, footInvIk, rig, (prop1,prop2), "x1*(1-x2)")
-            copyTransformFkIk(toe, toeFk, toeInvIk, rig, (prop1,prop2), "x1*(1-x2)")
+            copyTransformFkIk(foot, footFk, footInvIk, rig, prop1, prop2)
+            copyTransformFkIk(toe, toeFk, toeInvIk, rig, prop1, prop2)
 
             if self.kneeParent == 'FOOT':
                 kneePoleA = rpbs["kneePoleA"+suffix]
@@ -1465,11 +1473,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 cns = getConstraint(pb, 'LIMIT_ROTATION')
                 if cns:
                     self.setIkLimits(cns, pb, pb)
-                    addDriver(cns, "influence", rig, prop, "1-x")
+                    addDriver(cns, "mute", rig, prop, "x")
             bname = "ik_" + self.longName(m, suffix)
             target = rig.pose.bones[bname]
-            cns = ikConstraint(pb, target, None, 0, 3-n0, rig, prop, "x")
+            cns = ikConstraint(pb, target, None, 0, 3-n0, rig)
             cns.use_rotation = True
+            addDriver(cns, "mute", rig, prop, "not(x)")
             n0 = 0
 
     #-------------------------------------------------------------
