@@ -281,6 +281,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.separator()
             box.operator("daz.update_rig_version")
             box.operator("daz.convert_mhx_actions")
+            box.operator("daz.update_mhx_shin")
             box.operator("daz.copy_daz_props")
 
         layout.separator()
