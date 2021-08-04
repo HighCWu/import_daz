@@ -65,8 +65,7 @@ class FigureInstance(Instance):
 
     def shiftBones(self, context, rig, mat):
         from .node import isUnitMatrix
-        if ((rig.parent and rig.parent_type == 'BONE') or
-            isUnitMatrix(mat)):
+        if isUnitMatrix(mat):
             return
         activateObject(context, rig)
         bpy.ops.object.mode_set(mode='EDIT')

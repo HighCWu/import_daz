@@ -366,9 +366,9 @@ class BoneInstance(Instance):
 
     def getHeadTail(self, center, mayfit=True):
         if mayfit and self.restdata:
-            cp,ep,orient,xyz,origin,wsmat = self.restdata
-            head = (cp - center)
-            tail = (ep - center)
+            head,tail,orient,xyz,origin,wsmat = self.restdata
+            #head = (cp - center)
+            #tail = (ep - center)
             if orient:
                 x,y,z,w = orient
                 orient = Quaternion((-w,x,y,z)).to_euler()
