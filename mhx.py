@@ -1180,7 +1180,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             footInvIk = deriveBone("foot.inv.ik"+suffix, foot, rig, L_HELP2, footRev)
             toeInvIk = deriveBone("toe.inv.ik"+suffix, toe, rig, L_HELP2, toeRev)
 
-            self.addSingleGazeBone(rig, suffix, L_HEAD)
+            self.addSingleGazeBone(rig, suffix, L_HEAD, L_HELP)
 
             for bname in ["upper_arm.fk", "forearm.fk", "hand.fk",
                           "thigh.fk", "shin.fk", "foot.fk", "toe.fk"]:

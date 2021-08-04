@@ -302,10 +302,16 @@ class Fixer(DriverUser):
     #   Gaze Bones
     #-------------------------------------------------------------
 
-    def addSingleGazeBone(self, rig, suffix, headLayer):
-        from .mhx import makeBone
+    def addSingleGazeBone(self, rig, suffix, headLayer, helpLayer):
+        from .mhx import makeBone, deriveBone
         prefix = suffix[1].lower()
         eye = rig.data.edit_bones[prefix + "Eye"]
+        eyegaze = deriveBone(prefix + "EyeGaze", eye, rig, helpLayer, eye.parent)
+        if isDrvBone(eye.parent.name):
+            eyegaze.parent = eye.parent.parent
+            eye.parent.parent = eyegaze
+        else:
+            eye.parent = eyegaze
         vec = eye.tail-eye.head
         vec.normalize()
         loc = eye.head + vec*rig.DazScale*30
@@ -330,9 +336,9 @@ class Fixer(DriverUser):
         prop = "MhaGaze_" + suffix[1]
         setMhxProp(rig, prop, 1.0)
         prefix = suffix[1].lower()
-        eye = rig.pose.bones[prefix+"Eye"]
+        eyegaze = rig.pose.bones[prefix+"EyeGaze"]
         gaze = rig.pose.bones["gaze"+suffix]
-        trackTo(eye, gaze, rig, prop)
+        trackTo(eyegaze, gaze, rig, prop)
 
 
     def addGazeFollowsHead(self, rig):

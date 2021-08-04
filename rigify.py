@@ -943,12 +943,6 @@ class Rigify:
                 eb = gen.data.edit_bones[data[0]]
                 eb.layers = helpLayers
 
-        # Gaze bones
-        print("  Create gaze bones")
-        for suffix in [".L", ".R"]:
-            self.addSingleGazeBone(gen, suffix, R_FACE)
-        self.addCombinedGazeBone(gen, R_FACE, R_HELP)
-
         # Add parents to extra bones
         print("  Add parents to extra bones")
         for dname,rname in extras.items():
@@ -968,6 +962,12 @@ class Rigify:
                     print("Bones:", bones)
                     msg = ("Bone %s has no parent %s" % (dbone.name, dbone.parent))
                     raise DazError(msg)
+
+        # Gaze bones
+        print("  Create gaze bones")
+        for suffix in [".L", ".R"]:
+            self.addSingleGazeBone(gen, suffix, R_FACE, R_HELP)
+        self.addCombinedGazeBone(gen, R_FACE, R_HELP)
 
         bpy.ops.object.mode_set(mode='POSE')
 
