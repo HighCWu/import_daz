@@ -772,23 +772,21 @@ class ShellRemover:
         for mat in ob.data.materials:
             if mat.node_tree:
                 for node in mat.node_tree.nodes:
-                    if node.type == 'GROUP':
+                    if (node.type == 'GROUP' and
+                        "Influence" in node.inputs.keys()):
                         self.addShell(mat, node, node.node_tree)
 
 
     def addShell(self, mat, shell, tree):
-        for node in tree.nodes:
-            if node.name == "Shell Influence":
-                data = (mat,shell)
-                if tree.name in self.shells.keys():
-                    struct = self.shells[tree.name]
-                    if mat.name in struct.keys():
-                        struct[mat.name].append(data)
-                    else:
-                        struct[mat.name] = [data]
-                else:
-                    self.shells[tree.name] = {mat.name : [data]}
-                return
+        data = (mat,shell)
+        if tree.name in self.shells.keys():
+            struct = self.shells[tree.name]
+            if mat.name in struct.keys():
+                struct[mat.name].append(data)
+            else:
+                struct[mat.name] = [data]
+        else:
+            self.shells[tree.name] = {mat.name : [data]}
 
 
     def deleteNodes(self, mat, shell):

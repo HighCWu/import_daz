@@ -152,7 +152,8 @@ class CyclesMaterial(Material):
                 density *= scale.default_value[0] * scale.default_value[1]
                 if density == 0.0:
                     continue
-            height = 3.0/math.sqrt(density)
+            if density > 0:
+                height = 3.0/math.sqrt(density)
             for socket in sockets:
                 socket.default_value = height
 
