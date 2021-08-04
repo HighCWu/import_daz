@@ -1173,9 +1173,13 @@ class DAZ_OT_ChangeArmature(DazPropsOperator, IsMesh):
             rig = bpy.data.objects[self.rig]
         else:
             raise DazError("No armature found")
+        subrigs = {}
         for ob in getSelectedMeshes(context):
             mod = getModifier(ob, 'ARMATURE')
             if mod:
+                subrig = mod.object
+                if subrig and subrig != rig:
+                    subrigs[subrig.name] = subrig
                 mod.object = rig
             if ob.parent and ob.parent_type == 'BONE':
                 wmat = ob.matrix_world.copy()
@@ -1186,6 +1190,30 @@ class DAZ_OT_ChangeArmature(DazPropsOperator, IsMesh):
                 ob.matrix_world = wmat
             else:
                 ob.parent = rig
+        activateObject(context, rig)
+        for subrig in subrigs.values():
+            self.addExtraBones(subrig, rig)
+
+
+    def addExtraBones(self, subrig, rig):
+        extras = {}
+        for bname in subrig.data.bones.keys():
+            if bname not in rig.data.bones.keys():
+                bone = subrig.data.bones[bname]
+                if bone.parent:
+                    pname = bone.parent.name
+                else:
+                    pname = None
+                extras[bname] = (bone.head_local.copy(), bone.tail_local.copy(), bone.matrix_local.copy(), list(bone.layers), pname)
+        if extras:
+            bpy.ops.object.mode_set(mode='EDIT')
+            for bname,data in extras.items():
+                eb = rig.data.edit_bones.new(bname)
+                eb.head, eb.tail, mat, eb.layers, pname = data
+                if pname is not None:
+                    eb.parent = rig.data.edit_bones[pname]
+                eb.matrix = mat
+            bpy.ops.object.mode_set(mode='OBJECT')
 
 #----------------------------------------------------------
 #   Initialize
