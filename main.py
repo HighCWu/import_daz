@@ -447,7 +447,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             bpy.ops.object.select_all(action='DESELECT')
             for objects in LS.objects.values():
                 for ob in objects:
-                    ob.select_set(True)
+                    selectSet(ob, True)
             bpy.ops.daz.eliminate_empties()
 
         for rigname in self.rigs.keys():
@@ -506,7 +506,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         if mainRig and activateObject(context, mainRig):
             # Merge rigs
             for rig in rigs[1:]:
-                rig.select_set(True)
+                selectSet(rig, True)
             if self.useMergeRigs and len(rigs) > 1:
                 print("Merge rigs")
                 bpy.ops.daz.merge_rigs()
@@ -522,7 +522,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
         if mainMesh and activateObject(context, mainMesh):
             # Merge materials
             for ob in meshes[1:]:
-                ob.select_set(True)
+                selectSet(ob, True)
             print("Merge materials")
             bpy.ops.daz.merge_materials()
 
@@ -556,7 +556,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
                 self.transferShapes(context, mainMesh, geografts, self.useMergeGeografts, "Body")
             if self.useMergeGeografts and activateObject(context, mainMesh):
                 for ob in geografts:
-                    ob.select_set(True)
+                    selectSet(ob, True)
                 print("Merge geografts")
                 bpy.ops.daz.merge_geografts()
                 if GS.viewportColors == 'GUESS':
@@ -571,7 +571,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
                 self.transferShapes(context, mainMesh, lashes, self.useMergeLashes, "Face")
             if self.useMergeLashes and activateObject(context, mainMesh):
                 for ob in lashes:
-                    ob.select_set(True)
+                    selectSet(ob, True)
                 print("Merge lashes")
                 self.mergeLashes(mainMesh)
 
@@ -593,7 +593,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
             for hair in hairs:
                 if activateObject(context, hair):
-                    mainMesh.select_set(True)
+                    selectSet(mainMesh, True)
                     bpy.ops.daz.make_hair(strandType='TUBE')
 
         # Change rig
@@ -615,7 +615,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             activateObject(context, mainMesh)):
             if self.mannequinType == 'ALL':
                 for ob in meshes:
-                    ob.select_set(True)
+                    selectSet(ob, True)
             print("Make mannequin")
             bpy.ops.daz.add_mannequin(useGroup=True, group="%s Mannequin" % mainRig.name)
 
@@ -641,7 +641,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
             selected = False
             for mesh in meshes:
                 if self.useTransferTo(mesh):
-                    mesh.select_set(True)
+                    selectSet(mesh, True)
                     selected = True
             if not selected:
                 return

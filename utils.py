@@ -97,7 +97,7 @@ def activateObject(context, ob):
         bpy.ops.object.select_all(action='DESELECT')
         ob.select_set(True)
         return True
-    except RuntimeError:
+    except:
         print("Could not activate", ob.name)
         return False
 
@@ -106,7 +106,7 @@ def selectSet(ob, value):
     try:
         ob.select_set(value)
         return True
-    except RuntimeError:
+    except:
         return False
 
 
@@ -114,14 +114,12 @@ def selectObjects(context, objects):
     if context.object:
         try:
             bpy.ops.object.mode_set(mode='OBJECT')
-        except RuntimeError:
+        except:
             pass
     bpy.ops.object.select_all(action='DESELECT')
     for ob in objects:
-        try:
-            ob.select_set(True)
-        except RuntimeError:
-            pass
+        selectSet(ob, True)
+
 
 def unlinkAll(ob):
     for coll in bpy.data.collections:

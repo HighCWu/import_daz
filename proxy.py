@@ -945,7 +945,7 @@ class DAZ_OT_Quadify(MakeProxy, DazOperator, IsMesh):
 
 def restoreSelectedObjects(context, meshes, active):
     for ob in meshes:
-        ob.select_set(True)
+        selectSet(ob, True)
     setActiveObject(context, active)
 
 #-------------------------------------------------------------
@@ -1363,9 +1363,9 @@ def addMannequins(self, context):
 
     for ob in getSelectedObjects(context):
         if ob in selected:
-            ob.select_set(True)
+            selectSet(ob, True)
         else:
-            ob.select_set(False)
+            selectSet(ob, False)
     rig.data.layers = oldlayers
 
 
@@ -1622,7 +1622,7 @@ class DAZ_OT_SeparateLooseParts(DazOperator, IsMesh):
                 for coll in colls:
                     coll.objects.link(nob)
                 nob.parent = ob.parent
-            nob.select_set(True)
+            selectSet(nob, True)
 
 #-------------------------------------------------------------
 #   Make deflection
