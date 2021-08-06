@@ -301,7 +301,7 @@ class MorphTypeOptions:
 #   Easy Import
 #------------------------------------------------------------------
 
-class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
+class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
     """Load a DAZ File and perform the most common opertations"""
     bl_idname = "daz.easy_import_daz"
     bl_label = "Easy Import DAZ"
@@ -413,22 +413,14 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         pass
 
     def run(self, context):
-        filepaths = self.getMultiFiles(["duf", "dsf", "dse"])
-        if len(filepaths) == 0:
-            raise DazError("No valid files selected")
-        if self.useFavoMorphs:
-            self.favoPath = getExistingFilePath(self.favoPath, ".json")
-        for filepath in filepaths:
-            self.easyImport(context, filepath)
-
-
-    def easyImport(self, context, filepath):
         from time import perf_counter
         from .api import set_silent_mode, set_selection
         from .fileutils import getExistingFilePath
         time1 = perf_counter()
         scn = context.scene
-        set_selection([filepath])
+        set_selection([self.filepath])
+        if self.useFavoMorphs:
+            self.favoPath = getExistingFilePath(self.favoPath, ".json")
 
         try:
             bpy.ops.daz.import_daz(
@@ -463,7 +455,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         set_silent_mode(False)
         context.scene.DazFavoPath = self.favoPath
         time2 = perf_counter()
-        print("File %s loaded in %.3f seconds" % (filepath, time2-time1))
+        print("File %s loaded in %.3f seconds" % (self.filepath, time2-time1))
 
 
     def getTypedObjects(self, visibles, struct):
