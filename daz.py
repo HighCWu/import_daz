@@ -574,7 +574,7 @@ def register():
 
     bpy.types.Scene.DazUnflipped = BoolProperty(
         name = "Unflipped Bones",
-        description = "Don't flip bone axes.\nDisable for debugging only")
+        description = "Don't flip bone axes.\nEnable for debugging only")
 
     bpy.types.Scene.DazUseQuaternions = BoolProperty(
         name = "Quaternions",

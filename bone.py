@@ -391,55 +391,49 @@ class BoneInstance(Instance):
 
     def buildEdit(self, figure, figinst, rig, parent, center, isFace):
         self.makeNameUnique(rig.data.edit_bones)
-        if True:
-            head,tail,orient,xyz,wsmat = self.getHeadTail(center)
-            eb = rig.data.edit_bones.new(self.name)
-            figure.bones[self.name] = eb.name
-            figinst.bones[self.name] = self
-            if (head-tail).length < 1e-5:
-                print("NO LEN", self.name)
-                print("HT", head, tail)
-                halt
-            eb.parent = parent
-            eb.head = d2b(head)
-            eb.tail = d2b(tail)
-            if True:
-                head = d2b(head)
-                tail = d2b(tail)
-                length = (head-tail).length
-                omat = orient.to_matrix()
-                lsmat = self.getLocalMatrix(wsmat, omat)
-                if not eulerIsZero(lsmat.to_euler()):
-                    self.isPosed = True
-                omat = omat.to_4x4()
-                if GS.zup:
-                    omat = self.RX @ omat
-                flip = self.FX
-                if not GS.unflipped:
-                    omat,flip = self.flipAxes(omat, xyz)
+        head,tail,orient,xyz,wsmat = self.getHeadTail(center)
+        eb = rig.data.edit_bones.new(self.name)
+        figure.bones[self.name] = eb.name
+        figinst.bones[self.name] = self
+        if (head-tail).length < 1e-5:
+            raise RuntimeError("BUG: buildEdit %s %s %s" % (self.name, head, tail))
+        eb.parent = parent
+        eb.head = head = d2b(head)
+        eb.tail = tail = d2b(tail)
+        length = (head-tail).length
+        omat = orient.to_matrix()
+        lsmat = self.getLocalMatrix(wsmat, omat)
+        if not eulerIsZero(lsmat.to_euler()):
+            self.isPosed = True
+        omat = omat.to_4x4()
+        if GS.zup:
+            omat = self.RX @ omat
+        flip = self.FX
+        if not GS.unflipped:
+            omat,flip = self.flipAxes(omat, xyz)
 
-                #  engetudouiti's fix for posed bones
-                rmat = wsmat.to_4x4()
-                if GS.zup:
-                    rmat = self.RX @ rmat @ self.RX.inverted()
-                if rmat.determinant() > 1e-4:
-                    omat = rmat.inverted() @ omat
+        #  engetudouiti's fix for posed bones
+        rmat = wsmat.to_4x4()
+        if GS.zup:
+            rmat = self.RX @ rmat @ self.RX.inverted()
+        if rmat.determinant() > 1e-4:
+            omat = rmat.inverted() @ omat
 
-                if GS.unflipped:
-                    omat.col[3][0:3] = head
-                    eb.matrix = omat
-                else:
-                    omat = self.flipBone(omat, head, tail, flip)
-                    self.testPrint("FBONE")
-                    omat.col[3][0:3] = head
-                    eb.matrix = omat
-                    self.correctRoll(eb, figure)
-                self.correctLength(eb, length)
+        if GS.unflipped:
+            omat.col[3][0:3] = head
+            eb.matrix = omat
+        else:
+            omat = self.flipBone(omat, head, tail, flip)
+            self.testPrint("FBONE")
+            omat.col[3][0:3] = head
+            eb.matrix = omat
+            self.correctRoll(eb, figure)
+        self.correctLength(eb, length)
 
-            if GS.useConnectClose and parent:
-                dist = parent.tail - eb.head
-                if dist.length < 1e-4*LS.scale:
-                    eb.use_connect = True
+        if GS.useConnectClose and parent:
+            dist = parent.tail - eb.head
+            if dist.length < 1e-4*LS.scale:
+                eb.use_connect = True
 
         if self.name in ["upperFaceRig", "lowerFaceRig"]:
             isFace = True
