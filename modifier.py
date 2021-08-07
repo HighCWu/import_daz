@@ -170,13 +170,19 @@ class DForm(Modifier):
         ob,rig,geonode = self.getGeoRig(context, inst)
         if ob is None or ob.type != 'MESH':
             return
-        vcount = self.dform["influence_vertex_count"]
-        if vcount != len(ob.data.vertices) and vcount >= 0:
-            msg = "Dform vertex count mismatch %d != %d" % (vcount, len(ob.data.vertices))
-            reportError(msg, trigger=(2,3))
-        vgrp = ob.vertex_groups.new(name = "Dform " + self.name)
-        for vn,w in self.dform["influence_weights"]["values"]:
-            vgrp.add([vn], w, 'REPLACE')
+        if ("influence_vertex_count" in self.dform.keys() and
+            "influence_weights"  in self.dform.keys()):
+            vcount = self.dform["influence_vertex_count"]
+            if vcount != len(ob.data.vertices) and vcount >= 0:
+                msg = "Dform vertex count mismatch %d != %d" % (vcount, len(ob.data.vertices))
+                reportError(msg, trigger=(2,3))
+            vgrp = ob.vertex_groups.new(name = "Dform " + self.name)
+            for vn,w in self.dform["influence_weights"]["values"]:
+                vgrp.add([vn], w, 'REPLACE')
+        elif "mask_bone" in self.dform.keys():
+            pass
+        else:
+            print("DFORM", self.dform.keys())
 
 #-------------------------------------------------------------
 #   Extra
