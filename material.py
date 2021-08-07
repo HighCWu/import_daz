@@ -1492,12 +1492,10 @@ class DAZ_OT_ResizeTextures(DazOperator, ImageFile, MultiFile, ChangeResolution)
         return MultiFile.invoke(self, context, event)
 
     def run(self, context):
-        from .globvars import theImageExtensions
-
         if self.resizeAll:
             paths = self.getAllTextures(context)
         else:
-            paths = self.getMultiFiles(theImageExtensions)
+            paths = self.getMultiFiles(G.theImageExtensions)
         self.getFileNames(paths)
 
         program = os.path.join(os.path.dirname(__file__), "standalone/resize.py")

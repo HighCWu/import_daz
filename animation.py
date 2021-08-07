@@ -34,7 +34,6 @@ from mathutils import *
 from .error import *
 from .utils import *
 from .transform import Transform
-from .globvars import theDazExtensions
 from .fileutils import MultiFile, SingleFile, JsonFile, JsonExportFile, DufFile
 
 #-------------------------------------------------------------
@@ -1028,7 +1027,7 @@ class StandardAnimation:
         t1 = perf_counter()
         print("\n--------------------")
 
-        dazfiles = self.getMultiFiles(theDazExtensions)
+        dazfiles = self.getMultiFiles(G.theDazExtensions)
         nfiles = len(dazfiles)
         if nfiles == 0:
             raise DazError("No corresponding DAZ file selected")

@@ -379,11 +379,8 @@ class DAZ_PT_Utils(bpy.types.Panel):
             box.label(text = "No active bone")
 
         layout.separator()
-        from .api import get_silent_mode
-        if get_silent_mode():
-            layout.operator("daz.set_silent_mode", text="Silent Mode ON")
-        else:
-            layout.operator("daz.set_silent_mode", text="Silent Mode OFF")
+        on = ("ON" if G.theSilentMode else "OFF")
+        layout.operator("daz.set_silent_mode", text="Silent Mode %s" % on)
         layout.operator("daz.get_finger_print")
         layout.operator("daz.inspect_prop_groups")
         layout.operator("daz.inspect_world_matrix")

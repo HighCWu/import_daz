@@ -32,7 +32,6 @@ import math
 from mathutils import *
 from .error import *
 from .utils import *
-from .globvars import NewFaceLayer
 from .propgroups import DazPairGroup
 from .fix import ConstraintStore, BendTwists, Fixer, GizmoUser
 

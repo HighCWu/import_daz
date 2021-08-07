@@ -301,7 +301,7 @@ class MorphTypeOptions:
 #   Easy Import
 #------------------------------------------------------------------
 
-class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
+class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
     """Load a DAZ File and perform the most common opertations"""
     bl_idname = "daz.easy_import_daz"
     bl_label = "Easy Import DAZ"
@@ -403,8 +403,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
     def invoke(self, context, event):
         self.favoPath = context.scene.DazFavoPath
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        return MultiFile.invoke(self, context, event)
 
     def storeState(self, context):
         pass
@@ -412,30 +411,33 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
     def restoreState(self, context):
         pass
 
+
     def run(self, context):
-        from time import perf_counter
-        from .api import set_silent_mode, set_selection
         from .fileutils import getExistingFilePath
-        time1 = perf_counter()
-        scn = context.scene
-        set_selection([self.filepath])
+        filepaths = self.getMultiFiles(["duf", "dsf", "dse"])
+        if len(filepaths) == 0:
+            raise DazError("No valid files selected")
         if self.useFavoMorphs:
             self.favoPath = getExistingFilePath(self.favoPath, ".json")
+        for filepath in filepaths:
+            try:
+                self.easyImport(context, filepath)
+            except DazError as msg:
+                raise DazError(msg)
 
-        try:
-            bpy.ops.daz.import_daz(
-                skinColor = self.skinColor,
-                clothesColor = self.clothesColor,
-                fitMeshes = self.fitMeshes)
-        except:
-            if LS.warning:
-                print("Warning:", LS.warning)
-            else:
-                raise DazError("Import failed")
+
+    def easyImport(self, context, filepath):
+        from time import perf_counter
+        time1 = perf_counter()
+        G.theFilePaths = [filepath]
+        bpy.ops.daz.import_daz(
+            skinColor = self.skinColor,
+            clothesColor = self.clothesColor,
+            fitMeshes = self.fitMeshes)
 
         if not LS.objects:
             raise DazError("No objects found")
-        set_silent_mode(True)
+        G.theSilentMode = True
         visibles = getVisibleObjects(context)
         self.rigs = self.getTypedObjects(visibles, LS.rigs)
         self.meshes = self.getTypedObjects(visibles, LS.meshes)
@@ -452,7 +454,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
 
         for rigname in self.rigs.keys():
             self.treatRig(context, rigname)
-        set_silent_mode(False)
+        G.theSilentMode = False
         context.scene.DazFavoPath = self.favoPath
         time2 = perf_counter()
         print("File %s loaded in %.3f seconds" % (self.filepath, time2-time1))
@@ -629,7 +631,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
     def transferShapes(self, context, ob, meshes, skipDrivers, bodypart):
         if not (ob and meshes):
             return
-        from .api import set_selection
         from .morphing import classifyShapekeys
         skeys = ob.data.shape_keys
         if skeys:
@@ -645,7 +646,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, SingleFile):
                     selected = True
             if not selected:
                 return
-            set_selection(snames)
+            G.theFilePaths = snames
             bpy.ops.daz.transfer_shapekeys(useDrivers=(not skipDrivers))
 
 

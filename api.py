@@ -25,6 +25,8 @@
 # of the authors and should not be interpreted as representing official policies,
 # either expressed or implied, of the FreeBSD Project.
 
+from . import globvars as G
+
 #----------------------------------------------------------
 #   Api functions available for external scripting
 #----------------------------------------------------------
@@ -38,13 +40,11 @@ def get_error_message():
     The error message from previous operator invokation if it raised
     an error, or the empty string if the operator exited without errors.
     """
-    from .error import theMessage
-    return theMessage
+    return G.theMessage
 
 
 def get_silent_mode():
-    global theSilentMode
-    return theSilentMode
+    return G.theSilentMode
 
 
 def set_silent_mode(value):
@@ -56,10 +56,7 @@ def set_silent_mode(value):
     Arguments:
     ?value: True turns silent mode on, False turns it off.
     """
-    global theSilentMode
-    theSilentMode = value
-
-set_silent_mode(False)
+    G.theSilentMode = value
 
 
 def get_morphs(ob, morphset, category=None, activeOnly=False):
@@ -91,8 +88,7 @@ def clear_selection():
 
     Clear the active file selection to be loaded by consecutive operators.
     """
-    global theFilePaths
-    theFilePaths = []
+    G.theFilePaths = []
     print("File paths cleared")
 
 
@@ -104,8 +100,7 @@ def get_selection():
     Returns:
     The active list of file paths (strings).
     """
-    global theFilePaths
-    return theFilePaths
+    return G.theFilePaths
 
 
 def set_selection(files):
@@ -116,13 +111,10 @@ def set_selection(files):
     Arguments:
     ?files: A list of file paths (strings).
     """
-    global theFilePaths
     if isinstance(files, list):
-        theFilePaths = files
+        G.theFilePaths = files
     else:
         raise DazError("File paths must be a list of strings")
-
-clear_selection()
 
 #-------------------------------------------------------------
 #   Paths used by Xin's HD-morphs add-on

@@ -165,13 +165,12 @@ def loadRestPoseEntry(character, table, folder):
 
 
 def getOrientation(character, bname, rig):
-    from .globvars import theRestPoseFolder
     global RestPoses
     if rig and bname in rig.pose.bones.keys():
         pb = rig.pose.bones[bname]
         return pb.bone.DazOrient, pb.DazRotMode
 
-    loadRestPoseEntry(character, RestPoses, theRestPoseFolder)
+    loadRestPoseEntry(character, RestPoses, G.theRestPoseFolder)
     poses = RestPoses[character]["pose"]
     if bname in poses.keys():
         orient, xyz = poses[bname][-2:]
@@ -181,9 +180,8 @@ def getOrientation(character, bname, rig):
 
 
 def getParentCharacter(character):
-    from .globvars import theRestPoseFolder
     global RestPoses
-    loadRestPoseEntry(character, RestPoses, theRestPoseFolder)
+    loadRestPoseEntry(character, RestPoses, G.theRestPoseFolder)
     if "parent" in RestPoses[character].keys():
         parent = RestPoses[character]["parent"]
         return parent.lower().replace(" ", "_")
@@ -192,10 +190,9 @@ def getParentCharacter(character):
 
 
 def getParent(character, bname):
-    from .globvars import theParentsFolder
     global Parents
     parent = getParentCharacter(character)
-    loadRestPoseEntry(parent, Parents, theParentsFolder)
+    loadRestPoseEntry(parent, Parents, G.theParentsFolder)
     parents = Parents[parent]["parents"]
     if bname in parents.keys() and parents[bname]:
         return parents[bname]
@@ -322,13 +319,12 @@ class DAZ_OT_OptimizePose(DazPropsOperator, IsArmature):
 
 
 def optimizePose(context, useApplyRestPose):
-    from .globvars import theIkPoseFolder
     from .merge import applyRestPoses
     rig = context.object
     char = getCharacter(rig)
     if char is None:
         raise DazError("Did not recognize character")
-    loadRestPoseEntry(char, IkPoses, theIkPoseFolder)
+    loadRestPoseEntry(char, IkPoses, G.theIkPoseFolder)
     loadPose(context, rig, char, IkPoses, False)
     if useApplyRestPose:
         applyRestPoses(context, rig, [])
@@ -374,12 +370,11 @@ class DAZ_OT_ConvertRigPose(DazPropsOperator):
         self.layout.prop(self, "newRig")
 
     def run(self, context):
-        from .globvars import theRestPoseFolder
         global RestPoses
 
         rig = context.object
         scn = context.scene
-        loadRestPoseEntry(self.newRig, RestPoses, theRestPoseFolder)
+        loadRestPoseEntry(self.newRig, RestPoses, G.theRestPoseFolder)
         scale = 1.0
         if self.newRig in SourceRig.keys():
             modify = False

@@ -28,13 +28,11 @@
 
 import bpy
 from .settings import GS, LS
+from . import globvars as G
 
 def clearErrorMessage():
-    global theMessage, theErrorLines
-    theMessage = ""
-    theErrorLines = []
-
-clearErrorMessage()
+    G.theMessage = ""
+    G.theErrorLines = []
 
 
 class ErrorOperator(bpy.types.Operator):
@@ -45,33 +43,29 @@ class ErrorOperator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
-        global theMessage, theErrorLines
-        theErrorLines = theMessage.split('\n')
+        G.theErrorLines = G.theMessage.split('\n')
         maxlen = len(self.bl_label)
-        for line in theErrorLines:
+        for line in G.theErrorLines:
             if len(line) > maxlen:
                 maxlen = len(line)
         width = 20+5*maxlen
-        height = 20+5*len(theErrorLines)
-        #self.report({'INFO'}, theMessage)
+        height = 20+5*len(G.theErrorLines)
+        #self.report({'INFO'}, G.theMessage)
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=width)
 
     def draw(self, context):
-        global theErrorLines
-        for line in theErrorLines:
+        for line in G.theErrorLines:
             self.layout.label(text=line)
 
 
 def invokeErrorMessage(value, warning=False):
-    global theMessage
-    from .api import get_silent_mode
     if warning:
-        theMessage = "WARNING:\n" + value
+        G.theMessage = "WARNING:\n" + value
     else:
-        theMessage = "ERROR:\n" + value
-    if get_silent_mode():
-        print(theMessage)
+        G.theMessage = "ERROR:\n" + value
+    if G.theSilentMode:
+        print(G.theMessage)
     else:
         bpy.ops.daz.error('INVOKE_DEFAULT')
 
@@ -82,8 +76,7 @@ class DazError(Exception):
         invokeErrorMessage(value, warning)
 
     def __str__(self):
-        global theMessage
-        return repr(theMessage)
+        return repr(G.theMessage)
 
 
 def reportError(msg, instances={}, warnPaths=False, trigger=(2,3), force=False):
@@ -107,7 +100,7 @@ def getErrorPath():
 
 
 def handleDazError(context, warning=False, dump=False):
-    global theMessage, theUseDumpErrors
+    global theUseDumpErrors
 
     if not (dump or theUseDumpErrors):
         return
@@ -119,7 +112,7 @@ def handleDazError(context, warning=False, dump=False):
     except:
         print("Could not write to %s" % filepath)
         return
-    fp.write(theMessage)
+    fp.write(G.theMessage)
 
     try:
         if warning:
@@ -133,7 +126,7 @@ def handleDazError(context, warning=False, dump=False):
     finally:
         fp.write("\n")
         fp.close()
-        print(theMessage)
+        print(G.theMessage)
         LS.reset()
 
 
@@ -218,11 +211,11 @@ class DazOperator(bpy.types.Operator):
         except DazError:
             handleDazError(context)
         except KeyboardInterrupt:
-            global theMessage
-            theMessage = "Keyboard interrupt"
+            G.theMessage = "Keyboard interrupt"
             bpy.ops.daz.error('INVOKE_DEFAULT')
         finally:
             self.sequel(context)
+            G.theFilePaths = ""
         return{'FINISHED'}
 
 

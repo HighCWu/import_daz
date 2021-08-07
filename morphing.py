@@ -339,17 +339,15 @@ class Selector():
 
 
     def getSelectedProps(self):
-        from .api import get_selection
-        if get_selection():
-            return get_selection()
+        if G.theFilePaths:
+            return G.theFilePaths
         else:
             return [item.name for item in self.getSelectedItems()]
 
 
     def invokeDialog(self, context):
         setSelector(self)
-        from .api import clear_selection
-        clear_selection()
+        G.theFilePaths = []
         wm = context.window_manager
         ncols = len(self.selection)//self.nrows + 1
         if ncols > self.ncols:
@@ -820,11 +818,9 @@ class StandardMorphSelector(Selector):
 
 
     def getActiveMorphFiles(self, context):
-        from .api import get_selection
         namepaths = []
-        paths = get_selection()
-        if paths:
-            for path in paths:
+        if G.theFilePaths:
+            for path in G.theFilePaths:
                 text = os.path.splitext(os.path.basename(path))[0]
                 namepaths.append((text, path, self.bodypart))
         else:

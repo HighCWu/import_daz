@@ -33,7 +33,6 @@ from .error import *
 from .utils import *
 from .material import WHITE, isWhite
 from collections import OrderedDict
-from .globvars import getMaterialEnums
 from .fileutils import SingleFile, ImageFile
 
 #-------------------------------------------------------------
