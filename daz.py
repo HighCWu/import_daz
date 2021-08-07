@@ -215,6 +215,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box = col.box()
         box.label(text = "Debugging")
         box.prop(scn, "DazZup")
+        box.prop(scn, "DazUnflipped")
         box.prop(scn, "DazDump")
         box.prop(scn, "DazShowHiddenObjects")
         box.prop(scn, "DazPruneNodes")
@@ -231,16 +232,13 @@ class DAZ_OT_GlobalSettings(DazOperator):
         col = split.column()
         box = col.box()
         box.label(text = "Rigging")
-        box.prop(scn, "DazOrientMethod")
         box.prop(scn, "DazUseQuaternions")
-        #box.prop(scn, "DazConnectClose")
-        box.separator()
+        box.prop(scn, "DazConnectClose")
         box.prop(scn, "DazUseLockLoc")
         box.prop(scn, "DazUseLimitLoc")
         box.prop(scn, "DazUseLockRot")
         box.prop(scn, "DazUseLimitRot")
         box.prop(scn, "DazDisplayLimitRot")
-        box.prop(scn, "DazUseLegacyLocks")
 
         box = col.box()
         box.label(text = "Morphs")
@@ -442,7 +440,7 @@ def register():
     bpy.types.Object.DazRotMode = StringProperty(default = 'XYZ')
     bpy.types.PoseBone.DazRotMode = StringProperty(default = 'XYZ')
     bpy.types.PoseBone.DazAltName = StringProperty(default = "")
-    bpy.types.Object.DazOrientMethod = StringProperty(name = "Orientation", default = "")
+    bpy.types.Armature.DazUnflipped = BoolProperty(name = "Unflipped", default=False)
     bpy.types.Object.DazOrient = FloatVectorProperty(size=3, default=(0,0,0))
     bpy.types.Bone.DazOrient = FloatVectorProperty(size=3, default=(0,0,0))
     bpy.types.Object.DazHead = FloatVectorProperty(size=3, default=(0,0,0))
@@ -574,22 +572,13 @@ def register():
         name = "Z Up",
         description = "Convert from DAZ's Y up convention to Blender's Z up convention.\nDisable for debugging only")
 
-    bpy.types.Scene.DazOrientMethod = EnumProperty(
-        items = [("BLENDER LEGACY", "Blender Legacy", "Legacy bone orientation used in version 1.5.0 and before"),
-                 ("DAZ UNFLIPPED", "DAZ Unflipped", "DAZ Studio original bone orientation (for debugging only)"),
-                 ("DAZ STUDIO", "DAZ Studio", "DAZ Studio bone orientation with flipped axes"),
-                 ],
-        name = "Orientation Method",
-        description = "Bone orientation method",
-        default = 'DAZ STUDIO')
+    bpy.types.Scene.DazUnflipped = BoolProperty(
+        name = "Unflipped Bones",
+        description = "Don't flip bone axes.\nDisable for debugging only")
 
     bpy.types.Scene.DazUseQuaternions = BoolProperty(
         name = "Quaternions",
         description = "Use quaternions for ball-and-socket joints (shoulders and hips)")
-
-    bpy.types.Scene.DazUseLegacyLocks = BoolProperty(
-        name = "Legacy Locks",
-        description = "Use the simplified locks used by Blender Legacy mode")
 
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(
         name = "Case-Sensitive Paths",

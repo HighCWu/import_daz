@@ -57,6 +57,7 @@ class GlobalSettings:
         self.verbosity = 2
         self.useDump = False
         self.zup = True
+        self.unflipped = False
         self.useMakeHiddenSliders = False
         self.showHiddenObjects = False
         self.useScaleMorphs = True
@@ -65,9 +66,7 @@ class GlobalSettings:
         self.refractiveMethod = 'BSDF'
         self.sssMethod = 'RANDOM_WALK'
         self.viewportColors = 'GUESS'
-        self.orientMethod = 'DAZ STUDIO'
         self.useQuaternions = False
-        self.useLegacyLocks = False
         self.caseSensitivePaths = (platform != 'win32')
         self.mergeShells = True
         self.pruneNodes = True
@@ -158,8 +157,7 @@ class GlobalSettings:
         "DazUseModifiedMesh" : "useModifiedMesh",
 
         # Rigging
-        "DazOrientMethod" : "orientMethod",
-        "DazUseLegacyLocks" : "useLegacyLocks",
+        "DazUnflipped" : "unflipped",
         "DazUseQuaternions" : "useQuaternions",
         "DazConnectClose" : "useConnectClose",
         "DazUseLockLoc" : "useLockLoc",

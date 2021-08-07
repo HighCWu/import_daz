@@ -298,7 +298,7 @@ class Figure(Node):
         rig = self.rna
         amt.display_type = 'STICK'
         rig.show_in_front = True
-        rig.DazOrientMethod = GS.orientMethod
+        rig.data.DazUnflipped = GS.unflipped
         inst.addLSRig(rig)
         for geonode in inst.geometries:
             geonode.parent = geonode.figure = self
