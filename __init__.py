@@ -63,7 +63,7 @@ def importModules():
                     "guess", "convert", "files", "main", "finger",
                     "matedit", "tables", "proxy", "rigify", "merge", "hide",
                     "mhx", "layers", "hair", "transfer", "dforce",
-                    "hdmorphs", "facecap"]
+                    "hdmorphs", "facecap", "api"]
         if bpy.app.version >= (2,82,0):
             modnames += ["udim"]
         anchor = os.path.basename(__file__[0:-12])
