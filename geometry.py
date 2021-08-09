@@ -135,12 +135,15 @@ class GeoNode(Node, SimNode):
             self.addHDMaterials(ob.data.materials, "")
             center = Vector((0,0,0))
             self.arrangeObject(hdob, inst, context, center)
-            self.addHDUvs(ob, hdob)
             multi = False
+            if not GS.useMultiUvLayers:
+                self.addHDUvs(ob, hdob)
             if GS.useMultires:
                 multi = addMultires(context, hdob, False)
-            if (not multi and
-                len(hdob.data.vertices) == len(ob.data.vertices)):
+            if multi:
+                if GS.useMultiUvLayers:
+                    copyUvLayers(ob, hdob)
+            elif len(hdob.data.vertices) == len(ob.data.vertices):
                 print("HD mesh same as base mesh:", ob.name)
                 self.hdobject = inst.hdobject = None
                 deleteObjects(context, [hdob])
@@ -418,13 +421,39 @@ class DAZ_OT_MakeMultires(DazOperator, IsMesh):
 
 
 def copyUvLayers(ob, hdob):
+    def setupLoopsMapping():
+        loopsMapping = {}
+        for f in hdob.data.polygons:
+            loops = dict([(vn, f.loop_indices[i]) for i,vn in enumerate(f.vertices)])
+            fid = tuple( sorted(list(f.vertices)) )
+            if fid in loopsMapping:
+                raise RuntimeError("duplicated face_id?")
+            loopsMapping[fid] = loops
+        return loopsMapping
+
+    def copyUvLayer(uvdata, hddata, loopsMapping):
+        for f in ob.data.polygons:
+            fid = tuple( sorted(list(f.vertices)) )
+            if fid not in loopsMapping:
+                print("Bad map", fid)
+                continue
+            for i,vn in enumerate(f.vertices):
+                if vn not in loopsMapping[fid]:
+                    print("Bad vert", vn)
+                    continue
+                hdLoop = loopsMapping[fid][vn]
+                loop = f.loop_indices[i]
+                hddata[hdLoop].uv = uvdata[loop].uv
+                #if loop != hdLoop:
+                #    print("F", f.index, vn, loop, hdLoop)
+
     for uvlayer in list(hdob.data.uv_layers):
         print("DEL", uvlayer.name)
         hdob.data.uv_layers.remove(uvlayer)
+    loopsMapping = setupLoopsMapping()
     for uvlayer in ob.data.uv_layers:
         hdlayer = makeNewUvloop(hdob.data, uvlayer.name, False)
-        for data,hddata in zip(uvlayer.data, hdlayer.data):
-            hddata.uv = data.uv
+        copyUvLayer(uvlayer.data, hdlayer.data, loopsMapping)
 
 #-------------------------------------------------------------
 #   Geometry Asset

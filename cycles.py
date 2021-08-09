@@ -1219,10 +1219,14 @@ class CyclesTree:
         tex = self.addTexImageNode(channel, "NONE")
         if tex:
             strength = self.material.getChannelValue(channel, 1)
-            dmin = self.getValue("getChannelDispMin", -0.05)
-            dmax = self.getValue("getChannelDispMax", 0.05)
             if strength == 0:
                 return
+            dmin = self.getValue("getChannelDispMin", -0.05)
+            dmax = self.getValue("getChannelDispMax", 0.05)
+            if dmin > dmax:
+                tmp = dmin
+                dmin = dmax
+                dmax = tmp
 
             from .cgroup import DisplacementGroup
             node = self.addGroup(DisplacementGroup, "DAZ Displacement")

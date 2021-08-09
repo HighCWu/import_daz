@@ -105,6 +105,7 @@ class GlobalSettings:
         self.useInstancing = True
         self.useHighDef = True
         self.useMultires = True
+        self.useMultiUvLayers = True
         self.useMultiShapes = True
         self.useAutoSmooth = False
         self.useSimulation = True
@@ -170,6 +171,7 @@ class GlobalSettings:
         "DazUseInstancing" : "useInstancing",
         "DazHighdef" : "useHighDef",
         "DazMultires" : "useMultires",
+        "DazMultiUvLayers" : "useMultiUvLayers",
         "DazUseAutoSmooth" : "useAutoSmooth",
         "DazSimulation" : "useSimulation",
     }
