@@ -777,9 +777,10 @@ class DAZ_OT_DisableDrivers(DazOperator):
         return (ob and ob.type == 'ARMATURE' and not ob.DazDriversDisabled)
 
     def run(self, context):
-        rig = context.object
-        muteDazFcurves(rig, True)
-        rig.DazDriversDisabled = True
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for rig in getSelectedArmatures(context):
+            muteDazFcurves(rig, True)
+            rig.DazDriversDisabled = True
 
 
 class DAZ_OT_EnableDrivers(DazOperator):
@@ -794,9 +795,10 @@ class DAZ_OT_EnableDrivers(DazOperator):
         return (ob and ob.type == 'ARMATURE' and ob.DazDriversDisabled)
 
     def run(self, context):
-        rig = context.object
-        muteDazFcurves(rig, False)
-        rig.DazDriversDisabled = False
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for rig in getSelectedArmatures(context):
+            muteDazFcurves(rig, False)
+            rig.DazDriversDisabled = False
 
 #----------------------------------------------------------
 #   Initialize

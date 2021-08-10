@@ -78,7 +78,7 @@ class DAZ_OT_UdimizeMaterials(DazPropsOperator, MaterialSelector):
 
 
     def isDefaultActive(self, mat):
-        return (mat.diffuse_color[0:3] == self.skinColor)
+        return self.isSkinRedMaterial(mat)
 
 
     def run(self, context):

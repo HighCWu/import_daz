@@ -434,6 +434,10 @@ class DAZ_PT_Posing(bpy.types.Panel):
         op = layout.operator("daz.clear_morphs")
         op.morphset = "All"
         op.category = ""
+        if rig.DazDriversDisabled:
+            layout.operator("daz.enable_drivers")
+        else:
+            layout.operator("daz.disable_drivers")
         layout.operator("daz.prune_action")
         layout.separator()
         layout.operator("daz.save_pose_preset")
@@ -517,10 +521,9 @@ class DAZ_PT_Morphs:
 
 
     def preamble(self, layout, rig):
-        split = layout.split(factor=0.25)
+        split = layout.split(factor=0.333)
         split.operator("daz.prettify")
         self.activateLayout(split, "", rig)
-        split.operator("daz.disable_drivers")
         self.keyLayout(layout, "")
 
 
