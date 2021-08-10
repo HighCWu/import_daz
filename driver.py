@@ -768,7 +768,7 @@ def muteDazFcurves(rig, mute):
 class DAZ_OT_DisableDrivers(DazOperator):
     bl_idname = "daz.disable_drivers"
     bl_label = "Disable Drivers"
-    bl_description = "Disable all face bone drivers to improve performance"
+    bl_description = "Disable all drivers to improve performance"
     bl_options = {'UNDO'}
 
     @classmethod
@@ -786,7 +786,7 @@ class DAZ_OT_DisableDrivers(DazOperator):
 class DAZ_OT_EnableDrivers(DazOperator):
     bl_idname = "daz.enable_drivers"
     bl_label = "Enable Drivers"
-    bl_description = "Enable all face bone drivers"
+    bl_description = "Enable all drivers"
     bl_options = {'UNDO'}
 
     @classmethod

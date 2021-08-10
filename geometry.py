@@ -283,7 +283,8 @@ class GeoNode(Node, SimNode):
                 n += 1
 
         uvmap = None
-        if len(ob.data.uv_layers) > 1:
+        if (not (GS.useMultires and GS.useMultiUvLayers) and
+            len(ob.data.uv_layers) > 1):
             uvmap = hdob.data.uv_layers[0].name
         matnums.sort()
         for _,mname in matnums:
