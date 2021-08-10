@@ -1015,7 +1015,6 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 fing.lock_rotation = (False,True,False)
                 long.rotation_mode = fing.rotation_mode
                 cns = copyRotation(fing, long, rig)
-                cns.use_y = cns.use_z = False
                 cns.use_offset = True
                 addDriver(cns, "mute", rig, props, expr)
                 for n in range(n0+1,3):
