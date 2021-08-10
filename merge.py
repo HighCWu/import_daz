@@ -566,11 +566,20 @@ def getSelectedRigs(context):
 #   Eliminate Empties
 #-------------------------------------------------------------
 
-class DAZ_OT_EliminateEmpties(DazOperator):
+class DAZ_OT_EliminateEmpties(DazPropsOperator):
     bl_idname = "daz.eliminate_empties"
     bl_label = "Eliminate Empties"
     bl_description = "Delete non-hidden empties, parenting its children to its parent instead"
     bl_options = {'UNDO'}
+
+    useCollections : BoolProperty(
+        name = "Create Collections",
+        description = "Replace empties with collections",
+        default = True)
+
+    def draw(self, context):
+        self.layout.prop(self, "useCollections")
+
 
     def run(self, context):
         roots = []
@@ -578,14 +587,29 @@ class DAZ_OT_EliminateEmpties(DazOperator):
             if ob.parent is None:
                 roots.append(ob)
         for root in roots:
-            self.eliminateEmpties(root, context)
+            if self.useCollections:
+                coll = self.getCollection(root)
+            else:
+                coll = None
+            self.eliminateEmpties(root, context, False, coll)
 
 
-    def eliminateEmpties(self, ob, context):
+    def eliminateEmpties(self, ob, context, sub, coll):
         deletes = []
+        elim = self.doEliminate(ob)
+        if elim:
+            if coll:
+                subcoll = bpy.data.collections.new(ob.name)
+                coll.children.link(subcoll)
+                sub = True
+                coll = subcoll
+        elif sub and coll:
+            if ob.name not in coll.objects:
+                self.unlinkAll(ob)
+                coll.objects.link(ob)
         for child in ob.children:
-            self.eliminateEmpties(child, context)
-        if self.doEliminate(ob):
+            self.eliminateEmpties(child, context, sub, coll)
+        if elim:
             deletes.append(ob)
             for child in ob.children:
                 wmat = child.matrix_world.copy()
@@ -608,6 +632,19 @@ class DAZ_OT_EliminateEmpties(DazOperator):
         if ob.type != 'EMPTY' or getHideViewport(ob):
             return False
         return (ob.instance_type == 'NONE')
+
+
+    def getCollection(self, ob):
+        for coll in bpy.data.collections:
+            if ob.name in coll.objects:
+                return coll
+        return None
+
+
+    def unlinkAll(self, ob):
+        for coll in bpy.data.collections:
+            if ob.name in coll.objects:
+                coll.objects.unlink(ob)
 
 #-------------------------------------------------------------
 #   Merge rigs
