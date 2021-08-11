@@ -62,10 +62,10 @@ class FastMatcher:
             ob = bpy.data.objects.new("_TRIHUMAN", src.data.copy())
             context.scene.collection.objects.link(ob)
             activateObject(context, ob)
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
             bpy.ops.mesh.select_all(action='SELECT')
             bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
             self.trihuman = ob
         return (ob, rig)
 

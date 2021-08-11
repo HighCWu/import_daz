@@ -110,6 +110,14 @@ def selectSet(ob, value):
         return False
 
 
+def setMode(mode):
+    try:
+        bpy.ops.object.mode_set(mode=mode)
+    except RuntimeError as err:
+        from .error import DazError
+        raise DazError(str(err))
+
+
 def selectObjects(context, objects):
     if context.object:
         try:

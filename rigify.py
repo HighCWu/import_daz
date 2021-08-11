@@ -124,11 +124,11 @@ def setupTables(meta):
         else:
             head = "spine.006"
         rigtype = "rigify2"
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         eb = meta.data.edit_bones[head]
         deleteChildren(eb, meta)
         deleteBones(meta, ["breast.L", "breast.R"])
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
         MetaBones = {
             "spine" : hips,
@@ -427,7 +427,7 @@ class Rigify:
 
 
     def renameBones(self, rig, bones):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for dname,rname in bones.items():
             if dname in rig.data.edit_bones.keys():
                 eb = rig.data.edit_bones[dname]
@@ -436,7 +436,7 @@ class Rigify:
                 msg = ("Did not find bone %s     " % dname)
                 #print("MSG", msg)
                 raise DazError(msg)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
     def fitToDaz(self, meta, rigifySkel, dazBones):
@@ -539,7 +539,7 @@ class Rigify:
 
 
     def reparentBones(self, rig, parents):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for bname,pname in parents.items():
             if (pname in rig.data.edit_bones.keys() and
                 bname in rig.data.edit_bones.keys()):
@@ -547,12 +547,12 @@ class Rigify:
                 parb = rig.data.edit_bones[pname]
                 eb.use_connect = False
                 eb.parent = parb
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
     def addRigifyProps(self, meta):
         # Add rigify properties to spine bones
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         disconnect = []
         connect = []
         for pb in meta.pose.bones:
@@ -663,7 +663,7 @@ class Rigify:
     def splitBone(self, rig, bname, upname):
         if upname in rig.data.bones.keys():
             return
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         eblow = rig.data.edit_bones[bname]
         vec = eblow.tail - eblow.head
         mid = eblow.head + vec/2
@@ -675,11 +675,11 @@ class Rigify:
         ebup.parent = eblow
         ebup.roll = eblow.roll
         eblow.tail = mid
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
     def splitNeck(self, meta):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         spine = meta.data.edit_bones["spine"]
         spine3 = meta.data.edit_bones["spine.003"]
         bonelist={}
@@ -695,7 +695,7 @@ class Rigify:
             y = str(x+1)
             spinebones[x].name = "spine" + ".00" + y
         bpy.ops.armature.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
     def checkRigifyEnabled(self, context):
@@ -731,14 +731,14 @@ class Rigify:
     def getDazBones(self, rig):
         # Setup info about DAZ bones
         dazBones = OrderedDict()
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for eb in rig.data.edit_bones:
             dazBones[eb.name] = DazBone(eb)
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         for pb in rig.pose.bones:
             dazBones[pb.name].getPose(pb)
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         return dazBones
 
 
@@ -758,7 +758,7 @@ class Rigify:
         unhideAllObjects(context, rig)
 
         # Create metarig
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         try:
             bpy.ops.object.armature_human_metarig_add()
         except AttributeError:
@@ -815,7 +815,7 @@ class Rigify:
         #setActiveObject(context, meta)
         meta.select_set(True)
         activateObject(context, meta)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         self.fitToDaz(meta, rigifySkel, dazBones)
         hip = self.fitHip(meta, hips, dazBones)
 
@@ -843,10 +843,10 @@ class Rigify:
             self.setupGroupBones(meta)
 
         print("  Set connected")
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         self.setConnected(meta, connect, disconnect)
         self.recalcRoll(meta)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
         print("Metarig created")
         return meta
@@ -880,7 +880,7 @@ class Rigify:
         if rig.name not in coll.objects.keys():
             coll.objects.link(rig)
 
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         for pb in meta.pose.bones:
             if hasattr(pb, "rigify_parameters"):
                 if hasattr (pb.rigify_parameters, "roll_alignment"):
@@ -918,7 +918,7 @@ class Rigify:
         faceLayers = R_FACE*[False] + [True] + (31-R_FACE)*[False]
         helpLayers = R_HELP*[False] + [True] + (31-R_HELP)*[False]
         setActiveObject(context, gen)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for dname,rname in extras.items():
             if dname not in dazBones.keys():
                 continue
@@ -969,7 +969,7 @@ class Rigify:
             self.addSingleGazeBone(gen, suffix, R_FACE, R_HELP)
         self.addCombinedGazeBone(gen, R_FACE, R_HELP)
 
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
 
         # Lock extras
         print("  Lock extras")

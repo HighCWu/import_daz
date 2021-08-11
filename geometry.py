@@ -369,9 +369,9 @@ def addMultires(context, hdob, strict):
         print("Cannot rebuild subdiv in Blender %d.%d.%d" % bpy.app.version)
         return False
     activateObject(context, hdob)
-    bpy.ops.object.mode_set(mode='EDIT')
+    setMode('EDIT')
     bpy.ops.mesh.delete_loose()
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
     mod = hdob.modifiers.new("Multires", 'MULTIRES')
     try:
         bpy.ops.object.multires_rebuild_subdiv(modifier="Multires")
@@ -863,7 +863,7 @@ class Geometry(Asset, Channels):
                     if vn2 in e.vertices:
                         weights[e.index] = w
             activateObject(context, ob)
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
             bm = bmesh.from_edit_mesh(ob.data)
             bm.edges.ensure_lookup_table()
             creaseLayer = bm.edges.layers.crease.verify()
@@ -872,7 +872,7 @@ class Geometry(Asset, Channels):
                 e = bm.edges[en]
                 e[creaseLayer] = min(1.0, w/level)
             bmesh.update_edit_mesh(ob.data)
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
             self.edge_weights = []
 
 
@@ -1173,7 +1173,7 @@ class DAZ_OT_PruneUvMaps(DazOperator, IsMesh):
     bl_options = {'UNDO'}
 
     def run(self, context):
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for ob in getSelectedMeshes(context):
             pruneUvMaps(ob)
 

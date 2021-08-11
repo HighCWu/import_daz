@@ -143,9 +143,9 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
         else:
             cgrafts = []
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
         # Select body verts to delete
         vdeleted = dict([(vn,False) for vn in range(nverts)])
@@ -185,20 +185,20 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
             locations = dict([(pair.a, verts[pair.a].co.copy()) for pair in cob.data.DazGraftGroup])
 
         # Delete the masked verts
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.delete(type='VERT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
         # Select nothing
         for aob in anatomies:
             activateObject(context, aob)
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
             bpy.ops.mesh.select_all(action='DESELECT')
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
         activateObject(context, cob)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
         # Select verts on common boundary
         names = []
@@ -221,13 +221,13 @@ class DAZ_OT_MergeGeografts(DazPropsOperator, MaterialMerger, DriverUser, IsMesh
         print("Merge %s to %s" % (names, cob.name))
         threshold = 0.001*cob.DazScale
         bpy.ops.object.join()
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.remove_doubles(threshold=threshold)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         selected = dict([(v.index,v.co.copy()) for v in cob.data.vertices if v.select])
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
         # Create graft vertex group
         vgrp = cob.vertex_groups.new(name="Graft")
@@ -505,9 +505,9 @@ class DAZ_OT_MergeUvLayers(DazPropsOperator, IsMesh):
             raise DazError("No active UV layer found")
         mergeIdx = int(self.layer)
         mergeUvLayers(context.object.data, self.keepIdx, mergeIdx)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
 def mergeUvLayers(me, keepIdx, mergeIdx):
@@ -555,7 +555,7 @@ def mergeUvLayers(me, keepIdx, mergeIdx):
 def getSelectedRigs(context):
     rig = context.object
     if rig:
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
     subrigs = []
     for ob in getSelectedArmatures(context):
         if ob != rig:
@@ -684,7 +684,7 @@ class RigInfo:
 
 
     def getEditBones(self, mainbones):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for eb in self.rig.data.edit_bones:
             if eb.name not in mainbones:
                 if eb.parent:
@@ -693,7 +693,7 @@ class RigInfo:
                     parent = None
                 key = self.getBoneKey(eb.name)
                 self.editbones[key] = (eb.head.copy(), eb.tail.copy(), eb.roll, parent)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for pb in self.rig.pose.bones:
             if pb.name not in mainbones:
                 key = self.getBoneKey(pb.name)
@@ -934,11 +934,11 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
 
         layers = (self.clothesLayer-1)*[False] + [True] + (32-self.clothesLayer)*[False]
         activateObject(context, rig)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for subinfo in subinfos:
             if subinfo.conforms:
                 subinfo.addEditBones(rig, layers)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         self.reparentObjects(info, rig, adds, hdadds, removes)
         for subinfo in subinfos:
             if subinfo.conforms:
@@ -956,7 +956,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
             deleteObjects(context, subinfo.deletes)
         activateObject(context, rig)
         self.cleanVertexGroups(rig)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         self.applyTransforms([info])
 
 
@@ -1143,7 +1143,7 @@ def applyRestPoses(context, rig, subrigs):
         if not setActiveObject(context, subrig):
             continue
         constraints = applyLimitConstraints(subrig)
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         bpy.ops.pose.armature_apply()
         for cns,mute in constraints:
             cns.mute = mute
@@ -1235,7 +1235,7 @@ def reparentToes(rig, context):
     from .driver import removeBoneSumDrivers
     setActiveObject(context, rig)
     toenames = []
-    bpy.ops.object.mode_set(mode='EDIT')
+    setMode('EDIT')
     for parname in ["lToe", "rToe"]:
         if parname in rig.data.edit_bones.keys():
             parb = rig.data.edit_bones[parname]
@@ -1246,7 +1246,7 @@ def reparentToes(rig, context):
                     eb = rig.data.edit_bones[bname]
                     eb.parent = parb
                     toenames.append(eb.name)
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
     removeBoneSumDrivers(rig, toenames)
 
 
@@ -1265,11 +1265,11 @@ def mergeBonesAndVgroups(rig, mergers, parents, context):
 
     activateObject(context, rig)
 
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
     for bones in mergers.values():
         removeBoneSumDrivers(rig, bones)
 
-    bpy.ops.object.mode_set(mode='EDIT')
+    setMode('EDIT')
     for bname,pname in parents.items():
         if (pname in rig.data.edit_bones.keys() and
             bname in rig.data.edit_bones.keys()):
@@ -1284,7 +1284,7 @@ def mergeBonesAndVgroups(rig, mergers, parents, context):
             if eb.name in bones:
                 rig.data.edit_bones.remove(eb)
 
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
 
     for ob in rig.children:
         if ob.type == 'MESH':
@@ -1311,7 +1311,7 @@ def mergeBonesAndVgroups(rig, mergers, parents, context):
                         vgrp.add([vn], w, 'REPLACE')
 
     updateDrivers(rig)
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
 
 
 class DAZ_OT_MergeToes(DazOperator, IsArmature):

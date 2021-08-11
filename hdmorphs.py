@@ -670,7 +670,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
 
 
     def bakeObject(self, context, ob):
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         mod = getModifier(ob, 'MULTIRES')
         if mod is None:
             print("Object %s has no multires modifier" % ob.name)
@@ -730,20 +730,20 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
 
 
     def selectFaces(self, ob, fnums, tile):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.uv.select_all(action='DESELECT')
         bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for fn in fnums:
             f = ob.data.polygons[fn]
             f.select = True
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.uv.select_all(action='SELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
     def translateTile(self, ob, fnums, tile, sign):
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         j = (tile-1001)//10
         i = (tile-1001-10*j)%10
         dx = sign*i

@@ -666,9 +666,9 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         idxs.reverse()
         for idx in idxs:
             mergeUvLayers(ob.data, 0, idx)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         print("Lashes merged")
 
 

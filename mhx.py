@@ -680,7 +680,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             self.fixCustomShape(rig, ["head"], 4)
         showProgress(22, 25, "  Collect deform bones")
         self.collectDeformBones(rig)
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         showProgress(23, 25, "  Rename face bones")
         self.renameFaceBones(rig, ["Eye", "Ear"])
         showProgress(24, 25, "  Add bone groups")
@@ -705,7 +705,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
     def fixGenesis2Problems(self, rig):
-        bpy.ops.object.mode_set(mode = 'EDIT')
+        setMode('EDIT')
         rebs = rig.data.edit_bones
         for suffix in [".L", ".R"]:
             foot = rebs["foot"+suffix]
@@ -725,7 +725,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         helpLayer = L_HELP*[False] + [True] + (31-L_HELP)*[False]
         deformLayer = 31*[False] + [True]
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for bname,pname in self.DrivenParents.items():
             if (bname in rig.data.edit_bones.keys() and
                 pname in rig.data.edit_bones.keys()):
@@ -735,7 +735,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 eb.layers = helpLayer
                 fixed.append(bname)
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for bone in rig.data.bones:
             if bone.name in self.sacred:
                 bone.name = bone.name + ".1"
@@ -794,7 +794,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def addGizmos(self, rig, context):
         from .driver import isBoneDriven
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         self.makeGizmos(None)
 
         for pb in rig.pose.bones:
@@ -857,7 +857,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         BackBones = ["spine", "spine-1", "chest", "chest-1"]
         NeckBones = ["neck", "neckLower", "neckUpper", "head"]
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         spine = rig.data.edit_bones["spine"]
         if "chest-1" in rig.data.edit_bones:
             chest = rig.data.edit_bones["chest-1"]
@@ -870,7 +870,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             neck = rig.data.edit_bones["neckLower"]
         head = rig.data.edit_bones["head"]
         makeBone("neckhead", rig, neck.head, head.tail, 0, L_MAIN, neck.parent)
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         self.addBackWinder(rig, "back", BackBones)
         self.addBackWinder(rig, "neckhead", NeckBones)
 
@@ -907,7 +907,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             "clavicle.R", "upper_arm.R", "hand.R", "thigh.R", "shin.R", "foot.R",
         ]
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         tweakLayers = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
         for bname in self.tweakBones:
             if bname is None:
@@ -928,7 +928,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                         eb.parent = sb
 
         from .figure import copyBoneInfo
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         rpbs = rig.pose.bones
         tweakCorrectives = {}
         for bname in self.tweakBones:
@@ -940,7 +940,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 copyBoneInfo(tb, pb)
                 tb.lock_location = tb.lock_rotation = tb.lock_scale = (False,False,False)
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         #self.fixBoneDrivers(rig, tweakCorrectives)
 
 
@@ -974,7 +974,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
 
     def addLongFingers(self, rig):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for suffix,dlayer in [(".L",0), (".R",16)]:
             hand = rig.data.edit_bones["hand"+suffix]
             for m in range(5):
@@ -989,7 +989,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                 vec = fing3.tail - fing3.head
                 makeBone("ik_" + self.longName(m, suffix), rig, fing3.tail, fing3.tail+vec, fing3.roll, L_LFINGER+dlayer, hand)
 
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         for suffix,dlayer in [(".L",0), (".R",16)]:
             prop1 = "MhaFingerControl_%s" % suffix[1]
             setMhxProp(rig, prop1, True)
@@ -1045,7 +1045,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def setupFkIk(self, rig):
         stretchy = True
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         self.rolls = {}
         hip = rig.data.edit_bones["hip"]
         for suffix,dlayer in [(".L",0), (".R",16)]:
@@ -1187,8 +1187,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.addCombinedGazeBone(rig, L_HEAD, L_HELP)
 
         from .figure import copyBoneInfo
-        bpy.ops.object.mode_set(mode='OBJECT')
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('OBJECT')
+        setMode('POSE')
         rpbs = rig.pose.bones
         for suffix in [".L", ".R"]:
             for bname in ["upper_arm", "forearm", "hand",
@@ -1485,7 +1485,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
     def addMarkers(self, rig):
         for suffix,dlayer in [(".L",0), (".R",16)]:
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
             foot = rig.data.edit_bones["foot"+suffix]
             toe = rig.data.edit_bones["toe"+suffix]
             offs = Vector((0, 0, 0.5*toe.length))
@@ -1505,7 +1505,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #-------------------------------------------------------------
 
     def addMaster(self, rig):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         hip = rig.data.edit_bones["hip"]
         master = makeBone("master", rig, (0,0,0), (0,hip.head[2]/5,0), 0, L_MAIN, None)
         for eb in rig.data.edit_bones:
@@ -1517,14 +1517,14 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
     #-------------------------------------------------------------
 
     def collectDeformBones(self, rig):
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for bone in rig.data.bones:
             if bone.use_deform:
                 bone.layers[L_DEF] = True
 
 
     def addLayers(self, rig):
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for suffix,dlayer in [(".L",0), (".R",16)]:
             clavicle = rig.data.bones["clavicle"+suffix]
             clavicle.layers[L_SPINE] = True
@@ -1560,7 +1560,7 @@ def getBoneLayer(pb, rig):
 
 
 def connectToParent(rig):
-    bpy.ops.object.mode_set(mode='EDIT')
+    setMode('EDIT')
     for bname in [
         "abdomenUpper", "chestLower", "chestUpper", "neckLower", "neckUpper",
         "lShldrTwist", "lForeArm", "lForearmBend", "lForearmTwist", "lHand",

@@ -68,11 +68,11 @@ class FigureInstance(Instance):
         if isUnitMatrix(mat):
             return
         activateObject(context, rig)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for eb in rig.data.edit_bones:
             eb.head = mat @ eb.head
             eb.tail = mat @ eb.tail
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
     def finalize(self, context):
@@ -124,14 +124,14 @@ class FigureInstance(Instance):
         from .bone import BoneInstance
         rig = self.rna
         activateObject(context, rig)
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         self.poseArmature(rig)
         rig.DazRotLocks = rig.DazHasRotLocks = GS.useLockRot
         rig.DazLocLocks = rig.DazHasLocLocks = GS.useLockLoc
         rig.DazRotLimits = rig.DazHasRotLimits = GS.useLimitRot
         rig.DazLocLimits = rig.DazHasLocLimits = GS.useLimitLoc
         self.fixDependencyLoops(rig)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for child in self.children.values():
             if isinstance(child, BoneInstance):
                 child.buildFormulas(rig, False)
@@ -164,7 +164,7 @@ class FigureInstance(Instance):
         if needfix:
             if GS.verbosity > 1:
                 print("Fix dependency loops:", list(needfix.keys()))
-            bpy.ops.object.mode_set(mode = 'EDIT')
+            setMode('EDIT')
             for bname in needfix.keys():
                 cname = needfix[bname][0]
                 eb = rig.data.edit_bones[bname]
@@ -172,7 +172,7 @@ class FigureInstance(Instance):
                 eb.use_connect = False
                 cb.use_connect = False
                 cb.parent = eb.parent
-            bpy.ops.object.mode_set(mode = 'POSE')
+            setMode('POSE')
             for bname in needfix.keys():
                 fcus = needfix[bname][1]
                 self.clearBendDrivers(fcus)
@@ -309,12 +309,12 @@ class Figure(Node):
         inst.setupPlanes()
         activateObject(context, rig)
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
                 child.buildEdit(self, inst, rig, None, center, False)
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         rig.DazRig = self.rigtype = getRigType1(inst.bones.keys(), True)
         for child in inst.children.values():
             if isinstance(child, BoneInstance):
@@ -659,13 +659,13 @@ class ExtraBones(DriverUser):
         print("  Rename bones")
         self.bnames = self.getBoneNames(rig)
         boneDrivers, sumDrivers = self.storeRemoveBoneSumDrivers(rig)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for bname in self.bnames:
             eb = rig.data.edit_bones[bname]
             eb.name = drvBone(bname)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for bname in self.bnames:
             db = rig.data.edit_bones[drvBone(bname)]
             eb = copyEditBone(db, rig, bname)
@@ -676,14 +676,14 @@ class ExtraBones(DriverUser):
             fb.use_deform = False
             db.layers = drivenLayers
             db.use_deform = False
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
         for bname in self.bnames:
             if (bname not in rig.pose.bones.keys() or
                 drvBone(bname) not in rig.pose.bones.keys()):
                 del self.bnames[bname]
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for bname in self.bnames:
             db = rig.data.edit_bones[drvBone(bname)]
             for cb in db.children:
@@ -691,7 +691,7 @@ class ExtraBones(DriverUser):
                     cb.parent = rig.data.edit_bones[bname]
 
         print("  Change constraints")
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         store = ConstraintStore()
         for bname in self.bnames:
             pb = rig.pose.bones[bname]
@@ -719,7 +719,7 @@ class ExtraBones(DriverUser):
         updateDrivers(rig)
 
         print("  Update vertex groups")
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for ob in rig.children:
             if ob.type == 'MESH':
                 for vgrp in ob.vertex_groups:
@@ -1053,7 +1053,7 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
         if IK.usePoleTargets:
             csCube = makeCustomShape("CS_Cube", "Cube", scale=0.3)
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         ebones = rig.data.edit_bones
         for prefix in ["l", "r"]:
             hand = ebones[prefix+"Hand"]
@@ -1071,7 +1071,7 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
                 elbow = makePole(prefix+"Elbow", rig, forearm, collar)
                 knee = makePole(prefix+"Knee", rig, shin, hip)
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         rpbs = rig.pose.bones
         for prefix in ["l", "r"]:
             suffix = prefix.upper()
@@ -1204,7 +1204,7 @@ class DAZ_OT_ConnectIKChains(DazPropsOperator, SimpleIK, IsArmature):
     def run(self, context):
         rig = context.object
         self.getBoneNames(rig)
-        bpy.ops.object.mode_set(mode="EDIT")
+        setMode("EDIT")
         for chain in self.chains:
             parb = rig.data.edit_bones[chain[0]]
             for child in chain[1:]:
@@ -1213,7 +1213,7 @@ class DAZ_OT_ConnectIKChains(DazPropsOperator, SimpleIK, IsArmature):
                 eb.use_connect = True
                 parb = eb
         if self.unlock:
-            bpy.ops.object.mode_set(mode="EDIT")
+            setMode("EDIT")
             for chain in self.chains:
                 pb = rig.pose.bones[chain[-1]]
                 pb.lock_location = (False,False,False)

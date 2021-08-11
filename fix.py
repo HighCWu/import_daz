@@ -41,7 +41,7 @@ from .driver import DriverUser
 class Fixer(DriverUser):
 
     def fixPelvis(self, rig):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         hip = rig.data.edit_bones["hip"]
         if hip.tail[2] > hip.head[2]:
             for child in hip.children:
@@ -61,7 +61,7 @@ class Fixer(DriverUser):
             rThigh = rig.data.edit_bones["rThigh"]
             lThigh.parent = pelvis
             rThigh.parent = pelvis
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
     def fixCustomShape(self, rig, bnames, factor, offset=0):
@@ -78,7 +78,7 @@ class Fixer(DriverUser):
 
 
     def fixHands(self, rig):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for suffix in [".L", ".R"]:
             forearm = rig.data.edit_bones["forearm"+suffix]
             hand = rig.data.edit_bones["hand"+suffix]
@@ -98,7 +98,7 @@ class Fixer(DriverUser):
 
         if "lCarpal3" in rig.data.bones.keys():
             return
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for prefix in ["l", "r"]:
             for bname in ["Carpal1", "Carpal2"]:
                 if prefix+bname in rig.data.edit_bones.keys():
@@ -116,7 +116,7 @@ class Fixer(DriverUser):
                     eb.parent = hand
                     child.parent = eb
                     child.use_connect = True
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for ob in rig.children:
             if ob.type == 'MESH':
                 for prefix in ["l", "r"]:
@@ -128,7 +128,7 @@ class Fixer(DriverUser):
     def fixKnees(self, rig):
         from .bone import setRoll
         eps = 0.5
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for thigh,shin,zaxis in self.Knees:
             eb1 = rig.data.edit_bones[thigh]
             eb2 = rig.data.edit_bones[shin]
@@ -594,7 +594,7 @@ class BendTwists:
         hiddenLayer = 31*[False] + [True]
 
         rotmodes = {}
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         for bname,tname,_stretch,_isShin in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
             if not (bendname in rig.pose.bones.keys() and
@@ -607,7 +607,7 @@ class BendTwists:
             pb = rig.pose.bones[twistname]
             self.removeConstraints(pb)
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for bname,tname,_stretch,_isShin in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
             if not (bendname in rig.data.edit_bones.keys() and
@@ -632,7 +632,7 @@ class BendTwists:
             eb = rig.data.edit_bones[bname3]
             eb.name = bname2
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for bname,rotmode in rotmodes.items():
             if bname in rig.pose.bones.keys():
                 pb = rig.pose.bones[bname]
@@ -647,7 +647,7 @@ class BendTwists:
             trgbone = rig.pose.bones[bname]
             copyBoneInfo(srcbone, trgbone)
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for bname,tname,_stretch,_isShin in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
             if bendname in rig.data.edit_bones.keys():
@@ -663,7 +663,7 @@ class BendTwists:
                 else:
                     rig.data.edit_bones.remove(eb)
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for ob in rig.children:
             for bname,tname,_stretch,_isShin in self.BendTwists:
                 bend,twist = self.getBendTwistNames(bname)
@@ -710,7 +710,7 @@ class BendTwists:
         defLayer = L_DEF*[False] + [True] + (31-L_DEF)*[False]
         finLayer = L_FIN*[False] + [True] + (31-L_FIN)*[False]
         tweakLayer = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
 
         for bname,_,_,_ in self.BendTwists:
             eb = rig.data.edit_bones[bname]
@@ -805,7 +805,7 @@ class BendTwists:
 
     def constrainBendTwists(self, rig):
         from .mhx import dampedTrack, copyRotation, stretchTo, addDriver, setMhxProp
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         gizmo = "GZM_Ball025"
         for bname,trgname,stretch,isShin in self.BendTwists:
             bendname,twistname = self.getSubBoneNames(bname)
@@ -949,7 +949,7 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
         else:
             ikgoals = self.ikGoalsFromSelected(rig)
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for bname, clen, pbones, root in ikgoals:
             eb = rig.data.edit_bones[bname]
             goalname = self.combineName(bname, "Goal")
@@ -966,13 +966,13 @@ class DAZ_OT_AddIkGoals(DazPropsOperator, GizmoUser, IsArmature):
                 pole.tail = eb.tail + eb.length * eb.x_axis
                 pole.roll = eb.roll
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         self.startGizmos(context, rig)
         gzmBall = self.makeEmptyGizmo("GZM_Ball", 'SPHERE')
         gzmCube = self.makeEmptyGizmo("GZM_Cube", 'CUBE')
         gzmCone = self.makeEmptyGizmo("GZM_Cone", 'CONE')
 
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         for bname, clen, pbones, root in ikgoals:
             if bname not in rig.pose.bones.keys():
                 continue
@@ -1099,7 +1099,7 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
         self.makeGizmos(["GZM_Knuckle"])
         gizmo = self.gizmos["GZM_Knuckle"]
 
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         eb = rig.data.edit_bones[bname]
         tarb = rig.data.edit_bones.new(wname)
         tarb.head = eb.head
@@ -1115,7 +1115,7 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
             n += 1
             length += eb.length
 
-        bpy.ops.object.mode_set(mode='POSE')
+        setMode('POSE')
         winder = rig.pose.bones[wname]
         winder.custom_shape = gizmo
         winder.bone.show_wire = True
@@ -1206,14 +1206,14 @@ class DAZ_OT_ChangeArmature(DazPropsOperator, IsMesh):
                     pname = None
                 extras[bname] = (bone.head_local.copy(), bone.tail_local.copy(), bone.matrix_local.copy(), list(bone.layers), pname)
         if extras:
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
             for bname,data in extras.items():
                 eb = rig.data.edit_bones.new(bname)
                 eb.head, eb.tail, mat, eb.layers, pname = data
                 if pname is not None:
                     eb.parent = rig.data.edit_bones[pname]
                 eb.matrix = mat
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
 
 #----------------------------------------------------------
 #   Initialize

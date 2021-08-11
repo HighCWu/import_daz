@@ -120,12 +120,12 @@ def findPolys(context):
     newVerts.sort()
 
     setActiveObject(context, pxy)
-    bpy.ops.object.mode_set(mode='EDIT')
+    setMode('EDIT')
     bpy.ops.mesh.select_mode(type='EDGE')
     bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.mesh.mark_seam(clear=True)
     bpy.ops.mesh.select_all(action='DESELECT')
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
 
     print("BEF", len(pxy.data.vertices), len(pxy.data.edges))
     pxy.data.vertices.add(len(newVerts))
@@ -322,10 +322,10 @@ class Proxifier(DriverUser):
         else:
             self.buildNewMesh(newfaces)
         deleteMidpoints(ob)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.select_all(action='SELECT')
         bpy.ops.mesh.remove_doubles()
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         printStatistics(ob)
 
 
@@ -498,7 +498,7 @@ class Proxifier(DriverUser):
         print("Max material number:", maxmnum)
 
         print("Adding faces")
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.select_mode(type='FACE')
         bpy.ops.mesh.select_all(action='DESELECT')
         count = 0
@@ -507,16 +507,16 @@ class Proxifier(DriverUser):
                 print("  ", count)
             if mn % self.matOffset == 0:
                 continue
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
             ob.active_material_index = mn
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
             bpy.ops.object.material_slot_select()
             try:
                 bpy.ops.mesh.edge_face_add()
             except RuntimeError:
                 pass
             bpy.ops.mesh.select_all(action='DESELECT')
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
             count += 1
 
         printStatistics(ob)
@@ -846,14 +846,14 @@ def identifyVerts(hum, pxy):
 
 def deselectEverything(ob, context):
     setActiveObject(context, ob)
-    bpy.ops.object.mode_set(mode='EDIT')
+    setMode('EDIT')
     bpy.ops.mesh.select_mode(type='FACE')
     bpy.ops.mesh.select_all(action='DESELECT')
     bpy.ops.mesh.select_mode(type='EDGE')
     bpy.ops.mesh.select_all(action='DESELECT')
     bpy.ops.mesh.select_mode(type='VERT')
     bpy.ops.mesh.select_all(action='DESELECT')
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
 
 #-------------------------------------------------------------
 #   Make Proxy
@@ -934,11 +934,11 @@ class DAZ_OT_Quadify(MakeProxy, DazOperator, IsMesh):
             if activateObject(context, ob):
                 print("\nQuadify %s" % ob.name)
                 printStatistics(ob)
-                bpy.ops.object.mode_set(mode='EDIT')
+                setMode('EDIT')
                 bpy.ops.mesh.select_mode(type='FACE')
                 bpy.ops.mesh.select_all(action='SELECT')
                 bpy.ops.mesh.tris_convert_to_quads()
-                bpy.ops.object.mode_set(mode='OBJECT')
+                setMode('OBJECT')
                 printStatistics(ob)
         restoreSelectedObjects(context, meshes, active)
 
@@ -956,17 +956,17 @@ def splitNgons(ob, context):
     if not activateObject(context, ob):
         return
     printStatistics(ob)
-    bpy.ops.object.mode_set(mode='EDIT')
+    setMode('EDIT')
     bpy.ops.mesh.select_mode(type='FACE')
     bpy.ops.mesh.select_all(action='DESELECT')
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
     for f in ob.data.polygons:
         if (len(f.vertices) > 4 and not f.hide):
             f.select = True
-    bpy.ops.object.mode_set(mode='EDIT')
+    setMode('EDIT')
     bpy.ops.mesh.quads_convert_to_tris(ngon_method='BEAUTY')
     #bpy.ops.mesh.tris_convert_to_quads()
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
     printStatistics(ob)
 
 
@@ -1007,12 +1007,12 @@ def findSeams(ob):
                 if fn1 in seams.keys():
                     seams[fn1].append(fn2)
 
-    bpy.ops.object.mode_set(mode='EDIT')
+    setMode('EDIT')
     bpy.ops.mesh.select_mode(type='EDGE')
     bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.mesh.mark_seam(clear=True)
     bpy.ops.mesh.select_all(action='DESELECT')
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
 
     for e in ob.data.edges:
         vn1,vn2 = e.vertices
@@ -1032,10 +1032,10 @@ def findSeams(ob):
         if len(edgefaces[e.index]) != 2:
             e.select = True
 
-    bpy.ops.object.mode_set(mode='EDIT')
+    setMode('EDIT')
     bpy.ops.mesh.mark_seam(clear=False)
     bpy.ops.mesh.select_all(action='DESELECT')
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
 
     print("Seams found")
     return  faceverts, vertfaces, neighbors,seams
@@ -1091,7 +1091,7 @@ class DAZ_OT_SelectRandomStrands(DazPropsOperator, IsMesh):
     def sequel(self, context):
         DazPropsOperator.sequel(self, context)
         if context.object:
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
 
 #-------------------------------------------------------------
 #   Select strands by width
@@ -1138,7 +1138,7 @@ class DAZ_OT_SelectStrandsByWidth(DazPropsOperator, IsMesh):
     def sequel(self, context):
         DazPropsOperator.sequel(self, context)
         if context.object:
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
 
 #-------------------------------------------------------------
 #   Select largest strands
@@ -1181,7 +1181,7 @@ class DAZ_OT_SelectStrandsBySize(DazOperator, IsMesh, Selector):
     def sequel(self, context):
         DazPropsOperator.sequel(self, context)
         if context.object:
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
 
 #-------------------------------------------------------------
 #  Apply morphs
@@ -1345,7 +1345,7 @@ def addMannequins(self, context):
     if not (rig and rig.type == 'ARMATURE'):
         raise DazError("Mesh %s has no armature parent" % ob)
     setActiveObject(context, rig)
-    bpy.ops.object.mode_set(mode='OBJECT')
+    setMode('OBJECT')
     oldlayers = list(rig.data.layers)
     rig.data.layers = 32*[True]
 
@@ -1709,9 +1709,9 @@ class DAZ_OT_MakeDeflection(DazPropsOperator, IsMesh):
 
         setActiveObject(context, nob)
         if self.useQuads:
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
             bpy.ops.mesh.tris_convert_to_quads()
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
         if self.useSubsurf:
             mod = nob.modifiers.new("Subsurf", 'SUBSURF')
             mod.levels = 1
@@ -1839,13 +1839,13 @@ class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
         self.removeInteriors(context)
 
         activateObject(context, rig)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for bname,gzm in self.gizmos:
             if bname in rig.data.edit_bones.keys():
                 eb = rig.data.edit_bones[bname]
                 eb.use_deform = False
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         self.drivers = {}
         self.getDrivers(rig)
         self.getDrivers(rig.data)
@@ -1863,11 +1863,11 @@ class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
 
         if self.deleteUnused:
             activateObject(context, rig)
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
             for bname in self.unused.keys():
                 eb = rig.data.edit_bones[bname]
                 rig.data.edit_bones.remove(eb)
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
 
 
 
@@ -1913,9 +1913,9 @@ class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
 
     def removeInteriors(self, context):
         from .tables import getVertEdges, getEdgeFaces
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for _bname,ob in self.gizmos:
             vertedges = getVertEdges(ob)
             edgefaces = getEdgeFaces(ob, vertedges)
@@ -1927,9 +1927,9 @@ class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
                     vn1,vn2 = e.vertices
                     verts[vn1].select = False
                     verts[vn2].select = False
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.delete(type='VERT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
     def getDrivers(self, rna):

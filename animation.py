@@ -524,7 +524,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         animations = self.parseScene(struct["scene"])
         rig = context.object
         if rig.type == 'ARMATURE':
-            bpy.ops.object.mode_set(mode='POSE')
+            setMode('POSE')
             self.prepareRig(rig)
         self.clearPose(rig, offset)
         animations,locks = self.convertAnimations(animations, rig)
@@ -533,7 +533,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         for pb,lock in locks:
             pb.lock_location = lock
         updateDrivers(rig)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         self.mergeHipObject(rig)
         return result
 

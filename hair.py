@@ -352,7 +352,7 @@ class HairSystem:
         t5 = perf_counter()
         self.buildFinish(context, psys, ob)
         t6 = perf_counter()
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         #print("Hair %s: %.3f %.3f %.3f %.3f %.3f" % (self.name, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5))
 
 
@@ -369,7 +369,7 @@ class HairSystem:
     def buildFinish(self, context, psys, hum):
         scn = context.scene
         #activateObject(context, hum)
-        bpy.ops.object.mode_set(mode='PARTICLE_EDIT')
+        setMode('PARTICLE_EDIT')
         pedit = scn.tool_settings.particle_edit
         pedit.use_emitter_deflect = False
         pedit.use_preserve_length = False
@@ -377,7 +377,7 @@ class HairSystem:
         hum.data.use_mirror_x = False
         pedit.select_mode = 'POINT'
         bpy.ops.transform.translate()
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         bpy.ops.particle.disconnect_hair(all=True)
         bpy.ops.particle.connect_hair(all=True)
 
@@ -419,11 +419,11 @@ class Tesselator:
     def removeDoubles(self, context, hair, btn):
         activateObject(context, hair)
         threshold = 0.001*btn.scale
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.select_all(action='SELECT')
         bpy.ops.mesh.remove_doubles(threshold=threshold)
         bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
     def checkTesselation(self, hair):
@@ -450,9 +450,9 @@ class Tesselator:
                 v.co = r0
                 v.select = True
         threshold = 0.001*btn.scale
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.remove_doubles(threshold=threshold)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 
     def findStrands(self, hair):
@@ -635,7 +635,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
 
         activateObject(context, hair)
         nhairfaces = len(hair.data.polygons)
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         bpy.ops.mesh.select_mode(type='FACE')
         bpy.ops.mesh.select_all(action='DESELECT')
 
@@ -649,7 +649,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
                 #bpy.ops.mesh.separate(type='LOOSE')
                 bpy.ops.daz.separate_loose_parts()
                 print("Loose parts separated")
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
             hname = hair.name
             if (len(hname) >= 4 and hname[-4] == "." and hname[-3:].isdigit()):
                 hname = hname[:-4]
@@ -672,7 +672,7 @@ class DAZ_OT_MakeHair(DazPropsOperator, CombineHair, IsMesh, HairOptions):
             self.clocks.append(("Make hair systems", t5-t2))
         else:
             hairs = [hair]
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
             tess = Tesselator()
             if self.strandType == 'LINE':
                 pass

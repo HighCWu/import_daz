@@ -98,10 +98,10 @@ class DAZ_OT_SavePoseInternal(DazOperator, JsonExportFile, IsArmature):
 
         if self.useSkeleton:
             rolls = {}
-            bpy.ops.object.mode_set(mode='EDIT')
+            setMode('EDIT')
             for eb in rig.data.edit_bones:
                 rolls[eb.name] = eb.roll
-            bpy.ops.object.mode_set(mode='OBJECT')
+            setMode('OBJECT')
             skel = {}
             struct["skeleton"] = skel
             for pb in rig.pose.bones:
@@ -216,12 +216,12 @@ def loadPose(context, rig, character, table, modify):
 
 
     def modifySkeleton(rig, skel):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for eb in rig.data.edit_bones:
             bname = getBoneName(eb.name, skel)
             if bname in skel.keys():
                 eb.roll = skel[bname][1]
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
         for pb in rig.pose.bones:
             bname = getBoneName(pb.name, skel)
             if bname in skel.keys():
@@ -398,7 +398,7 @@ class DAZ_OT_ConvertRigPose(DazPropsOperator):
 
 
     def renameBones(self, rig, conv):
-        bpy.ops.object.mode_set(mode='EDIT')
+        setMode('EDIT')
         for eb in rig.data.edit_bones:
             if eb.name in conv.keys():
                 data = conv[eb.name]
@@ -412,7 +412,7 @@ class DAZ_OT_ConvertRigPose(DazPropsOperator):
                         eb.head = tail
                 else:
                     eb.name = data
-        bpy.ops.object.mode_set(mode='OBJECT')
+        setMode('OBJECT')
 
 #-------------------------------------------------------------
 #   Bone conversion
