@@ -1580,8 +1580,9 @@ def connectToParent(rig):
         ]:
         if bname in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[bname]
-            eb.parent.tail = eb.head
-            eb.use_connect = True
+            if not isDrvBone(eb.parent.name):
+                eb.parent.tail = eb.head
+                eb.use_connect = True
 
 #-------------------------------------------------------------
 #   Gizmos used by winders
