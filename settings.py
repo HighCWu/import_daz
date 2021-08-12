@@ -25,15 +25,12 @@
 # of the authors and should not be interpreted as representing official policies,
 # either expressed or implied, of the FreeBSD Project.
 
-#-------------------------------------------------------------
-#   Settings
-#-------------------------------------------------------------
-
 import os
 import bpy
+from . import globvars as G
 
 #-------------------------------------------------------------
-#   Local settings
+#   Global settings
 #-------------------------------------------------------------
 
 class GlobalSettings:
@@ -447,11 +444,10 @@ class LocalSettings:
 
 
     def reset(self):
-        from .asset import setDazPaths, clearAssets
-        global theTrace
-        theTrace = []
+        from .asset import setDazPaths
+        G.theTrace = []
         setDazPaths()
-        clearAssets()
+        G.clearAssets()
         self.useStrict = False
         self.scene = ""
 
@@ -529,5 +525,5 @@ class LocalSettings:
 
 GS = GlobalSettings()
 LS = LocalSettings()
-theTrace = []
+G.theTrace = []
 

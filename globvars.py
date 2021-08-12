@@ -37,6 +37,17 @@ theSilentMode = False
 theMessage = ""
 theErrorLines = []
 theFilePaths = []
+theDazPaths = []
+theAssets = {}
+theOtherAssets = {}
+theSources = {}
+theTrace = []
+
+def clearAssets():
+    global theAssets, theOtherAssets, theSources
+    theAssets = {}
+    theOtherAssets = {}
+    theSources = {}
 
 #-------------------------------------------------------------
 #   animation.py

@@ -413,7 +413,6 @@ class SkinBinding(Modifier):
 
 
     def parseSource(self, url):
-        from .asset import theAssets
         asset = self.getAsset(url)
         if asset:
             if (self.parent is None or
@@ -427,7 +426,7 @@ class SkinBinding(Modifier):
             if asset != self.parent:
                 self.parent.source = asset
                 asset.sourcing = self.parent
-            theAssets[url] = self.parent
+            G.theAssets[url] = self.parent
 
 
     def build(self, context, inst):

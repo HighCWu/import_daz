@@ -688,7 +688,6 @@ class MorphLoader(LoadMorph):
 
     def getAllMorphs(self, namepaths, context):
         from time import perf_counter
-        from .asset import clearAssets
         from .driver import setBoolProp
 
         if self.mesh:

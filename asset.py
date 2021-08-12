@@ -45,8 +45,6 @@ class Accessor:
 
 
     def getAsset(self, id, strict=True):
-        global theAssets, theOtherAssets
-
         if isinstance(id, Asset):
             return id
 
@@ -56,7 +54,7 @@ class Accessor:
             return None
         ref = getRef(id, self.fileref)
         try:
-            return theAssets[ref]
+            return G.theAssets[ref]
         except KeyError:
             pass
 
@@ -64,16 +62,16 @@ class Accessor:
             if self.caller:
                 ref = getRef(id, self.caller.fileref)
                 try:
-                    return theAssets[ref]
+                    return G.theAssets[ref]
                 except KeyError:
                     pass
             ref = getRef(id, self.fileref)
             try:
-                return theAssets[ref]
+                return G.theAssets[ref]
             except KeyError:
                 pass
             try:
-                return theOtherAssets[ref]
+                return G.theOtherAssets[ref]
             except KeyError:
                 pass
             msg = ("Missing local asset:\n  '%s'\n" % ref)
@@ -98,7 +96,7 @@ class Accessor:
             struct = loadJson(filepath)
             file = parseAssetFile(struct, fileref=fileref)
             try:
-                return theAssets[ref]
+                return G.theAssets[ref]
             except KeyError:
                 pass
         else:
@@ -120,10 +118,9 @@ class Accessor:
 
 
     def getOldAsset(self, id):
-        global theAssets
         ref = getRef(id, self.fileref)
         try:
-            return theAssets[ref]
+            return G.theAssets[ref]
         except KeyError:
             pass
         return self.getNewAsset(id, ref)
@@ -176,7 +173,6 @@ class Accessor:
 
 
     def saveAsset(self, struct, asset):
-        global theAssets
         ref = ref2 = normalizeRef(asset.id)
         if self.caller:
             if "id" in struct.keys():
@@ -185,7 +181,7 @@ class Accessor:
                 print("No id", struct.keys())
 
         try:
-            asset2 = theAssets[ref]
+            asset2 = G.theAssets[ref]
         except KeyError:
             asset2 = None
 
@@ -196,16 +192,16 @@ class Accessor:
                    "  Ref 1: %s\n" % ref +
                    "  Ref 2: %s\n" % ref2)
             reportError(msg, trigger=(2,4))
-            theAssets[ref2] = asset
+            G.theAssets[ref2] = asset
         else:
-            theAssets[ref] = theAssets[ref2] = asset
+            G.theAssets[ref] = G.theAssets[ref2] = asset
         return
 
         if asset.caller:
             ref2 = lowerPath(asset.caller.id) + "#" + struct["id"]
             ref2 = normalizeRef(ref2)
-            if ref2 in theAssets.keys():
-                asset2 = theAssets[ref2]
+            if ref2 in G.theAssets.keys():
+                asset2 = G.theAssets[ref2]
                 if asset != asset2 and GS.verbosity > 1:
                     msg = ("Duplicate asset definition\n" +
                            "  Asset 1: %s\n" % asset +
@@ -217,7 +213,7 @@ class Accessor:
             else:
                 print("REF2", ref2)
                 print("  ", asset)
-                theAssets[ref2] = asset
+                G.theAssets[ref2] = asset
 
 #-------------------------------------------------------------
 #   Asset base class
@@ -280,7 +276,6 @@ class Asset(Accessor):
 
 
     def copySourceFile(self, source):
-        global theAssets, theSources
         file = source.rsplit("#", 1)[0]
         asset = self.parseUrlAsset({"url": source})
         if asset is None:
@@ -288,11 +283,11 @@ class Asset(Accessor):
         old = asset.id.rsplit("#", 1)[0]
         new = self.id.rsplit("#", 1)[0]
         self.copySourceAssets(old, new)
-        if old not in theSources.keys():
-            theSources[old] = []
-        for other in theSources[old]:
+        if old not in G.theSources.keys():
+            G.theSources[old] = []
+        for other in G.theSources[old]:
             self.copySourceAssets(other, new)
-        theSources[old].append(new)
+        G.theSources[old].append(new)
         return asset
 
 
@@ -301,12 +296,12 @@ class Asset(Accessor):
         nnew = len(new)
         adds = []
         assets = []
-        for key,asset in theAssets.items():
+        for key,asset in G.theAssets.items():
             if key[0:nold] == old:
                 adds.append((new + key[nold:], asset))
         for key,asset in adds:
-            if key not in theOtherAssets.keys():
-                theOtherAssets[key] = asset
+            if key not in G.theOtherAssets.keys():
+                G.theOtherAssets[key] = asset
                 assets.append(asset)
 
 
@@ -361,7 +356,7 @@ class Asset(Accessor):
             if self.type == asset.type:
                 self.source = asset
                 asset.sourcing = self
-                theAssets[url] = self
+                G.theAssets[url] = self
             else:
                 msg = ("Source type mismatch:   \n" +
                        "%s != %s\n" % (asset.type, self.type) +
@@ -396,7 +391,7 @@ class Asset(Accessor):
         for srcnode in source.children:
             url = self.fileref + "#" + srcnode.id.rsplit("#",1)[-1]
             print("HHH", url)
-            theAssets[url] = srcnode
+            G.theAssets[url] = srcnode
             self.sourceChildren(srcnode)
 
 
@@ -418,17 +413,16 @@ class Asset(Accessor):
 def getAssetFromStruct(struct, fileref):
     id = getId(struct["id"], fileref)
     try:
-        return theAssets[id]
+        return G.theAssets[id]
     except KeyError:
         return None
 
 
 def getExistingFile(fileref):
-    global theAssets
     ref = normalizeRef(fileref)
-    if ref in theAssets.keys():
+    if ref in G.theAssets.keys():
         #print("Reread", fileref, ref)
-        return theAssets[ref]
+        return G.theAssets[ref]
     else:
         return None
 
@@ -437,13 +431,11 @@ def getExistingFile(fileref):
 #-------------------------------------------------------------
 
 def storeAsset(asset, url):
-    global theAssets
-    theAssets[url] = asset
+    G.theAssets[url] = asset
 
 
 def getAssets():
-    global theAssets
-    return theAssets
+    return G.theAssets
 
 
 def getId(id0, fileref):
@@ -486,22 +478,12 @@ def undoQuote(ref):
     ref = ref.replace("%23","#").replace("%25","%").replace("%2D", "-").replace("%2E", ".").replace("%2F", "/").replace("%3F", "?")
     return ref.replace("%5C", "/").replace("%5F", "_").replace("%7C", "|")
 
-
-def clearAssets():
-    global theAssets, theOtherAssets, theSources
-    theAssets = {}
-    theOtherAssets = {}
-    theSources = {}
-
-clearAssets()
-
 #-------------------------------------------------------------
 #   Paths
 #-------------------------------------------------------------
 
 def setDazPaths():
     from .error import DazError
-    global theDazPaths
     filepaths = []
     for path in GS.getDazPaths():
         if path:
@@ -521,9 +503,9 @@ def setDazPaths():
                         if "." not in fname:
                             numname = "".join(fname.split("_"))
                             if numname.isdigit():
-                                subpath = path + "/" + fname
+                                subpath = "%s/%s" % (path, fname)
                                 filepaths.append(subpath)
-    theDazPaths = filepaths
+    G.theDazPaths = filepaths
 
 
 def fixBrokenPath(path):
@@ -565,10 +547,8 @@ def fixBrokenPath(path):
 
 
 def getRelativeRef(ref):
-    global theDazPaths
-
     path = unquote(ref)
-    for dazpath in theDazPaths:
+    for dazpath in G.theDazPaths:
         n = len(dazpath)
         if path[0:n].lower() == dazpath.lower():
             return ref[n:]
@@ -586,7 +566,6 @@ def getDazPath(ref):
                 return filepath
         return None
 
-    global theDazPaths
     path = unquote(ref)
     filepath = path
     if path[2] == ":":
@@ -594,7 +573,7 @@ def getDazPath(ref):
         if GS.verbosity > 2:
             print("Load", filepath)
     elif path[0] == "/":
-        for folder in theDazPaths:
+        for folder in G.theDazPaths:
             filepath = folder + path
             filepath = filepath.replace("//", "/")
             okpath = getExistingPath(filepath)

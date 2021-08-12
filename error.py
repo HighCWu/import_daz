@@ -151,29 +151,27 @@ def printTraceBack(context, fp):
     fp.write("\n\nTRACEBACK:\n")
     traceback.print_tb(tb, 30, fp)
 
-    from .settings import theTrace
-    from .asset import theAssets, theOtherAssets, theDazPaths
     from .node import Node
 
     fp.write("\n\nFILES VISITED:\n")
-    for string in theTrace:
+    for string in G.theTrace:
         fp.write("  %s\n" % string)
 
     fp.write("\nASSETS:")
-    refs = list(theAssets.keys())
+    refs = list(G.theAssets.keys())
     refs.sort()
     for ref in refs:
-        asset = theAssets[ref]
+        asset = G.theAssets[ref]
         asset.errorWrite(ref, fp)
 
     fp.write("\n\nOTHER ASSETS:\n")
-    refs = list(theOtherAssets.keys())
+    refs = list(G.theOtherAssets.keys())
     refs.sort()
     for ref in refs:
-        fp.write('"%s"\n    %s\n\n' % (ref, theOtherAssets[ref]))
+        fp.write('"%s"\n    %s\n\n' % (ref, G.theOtherAssets[ref]))
 
     fp.write("\nDAZ ROOT PATHS:\n")
-    for n, path in enumerate(theDazPaths):
+    for n, path in enumerate(G.theDazPaths):
         fp.write('%d:   "%s"\n' % (n, path))
 
     string = getMissingAssets()
