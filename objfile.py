@@ -171,17 +171,23 @@ def loadDbzFile(filepath):
             LS.useHDObjects = True
             if name not in dbz.hdobjects.keys():
                 dbz.hdobjects[name] = []
-            verts = d2bList(figure["hd vertices"])
-            lod = figure["subd level"]
-            if "hd uvs" in figure.keys():
-                uvs = figure["hd uvs"]
-            else:
-                uvs = []
-            faces = figure["hd faces"]
+            verts = []
+            faces = []
+            lod = 0
+            uvs = []
             matgroups = []
             props = {}
-            if "hd material groups" in figure.keys():
-                matgroups = figure["hd material groups"]
+            for key,value in figure.items():
+                if key == "hd vertices":
+                    verts = d2bList(value)
+                elif key == "subd level":
+                    lod = value
+                elif key == "hd uvs":
+                    uvs = value
+                elif key == "hd faces":
+                    faces = value
+                elif key == "hd material groups":
+                    matgroups = value
             dbz.hdobjects[name].append(DBZObject(verts, uvs, [], faces, matgroups, props, lod, center))
 
         if "bones" not in figure.keys():
