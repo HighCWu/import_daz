@@ -143,6 +143,11 @@ class ImportDAZ(DazOperator, DazOptions, MultiFile):
                 msg += "Could not copy vertex weights to the following HD objects:         \n"
                 for hdname in LS.hdweights:
                     msg += ("  %s\n" % hdname)
+            if LS.hduvmissing:
+                msg += "HD objects missing UV layers:\n"
+                for hdname in LS.hduvmissing:
+                    msg += ("  %s\n" % hdname)
+                msg += "Export from DAZ Studio with Multires disabled.        \n"
         if msg:
             clearErrorMessage()
             handleDazError(context, warning=True, dump=True)

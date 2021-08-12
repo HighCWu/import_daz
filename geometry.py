@@ -136,7 +136,7 @@ class GeoNode(Node, SimNode):
             center = Vector((0,0,0))
             self.arrangeObject(hdob, inst, context, center)
             multi = False
-            if not GS.useMultiUvLayers:
+            if not (GS.useMultires and GS.useMultiUvLayers):
                 self.addHDUvs(ob, hdob)
             if GS.useMultires:
                 multi = addMultires(context, hdob, False)
@@ -188,12 +188,17 @@ class GeoNode(Node, SimNode):
 
 
     def addHDUvs(self, ob, hdob):
-        uvs = self.highdef.uvs
+        if not self.highdef.uvs:
+            if hdob.name not in LS.hduvmissing:
+                LS.hduvmissing.append(hdob.name)
+            return
         hdfaces = self.highdef.faces
         uvfaces = self.stripNegatives([f[1] for f in hdfaces])
-        uvlayers = ob.data.uv_layers
-        if len(uvlayers) > 0:
-            addUvs(hdob.data, uvlayers[0].name, uvs, uvfaces)
+        if len(ob.data.uv_layers) > 0:
+            uvname = ob.data.uv_layers[0].name
+        else:
+            uvname = "UV Layer"
+        addUvs(hdob.data, uvname, self.highdef.uvs, uvfaces)
 
 
     def addHDMaterials(self, mats, prefix):
@@ -285,7 +290,10 @@ class GeoNode(Node, SimNode):
         uvmap = None
         if (not (GS.useMultires and GS.useMultiUvLayers) and
             len(ob.data.uv_layers) > 1):
-            uvmap = hdob.data.uv_layers[0].name
+            if hdob.data.uv_layers:
+                uvmap = hdob.data.uv_layers[0].name
+            elif hdob.name not in LS.hduvmissing:
+                LS.hduvmissing.append(hdob.name)
         matnums.sort()
         for _,mname in matnums:
             mat = bpy.data.materials[mname]
@@ -445,8 +453,6 @@ def copyUvLayers(ob, hdob):
                 hdLoop = loopsMapping[fid][vn]
                 loop = f.loop_indices[i]
                 hddata[hdLoop].uv = uvdata[loop].uv
-                #if loop != hdLoop:
-                #    print("F", f.index, vn, loop, hdLoop)
 
     for uvlayer in list(hdob.data.uv_layers):
         print("DEL", uvlayer.name)
@@ -1134,6 +1140,8 @@ def makeNewUvloop(me, name, setActive):
 
 
 def addUvs(me, name, uvs, uvfaces):
+    if not uvs:
+        return
     uvloop = makeNewUvloop(me, name, True)
     m = 0
     for f in uvfaces:

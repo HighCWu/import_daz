@@ -405,6 +405,7 @@ class LocalSettings:
         self.missingAssets = {}
         self.hdfailures = []
         self.hdweights = []
+        self.hduvmissing = []
         self.deflectors = {}
         self.images = {}
         self.textures = {}

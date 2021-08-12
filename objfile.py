@@ -173,7 +173,10 @@ def loadDbzFile(filepath):
                 dbz.hdobjects[name] = []
             verts = d2bList(figure["hd vertices"])
             lod = figure["subd level"]
-            uvs = figure["hd uvs"]
+            if "hd uvs" in figure.keys():
+                uvs = figure["hd uvs"]
+            else:
+                uvs = []
             faces = figure["hd faces"]
             matgroups = []
             props = {}
