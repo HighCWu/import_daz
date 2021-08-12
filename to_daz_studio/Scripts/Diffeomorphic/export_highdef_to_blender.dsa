@@ -41,10 +41,10 @@ function createDialog()
         return;
     }
 
-    var mresButton = new DzCheckBox( wDlg );
-    mresButton.text = "Use multires";
-    mresButton.checked = true;
-    wDlg.addWidget( mresButton );
+    var uvButton = new DzCheckBox( wDlg );
+    uvButton.text = "Export HD UVs";
+    uvButton.checked = true;
+    wDlg.addWidget( uvButton );
 
     // Get the minimum size of the dialog
     var sizeHint = oDlgWgt.minimumSizeHint;
@@ -53,7 +53,7 @@ function createDialog()
 
     // If the user accepts the dialog
     if( wDlg.exec() ){
-        exportHighdefToBlender(filepath, mresButton.checked);
+        exportHighdefToBlender(filepath, uvButton.checked);
     // If the user rejects the dialog
     } else {
         return;
@@ -61,7 +61,7 @@ function createDialog()
 }
 
 
-function exportHighdefToBlender(filepath, with_multires)
+function exportHighdefToBlender(filepath, useHdUvs)
 {
     var date1 = new Date();
     var time1 = date1.getTime();
@@ -81,14 +81,14 @@ function exportHighdefToBlender(filepath, with_multires)
 
         if ( node.inherits( "DzSkeleton" ) )
         {
-            doFigure(fp, node, with_multires);
+            doFigure(fp, node, useHdUvs);
         }
         else
         {
             obj = node.getObject();
             if (obj != null)
             {
-                doMesh(fp, obj, true, node, "        ]", "    },", with_multires);
+                doMesh(fp, obj, true, node, "        ]", "    },", useHdUvs);
             }
         }
     }
@@ -126,7 +126,7 @@ function exportHighdefToBlender(filepath, with_multires)
 //
 //===============================================================================
 
-function doFigure(fp, figure, with_multires)
+function doFigure(fp, figure, useHdUvs)
 {
     figure.finalize();
     startObject(fp, figure);
@@ -134,7 +134,7 @@ function doFigure(fp, figure, with_multires)
     var obj = figure.getObject();
     if (obj != null)
     {
-        doMesh(fp, obj, false, figure, "        ],", "", with_multires);
+        doMesh(fp, obj, false, figure, "        ],", "", useHdUvs);
     }
 
     var bones = figure.getAllBones();
@@ -178,7 +178,7 @@ function startObject(fp, node)
 }
 
 
-function doMesh(fp, obj, start, node, str1, str2, with_multires)
+function doMesh(fp, obj, start, node, str1, str2, useHdUvs)
 {
     var shape = obj.getCurrentShape();
     if (shape == null)
@@ -202,7 +202,7 @@ function doMesh(fp, obj, start, node, str1, str2, with_multires)
         fp.writeLine("        \"subd level\": " + level + ",");
         doVertices(fp, geom, "hd ");
         fp.writeLine("        ],");
-        if (!with_multires)
+        if (useHdUvs)
             doUVs(fp, geom, "hd ");
         doFaces(fp, geom, "hd ");
         doMaterialGroups(fp, geom, "hd ");
