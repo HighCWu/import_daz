@@ -176,11 +176,9 @@ class GlobalSettings:
         "DazSimulation" : "useSimulation",
     }
 
-    def fixPath(self, path, last=""):
+    def fixPath(self, path):
         filepath = os.path.expanduser(path).replace("\\", "/")
-        if last and filepath[-1] != last:
-            filepath = filepath + last
-        return filepath
+        return filepath.rstrip("/ ")
 
 
     def getDazPaths(self):
