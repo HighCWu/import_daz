@@ -451,7 +451,7 @@ class SkinBinding(Modifier):
             if len(hdob.data.vertices) == len(ob.data.vertices):
                 copyVertexGroups(ob, hdob)
             else:
-                LS.hdweights.append(hdob.name)
+                LS.hdWeights.append(hdob.name)
 
 
     def addVertexGroups(self, ob, geonode, rig):

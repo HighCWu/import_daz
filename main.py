@@ -135,17 +135,17 @@ class ImportDAZ(DazOperator, DazOptions, MultiFile):
                    "Check that all Daz paths have been set up correctly.        \n" +
                    "For details see\n'%s'" % getErrorPath())
         else:
-            if LS.hdfailures:
+            if LS.hdFailures:
                 msg += "Could not rebuild subdivisions for the following HD objects:       \n"
-                for hdname in LS.hdfailures:
+                for hdname in LS.hdFailures:
                     msg += ("  %s\n" % hdname)
-            if LS.hdweights:
+            if LS.hdWeights:
                 msg += "Could not copy vertex weights to the following HD objects:         \n"
-                for hdname in LS.hdweights:
+                for hdname in LS.hdWeights:
                     msg += ("  %s\n" % hdname)
-            if LS.hduvmissing:
+            if LS.hdUvMissing:
                 msg += "HD objects missing UV layers:\n"
-                for hdname in LS.hduvmissing:
+                for hdname in LS.hdUvMissing:
                     msg += ("  %s\n" % hdname)
                 msg += "Export from DAZ Studio with Multires disabled.        \n"
         if msg:

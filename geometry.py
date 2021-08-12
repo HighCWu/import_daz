@@ -189,8 +189,8 @@ class GeoNode(Node, SimNode):
 
     def addHDUvs(self, ob, hdob):
         if not self.highdef.uvs:
-            if hdob.name not in LS.hduvmissing:
-                LS.hduvmissing.append(hdob.name)
+            if hdob.name not in LS.hdUvMissing:
+                LS.hdUvMissing.append(hdob.name)
             return
         hdfaces = self.highdef.faces
         uvfaces = self.stripNegatives([f[1] for f in hdfaces])
@@ -269,54 +269,51 @@ class GeoNode(Node, SimNode):
 
 
     def copyHDMaterials(self, ob, hdob, context, inst):
-        matgroups = [(mname,mn) for mn,mname in enumerate(self.highdef.matgroups)]
-        matnames = [(pg.name,pg.text) for pg in hdob.data.DazHDMaterials]
-        matgroups.sort()
-        matnames.sort()
-        diff = len(matnames) - len(matgroups)
-        matnums = []
-        n = 0
-        for mname1,mname in matnames:
-            if n >= len(matgroups):
-                break
-            mname2,mn = matgroups[n]
-            ename = mname1.rsplit("?",1)[-1]
-            if not mname2.endswith(ename) and diff > 0:
-                diff -= 1
+        def getDataMaterial(mname):
+            while True:
+                for mat in bpy.data.materials:
+                    if mat.name.startswith(mname):
+                        return mat
+                words = mname.split("_",1)
+                if len(words) == 1:
+                    return None
+                mname = words[1]
+
+        def fixHDMaterial(mat, uvmap):
+            keep = True
+            for node in mat.node_tree.nodes:
+                if node.type in ['UVMAP', 'NORMAL_MAP']:
+                    keep = False
+                    break
+            if keep:
+                return mat
             else:
-                matnums.append((mn, mname))
-                n += 1
+                nmat = mat.copy()
+                for node in nmat.node_tree.nodes:
+                    if node.type in ['UVMAP', 'NORMAL_MAP']:
+                        node.uv_map = uvmap
+                return nmat
 
         uvmap = None
-        if (not (GS.useMultires and GS.useMultiUvLayers) and
-            len(ob.data.uv_layers) > 1):
+        useMulti = (getModifier(hdob, 'MULTIRES') and GS.useMultiUvLayers)
+        if not useMulti and len(ob.data.uv_layers) > 1:
             if hdob.data.uv_layers:
                 uvmap = hdob.data.uv_layers[0].name
-            elif hdob.name not in LS.hduvmissing:
-                LS.hduvmissing.append(hdob.name)
-        matnums.sort()
-        for _,mname in matnums:
-            mat = bpy.data.materials[mname]
-            if uvmap:
-                mat = self.fixHDMaterial(mat, uvmap)
+            elif hdob.name not in LS.hdUvMissing:
+                LS.hdUvMissing.append(hdob.name)
+        matnames = dict([(pg.name,pg.text) for pg in hdob.data.DazHDMaterials])
+        for mn,mname in enumerate(self.highdef.matgroups):
+            mat = None
+            if mname in matnames.keys():
+                mname = matnames[mname]
+            if mname in bpy.data.materials.keys():
+                mat = bpy.data.materials[mname]
+            else:
+                mat = getDataMaterial(mname)
+            if uvmap and mat:
+                mat = fixHDMaterial(mat, uvmap)
             hdob.data.materials.append(mat)
         inst.parentObject(context, self.hdobject)
-
-
-    def fixHDMaterial(self, mat, uvmap):
-        keep = True
-        for node in mat.node_tree.nodes:
-            if node.type in ['UVMAP', 'NORMAL_MAP']:
-                keep = False
-                break
-        if keep:
-            return mat
-        else:
-            nmat = mat.copy()
-            for node in nmat.node_tree.nodes:
-                if node.type in ['UVMAP', 'NORMAL_MAP']:
-                    node.uv_map = uvmap
-            return nmat
 
 
     def setHideInfo(self):
@@ -394,7 +391,7 @@ def addMultires(context, hdob, strict):
     else:
         reportError(msg, trigger=(2,4))
         hdob.modifiers.remove(mod)
-        LS.hdfailures.append(hdob.name)
+        LS.hdFailures.append(hdob.name)
         return False
 
 
@@ -444,7 +441,7 @@ def copyUvLayers(ob, hdob):
         for f in ob.data.polygons:
             fid = tuple( sorted(list(f.vertices)) )
             if fid not in loopsMapping:
-                print("Bad map", fid)
+                #print("Bad map", fid)
                 continue
             for i,vn in enumerate(f.vertices):
                 if vn not in loopsMapping[fid]:
@@ -455,7 +452,6 @@ def copyUvLayers(ob, hdob):
                 hddata[hdLoop].uv = uvdata[loop].uv
 
     for uvlayer in list(hdob.data.uv_layers):
-        print("DEL", uvlayer.name)
         hdob.data.uv_layers.remove(uvlayer)
     loopsMapping = setupLoopsMapping()
     for uvlayer in ob.data.uv_layers:
