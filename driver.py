@@ -155,6 +155,9 @@ class DriverUser:
             if var.type == 'TRANSFORMS':
                 for trg in var.targets:
                     targets.append((var.name, trg.bone_target, var))
+            elif var.type == 'SINGLE_PROP':
+                for trg in var.targets:
+                    targets.append((var.name, None, var))
         targets.sort()
         return targets
 
