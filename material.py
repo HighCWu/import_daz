@@ -170,10 +170,11 @@ class Material(Asset, Channels):
         from .geometry import Geometry, GeoNode
         if self.dontBuild():
             return
-        if self.rna is None:
-            self.rna = bpy.data.materials.new(self.name)
-        scn = self.scene = context.scene
         mat = self.rna
+        if mat is None:
+            mat = self.rna = bpy.data.materials.new(self.name)
+            LS.materials[mat.name] = mat
+        scn = self.scene = context.scene
         mat.DazRenderEngine = scn.render.engine
         mat.DazShader = self.shader
         if self.uv_set:

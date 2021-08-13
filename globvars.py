@@ -43,12 +43,6 @@ theOtherAssets = {}
 theSources = {}
 theTrace = []
 
-def clearAssets():
-    global theAssets, theOtherAssets, theSources
-    theAssets = {}
-    theOtherAssets = {}
-    theSources = {}
-
 #-------------------------------------------------------------
 #   animation.py
 #-------------------------------------------------------------

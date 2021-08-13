@@ -271,7 +271,7 @@ class GeoNode(Node, SimNode):
     def copyHDMaterials(self, ob, hdob, context, inst):
         def getDataMaterial(mname):
             while True:
-                for mat in bpy.data.materials:
+                for mat in LS.materials.values():
                     if mat.name.startswith(mname):
                         return mat
                 words = mname.split("_",1)
@@ -306,8 +306,8 @@ class GeoNode(Node, SimNode):
             mat = None
             if mname in matnames.keys():
                 mname = matnames[mname]
-            if mname in bpy.data.materials.keys():
-                mat = bpy.data.materials[mname]
+            if mname in LS.materials.keys():
+                mat = LS.materials[mname]
             else:
                 mat = getDataMaterial(mname)
             if uvmap and mat:

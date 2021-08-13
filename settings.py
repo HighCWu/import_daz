@@ -402,6 +402,7 @@ class LocalSettings:
         self.hdWeights = []
         self.hdUvMissing = []
         self.deflectors = {}
+        self.materials = {}
         self.images = {}
         self.textures = {}
         self.gammas = {}
@@ -446,8 +447,10 @@ class LocalSettings:
     def reset(self):
         from .asset import setDazPaths
         G.theTrace = []
+        G.theAssets = {}
+        G.theOtherAssets = {}
+        G.theSources = {}
         setDazPaths()
-        G.clearAssets()
         self.useStrict = False
         self.scene = ""
 
