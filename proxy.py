@@ -1224,11 +1224,14 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
 
     def run(self, context):
         ob = context.object
+        scn = context.scene
         mod = getModifier(ob, 'SUBSURF')
-        if mod:
-            modname = mod.name
-        else:
+        if not mod:
             raise DazError("Object %s\n has no subsurface modifier.    " % ob.name)
+        modname = mod.name
+        levels = scn.render.simplify_subdivision
+        if scn.render.simplify_subdivision < mod.levels:
+            scn.render.simplify_subdivision = mod.levels
 
         startProgress("Apply Subsurf Modifier")
         coords = []
@@ -1248,6 +1251,7 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
         activateObject(context, ob)
         bpy.ops.object.duplicate()
         nob = context.object
+        print("APP", nob, modname)
         bpy.ops.object.modifier_apply(modifier=modname)
         nskeys = len(coords)
 
@@ -1277,6 +1281,7 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
         activateObject(context, ob)
         bpy.ops.object.delete(use_global=False)
         activateObject(context, nob)
+        scn.render.simplify_subdivision = levels
 
 #-------------------------------------------------------------
 #   Print statistics
