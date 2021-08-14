@@ -1688,19 +1688,6 @@ class DAZ_OT_LockBones(DazPropsOperator, IsArmature):
 #   Update for 1.5
 #----------------------------------------------------------
 
-class DAZ_OT_UpdateRigVersion(DazOperator, IsArmature):
-    bl_idname = "daz.update_rig_version"
-    bl_label = "Update Rig For Version 1.5"
-    bl_description = "Use this if you have problems with posing old characters"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        rig = context.object
-        for bone in rig.data.bones:
-            if "DazOrientation" in bone.keys():
-                bone.DazOrient = list(bone["DazOrientation"])
-
-
 class DAZ_OT_CopyDazProps(DazOperator, IsObject):
     bl_idname = "daz.copy_daz_props"
     bl_label = "Copy DAZ Properties"
@@ -1786,7 +1773,6 @@ classes = [
     DAZ_OT_SnapSimpleFK,
     DAZ_OT_SnapSimpleIK,
     DAZ_OT_LockBones,
-    DAZ_OT_UpdateRigVersion,
     DAZ_OT_CopyDazProps,
     DAZ_OT_InspectWorldMatrix,
     DAZ_OT_EnableAllLayers,

@@ -270,7 +270,7 @@ class DAZ_PT_Advanced(bpy.types.Panel):
         box = layout.box()
         if showBox(scn, "DazShowRigging2", box):
             box.operator("daz.remove_custom_shapes")
-            box.separator()
+            box.operator("daz.copy_daz_props")
             box.operator("daz.convert_rig")
             box.operator("daz.add_extra_face_bones")
             box.separator()
@@ -278,11 +278,6 @@ class DAZ_PT_Advanced(bpy.types.Panel):
             box.operator("daz.add_winders")
             box.operator("daz.change_prefix_to_suffix")
             box.operator("daz.lock_bones")
-            box.separator()
-            box.operator("daz.update_rig_version")
-            box.operator("daz.convert_mhx_actions")
-            box.operator("daz.update_mhx_shin")
-            box.operator("daz.copy_daz_props")
 
         layout.separator()
         box = layout.box()

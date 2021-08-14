@@ -1671,60 +1671,6 @@ LRGizmos = {
     "ik_pinky":         ("GZM_Cone", 0.4),
     }
 
-# ---------------------------------------------------------------------
-#   Convert MHX actions from legacy to modern
-# ---------------------------------------------------------------------
-
-from .morphing import Selector
-
-class DAZ_OT_ConvertMhxActions(DazOperator, Selector):
-    bl_idname = "daz.convert_mhx_actions"
-    bl_label = "Convert MHX Actions"
-    bl_description = "Convert actions between legacy MHX (root/hips) and modern MHX (hip/pelvis)"
-    bl_options = {'UNDO'}
-
-    direction : EnumProperty(
-        items = [
-            ('MODERN', "Legacy => Modern", "Convert from legacy MHX (root/hips) to modern MHX (hip/pelvis)"),
-            ('LEGACY', "Modern => Legacy", "Convert from modern MHX (hip/pelvis) to legacy MHX (root/hips)"),
-        ],
-        name = "Direction",
-        default = 'MODERN'
-    )
-
-    def draw(self, context):
-        self.layout.prop(self, "direction")
-        Selector.draw(self, context)
-
-
-    def run(self, context):
-        if self.direction == 'MODERN':
-            replace = {
-                '"root"' : '"hip"',
-                '"hips"' : '"pelvis"',
-            }
-        else:
-            replace = {
-                '"hip"' : '"root"',
-                '"pelvis"' : '"hips"',
-            }
-        for item in self.getSelectedItems():
-            act = bpy.data.actions[item.name]
-            for fcu in act.fcurves:
-                for old,new in replace.items():
-                    if old in fcu.data_path:
-                        fcu.data_path = fcu.data_path.replace(old, new)
-
-
-    def invoke(self, context, event):
-        self.selection.clear()
-        for act in bpy.data.actions:
-            item = self.selection.add()
-            item.name = act.name
-            item.text = act.name
-            item.select = False
-        return self.invokeDialog(context)
-
 #-------------------------------------------------------------
 #   Set all limbs to FK.
 #   Used by load pose etc.
@@ -1832,7 +1778,6 @@ def initMhxProps():
 
 classes = [
     DAZ_OT_ConvertToMhx,
-    DAZ_OT_ConvertMhxActions,
     DAZ_OT_UpdateMhx,
 ]
 

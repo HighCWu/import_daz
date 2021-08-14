@@ -836,35 +836,6 @@ class BendTwists:
                 self.addGizmo(twisttwk, gizmo, 1, blen=10*rig.DazScale)
 
 #-------------------------------------------------------------
-#   Update MHX shin
-#-------------------------------------------------------------
-
-class DAZ_OT_UpdateMhxShin(DazOperator, BendTwists, IsArmature):
-    bl_idname = "daz.update_mhx_shin"
-    bl_label = "Update MHX Shin"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        from .mhx import dampedTrack, copyRotation, addDriver, setMhxProp
-        rig = context.object
-        for suffix in [".L", ".R"]:
-            bname = "shin" + suffix
-            prop = "MhaDazShin_%s" % bname[-1]
-            setMhxProp(rig, prop, False)
-            bendname,twistname = self.getSubBoneNames(bname)
-            pb = rig.pose.bones[bname]
-            bend = rig.pose.bones[bendname]
-            twist = rig.pose.bones[twistname]
-            cns1 = getConstraint(bend, 'DAMPED_TRACK')
-            cns2 = getConstraint(twist, 'COPY_ROTATION')
-            cns3 = getConstraint(bend, 'COPY_ROTATION')
-            if cns1 and cns2 and not cns3:
-                addDriver(cns1, "mute", rig, prop, "x")
-                addDriver(cns2, "mute", rig, prop, "x")
-                cns3 = copyRotation(bend, pb, rig, space='WORLD')
-                addDriver(cns3, "mute", rig, prop, "not(x)")
-
-#-------------------------------------------------------------
 #   Add IK goals
 #-------------------------------------------------------------
 
@@ -1224,7 +1195,6 @@ classes = [
     DAZ_OT_AddWinders,
     DAZ_OT_ChangePrefixToSuffix,
     DAZ_OT_ChangeArmature,
-    DAZ_OT_UpdateMhxShin,
 ]
 
 def register():
