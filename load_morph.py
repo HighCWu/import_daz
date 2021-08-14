@@ -696,12 +696,10 @@ class LoadMorph(DriverUser):
                 return
             btargets = self.getVarBoneTargets(fcu0)
             if btargets:
-                varname = None
-                for vname,tbone,var0 in btargets:
-                    bvars.append(Variable(var0))
-                    if tbone:
-                        varname = vname
+                varname = btargets[-1][0]
                 string = self.extractBoneExpression(fcu0.driver.expression, varname)
+                for _,_,var0 in btargets:
+                    bvars.append(Variable(var0))
         rna.driver_remove(channel)
         fcu = rna.driver_add(channel)
         fcu.driver.type = 'SCRIPTED'
@@ -963,12 +961,10 @@ class LoadMorph(DriverUser):
             if fcu0 and fcu0.driver.type == 'SCRIPTED':
                 btargets = self.getVarBoneTargets(fcu0)
                 if btargets:
-                    varname = None
-                    for vname,tbone,var0 in btargets:
-                        bvars.append(Variable(var0))
-                        if tbone:
-                            varname = vname
+                    varname = btargets[-1][0]
                     string0 = self.extractBoneExpression(fcu0.driver.expression, varname)
+                    for _,_,var0 in btargets:
+                        bvars.append(Variable(var0))
                     vname = nextLetter(varname)
                     string = string0 + string.replace(varname, vname)
                     vars = [(idx, varname.replace(varname, vname), prop)
@@ -990,7 +986,6 @@ class LoadMorph(DriverUser):
                 else:
                     string = "u+%s" % string
                 self.rig[raw] = 0.0
-                print("UUU", raw, string)
                 self.addPathVar(fcu, "u", self.rig, propRef(raw))
                 self.addToMorphSet(raw, None, True)
         adj = self.getLocalAdjuster()

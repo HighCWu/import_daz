@@ -576,10 +576,8 @@ class ExtraBones(DriverUser):
                     if fcu.driver.type == 'SCRIPTED']
             for fcu in fcus:
                 channel = fcu.data_path
-                for vname,tbone,var in self.getVarBoneTargets(fcu):
-                    bname = None
-                    if tbone:
-                        bname = baseBone(tbone)
+                for btarget in self.getVarBoneTargets(fcu):
+                    bname = baseBone(btarget[1])
                     if bname and bname in self.bnames and fcu.driver:
                         fcu2 = self.getTmpDriver(0)
                         self.copyFcurve(fcu, fcu2)
