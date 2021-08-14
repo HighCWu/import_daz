@@ -45,6 +45,7 @@ class LoadMorph(DriverUser):
     usePropDrivers = True
     isJcm = False
     iked = []
+    treatHD = 'ERROR'
 
     def __init__(self, rig, mesh):
         self.rig = rig
@@ -688,18 +689,21 @@ class LoadMorph(DriverUser):
         from .driver import getRnaDriver, Variable, removeModifiers
         rna,channel = self.getDrivenChannel(raw)
         bvars = []
+        vvars = {}
         string = ""
         fcu0 = getRnaDriver(rna, channel, None)
         if fcu0 and fcu0.driver.type == 'SCRIPTED':
             if not self.primary[raw]:
                 self.extendPropDriver(fcu0, raw, drivers)
                 return
-            btargets = self.getVarBoneTargets(fcu0)
+            vtargets,btargets = self.getVarBoneTargets(fcu0)
             if btargets:
                 varname = btargets[-1][0]
                 string = self.extractBoneExpression(fcu0.driver.expression, varname)
                 for _,_,var0 in btargets:
                     bvars.append(Variable(var0))
+            for vname,_,var0 in vtargets:
+                vvars[vname] = Variable(var0)
         rna.driver_remove(channel)
         fcu = rna.driver_add(channel)
         fcu.driver.type = 'SCRIPTED'
@@ -724,6 +728,7 @@ class LoadMorph(DriverUser):
         fcu.driver.expression = string
         if rdrivers:
             self.extendPropDriver(fcu, raw, rdrivers)
+        self.addMissingVars(fcu, vvars)
 
 
     def extractBoneExpression(self, string, varname):
@@ -759,6 +764,14 @@ class LoadMorph(DriverUser):
             return string, drivers[MAX_TERMS2:]
         else:
             return string, []
+
+
+    def addMissingVars(self, fcu, vvars):
+        vnames = [var.name for var in fcu.driver.variables]
+        for vname,vvar in vvars.items():
+            if vname not in vnames:
+                var = fcu.driver.variables.new()
+                vvar.create(var)
 
 
     def extendPropDriver(self, fcu, raw, drivers):
@@ -956,10 +969,11 @@ class LoadMorph(DriverUser):
     def makeBoneDriver(self, string, vars, channel, rna, path, idx, keep):
         from .driver import addTransformVar, Variable, getRnaDriver, removeModifiers
         bvars = []
+        vvars = {}
         if keep:
             fcu0 = getRnaDriver(rna, path, None)
             if fcu0 and fcu0.driver.type == 'SCRIPTED':
-                btargets = self.getVarBoneTargets(fcu0)
+                vtargets,btargets = self.getVarBoneTargets(fcu0)
                 if btargets:
                     varname = btargets[-1][0]
                     string0 = self.extractBoneExpression(fcu0.driver.expression, varname)
@@ -969,6 +983,8 @@ class LoadMorph(DriverUser):
                     string = string0 + string.replace(varname, vname)
                     vars = [(idx, varname.replace(varname, vname), prop)
                         for (idx, varname, prop) in  vars]
+                for vname,_,var0 in vtargets:
+                    vvars[vname] = Variable(var0)
 
         rna.driver_remove(path, idx)
         fcu = rna.driver_add(path, idx)
@@ -1001,6 +1017,7 @@ class LoadMorph(DriverUser):
             reportError("Unknown channel: %s" % channel, trigger=(2,3))
         for j,vname,bname in vars:
             addTransformVar(fcu, vname, ttypes[j], self.rig, bname)
+        self.addMissingVars(fcu, vvars)
         return fcu
 
     #------------------------------------------------------------------

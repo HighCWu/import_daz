@@ -576,7 +576,8 @@ class ExtraBones(DriverUser):
                     if fcu.driver.type == 'SCRIPTED']
             for fcu in fcus:
                 channel = fcu.data_path
-                for btarget in self.getVarBoneTargets(fcu):
+                vtargets,btargets = self.getVarBoneTargets(fcu)
+                for btarget in btargets:
                     bname = baseBone(btarget[1])
                     if bname and bname in self.bnames and fcu.driver:
                         fcu2 = self.getTmpDriver(0)
