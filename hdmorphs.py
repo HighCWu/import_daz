@@ -844,48 +844,6 @@ def getHDDirs(ob, attr):
     return []
 
 
-class ActiveFileSelector(Selector):
-
-    def getKeys(self, rig, ob):
-        skeys = ob.data.shape_keys
-        if skeys is None:
-            return []
-        keys = []
-        fpgs = getattr(ob.data, self.attr)
-        for skey in skeys.key_blocks[1:]:
-            sname = skey.name
-            if sname in fpgs.keys():
-                keys.append((sname,sname,sname))
-        return keys
-
-
-    def run(self, context):
-        from .asset import getDazPath
-        ob = context.object
-        LS.forMorphLoad(ob)
-        pgs = getattr(ob.data, self.attr)
-        for item in self.selection:
-            if item.name in pgs.keys():
-                item2 = pgs[item.name]
-                item2.b = item.select
-
-
-class DAZ_OT_SelectDhdmFiles(DazOperator, ActiveFileSelector, IsMesh):
-    bl_idname = "daz.select_dhdm_files"
-    bl_label = "Select DHDM Files"
-    bl_description = "Make list of .dhdm files to be used with the HD Morphs DAZ add-on"
-
-    attr = "DazDhdmFiles"
-
-
-class DAZ_OT_SelectMorphFiles(DazOperator, ActiveFileSelector, IsMesh):
-    bl_idname = "daz.select_morph_files"
-    bl_label = "Select Morph Files"
-    bl_description = "Make list of morph files to be used with the HD Morphs DAZ add-on"
-
-    attr = "DazMorphFiles"
-
-
 def addSkeyToUrls(ob, asset, skey):
     def getPath(url):
         from .asset import getDazPath
@@ -920,8 +878,6 @@ classes = [
     DAZ_OT_LoadNormalMap,
     DAZ_OT_BakeMaps,
     DAZ_OT_LoadBakedMaps,
-    DAZ_OT_SelectDhdmFiles,
-    DAZ_OT_SelectMorphFiles,
 ]
 
 def register():

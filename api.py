@@ -124,14 +124,6 @@ def get_default_morph_directories(ob):
     from .fileutils import getFolders
     return getFolders(ob, ["Morphs/"])
 
-def get_dhdm_files(ob=None):
-    from .hdmorphs import getHDFiles
-    return getHDFiles(ob, "DazDhdmFiles")
-
-def get_morph_files(ob=None):
-    from .hdmorphs import getHDFiles
-    return getHDFiles(ob, "DazMorphFiles")
-
 def get_dhdm_directories(ob=None):
     from .hdmorphs import getHDDirs
     return getHDDirs(ob, "DazDhdmFiles")
