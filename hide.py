@@ -356,24 +356,41 @@ class DAZ_OT_CreateMasks(DazPropsOperator, IsMesh, MeshSelection, SingleGroup):
 class DAZ_OT_AddShrinkwrap(DazPropsOperator, MeshSelection, IsMesh):
     bl_idname = "daz.add_shrinkwrap"
     bl_label = "Add Shrinkwrap"
-    bl_description = "Add a shrinkwrap modifier covering the active mesh"
+    bl_description = "Add shrinkwrap modifiers covering the active mesh.\nOptionally add solidify modifiers"
     bl_options = {'UNDO'}
 
     offset : FloatProperty(
         name = "Offset (mm)",
         description = "Offset the surface from the character mesh",
-        default = 5.0)
+        default = 2.0)
+
+    useSolidify : BoolProperty(
+        name = "Solidify",
+        description = "Add a solidify modifier too",
+        default = False)
+
+    thickness : FloatProperty(
+        name = "Thickness (mm)",
+        description = "Thickness of the surface",
+        default = 2.0)
 
     def draw(self, context):
         self.layout.prop(self, "offset")
+        self.layout.prop(self, "useSolidify")
+        if self.useSolidify:
+            self.layout.prop(self, "thickness")
         MeshSelection.draw(self, context)
+
 
     def run(self, context):
         hum = context.object
         for ob in self.getSelection(context):
-            self.createShrinkwrap(ob, hum)
+            self.makeShrinkwrap(ob, hum)
+            if self.useSolidify:
+                self.makeSolidify(ob)
 
-    def createShrinkwrap(self, ob, hum):
+
+    def makeShrinkwrap(self, ob, hum):
         mod = None
         for mod1 in ob.modifiers:
             if mod1.type == 'SHRINKWRAP' and mod1.target == hum:
@@ -386,6 +403,16 @@ class DAZ_OT_AddShrinkwrap(DazPropsOperator, MeshSelection, IsMesh):
         mod.wrap_method = 'NEAREST_SURFACEPOINT'
         mod.wrap_mode = 'OUTSIDE'
         mod.offset = 0.1*hum.DazScale*self.offset
+
+
+    def makeSolidify(self, ob):
+        mod = getModifier(ob, 'SOLIDIFY')
+        if mod:
+            print("Object %s already has solidify modifier" % ob.name)
+        else:
+            mod = ob.modifiers.new("Solidify", 'SOLIDIFY')
+        mod.thickness = 0.1*ob.DazScale*self.thickness
+        mod.offset = 0.0
 
 
     def invoke(self, context, event):
