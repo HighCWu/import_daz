@@ -275,30 +275,6 @@ def copyPropGroups(rig1, rig2, pb2):
             pg2.factor = pg1.factor
             pg2.default = pg1.default
 
-
-class DAZ_OT_InspectPropGroups(DazOperator, IsArmature):
-    bl_idname = "daz.inspect_prop_groups"
-    bl_label = "Inspect Prop Groups"
-    bl_description = "Show the property groups for the selected posebones."
-
-    def run(self, context):
-        rig = context.object
-        for pb in rig.pose.bones:
-            if pb.bone.select:
-                print("\n", pb.name)
-                for key,proplist in [
-                    ("Loc", getLocPropGroups(pb)),
-                    ("Rot", getRotPropGroups(pb)),
-                    ("Sca", getScalePropGroups(pb))]:
-                    for n, props in enumerate(proplist):
-                        if len(props) == 0:
-                            continue
-                        print("  %s %d:" % (key, n-1))
-                        props = list(props)
-                        props.sort()
-                        for pg in props:
-                            print("    ", pg.display())
-
 #-------------------------------------------------------------
 #   Initialize
 #-------------------------------------------------------------
@@ -340,7 +316,6 @@ classes = [
     DazTextGroup,
     DazMorphInfoGroup,
     DazMorphGroup,
-    DAZ_OT_InspectPropGroups,
     ]
 
 def register():
