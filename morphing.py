@@ -276,9 +276,7 @@ class Selector():
 
     def draw(self, context):
         scn = context.scene
-        row = self.layout.row()
-        row.operator("daz.select_all")
-        row.operator("daz.select_none")
+        self.drawSelectionRow()
         self.layout.prop(self, "filter", icon='VIEWZOOM', text="")
         self.drawExtra(context)
         self.layout.separator()
@@ -304,6 +302,12 @@ class Selector():
                     row.label(text=item.text)
                 else:
                     row.label(text="")
+
+
+    def drawSelectionRow(self):
+        row = self.layout.row()
+        row.operator("daz.select_all")
+        row.operator("daz.select_none")
 
 
     def drawExtra(self, context):
@@ -907,6 +911,16 @@ class DAZ_OT_ImportFacsExpressions(DazOperator, StandardMorphSelector, StandardM
     loadMissing = False
 
 
+class DAZ_OT_SelectMhxCompatible(bpy.types.Operator):
+    bl_idname = "daz.select_mhx_compatible"
+    bl_label = "MHX Compatible"
+    bl_description = "Select MHX compatible body morphs"
+
+    def execute(self, context):
+        getSelector().selectMhxCompatible(context)
+        return {'PASS_THROUGH'}
+
+
 class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMeshArmature):
     bl_idname = "daz.import_body_morphs"
     bl_label = "Import Body Morphs"
@@ -915,6 +929,33 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphL
 
     morphset = "Body"
     bodypart = "Body"
+
+    def drawSelectionRow(self):
+        row = self.layout.row()
+        row.operator("daz.select_all")
+        row.operator("daz.select_mhx_compatible")
+        row.operator("daz.select_none")
+
+
+    def selectMhxCompatible(self, context):
+        safe = ["Breast", "Finger", "Hand", "Thumb", "Index", "Mid", "Ring", "Pinky", "Foot"]
+        if self.rig:
+            if "lBigToe" in self.rig.data.bones.keys():
+                safe.append("Toe")
+                unsafe = []
+            else:
+                unsafe = ["Toe"]
+        else:
+            safe = unsafe = []
+        for item in self.selection:
+            item.select = False
+            for string in safe:
+                if string in item.text:
+                    item.select = True
+            for string in unsafe:
+                if string in item.text:
+                    item.select = False
+
 
     def run(self, context):
         StandardMorphLoader.run(self, context)
@@ -2634,6 +2675,7 @@ classes = [
 
     DAZ_OT_SelectAll,
     DAZ_OT_SelectNone,
+    DAZ_OT_SelectMhxCompatible,
 
     DAZ_OT_Update,
     DAZ_OT_SelectAllMorphs,
