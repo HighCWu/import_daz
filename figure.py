@@ -1210,8 +1210,13 @@ class DAZ_OT_ConnectIKChains(DazPropsOperator, SimpleIK, IsArmature):
             parb = rig.data.edit_bones[chain[0]]
             for child in chain[1:]:
                 eb = rig.data.edit_bones[child]
-                self.relocate(parb, eb)
-                eb.use_connect = True
+                if isDrvBone(eb.parent.name):
+                    self.relocate(parb, eb)
+                    self.relocate(parb, eb.parent)
+                    eb.parent.use_connect = True
+                else:
+                    self.relocate(parb, eb)
+                    eb.use_connect = True
                 parb = eb
         if self.unlock:
             setMode("EDIT")
