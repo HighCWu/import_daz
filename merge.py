@@ -1247,7 +1247,7 @@ def reparentToes(rig, context):
                     eb.parent = parb
                     toenames.append(eb.name)
     setMode('OBJECT')
-    removeBoneSumDrivers(rig, toenames)
+    #removeBoneSumDrivers(rig, toenames)
 
 
 class DAZ_OT_ReparentToes(DazOperator, IsArmature):
