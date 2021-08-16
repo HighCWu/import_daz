@@ -881,7 +881,8 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             return key
         alias = getAlias(rig, key)
         if alias and alias in rig.keys():
-            print("Alias", key, alias)
+            if GS.verbosity > 2:
+                print("Alias", key, alias)
             return alias
         if key not in missing:
             missing.append(key)

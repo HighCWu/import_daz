@@ -293,7 +293,6 @@ class Selector():
             if ncols < self.mincols:
                 ncols = self.mincols
                 nrows = (nitems-1)//ncols + 1
-            print("RC", nitems, nrows, ncols)
         cols = []
         for n in range(ncols):
             cols.append(items[0:nrows])

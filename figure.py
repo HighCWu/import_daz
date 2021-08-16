@@ -454,8 +454,10 @@ def copyBoneInfo(srcpb, trgpb):
 class ExtraBones(DriverUser):
     def run(self, context):
         from time import perf_counter
-        t1 = perf_counter()
         rig = context.object
+        if rig.DazRig[0:3] in ["mhx", "rig"]:
+            raise DazError("Cannot make %s bones poseable.     " % rig.DazRig)
+        t1 = perf_counter()
         oldvis = list(rig.data.layers)
         rig.data.layers = 32*[True]
         success = False
