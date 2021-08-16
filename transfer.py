@@ -241,13 +241,14 @@ class DAZ_OT_TransferShapekeys(DazOperator, JCMSelector, FastMatcher, DriverUser
 
     def draw(self, context):
         self.layout.prop(self, "transferMethod", expand=True)
-        self.layout.prop(self, "useDrivers")
-        if self.useDrivers:
-            self.layout.prop(self, "useStrength")
-        self.layout.prop(self, "useVendorMorphs")
-        self.layout.prop(self, "useOverwrite")
-        self.layout.prop(self, "useSelectedOnly")
-        self.layout.prop(self, "ignoreRigidity")
+        row = self.layout.row()
+        row.prop(self, "useDrivers")
+        row.prop(self, "useVendorMorphs")
+        row.prop(self, "useOverwrite")
+        row = self.layout.row()
+        row.prop(self, "useStrength")
+        row.prop(self, "useSelectedOnly")
+        row.prop(self, "ignoreRigidity")
         JCMSelector.draw(self, context)
 
 

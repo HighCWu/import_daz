@@ -859,7 +859,8 @@ class CyclesTree:
 
     def getTranslucentColor(self):
         color,tex = self.getColorTex(["Translucency Color"], "COLOR", BLACK)
-        if tex is None and GS.useFakeTranslucencyTexture:
+        if (tex is None and
+            (GS.useFakeTranslucencyTexture or not GS.useVolume)):
             tex = self.diffuseTex
         return color,tex
 

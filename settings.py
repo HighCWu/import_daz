@@ -82,7 +82,7 @@ class GlobalSettings:
         self.hairMaterialMethod = 'HAIR_BSDF'
         self.imageInterpolation = 'Cubic'
 
-        self.useAdjusters = 'TYPE'
+        self.useAdjusters = 'NONE'
         self.customMin = -1.0
         self.customMax = 1.0
         self.morphMultiplier = 1.0

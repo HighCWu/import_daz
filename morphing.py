@@ -273,6 +273,7 @@ class Selector():
     columnWidth = 180
     ncols = 6
     nrows = 20
+    mincols = 3
 
     def draw(self, context):
         scn = context.scene
@@ -289,6 +290,10 @@ class Selector():
             nrows = nitems//ncols + 1
         else:
             ncols = nitems//nrows + 1
+            if ncols < self.mincols:
+                ncols = self.mincols
+                nrows = (nitems-1)//ncols + 1
+            print("RC", nitems, nrows, ncols)
         cols = []
         for n in range(ncols):
             cols.append(items[0:nrows])
@@ -356,6 +361,8 @@ class Selector():
         ncols = len(self.selection)//self.nrows + 1
         if ncols > self.ncols:
             ncols = self.ncols
+        elif ncols < self.mincols:
+            ncols = self.mincols
         wm.invoke_props_dialog(self, width=ncols*self.columnWidth)
         return {'RUNNING_MODAL'}
 
@@ -447,9 +454,11 @@ class JCMSelector(Selector):
     def selectCondition(self, item):
         return (self.bodypart == "All" or item.category == self.bodypart)
 
-    def draw(self, context):
-        self.layout.prop(self, "bodypart")
-        Selector.draw(self, context)
+    def drawSelectionRow(self):
+        row = self.layout.row()
+        row.prop(self, "bodypart")
+        row.operator("daz.select_all")
+        row.operator("daz.select_none")
 
     def getKeys(self, rig, ob):
         keys = []

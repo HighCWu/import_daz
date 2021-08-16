@@ -1139,30 +1139,14 @@ class DAZ_OT_AddWinders(DazPropsOperator, GizmoUser, IsArmature):
 #   Retarget armature
 #-------------------------------------------------------------
 
-def getArmatureEnums(scn, context):
-    coll = context.scene.collection
-    return [(rig.name, rig.name, rig.name) for rig in coll.all_objects if rig.type == 'ARMATURE']
-
-
-class DAZ_OT_ChangeArmature(DazPropsOperator, IsMesh):
+class DAZ_OT_ChangeArmature(DazOperator, IsArmature):
     bl_idname = "daz.change_armature"
     bl_label = "Change Armature"
-    bl_description = "Change the target of armature modifiers of selected meshes"
+    bl_description = "Make the active armature the armature of selected meshes"
     bl_options = {'UNDO'}
 
-    rig : EnumProperty(
-        items = getArmatureEnums,
-        name = "Rig",
-        description = "The new target armature")
-
-    def draw(self, context):
-        self.layout.prop(self, "rig")
-
     def run(self, context):
-        if self.rig in bpy.data.objects.keys():
-            rig = bpy.data.objects[self.rig]
-        else:
-            raise DazError("No armature found")
+        rig = context.object
         subrigs = {}
         for ob in getSelectedMeshes(context):
             mod = getModifier(ob, 'ARMATURE')

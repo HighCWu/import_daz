@@ -374,17 +374,24 @@ class DAZ_OT_AddShrinkwrap(DazPropsOperator, MeshSelection, IsMesh):
         description = "Thickness of the surface",
         default = 2.0)
 
+    useApply : BoolProperty(
+        name = "Apply Modifiers",
+        description = "Apply modifiers afterwards",
+        default = False)
+
     def draw(self, context):
         self.layout.prop(self, "offset")
         self.layout.prop(self, "useSolidify")
         if self.useSolidify:
             self.layout.prop(self, "thickness")
+        self.layout.prop(self, "useApply")
         MeshSelection.draw(self, context)
 
 
     def run(self, context):
         hum = context.object
         for ob in self.getSelection(context):
+            activateObject(context, ob)
             self.makeShrinkwrap(ob, hum)
             if self.useSolidify:
                 self.makeSolidify(ob)
@@ -403,6 +410,8 @@ class DAZ_OT_AddShrinkwrap(DazPropsOperator, MeshSelection, IsMesh):
         mod.wrap_method = 'NEAREST_SURFACEPOINT'
         mod.wrap_mode = 'OUTSIDE'
         mod.offset = 0.1*hum.DazScale*self.offset
+        if self.useApply and not ob.data.shape_keys:
+            bpy.ops.object.modifier_apply(modifier=mod.name)
 
 
     def makeSolidify(self, ob):
@@ -413,6 +422,8 @@ class DAZ_OT_AddShrinkwrap(DazPropsOperator, MeshSelection, IsMesh):
             mod = ob.modifiers.new("Solidify", 'SOLIDIFY')
         mod.thickness = 0.1*ob.DazScale*self.thickness
         mod.offset = 0.0
+        if self.useApply and not ob.data.shape_keys:
+            bpy.ops.object.modifier_apply(modifier=mod.name)
 
 
     def invoke(self, context, event):
