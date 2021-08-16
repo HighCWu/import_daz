@@ -328,8 +328,13 @@ class DAZ_PT_Utils(bpy.types.Panel):
 
     def draw(self, context):
         ob = context.object
+        scn = context.scene
         layout = self.layout
         layout.operator("daz.decode_file")
+        layout.prop(scn, "DazString")
+        row = layout.row()
+        row.operator("daz.quote")
+        row.operator("daz.unquote")
         layout.operator("daz.print_statistics")
         layout.operator("daz.update_all")
         layout.separator()

@@ -742,6 +742,27 @@ class DAZ_OT_DecodeFile(DazOperator, DazFile, SingleFile):
             fp.write(string)
         print("%s written" % newfile)
 
+
+class DAZ_OT_Quote(DazOperator):
+    bl_idname = "daz.quote"
+    bl_label = "Quote"
+    bl_description = "Quote the string above"
+
+    def run(self, context):
+        from .asset import normalizeRef
+        scn = context.scene
+        scn.DazString = normalizeRef(scn.DazString)
+
+
+class DAZ_OT_Unquote(DazOperator):
+    bl_idname = "daz.unquote"
+    bl_label = "Unquote"
+    bl_description = "Unquote the string above"
+
+    def run(self, context):
+        scn = context.scene
+        scn.DazString = unquote(scn.DazString)
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -755,6 +776,8 @@ classes = [
     ImportDAZ,
     EasyImportDAZ,
     DAZ_OT_DecodeFile,
+    DAZ_OT_Quote,
+    DAZ_OT_Unquote,
 ]
 
 def register():
@@ -762,6 +785,11 @@ def register():
         name = "Favorite Morphs",
         description = "Path to favorite morphs",
         subtype = 'FILE_PATH',
+        default = "")
+
+    bpy.types.Scene.DazString = StringProperty(
+        name = "",
+        description = "Use this to test quote or unquote",
         default = "")
 
     for cls in classes:
