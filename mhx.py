@@ -622,6 +622,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             showProgress(3, 25, "  Reparent toes")
             reparentToes(rig, context)
             showProgress(4, 25, "  Rename bones")
+            self.deleteBendTwistDrvBones(rig)
             self.rename2Mhx(rig)
             showProgress(5, 25, "  Join bend and twist bones")
             self.joinBendTwists(rig, {}, False)
@@ -1111,7 +1112,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             shin.tail = foot.head
             foot.tail = toe.head
             foot.use_connect = not stretchy
-            toe.use_connect = True
+            #toe.use_connect = True
 
             legSocket = makeBone("legSocket"+suffix, rig, thigh.head, thigh.head+ez, 0, L_LEXTRA+dlayer, thigh.parent)
             legParent = deriveBone("leg_parent"+suffix, legSocket, rig, L_HELP, hip)
@@ -1125,7 +1126,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             footFk.use_connect = not stretchy
             footFk.layers[L_LEXTRA+dlayer] = True
             toeFk = deriveBone("toe.fk"+suffix, toe, rig, L_LLEGFK+dlayer, footFk)
-            toeFk.use_connect = True
+            #toeFk.use_connect = True
             toeFk.layers[L_LEXTRA+dlayer] = True
             thighIk = deriveBone("thigh.ik"+suffix, thigh, rig, L_HELP2, thigh.parent)
             shinIk = deriveBone("shin.ik"+suffix, shin, rig, L_HELP2, thighIk)
@@ -1580,9 +1581,10 @@ def connectToParent(rig):
         ]:
         if bname in rig.data.edit_bones.keys():
             eb = rig.data.edit_bones[bname]
-            if not isDrvBone(eb.parent.name):
-                eb.parent.tail = eb.head
-                eb.use_connect = True
+            if isDrvBone(eb.parent.name):
+                eb = eb.parent
+            eb.parent.tail = eb.head
+            eb.use_connect = True
 
 #-------------------------------------------------------------
 #   Gizmos used by winders

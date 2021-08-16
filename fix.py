@@ -579,6 +579,26 @@ class ConstraintStore:
 
 class BendTwists:
 
+    def deleteBendTwistDrvBones(self, rig):
+        from .driver import removeBoneSumDrivers
+        setMode('OBJECT')
+        btnames = []
+        bnames = {}
+        for bone in rig.data.bones:
+            if isDrvBone(bone.name) or isFinal(bone.name):
+                bname = baseBone(bone.name)
+                if bname.endswith(("Bend", "Twist")):
+                    btnames.append(bone.name)
+                    bnames[bname] = True
+        removeBoneSumDrivers(rig, bnames.keys())
+        setMode('EDIT')
+        for bname in btnames:
+            eb = rig.data.edit_bones[bname]
+            for cb in eb.children:
+                cb.parent = eb.parent
+            rig.data.edit_bones.remove(eb)
+
+
     def getBendTwistNames(self, bname):
         words = bname.split(".", 1)
         if len(words) == 2:
@@ -591,10 +611,9 @@ class BendTwists:
 
 
     def joinBendTwists(self, rig, renames, keep=True):
-        hiddenLayer = 31*[False] + [True]
-
-        rotmodes = {}
         setMode('POSE')
+        hiddenLayer = 31*[False] + [True]
+        rotmodes = {}
         for bname,tname,_stretch,_isShin in self.BendTwists:
             bendname,twistname = self.getBendTwistNames(bname)
             if not (bendname in rig.pose.bones.keys() and

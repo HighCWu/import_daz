@@ -1244,6 +1244,8 @@ def reparentToes(rig, context):
                     continue
                 if bname in rig.data.edit_bones.keys():
                     eb = rig.data.edit_bones[bname]
+                    if isDrvBone(eb.parent.name):
+                        eb = eb.parent
                     eb.parent = parb
                     toenames.append(eb.name)
     setMode('OBJECT')
