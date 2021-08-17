@@ -74,12 +74,11 @@ class Accessor:
                 return G.theOtherAssets[ref]
             except KeyError:
                 pass
-            msg = ("Missing local asset:\n  '%s'\n" % ref)
-            if self.caller:
-                msg += ("in file:\n  '%s'\n" % self.caller.fileref)
-            if not strict:
-                return None
-            reportError(msg, trigger=(2,3))
+            if strict:
+                msg = ("Missing local asset:\n  '%s'\n" % ref)
+                if self.caller:
+                    msg += ("in file:\n  '%s'\n" % self.caller.fileref)
+                reportError(msg, trigger=(2,3))
             return None
         else:
             return self.getNewAsset(id, ref, strict)
@@ -556,7 +555,7 @@ def getRelativeRef(ref):
     return ref
 
 
-def getDazPath(ref):
+def getDazPath(ref, strict=True):
     def getExistingPath(filepath):
         if os.path.exists(filepath):
             return filepath
@@ -591,7 +590,8 @@ def getDazPath(ref):
 
     if path.startswith("name:/@selection"):
         return None
-    LS.missingAssets[ref] = True
-    msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (path, ref))
-    reportError(msg, trigger=(3,4))
+    if strict:
+        LS.missingAssets[ref] = True
+        msg = ("Did not find path:\n\"%s\"\nRef:\"%s\"" % (path, ref))
+        reportError(msg, trigger=(3,4))
     return None

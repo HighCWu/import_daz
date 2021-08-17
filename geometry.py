@@ -740,7 +740,7 @@ class Geometry(Asset, Channels):
         from .asset import getDazPath, getRelativeRef
         from .transfer import findFileRecursive
         path = os.path.dirname(url)
-        folder = getDazPath("%s/UV Sets" % path)
+        folder = getDazPath("%s/UV Sets" % path, strict=False)
         if not folder:
             folder = getDazPath(path)
         file = ("%s.dsf" % uv)
