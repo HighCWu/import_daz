@@ -742,26 +742,52 @@ class DAZ_OT_DecodeFile(DazOperator, DazFile, SingleFile):
             fp.write(string)
         print("%s written" % newfile)
 
+#------------------------------------------------------------------
+#   Launch quoter
+#------------------------------------------------------------------
 
 class DAZ_OT_Quote(DazOperator):
     bl_idname = "daz.quote"
     bl_label = "Quote"
-    bl_description = "Quote the string above"
 
-    def run(self, context):
+    def execute(self, context):
         from .asset import normalizeRef
-        scn = context.scene
-        scn.DazString = normalizeRef(scn.DazString)
+        global theQuoter
+        theQuoter.Text = normalizeRef(theQuoter.Text)
+        return {'PASS_THROUGH'}
 
 
 class DAZ_OT_Unquote(DazOperator):
     bl_idname = "daz.unquote"
     bl_label = "Unquote"
-    bl_description = "Unquote the string above"
 
-    def run(self, context):
-        scn = context.scene
-        scn.DazString = unquote(scn.DazString)
+    def execute(self, context):
+        global theQuoter
+        theQuoter.Text = unquote(theQuoter.Text)
+        return {'PASS_THROUGH'}
+
+
+class DAZ_OT_QuoteUnquote(bpy.types.Operator):
+    bl_idname = "daz.quote_unquote"
+    bl_label = "Quote/Unquote"
+    bl_description = "Quote or unquote specified text"
+
+    Text : StringProperty(description = "Type text to quote or unquote")
+
+    def draw(self, context):
+        self.layout.prop(self, "Text", text="")
+        row = self.layout.row()
+        row.operator("daz.quote")
+        row.operator("daz.unquote")
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        global theQuoter
+        theQuoter = self
+        wm = context.window_manager
+        return wm.invoke_popup(self, width=800)
 
 #----------------------------------------------------------
 #   Initialize
@@ -778,6 +804,7 @@ classes = [
     DAZ_OT_DecodeFile,
     DAZ_OT_Quote,
     DAZ_OT_Unquote,
+    DAZ_OT_QuoteUnquote,
 ]
 
 def register():
@@ -785,11 +812,6 @@ def register():
         name = "Favorite Morphs",
         description = "Path to favorite morphs",
         subtype = 'FILE_PATH',
-        default = "")
-
-    bpy.types.Scene.DazString = StringProperty(
-        name = "",
-        description = "Use this to test quote or unquote",
         default = "")
 
     for cls in classes:
