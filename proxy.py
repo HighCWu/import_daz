@@ -1224,14 +1224,11 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
 
     def run(self, context):
         ob = context.object
-        scn = context.scene
         mod = getModifier(ob, 'SUBSURF')
         if not mod:
             raise DazError("Object %s\n has no subsurface modifier.    " % ob.name)
         modname = mod.name
-        levels = scn.render.simplify_subdivision
-        if scn.render.simplify_subdivision < mod.levels:
-            scn.render.simplify_subdivision = mod.levels
+        levels = getSubLevels(context, mod)
 
         startProgress("Apply Subsurf Modifier")
         coords = []
@@ -1251,7 +1248,6 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
         activateObject(context, ob)
         bpy.ops.object.duplicate()
         nob = context.object
-        print("APP", nob, modname)
         bpy.ops.object.modifier_apply(modifier=modname)
         nskeys = len(coords)
 
@@ -1281,7 +1277,19 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
         activateObject(context, ob)
         bpy.ops.object.delete(use_global=False)
         activateObject(context, nob)
-        scn.render.simplify_subdivision = levels
+        restoreSubLevels(context, levels)
+
+
+def getSubLevels(context, mod):
+    scn = context.scene
+    levels = scn.render.simplify_subdivision
+    if scn.render.simplify_subdivision < mod.levels:
+        scn.render.simplify_subdivision = mod.levels
+    return levels
+
+
+def restoreSubLevels(context, levels):
+    context.scene.render.simplify_subdivision = levels
 
 #-------------------------------------------------------------
 #   Print statistics
@@ -1720,7 +1728,9 @@ class DAZ_OT_MakeDeflection(DazPropsOperator, IsMesh):
         if self.useSubsurf:
             mod = nob.modifiers.new("Subsurf", 'SUBSURF')
             mod.levels = 1
+            levels = getSubLevels(context, mod)
             bpy.ops.object.modifier_apply(modifier="Subsurf")
+            restoreSubLevels(context, levels)
         if self.useShrinkwrap:
             mod = nob.modifiers.new("Shrinkwrap", 'SHRINKWRAP')
             mod.wrap_method = 'NEAREST_SURFACEPOINT'
