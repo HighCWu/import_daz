@@ -1641,7 +1641,7 @@ class HairBSDFTree(HairTree):
             transp = self.addNode("ShaderNodeBsdfTransparent")
             transp.inputs["Color"].default_value[0:3] = WHITE
             self.column += 1
-            self.active = self.mixShaders(transp, self.active, weight)
+            self.active = self.mixShaders(transp, self.active, alpha)
             self.material.setTransSettings(False, False, WHITE, alpha)
 
 #-------------------------------------------------------------
