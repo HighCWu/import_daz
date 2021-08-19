@@ -43,7 +43,6 @@ MAX_EXPR_LEN = 240
 class LoadMorph(DriverUser):
     morphset = None
     usePropDrivers = True
-    isJcm = False
     iked = []
     treatHD = 'ERROR'
 
@@ -667,6 +666,7 @@ class LoadMorph(DriverUser):
     def buildDrivers(self):
         print("Building drivers")
         for output,drivers in self.drivers.items():
+            self.isJcm = ("jcm" in output.lower() and output[0:6] != "JCMs O")
             if drivers:
                 if self.isDriverType('BONE', drivers):
                     for dtype,bname,expr in drivers:
@@ -697,11 +697,13 @@ class LoadMorph(DriverUser):
                 self.extendPropDriver(fcu0, raw, drivers)
                 return
             vtargets,btargets = self.getVarBoneTargets(fcu0)
-            if btargets:
+            if self.isJcm:
+                string = fcu0.driver.expression
+            elif btargets:
                 varname = btargets[-1][0]
                 string = self.extractBoneExpression(fcu0.driver.expression, varname)
-                for _,_,var0 in btargets:
-                    bvars.append(Variable(var0))
+            for _,_,var0 in btargets:
+                bvars.append(Variable(var0))
             for vname,_,var0 in vtargets:
                 vvars[vname] = Variable(var0)
         rna.driver_remove(channel)
@@ -711,7 +713,14 @@ class LoadMorph(DriverUser):
         for bvar in bvars:
             var = fcu.driver.variables.new()
             bvar.create(var)
+        if self.isJcm and string:
+            fcu.driver.expression = string
+        else:
+            self.buildNewPropDriver(fcu, channel, string, raw, drivers)
+        self.addMissingVars(fcu, vvars)
 
+
+    def buildNewPropDriver(self, fcu, channel, string, raw, drivers):
         varname = "a"
         if self.visible[raw] or not self.primary[raw]:
             string += varname
@@ -728,7 +737,6 @@ class LoadMorph(DriverUser):
         fcu.driver.expression = string
         if rdrivers:
             self.extendPropDriver(fcu, raw, rdrivers)
-        self.addMissingVars(fcu, vvars)
 
 
     def extractBoneExpression(self, string, varname):
@@ -945,7 +953,7 @@ class LoadMorph(DriverUser):
 
         n = len(points)
         xi,yi = points[0]
-        string = "%s if %s%s %s" % (getPrint(yi), var, lt, getPrint(xi/umax))
+        string = "(%s if %s%s %s" % (getPrint(yi), var, lt, getPrint(xi/umax))
         for i in range(1, n):
             xj,yj = points[i]
             kij = (yj-yi)/(xj-xi)
@@ -955,7 +963,7 @@ class LoadMorph(DriverUser):
                 zstring = ("%s%s" % (zs, getPrint(zi*umax)))
             string += (" else %s%s if %s%s %s " % (getMult(kij*umax, var), zstring, var, lt, getPrint(xj/umax)))
             xi,yi = xj,yj
-        string += " else %s" % getPrint(yj)
+        string += " else %s)" % getPrint(yj)
 
         if len(string) > 254:
             msg = "String driver too long:\n"

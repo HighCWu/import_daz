@@ -979,7 +979,6 @@ class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader,
 
     morphset = "Jcms"
     bodypart = "Body"
-    isJcm = True
     hideable = False
 
 
@@ -991,7 +990,6 @@ class DAZ_OT_ImportFlexions(DazOperator, StandardMorphSelector, StandardMorphLoa
 
     morphset = "Flexions"
     bodypart = "Body"
-    isJcm = True
     hideable = False
 
 #------------------------------------------------------------------------
