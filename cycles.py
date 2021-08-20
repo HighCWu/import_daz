@@ -628,6 +628,9 @@ class CyclesTree:
     def buildMakeup(self):
         if not self.getValue(["Makeup Enable"], False):
             return False
+        wt = self.getValue(["Makeup Weight"], 0)
+        if wt == 0:
+            return
         from .cgroup import MakeupGroup
         self.column += 1
         node = self.addGroup(MakeupGroup, "DAZ Makeup", size=100)
@@ -636,7 +639,7 @@ class CyclesTree:
         roughness,roughtex = self.getColorTex(["Makeup Roughness Mult"], "NONE", 0.0, False)
         self.linkScalar(roughtex, node, roughness, "Roughness")
         self.linkBumpNormal(node)
-        wt,wttex = self.getColorTex(["Makeup Weight"], "NONE", 1.0, False)
+        wt,wttex = self.getColorTex(["Makeup Weight"], "NONE", 0.0, False)
         self.mixWithActive(wt, wttex, node)
         return True
 
@@ -761,7 +764,7 @@ class CyclesTree:
 #-------------------------------------------------------------
 
     def buildTopCoat(self):
-        if not self.getValue(["Top Coat Enable"], False):
+        if not self.isEnabled("Top Coat"):
             return
         topweight = self.getValue(["Top Coat Weight"], 0)
         if topweight == 0:
