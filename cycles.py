@@ -857,7 +857,7 @@ class CyclesTree:
         node = self.addGroup(TranslucentGroup, "DAZ Translucent", size=200)
         node.width = 200
         self.linkColor(tex, node, color, "Color")
-        node.inputs["Gamma"].default_value = 2.5
+        node.inputs["Gamma"].default_value = 3.5
         node.inputs["Scale"].default_value = 1.0
         ssscolor,ssstex,sssmode = self.getSSSColor()
         radius,radtex = self.getSSSRadius(color, ssscolor, ssstex, sssmode)

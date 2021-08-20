@@ -222,9 +222,9 @@ class PbrTree(CyclesTree):
         color,coltex = self.getTranslucentColor()
         if isBlack(color):
             return
-        # a 2.5 gamma for the translucency texture is used to avoid the "white skin" effect
+        # a 3.5 gamma for the translucency texture is used to avoid the "white skin" effect
         gamma = self.addNode("ShaderNodeGamma", col=3)
-        gamma.inputs["Gamma"].default_value = 2.5
+        gamma.inputs["Gamma"].default_value = 3.5
         ssscolor,ssstex,sssmode = self.getSSSColor()
         radius,radtex = self.getSSSRadius(color, ssscolor, ssstex, sssmode)
         self.linkColor(coltex, gamma, color, "Color")
