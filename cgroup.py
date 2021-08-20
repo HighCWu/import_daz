@@ -644,6 +644,33 @@ class TranslucentGroup(MixGroup):
         self.links.new(emix.outputs[0], self.mix2.inputs[2])
 
 # ---------------------------------------------------------------------
+#   Makeup Group
+# ---------------------------------------------------------------------
+
+class MakeupGroup(MixGroup):
+
+    def __init__(self):
+        MixGroup.__init__(self)
+        self.insockets += ["Color", "Roughness", "Normal"]
+
+
+    def create(self, node, name, parent):
+        MixGroup.create(self, node, name, parent, 3)
+        self.group.inputs.new("NodeSocketColor", "Color")
+        self.group.inputs.new("NodeSocketFloat", "Roughness")
+        self.group.inputs.new("NodeSocketVector", "Normal")
+
+
+    def addNodes(self, args=None):
+        MixGroup.addNodes(self, args)
+        diffuse = self.addNode("ShaderNodeBsdfDiffuse", 1)
+        self.links.new(self.inputs.outputs["Color"], diffuse.inputs["Color"])
+        self.links.new(self.inputs.outputs["Roughness"], diffuse.inputs["Roughness"])
+        self.links.new(self.inputs.outputs["Normal"], diffuse.inputs["Normal"])
+        self.links.new(diffuse.outputs[0], self.mix1.inputs[2])
+        self.links.new(diffuse.outputs[0], self.mix2.inputs[2])
+
+# ---------------------------------------------------------------------
 #   Ray Clip Group
 # ---------------------------------------------------------------------
 

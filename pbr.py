@@ -61,6 +61,8 @@ class PbrTree(CyclesTree):
         self.buildPBRNode()
         self.linkPBRNormal(self.pbr)
         self.postPBR = False
+        if self.buildMakeup():
+            self.postPBR = True
         if self.buildOverlay():
             self.postPBR = True
         if self.material.dualLobeWeight > 0:

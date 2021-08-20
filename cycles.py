@@ -380,6 +380,7 @@ class CyclesTree:
         self.buildDiffuse()
 
         self.buildTranslucency()
+        self.buildMakeup()
         self.buildOverlay()
         if self.material.dualLobeWeight == 1:
             self.buildDualLobe()
@@ -621,8 +622,26 @@ class CyclesTree:
         return value,tex
 
 #-------------------------------------------------------------
-#   Glossiness
-#   https://bitbucket.org/Diffeomorphic/import-daz-archive/issues/134/ultimate-specularity-matching-fresnel
+#  Makeup
+#-------------------------------------------------------------
+
+    def buildMakeup(self):
+        if not self.getValue(["Makeup Enable"], False):
+            return False
+        from .cgroup import MakeupGroup
+        self.column += 1
+        node = self.addGroup(MakeupGroup, "DAZ Makeup", size=100)
+        color,tex = self.getColorTex(["Makeup Base Color"], "COLOR", WHITE, False)
+        self.linkColor(tex, node, color, "Color")
+        roughness,roughtex = self.getColorTex(["Makeup Roughness Mult"], "NONE", 0.0, False)
+        self.linkScalar(roughtex, node, roughness, "Roughness")
+        self.linkBumpNormal(node)
+        wt,wttex = self.getColorTex(["Makeup Weight"], "NONE", 1.0, False)
+        self.mixWithActive(wt, wttex, node)
+        return True
+
+#-------------------------------------------------------------
+#  Dual Lobe
 #-------------------------------------------------------------
 
     def buildDualLobe(self):
@@ -742,7 +761,7 @@ class CyclesTree:
 #-------------------------------------------------------------
 
     def buildTopCoat(self):
-        if not self.isEnabled("Top Coat"):
+        if not self.getValue(["Top Coat Enable"], False):
             return
         topweight = self.getValue(["Top Coat Weight"], 0)
         if topweight == 0:
