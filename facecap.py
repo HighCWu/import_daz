@@ -79,6 +79,7 @@ class FACSImporter(SingleFile, ActionOptions):
         rig = getRigFromObject(context.object)
         if rig is None:
             raise DazError("No rig selected")
+        self.facstable = dict((key.lower(), value) for key,value in self.FacsTable.items())
         self.bshapes = []
         self.bskeys = {}
         self.hlockeys = {}
@@ -100,7 +101,7 @@ class FACSImporter(SingleFile, ActionOptions):
     def build(self, rig):
         missing = []
         for bshape in self.bshapes:
-            if bshape not in self.FacsTable.keys():
+            if bshape not in self.facstable.keys():
                 missing.append(bshape)
         if missing:
             msg = "Missing blendshapes:     \n"
@@ -115,7 +116,7 @@ class FACSImporter(SingleFile, ActionOptions):
             frame = self.getFrame(t)
             self.setBoneFrame(t, frame)
             for bshape,value in zip(self.bshapes,self.bskeys[t]):
-                prop = self.FacsTable[bshape]
+                prop = self.facstable[bshape]
                 if prop in rig.keys():
                     rig[prop] = value
                     rig.keyframe_insert(propRef(prop), frame=frame, group="FACS")
@@ -263,7 +264,7 @@ class ImportFaceCap(DazOperator, TextFile, IsMeshArmature, FACSImporter):
             for line in fp:
                 line = line.strip()
                 if line[0:3] == "bs,":
-                    self.bshapes = line.split(",")[1:]
+                    self.bshapes = [bshape.lower() for bshape in line.split(",")[1:]]
                 elif line[0:2] == "k,":
                     words = line.split(",")
                     t = int(words[1])
@@ -352,7 +353,7 @@ class ImportLiveLink(DazOperator, CsvFile, IsMeshArmature, FACSImporter):
         if len(lines) < 2:
             raise DazError("Found no keyframes")
 
-        self.bshapes = lines[0][2:-9]
+        self.bshapes = [bshape.lower() for bshape in lines[0][2:-9]]
         for t,line in enumerate(lines[1:]):
             nums = [float(word) for word in line[2:]]
             self.bskeys[t] = nums[0:-9]
@@ -365,7 +366,7 @@ class ImportLiveLink(DazOperator, CsvFile, IsMeshArmature, FACSImporter):
             self.reyekeys[t] = Euler((yaw, roll, pitch))
 
         for key in self.bshapes:
-            if key not in self.FacsTable.keys():
+            if key not in self.facstable.keys():
                 print(key)
 
 #----------------------------------------------------------
