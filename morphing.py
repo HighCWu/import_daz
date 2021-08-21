@@ -946,9 +946,7 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphL
 
 
     def selectMhxCompatible(self, context):
-        safe = ["Breast", "Finger", "Thumb", "Index", "Mid", "Ring", "Pinky",
-                "Waist", "Neck", "Head",
-               ]
+        safe = ["Breast", "Finger", "Thumb", "Index", "Mid", "Ring", "Pinky"]
         if self.rig:
             if "lBigToe" in self.rig.data.bones.keys():
                 safe.append("Toe")

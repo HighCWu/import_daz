@@ -908,6 +908,13 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             "clavicle.R", "upper_arm.R", "hand.R", "thigh.R", "shin.R", "foot.R",
         ]
 
+        setMode('OBJECT')
+        for bname in self.tweakBones:
+            if bname and bname in rig.pose.bones.keys():
+                for channel in ["location", "rotation_euler", "rotation_quaternion", "scale"]:
+                    path = 'pose.bones["%s"].%s' % (bname, channel)
+                    rig.driver_remove(path)
+
         setMode('EDIT')
         tweakLayers = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
         for bname in self.tweakBones:
@@ -928,8 +935,8 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
                     if eb.name in self.noTweakParents:
                         eb.parent = sb
 
-        from .figure import copyBoneInfo
         setMode('POSE')
+        from .figure import copyBoneInfo
         rpbs = rig.pose.bones
         tweakCorrectives = {}
         for bname in self.tweakBones:
