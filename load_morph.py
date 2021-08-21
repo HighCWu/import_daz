@@ -716,11 +716,11 @@ class LoadMorph(DriverUser):
         if self.isJcm and string:
             fcu.driver.expression = string
         else:
-            self.buildNewPropDriver(fcu, channel, string, raw, drivers)
+            self.buildNewPropDriver(fcu, rna, channel, string, raw, drivers)
         self.addMissingVars(fcu, vvars)
 
 
-    def buildNewPropDriver(self, fcu, channel, string, raw, drivers):
+    def buildNewPropDriver(self, fcu, rna, channel, string, raw, drivers):
         varname = "a"
         if self.visible[raw] or not self.primary[raw]:
             string += varname
