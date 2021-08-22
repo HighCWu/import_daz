@@ -207,7 +207,7 @@ class Instance(Accessor, Channels, SimNode):
             elif channel["type"] == "bool":
                 words = channel["id"].split("_")
                 if len(words) > 2 and words[1] == "group" and words[-1] == "vis":
-                    if words[0] == "material" and label in channel.keys():
+                    if words[0] == "material" and "label" in channel.keys():
                         label = channel["label"]
                         value = getCurrentValue(channel)
                         for geonode in self.geometries:
