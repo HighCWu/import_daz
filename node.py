@@ -206,13 +206,14 @@ class Instance(Accessor, Channels, SimNode):
                     self.node2 = node.getInstance(ref)
             elif channel["type"] == "bool":
                 words = channel["id"].split("_")
-                if (words[0] == "material" and words[1] == "group" and words[-1] == "vis"):
-                    label = channel["label"]
-                    value = getCurrentValue(channel)
-                    for geonode in self.geometries:
-                        geonode.data.material_group_vis[label] = value
-                elif (words[0] == "facet" and words[1] == "group" and words[-1] == "vis"):
-                    pass
+                if len(words) > 2 and words[1] == "group" and words[-1] == "vis":
+                    if words[0] == "material" and label in channel.keys():
+                        label = channel["label"]
+                        value = getCurrentValue(channel)
+                        for geonode in self.geometries:
+                            geonode.data.material_group_vis[label] = value
+                    elif words[0] == "facet":
+                        pass
 
         for extra in self.extra:
             if "type" not in extra.keys():
