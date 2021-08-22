@@ -210,7 +210,6 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazUnitScale")
         box.prop(scn, "DazVerbosity")
         box.prop(scn, "DazCaseSensitivePaths")
-        box.prop(scn, "DazScaleMorphs")
 
         box = col.box()
         box.label(text = "Debugging")
@@ -584,10 +583,6 @@ def register():
     bpy.types.Scene.DazCaseSensitivePaths = BoolProperty(
         name = "Case-Sensitive Paths",
         description = "Convert URLs to lowercase. Works best on Windows.")
-
-    bpy.types.Scene.DazScaleMorphs = BoolProperty(
-        name = "Scale Morphs (Experimental)",
-        description = "Create drivers for scale channels too.\nMight contain bugs")
 
     bpy.types.Scene.DazUseInstancing = BoolProperty(
         name = "Use Instancing",

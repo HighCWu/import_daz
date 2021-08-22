@@ -525,8 +525,6 @@ class LoadMorph(DriverUser):
 
 
     def makeScaleFormula(self, bname, idx, expr):
-        if not GS.useScaleMorphs:
-            return
         tfm,pb,prop,factor = self.getBoneData(bname, expr)
         tfm.setScale(factor, True, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)

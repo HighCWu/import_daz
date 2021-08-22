@@ -57,7 +57,6 @@ class GlobalSettings:
         self.unflipped = False
         self.useMakeHiddenSliders = False
         self.showHiddenObjects = False
-        self.useScaleMorphs = True
 
         self.materialMethod = 'BSDF'
         self.refractiveMethod = 'BSDF'
@@ -114,7 +113,6 @@ class GlobalSettings:
         "DazVerbosity" : "verbosity",
         "DazErrorPath" : "errorPath",
         "DazCaseSensitivePaths" : "caseSensitivePaths",
-        "DazScaleMorphs" : "useScaleMorphs",
 
         # Debugging
         "DazDump" : "useDump",
