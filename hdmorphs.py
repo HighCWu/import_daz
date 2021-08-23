@@ -101,8 +101,8 @@ class LoadMaps(MultiFile, ImageFile, IsMesh):
         args = []
         if self.useDriver and amt:
             for filepath in filepaths:
-                fname = os.path.splitext(os.path.basename(filepath))[0].split("_dhdm",1)[0]
-                key = fname.lower()
+                fname = os.path.splitext(os.path.basename(filepath))[0]
+                key = fname.lower().split("_dsf",1)[0]
                 if key not in self.props.keys():
                     args.append((ob, amt, fname, None, filepath))
                     continue
@@ -468,7 +468,6 @@ class DAZ_OT_LoadNormalMap(DazOperator, LoadMaps, NormalAdder):
     def run(self, context):
         ob = context.object
         args = self.getArgs(ob)
-        print("LMM", args)
         for mat in self.getMaterials(ob):
             self.loadNormalMaps(mat, args, 1)
 
