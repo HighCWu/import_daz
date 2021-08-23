@@ -427,6 +427,11 @@ class Rigify:
 
 
     def renameBones(self, rig, bones):
+        for dname,rname in bones.items():
+            if dname in rig.data.bones.keys():
+                path = 'pose.bones["%s"]' % dname
+                for channel in ["location", "rotation_euler", "rotation_quaternion", "scale"]:
+                    rig.driver_remove("%s.%s" % (path, channel))
         setMode('EDIT')
         for dname,rname in bones.items():
             if dname in rig.data.edit_bones.keys():
@@ -434,7 +439,6 @@ class Rigify:
                 eb.name = rname
             else:
                 msg = ("Did not find bone %s     " % dname)
-                #print("MSG", msg)
                 raise DazError(msg)
         setMode('OBJECT')
 
