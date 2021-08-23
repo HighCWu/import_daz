@@ -623,8 +623,10 @@ class BendTwists:
             rotmodes[bname] = pb.DazRotMode
             self.storeConstraints(bname, pb)
             self.removeConstraints(pb)
+            self.deleteBoneDrivers(rig, bendname)
             pb = rig.pose.bones[twistname]
             self.removeConstraints(pb)
+            self.deleteBoneDrivers(rig, twistname)
 
         setMode('EDIT')
         for bname,tname,_stretch,_isShin in self.BendTwists:
@@ -687,6 +689,13 @@ class BendTwists:
             for bname,tname,_stretch,_isShin in self.BendTwists:
                 bend,twist = self.getBendTwistNames(bname)
                 self.joinVertexGroups(ob, bname, bend, twist)
+
+
+    def deleteBoneDrivers(self, rig, bname):
+        if bname in rig.data.bones.keys():
+            path = 'pose.bones["%s"]' % bname
+            for channel in ["location", "rotation_euler", "rotation_quaternion", "scale"]:
+                rig.driver_remove("%s.%s" % (path, channel))
 
 
     def joinVertexGroups(self, ob, bname, bend, twist):

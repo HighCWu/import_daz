@@ -910,11 +910,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
 
         setMode('OBJECT')
         for bname in self.tweakBones:
-            if bname and bname in rig.pose.bones.keys():
-                for channel in ["location", "rotation_euler", "rotation_quaternion", "scale"]:
-                    path = 'pose.bones["%s"].%s' % (bname, channel)
-                    rig.driver_remove(path)
-
+            self.deleteBoneDrivers(rig, bname)
         setMode('EDIT')
         tweakLayers = L_TWEAK*[False] + [True] + (31-L_TWEAK)*[False]
         for bname in self.tweakBones:

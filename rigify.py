@@ -428,10 +428,7 @@ class Rigify:
 
     def renameBones(self, rig, bones):
         for dname,rname in bones.items():
-            if dname in rig.data.bones.keys():
-                path = 'pose.bones["%s"]' % dname
-                for channel in ["location", "rotation_euler", "rotation_quaternion", "scale"]:
-                    rig.driver_remove("%s.%s" % (path, channel))
+            self.deleteBoneDrivers(rig, dname)
         setMode('EDIT')
         for dname,rname in bones.items():
             if dname in rig.data.edit_bones.keys():
