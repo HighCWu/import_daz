@@ -595,7 +595,7 @@ class BoneInstance(Instance):
         if (self.node.formulas and
             self.name in rig.pose.bones.keys()):
             pb = rig.pose.bones[self.name]
-            pb.rotation_mode = self.getRotationMode(pb, True)
+            pb.rotation_mode = self.getRotationMode(pb, self.isRotMorph(self.node.formulas))
             errors = []
             buildBoneFormula(self.node, rig, errors)
         if hide or not self.getValue(["Visible"], True):
@@ -605,6 +605,14 @@ class BoneInstance(Instance):
         for child in self.children.values():
             if isinstance(child, BoneInstance):
                 child.buildFormulas(rig, hide)
+
+
+    def isRotMorph(self, formulas):
+        for formula in formulas:
+            if ("output" in formula.keys() and
+                "?rotation" in formula["output"]):
+                return True
+        return False
 
 
     def findRoll(self, eb, figure, isFace):
