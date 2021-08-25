@@ -39,6 +39,9 @@ class DAZ_PT_Base:
     bl_category = "DAZ Importer"
     bl_options = {'DEFAULT_CLOSED'}
 
+#----------------------------------------------------------
+#   Setup panel
+#----------------------------------------------------------
 
 class DAZ_PT_Setup(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Setup (version 1.6.0.%04d)" % BUILD
@@ -165,6 +168,9 @@ class DAZ_PT_SetupRigging(DAZ_PT_Base, bpy.types.Panel):
         self.layout.separator()
         self.layout.operator("daz.add_mannequin")
 
+#----------------------------------------------------------
+#   Advanced setup panel
+#----------------------------------------------------------
 
 class DAZ_PT_Advanced(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Advanced Setup"
@@ -338,6 +344,9 @@ class DAZ_PT_AdvancedHair(DAZ_PT_Base, bpy.types.Panel):
         self.layout.operator("daz.color_hair")
         self.layout.operator("daz.combine_hairs")
 
+#----------------------------------------------------------
+#   Utilities panel
+#----------------------------------------------------------
 
 class DAZ_PT_Utils(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Utilities"
@@ -410,6 +419,9 @@ class DAZ_PT_Utils(DAZ_PT_Base, bpy.types.Panel):
         for n in range(3):
             row.label(text = "%.3f" % vec[n])
 
+#----------------------------------------------------------
+#   Posing panel
+#----------------------------------------------------------
 
 class DAZ_PT_Posing(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Posing"
@@ -468,26 +480,31 @@ class DAZ_PT_Posing(DAZ_PT_Base, bpy.types.Panel):
         layout.separator()
         layout.operator("daz.rotate_bones")
 
-
-class DAZ_PT_MorphGroup(DAZ_PT_Base, bpy.types.Panel):
-    bl_label = "Morphs"
-
-    def draw(self, context):
-        pass
-
+#----------------------------------------------------------
+#   Morphs panel
+#----------------------------------------------------------
 
 class DAZ_PT_Morphs:
-    bl_parent_id = "DAZ_PT_MorphGroup"
     useMesh = False
 
     @classmethod
     def poll(self, context):
-        ob = context.object
-        if ob and ob.type == 'MESH':
-            ob = ob.parent
-        if ob and ob.type == 'ARMATURE':
-            return (self.hasTheseMorphs(self, ob) or self.hasAdjustProp(self, ob))
-        return False
+        rig = self.getCurrentRig(self, context)
+        return (rig and
+                not rig.DazDriversDisabled and
+                (self.hasTheseMorphs(self, rig) or self.hasAdjustProp(self, rig)))
+
+
+    def getCurrentRig(self, context):
+        rig = context.object
+        if rig is None:
+            return None
+        elif rig.type == 'MESH':
+            rig = rig.parent
+        if rig and rig.type == 'ARMATURE':
+            return rig
+        else:
+            return None
 
 
     def hasTheseMorphs(self, rig):
@@ -500,42 +517,22 @@ class DAZ_PT_Morphs:
         return (adj in rig.keys())
 
 
-    def getCurrentRig(self, context):
-        rig = context.object
-        if rig.type == 'MESH':
-            rig = rig.parent
-        if rig and rig.type == 'ARMATURE':
-            return rig
-        else:
-            return None
-
-
     def draw(self, context):
-        rig = self.getCurrentRig(context)
-        if not rig:
-            return
-        layout = self.layout
-
-        if rig.DazDriversDisabled:
-            layout.label(text = "Morph Drivers Disabled")
-            layout.operator("daz.enable_drivers")
-            return
-
         scn = context.scene
+        rig = self.getCurrentRig(context)
         from .morphing import theAdjusters
         adj = theAdjusters[self.morphset]
         if adj in rig.keys():
-            layout.prop(rig, propRef(adj))
+            self.layout.prop(rig, propRef(adj))
         if not self.hasTheseMorphs(rig):
             return
-        self.preamble(layout, rig)
-        layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
+        self.preamble(self.layout, rig)
+        self.layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
         self.drawItems(scn, rig)
 
 
     def preamble(self, layout, rig):
-        split = layout.split(factor=0.333)
-        split.operator("daz.prettify")
+        split = layout.split(factor=0.5)
         self.activateLayout(split, "", rig)
         self.keyLayout(layout, "")
 
@@ -605,28 +602,54 @@ class DAZ_PT_Morphs:
         op.category = category
 
 
+class DAZ_PT_MorphGroup(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
+    bl_label = "Morphs"
+    morphset = "All"
+
+    @classmethod
+    def poll(self, context):
+        return True
+
+    def draw(self, context):
+        rig = self.getCurrentRig(context)
+        if not rig:
+            return
+        if rig.DazDriversDisabled:
+            self.layout.label(text = "Morph Drivers Disabled")
+            self.layout.operator("daz.enable_drivers")
+            return
+        else:
+            self.layout.operator("daz.disable_drivers")
+        self.preamble(self.layout, rig)
+
+
 class DAZ_PT_Standard(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Unclassified Standard Morphs"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Standard"
 
 
 class DAZ_PT_Units(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Face Units"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Units"
 
 
 class DAZ_PT_Head(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Head"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Head"
 
 
 class DAZ_PT_Expressions(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Expressions"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Expressions"
 
 
 class DAZ_PT_Visemes(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Visemes"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Visemes"
 
     def draw(self, context):
@@ -636,6 +659,7 @@ class DAZ_PT_Visemes(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
 
 class DAZ_PT_FacsUnits(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "FACS Units"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Facs"
 
     def preamble(self, layout, rig):
@@ -646,21 +670,25 @@ class DAZ_PT_FacsUnits(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
 
 class DAZ_PT_FacsExpressions(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "FACS Expressions"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Facsexpr"
 
 
 class DAZ_PT_BodyMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Body Morphs"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Body"
 
 
 class DAZ_PT_JCMs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "JCMs"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Jcms"
 
 
 class DAZ_PT_Flexions(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Flexions"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Flexions"
 
 #------------------------------------------------------------------------
@@ -680,7 +708,6 @@ class CustomDrawItems:
         filter = scn.DazFilter.lower()
 
         for cat in ob.DazMorphCats:
-            self.layout.separator()
             box = self.layout.box()
             if not cat.active:
                 box.prop(cat, "active", text=cat.name, icon="RIGHTARROW", emboss=False)
@@ -691,10 +718,14 @@ class CustomDrawItems:
 
 class DAZ_PT_CustomMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     bl_label = "Custom Morphs"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Custom"
 
     def hasTheseMorphs(self, ob):
         return ob.DazCustomMorphs
+
+    def preamble(self, layout, rig):
+        pass
 
     def drawItems(self, scn, ob):
         CustomDrawItems.drawItems(self, scn, ob)
@@ -719,6 +750,7 @@ class DAZ_PT_CustomMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, CustomDra
 
 class DAZ_PT_CustomMeshMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     bl_label = "Mesh Shape Keys"
+    bl_parent_id = "DAZ_PT_MorphGroup"
     morphset = "Custom"
     useMesh = True
 
@@ -938,8 +970,12 @@ class DAZ_PT_Visibility(DAZ_PT_Base, bpy.types.Panel):
 #   DAZ Rigify props panels
 #------------------------------------------------------------------------
 
-class DAZ_PT_DazRigifyProps(DAZ_PT_Base, bpy.types.Panel):
+class DAZ_PT_DazRigifyProps(bpy.types.Panel):
     bl_label = "DAZ Rigify Properties"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Item"
+    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(cls, context):

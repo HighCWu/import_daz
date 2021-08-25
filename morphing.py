@@ -1602,26 +1602,6 @@ class DAZ_OT_ClearShapes(DazOperator, MorphsetString, IsMesh):
 #   Add morphs to keyset
 #------------------------------------------------------------------
 
-def addKeySet(rig, morphset, scn, frame):
-    if rig is None:
-        return
-    aksi = scn.keying_sets.active_index
-    if aksi <= -1:
-        aks = scn.keying_sets.new(idname = "daz_morphs", name = "daz_morphs")
-    aks = scn.keying_sets.active
-    if morphset == "Custom":
-        for cat in rig.DazMorphCats:
-            for morph in cat.morphs:
-                path = "[" + '"' + morph.name + '"' + "]"
-                aks.paths.add(rig.id_data, path)
-    else:
-        pgs = getattr(rig, "Daz"+morphset)
-        for key in pgs.keys():
-            if key in rig.keys():
-                path = "[" + '"' + key + '"' + "]"
-                aks.paths.add(rig.id_data, path)
-
-
 class DAZ_OT_AddKeysets(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.add_keyset"
     bl_label = "Keyset"
@@ -1632,7 +1612,14 @@ class DAZ_OT_AddKeysets(DazOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            addKeySet(rig, self.morphset, scn, scn.frame_current)
+            aksi = scn.keying_sets.active_index
+            if aksi <= -1:
+                aks = scn.keying_sets.new(idname = "daz_morphs", name = "daz_morphs")
+            aks = scn.keying_sets.active
+            morphs = getRelevantMorphs(rig, self.morphset, self.category)
+            for morph in morphs:
+                if getActivated(rig, rig, morph):
+                    aks.paths.add(rig.id_data, propRef(morph))
             updateRigDrivers(context, rig)
 
 #------------------------------------------------------------------
@@ -1649,28 +1636,11 @@ class DAZ_OT_KeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            self.keyMorphs(rig, scn, scn.frame_current)
+            morphs = getRelevantMorphs(rig, self.morphset, self.category)
+            for morph in morphs:
+                if getActivated(rig, rig, morph):
+                    keyProp(rig, morph, scn.frame_current)
             updateRigDrivers(context, rig)
-
-
-
-    def keyMorphs(self, rig, scn, frame):
-        if rig is None:
-            return
-        if self.morphset == "Custom":
-            if self.category:
-                cats = [rig.DazMorphCats[self.category]]
-            else:
-                cats = rig.DazMorphCats
-            for cat in cats:
-                for morph in cat.morphs:
-                    if getActivated(rig, rig, morph.name):
-                        keyProp(rig, morph.name, frame)
-        else:
-            pgs = getattr(rig, "Daz" + self.morphset)
-            for key in pgs.keys():
-                if getActivated(rig, rig, key):
-                    keyProp(rig, key, frame)
 
 
 class DAZ_OT_KeyShapes(DazOperator, MorphsetString, IsMesh):
@@ -1707,27 +1677,11 @@ class DAZ_OT_UnkeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig and rig.animation_data and rig.animation_data.action:
             scn = context.scene
-            self.unkeyMorphs(rig, scn, scn.frame_current)
+            morphs = getRelevantMorphs(rig, self.morphset, self.category)
+            for morph in morphs:
+                if getActivated(rig, rig, morph):
+                    unkeyProp(rig, morph, scn.frame_current)
             updateRigDrivers(context, rig)
-
-
-    def unkeyMorphs(self, rig, scn, frame):
-        if rig is None:
-            return
-        if self.morphset == "Custom":
-            if self.category:
-                cats = [rig.DazMorphCats[self.category]]
-            else:
-                cats = rig.DazMorphCats
-            for cat in cats:
-                for morph in cat.morphs:
-                    if getActivated(rig, rig, morph.name):
-                        unkeyProp(rig, morph.name, frame)
-        else:
-            pgs = getattr(rig, "Daz" + self.morphset)
-            for key in pgs.keys():
-                if getActivated(rig, rig, key):
-                    unkeyProp(rig, key, frame)
 
 
 class DAZ_OT_UnkeyShapes(DazOperator, MorphsetString, IsMesh):
