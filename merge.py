@@ -780,7 +780,10 @@ class RigInfo:
 
     def renameVertexGroups(self, ob):
         for key in self.editbones.keys():
-            _,bname = key.split(":", 1)
+            if self.button.useCreateDuplicates:
+                _,bname = key.split(":", 1)
+            else:
+                bname = key
             if bname in ob.vertex_groups.keys():
                 vgrp = ob.vertex_groups[bname]
                 vgrp.name = key
