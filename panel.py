@@ -469,7 +469,15 @@ class DAZ_PT_Posing(DAZ_PT_Base, bpy.types.Panel):
         layout.operator("daz.rotate_bones")
 
 
+class DAZ_PT_MorphGroup(DAZ_PT_Base, bpy.types.Panel):
+    bl_label = "Morphs"
+
+    def draw(self, context):
+        pass
+
+
 class DAZ_PT_Morphs:
+    bl_parent_id = "DAZ_PT_MorphGroup"
     useMesh = False
 
     @classmethod
@@ -967,9 +975,10 @@ classes = [
     DAZ_PT_AdvancedRigging,
     DAZ_PT_AdvancedHair,
 
-
     DAZ_PT_Utils,
     DAZ_PT_Posing,
+
+    DAZ_PT_MorphGroup,
     DAZ_PT_Standard,
     DAZ_PT_Units,
     DAZ_PT_Head,
@@ -980,6 +989,7 @@ classes = [
     DAZ_PT_BodyMorphs,
     DAZ_PT_JCMs,
     DAZ_PT_Flexions,
+
     DAZ_PT_CustomMorphs,
     DAZ_PT_CustomMeshMorphs,
     DAZ_PT_SimpleRig,
