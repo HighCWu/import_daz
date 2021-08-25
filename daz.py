@@ -177,13 +177,21 @@ class DAZ_OT_LoadSettingsFile(DazOperator, SingleFile, JsonFile):
         return SingleFile.invoke(self, context, event)
 
 
+def showBox(scn, attr, layout):
+    if not getattr(scn, attr):
+        layout.prop(scn, attr, icon="RIGHTARROW", emboss=False)
+        return False
+    else:
+        layout.prop(scn, attr, icon="DOWNARROW_HLT", emboss=False)
+        return True
+
+
 class DAZ_OT_GlobalSettings(DazOperator):
     bl_idname = "daz.global_settings"
     bl_label = "Global Settings"
     bl_description = "Show or update global settings"
 
     def draw(self, context):
-        from .panel import showBox
         scn = context.scene
         split = self.layout.split(factor=0.4)
         col = split.column()

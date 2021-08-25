@@ -33,298 +33,314 @@ from .buildnumber import BUILD
 #   Panels
 #----------------------------------------------------------
 
-def showBox(scn, attr, layout):
-    if not getattr(scn, attr):
-        layout.prop(scn, attr, icon="RIGHTARROW", emboss=False)
-        return False
-    else:
-        layout.prop(scn, attr, icon="DOWNARROW_HLT", emboss=False)
-        return True
+class DAZ_PT_Base:
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "DAZ Importer"
+    bl_options = {'DEFAULT_CLOSED'}
 
 
-class DAZ_PT_Setup(bpy.types.Panel):
+class DAZ_PT_Setup(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Setup (version 1.6.0.%04d)" % BUILD
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
+    bl_options = set()
 
     def draw(self, context):
         scn = context.scene
+        self.layout.operator("daz.import_daz")
+        self.layout.separator()
+        self.layout.operator("daz.easy_import_daz")
+        self.layout.prop(scn, "DazFavoPath")
+        self.layout.separator()
+        self.layout.operator("daz.global_settings")
+
+
+class DAZ_PT_SetupCorrections(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Setup"
+    bl_idname = "DAZ_PT_SetupCorrections"
+    bl_label = "Corrections"
+
+    def draw(self, context):
+        self.layout.operator("daz.eliminate_empties")
+        self.layout.operator("daz.merge_rigs")
+        self.layout.operator("daz.merge_toes")
+        self.layout.separator()
+        self.layout.operator("daz.copy_pose")
+        self.layout.operator("daz.apply_rest_pose")
+        self.layout.operator("daz.change_armature")
+
+
+class DAZ_PT_SetupMaterials(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Setup"
+    bl_idname = "DAZ_PT_SetupMaterials"
+    bl_label = "Materials"
+
+    def draw(self, context):
+        self.layout.operator("daz.update_settings")
+        self.layout.operator("daz.save_local_textures")
+        self.layout.operator("daz.resize_textures")
+        self.layout.operator("daz.change_resolution")
+
+        self.layout.separator()
+        self.layout.operator("daz.change_colors")
+        self.layout.operator("daz.change_skin_color")
+        self.layout.operator("daz.merge_materials")
+        self.layout.operator("daz.copy_materials")
+        self.layout.operator("daz.prune_node_trees")
+
+        self.layout.separator()
+        self.layout.operator("daz.launch_editor")
+        self.layout.operator("daz.reset_material")
+
+
+class DAZ_PT_SetupMorphs(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Setup"
+    bl_idname = "DAZ_PT_SetupMorphs"
+    bl_label = "Morphs"
+
+    def draw(self, context):
         ob = context.object
-        layout = self.layout
-
-        layout.operator("daz.import_daz")
-        layout.separator()
-        layout.operator("daz.easy_import_daz")
-        layout.prop(scn, "DazFavoPath")
-        layout.separator()
-        layout.operator("daz.global_settings")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowCorrections", box):
-            box.operator("daz.eliminate_empties")
-            box.operator("daz.merge_rigs")
-            box.operator("daz.merge_toes")
-            box.separator()
-            box.operator("daz.copy_pose")
-            box.operator("daz.apply_rest_pose")
-            box.operator("daz.change_armature")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowMaterials", box):
-            box.operator("daz.update_settings")
-            box.operator("daz.save_local_textures")
-            box.operator("daz.resize_textures")
-            box.operator("daz.change_resolution")
-
-            box.separator()
-            box.operator("daz.change_colors")
-            box.operator("daz.change_skin_color")
-            box.operator("daz.merge_materials")
-            box.operator("daz.copy_materials")
-            box.operator("daz.prune_node_trees")
-
-            box.separator()
-            box.operator("daz.launch_editor")
-            box.operator("daz.reset_material")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowMorphs", box):
-            if ob and ob.DazDriversDisabled:
-                box.label(text = "Morph Drivers Disabled")
-                box.operator("daz.enable_drivers")
-            elif ob and ob.type in ['ARMATURE', 'MESH']:
-                if ob.DazMorphPrefixes:
-                    box.label(text="Object with obsolete morphs")
-                    return
-                box.operator("daz.import_units")
-                box.operator("daz.import_expressions")
-                box.operator("daz.import_visemes")
-                box.operator("daz.import_facs")
-                box.operator("daz.import_facs_expressions")
-                box.operator("daz.import_body_morphs")
-                box.separator()
-                box.operator("daz.import_jcms")
-                box.operator("daz.import_flexions")
-                box.separator()
-                box.operator("daz.import_standard_morphs")
-                box.operator("daz.import_custom_morphs")
-                box.separator()
-                box.operator("daz.save_favo_morphs")
-                box.operator("daz.load_favo_morphs")
-                box.separator()
-                box.label(text="Create low-poly meshes before transfers.")
-                box.operator("daz.transfer_shapekeys")
-                box.operator("daz.apply_all_shapekeys")
-                box.operator("daz.mix_shapekeys")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowFinish", box):
-            box.operator("daz.merge_geografts")
-            box.operator("daz.merge_uv_layers")
-            if bpy.app.version >= (2,82,0):
-                box.operator("daz.set_udims")
-                box.operator("daz.make_udim_materials")
-            box.operator("daz.convert_widgets")
-            box.operator("daz.finalize_meshes")
-            box.separator()
-            box.operator("daz.make_all_bones_poseable")
-            box.operator("daz.optimize_pose")
-            box.operator("daz.apply_rest_pose")
-            box.operator("daz.connect_ik_chains")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowRigging", box):
-            box.operator("daz.add_custom_shapes")
-            box.operator("daz.add_simple_ik")
-            box.separator()
-            box.operator("daz.convert_to_mhx")
-            box.separator()
-            box.operator("daz.convert_to_rigify")
-            box.operator("daz.create_meta")
-            box.operator("daz.rigify_meta")
-            box.separator()
-            box.operator("daz.add_mannequin")
+        if ob and ob.DazDriversDisabled:
+            self.layout.label(text = "Morph Drivers Disabled")
+            self.layout.operator("daz.enable_drivers")
+        elif ob and ob.type in ['ARMATURE', 'MESH']:
+            if ob.DazMorphPrefixes:
+                self.layout.label(text="Object with obsolete morphs")
+                return
+            self.layout.operator("daz.import_units")
+            self.layout.operator("daz.import_expressions")
+            self.layout.operator("daz.import_visemes")
+            self.layout.operator("daz.import_facs")
+            self.layout.operator("daz.import_facs_expressions")
+            self.layout.operator("daz.import_body_morphs")
+            self.layout.separator()
+            self.layout.operator("daz.import_jcms")
+            self.layout.operator("daz.import_flexions")
+            self.layout.separator()
+            self.layout.operator("daz.import_standard_morphs")
+            self.layout.operator("daz.import_custom_morphs")
+            self.layout.separator()
+            self.layout.operator("daz.save_favo_morphs")
+            self.layout.operator("daz.load_favo_morphs")
+            self.layout.separator()
+            self.layout.label(text="Create low-poly meshes before transfers.")
+            self.layout.operator("daz.transfer_shapekeys")
+            self.layout.operator("daz.apply_all_shapekeys")
+            self.layout.operator("daz.mix_shapekeys")
 
 
-    def showBox(self, layout, scn, ob, type):
-        from .morphing import theMorphNames, theMorphFiles
-        if ob is None:
-            return
-        box = layout.box()
-        if ob.DazMesh not in theMorphFiles.keys():
-            box.label(text = "Object '%s'" % ob.name)
-            box.label(text = "has no available %s morphs" % type)
-            return
-        box.label(text = "Select morphs to load")
-        btn = box.operator("daz.select_all_morphs", text="Select All")
-        btn.type = type
-        btn.value = True
-        btn = box.operator("daz.select_all_morphs", text="Deselect All")
-        btn.type = type
-        btn.value = False
-        if ob.DazMesh in theMorphFiles.keys():
-            names = list(theMorphFiles[ob.DazMesh][type].keys())
-            names.sort()
-            for name in names:
-                box.prop(scn, "Daz"+name)
+class DAZ_PT_SetupFinish(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Setup"
+    bl_idname = "DAZ_PT_SetupFinish"
+    bl_label = "Finish"
+
+    def draw(self, context):
+        self.layout.operator("daz.merge_geografts")
+        self.layout.operator("daz.merge_uv_layers")
+        if bpy.app.version >= (2,82,0):
+            self.layout.operator("daz.set_udims")
+            self.layout.operator("daz.make_udim_materials")
+        self.layout.operator("daz.convert_widgets")
+        self.layout.operator("daz.finalize_meshes")
+        self.layout.separator()
+        self.layout.operator("daz.make_all_bones_poseable")
+        self.layout.operator("daz.optimize_pose")
+        self.layout.operator("daz.apply_rest_pose")
+        self.layout.operator("daz.connect_ik_chains")
 
 
-class DAZ_PT_Advanced(bpy.types.Panel):
+class DAZ_PT_SetupRigging(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Setup"
+    bl_idname = "DAZ_PT_SetupRigging"
+    bl_label = "Rigging"
+
+    def draw(self, context):
+        self.layout.operator("daz.add_custom_shapes")
+        self.layout.operator("daz.add_simple_ik")
+        self.layout.separator()
+        self.layout.operator("daz.convert_to_mhx")
+        self.layout.separator()
+        self.layout.operator("daz.convert_to_rigify")
+        self.layout.operator("daz.create_meta")
+        self.layout.operator("daz.rigify_meta")
+        self.layout.separator()
+        self.layout.operator("daz.add_mannequin")
+
+
+class DAZ_PT_Advanced(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Advanced Setup"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
-        scn = context.scene
-        ob = context.object
-        layout = self.layout
-
-        box = layout.box()
-        if showBox(scn, "DazShowLowpoly", box):
-            box.operator("daz.print_statistics")
-            box.separator()
-            box.operator("daz.apply_morphs")
-            box.operator("daz.make_quick_proxy")
-            box.separator()
-            box.operator("daz.make_faithful_proxy")
-            box.operator("daz.split_ngons")
-            box.operator("daz.quadify")
-            box.separator()
-            box.operator("daz.add_push")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowVisibility", box):
-            box.operator("daz.add_shrinkwrap")
-            box.operator("daz.create_masks")
-            box.operator("daz.add_visibility_drivers")
-            box.operator("daz.remove_visibility_drivers")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowHDMesh", box):
-            if bpy.app.version >= (2,90,0):
-                box.operator("daz.make_multires")
-                box.separator()
-            if bpy.app.version >= (2,82,0):
-                box.operator("daz.bake_maps")
-                box.operator("daz.load_baked_maps")
-                box.separator()
-            box.operator("daz.load_normal_map")
-            box.operator("daz.load_scalar_disp")
-            box.operator("daz.load_vector_disp")
-            box.operator("daz.add_driven_value_nodes")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowMaterials2", box):
-            box.operator("daz.load_uv")
-            box.operator("daz.prune_uv_maps")
-            box.separator()
-            box.operator("daz.collapse_udims")
-            box.operator("daz.restore_udims")
-            box.operator("daz.udims_from_textures")
-            box.separator()
-            box.operator("daz.remove_shells")
-            box.operator("daz.replace_shells")
-            box.separator()
-            box.operator("daz.make_decal")
-            box.operator("daz.make_shader_groups")
+        pass
 
 
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowMesh", box):
-            box.operator("daz.limit_vertex_groups")
-            box.operator("daz.prune_vertex_groups")
-            box.operator("daz.create_graft_groups")
-            box.operator("daz.transfer_vertex_groups")
-            box.operator("daz.apply_subsurf")
-            box.operator("daz.copy_modifiers")
-            box.operator("daz.find_seams")
-            box.operator("daz.separate_loose_parts")
-            box.operator("daz.mesh_add_pinning")
+class DAZ_PT_AdvancedLowpoly(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Advanced"
+    bl_idname = "DAZ_PT_AdvancedLowpoly"
+    bl_label = "Lowpoly"
 
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowSimulation", box):
-            box.operator("daz.make_simulation")
-            box.separator()
-            box.operator("daz.make_deflection")
-            box.operator("daz.make_collision")
-            box.operator("daz.make_cloth")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowRigging2", box):
-            box.operator("daz.remove_custom_shapes")
-            box.operator("daz.copy_daz_props")
-            box.operator("daz.convert_rig")
-            box.operator("daz.add_extra_face_bones")
-            box.separator()
-            box.operator("daz.add_ik_goals")
-            box.operator("daz.add_winders")
-            box.operator("daz.change_prefix_to_suffix")
-            box.operator("daz.lock_bones")
-
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowMorphs2", box):
-            box.operator("daz.add_shape_to_category")
-            box.operator("daz.remove_shape_from_category")
-            box.operator("daz.rename_category")
-            box.operator("daz.remove_categories")
-            box.separator()
-            box.operator("daz.convert_standard_morphs_to_shapekeys")
-            box.operator("daz.convert_custom_morphs_to_shapekeys")
-            box.operator("daz.transfer_mesh_to_shape")
-            box.separator()
-            box.operator("daz.add_shapekey_drivers")
-            box.operator("daz.remove_shapekey_drivers")
-            box.operator("daz.remove_all_drivers")
-            box.separator()
-            box.operator("daz.copy_props")
-            box.operator("daz.copy_bone_drivers")
-            box.operator("daz.retarget_mesh_drivers")
-            box.separator()
-            box.operator("daz.update_slider_limits")
-            box.operator("daz.import_dbz")
-            box.operator("daz.update_morph_paths")
+    def draw(self, context):
+        self.layout.operator("daz.print_statistics")
+        self.layout.separator()
+        self.layout.operator("daz.apply_morphs")
+        self.layout.operator("daz.make_quick_proxy")
+        self.layout.separator()
+        self.layout.operator("daz.make_faithful_proxy")
+        self.layout.operator("daz.split_ngons")
+        self.layout.operator("daz.quadify")
+        self.layout.separator()
+        self.layout.operator("daz.add_push")
 
 
-        layout.separator()
-        box = layout.box()
-        if showBox(scn, "DazShowHair", box):
-            from .hair import getHairAndHuman
-            box.operator("daz.print_statistics")
-            box.operator("daz.select_strands_by_size")
-            box.operator("daz.select_strands_by_width")
-            box.operator("daz.select_random_strands")
-            box.separator()
-            box.operator("daz.make_hair")
-            hair,hum = getHairAndHuman(context, False)
-            box.label(text = "  Hair:  %s" % (hair.name if hair else None))
-            box.label(text = "  Human: %s" % (hum.name if hum else None))
-            box.separator()
-            box.operator("daz.update_hair")
-            box.operator("daz.color_hair")
-            box.operator("daz.combine_hairs")
+class DAZ_PT_AdvancedVisibility(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Advanced"
+    bl_idname = "DAZ_PT_AdvancedVisibility"
+    bl_label = "Visibility"
+
+    def draw(self, context):
+        self.layout.operator("daz.add_shrinkwrap")
+        self.layout.operator("daz.create_masks")
+        self.layout.operator("daz.add_visibility_drivers")
+        self.layout.operator("daz.remove_visibility_drivers")
 
 
-class DAZ_PT_Utils(bpy.types.Panel):
+class DAZ_PT_AdvancedHDMesh(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Advanced"
+    bl_idname = "DAZ_PT_AdvancedHDMesh"
+    bl_label = "HDMesh"
+
+    def draw(self, context):
+        if bpy.app.version >= (2,90,0):
+            self.layout.operator("daz.make_multires")
+            self.layout.separator()
+        if bpy.app.version >= (2,82,0):
+            self.layout.operator("daz.bake_maps")
+            self.layout.operator("daz.load_baked_maps")
+            self.layout.separator()
+        self.layout.operator("daz.load_normal_map")
+        self.layout.operator("daz.load_scalar_disp")
+        self.layout.operator("daz.load_vector_disp")
+        self.layout.operator("daz.add_driven_value_nodes")
+
+
+class DAZ_PT_AdvancedMaterials(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Advanced"
+    bl_idname = "DAZ_PT_AdvancedMaterials"
+    bl_label = "Materials"
+
+    def draw(self, context):
+        self.layout.operator("daz.load_uv")
+        self.layout.operator("daz.prune_uv_maps")
+        self.layout.separator()
+        self.layout.operator("daz.collapse_udims")
+        self.layout.operator("daz.restore_udims")
+        self.layout.operator("daz.udims_from_textures")
+        self.layout.separator()
+        self.layout.operator("daz.remove_shells")
+        self.layout.operator("daz.replace_shells")
+        self.layout.separator()
+        self.layout.operator("daz.make_decal")
+        self.layout.operator("daz.make_shader_groups")
+
+
+class DAZ_PT_AdvancedMesh(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Advanced"
+    bl_idname = "DAZ_PT_AdvancedMesh"
+    bl_label = "Mesh"
+
+    def draw(self, context):
+        self.layout.operator("daz.limit_vertex_groups")
+        self.layout.operator("daz.prune_vertex_groups")
+        self.layout.operator("daz.create_graft_groups")
+        self.layout.operator("daz.transfer_vertex_groups")
+        self.layout.operator("daz.apply_subsurf")
+        self.layout.operator("daz.copy_modifiers")
+        self.layout.operator("daz.find_seams")
+        self.layout.operator("daz.separate_loose_parts")
+        self.layout.operator("daz.mesh_add_pinning")
+
+
+class DAZ_PT_AdvancedSimulation(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Advanced"
+    bl_idname = "DAZ_PT_AdvancedSimulation"
+    bl_label = "Simulation"
+
+    def draw(self, context):
+        self.layout.operator("daz.make_simulation")
+        self.layout.separator()
+        self.layout.operator("daz.make_deflection")
+        self.layout.operator("daz.make_collision")
+        self.layout.operator("daz.make_cloth")
+
+
+class DAZ_PT_AdvancedRigging(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Advanced"
+    bl_idname = "DAZ_PT_AdvancedRigging"
+    bl_label = "Rigging"
+
+    def draw(self, context):
+        self.layout.operator("daz.remove_custom_shapes")
+        self.layout.operator("daz.copy_daz_props")
+        self.layout.operator("daz.convert_rig")
+        self.layout.operator("daz.add_extra_face_bones")
+        self.layout.separator()
+        self.layout.operator("daz.add_ik_goals")
+        self.layout.operator("daz.add_winders")
+        self.layout.operator("daz.change_prefix_to_suffix")
+        self.layout.operator("daz.lock_bones")
+
+
+class DAZ_PT_AdvancedMorphs(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Advanced"
+    bl_idname = "DAZ_PT_AdvancedMorphs"
+    bl_label = "Morphs"
+
+    def draw(self, context):
+        self.layout.operator("daz.add_shape_to_category")
+        self.layout.operator("daz.remove_shape_from_category")
+        self.layout.operator("daz.rename_category")
+        self.layout.operator("daz.remove_categories")
+        self.layout.separator()
+        self.layout.operator("daz.convert_standard_morphs_to_shapekeys")
+        self.layout.operator("daz.convert_custom_morphs_to_shapekeys")
+        self.layout.operator("daz.transfer_mesh_to_shape")
+        self.layout.separator()
+        self.layout.operator("daz.add_shapekey_drivers")
+        self.layout.operator("daz.remove_shapekey_drivers")
+        self.layout.operator("daz.remove_all_drivers")
+        self.layout.separator()
+        self.layout.operator("daz.copy_props")
+        self.layout.operator("daz.copy_bone_drivers")
+        self.layout.operator("daz.retarget_mesh_drivers")
+        self.layout.separator()
+        self.layout.operator("daz.update_slider_limits")
+        self.layout.operator("daz.import_dbz")
+        self.layout.operator("daz.update_morph_paths")
+
+
+class DAZ_PT_AdvancedHair(DAZ_PT_Base, bpy.types.Panel):
+    bl_parent_id = "DAZ_PT_Advanced"
+    bl_idname = "DAZ_PT_AdvancedHair"
+    bl_label = "Hair"
+
+    def draw(self, context):
+        from .hair import getHairAndHuman
+        self.layout.operator("daz.print_statistics")
+        self.layout.operator("daz.select_strands_by_size")
+        self.layout.operator("daz.select_strands_by_width")
+        self.layout.operator("daz.select_random_strands")
+        self.layout.separator()
+        self.layout.operator("daz.make_hair")
+        hair,hum = getHairAndHuman(context, False)
+        self.layout.label(text = "  Hair:  %s" % (hair.name if hair else None))
+        self.layout.label(text = "  Human: %s" % (hum.name if hum else None))
+        self.layout.separator()
+        self.layout.operator("daz.update_hair")
+        self.layout.operator("daz.color_hair")
+        self.layout.operator("daz.combine_hairs")
+
+
+class DAZ_PT_Utils(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Utilities"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         ob = context.object
@@ -395,12 +411,8 @@ class DAZ_PT_Utils(bpy.types.Panel):
             row.label(text = "%.3f" % vec[n])
 
 
-class DAZ_PT_Posing(bpy.types.Panel):
+class DAZ_PT_Posing(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Posing"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(self, context):
@@ -585,53 +597,28 @@ class DAZ_PT_Morphs:
         op.category = category
 
 
-class DAZ_PT_Standard(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_Standard(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Unclassified Standard Morphs"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Standard"
 
 
-class DAZ_PT_Units(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_Units(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Face Units"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Units"
 
 
-class DAZ_PT_Head(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_Head(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Head"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Head"
 
 
-class DAZ_PT_Expressions(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_Expressions(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Expressions"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Expressions"
 
 
-class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_Visemes(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Visemes"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Visemes"
 
     def draw(self, context):
@@ -639,13 +626,8 @@ class DAZ_PT_Visemes(bpy.types.Panel, DAZ_PT_Morphs):
         DAZ_PT_Morphs.draw(self, context)
 
 
-class DAZ_PT_FacsUnits(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_FacsUnits(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "FACS Units"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Facs"
 
     def preamble(self, layout, rig):
@@ -654,43 +636,23 @@ class DAZ_PT_FacsUnits(bpy.types.Panel, DAZ_PT_Morphs):
         DAZ_PT_Morphs.preamble(self, layout, rig)
 
 
-class DAZ_PT_FacsExpressions(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_FacsExpressions(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "FACS Expressions"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Facsexpr"
 
 
-class DAZ_PT_BodyMorphs(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_BodyMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Body Morphs"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Body"
 
 
-class DAZ_PT_JCMs(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_JCMs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "JCMs"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Jcms"
 
 
-class DAZ_PT_Flexions(bpy.types.Panel, DAZ_PT_Morphs):
+class DAZ_PT_Flexions(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
     bl_label = "Flexions"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Flexions"
 
 #------------------------------------------------------------------------
@@ -719,13 +681,8 @@ class CustomDrawItems:
             self.drawCustomBox(box, cat, scn, ob, filter)
 
 
-class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
+class DAZ_PT_CustomMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     bl_label = "Custom Morphs"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Custom"
 
     def hasTheseMorphs(self, ob):
@@ -752,13 +709,8 @@ class DAZ_PT_CustomMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
                 self.displayProp(morph, cat.name, rig, rig.data, box, scn)
 
 
-class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
+class DAZ_PT_CustomMeshMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
     bl_label = "Mesh Shape Keys"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     morphset = "Custom"
     useMesh = True
 
@@ -852,12 +804,8 @@ class DAZ_PT_CustomMeshMorphs(bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
 #    Simple IK Panel
 #------------------------------------------------------------------------
 
-class DAZ_PT_SimpleRig(bpy.types.Panel):
+class DAZ_PT_SimpleRig(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Simple Rig"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(cls, context):
@@ -943,13 +891,8 @@ class DAZ_PT_SimpleRig(bpy.types.Panel):
 #   Visibility panels
 #------------------------------------------------------------------------
 
-class DAZ_PT_Visibility(bpy.types.Panel):
+class DAZ_PT_Visibility(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Visibility"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "DAZ Importer"
-    bl_options = {'DEFAULT_CLOSED'}
-
     prefix = "Mhh"
 
     @classmethod
@@ -987,12 +930,8 @@ class DAZ_PT_Visibility(bpy.types.Panel):
 #   DAZ Rigify props panels
 #------------------------------------------------------------------------
 
-class DAZ_PT_DazRigifyProps(bpy.types.Panel):
+class DAZ_PT_DazRigifyProps(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "DAZ Rigify Properties"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "Item"
-    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(cls, context):
@@ -1013,7 +952,22 @@ class DAZ_PT_DazRigifyProps(bpy.types.Panel):
 
 classes = [
     DAZ_PT_Setup,
+    DAZ_PT_SetupCorrections,
+    DAZ_PT_SetupMaterials,
+    DAZ_PT_SetupMorphs,
+    DAZ_PT_SetupFinish,
+    DAZ_PT_SetupRigging,
+
     DAZ_PT_Advanced,
+    DAZ_PT_AdvancedLowpoly,
+    DAZ_PT_AdvancedVisibility,
+    DAZ_PT_AdvancedHDMesh,
+    DAZ_PT_AdvancedMaterials,
+    DAZ_PT_AdvancedMesh,
+    DAZ_PT_AdvancedRigging,
+    DAZ_PT_AdvancedHair,
+
+
     DAZ_PT_Utils,
     DAZ_PT_Posing,
     DAZ_PT_Standard,
@@ -1035,21 +989,6 @@ classes = [
 
 
 def register():
-    bpy.types.Scene.DazShowCorrections = BoolProperty(name = "Corrections", default = False)
-    bpy.types.Scene.DazShowMaterials = BoolProperty(name = "Materials", default = False)
-    bpy.types.Scene.DazShowMaterials2 = BoolProperty(name = "Materials", default = False)
-    bpy.types.Scene.DazShowMorphs = BoolProperty(name = "Morphs", default = False)
-    bpy.types.Scene.DazShowFinish = BoolProperty(name = "Finishing", default = False)
-    bpy.types.Scene.DazShowRigging = BoolProperty(name = "Rigging", default = False)
-    bpy.types.Scene.DazShowLowpoly = BoolProperty(name = "Low-poly Versions", default = False)
-    bpy.types.Scene.DazShowVisibility = BoolProperty(name = "Visibility", default = False)
-    bpy.types.Scene.DazShowRigging2 = BoolProperty(name = "Rigging", default = False)
-    bpy.types.Scene.DazShowHDMesh = BoolProperty(name = "HD Meshes", default = False)
-    bpy.types.Scene.DazShowMesh = BoolProperty(name = "Mesh", default = False)
-    bpy.types.Scene.DazShowSimulation = BoolProperty(name = "Simulation", default = False)
-    bpy.types.Scene.DazShowMorphs2 = BoolProperty(name = "Morphs", default = False)
-    bpy.types.Scene.DazShowHair = BoolProperty(name = "Hair", default = False)
-
     for cls in classes:
         bpy.utils.register_class(cls)
 
