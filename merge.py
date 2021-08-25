@@ -669,7 +669,10 @@ class RigInfo:
 
 
     def getBoneKey(self, bname):
-        return "%s:%s" % (self.rig.name, bname)
+        if self.button.useCreateDuplicates:
+            return "%s:%s" % (self.rig.name, bname)
+        else:
+            return bname
 
 
     def addObjects(self, ob):
@@ -698,6 +701,8 @@ class RigInfo:
             if pb.name not in mainbones:
                 key = self.getBoneKey(pb.name)
                 self.posebones[key] = (pb, pb.matrix.copy())
+                if not self.button.useCreateDuplicates:
+                    mainbones.append(pb.name)
 
 
     def addEditBones(self, rig, layers):
@@ -720,17 +725,19 @@ class RigInfo:
             eb.parent = ebones[parent]
         elif parkey in ebones.keys():
             eb.parent = ebones[parkey]
+        else:
+            print("Parent not found", eb.name, parent)
 
 
-    def copyPose(self, context, rig, btn):
+    def copyPose(self, context, rig):
         from .figure import copyBoneInfo
         from .fix import copyConstraints
         for key in self.rig.data.keys():
             rig.data[key] = self.rig.data[key]
         self.copyProps(self.rig, rig)
         self.copyProps(self.rig.data, rig.data)
-        btn.copyDrivers(self.rig.data, rig.data, self.rig, rig)
-        btn.copyDrivers(self.rig, rig, self.rig, rig)
+        self.button.copyDrivers(self.rig.data, rig.data, self.rig, rig)
+        self.button.copyDrivers(self.rig, rig, self.rig, rig)
         setActiveObject(context, rig)
         wmat = rig.matrix_world.inverted() @ self.matrix
         for bname,data in self.posebones.items():
@@ -927,7 +934,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         if self.useCreateDuplicates:
             mainbones = []
         else:
-            mainbones = rig.pose.bones.keys()
+            mainbones = list(rig.pose.bones.keys())
         for subinfo in subinfos:
             subinfo.getEditBones(mainbones)
         adds, hdadds, removes = self.createNewCollections(rig)
@@ -942,7 +949,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
         self.reparentObjects(info, rig, adds, hdadds, removes)
         for subinfo in subinfos:
             if subinfo.conforms:
-                subinfo.copyPose(context, rig, self)
+                subinfo.copyPose(context, rig)
                 for ob,_ in subinfo.objects:
                     if ob.type == 'MESH':
                         self.changeArmatureModifier(ob, rig)
