@@ -1571,6 +1571,9 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             morphsets = [getattr(rig, "Daz"+morphset)
                 for morphset in theStandardMorphSets + theCustomMorphSets]
 
+        self.rots[""] = 3*[None]
+        self.locs[""] = 3*[None]
+        self.scales[""] = 3*[None]
         for pb in rig.pose.bones:
             for bname in self.getBoneNames(pb.name):
                 if pb.rotation_mode == 'QUATERNION':
@@ -1601,11 +1604,22 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                     for morphset in morphsets:
                         if prop in morphset.keys():
                             self.morphs[prop] = fcu
+            else:
+                idx = fcu.array_index
+                if channel == "location":
+                    self.locs[""][idx] = fcu
+                elif channel == "rotation_euler":
+                    self.rots[""][idx] = fcu
+                elif self.useScale and channel == "scale":
+                    self.scales[""][idx] = fcu
 
 
     def getFakeCurves(self, rig):
         from .morphing import theStandardMorphSets, theCustomMorphSets
         if self.useBones:
+            self.rots[""] = [FakeCurve(t) for t in rig.rotation_euler]
+            self.locs[""] = [FakeCurve(t) for t in rig.location]
+            self.scales[""] = [FakeCurve(t) for t in rig.scale]
             for pb in rig.pose.bones:
                 for bname in self.getBoneNames(pb.name):
                     if pb.rotation_mode == 'QUATERNION':
@@ -1629,6 +1643,11 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         self.F = {}
         self.Finv = {}
         self.idxs = {}
+
+        Fn = rig.matrix_local.inverted() @ self.Z
+        self.F[""] = Fn
+        self.Finv[""] = Fn.inverted()
+
         for pb in rig.pose.bones:
             bone = pb.bone
             euler = Euler(Vector(pb.bone.DazOrient)*D, 'XYZ')
@@ -1649,6 +1668,28 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         for frame in range(self.first, self.last+1):
             L = self.Ls[frame] = {}
             smats = {}
+
+            rot = rig.rotation_euler.copy()
+            for idx,fcu in enumerate(self.rots[""]):
+                if fcu:
+                    rot[idx] = fcu.evaluate(frame)
+            mat = rot.to_matrix().to_4x4()
+
+            if self.useScale:
+                scale = rig.scale.copy()
+                for idx,fcu in enumerate(self.scales[""]):
+                    if fcu:
+                        scale[idx] = fcu.evaluate(frame)
+                smat = Matrix.Diagonal(scale)
+                mat = mat @ smat.to_4x4()
+
+            loc = rig.location.copy()
+            for idx,fcu in enumerate(self.locs[""]):
+                if fcu:
+                    loc[idx] = fcu.evaluate(frame)
+            mat.col[3][0:3] = loc
+            L[""] = self.Finv[""] @ mat @ self.F[""]
+
             for pb in rig.pose.bones:
                 for bname in self.getBoneNames(pb.name):
                     if bname in self.quats.keys():
@@ -1803,6 +1844,16 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                     if self.useScale:
                         scales = [L.to_scale() for L in Ls]
                         self.getScale(bname, pb, scales, anims)
+
+            Ls = [self.Ls[frame][""] for frame in range(self.first, self.last+1)]
+            locs = [L.to_translation() for L in Ls]
+            self.getTrans("", rig, locs, 1/rig.DazScale, anims)
+            rots = [L.to_euler('XYZ') for L in Ls]
+            self.getRot("", rig, rots, 1/D, anims)
+            if self.useScale:
+                scales = [L.to_scale() for L in Ls]
+                self.getScale("", rig, scales, anims)
+
         if self.useMorphs:
             for prop,fcu in self.morphs.items():
                 self.getMorph(prop, fcu, anims)
@@ -1829,39 +1880,56 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
 
 
     def getTrans(self, bname, pb, vecs, factor, anims):
-        for idx,x in enumerate(["x","y","z"]):
-            if not self.includeLocks and pb.DazLocLocks[idx]:
-                continue
-            anim = {}
-            anim["url"] = "name://@selection/%s:?translation/%s/value" % (bname, x)
-            locs = [vec[idx]*factor for vec in vecs]
-            self.addKeys(locs, anim, 1e-5)
-            anims.append(anim)
+        if bname == "":
+            for idx,x in enumerate(["x","y","z"]):
+                anim = {}
+                anim["url"] = "name://@selection:?translation/%s/value" % (x)
+                locs = [vec[idx]*factor for vec in vecs]
+                self.addKeys(locs, anim, 1e-5)
+                anims.append(anim)
+        else:
+            for idx,x in enumerate(["x","y","z"]):
+                if not self.includeLocks and pb.DazLocLocks[idx]:
+                    continue
+                anim = {}
+                anim["url"] = "name://@selection/%s:?translation/%s/value" % (bname, x)
+                locs = [vec[idx]*factor for vec in vecs]
+                self.addKeys(locs, anim, 1e-5)
+                anims.append(anim)
 
 
     def getRot(self, bname, pb, vecs, factor, anims):
-        twname,twidx = self.getTwistBone(pb.name)
-        for idx,x in enumerate(["x","y","z"]):
-            if ((not self.includeLocks and pb.DazRotLocks[idx]) or
-                (twname and idx == twidx)):
-                continue
-            anim = {}
-            anim["url"] = "name://@selection/%s:?rotation/%s/value" % (bname, x)
-            rots = [vec[idx]*factor for vec in vecs]
-            rots = self.correct180(rots)
-            self.addKeys(rots, anim, 1e-3)
-            anims.append(anim)
-        if twname is None:
-            return
-        for idx,x in enumerate(["x","y","z"]):
-            if idx != twidx:
-                continue
-            anim = {}
-            anim["url"] = "name://@selection/%s:?rotation/%s/value" % (twname, x)
-            rots = [vec[idx]*factor for vec in vecs]
-            rots = self.correct180(rots)
-            self.addKeys(rots, anim, 1e-3)
-            anims.append(anim)
+        if bname == "":
+            for idx,x in enumerate(["x","y","z"]):
+                anim = {}
+                anim["url"] = "name://@selection:?rotation/%s/value" % (x)
+                rots = [vec[idx]*factor for vec in vecs]
+                rots = self.correct180(rots)
+                self.addKeys(rots, anim, 1e-3)
+                anims.append(anim)
+        else:
+            twname,twidx = self.getTwistBone(pb.name)
+            for idx,x in enumerate(["x","y","z"]):
+                if ((not self.includeLocks and pb.DazRotLocks[idx]) or
+                    (twname and idx == twidx)):
+                    continue
+                anim = {}
+                anim["url"] = "name://@selection/%s:?rotation/%s/value" % (bname, x)
+                rots = [vec[idx]*factor for vec in vecs]
+                rots = self.correct180(rots)
+                self.addKeys(rots, anim, 1e-3)
+                anims.append(anim)
+            if twname is None:
+                return
+            for idx,x in enumerate(["x","y","z"]):
+                if idx != twidx:
+                    continue
+                anim = {}
+                anim["url"] = "name://@selection/%s:?rotation/%s/value" % (twname, x)
+                rots = [vec[idx]*factor for vec in vecs]
+                rots = self.correct180(rots)
+                self.addKeys(rots, anim, 1e-3)
+                anims.append(anim)
 
 
     def getScale(self, bname, pb, vecs, anims):
@@ -1902,8 +1970,6 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             prev = nrot
             nrots.append(nrot)
         return nrots
-
-
 
 #----------------------------------------------------------
 #   Initialize
