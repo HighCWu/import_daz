@@ -457,6 +457,7 @@ class DAZ_PT_Posing(DAZ_PT_Base, bpy.types.Panel):
             layout.operator("daz.disable_drivers")
         layout.operator("daz.prune_action")
         layout.separator()
+        layout.operator("daz.import_locks_limits")
         layout.operator("daz.save_pose_preset")
 
         layout.separator()

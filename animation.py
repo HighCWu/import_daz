@@ -1972,6 +1972,44 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         return nrots
 
 #----------------------------------------------------------
+#   Import locks and limits
+#----------------------------------------------------------
+
+class DAZ_OT_ImportLocksLimits(DazOperator, IsArmature):
+    bl_idname = "daz.import_locks_limits"
+    bl_label = "Impose Locks And Limits"
+    bl_description = "Impose locks and limits for current pose"
+    bl_options = {'UNDO'}
+
+    def run(self, context):
+        rig = context.object
+        for pb in rig.pose.bones:
+            self.imposeLocks(pb, pb.location, pb.lock_location, 0.0)
+            if pb.rotation_mode != 'QUATERNION':
+                self.imposeLocks(pb, pb.rotation_euler, pb.lock_rotation, 0.0)
+                self.imposeLimits(pb, pb.rotation_euler, "LIMIT_ROTATION", 0.0)
+            self.imposeLocks(pb, pb.scale, pb.lock_scale, 1.0)
+
+
+    def imposeLocks(self, pb, vec, locks, default):
+        for n in range(3):
+            if locks[n]:
+                vec[n] = default
+
+
+    def imposeLimits(self, pb, vec, limit, default):
+        cns = getConstraint(pb, limit)
+        if cns:
+            for n,char in enumerate(["x", "y", "z"]):
+                if getattr(cns, "use_limit_%s" % char):
+                    min = getattr(cns, "min_%s" % char)
+                    if vec[n] < min:
+                        vec[n] = min
+                    max = getattr(cns, "max_%s" % char)
+                    if vec[n] > max:
+                        vec[n] = max
+
+#----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
 
@@ -1987,6 +2025,7 @@ classes = [
     DAZ_OT_SavePoses,
     DAZ_OT_LoadPoses,
     DAZ_OT_SavePosePreset,
+    DAZ_OT_ImportLocksLimits,
 ]
 
 def register():
