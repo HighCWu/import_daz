@@ -131,10 +131,10 @@ class DAZ_PT_SetupMorphs(DAZ_PT_Base, bpy.types.Panel):
             self.layout.operator("daz.mix_shapekeys")
 
 
-class DAZ_PT_SetupFinish(DAZ_PT_Base, bpy.types.Panel):
+class DAZ_PT_SetupFinishing(DAZ_PT_Base, bpy.types.Panel):
     bl_parent_id = "DAZ_PT_Setup"
-    bl_idname = "DAZ_PT_SetupFinish"
-    bl_label = "Finish"
+    bl_idname = "DAZ_PT_SetupFinishing"
+    bl_label = "Finishing"
 
     def draw(self, context):
         self.layout.operator("daz.merge_geografts")
@@ -999,7 +999,7 @@ classes = [
     DAZ_PT_SetupCorrections,
     DAZ_PT_SetupMaterials,
     DAZ_PT_SetupMorphs,
-    DAZ_PT_SetupFinish,
+    DAZ_PT_SetupFinishing,
     DAZ_PT_SetupRigging,
 
     DAZ_PT_Advanced,
