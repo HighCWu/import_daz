@@ -1577,7 +1577,7 @@ def clearShapes(ob, category, scn, frame):
 class DAZ_OT_ClearMorphs(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.clear_morphs"
     bl_label = "Clear Morphs"
-    bl_description = "Set all morphs of specified type to zero.\nDoes not affect integer properties"
+    bl_description = "Set all selected morphs of specified type to zero.\nDoes not affect integer properties"
     bl_options = {'UNDO'}
 
     def run(self, context):
@@ -1605,7 +1605,7 @@ class DAZ_OT_ClearShapes(DazOperator, MorphsetString, IsMesh):
 class DAZ_OT_AddKeysets(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.add_keyset"
     bl_label = "Keyset"
-    bl_description = "Add category morphs to active custom keying set, or make new one"
+    bl_description = "Add selected morphs to active custom keying set, or make new one"
     bl_options = {'UNDO'}
 
     def run(self, context):
@@ -1629,7 +1629,7 @@ class DAZ_OT_AddKeysets(DazOperator, MorphsetString, IsMeshArmature):
 class DAZ_OT_KeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.key_morphs"
     bl_label = "Set Keys"
-    bl_description = "Set keys for all morphs of specified type at current frame"
+    bl_description = "Set keys for all selected morphs of specified type at current frame"
     bl_options = {'UNDO'}
 
     def run(self, context):
@@ -1670,7 +1670,7 @@ class DAZ_OT_KeyShapes(DazOperator, MorphsetString, IsMesh):
 class DAZ_OT_UnkeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
     bl_idname = "daz.unkey_morphs"
     bl_label = "Remove Keys"
-    bl_description = "Remove keys from all morphs of specified type at current frame"
+    bl_description = "Remove keys from all selected morphs of specified type at current frame"
     bl_options = {'UNDO'}
 
     def run(self, context):

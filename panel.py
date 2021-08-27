@@ -528,22 +528,21 @@ class DAZ_PT_Morphs:
         if not self.hasTheseMorphs(rig):
             return
         self.preamble(self.layout, rig)
-        self.layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
         self.drawItems(scn, rig)
 
 
     def preamble(self, layout, rig):
-        split = layout.split(factor=0.5)
-        self.activateLayout(split, "", rig)
+        self.activateLayout(layout, "", rig)
         self.keyLayout(layout, "")
 
 
     def activateLayout(self, layout, category, rig):
-        op = layout.operator("daz.activate_all")
+        split = layout.split(factor=0.5)
+        op = split.operator("daz.activate_all")
         op.morphset = self.morphset
         op.category = category
         op.useMesh = self.useMesh
-        op = layout.operator("daz.deactivate_all")
+        op = split.operator("daz.deactivate_all")
         op.morphset = self.morphset
         op.category = category
         op.useMesh = self.useMesh
@@ -566,6 +565,7 @@ class DAZ_PT_Morphs:
 
 
     def drawItems(self, scn, rig):
+        self.layout.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
         self.layout.separator()
         filter = scn.DazFilter.lower()
         pg = getattr(rig, "Daz"+self.morphset)
@@ -740,9 +740,9 @@ class DAZ_PT_CustomMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, CustomDra
             box.prop(rig, propRef(adj))
         if len(cat.morphs) == 0:
             return
-        split = box.split(factor=0.5)
-        self.activateLayout(split, cat.name, rig)
+        self.activateLayout(box, cat.name, rig)
         self.keyLayout(box, cat.name)
+        box.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
         for morph in cat.morphs:
             if (morph.name in rig.keys() and
                 filter in morph.text.lower()):
@@ -787,13 +787,6 @@ class DAZ_PT_CustomMeshMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, Custo
             split.label(text = "%.3f" % skey.value)
         else:
             layout.prop(ob, propRef(sname), text=text)
-
-
-    def preamble(self, layout, ob):
-        split = layout.split(factor=0.333)
-        split.operator("daz.prettify")
-        self.activateLayout(split, "", ob)
-        self.keyLayout(layout, "")
 
 
     def getCurrentRig(self, context):
