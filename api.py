@@ -84,7 +84,7 @@ def get_morphs(ob, morphset, category=None, activeOnly=False):
 #-------------------------------------------------------------
 
 def clear_selection():
-    """get_selection()
+    """clear_selection()
 
     Clear the active file selection to be loaded by consecutive operators.
     """

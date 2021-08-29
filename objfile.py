@@ -350,7 +350,7 @@ def fitToFile(filepath, nodes):
 class DAZ_OT_ImportDBZ(DazOperator, DbzFile, MultiFile, IsMesh):
     bl_idname = "daz.import_dbz"
     bl_label = "Import DBZ Morphs"
-    bl_description = "Import DBZ or JSON file(s) (*.dbz, *.dbz) as morphs"
+    bl_description = "Import DBZ or JSON file(s) (*.dbz, *.json) as morphs"
     bl_options = {'UNDO'}
 
     def run(self, context):

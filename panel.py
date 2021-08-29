@@ -815,8 +815,7 @@ class DAZ_PT_CustomMeshMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, Custo
         skeys = ob.data.shape_keys
         if skeys is None:
             return
-        split = box.split(factor=0.5)
-        self.activateLayout(split, cat.name, ob)
+        self.activateLayout(box, cat.name, ob)
         self.keyLayout(box, cat.name)
         for morph in cat.morphs:
             if (morph.name in skeys.key_blocks.keys() and
@@ -1003,6 +1002,7 @@ classes = [
     DAZ_PT_AdvancedMaterials,
     DAZ_PT_AdvancedMesh,
     DAZ_PT_AdvancedRigging,
+    DAZ_PT_AdvancedMorphs,
     DAZ_PT_AdvancedHair,
 
     DAZ_PT_Utils,
