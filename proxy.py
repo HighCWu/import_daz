@@ -1222,13 +1222,21 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
     bl_description = "Apply subsurf modifier, maintaining shapekeys"
     bl_options = {'UNDO'}
 
+    def storeState(self, context):
+        scn = context.scene
+        self.simplify = scn.render.use_simplify
+        scn.render.use_simplify = False
+
+    def restoreState(self, context):
+        context.scene.render.use_simplify = self.simplify
+
+
     def run(self, context):
         ob = context.object
         mod = getModifier(ob, 'SUBSURF')
         if not mod:
             raise DazError("Object %s\n has no subsurface modifier.    " % ob.name)
         modname = mod.name
-        levels = getSubLevels(context, mod)
 
         startProgress("Apply Subsurf Modifier")
         coords = []
@@ -1277,19 +1285,6 @@ class DAZ_OT_ApplySubsurf(DazOperator, IsMesh):
         activateObject(context, ob)
         bpy.ops.object.delete(use_global=False)
         activateObject(context, nob)
-        restoreSubLevels(context, levels)
-
-
-def getSubLevels(context, mod):
-    scn = context.scene
-    levels = scn.render.simplify_subdivision
-    if scn.render.simplify_subdivision < mod.levels:
-        scn.render.simplify_subdivision = mod.levels
-    return levels
-
-
-def restoreSubLevels(context, levels):
-    context.scene.render.simplify_subdivision = levels
 
 #-------------------------------------------------------------
 #   Print statistics
@@ -1674,6 +1669,17 @@ class DAZ_OT_MakeDeflection(DazPropsOperator, IsMesh):
         self.layout.prop(self, "useSubsurf")
         self.layout.prop(self, "useShrinkwrap")
 
+
+    def storeState(self, context):
+        scn = context.scene
+        self.simplify = scn.render.use_simplify
+        scn.render.use_simplify = False
+
+
+    def restoreState(self, context):
+        context.scene.render.use_simplify = self.simplify
+
+
     def run(self, context):
         from .load_json import loadJson
         ob = context.object
@@ -1728,9 +1734,7 @@ class DAZ_OT_MakeDeflection(DazPropsOperator, IsMesh):
         if self.useSubsurf:
             mod = nob.modifiers.new("Subsurf", 'SUBSURF')
             mod.levels = 1
-            levels = getSubLevels(context, mod)
             bpy.ops.object.modifier_apply(modifier="Subsurf")
-            restoreSubLevels(context, levels)
         if self.useShrinkwrap:
             mod = nob.modifiers.new("Shrinkwrap", 'SHRINKWRAP')
             mod.wrap_method = 'NEAREST_SURFACEPOINT'

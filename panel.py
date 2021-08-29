@@ -1001,6 +1001,7 @@ classes = [
     DAZ_PT_AdvancedHDMesh,
     DAZ_PT_AdvancedMaterials,
     DAZ_PT_AdvancedMesh,
+    DAZ_PT_AdvancedSimulation,
     DAZ_PT_AdvancedRigging,
     DAZ_PT_AdvancedMorphs,
     DAZ_PT_AdvancedHair,
