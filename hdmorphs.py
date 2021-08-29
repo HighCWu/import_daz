@@ -618,10 +618,12 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
         self.bake_type = scn.render.bake_type
         self.use_bake_multires = scn.render.use_bake_multires
         self.samples = scn.cycles.samples
+        self.simplify = scn.render.use_simplify
         scn.render.bake_type = self.bakeType
         scn.render.use_bake_multires = True
         scn.render.bake_margin = 2
         scn.cycles.samples = 512
+        scn.render.use_simplify = False
         self.object = context.view_layer.objects.active
 
 
@@ -631,6 +633,7 @@ class DAZ_OT_BakeMaps(DazPropsOperator, Baker):
         scn.render.bake_type = self.bake_type
         scn.render.engine = self.engine
         scn.cycles.samples = self.samples
+        scn.render.use_simplify = self.simplify
         context.view_layer.objects.active = self.object
 
 
