@@ -457,7 +457,7 @@ class DAZ_PT_Posing(DAZ_PT_Base, bpy.types.Panel):
             layout.operator("daz.disable_drivers")
         layout.operator("daz.prune_action")
         layout.separator()
-        layout.operator("daz.import_locks_limits")
+        layout.operator("daz.impose_locks_limits")
         layout.operator("daz.save_pose_preset")
 
         layout.separator()
@@ -465,14 +465,10 @@ class DAZ_PT_Posing(DAZ_PT_Base, bpy.types.Panel):
         if prop in rig.keys():
             layout.prop(rig, propRef(prop))
         split = layout.split(factor=0.6)
-        icon = 'CHECKBOX_HLT' if rig.DazLocLocks else 'CHECKBOX_DEHLT'
-        layout.operator("daz.toggle_loc_locks", icon=icon, emboss=False)
-        icon = 'CHECKBOX_HLT' if rig.DazRotLocks else 'CHECKBOX_DEHLT'
-        layout.operator("daz.toggle_rot_locks", icon=icon, emboss=False)
-        icon = 'CHECKBOX_HLT' if rig.DazLocLimits else 'CHECKBOX_DEHLT'
-        layout.operator("daz.toggle_loc_limits", icon=icon, emboss=False)
-        icon = 'CHECKBOX_HLT' if rig.DazRotLimits else 'CHECKBOX_DEHLT'
-        layout.operator("daz.toggle_rot_limits", icon=icon, emboss=False)
+        layout.prop(scn, "DazLocLocks")
+        layout.prop(scn, "DazRotLocks")
+        layout.prop(scn, "DazLocLimits")
+        layout.prop(scn, "DazRotLimits")
 
         return
         layout.separator()

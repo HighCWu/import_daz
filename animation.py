@@ -1975,8 +1975,8 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
 #   Import locks and limits
 #----------------------------------------------------------
 
-class DAZ_OT_ImportLocksLimits(DazOperator, IsArmature):
-    bl_idname = "daz.import_locks_limits"
+class DAZ_OT_ImposeLocksLimits(DazOperator, IsArmature):
+    bl_idname = "daz.impose_locks_limits"
     bl_label = "Impose Locks And Limits"
     bl_description = "Impose locks and limits for current pose"
     bl_options = {'UNDO'}
@@ -2025,7 +2025,7 @@ classes = [
     DAZ_OT_SavePoses,
     DAZ_OT_LoadPoses,
     DAZ_OT_SavePosePreset,
-    DAZ_OT_ImportLocksLimits,
+    DAZ_OT_ImposeLocksLimits,
 ]
 
 def register():

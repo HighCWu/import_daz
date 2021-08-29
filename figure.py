@@ -815,74 +815,45 @@ def getRnaName(string):
 #   Toggle locks
 #----------------------------------------------------------
 
-class ToggleLocks:
-    def run(self, context):
-        from .morphing import getRigFromObject
-        rig = getRigFromObject(context.object)
-        if getattr(rig, self.attr):
-            for pb in rig.pose.bones:
-                setattr(pb, self.attr, getattr(pb, self.lock))
-                setattr(pb, self.lock, (False,False,False))
-            setattr(rig, self.attr, False)
-        else:
-            for pb in rig.pose.bones:
-                setattr(pb, self.lock, getattr(pb, self.attr))
-            setattr(rig, self.attr, True)
+def toggleLocks(self, context, attr, lock):
+    from .morphing import getRigFromObject
+    rig = getRigFromObject(context.object)
+    if getattr(rig, attr):
+        for pb in rig.pose.bones:
+            setattr(pb, attr, getattr(pb, lock))
+            setattr(pb, lock, (False,False,False))
+        setattr(rig, attr, False)
+    else:
+        for pb in rig.pose.bones:
+            setattr(pb, lock, getattr(pb, attr))
+        setattr(rig, attr, True)
 
 
-class DAZ_OT_ToggleRotLocks(DazOperator, ToggleLocks):
-    bl_idname = "daz.toggle_rot_locks"
-    bl_label = "Rotation Locks"
-    bl_description = "Toggle rotation locks"
-    bl_options = {'UNDO'}
+def toggleRotLocks(self, context):
+    toggleLocks(self, context, "DazRotLocks", "lock_rotation")
 
-    attr = "DazRotLocks"
-    lock = "lock_rotation"
-
-
-class DAZ_OT_ToggleLocLocks(DazOperator, ToggleLocks):
-    bl_idname = "daz.toggle_loc_locks"
-    bl_label = "Location Locks"
-    bl_description = "Toggle location locks"
-    bl_options = {'UNDO'}
-
-    attr = "DazLocLocks"
-    lock = "lock_location"
-
+def toggleLocLocks(self, context):
+    toggleLocks(self, context, "DazLocLocks", "lock_location")
 
 #----------------------------------------------------------
 #   Toggle Limits
 #----------------------------------------------------------
 
-class ToggleLimits:
-    def run(self, context):
-        from .morphing import getRigFromObject
-        rig = getRigFromObject(context.object)
-        for pb in rig.pose.bones:
-            for cns in pb.constraints:
-                if cns.type == self.type:
-                    cns.mute = getattr(rig, self.attr)
-        setattr(rig, self.attr, not getattr(rig, self.attr))
+def toggleLimits(self, context, attr, type):
+    from .morphing import getRigFromObject
+    rig = getRigFromObject(context.object)
+    for pb in rig.pose.bones:
+        for cns in pb.constraints:
+            if cns.type == type:
+                cns.mute = getattr(rig, attr)
+    setattr(rig, attr, not getattr(rig, attr))
 
 
-class DAZ_OT_ToggleRotLimits(DazOperator, ToggleLimits):
-    bl_idname = "daz.toggle_rot_limits"
-    bl_label = "Rotation Limits"
-    bl_description = "Toggle rotation limits"
-    bl_options = {'UNDO'}
+def toggleRotLimits(self, context):
+    toggleLimits(self, context, "DazRotLimits", "LIMIT_ROTATION")
 
-    type = "LIMIT_ROTATION"
-    attr = "DazRotLimits"
-
-
-class DAZ_OT_ToggleLocLimits(DazOperator, ToggleLimits):
-    bl_idname = "daz.toggle_loc_limits"
-    bl_label = "Location Limits"
-    bl_description = "Toggle location limits"
-    bl_options = {'UNDO'}
-
-    type = "LIMIT_LOCATION"
-    attr = "DazLocLimits"
+def toggleLocLimits(self, context):
+    toggleLimits(self, context, "DazLocLimits", "LIMIT_LOCATION")
 
 #-------------------------------------------------------------
 #   Simple IK
@@ -1767,10 +1738,6 @@ classes = [
     DAZ_OT_RotateBones,
     DAZ_OT_SetAddExtraFaceBones,
     DAZ_OT_MakeAllBonesPoseable,
-    DAZ_OT_ToggleRotLocks,
-    DAZ_OT_ToggleLocLocks,
-    DAZ_OT_ToggleRotLimits,
-    DAZ_OT_ToggleLocLimits,
     DAZ_OT_ConnectIKChains,
     DAZ_OT_SelectNamedLayers,
     DAZ_OT_UnSelectNamedLayers,
@@ -1792,6 +1759,30 @@ def register():
     bpy.types.Armature.DazArmIK_R = FloatProperty(name="Right Arm IK", default=0.0, precision=3, min=0.0, max=1.0)
     bpy.types.Armature.DazLegIK_L = FloatProperty(name="Left Leg IK", default=0.0, precision=3, min=0.0, max=1.0)
     bpy.types.Armature.DazLegIK_R = FloatProperty(name="Right Leg IK", default=0.0, precision=3, min=0.0, max=1.0)
+
+    bpy.types.Scene.DazRotLocks = BoolProperty(
+        name = "Rotation Locks",
+        description = "Rotation Locks",
+        default = True,
+        update = toggleRotLocks)
+
+    bpy.types.Scene.DazLocLocks = BoolProperty(
+        name = "Location Locks",
+        description = "Location Locks",
+        default = True,
+        update = toggleLocLocks)
+
+    bpy.types.Scene.DazRotLimits = BoolProperty(
+        name = "Rotation Limits",
+        description = "Rotation Limits",
+        default = True,
+        update = toggleRotLimits)
+
+    bpy.types.Scene.DazLocLimits = BoolProperty(
+        name = "Location Limits",
+        description = "Location Limits",
+        default = True,
+        update = toggleLocLimits)
 
     for cls in classes:
         bpy.utils.register_class(cls)
