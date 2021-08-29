@@ -44,7 +44,7 @@ class DAZ_PT_Base:
 #----------------------------------------------------------
 
 class DAZ_PT_Setup(DAZ_PT_Base, bpy.types.Panel):
-    bl_label = "Setup (version 1.6.0.%04d)" % BUILD
+    bl_label = "Setup (version 1.6.1.%04d)" % BUILD
     bl_options = set()
 
     def draw(self, context):
