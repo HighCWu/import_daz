@@ -132,84 +132,6 @@ class DazMorphGroup(bpy.types.PropertyGroup, DazMorphGroupProps):
             return (self.name < other.name)
 
 #-------------------------------------------------------------
-#   Old style evalMorphs, for backward compatibility
-#-------------------------------------------------------------
-
-def evalMorphs(pb, idx, key):
-    rig = pb.id_data
-    props = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
-    return sum([pg.factor*(rig[pg.prop]-pg.default) for pg in props if pg.index == idx])
-
-#-------------------------------------------------------------
-#   New style evalMorphs
-#-------------------------------------------------------------
-
-def evalMorphs2(pb, idx, key):
-    rig = pb.id_data
-    pgs = pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps
-    return sum([pg.eval(rig) for pg in pgs if pg.index == idx])
-
-#-------------------------------------------------------------
-#   Separate Loc, Rot, Sca
-#-------------------------------------------------------------
-
-def evalMorphsLoc(pb, idx):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazLocProps if pg.index == idx])
-
-def evalMorphsRot(pb, idx):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazRotProps if pg.index == idx])
-
-def evalMorphsSca(pb, idx):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazScaleProps if pg.index == idx])
-
-#-------------------------------------------------------------
-#   Separate Loc, Rot, Sca and separate components
-#-------------------------------------------------------------
-
-def evalMorphsLoc0(pb):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazLocProps0])
-
-def evalMorphsLoc1(pb):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazLocProps1])
-
-def evalMorphsLoc2(pb):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazLocProps2])
-
-def evalMorphsRot0(pb):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazRotProps0])
-
-def evalMorphsRot1(pb):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazRotProps1])
-
-def evalMorphsRot2(pb):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazRotProps2])
-
-def evalMorphsRot3(pb):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazRotProps3])
-
-def evalMorphsSca0(pb):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazScaProps0])
-
-def evalMorphsSca1(pb):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazScaProps1])
-
-def evalMorphsSca2(pb):
-    rig = pb.id_data
-    return sum([pg.eval(rig) for pg in pb.DazScaProps2])
-
-#-------------------------------------------------------------
 #   Copy prop groups
 #-------------------------------------------------------------
 
@@ -278,31 +200,6 @@ def copyPropGroups(rig1, rig2, pb2):
 #-------------------------------------------------------------
 #   Initialize
 #-------------------------------------------------------------
-
-from bpy.app.handlers import persistent
-
-@persistent
-def updateHandler(scn):
-    global evalMorphs, evalMorphs2
-    global evalMorphsLoc, evalMorphsLoc0, evalMorphsLoc1, evalMorphsLoc2
-    global evalMorphsRot, evalMorphsRot0, evalMorphsRot1, evalMorphsRot2, evalMorphsRot3
-    global evalMorphsSca, evalMorphsSca0, evalMorphsSca1, evalMorphsSca2
-    bpy.app.driver_namespace["evalMorphs"] = evalMorphs
-    bpy.app.driver_namespace["evalMorphs2"] = evalMorphs2
-    bpy.app.driver_namespace["evalMorphsLoc"] = evalMorphsLoc
-    bpy.app.driver_namespace["evalMorphsLoc0"] = evalMorphsLoc0
-    bpy.app.driver_namespace["evalMorphsLoc1"] = evalMorphsLoc1
-    bpy.app.driver_namespace["evalMorphsLoc2"] = evalMorphsLoc2
-    bpy.app.driver_namespace["evalMorphsRot"] = evalMorphsRot
-    bpy.app.driver_namespace["evalMorphsRot0"] = evalMorphsRot0
-    bpy.app.driver_namespace["evalMorphsRot1"] = evalMorphsRot1
-    bpy.app.driver_namespace["evalMorphsRot2"] = evalMorphsRot2
-    bpy.app.driver_namespace["evalMorphsRot3"] = evalMorphsRot3
-    bpy.app.driver_namespace["evalMorphsSca"] = evalMorphsSca
-    bpy.app.driver_namespace["evalMorphsSca0"] = evalMorphsSca0
-    bpy.app.driver_namespace["evalMorphsSca1"] = evalMorphsSca1
-    bpy.app.driver_namespace["evalMorphsSca2"] = evalMorphsSca2
-
 
 classes = [
     DazIntGroup,
