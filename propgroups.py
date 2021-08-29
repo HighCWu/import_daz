@@ -132,72 +132,6 @@ class DazMorphGroup(bpy.types.PropertyGroup, DazMorphGroupProps):
             return (self.name < other.name)
 
 #-------------------------------------------------------------
-#   Copy prop groups
-#-------------------------------------------------------------
-
-def getPropGroups(pb, key, idx):
-    #return (pb.DazLocProps if key == "Loc" else pb.DazRotProps if key == "Rot" else pb.DazScaleProps)
-    return getattr(pb, "Daz%sProps%d" % (key, idx))
-
-
-def hasPropGroups(pb):
-    #return (pb.DazLocProps or pb.DazRotProps or pb.DazScaleProps)
-    return (pb.DazLocProps or pb.DazLocProps0 or pb.DazLocProps1 or pb.DazLocProps2 or
-            pb.DazRotProps or pb.DazRotProps0 or pb.DazRotProps1 or pb.DazRotProps2 or pb.DazRotProps3 or
-            pb.DazScaleProps or pb.DazScaProps0 or pb.DazScaProps1 or pb.DazScaProps2)
-
-
-def getLocPropGroups(pb):
-    return [pb.DazLocProps, pb.DazLocProps0, pb.DazLocProps1, pb.DazLocProps2]
-
-def getRotPropGroups(pb):
-    return [pb.DazRotProps, pb.DazRotProps0, pb.DazRotProps1, pb.DazRotProps2, pb.DazRotProps3]
-
-def getScalePropGroups(pb):
-    return [pb.DazScaleProps, pb.DazScaProps0, pb.DazScaProps1, pb.DazScaProps2]
-
-def getLocProps(pb):
-    return getAllProps(getLocPropGroups(pb))
-
-def getRotProps(pb):
-    return getAllProps(getRotPropGroups(pb))
-
-def getScaleProps(pb):
-    return getAllProps(getScalePropGroups(pb))
-
-def getAllPropGroups(pb):
-    return (getLocPropGroups(pb) + getRotPropGroups(pb) + getScalePropGroups(pb))
-
-
-def getAllProps(pglist):
-    allpgs = []
-    for pgs in pglist:
-        allpgs += list(pgs)
-    return allpgs
-
-#-------------------------------------------------------------
-#   Copy prop groups
-#-------------------------------------------------------------
-
-def copyPropGroups(rig1, rig2, pb2):
-    if pb2.name not in rig1.pose.bones.keys():
-        return
-    pb1 = rig1.pose.bones[pb2.name]
-    pgs1 = getAllPropGroups(pb1)
-    if not pgs1:
-        return
-    pgs2 = getAllPropGroups(pb2)
-    pb2.DazDriven = True
-    for props1,props2 in zip(pgs1, pgs2):
-        for pg1 in props1:
-            pg2 = props2.add()
-            pg2.name = pg1.name
-            pg2.index = pg1.index
-            pg2.prop = pg1.prop
-            pg2.factor = pg1.factor
-            pg2.default = pg1.default
-
-#-------------------------------------------------------------
 #   Initialize
 #-------------------------------------------------------------
 
@@ -218,24 +152,6 @@ classes = [
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-
-    bpy.types.PoseBone.DazLocProps = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazLocProps0 = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazLocProps1 = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazLocProps2 = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazRotProps = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazRotProps0 = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazRotProps1 = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazRotProps2 = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazRotProps3 = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazScaleProps = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazScaProps0 = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazScaProps1 = CollectionProperty(type = DazMorphGroup)
-    bpy.types.PoseBone.DazScaProps2 = CollectionProperty(type = DazMorphGroup)
-
-    updateHandler(None)
-    bpy.app.handlers.load_post.append(updateHandler)
-
 
 def unregister():
     for cls in classes:

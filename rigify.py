@@ -864,7 +864,6 @@ class Rigify:
     def rigifyMeta1(self, context):
         from .driver import getBoneDrivers, getPropDrivers
         from .node import setParent, clearParent
-        from .propgroups import copyPropGroups
         from .mhx import unhideAllObjects, getBoneLayer
 
         print("Rigify metarig")
@@ -1072,7 +1071,6 @@ class Rigify:
         for bname, fcus in driven.items():
             if bname in gen.pose.bones.keys():
                 pb = gen.pose.bones[bname]
-                copyPropGroups(rig, gen, pb)
                 for fcu in fcus:
                     self.copyBoneProp(fcu, rig, gen, pb)
                 for fcu in fcus:

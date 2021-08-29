@@ -721,8 +721,6 @@ class DAZ_OT_CopyBoneDrivers(DazOperator, DriverUser, IsArmature):
 
 
     def copyBoneDrivers(self, rig1, rig2):
-        from .propgroups import copyPropGroups
-
         if rig1.animation_data:
             struct = {}
             for fcu in rig1.animation_data.drivers:
@@ -735,11 +733,6 @@ class DAZ_OT_CopyBoneDrivers(DazOperator, DriverUser, IsArmature):
                         continue
                     fcu2 = self.copyDriver(fcu, rig2)
                     self.setId(fcu2, rig1, rig2)
-
-            for pb1 in rig1.pose.bones:
-                if pb1.name in rig2.pose.bones.keys() and pb1.DazDriven:
-                    pb2 = rig2.pose.bones[pb1.name]
-                    copyPropGroups(rig1, rig2, pb2)
 
 #----------------------------------------------------------
 #   Disable and enable drivers

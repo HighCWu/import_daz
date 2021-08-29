@@ -1343,11 +1343,6 @@ class DAZ_OT_RemoveCategories(DazOperator, Selector, IsArmature):
 
 
     def removeFromPropGroups(self, rig, prop):
-        from .propgroups import getAllPropGroups
-        for pb in rig.pose.bones:
-            pgs = getAllPropGroups(pb)
-            for pg in pgs:
-                removeFromPropGroup(pg, prop)
         for morphset in theStandardMorphSets:
             pgs = getattr(rig, "Daz" + morphset)
             removeFromPropGroup(pgs, prop)
