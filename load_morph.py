@@ -714,7 +714,9 @@ class LoadMorph(DriverUser):
         if self.isJcm and string:
             fcu.driver.expression = string
         else:
-            self.buildNewPropDriver(fcu, rna, channel, string, raw, drivers)
+            ok = self.buildNewPropDriver(fcu, rna, channel, string, raw, drivers)
+            if not ok:
+                return
         self.addMissingVars(fcu, vvars)
 
 
@@ -729,12 +731,13 @@ class LoadMorph(DriverUser):
         if not string:
             print("Empty string: %s" % raw)
             rna.driver_remove(channel)
-            return
+            return False
         if self.getMultipliers(raw):
             string = self.multiplyMults(fcu, string)
         fcu.driver.expression = string
         if rdrivers:
             self.extendPropDriver(fcu, raw, rdrivers)
+        return True
 
 
     def extractBoneExpression(self, string, varname):
