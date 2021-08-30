@@ -816,18 +816,13 @@ def getRnaName(string):
 #----------------------------------------------------------
 
 def toggleLocks(self, context, attr, lock):
-    from .morphing import getRigFromObject
-    rig = getRigFromObject(context.object)
-    if getattr(rig, attr):
-        for pb in rig.pose.bones:
+    if getattr(self, attr):
+        for pb in self.pose.bones:
+            setattr(pb, lock, getattr(pb, attr))
+    else:
+        for pb in self.pose.bones:
             setattr(pb, attr, getattr(pb, lock))
             setattr(pb, lock, (False,False,False))
-        setattr(rig, attr, False)
-    else:
-        for pb in rig.pose.bones:
-            setattr(pb, lock, getattr(pb, attr))
-        setattr(rig, attr, True)
-
 
 def toggleRotLocks(self, context):
     toggleLocks(self, context, "DazRotLocks", "lock_rotation")
@@ -840,14 +835,10 @@ def toggleLocLocks(self, context):
 #----------------------------------------------------------
 
 def toggleLimits(self, context, attr, type):
-    from .morphing import getRigFromObject
-    rig = getRigFromObject(context.object)
-    for pb in rig.pose.bones:
+    for pb in self.pose.bones:
         for cns in pb.constraints:
             if cns.type == type:
-                cns.mute = getattr(rig, attr)
-    setattr(rig, attr, not getattr(rig, attr))
-
+                cns.mute = not getattr(self, attr)
 
 def toggleRotLimits(self, context):
     toggleLimits(self, context, "DazRotLimits", "LIMIT_ROTATION")
@@ -1760,25 +1751,25 @@ def register():
     bpy.types.Armature.DazLegIK_L = FloatProperty(name="Left Leg IK", default=0.0, precision=3, min=0.0, max=1.0)
     bpy.types.Armature.DazLegIK_R = FloatProperty(name="Right Leg IK", default=0.0, precision=3, min=0.0, max=1.0)
 
-    bpy.types.Scene.DazRotLocks = BoolProperty(
+    bpy.types.Object.DazRotLocks = BoolProperty(
         name = "Rotation Locks",
         description = "Rotation Locks",
         default = True,
         update = toggleRotLocks)
 
-    bpy.types.Scene.DazLocLocks = BoolProperty(
+    bpy.types.Object.DazLocLocks = BoolProperty(
         name = "Location Locks",
         description = "Location Locks",
         default = True,
         update = toggleLocLocks)
 
-    bpy.types.Scene.DazRotLimits = BoolProperty(
+    bpy.types.Object.DazRotLimits = BoolProperty(
         name = "Rotation Limits",
         description = "Rotation Limits",
         default = True,
         update = toggleRotLimits)
 
-    bpy.types.Scene.DazLocLimits = BoolProperty(
+    bpy.types.Object.DazLocLimits = BoolProperty(
         name = "Location Limits",
         description = "Location Limits",
         default = True,

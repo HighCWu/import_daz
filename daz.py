@@ -460,11 +460,6 @@ def register():
     bpy.types.Bone.DazAngle = FloatProperty(default=0)
     bpy.types.Bone.DazNormal = FloatVectorProperty(size=3, default=(0,0,0))
 
-    bpy.types.Object.DazRotLocks = BoolProperty(default = True)
-    bpy.types.Object.DazLocLocks = BoolProperty(default = True)
-    bpy.types.Object.DazRotLimits = BoolProperty(default = False)
-    bpy.types.Object.DazLocLimits = BoolProperty(default = False)
-
     bpy.types.PoseBone.DazRotLocks = BoolVectorProperty(
         name = "Rotation Locks",
         size = 3,

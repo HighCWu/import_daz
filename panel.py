@@ -465,10 +465,10 @@ class DAZ_PT_Posing(DAZ_PT_Base, bpy.types.Panel):
         if prop in rig.keys():
             layout.prop(rig, propRef(prop))
         split = layout.split(factor=0.6)
-        layout.prop(scn, "DazLocLocks")
-        layout.prop(scn, "DazRotLocks")
-        layout.prop(scn, "DazLocLimits")
-        layout.prop(scn, "DazRotLimits")
+        layout.prop(rig, "DazLocLocks")
+        layout.prop(rig, "DazRotLocks")
+        layout.prop(rig, "DazLocLimits")
+        layout.prop(rig, "DazRotLimits")
 
         return
         layout.separator()
