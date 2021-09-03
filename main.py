@@ -496,14 +496,20 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         elif mainMesh:
             print("Did not recognize main character", mainMesh.name)
 
-        geografts = []
+        geografts = {}
         lashes = []
         if mainMesh and mainRig:
             nmeshes = [mainMesh]
             lmeshes = self.getLashes(mainRig, mainMesh)
             for ob in meshes[1:]:
                 if ob.data.DazGraftGroup:
-                    geografts.append(ob)
+                    cob = self.getGraftParent(ob, meshes)
+                    if cob:
+                        if cob.name not in geografts.keys():
+                            geografts[cob.name] = ([], cob)
+                        geografts[cob.name][0].append(ob)
+                    else:
+                        nmeshes.append(ob)
                 elif ob in lmeshes:
                     lashes.append(ob)
                 else:
@@ -560,10 +566,16 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         # Merge geografts
         if geografts:
             if self.useTransferShapes or self.useMergeGeografts:
-                self.transferShapes(context, mainMesh, geografts, self.useMergeGeografts, "Body")
+                for aobs,cob in geografts.values():
+                    if cob == mainMesh:
+                        self.transferShapes(context, cob, aobs, self.useMergeGeografts, "Body")
+                for aobs,cob in geografts.values():
+                    if cob != mainMesh:
+                        self.transferShapes(context, cob, aobs, self.useMergeGeografts, "All")
             if self.useMergeGeografts and activateObject(context, mainMesh):
-                for ob in geografts:
-                    selectSet(ob, True)
+                for aobs,cob in geografts.values():
+                    for aob in aobs:
+                        selectSet(aob, True)
                 print("Merge geografts")
                 bpy.ops.daz.merge_geografts()
                 if GS.viewportColors == 'GUESS':
@@ -633,6 +645,13 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
             activateObject(context, mainRig)
 
 
+    def getGraftParent(self, ob, meshes):
+        for cob in meshes:
+            if len(cob.data.vertices) == ob.data.DazVertexCount:
+                return cob
+        return None
+
+
     def transferShapes(self, context, ob, meshes, skipDrivers, bodypart):
         if not (ob and meshes):
             return
@@ -640,7 +659,10 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         skeys = ob.data.shape_keys
         if skeys:
             bodyparts = classifyShapekeys(ob, skeys)
-            snames = [sname for sname,bpart in bodyparts.items() if bpart in [bodypart, "All"]]
+            if bodypart == "All":
+                snames = [sname for sname,bpart in bodyparts.items()]
+            else:
+                snames = [sname for sname,bpart in bodyparts.items() if bpart in [bodypart, "All"]]
             if not snames:
                 return
             activateObject(context, ob)
