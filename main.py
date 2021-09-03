@@ -340,6 +340,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         description = "Merge all rigs to the main character rig",
         default = True)
 
+    useCreateDuplicates : BoolProperty(
+        name = "Create Duplicate Bones",
+        description = "Create separate bones if several bones with the same name are found",
+        default = False)
+
     useMergeMaterials : BoolProperty(
         name = "Merge Materials",
         description = "Merge identical materials",
@@ -390,6 +395,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         self.layout.prop(self, "useMergeMaterials")
         self.layout.prop(self, "useEliminateEmpties")
         self.layout.prop(self, "useMergeRigs")
+        if self.useMergeRigs:
+            self.subprop("useCreateDuplicates")
         self.layout.prop(self, "useMergeToes")
         self.layout.prop(self, "useFavoMorphs")
         if self.useFavoMorphs:
@@ -405,6 +412,10 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         self.layout.prop(self, "rigType")
         self.layout.prop(self, "mannequinType")
 
+    def subprop(self, prop):
+        split = self.layout.split(factor=0.05)
+        split.label(text="")
+        split.prop(self, prop)
 
     def invoke(self, context, event):
         self.favoPath = context.scene.DazFavoPath
@@ -521,7 +532,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
                 selectSet(rig, True)
             if self.useMergeRigs and len(rigs) > 1:
                 print("Merge rigs")
-                bpy.ops.daz.merge_rigs()
+                bpy.ops.daz.merge_rigs(useCreateDuplicates=self.useCreateDuplicates)
                 mainRig = context.object
                 rigs = [mainRig]
 

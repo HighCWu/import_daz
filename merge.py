@@ -934,10 +934,7 @@ class DAZ_OT_MergeRigs(DazPropsOperator, DriverUser, IsArmature):
 
         print("Merge infos to %s:" % rig.name)
         self.applyTransforms([info]+subinfos)
-        if self.useCreateDuplicates:
-            mainbones = []
-        else:
-            mainbones = list(rig.pose.bones.keys())
+        mainbones = list(rig.pose.bones.keys())
         for subinfo in subinfos:
             subinfo.getEditBones(mainbones)
         adds, hdadds, removes = self.createNewCollections(rig)
