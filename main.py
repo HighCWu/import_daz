@@ -498,8 +498,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
 
         geografts = {}
         lashes = []
+        clothes = []
         if mainMesh and mainRig:
-            nmeshes = [mainMesh]
             lmeshes = self.getLashes(mainRig, mainMesh)
             for ob in meshes[1:]:
                 if ob.data.DazGraftGroup:
@@ -509,12 +509,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
                             geografts[cob.name] = ([], cob)
                         geografts[cob.name][0].append(ob)
                     else:
-                        nmeshes.append(ob)
+                        clothes.append(ob)
                 elif ob in lmeshes:
                     lashes.append(ob)
                 else:
-                    nmeshes.append(ob)
-            meshes = nmeshes
+                    clothes.append(ob)
 
         if mainRig and activateObject(context, mainRig):
             # Merge rigs
@@ -596,7 +595,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
 
         # Transfer shapekeys to clothes
         if self.useTransferShapes:
-            self.transferShapes(context, mainMesh, meshes[1:], False, "Body")
+            self.transferShapes(context, mainMesh, clothes, False, "Body")
 
         if mainRig and activateObject(context, mainRig):
             # Make all bones poseable
@@ -633,7 +632,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
             self.mannequinType != 'NONE' and
             activateObject(context, mainMesh)):
             if self.mannequinType == 'ALL':
-                for ob in meshes:
+                for ob in clothes:
                     selectSet(ob, True)
             print("Make mannequin")
             bpy.ops.daz.add_mannequin(useGroup=True, group="%s Mannequin" % mainRig.name)
