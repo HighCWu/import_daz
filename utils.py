@@ -40,10 +40,6 @@ from . import globvars as G
 def getHideViewport(ob):
     return (ob.hide_get() or ob.hide_viewport)
 
-def setHideViewport(ob, value):
-    ob.hide_set(value)
-    ob.hide_viewport = value
-
 def getVisibleObjects(context):
     return [ob for ob in context.view_layer.objects
         if not (ob.hide_get() or ob.hide_viewport)]

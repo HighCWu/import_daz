@@ -257,26 +257,15 @@ class Instance(Accessor, Channels, SimNode):
                 continue
             key = channel["id"]
             value = getCurrentValue(channel)
-            if key == "Renderable":
-                if not value:
-                    ob.hide_render = True
-            elif key == "Visible in Viewport":
-                if not (value or GS.showHiddenObjects):
-                    setHideViewport(ob, True)
-                    for geonode in self.geometries:
-                        if geonode.rna:
-                            setHideViewport(geonode.rna, True)
+            if key == "Visible in Viewport":
+                self.hideViewport(value, ob)
+            elif key == "Renderable":
+                self.hideRender(value, ob)
             elif key == "Visible":
-                if not (value or GS.showHiddenObjects):
-                    ob.hide_render = True
-                    setHideViewport(ob, True)
-                    for geonode in self.geometries:
-                        if geonode.rna:
-                            geonode.rna.hide_render = True
-                            setHideViewport(geonode.rna, True)
+                self.hideViewport(value, ob)
+                self.hideRender(value, ob)
             elif key == "Selectable":
-                if not (value or GS.showHiddenObjects):
-                    ob.hide_select = True
+                self.hideSelect(value, ob)
             elif key == "Visible in Simulation":
                 ob.DazCollision = value
             elif key == "Cast Shadows":
@@ -289,6 +278,30 @@ class Instance(Accessor, Channels, SimNode):
                 pass
             elif key == "Point At":
                 pass
+
+
+    def hideViewport(self, value, ob):
+        if not (value or GS.showHiddenObjects):
+            ob.hide_set(True)
+            for geonode in self.geometries:
+                if geonode.rna:
+                    geonode.rna.hide_set(True)
+
+
+    def hideRender(self, value, ob):
+        if not (value or GS.showHiddenObjects):
+            ob.hide_render = True
+            for geonode in self.geometries:
+                if geonode.rna:
+                    geonode.rna.hide_render = True
+
+
+    def hideSelect(self, value, ob):
+        if not (value or GS.showHiddenObjects):
+            ob.hide_select = True
+            for geonode in self.geometries:
+                if geonode.rna:
+                    geonode.rna.hide_select = True
 
 
     def ignoreChannel(self, channel):
