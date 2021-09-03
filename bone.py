@@ -785,10 +785,13 @@ class BoneInstance(Instance):
 
     def setRotationLockDaz(self, pb):
         locks,limits,useLimits = self.getLocksLimits(pb, self.rotation)
-        pb.DazRotLocks = locks
         if pb.rotation_mode == 'QUATERNION':
             return
         if GS.useLockRot:
+            # DazRotLocks used to update lock_rotation
+            for n,lock in enumerate(locks):
+                idx = self.axes[n]
+                pb.DazRotLocks[idx] = lock
             for n,lock in enumerate(locks):
                 idx = self.axes[n]
                 pb.lock_rotation[idx] = lock
@@ -823,8 +826,11 @@ class BoneInstance(Instance):
 
     def setLocationLockDaz(self, pb):
         locks,limits,useLimits = self.getLocksLimits(pb, self.translation)
-        pb.DazLocLocks = locks
         if GS.useLockLoc:
+            # DazLocLocks used to update lock_location
+            for n,lock in enumerate(locks):
+                idx = self.axes[n]
+                pb.DazLocLocks[idx] = lock
             for n,lock in enumerate(locks):
                 idx = self.axes[n]
                 pb.lock_location[idx] = lock
