@@ -144,6 +144,7 @@ class DAZ_PT_SetupFinishing(DAZ_PT_Base, bpy.types.Panel):
             self.layout.operator("daz.make_udim_materials")
         self.layout.operator("daz.convert_widgets")
         self.layout.operator("daz.finalize_meshes")
+        self.layout.operator("daz.change_unit_scale")
         self.layout.separator()
         self.layout.operator("daz.make_all_bones_poseable")
         self.layout.operator("daz.optimize_pose")

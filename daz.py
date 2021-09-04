@@ -345,7 +345,7 @@ def register():
         description = "Scale used to convert between DAZ and Blender units. Default unit meters",
         default = 0.01,
         precision = 3,
-        min = 0.001, max = 10.0)
+        min = 0.001, max = 100.0)
 
     bpy.types.Scene.DazVerbosity = IntProperty(
         name = "Verbosity",

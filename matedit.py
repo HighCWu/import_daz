@@ -28,6 +28,7 @@
 
 import bpy
 import os
+from mathutils import Vector
 
 from .error import *
 from .utils import *
@@ -861,6 +862,105 @@ class DAZ_OT_ReplaceShells(DazPropsOperator, ShellRemover, IsMesh):
         self.getShells(context)
         return DazPropsOperator.invoke(self, context, event)
 
+#-------------------------------------------------------------
+#   Change unit scale
+#-------------------------------------------------------------
+
+class DAZ_OT_ChangeUnitScale(DazPropsOperator, IsMeshArmature):
+    bl_idname = "daz.change_unit_scale"
+    bl_label = "Change Unit Scale"
+    bl_description = "Safely change the unit scale of selected object and children"
+    bl_options = {'UNDO'}
+
+    unit : FloatProperty(
+        name = "New Unit Scale",
+        description = "Scale used to convert between DAZ and Blender units. Default unit meters",
+        default = 0.01,
+        precision = 3,
+        min = 0.001, max = 100.0)
+
+    def draw(self, context):
+        self.layout.prop(self, "unit")
+
+    def invoke(self, context, event):
+        if context.object:
+            self.unit = context.object.DazScale
+        return DazPropsOperator.invoke(self, context, event)
+
+
+    def run(self, context):
+        self.meshes = []
+        self.rigs = []
+        self.parents = {}
+        self.addObjects(context.object)
+        for ob in self.meshes:
+            self.applyScale(context, ob)
+            self.fixMesh(ob)
+        for rig in self.rigs:
+            self.applyScale(context, rig)
+        for rig in self.rigs:
+            self.restoreParent(context, rig)
+        for ob in self.meshes:
+            self.restoreParent(context, ob)
+
+
+    def addObjects(self, ob):
+        if ob.type == 'MESH':
+            if ob not in self.meshes:
+                self.meshes.append(ob)
+        elif ob.type == 'ARMATURE':
+            if ob not in self.rigs:
+                self.rigs.append(ob)
+        for child in ob.children:
+            self.addObjects(child)
+
+
+    def applyScale(self, context, ob):
+        scale = self.unit / ob.DazScale
+        if activateObject(context, ob):
+            self.parents[ob.name] = (ob.parent, ob.parent_type, ob.parent_bone)
+            bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+            lock = list(ob.lock_scale)
+            ob.lock_scale = (False,False,False)
+            ob.scale *= scale
+            bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+
+
+    def fixMesh(self, ob):
+        scale = self.unit / ob.DazScale
+        for mat in ob.data.materials:
+            if mat.node_tree:
+                for node in mat.node_tree.nodes:
+                    if node.type == 'GROUP':
+                        self.fixNode(node, node.node_tree.name, scale)
+                    else:
+                        self.fixNode(node, node.type, scale)
+
+
+    NodeScale = {
+        "BUMP" : ["Distance"],
+        "PRINCIPLED" : ["Subsurface Radius"],
+        "DAZ Translucent" : ["Radius"],
+        "DAZ Top Coat" : ["Distance"],
+    }
+
+    def fixNode(self, node, nodetype, scale):
+        if nodetype in self.NodeScale.keys():
+            for sname in self.NodeScale[nodetype]:
+                socket = node.inputs[sname]
+                if isinstance(socket.default_value, float):
+                    socket.default_value *= scale
+                else:
+                    socket.default_value = scale*Vector(socket.default_value)
+
+
+    def restoreParent(self, context, ob):
+        ob.DazScale = self.unit
+        if ob.name in self.parents.keys():
+            wmat = ob.matrix_world.copy()
+            (ob.parent, ob.parent_type, ob.parent_bone) = self.parents[ob.name]
+            ob.matrix_world = wmat
+
 #----------------------------------------------------------
 #   Initialize
 #----------------------------------------------------------
@@ -880,6 +980,7 @@ classes = [
     DAZ_OT_SetShellVisibility,
     DAZ_OT_RemoveShells,
     DAZ_OT_ReplaceShells,
+    DAZ_OT_ChangeUnitScale,
 ]
 
 def register():
