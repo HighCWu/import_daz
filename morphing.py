@@ -674,10 +674,11 @@ class MorphLoader(LoadMorph):
     def getMorphSet(self, asset):
         return self.morphset
 
-
     def getAdjustProp(self):
         return self.adjuster
 
+    def findPropGroup(self, prop):
+        return None
 
     def addUrl(self, asset, aliases, filepath, bodypart):
         if self.mesh:

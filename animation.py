@@ -383,10 +383,13 @@ class AffectOptions:
         description = "How to animate global object transformation",
         default = 'OBJECT')
 
-    reportMissingMorphs : BoolProperty(
-        name = "Report Missing Morphs",
-        description = "Print a list of missing morphs",
-        default = False)
+    useMissingMorphs : EnumProperty(
+        items = [('IGNORE', "Ignore", "Ignore"),
+                 ('REPORT', "Report", "Report"),
+                 ('LOAD', "Load", "Load")],
+        name = "Missing Morphs",
+        description = "What to do with missing morphs",
+        default = 'IGNORE')
 
     affectSelectedOnly : BoolProperty(
         name = "Selected Bones Only",
@@ -503,7 +506,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         layout.prop(self, "affectMorphs")
         if self.affectMorphs:
             layout.prop(self, "clearMorphs")
-            layout.prop(self, "reportMissingMorphs")
+            layout.prop(self, "useMissingMorphs")
         layout.prop(self, "ignoreLimits")
         layout.prop(self, "convertPoses")
         if self.convertPoses:
@@ -766,9 +769,9 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                         self.transformBone(rig, bname, tfm, value, n, offset, False)
                     elif bname[0:6] == "TWIST-":
                         twists.append((bname[6:], tfm, value))
-                    else:
+                    elif "value" in bframe.keys():
                         if self.affectMorphs:
-                            key = self.getRigKey(bname, rig, missing)
+                            key = self.getRigKey(bname, rig, value, missing)
                             if key:
                                 oldval = rig[key]
                                 if isinstance(oldval, int):
@@ -875,7 +878,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                         pb.keyframe_insert("scale", frame=frame, group=pb.name)
 
 
-    def getRigKey(self, key, rig, missing):
+    def getRigKey(self, key, rig, value, missing):
         key = unquote(key)
         if key in rig.keys():
             return key
@@ -886,7 +889,10 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             return alias
         if key not in missing:
             missing.append(key)
-            return None
+            if self.useMissingMorphs == 'LOAD':
+                rig[key] = float(value)
+                return key
+        return None
 
 
     def transformBone(self, rig, bname, tfm, value, n, offset, twist):
@@ -1049,13 +1055,16 @@ class StandardAnimation:
         if not self.affectSelectedOnly:
             self.selectAll(rig, selected)
 
-        if missing and self.reportMissingMorphs:
+        if missing:
             missing.sort()
-            print("Missing morphs:\n  %s" % missing)
-            raise DazError(
-                "Animation loaded but some morphs were missing.     \n"+
-                "See list in terminal window.\n" +
-                "Check results carefully.", warning=True)
+            if self.useMissingMorphs == 'REPORT':
+                print("Missing morphs:\n  %s" % missing)
+                raise DazError(
+                    "Animation loaded but some morphs were missing.     \n"+
+                    "See list in terminal window.\n" +
+                    "Check results carefully.", warning=True)
+            elif self.useMissingMorphs == 'LOAD':
+                self.loadMissingMorphs(context, rig, missing)
 
 
     def selectAll(self, rig, select):
@@ -1084,6 +1093,49 @@ class StandardAnimation:
             self.nameAction(ob)
         elif self.usePoseLib:
             self.namePoseLib(ob)
+
+
+    def loadMissingMorphs(self, context, rig, missing):
+        global theMorphTables
+        print("MISSING", missing)
+        if rig.DazId in theMorphTables.keys():
+            table = theMorphTables[rig.DazId]
+        else:
+            table = theMorphTables[rig.DazId] = self.setupMorphTable(rig)
+        namepaths = []
+        for key in missing:
+            namepaths.append((key, table[key], "Custom"))
+        rig.DazCustomMorphs = True
+        from .morphing import MorphLoader
+        mloader = MorphLoader()
+        mloader.morphset = "Custom"
+        mloader.category = "Loaded"
+        mloader.hideable = True
+        print("NNN", namepaths)
+        print("MLO", mloader)
+        mloader.getAllMorphs(namepaths, context)
+
+
+    def setupMorphTable(self, rig):
+        def setupTable(folder, table):
+            for file in os.listdir(folder):
+                path = os.path.join(folder, file)
+                if os.path.isdir(path):
+                    setupTable(path, table)
+                else:
+                    words = os.path.splitext(file)
+                    if words[-1] in [".dsf", ".duf"]:
+                        table[words[0]] = path
+
+        from .fileutils import getFolders
+        folders = getFolders(rig, ["Morphs/", ""])
+        table = {}
+        print("Setting up morph table")
+        for folder in folders:
+            setupTable(folder, table)
+        return table
+
+theMorphTables = {}
 
 #-------------------------------------------------------------
 #   Import Node Pose
