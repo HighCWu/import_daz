@@ -144,7 +144,6 @@ class DAZ_PT_SetupFinishing(DAZ_PT_Base, bpy.types.Panel):
             self.layout.operator("daz.make_udim_materials")
         self.layout.operator("daz.convert_widgets")
         self.layout.operator("daz.finalize_meshes")
-        self.layout.operator("daz.change_unit_scale")
         self.layout.separator()
         self.layout.operator("daz.make_all_bones_poseable")
         self.layout.operator("daz.optimize_pose")
@@ -285,6 +284,7 @@ class DAZ_PT_AdvancedRigging(DAZ_PT_Base, bpy.types.Panel):
     bl_label = "Rigging"
 
     def draw(self, context):
+        self.layout.operator("daz.change_unit_scale")
         self.layout.operator("daz.remove_custom_shapes")
         self.layout.operator("daz.copy_daz_props")
         self.layout.operator("daz.convert_rig")
@@ -365,6 +365,7 @@ class DAZ_PT_Utils(DAZ_PT_Base, bpy.types.Panel):
         if ob:
             box.label(text = "Active Object: %s" % ob.type)
             box.prop(ob, "name")
+            box.prop(ob, "DazBlendFile")
             box.prop(ob, "DazId")
             box.prop(ob, "DazUrl")
             box.prop(ob, "DazScene")

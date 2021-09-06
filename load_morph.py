@@ -216,12 +216,14 @@ class LoadMorph(DriverUser):
                 asset.deltas):
             return None,True
         useBuild = True
-        if self.modded and GS.useModifiedMesh:
-            finger = self.mesh.data.DazFingerPrint
-            nverts = int(finger.split("-")[0])
-            #return None,True
-        else:
-            nverts = len(self.mesh.data.vertices)
+        nverts = len(self.mesh.data.vertices)
+
+        if GS.useModifiedMesh and self.modded:
+            from .geometry import restoreOrigVerts
+            if restoreOrigVerts(self.mesh, asset.vertex_count):
+                finger = self.mesh.data.DazFingerPrint
+                nverts = int(finger.split("-")[0])
+
         if asset.vertex_count < 0:
             print("Vertex count == %d" % asset.vertex_count)
         elif asset.vertex_count != nverts:

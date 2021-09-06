@@ -666,7 +666,7 @@ class MorphLoader(LoadMorph):
 
     def __init__(self, rig=None, mesh=None):
         from .finger import getFingeredCharacter
-        self.rig, self.mesh, self.char, self.modded = getFingeredCharacter(bpy.context.object, True)
+        self.rig, self.mesh, self.char, self.modded = getFingeredCharacter(bpy.context.object, GS.useModifiedMesh)
         if mesh:
             self.mesh = mesh
 

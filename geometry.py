@@ -1390,33 +1390,109 @@ class DAZ_OT_LimitVertexGroups(DazPropsOperator, IsMesh):
 #   Finalize meshes
 #----------------------------------------------------------
 
-class DAZ_OT_FinalizeMeshes(DazOperator, IsMeshArmature):
+class DAZ_OT_FinalizeMeshes(DazPropsOperator, IsMeshArmature):
     bl_idname = "daz.finalize_meshes"
     bl_label = "Finalize Meshes"
     bl_description = "Remove internal properties from meshes.\nDisables some tools but may improve performance"
     bl_options = {'UNDO'}
 
+    storeData : BoolProperty(
+        name = "Store Data",
+        description = "Store data in a file",
+        default = True)
+
+    overwrite : BoolProperty(
+        name = "Overwrite",
+        description = "Overwrite stored data",
+        default = False)
+
+    def draw(self, context):
+        self.layout.prop(self, "storeData")
+        self.layout.prop(self, "overwrite")
+
     def run(self, context):
         from .morphing import getRigFromObject
+        from .load_json import saveJson
+        if self.storeData:
+            if not bpy.data.filepath:
+                raise DazError("Save the blend file first")
+            struct = { "filetype" : "mesh_data", "meshes" : [] }
+        else:
+            struct = None
         ob = context.object
         rig = getRigFromObject(ob)
+        rig.DazBlendFile = bpy.data.filepath
         for ob1 in rig.children:
             if ob1.type == 'MESH':
-                self.finalizeMesh(ob1.data)
+                self.finalizeMesh(ob1, struct)
         if ob.type == 'MESH' and ob not in rig.children:
-            self.finalizeMesh(ob.data)
+            self.finalizeMesh(ob, struct)
+        if self.storeData:
+            folder,path = getMeshDataFile(bpy.data.filepath)
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            if self.overwrite or not os.path.exists(path):
+                saveJson(struct, path)
 
 
-    def finalizeMesh(self, me):
-        from .morphing import getRigFromObject
+    def finalizeMesh(self, ob, struct):
+        from .finger import getFingerPrint
+        me = ob.data
+        if self.storeData:
+            ob.DazBlendFile = bpy.data.filepath
+            mstruct = {}
+            struct["meshes"].append(mstruct)
+            mstruct["name"] = ob.name
+            mstruct["finger_print"] = getFingerPrint(ob)
+            mstruct["orig_finger_print"] = me.DazFingerPrint
+            origverts = [(int(item.name),item.a) for item in me.DazOrigVerts]
+            origverts.sort()
+            mstruct["orig_verts"] = origverts
+
         me.DazRigidityGroups.clear()
         me.DazOrigVerts.clear()
-        me.DazFingerPrint = ""
+        #me.DazFingerPrint = getFingerPrint(ob)
         me.DazGraftGroup.clear()
         me.DazMaskGroup.clear()
         me.DazMatNums.clear()
         me.DazMaterialSets.clear()
         me.DazHDMaterials.clear()
+
+
+def getMeshDataFile(filepath):
+    folder = os.path.dirname(filepath)
+    folder = os.path.join(folder, "mesh_data")
+    fname = os.path.splitext(os.path.basename(filepath))[0]
+    path = os.path.join(folder, "%s.json" % fname)
+    return folder,path
+
+
+def restoreOrigVerts(ob, vcount):
+    if len(ob.data.DazOrigVerts) > 0:
+        return True
+    elif not ob.DazBlendFile:
+        return False
+    folder,filepath = getMeshDataFile(ob.DazBlendFile)
+    if not os.path.exists(filepath):
+        print("%s does not exist" % filepath)
+        return False
+    from .load_json import loadJson
+    from .finger import getFingerPrint
+    finger = getFingerPrint(ob)
+    struct = loadJson(filepath)
+    for mstruct in struct["meshes"]:
+        if mstruct["finger_print"] == finger and mstruct["orig_verts"]:
+            nverts = int(mstruct["orig_finger_print"].split("-")[0])
+            if nverts == vcount or vcount < 0:
+                me = ob.data
+                me.DazOrigVerts.clear()
+                for m,n in mstruct["orig_verts"]:
+                    pg = me.DazOrigVerts.add()
+                    pg.name = str(m)
+                    pg.a = n
+                me.DazFingerPrint = mstruct["orig_finger_print"]
+                return True
+    return False
 
 #----------------------------------------------------------
 #   Initialize
@@ -1449,6 +1525,11 @@ def register():
     bpy.types.Mesh.DazHDMaterials = CollectionProperty(type = DazTextGroup)
     bpy.types.Object.DazMultires = BoolProperty(default=False)
     bpy.types.Mesh.DazHairType = StringProperty(default = 'SHEET')
+
+    bpy.types.Object.DazBlendFile = StringProperty(
+        name = "Blend File",
+        description = "Blend file where the object is defined",
+        default = "")
 
 
 def unregister():
