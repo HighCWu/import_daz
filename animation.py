@@ -383,13 +383,13 @@ class AffectOptions:
         description = "How to animate global object transformation",
         default = 'OBJECT')
 
-    useMissingMorphs : EnumProperty(
+    onMissingMorphs : EnumProperty(
         items = [('IGNORE', "Ignore", "Ignore"),
                  ('REPORT', "Report", "Report"),
                  ('LOAD', "Load", "Load")],
         name = "Missing Morphs",
         description = "What to do with missing morphs",
-        default = 'IGNORE')
+        default = 'LOAD')
 
     affectSelectedOnly : BoolProperty(
         name = "Selected Bones Only",
@@ -506,7 +506,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         layout.prop(self, "affectMorphs")
         if self.affectMorphs:
             layout.prop(self, "clearMorphs")
-            layout.prop(self, "useMissingMorphs")
+            layout.prop(self, "onMissingMorphs")
         layout.prop(self, "ignoreLimits")
         layout.prop(self, "convertPoses")
         if self.convertPoses:
@@ -887,9 +887,9 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             if GS.verbosity > 2:
                 print("Alias", key, alias)
             return alias
-        if key not in missing:
-            missing.append(key)
-            if self.useMissingMorphs == 'LOAD':
+        if key not in missing.keys():
+            missing[key] = float(value)
+            if self.onMissingMorphs == 'LOAD':
                 rig[key] = float(value)
                 return key
         return None
@@ -1028,7 +1028,7 @@ class StandardAnimation:
             self.useInsertKeys = self.useAction
         self.findDrivers(rig)
         self.clearAnimation(rig)
-        missing = []
+        missing = {}
         startframe = offset = scn.frame_current
         props = []
         t1 = perf_counter()
@@ -1056,14 +1056,15 @@ class StandardAnimation:
             self.selectAll(rig, selected)
 
         if missing:
-            missing.sort()
-            if self.useMissingMorphs == 'REPORT':
+            if self.onMissingMorphs == 'REPORT':
+                missing = list(missing.keys())
+                missing.sort()
                 print("Missing morphs:\n  %s" % missing)
                 raise DazError(
                     "Animation loaded but some morphs were missing.     \n"+
                     "See list in terminal window.\n" +
                     "Check results carefully.", warning=True)
-            elif self.useMissingMorphs == 'LOAD':
+            elif self.onMissingMorphs == 'LOAD':
                 self.loadMissingMorphs(context, rig, missing)
 
 
@@ -1097,42 +1098,69 @@ class StandardAnimation:
 
     def loadMissingMorphs(self, context, rig, missing):
         global theMorphTables
-        print("MISSING", missing)
         if rig.DazId in theMorphTables.keys():
             table = theMorphTables[rig.DazId]
         else:
             table = theMorphTables[rig.DazId] = self.setupMorphTable(rig)
-        namepaths = []
-        for key in missing:
-            namepaths.append((key, table[key], "Custom"))
-        rig.DazCustomMorphs = True
-        from .morphing import MorphLoader
-        mloader = MorphLoader()
-        mloader.morphset = "Custom"
-        mloader.category = "Loaded"
-        mloader.hideable = True
-        print("NNN", namepaths)
-        print("MLO", mloader)
-        mloader.getAllMorphs(namepaths, context)
+        namepaths = {}
+        for mname in missing.keys():
+            if mname in table.keys():
+                path,morphset = table[mname]
+                if morphset not in namepaths.keys():
+                    namepaths[morphset] = []
+                namepaths[morphset].append((mname, path, morphset))
+
+        from .morphing import CustomMorphLoader, StandardMorphLoader
+        for morphset in namepaths.keys():
+            if morphset != "Custom":
+                mloader = StandardMorphLoader()
+                mloader.morphset = morphset
+                mloader.category = ""
+                mloader.hideable = True
+                print("\nLoading missing %s morphs" % morphset)
+                mloader.getAllMorphs(namepaths[morphset], context)
+        for morphset in namepaths.keys():
+            if morphset == "Custom":
+                mloader = CustomMorphLoader()
+                rig.DazCustomMorphs = True
+                mloader.morphset = "Custom"
+                mloader.category = "Loaded"
+                mloader.hideable = True
+                print("\nLoading missing %s morphs" % morphset)
+                mloader.getAllMorphs(namepaths[morphset], context)
+        for mname,value in missing.items():
+            rig[mname] = value
 
 
     def setupMorphTable(self, rig):
-        def setupTable(folder, table):
+        def setupTable(folder, table, mtypes):
             for file in os.listdir(folder):
                 path = os.path.join(folder, file)
                 if os.path.isdir(path):
-                    setupTable(path, table)
-                else:
+                    setupTable(path, table, mtypes)
+                elif file[0:5] != "alias":
                     words = os.path.splitext(file)
                     if words[-1] in [".dsf", ".duf"]:
-                        table[words[0]] = path
+                        mname = words[0]
+                        if file in mtypes.keys():
+                            morphset = mtypes[file]
+                        else:
+                            morphset = "Custom"
+                        table[mname] = (path, morphset)
 
         from .fileutils import getFolders
+        from .morphing import getMorphPaths
         folders = getFolders(rig, ["Morphs/", ""])
         table = {}
-        print("Setting up morph table")
+        mpaths = getMorphPaths(rig.DazMesh)
+        mtypes = {}
+        if mpaths:
+            for morphset,paths in mpaths.items():
+                for path in paths:
+                    mtypes[os.path.basename(path)] = morphset
+        print("Setting up morph table for %s" % rig.DazMesh)
         for folder in folders:
-            setupTable(folder, table)
+            setupTable(folder, table, mtypes)
         return table
 
 theMorphTables = {}

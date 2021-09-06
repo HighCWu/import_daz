@@ -1054,14 +1054,30 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
 #   Import general morph or driven pose
 #------------------------------------------------------------------------
 
-class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFile, IsMeshArmature):
+class CustomMorphLoader(MorphLoader):
+    morphset = "Custom"
+    hideable = True
+    category = ""
+
+    def findPropGroup(self, prop):
+        if self.rig is None:
+            return None
+        if self.morphset != "Custom":
+            return getattr(self.rig, "Daz"+self.morphset)
+        cats = self.rig.DazMorphCats
+        if self.category not in cats.keys():
+            cat = cats.add()
+            cat.name = self.category
+        else:
+            cat = cats[self.category]
+        return cat.morphs
+
+
+class DAZ_OT_ImportCustomMorphs(DazOperator, CustomMorphLoader, DazImageFile, MultiFile, IsMeshArmature):
     bl_idname = "daz.import_custom_morphs"
     bl_label = "Import Custom Morphs"
     bl_description = "Import selected morphs from native DAZ files (*.duf, *.dsf)"
     bl_options = {'UNDO'}
-
-    morphset = "Custom"
-    hideable = True
 
     category : StringProperty(
         name = "Category",
@@ -1146,20 +1162,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, MorphLoader, DazImageFile, MultiFil
             cat = self.rig.DazMorphCats.add()
             cat.name = self.category
         return "Adjust Custom/%s" % self.category
-
-
-    def findPropGroup(self, prop):
-        if self.rig is None:
-            return None
-        if self.morphset != "Custom":
-            return getattr(self.rig, "Daz"+self.morphset)
-        cats = self.rig.DazMorphCats
-        if self.category not in cats.keys():
-            cat = cats.add()
-            cat.name = self.category
-        else:
-            cat = cats[self.category]
-        return cat.morphs
 
 #------------------------------------------------------------------------
 #   Categories
