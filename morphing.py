@@ -1452,9 +1452,13 @@ def getActivateGroup(rig, key):
     if key in rig.DazActivated.keys():
         return rig.DazActivated[key]
     else:
-        pg = rig.DazActivated.add()
-        pg.name = key
-        return pg
+        try:
+            pg = rig.DazActivated.add()
+            pg.name = key
+            return pg
+        except TypeError as err:
+            msg = "Failed to load morph, because\n%s" % err
+        raise DazError(msg)
 
 
 class DAZ_OT_ActivateAll(DazOperator, Activator):
