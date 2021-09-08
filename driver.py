@@ -150,15 +150,17 @@ class DriverUser:
 
 
     def getVarBoneTargets(self, fcu):
-        vtargets = []
-        btargets = []
+        vstruct = {}
+        bstruct = {}
         for var in fcu.driver.variables:
             if var.type == 'TRANSFORMS':
                 for trg in var.targets:
-                    btargets.append((var.name, trg.bone_target, var))
+                    bstruct[var.name] = (trg.bone_target, var)
             elif var.type == 'SINGLE_PROP':
                 for trg in var.targets:
-                    vtargets.append((var.name, trg.data_path, var))
+                    vstruct[var.name] = (trg.data_path, var)
+        vtargets = [(key,data[0],data[1]) for key,data in vstruct.items()]
+        btargets = [(key,data[0],data[1]) for key,data in bstruct.items()]
         vtargets.sort()
         btargets.sort()
         return vtargets, btargets
