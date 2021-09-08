@@ -1053,7 +1053,9 @@ class LoadMorph(DriverUser):
                         if fcu0.driver.type == 'SUM':
                             self.recoverOldDrivers(fcu0, drivers)
                         elif channel == "scale":
-                            pass
+                            fcu1 = self.findScaleSumDriver(fcu0)
+                            if fcu1:
+                                self.recoverOldDrivers(fcu1, drivers)
                         else:
                             path = self.getOrigo(fcu0, pb, channel, idx)
                             pathids[path] = 'ARMATURE'
@@ -1115,6 +1117,15 @@ class LoadMorph(DriverUser):
             self.amt.driver_remove(rest)
             sumfcu.data_path = propRef(rest)
             self.clearTmpDriver(0)
+
+
+    def findScaleSumDriver(self, fcu):
+        from .driver import getRnaDriver
+        for var in fcu.driver.variables:
+            trg = var.targets[0]
+            if trg.id_type == 'ARMATURE':
+                return getRnaDriver(self.amt, trg.data_path)
+        return None
 
 
     def recoverOldDrivers(self, sumfcu, drivers):
