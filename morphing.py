@@ -947,15 +947,7 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphL
 
 
     def selectMhxCompatible(self, context):
-        safe = ["Breast", "Finger", "Thumb", "Index", "Mid", "Ring", "Pinky"]
-        if self.rig:
-            if "lBigToe" in self.rig.data.bones.keys():
-                safe.append("Toe")
-                unsafe = ["Foot"]
-            else:
-                unsafe = ["Toe"]
-        else:
-            safe = unsafe = []
+        safe,unsafe = getMhxSafe(self.rig)
         for item in self.selection:
             item.select = False
             for string in safe:
@@ -968,6 +960,19 @@ class DAZ_OT_ImportBodyMorphs(DazOperator, StandardMorphSelector, StandardMorphL
 
     def run(self, context):
         StandardMorphLoader.run(self, context)
+
+
+def getMhxSafe(rig):
+    safe = ["Breast", "Finger", "Thumb", "Index", "Mid", "Ring", "Pinky"]
+    if rig:
+        if "lBigToe" in rig.data.bones.keys():
+            safe.append("Toe")
+            unsafe = ["Foot"]
+        else:
+            unsafe = ["Toe"]
+    else:
+        safe = unsafe = []
+    return safe,unsafe
 
 
 class DAZ_OT_ImportJCMs(DazOperator, StandardMorphSelector, StandardMorphLoader, IsMesh):
@@ -1035,6 +1040,8 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
             print(msg)
             return
         print("Load %s" % morphset)
+        if morphset == "Body" and self.useMhxOnly:
+            struct = self.selectMhxMorphs(struct)
         self.morphset = morphset
         self.adjuster = theAdjusters[morphset]
         self.namepaths = []
@@ -1044,6 +1051,19 @@ class DAZ_OT_ImportStandardMorphs(DazPropsOperator, StandardMorphLoader, MorphTy
         msg = self.getAllMorphs(self.namepaths, context)
         if msg:
             self.message = msg
+
+
+    def selectMhxMorphs(self, struct):
+        safe,unsafe = getMhxSafe(self.rig)
+        nstruct = {}
+        for key,path in struct.items():
+            for string in unsafe:
+                if string in key:
+                    continue
+            for string in safe:
+                if string in key:
+                    nstruct[key] = path
+        return nstruct
 
 
     def addToMorphSet(self, prop, asset, hidden):

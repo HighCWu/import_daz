@@ -282,6 +282,11 @@ class MorphTypeOptions:
         description = "Import all body morphs",
         default = False)
 
+    useMhxOnly : BoolProperty(
+        name = "MHX Compatible Only",
+        description = "Only import MHX compatible body morphs",
+        default = False)
+
     jcms : BoolProperty(
         name = "JCMs",
         description = "Import all JCMs",
@@ -299,8 +304,15 @@ class MorphTypeOptions:
         self.layout.prop(self, "facs")
         self.layout.prop(self, "facsexpr")
         self.layout.prop(self, "body")
+        if self.body:
+            self.subprop("useMhxOnly")
         self.layout.prop(self, "jcms")
         self.layout.prop(self, "flexions")
+
+    def subprop(self, prop):
+        split = self.layout.split(factor=0.05)
+        split.label(text="")
+        split.prop(self, prop)
 
 #------------------------------------------------------------------
 #   Easy Import
@@ -411,11 +423,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         self.layout.prop(self, "useConvertHair")
         self.layout.prop(self, "rigType")
         self.layout.prop(self, "mannequinType")
-
-    def subprop(self, prop):
-        split = self.layout.split(factor=0.05)
-        split.label(text="")
-        split.prop(self, prop)
 
     def invoke(self, context, event):
         self.favoPath = context.scene.DazFavoPath
@@ -569,6 +576,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
                         facs = self.facs,
                         facsexpr = self.facsexpr,
                         body = self.body,
+                        useMhxOnly = self.useMhxOnly,
                         jcms = self.jcms,
                         flexions = self.flexions)
 
