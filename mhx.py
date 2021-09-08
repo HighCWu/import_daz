@@ -799,7 +799,9 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.makeGizmos(None)
 
         for pb in rig.pose.bones:
-            if pb.name in Gizmos.keys():
+            if isDrvBone(pb.name) or isFinal(pb.name):
+                continue
+            elif pb.name in Gizmos.keys():
                 gizmo,scale = Gizmos[pb.name]
                 self.addGizmo(pb, gizmo, scale)
             elif pb.name[-2:] in [".L", ".R"] and pb.name[:-2] in LRGizmos.keys():
@@ -1544,14 +1546,14 @@ def getBoneLayer(pb, rig):
     facerigs = ["upperFaceRig", "lowerFaceRig"]
     if pb.name in ["lEye", "rEye", "lEar", "rEar", "upperJaw", "lowerJaw", "upperTeeth", "lowerTeeth"]:
         return L_HEAD, False
-    elif "tongue" in lname:
-        return L_HEAD, False
     elif (isDrvBone(pb.name) or
         isBoneDriven(rig, pb) or
         pb.name in facerigs):
         return L_HELP, False
     elif isFinal(pb.name) or pb.bone.layers[L_FIN]:
         return L_FIN, False
+    elif lname[0:6] == "tongue":
+        return L_HEAD, False
     elif pb.parent:
         par = pb.parent
         if par.name in facerigs:
