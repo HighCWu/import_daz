@@ -663,6 +663,7 @@ class DAZ_OT_SelectAllMorphs(DazOperator):
 class MorphLoader(LoadMorph):
     loadMissing = True
     category = ""
+    adjuster = None
 
     def __init__(self, rig=None, mesh=None):
         from .finger import getFingeredCharacter
