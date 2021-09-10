@@ -299,6 +299,7 @@ Planes = {
 
 
 def getTargetName(bname, rig):
+    from .fix import getSuffixName
     bname = unquote(bname)
     if bname in rig.pose.bones.keys():
         return bname
@@ -308,8 +309,10 @@ def getTargetName(bname, rig):
     elif (bname in BoneAlternatives.keys() and
           BoneAlternatives[bname] in rig.pose.bones.keys()):
         return BoneAlternatives[bname]
-    else:
-        return None
+    sufname = getSuffixName(bname)
+    if sufname and sufname in rig.pose.bones.keys():
+        return sufname
+    return None
 
 #-------------------------------------------------------------
 #   BoneInstance

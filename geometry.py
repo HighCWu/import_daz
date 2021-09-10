@@ -1433,6 +1433,7 @@ class DAZ_OT_FinalizeMeshes(DazPropsOperator, IsMeshArmature):
                 os.makedirs(folder)
             if self.overwrite or not os.path.exists(path):
                 saveJson(struct, path)
+                print('Saved "%s"' % path)
 
 
     def finalizeMesh(self, ob, struct):

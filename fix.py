@@ -425,22 +425,10 @@ class GizmoUser:
 
 
     def renameFaceBones(self, rig, extra=[]):
-
         def renameFaceBone(bone):
             bname = bone.name
-            if isDrvBone(bname) or isFinal(bname):
-                return
-            if len(bname) >= 2 and bname[1].isupper():
-                if bname[0] == "r":
-                    newname = bname[1].lower() + bname[2:] + ".R"
-                    renamed[bname] = newname
-                    bone.name = newname
-                elif bname[0] == "l":
-                    newname = bname[1].lower() + bname[2:] + ".L"
-                    renamed[bname] = newname
-                    bone.name = newname
-            elif bname[0].isupper():
-                newname = bname[0].lower() + bname[1:]
+            newname = getSuffixName(bname)
+            if newname:
                 renamed[bname] = newname
                 bone.name = newname
 
@@ -456,6 +444,19 @@ class GizmoUser:
                 if (hasattr(cns, "subtarget") and
                     cns.subtarget in renamed.keys()):
                     cns.subtarget = renamed[cns.subtarget]
+
+
+def getSuffixName(bname):
+    if isDrvBone(bname) or isFinal(bname):
+        return None
+    if len(bname) >= 2 and bname[1].isupper():
+        if bname[0] == "r":
+            return "%s%s.R" % (bname[1].lower(), bname[2:])
+        elif bname[0] == "l":
+            return "%s%s.L" % (bname[1].lower(), bname[2:])
+    elif bname[0].isupper():
+        return "%s%s" % (bname[0].lower(), bname[1:])
+    return None
 
 #-------------------------------------------------------------
 #   Replace left-right prefix with suffix
