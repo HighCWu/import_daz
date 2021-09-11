@@ -386,7 +386,8 @@ class AffectOptions:
     onMissingMorphs : EnumProperty(
         items = [('IGNORE', "Ignore", "Ignore"),
                  ('REPORT', "Report", "Report"),
-                 ('LOAD', "Load", "Load")],
+                 ('LOAD', "Load", "Load morphs except body morphs"),
+                 ('LOAD_ALL', "Load All", "Load All")],
         name = "Missing Morphs",
         description = "What to do with missing morphs",
         default = 'LOAD')
@@ -889,7 +890,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             return alias
         if key not in missing.keys():
             missing[key] = float(value)
-            if self.onMissingMorphs == 'LOAD':
+            if self.onMissingMorphs in ['LOAD', 'LOAD_ALL']:
                 rig[key] = float(value)
                 return key
         return None
@@ -1064,7 +1065,7 @@ class StandardAnimation:
                     "Animation loaded but some morphs were missing.     \n"+
                     "See list in terminal window.\n" +
                     "Check results carefully.", warning=True)
-            elif self.onMissingMorphs == 'LOAD':
+            elif self.onMissingMorphs in ['LOAD', 'LOAD_ALL']:
                 self.loadMissingMorphs(context, rig, missing)
 
 
@@ -1112,7 +1113,8 @@ class StandardAnimation:
 
         from .morphing import CustomMorphLoader, StandardMorphLoader
         for morphset in namepaths.keys():
-            if morphset != "Custom":
+            if ((self.onMissingMorphs == 'LOAD' and morphset not in ["Body","Custom"]) or
+                (self.onMissingMorphs == 'LOAD_ALL' and morphset != "Custom")):
                 mloader = StandardMorphLoader()
                 mloader.morphset = morphset
                 mloader.category = ""

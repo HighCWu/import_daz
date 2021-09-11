@@ -43,7 +43,6 @@ MAX_EXPR_LEN = 240
 class LoadMorph(DriverUser):
     morphset = None
     usePropDrivers = True
-    iked = []
     treatHD = 'ERROR'
 
     def __init__(self, rig, mesh):
@@ -82,6 +81,8 @@ class LoadMorph(DriverUser):
         self.mults = {}
         self.sumdrivers = {}
         self.restdrivers = {}
+        self.iked = []
+        self.origRestored = []
         self.initAmt()
         self.getAdjustedBones()
 
@@ -105,6 +106,12 @@ class LoadMorph(DriverUser):
             self.rig.update_tag()
             if self.mesh:
                 self.mesh.update_tag()
+        if self.origRestored:
+            from .geometry import clearMeshProps
+            for ob in self.origRestored:
+                clearMeshProps(ob.data)
+            self.origRestored = []
+
 
     #------------------------------------------------------------------
     #   Make all morphs
@@ -220,7 +227,10 @@ class LoadMorph(DriverUser):
 
         if GS.useModifiedMesh and self.modded:
             from .geometry import restoreOrigVerts
-            if restoreOrigVerts(self.mesh, asset.vertex_count):
+            hasOrig, restored = restoreOrigVerts(self.mesh, asset.vertex_count)
+            if restored and self.mesh not in self.origRestored:
+                self.origRestored.append(self.mesh)
+            if hasOrig:
                 finger = self.mesh.data.DazFingerPrint
                 nverts = int(finger.split("-")[0])
 
