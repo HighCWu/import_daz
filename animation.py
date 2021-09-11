@@ -1103,16 +1103,16 @@ class StandardAnimation:
             table = theMorphTables[rig.DazId]
         else:
             table = theMorphTables[rig.DazId] = self.setupMorphTable(rig)
-        namepaths = {}
+        namepathTable = {}
         for mname in missing.keys():
             if mname in table.keys():
                 path,morphset = table[mname]
-                if morphset not in namepaths.keys():
-                    namepaths[morphset] = []
-                namepaths[morphset].append((mname, path, morphset))
+                if morphset not in namepathTable.keys():
+                    namepathTable[morphset] = []
+                namepathTable[morphset].append((mname, path, morphset))
 
         from .morphing import CustomMorphLoader, StandardMorphLoader
-        for morphset in namepaths.keys():
+        for morphset in namepathTable.keys():
             if ((self.onMissingMorphs == 'LOAD' and morphset not in ["Body","Custom"]) or
                 (self.onMissingMorphs == 'LOAD_ALL' and morphset != "Custom")):
                 mloader = StandardMorphLoader()
@@ -1120,16 +1120,24 @@ class StandardAnimation:
                 mloader.category = ""
                 mloader.hideable = True
                 print("\nLoading missing %s morphs" % morphset)
-                mloader.getAllMorphs(namepaths[morphset], context)
-        for morphset in namepaths.keys():
-            if morphset == "Custom":
+                mloader.getAllMorphs(namepathTable[morphset], context)
+        if "Custom" in namepathTable.keys():
+            customs = {}
+            for namepath in namepathTable["Custom"]:
+                mname,path,morphset = namepath
+                folder = os.path.dirname(path)
+                cat = os.path.split(folder)[-1]
+                if cat not in customs.keys():
+                    customs[cat] = []
+                customs[cat].append(namepath)
+            for cat, namepaths in customs.items():
                 mloader = CustomMorphLoader()
                 rig.DazCustomMorphs = True
                 mloader.morphset = "Custom"
-                mloader.category = "Loaded"
+                mloader.category = cat
                 mloader.hideable = True
-                print("\nLoading missing %s morphs" % morphset)
-                mloader.getAllMorphs(namepaths[morphset], context)
+                print("\nLoading morphs in category %s" % cat)
+                mloader.getAllMorphs(namepaths, context)
         for mname,value in missing.items():
             rig[mname] = value
 
