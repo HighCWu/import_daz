@@ -1186,7 +1186,7 @@ class CyclesTree:
         sss = self.getValue(["SSS Amount"], 0.0)
         dist = self.getValue("getChannelScatterDist", 0.0)
         if not (sssmode == 0 or isBlack(ssscolor) or isWhite(ssscolor) or dist == 0.0):
-            color,tex = self.switchColor(switch, ssscolor, ssstex)
+            color,tex = self.switchColor(True, ssscolor, ssstex)
             if self.volume is None:
                 self.volume = self.addGroup(VolumeGroup, "DAZ Volume")
             self.linkColor(tex, self.volume, color, "Scatter Color")
