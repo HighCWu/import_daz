@@ -294,6 +294,8 @@ class DAZ_PT_AdvancedRigging(DAZ_PT_Base, bpy.types.Panel):
         self.layout.operator("daz.add_winders")
         self.layout.operator("daz.change_prefix_to_suffix")
         self.layout.operator("daz.lock_bones")
+        self.layout.separator()
+        self.layout.operator("daz.categorize_objects")
 
 
 class DAZ_PT_AdvancedMorphs(DAZ_PT_Base, bpy.types.Panel):
