@@ -390,7 +390,7 @@ class AffectOptions:
                  ('LOAD_ALL', "Load All", "Load All")],
         name = "Missing Morphs",
         description = "What to do with missing morphs",
-        default = 'LOAD')
+        default = 'IGNORE')
 
     affectSelectedOnly : BoolProperty(
         name = "Selected Bones Only",
@@ -400,7 +400,7 @@ class AffectOptions:
     affectScale : BoolProperty(
         name = "Affect Scale",
         description = "Include bone scale in animation",
-        default = True)
+        default = False)
 
     ignoreLimits : BoolProperty(
         name = "Ignore Limits",
