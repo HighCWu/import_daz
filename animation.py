@@ -402,11 +402,6 @@ class AffectOptions:
         description = "Include bone scale in animation",
         default = False)
 
-    ignoreLimits : BoolProperty(
-        name = "Ignore Limits",
-        description = "Set pose even if outside limit constraints",
-        default = True)
-
 
 class ActionOptions:
     makeNewAction : BoolProperty(
@@ -508,7 +503,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         if self.affectMorphs:
             layout.prop(self, "clearMorphs")
             layout.prop(self, "onMissingMorphs")
-        layout.prop(self, "ignoreLimits")
         layout.prop(self, "convertPoses")
         if self.convertPoses:
             layout.prop(self, "srcCharacter")
@@ -909,7 +903,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             else:
                 setBoneTransform(tfm, pb)
                 self.imposeLocks(pb)
-                self.imposeLimits(pb)
             if self.useInsertKeys:
                 tfm.insertKeys(rig, pb, n+offset, bname, self.driven)
         else:
@@ -930,42 +923,6 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             for n in range(3):
                 if pb.lock_rotation[n]:
                     pb.rotation_euler[n] = 0
-
-
-    def imposeLimits(self, pb):
-        if self.ignoreLimits:
-            return
-        for cns in pb.constraints:
-            if (cns.type == 'LIMIT_ROTATION' and
-                pb.rotation_mode != 'QUATERNION'):
-                if cns.use_limit_x:
-                    if pb.rotation_euler[0] > cns.max_x:
-                        pb.rotation_euler[0] = cns.max_x
-                    elif pb.rotation_euler[0] < cns.min_x:
-                        pb.rotation_euler[0] = cns.min_x
-                if cns.use_limit_y:
-                    if pb.rotation_euler[1] > cns.max_y:
-                        pb.rotation_euler[1] = cns.max_y
-                    elif pb.rotation_euler[1] < cns.min_y:
-                        pb.rotation_euler[1] = cns.min_y
-                if cns.use_limit_z:
-                    if pb.rotation_euler[2] > cns.max_z:
-                        pb.rotation_euler[2] = cns.max_z
-                    elif pb.rotation_euler[2] < cns.min_z:
-                        pb.rotation_euler[2] = cns.min_z
-            elif cns.type == 'LIMIT_LOCATION':
-                if cns.use_max_x and pb.location[0] > cns.max_x:
-                    pb.location[0] = cns.max_x
-                if cns.use_min_x and pb.location[0] < cns.min_x:
-                    pb.location[0] = cns.min_x
-                if cns.use_max_y and pb.location[0] > cns.max_y:
-                    pb.location[1] = cns.max_y
-                if cns.use_min_y and pb.location[0] < cns.min_y:
-                    pb.location[1] = cns.min_y
-                if cns.use_max_z and pb.location[0] > cns.max_z:
-                    pb.location[2] = cns.max_z
-                if cns.use_min_z and pb.location[0] < cns.min_z:
-                    pb.location[2] = cns.min_z
 
 
     def mergeHipObject(self, rig):
@@ -2073,31 +2030,90 @@ class DAZ_OT_ImposeLocksLimits(DazOperator, IsArmature):
 
     def run(self, context):
         rig = context.object
+        self.locks = {"location" : {}, "rotation_euler" : {}, "scale" : {}}
+        self.limits = {"location" : {}, "rotation_euler" : {}, "scale" : {}}
         for pb in rig.pose.bones:
-            self.imposeLocks(pb, pb.location, pb.lock_location, 0.0)
-            if pb.rotation_mode != 'QUATERNION':
-                self.imposeLocks(pb, pb.rotation_euler, pb.lock_rotation, 0.0)
-                self.imposeLimits(pb, pb.rotation_euler, "LIMIT_ROTATION", 0.0)
-            self.imposeLocks(pb, pb.scale, pb.lock_scale, 1.0)
+            self.locks["location"][pb.name] = list(pb.lock_location)
+            self.locks["rotation_euler"][pb.name] = list(pb.lock_rotation)
+            self.locks["scale"][pb.name] = list(pb.lock_scale)
+            self.getLimits(self.limits["location"], pb, 'LIMIT_LOCATION', -1e10, 1e10)
+            self.getLimits(self.limits["rotation_euler"], pb, 'LIMIT_ROTATION', -math.pi, math.pi)
+            self.getLimits(self.limits["scale"], pb, 'LIMIT_SCALE', -1e10, 1e10)
+
+        if rig.animation_data and rig.animation_data.action:
+            act = rig.animation_data.action
+            deletes = []
+            for fcu in act.fcurves:
+                words = fcu.data_path.split('"')
+                if words[0] == "pose.bones[":
+                    bname = words[1]
+                    channel = words[2].split(".")[-1]
+                    if (channel in self.locks.keys() and
+                        bname in self.locks[channel].keys()):
+                        lock = self.locks[channel][bname]
+                        if lock[fcu.array_index]:
+                            deletes.append(fcu)
+                            continue
+                    if (channel in self.limits.keys() and
+                        bname in self.limits[channel].keys()):
+                        limit = self.limits[channel][bname]
+                        self.limitFcurve(fcu, limit[fcu.array_index])
+            for fcu in deletes:
+                act.fcurves.remove(fcu)
+
+        for pb in rig.pose.bones:
+            for channel,default in [("location", 0.0), ("rotation_euler", 0.0), ("scale", 1.0)]:
+                vec = getattr(pb, channel)
+                lock = self.locks[channel][pb.name]
+                for idx in range(3):
+                    if lock[idx]:
+                        vec[idx] = default
+
+            for channel in ["location", "rotation_euler", "scale"]:
+                vec = getattr(pb, channel)
+                limit = self.limits[channel][pb.name]
+                for idx in range(3):
+                    min,max = limit[idx]
+                    if vec[idx] < min:
+                        vec[idx] = min
+                    elif vec[idx] > max:
+                        vec[idx] = max
 
 
-    def imposeLocks(self, pb, vec, locks, default):
-        for n in range(3):
-            if locks[n]:
-                vec[n] = default
-
-
-    def imposeLimits(self, pb, vec, limit, default):
-        cns = getConstraint(pb, limit)
+    def getLimits(self, limits, pb, cnstype, min, max):
+        limit = limits[pb.name] = 3*[(min,max)]
+        cns = getConstraint(pb, cnstype)
         if cns:
-            for n,char in enumerate(["x", "y", "z"]):
-                if getattr(cns, "use_limit_%s" % char):
-                    min = getattr(cns, "min_%s" % char)
-                    if vec[n] < min:
-                        vec[n] = min
-                    max = getattr(cns, "max_%s" % char)
-                    if vec[n] > max:
-                        vec[n] = max
+            if cnstype == 'LIMIT_ROTATION':
+                for idx,char in enumerate(["x", "y", "z"]):
+                    if getattr(cns, "use_limit_%s" % char):
+                        cmin = getattr(cns, "min_%s" % char)
+                        cmax = getattr(cns, "max_%s" % char)
+                        limit[idx] = (cmin, cmax)
+            elif cnstype == 'LIMIT_LOCATION':
+                for idx,char in enumerate(["x", "y", "z"]):
+                    cmin,cmax = min,max
+                    if getattr(cns, "use_min_%s" % char):
+                        cmin = getattr(cns, "min_%s" % char)
+                    if getattr(cns, "use_max_%s" % char):
+                        cmax = getattr(cns, "max_%s" % char)
+                    limit[idx] = (cmin, cmax)
+
+
+    def limitFcurve(self, fcu, limit):
+        min,max = limit
+        for kp in fcu.keyframe_points:
+            diff = 0
+            if kp.co[1] < min:
+                diff = min - kp.co[1]
+                kp.co[1] = min
+                kp.handle_left[1] += diff
+                kp.handle_right[1] += diff
+            elif kp.co[1] > max:
+                diff = max - kp.co[1]
+                kp.co[1] = max
+                kp.handle_left[1] += diff
+                kp.handle_right[1] += diff
 
 #----------------------------------------------------------
 #   Initialize
