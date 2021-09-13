@@ -1131,12 +1131,12 @@ class CyclesTree:
         if not (useSSS or useTrans):
             return
         transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
-        sssmode, ssscolor, ssstex, switch = self.getSSSInfo(transcolor)
+        sssmode, ssscolor, ssstex = self.getSSSInfo(transcolor)
         self.volume = None
         if useTrans:
-            self.buildVolumeTransmission(transcolor, transtex, switch)
+            self.buildVolumeTransmission(transcolor, transtex)
         if useSSS:
-            self.buildVolumeSubSurface(sssmode, ssscolor, ssstex, switch)
+            self.buildVolumeSubSurface(sssmode, ssscolor, ssstex)
         if self.volume:
             self.volume.width = 240
             LS.usedFeatures["Volume"] = True
@@ -1152,31 +1152,21 @@ class CyclesTree:
         # [ "Mono", "Chromatic" ]
         if sssmode == 1:
             ssscolor,ssstex = self.getColorTex("getChannelSSSColor", "COLOR", BLACK)
-            # https://bitbucket.org/Diffeomorphic/import-daz/issues/27/better-volumes-minor-but-important-fixes
-            switch = (transcolor[1] == 0 or ssscolor[1] == 0)
-            return 1, ssscolor, ssstex, switch
+            return 1, ssscolor, ssstex
         else:
-            return 0, WHITE, None, False
+            return 0, WHITE, None
 
 
-    def switchColor(self, switch, color, tex):
-        if switch:
-            return  self.invertColor(color, tex, 6)
-        else:
-            return color,tex
-
-
-    def buildVolumeTransmission(self, transcolor, transtex, switch):
+    def buildVolumeTransmission(self, transcolor, transtex):
         from .cgroup import VolumeGroup
         dist = self.getValue(["Transmitted Measurement Distance"], 0.0)
         if not (isBlack(transcolor) or isWhite(transcolor) or dist == 0.0):
-            color,tex = self.switchColor(switch, transcolor, transtex)
             self.volume = self.addGroup(VolumeGroup, "DAZ Volume")
             self.volume.inputs["Absorbtion Density"].default_value = 100/dist
-            self.linkColor(tex, self.volume, color, "Absorbtion Color")
+            self.linkColor(transtex, self.volume, transcolor, "Absorbtion Color")
 
 
-    def buildVolumeSubSurface(self, sssmode, ssscolor, ssstex, switch):
+    def buildVolumeSubSurface(self, sssmode, ssscolor, ssstex):
         from .cgroup import VolumeGroup
         if self.material.shader == 'UBER_IRAY':
             factor = 50
@@ -1186,7 +1176,7 @@ class CyclesTree:
         sss = self.getValue(["SSS Amount"], 0.0)
         dist = self.getValue("getChannelScatterDist", 0.0)
         if not (sssmode == 0 or isBlack(ssscolor) or isWhite(ssscolor) or dist == 0.0):
-            color,tex = self.switchColor(True, ssscolor, ssstex)
+            color,tex = self.invertColor(ssscolor, ssstex, 6)
             if self.volume is None:
                 self.volume = self.addGroup(VolumeGroup, "DAZ Volume")
             self.linkColor(tex, self.volume, color, "Scatter Color")
