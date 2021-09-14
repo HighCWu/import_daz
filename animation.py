@@ -647,14 +647,18 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
 
     def isAvailable(self, pb, rig):
-        if self.affectSelectedOnly:
-            return pb.bone.select
-        elif (pb.parent and
+        if (pb.parent and
               isDrvBone(pb.parent.name) and
               not self.affectDrivenBones):
             return False
         elif (pb.name == self.getMasterBone(rig) and
               self.affectObject != 'MASTER'):
+            return False
+        elif self.affectSelectedOnly:
+            if pb.bone.select:
+                for rlayer,blayer in zip(self.boneLayers, pb.bone.layers):
+                    if rlayer and blayer:
+                        return True
             return False
         else:
             return True
