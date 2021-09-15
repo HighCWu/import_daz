@@ -164,7 +164,7 @@ class Formula:
                 "factor2" : 0,
                 "prop" : None,
                 "bone" : None,
-                "bone2" : [],
+                "bone2" : None,
                 "path" : None,
                 "comp" : -1,
                 "mult" : None}
