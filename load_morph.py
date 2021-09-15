@@ -478,7 +478,8 @@ class LoadMorph(DriverUser):
 
     def getRealBone(self, bname):
         from .bone import getTargetName
-        return getTargetName(bname, self.rig)
+        nname = getTargetName(bname, self.rig)
+        return nname
 
 
     def getDrivenBone(self, bname):
@@ -933,26 +934,39 @@ class LoadMorph(DriverUser):
         else:
             factor = expr["factor"]
             uvec = unit*getBoneVector(factor, comp, pb)
-            self.makeSimpleBoneDriver(path, uvec, rna, channel, -1, bname, keep)
+            bname2 = None
+            uvec2 = None
+            if expr["bone2"]:
+                bname2 = self.getRealBone(expr["bone2"])
+                if bname2:
+                    pb2 = self.rig.pose.bones[bname2]
+                    factor2 = expr["factor2"]
+                    uvec2 = unit*getBoneVector(factor2, comp, pb2)
+            self.makeSimpleBoneDriver(path, uvec, rna, channel, -1, bname, keep, bname2, uvec2)
 
     #-------------------------------------------------------------
     #   Bone drivers
     #-------------------------------------------------------------
 
-    def getVarData(self, uvec, bname):
+    def getVarData(self, uvec, bname, vname):
         vals = [(abs(x), n, x) for n,x in enumerate(uvec)]
         vals.sort()
         _,n,umax = vals[-1]
         if drvBone(bname) in self.rig.pose.bones.keys():
-            vars = [(n, "A", finBone(bname))]
+            vars = [(n, vname, finBone(bname))]
         else:
-            vars = [(n, "A", bname)]
-        return "A", vars, umax
+            vars = [(n, vname, bname)]
+        return vname, vars, umax
 
 
-    def makeSimpleBoneDriver(self, channel, vec, rna, path, idx, bname, keep):
-        var,vars,umax = self.getVarData(vec, bname)
+    def makeSimpleBoneDriver(self, channel, vec, rna, path, idx, bname, keep, bname2=None, vec2=None):
+        var,vars,umax = self.getVarData(vec, bname, "A")
         string = getMult(umax, var)
+        if bname2:
+            var2,vars2,umax2 = self.getVarData(vec2, bname2, "B")
+            string2 = getMult(umax2, var2)
+            vars = vars + vars2
+            string = "%s+%s" % (string, string2)
         self.makeBoneDriver(string, vars, channel, rna, path, idx, keep)
 
 
@@ -961,7 +975,7 @@ class LoadMorph(DriverUser):
         #[1 if x< -1.983 else -x-0.983 if x< -0.983  else 0 for x in [+0.988*A]][0]
         #1 if A< -1.983/0.988 else -0.988*A-0.983 if A< -0.983/0.988  else 0
 
-        var,vars,umax = self.getVarData(uvec, bname)
+        var,vars,umax = self.getVarData(uvec, bname, "A")
         lt = ("<" if umax > 0 else ">")
 
         n = len(points)

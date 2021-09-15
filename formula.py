@@ -161,8 +161,10 @@ class Formula:
         if idx not in exprs[output][path].keys():
             exprs[output][path][idx] = {
                 "factor" : 0,
+                "factor2" : 0,
                 "prop" : None,
                 "bone" : None,
+                "bone2" : [],
                 "path" : None,
                 "comp" : -1,
                 "mult" : None}
@@ -184,14 +186,18 @@ class Formula:
     def evalOperations(self, formula, expr):
         opers = formula["operations"]
         prop,type,path,comp = self.evalUrl(opers[0])
+        factor = "factor"
         if type == "value":
             if expr["prop"] is None:
                 expr["prop"] = prop
-        else:
+        elif expr["bone"] is None:
             expr["bone"] = prop
+        else:
+            expr["bone2"] = prop
+            factor = "factor2"
         expr["path"] = path
         expr["comp"] = comp
-        self.evalMainOper(opers, expr)
+        self.evalMainOper(opers, expr, factor)
 
 
     def evalUrl(self, oper):
@@ -205,14 +211,14 @@ class Formula:
         return prop,type,path,comp
 
 
-    def evalMainOper(self, opers, expr):
+    def evalMainOper(self, opers, expr, factor):
         if len(opers) == 1:
-            expr["factor"] = 1
+            expr[factor] = 1
             return
         oper = opers[-1]
         op = oper["op"]
         if op == "mult":
-            expr["factor"] = opers[1]["val"]
+            expr[factor] = opers[1]["val"]
         elif op == "spline_tcb":
             expr["points"] = [opers[n]["val"] for n in range(1,len(opers)-2)]
         elif op == "spline_linear":
