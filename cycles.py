@@ -241,7 +241,7 @@ class CyclesTree:
 
 
     def isEnabled(self, channel):
-        return self.material.isEnabled(channel)
+        return self.material.enabled[channel]
 
 
     def getColor(self, channel, default):
@@ -1126,7 +1126,7 @@ class CyclesTree:
             GS.materialMethod != "BSDF" or
             not GS.useVolume):
             return
-        useSSS = self.isEnabled("Sub Surface")
+        useSSS = self.isEnabled("Subsurface")
         useTrans = self.isEnabled("Transmission")
         if not (useSSS or useTrans):
             return
@@ -1226,7 +1226,7 @@ class CyclesTree:
     def buildDisplacementNodes(self):
         channel = self.material.getChannelDisplacement()
         if not( channel and
-                self.material.isEnabled("Displacement") and
+                self.isEnabled("Displacement") and
                 GS.useDisplacement):
             return
         tex = self.addTexImageNode(channel, "NONE")

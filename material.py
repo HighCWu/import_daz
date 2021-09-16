@@ -55,7 +55,7 @@ class Material(Asset, Channels):
         Channels.__init__(self)
         self.classType = Material
         self.scene = None
-        self.shader = 'DAZ'
+        self.shader = 'UBER_IRAY'
         self.channels = OrderedDict()
         self.textures = OrderedDict()
         self.groups = []
@@ -78,6 +78,7 @@ class Material(Asset, Channels):
         self.translucent = False
         self.isHair = False
         self.isShellMat = False
+        self.enabled = {}
 
 
     def __repr__(self):
@@ -144,13 +145,85 @@ class Material(Asset, Channels):
         elif self.basemix not in [0,1]:
             raise DazError("Unknown Base Mixing: %s             " % self.material.basemix)
 
+        if self.shader == 'UBER_IRAY':
+            self.enabled = {
+                "Diffuse" : True,
+                "Subsurface" : True,
+                "Bump" : True,
+                "Normal" : True,
+                "Displacement" : True,
+                "Metallicity" : True,
+                "Translucency" : True,
+                "Transmission" : True,
+                "Dual Lobe Specular" : True,
+                "Top Coat" : True,
+                "Makeup" : False,
+                "Specular Occlusion" : False,
+                "Detail" : False,
+                "Metallic Flakes" : True,
+            }
+        elif self.shader == 'PBRSKIN':
+            self.enabled = {
+                "Diffuse" : self.getValue(["Diffuse Enable"], False),
+                "Subsurface" : False,
+                "Bump" : self.getValue(["Bump Enable"], False),
+                "Normal" : self.getValue(["Bump Enable"], False),
+                "Displacement" : True,
+                "Metallicity" : self.getValue(["Metallicity Enable"], False),
+                "Translucency" : self.getValue(["Translucency Enable"], False),
+                "Transmission" : self.getValue(["Transmission Enable"], False),
+                "Dual Lobe Specular" : self.getValue(["Dual Lobe Specular Enable"], False),
+                "Top Coat" : self.getValue(["Top Coat Enable"], False),
+                "Makeup" : self.getValue(["Makeup Enable"], False),
+                "Specular Occlusion" : self.getValue(["Specular Occlusion Enable"], False),
+                "Detail" : self.getValue(["Detail Enable"], False),
+                "Metallic Flakes" : self.getValue(["Metallic Flakes Enable"], False),
+            }
+        elif self.shader == 'DAZ_SHADER':
+            self.enabled = {
+                "Diffuse" : self.getValue(["Diffuse Active"], False),
+                "Subsurface" : self.getValue(["Subsurface Active"], False),
+                "Bump" : self.getValue(["Bump Active"], False),
+                "Normal" : False,
+                "Displacement" : self.getValue(["Displacement Active"], False),
+                "Metallicity" : self.getValue(["Metallicity Active"], False),
+                "Translucency" : self.getValue(["Translucency Active"], False),
+                "Transmission" : not self.getValue(["Opacity Active"], False),
+                "Dual Lobe Specular" : False,
+                "Top Coat" : False,
+                "Makeup" : False,
+                "Specular Occlusion" : False,
+                "Detail" : False,
+                "Metallic Flakes" : False,
+                "Velvet" : not self.getValue(["Velvet Active"], False),
+            }
+        elif self.shader == '3DELIGHT':
+            self.enabled = {
+                "Diffuse" : True,
+                "Subsurface" : False,
+                "Bump" : False,
+                "Normal" : False,
+                "Displacement" : False,
+                "Metallicity" : False,
+                "Translucency" : False,
+                "Transmission" : False,
+                "Dual Lobe Specular" : False,
+                "Top Coat" : False,
+                "Makeup" : False,
+                "Specular Occlusion" : False,
+                "Detail" : False,
+                "Metallic Flakes" : False,
+        }
+        else:
+            raise DazError("Bug: Unknown shader %s" % self.shader)
+
         self.thinWall = self.getValue(["Thin Walled"], False)
         self.refractive = (self.getValue("getChannelRefractionWeight", 0) > 0.01 or
                            self.getValue("getChannelOpacity", 1) < 0.99)
         self.shareGlossy = self.getValue(["Share Glossy Inputs"], False)
-        self.metallic = (self.getValue(["Metallic Weight"], 0) > 0.5 and self.isEnabled("Metallicity"))
+        self.metallic = (self.getValue(["Metallic Weight"], 0) > 0.5 and self.enabled["Metallicity"])
         self.dualLobeWeight = self.getValue(["Dual Lobe Specular Weight"], 0)
-        self.translucent = (self.getValue("getChannelTranslucencyWeight", 0) > 0.01)
+        self.translucent = (self.enabled["Translucency"] and self.getValue("getChannelTranslucencyWeight", 0) > 0.01)
         self.isHair = ("Root Transmission Color" in self.channels.keys())
 
 
@@ -163,7 +236,7 @@ class Material(Asset, Channels):
             else:
                 self.shader = '3DELIGHT'
         elif struct["type"] == "studio/material/daz_shader":
-            self.shader = 'DAZ'
+            self.shader = 'DAZ_SHADER'
 
 
     def build(self, context):
@@ -373,16 +446,6 @@ class Material(Asset, Channels):
         return self.getChannel(["v_offset", "Vertical Offset"])
 
 
-    def isEnabled(self, name):
-        cname = "%s Active" % name
-        if cname in self.channels.keys():
-            return self.getValue([cname], True)
-        cname = "%s Enable" % name
-        if cname in self.channels.keys():
-            return self.getValue([cname], True)
-        return True
-
-
     def getColor(self, attr, default):
         return self.getChannelColor(self.getChannel(attr), default)
 
@@ -510,7 +573,7 @@ class Material(Asset, Channels):
 
 
     def sssActive(self):
-        if not self.isEnabled("Subsurface"):
+        if not self.enabled["Subsurface"]:
             return False
         if self.refractive or self.thinWall:
             return False

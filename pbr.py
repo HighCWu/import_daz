@@ -212,7 +212,7 @@ class PbrTree(CyclesTree):
 
 
     def buildSSS(self):
-        if not self.isEnabled("Sub Surface"):
+        if not self.isEnabled("Subsurface"):
             return
         if not self.checkTranslucency():
             return
