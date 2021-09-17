@@ -645,9 +645,8 @@ class DAZ_OT_MakeDecal(DazOperator, ImageFile, SingleFile, LaunchEditor, IsMesh)
         img = bpy.data.images.load(self.filepath)
         if img is None:
             raise DazError("Unable to load file %s" % self.filepath)
-        if hasattr(img, "colorspace_settings"):
-            img.colorspace_settings.name = "Non-Color"
-            img.colorspace_settings.name = "sRGB"
+        img.colorspace_settings.name = "Non-Color"
+        img.colorspace_settings.name = "sRGB"
 
         fname = os.path.splitext(os.path.basename(self.filepath))[0]
         ob = context.object

@@ -808,13 +808,12 @@ class Texture:
             img = self.map.image
         else:
             img = None
-        if hasattr(img, "colorspace_settings"):
-            if colorSpace == "COLOR":
-                img.colorspace_settings.name = "sRGB"
-            elif colorSpace == "NONE":
-                img.colorspace_settings.name = "Non-Color"
-            else:
-                img.colorspace_settings.name = colorSpace
+        if colorSpace == "COLOR":
+            img.colorspace_settings.name = "sRGB"
+        elif colorSpace == "NONE":
+            img.colorspace_settings.name = "Non-Color"
+        else:
+            img.colorspace_settings.name = colorSpace
         if img:
             self.images[colorSpace] = img
         self.built[colorSpace] = True
@@ -1361,11 +1360,6 @@ class ChangeResolution():
         description = "Resize all textures of the selected meshes",
         default = True)
 
-    overwrite : BoolProperty(
-        name = "Overwrite Files",
-        description = "Overwrite the original image files.",
-        default = False)
-
     def __init__(self):
         self.filenames = []
         self.images = {}
@@ -1433,9 +1427,14 @@ class ChangeResolution():
     def getBasePath(self, path):
         fname,ext = os.path.splitext(path)
         if fname[-5:] == "-res0":
-            return fname[:-5] + ext
+            return "%s%s" % (fname[:-5], ext)
         elif fname[-5:-1] == "-res" and fname[-1].isdigit():
-            return fname[:-5] + ext
+            return "%s%s" % (fname[:-5], ext)
+        elif (fname[-10:-6] == "-res" and
+              fname[-6].isdigit() and
+              fname[-5] == "_" and
+              fname[-4:].isdigit()):
+            return "%s%s%s" % (fname[:-10], fname[-5:], ext)
         else:
             return path
 
@@ -1443,37 +1442,15 @@ class ChangeResolution():
     def replaceImage(self, img):
         if img is None:
             return None
-        if hasattr(img, "colorspace_settings"):
-            colorSpace = img.colorspace_settings.name
-            if colorSpace not in self.images.keys():
-                self.images[colorSpace] = {}
-            images = self.images[colorSpace]
-        else:
-            colorSpace = None
-            images = self.images
+        colorSpace = img.colorspace_settings.name
+        if colorSpace not in self.images.keys():
+            self.images[colorSpace] = {}
+        images = self.images[colorSpace]
 
         path = self.getBasePath(img.filepath)
         filename = bpy.path.basename(path)
         if filename not in self.filenames:
             return img
-
-        if self.overwrite:
-            if img.filepath in images.keys():
-                return images[img.filepath][1]
-            try:
-                print("Reload", img.filepath)
-                img.reload()
-                newimg = img
-                if colorSpace:
-                    newimg.colorspace_settings.name = colorSpace
-            except RuntimeError:
-                newimg = None
-            if newimg:
-                images[img.filepath] = (img, newimg)
-                return newimg
-            else:
-                print("Cannot reload '%s'" % img.filepath)
-                return img
 
         newname,newpath = self.getNewPath(path)
         if newpath == img.filepath:
@@ -1482,14 +1459,12 @@ class ChangeResolution():
             return images[newpath][1]
         elif newname in bpy.data.images.keys():
             return bpy.data.images[newname]
-        elif newpath in bpy.data.images.keys():
-            return bpy.data.images[newpath]
         else:
             try:
                 print("Replace '%s'\n   with '%s'" % (img.filepath, newpath))
                 newimg = bpy.data.images.load(newpath)
-                if colorSpace:
-                    newimg.colorspace_settings.name = colorSpace
+                newimg.name = newname
+                newimg.colorspace_settings.name = colorSpace
             except RuntimeError:
                 newimg = None
         if newimg:
@@ -1504,6 +1479,8 @@ class ChangeResolution():
         base,ext = os.path.splitext(path)
         if self.steps == 0:
             newbase = base
+        elif len(base) > 5 and base[-5] == "_" and base[-4:].isdigit():
+            newbase = ("%s-res%d%s" % (base[:-5], self.steps, base[-5:]))
         else:
             newbase = ("%s-res%d" % (base, self.steps))
         newname = bpy.path.basename(newbase)
@@ -1566,17 +1543,13 @@ class DAZ_OT_ResizeTextures(DazOperator, ImageFile, MultiFile, ChangeResolution)
         self.getFileNames(paths)
 
         program = os.path.join(os.path.dirname(__file__), "standalone/resize.py")
-        if self.overwrite:
-            overwrite = "-o"
-        else:
-            overwrite = ""
         folder = os.path.dirname(bpy.data.filepath)
         for path in paths:
             if path[0:2] == "//":
                 path = os.path.join(folder, path[2:])
             _,newpath = self.getNewPath(self.getBasePath(path))
             if not os.path.exists(newpath):
-                cmd = ('python "%s" "%s" %d %s' % (program, path, self.steps, overwrite))
+                cmd = ('python "%s" "%s" "%s" %d' % (program, path, newpath, self.steps))
                 os.system(cmd)
             else:
                 print("Skip", os.path.basename(newpath))

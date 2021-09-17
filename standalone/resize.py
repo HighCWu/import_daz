@@ -5,6 +5,7 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("file", type=str, help="Name of input file.")
+    parser.add_argument("newfile", type=str, help="Name of output file.")
     parser.add_argument("steps", type=int, help="Number of steps")
     parser.add_argument("--overwrite", "-o", dest="overwrite", action="store_true")
     args = parser.parse_args()
@@ -22,15 +23,18 @@ def main():
     else:
         fname,ext = os.path.splitext(args.file)
         if fname[-5:-1] == "-res" and fname[-1].isdigit():
-            fname = fname[:-5]
-            args.file = fname + ext
-        newfile = "%s-res%d%s" % (fname, args.steps, ext)
+            args.file = "%s%s" % (fname[:-5], ext)
+        elif (fname[-10:-6] == "-res" and
+              fname[-6].isdigit() and
+              fname[-5] == "_" and
+              fname[-4:].isdigit()):
+            args.file = "%s%s%s" % (fname[:-10], fname[-5:], ext)
 
     if not os.path.isfile(args.file):
         print("The file %s does not exist" % args.file)
         return
-    if os.path.isfile(newfile) and not args.overwrite:
-        print("%s already exists" % os.path.basename(newfile))
+    if os.path.isfile(args.newfile) and not args.overwrite:
+        print("%s already exists" % os.path.basename(args.newfile))
         return
 
     img = cv2.imread(args.file, cv2.IMREAD_UNCHANGED)
@@ -45,7 +49,7 @@ def main():
         if (blue == green).all() and (blue == red).all():
             print("Greyscale", args.file)
             newimg = cv2.cvtColor(newimg, cv2.COLOR_BGR2GRAY)
-    print("%s: (%d, %d) => (%d %d)" % (os.path.basename(newfile), rows, cols, newrows, newcols))
-    cv2.imwrite(os.path.join(args.file, newfile), newimg)
+    print("%s: (%d, %d) => (%d %d)" % (os.path.basename(args.newfile), rows, cols, newrows, newcols))
+    cv2.imwrite(os.path.join(args.file, args.newfile), newimg)
 
 main()
