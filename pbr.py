@@ -59,7 +59,7 @@ class PbrTree(CyclesTree):
         self.cycles = self.eevee = self.pbr
         self.buildNormal(uvname)
         self.buildBump()
-        self.buildDetail()
+        self.buildDetail(uvname)
         self.buildPBRNode()
         self.linkPBRNormal(self.pbr)
         self.postPBR = False
@@ -83,11 +83,11 @@ class PbrTree(CyclesTree):
 
     def linkPBRNormal(self, pbr):
         if self.bump:
-            self.links.new(self.bump.outputs[0], pbr.inputs["Normal"])
-            self.links.new(self.bump.outputs[0], pbr.inputs["Clearcoat Normal"])
+            self.links.new(self.bump.outputs["Normal"], pbr.inputs["Normal"])
+            self.links.new(self.bump.outputs["Normal"], pbr.inputs["Clearcoat Normal"])
         elif self.normal:
-            self.links.new(self.normal.outputs[0], pbr.inputs["Normal"])
-            self.links.new(self.normal.outputs[0], pbr.inputs["Clearcoat Normal"])
+            self.links.new(self.normal.outputs["Normal"], pbr.inputs["Normal"])
+            self.links.new(self.normal.outputs["Normal"], pbr.inputs["Clearcoat Normal"])
 
 
     def buildCutout(self):

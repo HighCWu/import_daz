@@ -139,10 +139,9 @@ class CyclesMaterial(Material):
         if area <= 0.0:
             return
         for tex,sockets in self.geobump.values():
-            img = tex.image
-            if img is None:
+            if not hasattr(tex, "image") or tex.image is None:
                 continue
-            width,height = img.size
+            width,height = tex.image.size
             density = width * height / area
             if density == 0.0:
                 continue
@@ -223,6 +222,8 @@ class CyclesTree:
         self.fresnel = None
         self.normal = None
         self.bump = None
+        self.bumpval = 0
+        self.bumptex = None
         self.texco = None
         self.texcos = {}
         self.displacement = None
@@ -377,7 +378,7 @@ class CyclesTree:
     def buildLayer(self, uvname):
         self.buildNormal(uvname)
         self.buildBump()
-        self.buildDetail()
+        self.buildDetail(uvname)
         self.buildDiffuse()
 
         self.buildTranslucency()
@@ -476,14 +477,18 @@ class CyclesTree:
             return
         strength,tex = self.getColorTex("getChannelNormal", "NONE", 1.0)
         if strength>0 and tex:
-            self.normal = self.addNode("ShaderNodeNormalMap", col=3)
-            self.normal.space = "TANGENT"
-            if uvname:
-                self.normal.uv_map = uvname
-            elif self.material.uv_set:
-                self.normal.uv_map = self.material.uv_set.name
-            self.normal.inputs["Strength"].default_value = strength
-            self.links.new(tex.outputs[0], self.normal.inputs["Color"])
+            self.buildNormalMap(strength, tex, uvname)
+
+
+    def buildNormalMap(self, strength, tex, uvname):
+        self.normal = self.addNode("ShaderNodeNormalMap", col=3)
+        self.normal.space = "TANGENT"
+        if uvname:
+            self.normal.uv_map = uvname
+        elif self.material.uv_set:
+            self.normal.uv_map = self.material.uv_set.name
+        self.normal.inputs["Strength"].default_value = strength
+        self.links.new(tex.outputs[0], self.normal.inputs["Color"])
 
 #-------------------------------------------------------------
 #   Bump
@@ -508,56 +513,81 @@ class CyclesTree:
 
     def linkBumpNormal(self, node):
         if self.bump:
-            self.links.new(self.bump.outputs[0], node.inputs["Normal"])
+            self.links.new(self.bump.outputs["Normal"], node.inputs["Normal"])
         elif self.normal:
-            self.links.new(self.normal.outputs[0], node.inputs["Normal"])
+            self.links.new(self.normal.outputs["Normal"], node.inputs["Normal"])
 
 
     def linkBump(self, node):
         if self.bump:
-            self.links.new(self.bump.outputs[0], node.inputs["Normal"])
+            self.links.new(self.bump.outputs["Normal"], node.inputs["Normal"])
 
 
     def linkNormal(self, node):
         if self.normal:
-            self.links.new(self.normal.outputs[0], node.inputs["Normal"])
+            self.links.new(self.normal.outputs["Normal"], node.inputs["Normal"])
 
 #-------------------------------------------------------------
 #   Detail
 #-------------------------------------------------------------
 
-    def buildDetail(self):
+    def buildDetail(self, uvname):
         if not self.isEnabled("Detail"):
             return
         weight,wttex = self.getColorTex(["Detail Weight"], "NONE", 0.0)
         if weight == 0:
             return
         texco = self.texco
-        ox = 0.01*self.getValue(["Detail Horizontal Offset"], 0)
-        oy = 0.01*self.getValue(["Detail Vertical Offset"], 0)
+        ox = LS.scale*self.getValue(["Detail Horizontal Offset"], 0)
+        oy = LS.scale*self.getValue(["Detail Vertical Offset"], 0)
         kx = self.getValue(["Detail Horizontal Tiles"], 1)
         ky = self.getValue(["Detail Vertical Tiles"], 1)
         self.mapTexco(ox, oy, kx, ky)
 
-        # Height Map, Normal Map
+        strength,tex = self.getColorTex(["Detail Normal Map"], "NONE", 1.0)
+        weight = weight*strength
         mode = self.getValue(["Detail Normal Map Mode"], 0)
+        # Height Map, Normal Map
         if mode == 0:
-            print("Detail mode 0")
+            if weight == 0:
+                pass
+            elif self.bump:
+                link = getLinkTo(self, self.bump, "Height")
+                if link:
+                    mult = self.addNode("ShaderNodeMath", 3)
+                    mult.operation = 'MULTIPLY_ADD'
+                    self.links.new(tex.outputs[0], mult.inputs[0])
+                    self.linkScalar(wttex, mult, weight, 1)
+                    self.links.new(link.from_socket, mult.inputs[2])
+                    self.links.new(mult.outputs["Value"], self.bump.inputs["Height"])
+            else:
+                tex = self.multiplyTexs(tex, wttex)
+                self.bump = self.buildBumpMap(weight, tex, col=3)
+                self.linkNormal(self.bump)
         elif mode == 1:
-            strength,tex = self.getColorTex(["Detail Normal Map"], "NONE", 1.0)
-            mix = self.addNode("ShaderNodeMixRGB", 3)
-            mix.blend_type = 'OVERLAY'
-            self.linkScalar(wttex, mix, weight, "Fac")
-            NORMAL = (0.5, 0.5, 1, 1)
-            mix.inputs["Color1"].default_value = NORMAL
-            mix.inputs["Color2"].default_value = NORMAL
-            if self.normal:
-                self.links.new(self.normal.outputs[0], mix.inputs["Color1"])
-            if tex:
-                self.links.new(tex.outputs["Color"], mix.inputs["Color2"])
-            self.normal = mix
-            if self.bump:
-                self.links.new(mix.outputs[0], self.bump.inputs["Normal"])
+            if weight == 0:
+                pass
+            elif self.normal:
+                link = getLinkTo(self, self.normal, "Color")
+                if link:
+                    mix = self.addNode("ShaderNodeMixRGB", 3)
+                    mix.blend_type = 'OVERLAY'
+                    self.linkScalar(wttex, mix, weight, "Fac")
+                    NORMAL = (0.5, 0.5, 1, 1)
+                    mix.inputs["Color1"].default_value = NORMAL
+                    mix.inputs["Color2"].default_value = NORMAL
+                    self.links.new(link.from_socket, mix.inputs["Color1"])
+                    if tex:
+                        self.links.new(tex.outputs[0], mix.inputs["Color2"])
+                    self.links.new(mix.outputs["Color"], self.normal.inputs["Color"])
+                else:
+                    self.links.new(tex.outputs[0], self.normal.inputs["Color"])
+            else:
+                self.buildNormalMap(weight, tex, uvname)
+                if wttex:
+                    self.links.new(wttex.outputs[0], self.normal.inputs["Strength"])
+                if self.bump:
+                    self.links.new(self.normal.outputs["Normal"], self.bump.inputs["Normal"])
 
         self.texco = texco
 
@@ -579,18 +609,22 @@ class CyclesTree:
 
 
     def buildDiffuse(self):
-        channel = self.material.getChannelDiffuse()
-        if channel and self.isEnabled("Diffuse"):
-            self.column = 4
-            color,tex = self.getDiffuseColor()
-            self.diffuseTex = tex
-            node = self.addNode("ShaderNodeBsdfDiffuse")
-            self.cycles = self.eevee = node
-            self.linkColor(tex, node, color, "Color")
-            roughness,roughtex = self.getColorTex(["Diffuse Roughness"], "NONE", 0, False)
-            self.setRoughness(node, "Roughness", roughness, roughtex)
-            self.linkBumpNormal(node)
-            LS.usedFeatures["Diffuse"] = True
+        self.column = 4
+        if not self.isEnabled("Diffuse"):
+            return
+        color,tex = self.getDiffuseColor()
+        self.diffuseTex = tex
+        node = self.addNode("ShaderNodeBsdfDiffuse")
+        self.cycles = self.eevee = node
+        self.linkColor(tex, node, color, "Color")
+        roughness,roughtex = self.getColorTex(["Diffuse Roughness"], "NONE", 0, False)
+        if self.isEnabled("Detail"):
+            detrough,dettex = self.getColorTex(["Detail Specular Roughness Mult"], "NONE", 0, False)
+            roughness *= detrough
+            roughtex = self.multiplyTexs(dettex, roughtex)
+        self.setRoughness(node, "Roughness", roughness, roughtex)
+        self.linkBumpNormal(node)
+        LS.usedFeatures["Diffuse"] = True
 
 
     def buildOverlay(self):

@@ -963,6 +963,18 @@ class NormalGroup(CyclesGroup):
         self.links.new(comb.outputs[0], self.outputs.inputs["Normal"])
 
 # ---------------------------------------------------------------------
+#   Detail Group
+# ---------------------------------------------------------------------
+
+class DetailGroup(CyclesGroup):
+
+    def __init__(self):
+        CyclesGroup.__init__(self)
+        self.insockets += ["Texture", "Strength", "Max", "Min", "Normal"]
+        self.outsockets += ["Displacement"]
+
+
+# ---------------------------------------------------------------------
 #   Displacement Group
 # ---------------------------------------------------------------------
 
