@@ -57,7 +57,9 @@ class PbrTree(CyclesTree):
             CyclesTree.buildLayer(self, uvname)
             return
         self.cycles = self.eevee = self.pbr
-        self.buildBumpNodes(uvname)
+        self.buildNormal(uvname)
+        self.buildBump()
+        self.buildDetail()
         self.buildPBRNode()
         self.linkPBRNormal(self.pbr)
         self.postPBR = False
@@ -81,11 +83,11 @@ class PbrTree(CyclesTree):
 
     def linkPBRNormal(self, pbr):
         if self.bump:
-            self.links.new(self.bump.outputs["Normal"], pbr.inputs["Normal"])
-            self.links.new(self.bump.outputs["Normal"], pbr.inputs["Clearcoat Normal"])
+            self.links.new(self.bump.outputs[0], pbr.inputs["Normal"])
+            self.links.new(self.bump.outputs[0], pbr.inputs["Clearcoat Normal"])
         elif self.normal:
-            self.links.new(self.normal.outputs["Normal"], pbr.inputs["Normal"])
-            self.links.new(self.normal.outputs["Normal"], pbr.inputs["Clearcoat Normal"])
+            self.links.new(self.normal.outputs[0], pbr.inputs["Normal"])
+            self.links.new(self.normal.outputs[0], pbr.inputs["Clearcoat Normal"])
 
 
     def buildCutout(self):
@@ -206,9 +208,9 @@ class PbrTree(CyclesTree):
         self.linkScalar(tex, self.pbr, rough, "Clearcoat Roughness")
 
         # Sheen
-        if self.material.isEnabled("Backscattering"):
-            sheen,tex = self.getColorTex(["Backscattering Weight"], "NONE", 0.0)
-            self.linkScalar(tex, self.pbr, sheen, "Sheen")
+        if self.isEnabled("Velvet"):
+            velvet,tex = self.getColorTex(["Velvet Strength"], "NONE", 0.0)
+            self.linkScalar(tex, self.pbr, velvet, "Sheen")
 
 
     def buildSSS(self):

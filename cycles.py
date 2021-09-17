@@ -225,7 +225,6 @@ class CyclesTree:
         self.bump = None
         self.texco = None
         self.texcos = {}
-        self.mapping = None
         self.displacement = None
         self.volume = None
         self.useCutout = False
@@ -376,7 +375,9 @@ class CyclesTree:
 
 
     def buildLayer(self, uvname):
-        self.buildBumpNodes(uvname)
+        self.buildNormal(uvname)
+        self.buildBump()
+        self.buildDetail()
         self.buildDiffuse()
 
         self.buildTranslucency()
@@ -413,26 +414,11 @@ class CyclesTree:
             node = self.addNode("ShaderNodeUVMap", 1)
             node.uv_map = self.material.uv_set.name
             self.texco = node.outputs["UV"]
-
-        mat = self.material
-        ox = mat.getChannelValue(mat.getChannelHorizontalOffset(), 0)
-        oy = mat.getChannelValue(mat.getChannelVerticalOffset(), 0)
-        kx = mat.getChannelValue(mat.getChannelHorizontalTiles(), 1)
-        ky = mat.getChannelValue(mat.getChannelVerticalTiles(), 1)
-        if ox != 0 or oy != 0 or kx not in [0,1] or ky not in [0,1]:
-            sx = sy = 1
-            dx = dy = 0
-            if kx != 0:
-                sx = 1/kx
-                dx = -ox/kx
-            if ky != 0:
-                sy = 1/ky
-                dy = oy/ky
-            self.mapping = self.addMappingNode((dx,dy,sx,sy,0), None)
-            if self.mapping:
-                self.linkVector(self.texco, self.mapping, 0)
-                self.texco = self.mapping
-
+        ox = self.getValue("getChannelHorizontalOffset", 0)
+        oy = self.getValue("getChannelVerticalOffset", 0)
+        kx = self.getValue("getChannelHorizontalTiles", 1)
+        ky = self.getValue("getChannelVerticalTiles", 1)
+        self.mapTexco(ox, oy, kx, ky)
         for key,uvset in self.material.uv_sets.items():
             self.addUvNode(key, uvset.name)
         return node
@@ -443,6 +429,22 @@ class CyclesTree:
         node.uv_map = uvname
         slot = "UV"
         self.texcos[key] = node.outputs[slot]
+
+
+    def mapTexco(self, ox, oy, kx, ky):
+        if ox != 0 or oy != 0 or kx not in [0,1] or ky not in [0,1]:
+            sx = sy = 1
+            dx = dy = 0
+            if kx != 0:
+                sx = 1/kx
+                dx = -ox/kx
+            if ky != 0:
+                sy = 1/ky
+                dy = oy/ky
+            mapping = self.addMappingNode((dx,dy,sx,sy,0), None)
+            if mapping:
+                self.linkVector(self.texco, mapping, 0)
+                self.texco = mapping
 
 
     def addMappingNode(self, data, map):
@@ -466,34 +468,32 @@ class CyclesTree:
         return None
 
 #-------------------------------------------------------------
+#   Normal
+#-------------------------------------------------------------
+
+    def buildNormal(self, uvname):
+        if not self.isEnabled("Normal"):
+            return
+        strength,tex = self.getColorTex("getChannelNormal", "NONE", 1.0)
+        if strength>0 and tex:
+            self.normal = self.addNode("ShaderNodeNormalMap", col=3)
+            self.normal.space = "TANGENT"
+            if uvname:
+                self.normal.uv_map = uvname
+            elif self.material.uv_set:
+                self.normal.uv_map = self.material.uv_set.name
+            self.normal.inputs["Strength"].default_value = strength
+            self.links.new(tex.outputs[0], self.normal.inputs["Color"])
+
+#-------------------------------------------------------------
 #   Bump
 #-------------------------------------------------------------
 
-    def buildBumpNodes(self, uvname):
-        # Column 3: Normal, Bump and Displacement
-
-        # Normal map
-        channel = self.material.getChannelNormal()
-        if channel and self.isEnabled("Normal"):
-            tex = self.addTexImageNode(channel, "NONE")
-            #_,tex = self.getColorTex("getChannelNormal", "NONE", BLACK)
-            if not uvname and self.material.uv_set:
-                uvname = self.material.uv_set.name
-            if tex:
-                if self.material.useEevee:
-                    from .cgroup import NormalGroup
-                    self.normal = self.addGroup(NormalGroup, "DAZ Normal", col=3, args=[uvname])
-                else:
-                    self.normal = self.addNode("ShaderNodeNormalMap", col=3)
-                    self.normal.space = "TANGENT"
-                    if uvname:
-                        self.normal.uv_map = uvname
-                self.normal.inputs["Strength"].default_value = self.material.getChannelValue(channel, 1.0, warn=False)
-                self.links.new(tex.outputs[0], self.normal.inputs["Color"])
-
-        # Bump map
+    def buildBump(self):
+        if not self.isEnabled("Bump"):
+            return
         self.bumpval,self.bumptex = self.getColorTex("getChannelBump", "NONE", 0, False)
-        if self.bumpval and self.bumptex and self.isEnabled("Bump"):
+        if self.bumpval and self.bumptex:
             self.bump = self.buildBumpMap(self.bumpval, self.bumptex, col=3)
             self.linkNormal(self.bump)
 
@@ -508,19 +508,58 @@ class CyclesTree:
 
     def linkBumpNormal(self, node):
         if self.bump:
-            self.links.new(self.bump.outputs["Normal"], node.inputs["Normal"])
+            self.links.new(self.bump.outputs[0], node.inputs["Normal"])
         elif self.normal:
-            self.links.new(self.normal.outputs["Normal"], node.inputs["Normal"])
+            self.links.new(self.normal.outputs[0], node.inputs["Normal"])
 
 
     def linkBump(self, node):
         if self.bump:
-            self.links.new(self.bump.outputs["Normal"], node.inputs["Normal"])
+            self.links.new(self.bump.outputs[0], node.inputs["Normal"])
 
 
     def linkNormal(self, node):
         if self.normal:
-            self.links.new(self.normal.outputs["Normal"], node.inputs["Normal"])
+            self.links.new(self.normal.outputs[0], node.inputs["Normal"])
+
+#-------------------------------------------------------------
+#   Detail
+#-------------------------------------------------------------
+
+    def buildDetail(self):
+        if not self.isEnabled("Detail"):
+            return
+        weight,wttex = self.getColorTex(["Detail Weight"], "NONE", 0.0)
+        if weight == 0:
+            return
+        texco = self.texco
+        ox = 0.01*self.getValue(["Detail Horizontal Offset"], 0)
+        oy = 0.01*self.getValue(["Detail Vertical Offset"], 0)
+        kx = self.getValue(["Detail Horizontal Tiles"], 1)
+        ky = self.getValue(["Detail Vertical Tiles"], 1)
+        self.mapTexco(ox, oy, kx, ky)
+
+        # Height Map, Normal Map
+        mode = self.getValue(["Detail Normal Map Mode"], 0)
+        if mode == 0:
+            print("Detail mode 0")
+        elif mode == 1:
+            strength,tex = self.getColorTex(["Detail Normal Map"], "NONE", 1.0)
+            mix = self.addNode("ShaderNodeMixRGB", 3)
+            mix.blend_type = 'OVERLAY'
+            self.linkScalar(wttex, mix, weight, "Fac")
+            NORMAL = (0.5, 0.5, 1, 1)
+            mix.inputs["Color1"].default_value = NORMAL
+            mix.inputs["Color2"].default_value = NORMAL
+            if self.normal:
+                self.links.new(self.normal.outputs[0], mix.inputs["Color1"])
+            if tex:
+                self.links.new(tex.outputs["Color"], mix.inputs["Color2"])
+            self.normal = mix
+            if self.bump:
+                self.links.new(mix.outputs[0], self.bump.inputs["Normal"])
+
+        self.texco = texco
 
 #-------------------------------------------------------------
 #   Diffuse and Diffuse Overlay
@@ -1126,17 +1165,14 @@ class CyclesTree:
             GS.materialMethod != "BSDF" or
             not GS.useVolume):
             return
-        useSSS = self.isEnabled("Subsurface")
-        useTrans = self.isEnabled("Transmission")
-        if not (useSSS or useTrans):
-            return
-        transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
-        sssmode, ssscolor, ssstex = self.getSSSInfo(transcolor)
         self.volume = None
-        if useTrans:
-            self.buildVolumeTransmission(transcolor, transtex)
-        if useSSS:
-            self.buildVolumeSubSurface(sssmode, ssscolor, ssstex)
+        if self.isEnabled("Translucency"):
+            transcolor,transtex = self.getColorTex(["Transmitted Color"], "COLOR", BLACK)
+            sssmode, ssscolor, ssstex = self.getSSSInfo(transcolor)
+            if self.isEnabled("Transmission"):
+                self.buildVolumeTransmission(transcolor, transtex)
+            if self.isEnabled("Subsurface"):
+                self.buildVolumeSubSurface(sssmode, ssscolor, ssstex)
         if self.volume:
             self.volume.width = 240
             LS.usedFeatures["Volume"] = True

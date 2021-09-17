@@ -161,11 +161,12 @@ class Material(Asset, Channels):
                 "Specular Occlusion" : False,
                 "Detail" : False,
                 "Metallic Flakes" : True,
+                "Velvet" : False,
             }
         elif self.shader == 'PBRSKIN':
             self.enabled = {
                 "Diffuse" : self.getValue(["Diffuse Enable"], False),
-                "Subsurface" : False,
+                "Subsurface" : self.getValue(["Sub Surface Enable"], False),
                 "Bump" : self.getValue(["Bump Enable"], False),
                 "Normal" : self.getValue(["Bump Enable"], False),
                 "Displacement" : True,
@@ -178,6 +179,7 @@ class Material(Asset, Channels):
                 "Specular Occlusion" : self.getValue(["Specular Occlusion Enable"], False),
                 "Detail" : self.getValue(["Detail Enable"], False),
                 "Metallic Flakes" : self.getValue(["Metallic Flakes Enable"], False),
+                "Velvet" : False,
             }
         elif self.shader == 'DAZ_SHADER':
             self.enabled = {
@@ -200,19 +202,20 @@ class Material(Asset, Channels):
         elif self.shader == '3DELIGHT':
             self.enabled = {
                 "Diffuse" : True,
-                "Subsurface" : False,
-                "Bump" : False,
-                "Normal" : False,
-                "Displacement" : False,
+                "Subsurface" : True,
+                "Bump" : True,
+                "Normal" : True,
+                "Displacement" : True,
                 "Metallicity" : False,
-                "Translucency" : False,
-                "Transmission" : False,
+                "Translucency" : True,
+                "Transmission" : True,
                 "Dual Lobe Specular" : False,
                 "Top Coat" : False,
                 "Makeup" : False,
                 "Specular Occlusion" : False,
                 "Detail" : False,
                 "Metallic Flakes" : False,
+                "Velvet" : True,
         }
         else:
             raise DazError("Bug: Unknown shader %s" % self.shader)
@@ -845,10 +848,10 @@ class Texture:
         ox,oy = map.xoffset/mx, map.yoffset/my
         rz = map.rotation
 
-        ox += mat.getChannelValue(mat.getChannelHorizontalOffset(), 0)
-        oy += mat.getChannelValue(mat.getChannelVerticalOffset(), 0)
-        kx *= mat.getChannelValue(mat.getChannelHorizontalTiles(), 1)
-        ky *= mat.getChannelValue(mat.getChannelVerticalTiles(), 1)
+        ox += mat.getValue("getChannelHorizontalOffset", 0)
+        oy += mat.getValue("getChannelVerticalOffset", 0)
+        kx *= mat.getValue("getChannelHorizontalTiles", 1)
+        ky *= mat.getValue("getChannelVerticalTiles", 1)
 
         sx = map.xscale*kx
         sy = map.yscale*ky
