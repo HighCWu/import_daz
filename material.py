@@ -1412,14 +1412,17 @@ class ChangeResolution():
     def resizeSlots(self, mat):
         for mtex in mat.texture_slots:
             if mtex and mtex.texture.type == 'IMAGE':
-                mtex.texture.image = self.replaceImage(mtex.texture.image)
+                img = self.replaceImage(mtex.texture.image)
+                mtex.texture.image = img
 
 
     def resizeTree(self, tree):
         for node in tree.nodes.values():
             if node.type == 'TEX_IMAGE':
-                newimg = self.replaceImage(node.image)
-                node.image = newimg
+                img = self.replaceImage(node.image)
+                node.image = img
+                if img:
+                    node.name = img.name
             elif node.type == 'GROUP':
                 self.resizeTree(node.node_tree)
 

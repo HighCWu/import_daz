@@ -114,7 +114,11 @@ class DAZ_OT_UdimizeMaterials(DazPropsOperator, MaterialSelector):
         for key,anode in self.nodes[amat.name].items():
             anode.image.source = "TILED"
             anode.extension = "CLIP"
-            basename = "T_" + self.getBaseName(anode.name, amat.DazUDim)
+            if anode.image:
+                imgname = anode.image.name
+            else:
+                imgname = anode.name
+            basename = "T_" + self.getBaseName(imgname, amat.DazUDim)
             udims = {}
             for mat in mats:
                 nodes = self.nodes[mat.name]
