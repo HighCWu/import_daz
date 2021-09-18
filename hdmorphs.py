@@ -147,12 +147,14 @@ class DispGroup(CyclesGroup):
 
     def __init__(self):
         CyclesGroup.__init__(self)
-        self.insockets += ["UV"]
+        self.insockets += ["Scale", "Midlevel", "UV"]
         self.outsockets += ["Displacement"]
 
 
     def create(self, node, name, parent):
         CyclesGroup.create(self, node, name, parent, 4)
+        self.group.inputs.new("NodeSocketFloat", "Midlevel")
+        self.group.inputs.new("NodeSocketFloat", "Scale")
         self.group.inputs.new("NodeSocketVector", "UV")
         self.group.outputs.new("NodeSocketVector", "Displacement")
 
@@ -160,13 +162,13 @@ class DispGroup(CyclesGroup):
     def addNodes(self, args):
         from .driver import makePropDriver
         last = None
-        midlevel,args = args
         for ob,amt,sname,prop,filepath in args:
             tex = self.addImageTexNode(filepath, sname, 1)
             self.links.new(self.inputs.outputs["UV"], tex.inputs["Vector"])
 
-            disp = self.addDispNode(sname, tex, midlevel)
-            disp.inputs["Scale"].default_value = ob.DazScale
+            disp = self.addDispNode(sname, tex)
+            self.links.new(self.inputs.outputs["Midlevel"], disp.inputs["Midlevel"])
+            self.links.new(self.inputs.outputs["Scale"], disp.inputs["Scale"])
             if amt and prop:
                 makePropDriver(propRef(prop), disp.inputs["Scale"], "default_value", amt, "%g*x" % ob.DazScale)
 
@@ -183,9 +185,8 @@ class DispGroup(CyclesGroup):
 
 
 class ScalarDispGroup(DispGroup):
-    def addDispNode(self, sname, tex, midlevel):
+    def addDispNode(self, sname, tex):
         disp = self.addNode("ShaderNodeDisplacement", col=2, label=sname)
-        disp.inputs["Midlevel"].default_value = midlevel
         self.links.new(tex.outputs["Color"], disp.inputs["Height"])
         return disp
 
@@ -194,9 +195,8 @@ class ScalarDispGroup(DispGroup):
 
 
 class VectorDispGroup(DispGroup):
-    def addDispNode(self, sname, tex, midlevel):
+    def addDispNode(self, sname, tex):
         disp = self.addNode("ShaderNodeVectorDisplacement", col=2, label=sname)
-        disp.inputs["Midlevel"].default_value = midlevel
         self.links.new(tex.outputs["Color"], disp.inputs["Vector"])
         return disp
 
@@ -205,6 +205,12 @@ class VectorDispGroup(DispGroup):
 
 
 class DispAdder:
+    scale : FloatProperty(
+        name = "Scale",
+        description = "Scale value for displacement node",
+        min = 0.0, max = 10.0,
+        default = 0.01)
+
     midlevel : FloatProperty(
         name = "Midlevel",
         description = "Midlevel value for displacement node",
@@ -212,13 +218,16 @@ class DispAdder:
         default = 0.5)
 
     def draw(self, context):
+        self.layout.prop(self, "scale")
         self.layout.prop(self, "midlevel")
 
     def loadDispMaps(self, mat, args):
         from .cycles import findNodes, findTree, findTexco, pruneNodeTree
         tree = findTree(mat)
         texco = findTexco(tree, 5)
-        disp = self.addDispGroup(tree, (self.midlevel,args))
+        disp = self.addDispGroup(tree, args)
+        disp.inputs["Midlevel"].default_value = self.midlevel
+        disp.inputs["Scale"].default_value = self.scale
         tree.links.new(texco.outputs["UV"], disp.inputs["UV"])
         for node in findNodes(tree, "OUTPUT_MATERIAL"):
             tree.links.new(disp.outputs["Displacement"], node.inputs["Displacement"])
@@ -228,14 +237,14 @@ class DispAdder:
 
 class ScalarDispAdder(DispAdder):
     def addDispGroup(self, tree, args):
-        tree.ycoords[6] = 0
-        return tree.addGroup(ScalarDispGroup, "DAZ Scalar Disp", col=6, args=args, force=True)
+        tree.ycoords[7] = 0
+        return tree.addGroup(ScalarDispGroup, "DAZ Scalar Disp", col=7, args=args, force=True)
 
 
 class VectorDispAdder(DispAdder):
     def addDispGroup(self, tree, args):
-        tree.ycoords[6] = 0
-        return tree.addGroup(VectorDispGroup, "DAZ Vector Disp", col=6, args=args, force=True)
+        tree.ycoords[7] = 0
+        return tree.addGroup(VectorDispGroup, "DAZ Vector Disp", col=7, args=args, force=True)
 
 
 class DAZ_OT_LoadScalarDisp(DazOperator, LoadMaps, ScalarDispAdder):
