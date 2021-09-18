@@ -1864,9 +1864,10 @@ class DAZ_OT_RemoveAllDrivers(DazPropsOperator, DriverUser, IsMeshArmature):
         if not rna.animation_data:
             return
         for fcu in list(rna.animation_data.drivers):
-            for var in fcu.driver.variables:
-                for trg in var.targets:
-                    self.targets[trg.data_path] = trg.id
+            if fcu.driver:
+                for var in fcu.driver.variables:
+                    for trg in var.targets:
+                        self.targets[trg.data_path] = trg.id
             idx = self.getArrayIndex(fcu)
             self.removeDriver(rna, fcu.data_path, idx)
 
