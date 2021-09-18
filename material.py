@@ -808,14 +808,14 @@ class Texture:
             img = self.map.image
         else:
             img = None
-        if colorSpace == "COLOR":
-            img.colorspace_settings.name = "sRGB"
-        elif colorSpace == "NONE":
-            img.colorspace_settings.name = "Non-Color"
-        else:
-            img.colorspace_settings.name = colorSpace
         if img:
-            self.images[colorSpace] = img
+            if colorSpace == "COLOR":
+                img.colorspace_settings.name = "sRGB"
+            elif colorSpace == "NONE":
+                img.colorspace_settings.name = "Non-Color"
+            else:
+                img.colorspace_settings.name = colorSpace
+        self.images[colorSpace] = img
         self.built[colorSpace] = True
         return img
 
