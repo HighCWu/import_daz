@@ -508,7 +508,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
             layout.prop(self, "srcCharacter")
 
 
-    def getSingleAnimation(self, filepath, context, offset, missing):
+    def getSingleAnimation(self, filepath, context, offset):
         from .load_json import loadJson
         if filepath is None:
             return offset,None
@@ -527,7 +527,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         self.clearPose(rig, offset)
         animations,locks = self.convertAnimations(animations, rig)
         prop = None
-        result = self.animateBones(context, animations, offset, prop, filepath, missing)
+        result = self.animateBones(context, animations, offset, prop, filepath)
         for pb,lock in locks:
             pb.lock_location = lock
         updateDrivers(rig)
@@ -711,7 +711,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
         "Genesis3Male",
     ]
 
-    def animateBones(self, context, animations, offset, prop, filepath, missing):
+    def animateBones(self, context, animations, offset, prop, filepath):
         rig = context.object
         errors = {}
         for banim,vanim in animations:
@@ -770,7 +770,7 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                         twists.append((bname[6:], tfm, value))
                     elif "value" in bframe.keys():
                         if self.affectMorphs:
-                            key = self.getRigKey(bname, rig, value, missing)
+                            key = self.getRigKey(bname, rig, value)
                             if key:
                                 oldval = rig[key]
                                 if isinstance(oldval, int):
@@ -877,17 +877,22 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
                         pb.keyframe_insert("scale", frame=frame, group=pb.name)
 
 
-    def getRigKey(self, key, rig, value, missing):
+    def getRigKey(self, key, rig, value):
+        from .facecap import LiveLinkFacsTable
         key = unquote(key)
         if key in rig.keys():
             return key
+        if key in LiveLinkFacsTable.keys():
+            key = LiveLinkFacsTable[key]
+            if key in rig.keys():
+                return key
         alias = getAlias(rig, key)
         if alias and alias in rig.keys():
             if GS.verbosity > 2:
                 print("Alias", key, alias)
             return alias
-        if key not in missing.keys():
-            missing[key] = float(value)
+        if key not in self.missing.keys():
+            self.missing[key] = float(value)
             if self.onMissingMorphs in ['LOAD', 'LOAD_ALL']:
                 rig[key] = float(value)
                 return key
@@ -990,7 +995,7 @@ class StandardAnimation:
             self.useInsertKeys = self.useAction
         self.findDrivers(rig)
         self.clearAnimation(rig)
-        missing = {}
+        self.missing = {}
         startframe = offset = scn.frame_current
         props = []
         t1 = perf_counter()
@@ -1006,7 +1011,7 @@ class StandardAnimation:
             if self.atFrameOne and len(dazfiles) == 1:
                 offset = 1
             print("*", os.path.basename(filepath), offset)
-            offset,prop = self.getSingleAnimation(filepath, context, offset, missing)
+            offset,prop = self.getSingleAnimation(filepath, context, offset)
             if prop:
                 props.append(prop)
 
@@ -1017,17 +1022,17 @@ class StandardAnimation:
         if not self.affectSelectedOnly:
             self.selectAll(rig, selected)
 
-        if missing:
+        if self.missing:
             if self.onMissingMorphs == 'REPORT':
-                missing = list(missing.keys())
+                missing = list(self.missing.keys())
                 missing.sort()
                 print("Missing morphs:\n  %s" % missing)
                 raise DazError(
-                    "Animation loaded but some morphs were missing.     \n"+
+                    "Animation loaded but some morphs were self.missing.     \n"+
                     "See list in terminal window.\n" +
                     "Check results carefully.", warning=True)
             elif self.onMissingMorphs in ['LOAD', 'LOAD_ALL']:
-                self.loadMissingMorphs(context, rig, missing)
+                self.loadMissingMorphs(context, rig)
 
 
     def selectAll(self, rig, select):
@@ -1058,14 +1063,14 @@ class StandardAnimation:
             self.namePoseLib(ob)
 
 
-    def loadMissingMorphs(self, context, rig, missing):
+    def loadMissingMorphs(self, context, rig):
         global theMorphTables
         if rig.DazId in theMorphTables.keys():
             table = theMorphTables[rig.DazId]
         else:
             table = theMorphTables[rig.DazId] = self.setupMorphTable(rig)
         namepathTable = {}
-        for mname in missing.keys():
+        for mname in self.missing.keys():
             if mname in table.keys():
                 path,morphset = table[mname]
                 if morphset not in namepathTable.keys():
@@ -1080,7 +1085,7 @@ class StandardAnimation:
                 mloader.morphset = morphset
                 mloader.category = ""
                 mloader.hideable = True
-                print("\nLoading missing %s morphs" % morphset)
+                print("\nLoading self.missing %s morphs" % morphset)
                 mloader.getAllMorphs(namepathTable[morphset], context)
         if "Custom" in namepathTable.keys():
             customs = {}
@@ -1099,7 +1104,7 @@ class StandardAnimation:
                 mloader.hideable = True
                 print("\nLoading morphs in category %s" % cat)
                 mloader.getAllMorphs(namepaths, context)
-        for mname,value in missing.items():
+        for mname,value in self.missing.items():
             rig[mname] = value
 
 
