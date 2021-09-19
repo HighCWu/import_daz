@@ -63,9 +63,9 @@ class DriverUser:
 
 
     def getArrayIndex(self, fcu):
-        if fcu.data_path[-1] == "]":
-            return -1
-        elif fcu.data_path.endswith("value"):
+        if (not fcu.data_path or
+            fcu.data_path[-1] == "]" or
+            fcu.data_path.endswith("value")):
             return -1
         else:
             return fcu.array_index

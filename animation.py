@@ -1028,7 +1028,7 @@ class StandardAnimation:
                 missing.sort()
                 print("Missing morphs:\n  %s" % missing)
                 raise DazError(
-                    "Animation loaded but some morphs were self.missing.     \n"+
+                    "Animation loaded but some morphs were missing.     \n"+
                     "See list in terminal window.\n" +
                     "Check results carefully.", warning=True)
             elif self.onMissingMorphs in ['LOAD', 'LOAD_ALL']:
@@ -1085,7 +1085,7 @@ class StandardAnimation:
                 mloader.morphset = morphset
                 mloader.category = ""
                 mloader.hideable = True
-                print("\nLoading self.missing %s morphs" % morphset)
+                print("\nLoading missing %s morphs" % morphset)
                 mloader.getAllMorphs(namepathTable[morphset], context)
         if "Custom" in namepathTable.keys():
             customs = {}
