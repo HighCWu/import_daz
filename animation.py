@@ -40,11 +40,24 @@ from .fileutils import MultiFile, SingleFile, JsonFile, JsonExportFile, DufFile
 #   Alias
 #-------------------------------------------------------------
 
-def getAlias(rig, key):
-    pgs = rig.DazAlias
-    if key in pgs.keys():
-        return pgs[key].s
-    return None
+def getAlias(prop, rig):
+    def nodiv(prop):
+        return (prop[:-5] if prop[-5:] == "_div2" else prop)
+
+    if prop in rig.DazAlias.keys():
+        return pgs[prop].s
+    elif prop[0:8] == "facs_bs_":
+        return "%s%s" % (prop[8].lower(), nodiv(prop[9:]))
+    elif prop[0:9] == "facs_jnt_":
+        return "%s%s" % (prop[9].lower(), nodiv(prop[10:]))
+    elif prop[0:10] == "facs_ctrl_":
+        return "%s%s" % (prop[10].lower(), nodiv(prop[11:]))
+    elif prop[0:9] == "facs_cbs_":
+        return prop
+    elif prop[0:5] == "facs_":
+        return "%s%s" % (prop[5].lower(), nodiv(prop[6:]))
+    else:
+        return prop
 
 #-------------------------------------------------------------
 #   Convert between frames and vectors
@@ -878,24 +891,18 @@ class AnimatorBase(MultiFile, FrameConverter, ConvertOptions, AffectOptions, IsM
 
 
     def getRigKey(self, key, rig, value):
-        from .facecap import LiveLinkFacsTable
-        key = unquote(key)
-        if key in rig.keys():
-            return key
-        if key in LiveLinkFacsTable.keys():
-            key = LiveLinkFacsTable[key]
-            if key in rig.keys():
-                return key
-        alias = getAlias(rig, key)
-        if alias and alias in rig.keys():
-            if GS.verbosity > 2:
-                print("Alias", key, alias)
-            return alias
-        if key not in self.missing.keys():
-            self.missing[key] = float(value)
+        prop = unquote(key)
+        if prop in rig.keys():
+            return prop
+        if prop in self.alias.keys():
+            prop = self.alias[prop]
+            if prop in rig.keys():
+                return prop
+        if prop not in self.missing.keys():
+            self.missing[prop] = float(value)
             if self.onMissingMorphs in ['LOAD', 'LOAD_ALL']:
-                rig[key] = float(value)
-                return key
+                rig[prop] = float(value)
+                return prop
         return None
 
 
@@ -996,6 +1003,7 @@ class StandardAnimation:
         self.findDrivers(rig)
         self.clearAnimation(rig)
         self.missing = {}
+        self.alias = dict([(getAlias(prop, rig), prop) for prop in rig.keys()])
         startframe = offset = scn.frame_current
         props = []
         t1 = perf_counter()
@@ -1597,6 +1605,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         self.Z = Matrix.Rotation(pi/2, 4, 'X')
         rig = context.object
         self.setupConverter(rig)
+        self.alias = dict([(prop, getAlias(prop, rig)) for prop in rig.keys()])
         act = None
         self.morphs = {}
         self.locs = {}
@@ -1918,6 +1927,8 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
 
     def getMorph(self, prop, fcu, anims):
         from .asset import normalizeRef
+        if prop in self.alias.keys():
+            prop = self.alias[prop]
         anim = {}
         anim["url"] = "name://@selection#%s:?value/value" % prop
         vals = [fcu.evaluate(frame) for frame in range(self.first, self.last+1)]
