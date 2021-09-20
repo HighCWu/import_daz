@@ -888,10 +888,13 @@ class DAZ_OT_ChangeUnitScale(DazPropsOperator, IsMeshArmature):
 
 
     def run(self, context):
+        ob = context.object
+        while ob.parent:
+            ob = ob.parent
         self.meshes = []
         self.rigs = []
         self.parents = {}
-        self.addObjects(context.object)
+        self.addObjects(ob)
         for ob in self.meshes:
             self.applyScale(context, ob)
             self.fixMesh(ob)
