@@ -537,7 +537,7 @@ class DAZ_PT_Morphs:
 
 
     def activateLayout(self, layout, category, rig):
-        split = layout.split(factor=0.5)
+        split = layout.split(factor=0.333)
         op = split.operator("daz.activate_all")
         op.morphset = self.morphset
         op.category = category
@@ -546,6 +546,9 @@ class DAZ_PT_Morphs:
         op.morphset = self.morphset
         op.category = category
         op.useMesh = self.useMesh
+        op = split.operator("daz.set_morphs")
+        op.morphset = self.morphset
+        op.category = category
 
 
     def keyLayout(self, layout, category):

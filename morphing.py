@@ -1437,12 +1437,13 @@ class Activator(MorphsetString):
     useMesh : BoolProperty(default=False)
 
     def run(self, context):
+        scn = context.scene
         if self.useMesh:
             ob = context.object
-            morphs = getCustomMorphs(ob, self.category)
+            morphs = getCustomMorphs(scn, ob, self.category)
         else:
             ob = getRigFromObject(context.object)
-            morphs = getRelevantMorphs(ob, self.morphset, self.category)
+            morphs = getRelevantMorphs(scn, ob, self.morphset, self.category)
         for morph in morphs:
            setActivated(ob, morph, self.activate)
 
@@ -1540,12 +1541,13 @@ class DAZ_OT_Prettify(DazOperator):
 #   Clear morphs
 #------------------------------------------------------------------
 
-def getRelevantMorphs(rig, morphset, category):
+def getRelevantMorphs(scn, rig, morphset, category):
+    filter = scn.DazFilter.lower()
     morphs = []
     if rig is None:
         return morphs
     if morphset == "Custom":
-        return getCustomMorphs(rig, category)
+        return getCustomMorphs(scn, rig, category)
     elif rig.DazMorphPrefixes:
         for key in rig.keys():
             if key[0:2] == "Dz":
@@ -1553,36 +1555,35 @@ def getRelevantMorphs(rig, morphset, category):
     elif morphset == "All":
         for mset in theStandardMorphSets:
             pgs = getattr(rig, "Daz"+mset)
-            for key in pgs.keys():
-                morphs.append(key)
+            morphs += [key for key in pgs.keys() if filter in key.lower()]
         for cat in rig.DazMorphCats:
-            morphs += [morph.name for morph in cat.morphs]
+            morphs += [morph.name for morph in cat.morphs if filter in morph.name.lower()]
     else:
         pgs = getattr(rig, "Daz"+morphset)
-        for key in pgs.keys():
-            morphs.append(key)
+        morphs += [key for key in pgs.keys() if filter in key.lower()]
     return morphs
 
 
-def getCustomMorphs(ob, category):
+def getCustomMorphs(scn, ob, category):
+    filter = scn.DazFilter.lower()
     morphs = []
     if category:
         for cat in ob.DazMorphCats:
             if cat.name == category:
-                morphs = [morph.name for morph in cat.morphs]
+                morphs = [morph.name for morph in cat.morphs if filter in morph.name.lower()]
                 return morphs
     else:
         for cat in ob.DazMorphCats:
-            morphs += [morph.name for morph in cat.morphs]
+            morphs += [morph.name for morph in cat.morphs if filter in morph.name.lower()]
     return morphs
 
 
-def clearMorphs(rig, morphset, category, scn, frame, force):
-    morphs = getRelevantMorphs(rig, morphset, category)
+def setMorphs(value, rig, morphset, category, scn, frame, force):
+    morphs = getRelevantMorphs(scn, rig, morphset, category)
     for morph in morphs:
         if (getActivated(rig, rig, morph, force) and
             isinstance(rig[morph], float)):
-            rig[morph] = 0.0
+            rig[morph] = value
             autoKeyProp(rig, morph, scn, frame, force)
 
 
@@ -1590,7 +1591,7 @@ def clearShapes(ob, category, scn, frame):
     skeys = ob.data.shape_keys
     if skeys is None:
         return
-    morphs = getCustomMorphs(ob, category)
+    morphs = getCustomMorphs(scn, ob, category)
     for morph in morphs:
         if getActivated(ob, skeys.key_blocks, morph):
             skeys.key_blocks[morph].value = 0.0
@@ -1607,7 +1608,29 @@ class DAZ_OT_ClearMorphs(DazOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            clearMorphs(rig, self.morphset, self.category, scn, scn.frame_current, False)
+            setMorphs(0.0, rig, self.morphset, self.category, scn, scn.frame_current, False)
+            updateRigDrivers(context, rig)
+
+
+class DAZ_OT_SetMorphs(DazPropsOperator, MorphsetString, IsMeshArmature):
+    bl_idname = "daz.set_morphs"
+    bl_label = "Set Morphs"
+    bl_description = "Set all selected morphs of specified type to given value.\nDoes not affect integer properties"
+    bl_options = {'UNDO'}
+
+    value : FloatProperty(
+        name = "Value",
+        description = "Set all selected morphs to this value",
+        default = 1.0)
+
+    def draw(self, context):
+        self.layout.prop(self, "value")
+
+    def run(self, context):
+        rig = getRigFromObject(context.object)
+        if rig:
+            scn = context.scene
+            setMorphs(self.value, rig, self.morphset, self.category, scn, scn.frame_current, False)
             updateRigDrivers(context, rig)
 
 
@@ -1639,7 +1662,7 @@ class DAZ_OT_AddKeysets(DazOperator, MorphsetString, IsMeshArmature):
             if aksi <= -1:
                 aks = scn.keying_sets.new(idname = "daz_morphs", name = "daz_morphs")
             aks = scn.keying_sets.active
-            morphs = getRelevantMorphs(rig, self.morphset, self.category)
+            morphs = getRelevantMorphs(scn, rig, self.morphset, self.category)
             for morph in morphs:
                 if getActivated(rig, rig, morph):
                     aks.paths.add(rig.id_data, propRef(morph))
@@ -1659,7 +1682,7 @@ class DAZ_OT_KeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            morphs = getRelevantMorphs(rig, self.morphset, self.category)
+            morphs = getRelevantMorphs(scn, rig, self.morphset, self.category)
             for morph in morphs:
                 if getActivated(rig, rig, morph):
                     keyProp(rig, morph, scn.frame_current)
@@ -1700,7 +1723,7 @@ class DAZ_OT_UnkeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig and rig.animation_data and rig.animation_data.action:
             scn = context.scene
-            morphs = getRelevantMorphs(rig, self.morphset, self.category)
+            morphs = getRelevantMorphs(scn, rig, self.morphset, self.category)
             for morph in morphs:
                 if getActivated(rig, rig, morph):
                     unkeyProp(rig, morph, scn.frame_current)
@@ -2196,7 +2219,7 @@ def autoKeyShape(skeys, key, scn, frame):
 
 def pinProp(rig, scn, key, morphset, category, frame, value=1.0):
     if rig:
-        clearMorphs(rig, morphset, category, scn, frame, True)
+        setMorphs(0.0, rig, morphset, category, scn, frame, True)
         rig[key] = value
         autoKeyProp(rig, key, scn, frame, True)
 
@@ -2308,7 +2331,7 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile, IsMeshArm
                 self.updateLimits(rig)
         for frame,moho,value in frames:
             if moho == "rest":
-                clearMorphs(rig, "Visemes", "", scn, frame, True)
+                setMorphs(0.0, rig, "Visemes", "", scn, frame, True)
             else:
                 prop = self.getMohoKey(moho, rig)
                 pinProp(rig, scn, prop, "Visemes", "", frame+frame0, value=value)
@@ -2681,6 +2704,7 @@ classes = [
     DAZ_OT_ActivateAll,
     DAZ_OT_DeactivateAll,
     DAZ_OT_ClearMorphs,
+    DAZ_OT_SetMorphs,
     DAZ_OT_ClearShapes,
     DAZ_OT_AddKeysets,
     DAZ_OT_KeyMorphs,
