@@ -112,13 +112,15 @@ class DAZ_OT_UdimizeMaterials(DazPropsOperator, MaterialSelector):
                 self.fixTiles(mat, mn, ob)
 
         for key,anode in self.nodes[amat.name].items():
+            if anode.image.source == "TILED":
+                raise DazError("Material %s already UDIM  " % amat.name)
             anode.image.source = "TILED"
             anode.extension = "CLIP"
             if anode.image:
                 imgname = anode.image.name
             else:
                 imgname = anode.name
-            basename = "T_" + self.getBaseName(imgname, amat.DazUDim)
+            basename = "T_%s" % self.getBaseName(imgname, amat.DazUDim)
             udims = {}
             for mat in mats:
                 nodes = self.nodes[mat.name]

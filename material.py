@@ -1392,10 +1392,27 @@ class ChangeResolution():
 
     def getTreeTextures(self, tree, paths):
         for node in tree.nodes.values():
-            if node.type == 'TEX_IMAGE':
-                paths[node.image.filepath] = True
+            if node.type == 'TEX_IMAGE' and node.image:
+                img = node.image
+                if img.source == 'TILED':
+                    folder,basename,ext = self.getTiledPath(img.filepath)
+                    for file1 in os.listdir(folder):
+                        fname1,ext1 = os.path.splitext(file1)
+                        if fname1[:-4] == basename and ext1 == ext:
+                            path = os.path.join(folder, "%s%s" % (fname1, ext1))
+                            paths[path] = True
+                else:
+                    paths[img.filepath] = True
             elif node.type == 'GROUP':
                 self.getTreeTextures(node.node_tree, paths)
+
+
+    def getTiledPath(self, filepath):
+        path = bpy.path.abspath(filepath)
+        path = bpy.path.reduce_dirs([path])[0]
+        folder = os.path.dirname(path)
+        fname,ext = os.path.splitext(bpy.path.basename(path))
+        return folder, fname[:-4], ext
 
 
     def replaceTextures(self, context):
@@ -1456,6 +1473,8 @@ class ChangeResolution():
             return img
 
         newname,newpath = self.getNewPath(path)
+        if img.source == 'TILED':
+            newname = newname[:-5]
         if newpath == img.filepath:
             return img
         elif newpath in images.keys():
@@ -1464,18 +1483,43 @@ class ChangeResolution():
             return bpy.data.images[newname]
         else:
             try:
-                print("Replace '%s'\n   with '%s'" % (img.filepath, newpath))
-                newimg = bpy.data.images.load(newpath)
-                newimg.name = newname
-                newimg.colorspace_settings.name = colorSpace
+                newimg = self.loadNewImage(img, newpath)
             except RuntimeError:
                 newimg = None
         if newimg:
+            newimg.name = newname
+            newimg.colorspace_settings.name = colorSpace
+            newimg.source = img.source
             images[newpath] = (img, newimg)
             return newimg
         else:
             print('"%s" does not exist' % newpath)
             return img
+
+
+    def loadNewImage(self, img, newpath):
+        print('Replace "%s" with "%s"' % (img.filepath, newpath))
+        if img.source == 'TILED':
+            folder,basename,ext = self.getTiledPath(newpath)
+            newimg = None
+            print("Tiles:")
+            for file1 in os.listdir(folder):
+                fname1,ext1 = os.path.splitext(file1)
+                if fname1[:-4] == basename and ext1 == ext:
+                    path = os.path.join(folder, file1)
+                    img = bpy.data.images.load(path)
+                    udim = int(fname1[-4:])
+                    if newimg is None:
+                        newimg = img
+                        newimg.source = 'TILED'
+                        tile = img.tiles[0]
+                        tile.number = udim
+                    else:
+                        newimg.tiles.new(tile_number = udim)
+                    print('  "%s"' % file1)
+            return newimg
+        else:
+            return bpy.data.images.load(newpath)
 
 
     def getNewPath(self, path):
