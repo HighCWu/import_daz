@@ -677,7 +677,6 @@ class LoadMorph(DriverUser):
     def buildDrivers(self):
         print("Building drivers")
         for output,drivers in self.drivers.items():
-            self.isJcm = ("jcm" in output.lower() and output[0:6] != "JCMs O")
             if drivers:
                 if self.isDriverType('BONE', drivers):
                     for dtype,bname,expr in drivers:
@@ -698,6 +697,9 @@ class LoadMorph(DriverUser):
 
     def buildPropDriver(self, raw, drivers):
         from .driver import getRnaDriver, Variable, removeModifiers
+        isJcm = ("jcm" in raw.lower() and
+                 "ejcm" not in raw.lower() and
+                 raw[0:6] != "JCMs O")
         rna,channel = self.getDrivenChannel(raw)
         bvars = []
         vvars = {}
@@ -708,7 +710,7 @@ class LoadMorph(DriverUser):
                 self.extendPropDriver(fcu0, raw, drivers)
                 return
             vtargets,btargets = self.getVarBoneTargets(fcu0)
-            if self.isJcm:
+            if isJcm:
                 string = fcu0.driver.expression
             elif btargets:
                 varname = btargets[-1][0]
@@ -724,13 +726,14 @@ class LoadMorph(DriverUser):
         for bvar in bvars:
             var = fcu.driver.variables.new()
             bvar.create(var)
-        if self.isJcm and string:
+        if isJcm and string:
             fcu.driver.expression = string
         else:
             ok = self.buildNewPropDriver(fcu, rna, channel, string, raw, drivers)
             if not ok:
                 return
         self.addMissingVars(fcu, vvars)
+        self.removeUnusedVars(fcu)
 
 
     def buildNewPropDriver(self, fcu, rna, channel, string, raw, drivers):
@@ -794,6 +797,12 @@ class LoadMorph(DriverUser):
             if vname not in vnames:
                 var = fcu.driver.variables.new()
                 vvar.create(var)
+
+
+    def removeUnusedVars(self, fcu):
+        for var in list(fcu.driver.variables):
+            if var.name not in fcu.driver.expression:
+                fcu.driver.variables.remove(var)
 
 
     def extendPropDriver(self, fcu, raw, drivers):
