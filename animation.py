@@ -41,23 +41,8 @@ from .fileutils import MultiFile, SingleFile, JsonFile, JsonExportFile, DufFile
 #-------------------------------------------------------------
 
 def getAlias(prop, rig):
-    def nodiv(prop):
-        return (prop[:-5] if prop[-5:] == "_div2" else prop)
-
     if prop in rig.DazAlias.keys():
-        return pgs[prop].s
-    else:
-        return prop
-    if prop[0:8] == "facs_bs_":
-        return "%s%s" % (prop[8].lower(), nodiv(prop[9:]))
-    elif prop[0:9] == "facs_jnt_":
-        return "%s%s" % (prop[9].lower(), nodiv(prop[10:]))
-    elif prop[0:10] == "facs_ctrl_":
-        return "%s%s" % (prop[10].lower(), nodiv(prop[11:]))
-    elif prop[0:9] == "facs_cbs_":
-        return prop
-    elif prop[0:5] == "facs_":
-        return "%s%s" % (prop[5].lower(), nodiv(prop[6:]))
+        return rig.DazAlias[prop].s
     else:
         return prop
 
