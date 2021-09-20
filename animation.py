@@ -1573,7 +1573,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
     useUnusedMorphs : BoolProperty(
         name = "Save Unused Morphs",
         description = "Include morphs that are constantly zero",
-        default = True)
+        default = False)
 
     first : IntProperty(
         name = "Start",
@@ -1640,11 +1640,6 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
 
 
     def getFcurves(self, rig, act):
-        from .morphing import theStandardMorphSets, theCustomMorphSets
-        if self.useMorphs:
-            morphsets = [getattr(rig, "Daz"+morphset)
-                for morphset in theStandardMorphSets + theCustomMorphSets]
-
         self.rots[""] = 3*[None]
         self.locs[""] = 3*[None]
         self.scales[""] = 3*[None]
@@ -1675,9 +1670,8 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
             elif words[0] == "[" and self.useMorphs:
                 prop = words[1]
                 if prop in rig.keys():
-                    for morphset in morphsets:
-                        if prop in morphset.keys():
-                            self.morphs[prop] = fcu
+                    if self.isValidMorph(rig, prop):
+                        self.morphs[prop] = fcu
             else:
                 idx = fcu.array_index
                 if channel == "location":
@@ -1688,8 +1682,12 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                     self.scales[""][idx] = fcu
 
 
+    def isValidMorph(self, rig, prop):
+        return (isinstance(rig[prop], float) and
+                prop[0:3] not in ["Daz", "Mha", "Mhh"])
+
+
     def getFakeCurves(self, rig):
-        from .morphing import theStandardMorphSets, theCustomMorphSets
         if self.useBones:
             self.rots[""] = [FakeCurve(t) for t in rig.rotation_euler]
             self.locs[""] = [FakeCurve(t) for t in rig.location]
@@ -1705,12 +1703,9 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
                     if self.isLocUnlocked(pb, bname):
                         self.locs[bname] = [FakeCurve(t) for t in pb.location]
         if self.useMorphs:
-            for morphset in theStandardMorphSets + theCustomMorphSets:
-                pg = getattr(rig, "Daz"+morphset)
-                for prop in pg.keys():
-                    if (prop in rig.keys() and
-                        isinstance(rig[prop], float)):
-                        self.morphs[prop]= FakeCurve(rig[prop])
+            for prop in rig.keys():
+                if self.isValidMorph(rig, prop):
+                    self.morphs[prop]= FakeCurve(rig[prop])
 
 
     def setupFlipper(self, rig):
@@ -1941,10 +1936,15 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         anim = {}
         anim["url"] = "name://@selection#%s:?value/value" % prop
         vals = [fcu.evaluate(frame) for frame in range(self.first, self.last+1)]
-        maxval = max([abs(val) for val in vals])
-        if maxval < 1e-4:
-            if self.useUnusedMorphs:
-                anim["keys"] = [(0, 0)]
+        maxval = max(vals)
+        minval = min(vals)
+        if maxval-minval < 1e-4:
+            if abs(maxval) < 5e-5:
+                if self.useUnusedMorphs:
+                    anim["keys"] = [(0, 0)]
+                    anims.append(anim)
+            else:
+                anim["keys"] = [(0, (maxval+minval)/2)]
                 anims.append(anim)
         else:
             anim["keys"] = [(n/self.fps, val) for n,val in enumerate(vals)]
