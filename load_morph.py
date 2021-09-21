@@ -193,18 +193,24 @@ class LoadMorph(DriverUser):
                         alias = channel["name"]
                         prop = channel["target_channel"].rsplit('#')[-1].split("?")[0]
                         if alias != prop:
-                            print(" = %s %s" % (prop, alias))
-                            pgs = self.rig.DazAlias
-                            if alias in pgs.keys():
-                                pg = pgs[alias]
-                            else:
-                                pg = pgs.add()
-                                pg.name = alias
-                            pg.s = prop
+                            self.setAlias(prop, alias)
                             aliases[alias] = prop
                             if "label" in channel.keys():
                                 self.setLabel(prop, channel["label"])
         return aliases
+
+
+    def setAlias(self, prop, alias):
+        pgs = self.rig.DazAlias
+        if alias in pgs.keys():
+            pg = pgs[alias]
+            print(" == %s %s %s" % (prop, alias, pg.s))
+            return
+        else:
+            pg = pgs.add()
+            pg.name = alias
+            print(" = %s %s" % (prop, alias))
+        pg.s = prop
 
 
     def setLabel(self, prop, label):
@@ -280,7 +286,10 @@ class LoadMorph(DriverUser):
 
     def makeFormulas(self, asset, skey):
         from .formula import Formula
-        self.addNewProp(asset.getName(), asset, skey)
+        prop = asset.getName()
+        if prop != asset.name:
+            self.setAlias(asset.name, prop)
+        self.addNewProp(prop, asset, skey)
         if not isinstance(asset, Formula):
             return
         exprs = asset.evalFormulas(self.rig, self.mesh)
@@ -746,6 +755,7 @@ class LoadMorph(DriverUser):
         string,rdrivers = self.addDriverVars(fcu, string, varname, raw, drivers)
         if not string:
             print("Empty string: %s" % raw)
+            print("KK", self.visible[raw], self.primary[raw], drivers)
             rna.driver_remove(channel)
             return False
         if self.getMultipliers(raw):
