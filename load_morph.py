@@ -755,7 +755,6 @@ class LoadMorph(DriverUser):
         string,rdrivers = self.addDriverVars(fcu, string, varname, raw, drivers)
         if not string:
             print("Empty string: %s" % raw)
-            print("KK", self.visible[raw], self.primary[raw], drivers)
             rna.driver_remove(channel)
             return False
         if self.getMultipliers(raw):
