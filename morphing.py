@@ -391,7 +391,7 @@ def getMorphEnums(scn, context):
 def getCatEnums(scn, context):
     return theCatEnums
 
-class MorphSelector(Selector):
+class GeneralMorphSelector(Selector):
     morphset : EnumProperty(
         items = getMorphEnums,
         name = "Type")
@@ -1776,7 +1776,7 @@ class DAZ_OT_UnkeyShapes(DazOperator, MorphsetString, IsMesh):
 #   Update property limits
 #------------------------------------------------------------------
 
-class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
+class DAZ_OT_UpdateSliderLimits(DazOperator, GeneralMorphSelector, IsMeshArmature):
     bl_idname = "daz.update_slider_limits"
     bl_label = "Update Slider Limits"
     bl_description = "Update slider min and max values"
@@ -1785,59 +1785,65 @@ class DAZ_OT_UpdateSliderLimits(DazPropsOperator, IsMeshArmature):
     min : FloatProperty(
         name = "Min",
         description = "Minimum slider value",
-        min = -10.0, max = 0.0)
+        default = 0.0)
 
     max : FloatProperty(
         name = "Max",
         description = "Maximum slider value",
-        min = 0.0, max = 10.0)
+        default = 1.0)
 
-    allShapes : BoolProperty(
-        name = "All Shapekeys",
-        description = "Update all shapekey sliders.\nCan give undesirable effects on JCMs",
-        default = False)
+    useSliders : BoolProperty(
+        name = "Sliders",
+        description = "Update min and max for slider values",
+        default = True)
+
+    useFinal : BoolProperty(
+        name = "Final",
+        description = "Update min and max for final values",
+        default = True)
+
+    useShapekeys : BoolProperty(
+        name = "Shapekeys",
+        description = "Update min and max for shapekeys",
+        default = True)
 
     def draw(self, context):
-        scn = context.scene
-        self.layout.prop(self, "min")
-        self.layout.prop(self, "max")
-        self.layout.prop(self, "allShapes")
+        row = self.layout.row()
+        row.prop(self, "min")
+        row.prop(self, "max")
+        row = self.layout.row()
+        row.prop(self, "useSliders")
+        row.prop(self, "useFinal")
+        row.prop(self, "useShapekeys")
+        GeneralMorphSelector.draw(self, context)
 
 
     def run(self, context):
         ob = context.object
-        scn = context.scene
-        GS.customMin = self.min
-        GS.customMax = self.max
         rig = getRigFromObject(ob)
+        self.props = [item.name.lower() for item in self.getSelectedItems()]
         if rig:
             self.updatePropLimits(rig, context)
         if ob != rig:
             self.updatePropLimits(ob, context)
 
 
-    def invoke(self, context, event):
-        self.min = GS.customMin
-        self.max = GS.customMax
-        return DazPropsOperator.invoke(self, context, event)
-
-
     def updatePropLimits(self, rig, context):
         from .driver import setFloatProp
-        scn = context.scene
-        props = getAllLowerMorphNames(rig)
         for ob in rig.children:
-            if ob.type == 'MESH' and ob.data.shape_keys:
+            if ob.type == 'MESH' and ob.data.shape_keys and self.useShapekeys:
                 for skey in ob.data.shape_keys.key_blocks:
-                    if self.allShapes or skey.name.lower() in props:
-                        skey.slider_min = GS.customMin
-                        skey.slider_max = GS.customMax
+                    if skey.name.lower() in self.props:
+                        skey.slider_min = self.min
+                        skey.slider_max = self.max
         amt = rig.data
         for raw in rig.keys():
-            if raw.lower() in props:
-                final = finalProp(raw)
-                setFloatProp(rig, raw, rig[raw], GS.customMin, GS.customMax)
-                setFloatProp(amt, final, amt[final], GS.customMin, GS.customMax)
+            if raw.lower() in self.props:
+                if self.useSliders:
+                    setFloatProp(rig, raw, rig[raw], self.min, self.max)
+                if self.useFinal:
+                    final = finalProp(raw)
+                    setFloatProp(amt, final, amt[final], self.min, self.max)
         updateRigDrivers(context, rig)
         print("Slider limits updated")
 
@@ -2462,12 +2468,11 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile, IsMeshArm
 #   Convert pose to shapekey
 #-------------------------------------------------------------
 
-class DAZ_OT_ConvertMorphsToShapes(DazOperator, MorphSelector, IsMesh):
+class DAZ_OT_ConvertMorphsToShapes(DazOperator, GeneralMorphSelector, IsMesh):
     bl_idname = "daz.convert_morphs_to_shapekeys"
     bl_label = "Convert Morphs To Shapekeys"
     bl_description = "Convert face rig morphs to shapekeys"
     bl_options = {'UNDO'}
-
 
     def run(self, context):
         ob = context.object
