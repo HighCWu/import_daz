@@ -383,42 +383,66 @@ class Selector():
 
 
 theMorphEnums = []
+theCatEnums = []
 
 def getMorphEnums(scn, context):
     return theMorphEnums
 
-class StandardSelector(Selector):
+def getCatEnums(scn, context):
+    return theCatEnums
+
+class MorphSelector(Selector):
     morphset : EnumProperty(
         items = getMorphEnums,
         name = "Type")
 
-    allSets = theStandardMorphSets
+    category : EnumProperty(
+        items = getCatEnums,
+        name = "Category")
 
     def selectCondition(self, item):
-        if self.morphset == "All":
-            names = []
-            for morphset in self.allSets:
-                pg = getattr(self.rig, "Daz"+morphset)
-                names += list(pg.keys())
+        if self.morphset == "Custom":
+            return (item.name in self.catnames[self.category])
         else:
-            pg = getattr(self.rig, "Daz"+self.morphset)
-            names = list(pg.keys())
-        return (item.name in names)
+            return (item.name in self.morphnames[self.morphset])
 
     def draw(self, context):
         self.layout.prop(self, "morphset")
+        self.layout.prop(self, "category")
         Selector.draw(self, context)
 
+
     def getKeys(self, rig, ob):
-        morphs = getMorphList(rig, self.morphset, sets=self.allSets)
-        return [(item.name, item.text, "All") for item in morphs]
+        morphs = getMorphList(rig, self.morphset, sets=theStandardMorphSets)
+        keys = [(item.name, item.text, "All") for item in morphs]
+        for cat in rig.DazMorphCats:
+            for item in cat.morphs:
+                keys.append((item.name,item.text,cat.name))
+        return keys
+
 
     def invoke(self, context, event):
-        global theMorphEnums
+        global theMorphEnums, theCatEnums
+        ob = context.object
+        rig = self.rig = getRigFromObject(ob)
         theMorphEnums = [("All", "All", "All")]
-        for morphset in self.allSets:
-            theMorphEnums.append((morphset, morphset, morphset))
+        theCatEnums = [("All", "All", "All")]
         self.morphset = "All"
+        self.morphnames = {}
+        self.morphnames["All"] = []
+        for morphset in theStandardMorphSets:
+            theMorphEnums.append((morphset, morphset, morphset))
+            pg = getattr(self.rig, "Daz"+morphset)
+            self.morphnames["All"] += list(pg.keys())
+            self.morphnames[morphset] = pg.keys()
+        theMorphEnums.append(("Custom", "Custom", "Custom"))
+        self.catnames = {}
+        self.catnames["All"] = []
+        for cat in rig.DazMorphCats:
+            theCatEnums.append((cat.name, cat.name, cat.name))
+            self.morphnames["All"] += list(cat.morphs.keys())
+            self.catnames["All"] += list(cat.morphs.keys())
+            self.catnames[cat.name] = cat.morphs.keys()
         return Selector.invoke(self, context, event)
 
 
@@ -432,7 +456,6 @@ class CustomSelector(Selector, CustomEnums):
         Selector.draw(self, context)
 
     def getKeys(self, rig, ob):
-        morphs = getMorphList(rig, self.morphset, sets=theCustomMorphSets)
         keys = []
         for cat in rig.DazMorphCats:
             for item in cat.morphs:
@@ -828,7 +851,6 @@ class StandardMorphLoader(MorphLoader):
 class StandardMorphSelector(Selector):
     def draw(self, context):
         Selector.draw(self, context)
-
 
     def getActiveMorphFiles(self, context):
         namepaths = []
@@ -2440,7 +2462,13 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile, IsMeshArm
 #   Convert pose to shapekey
 #-------------------------------------------------------------
 
-class MorphsToShapes:
+class DAZ_OT_ConvertMorphsToShapes(DazOperator, MorphSelector, IsMesh):
+    bl_idname = "daz.convert_morphs_to_shapekeys"
+    bl_label = "Convert Morphs To Shapekeys"
+    bl_description = "Convert face rig morphs to shapekeys"
+    bl_options = {'UNDO'}
+
+
     def run(self, context):
         ob = context.object
         rig = ob.parent
@@ -2490,22 +2518,6 @@ class MorphsToShapes:
         nmod.use_deform_preserve_volume = True
         for i in range(len(ob.modifiers)-1):
             bpy.ops.object.modifier_move_up(modifier=nmod.name)
-
-
-class DAZ_OT_ConvertStandardMorphsToShapes(DazOperator, StandardSelector, MorphsToShapes, IsMesh):
-    bl_idname = "daz.convert_standard_morphs_to_shapekeys"
-    bl_label = "Convert Standard Morphs To Shapekeys"
-    bl_description = "Convert standard face rig morphs to shapekeys"
-    bl_options = {'UNDO'}
-
-
-class DAZ_OT_ConvertCustomMorphsToShapes(DazOperator, CustomSelector, MorphsToShapes, IsMesh):
-    bl_idname = "daz.convert_custom_morphs_to_shapekeys"
-    bl_label = "Convert Custom Morphs To Shapekeys"
-    bl_description = "Convert custom rig morphs to shapekeys"
-    bl_options = {'UNDO'}
-
-    morphset = "Custom"
 
 #-------------------------------------------------------------
 #   Transfer verts to shapekeys
@@ -2720,8 +2732,7 @@ classes = [
     DAZ_OT_PinProp,
     DAZ_OT_PinShape,
     DAZ_OT_LoadMoho,
-    DAZ_OT_ConvertStandardMorphsToShapes,
-    DAZ_OT_ConvertCustomMorphsToShapes,
+    DAZ_OT_ConvertMorphsToShapes,
     DAZ_OT_MeshToShape,
     DAZ_OT_SaveFavoMorphs,
     DAZ_OT_LoadFavoMorphs,
