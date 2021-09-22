@@ -456,11 +456,14 @@ class Tesselator:
 
 
     def findStrands(self, hair):
+        def getEdge(pair, mnum):
+            return [min(pair), max(pair), mnum]
+
         pgs = hair.data.DazMatNums
         if len(pgs) >= len(hair.data.edges):
-            edges = [list(e.vertices)+[pgs[e.index].a] for e in hair.data.edges]
+            edges = [getEdge(e.vertices, pgs[e.index].a) for e in hair.data.edges]
         else:
-            edges = [list(e.vertices)+[0] for e in hair.data.edges]
+            edges = [getEdge(e.vertices, 0) for e in hair.data.edges]
         edges.sort()
         plines = []
         v0 = -1
