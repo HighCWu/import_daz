@@ -401,6 +401,17 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         description = "Convert strand-based hair to particle hair",
         default = False)
 
+    addTweakBones : BoolProperty(
+        name = "Tweak Bones",
+        description = "Add tweak bones",
+        default = True
+    )
+
+    useFingerIk : BoolProperty(
+        name = "Finger IK",
+        description = "Generate IK controls for fingers",
+        default = False)
+
     def draw(self, context):
         DazOptions.draw(self, context)
         self.layout.separator()
@@ -422,6 +433,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         self.layout.prop(self, "useMakeAllBonesPoseable")
         self.layout.prop(self, "useConvertHair")
         self.layout.prop(self, "rigType")
+        if self.rigType == 'MHX':
+            self.subprop("addTweakBones")
+            self.subprop("useFingerIk")
+        elif self.rigType == 'RIGIFY':
+            self.subprop("useFingerIk")
         self.layout.prop(self, "mannequinType")
 
     def invoke(self, context, event):
@@ -640,9 +656,14 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
                 bpy.ops.daz.add_custom_shapes()
             elif self.rigType == 'MHX':
                 print("Convert to MHX")
-                bpy.ops.daz.convert_to_mhx()
+                bpy.ops.daz.convert_to_mhx(
+                    addTweakBones = self.addTweakBones,
+                    useFingerIk = self.useFingerIk,
+                )
             elif self.rigType == 'RIGIFY':
-                bpy.ops.daz.convert_to_rigify(useDeleteMeta=True)
+                bpy.ops.daz.convert_to_rigify(
+                    useDeleteMeta = True,
+                    useFingerIk = self.useFingerIk)
                 mainRig = context.object
 
         # Make mannequin
