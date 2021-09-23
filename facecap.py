@@ -59,6 +59,30 @@ class FACSImporter(SingleFile, ActionOptions):
         description = "Include head rotation animation",
         default = True)
 
+    headDist : FloatProperty(
+        name = "Head",
+        description = "Fraction of head rotation that affects head",
+        min = 0.0, max = 1.0,
+        default = 0.15)
+
+    neckUpperDist : FloatProperty(
+        name = "Upper Neck",
+        description = "Fraction of head rotation that affects upper neck",
+        min = 0.0, max = 1.0,
+        default = 0.4)
+
+    neckLowerDist : FloatProperty(
+        name = "Lower Neck",
+        description = "Fraction of head rotation that affects lower neck",
+        min = 0.0, max = 1.0,
+        default = 0.4)
+
+    abdomenDist : FloatProperty(
+        name = "Abdomen",
+        description = "Fraction of head rotation that affects abdomen",
+        min = 0.0, max = 1.0,
+        default = 0.05)
+
     useEyesRot : BoolProperty(
         name = "Eyes Rotation",
         description = "Include eyes rotation animation",
@@ -71,6 +95,12 @@ class FACSImporter(SingleFile, ActionOptions):
             self.layout.prop(self, "actionName")
         self.layout.prop(self, "useHeadLoc")
         self.layout.prop(self, "useHeadRot")
+        if self.useHeadRot:
+            box = self.layout.box()
+            box.prop(self, "headDist")
+            box.prop(self, "neckUpperDist")
+            box.prop(self, "neckLowerDist")
+            box.prop(self, "abdomenDist")
         self.layout.prop(self, "useEyesRot")
 
 
@@ -126,11 +156,26 @@ class FACSImporter(SingleFile, ActionOptions):
 
 
     def setupBones(self, rig):
+        self.leye = self.getBones(["lEye", "eye.L"], rig)
+        self.reye = self.getBones(["rEye", "eye.R"], rig)
         self.head = self.getBones(["head"], rig)
-        self.leye = self.getBones(["lEye"], rig)
-        self.reye = self.getBones(["rEye"], rig)
-        if self.useHeadLoc:
-            self.hip = self.getBones(["hip", "torso"], rig)
+        self.neckUpper = self.getBones(["neckUpper", "neck-1"], rig)
+        self.neckLower = self.getBones(["neckLower", "neck"], rig)
+        self.abdomen = self.getBones(["abdomenUpper", "spine-1", "spine_fk.002"], rig)
+        self.hip = self.getBones(["hip", "torso"], rig)
+        if self.head is None:
+            self.headDist = 0
+        if self.neckUpper is None:
+            self.neckUpperDist = 0
+        if self.neckLower is None:
+            self.neckLowerDist = 0
+        if self.abdomen is None:
+            self.abdomenDist = 0
+        distsum = self.headDist + self.neckUpperDist + self.neckLowerDist + self.abdomenDist
+        self.headDist /= distsum
+        self.neckUpperDist /= distsum
+        self.neckLowerDist /= distsum
+        self.abdomenDist /= distsum
 
 
     def setBoneFrame(self, t, frame):
@@ -138,13 +183,20 @@ class FACSImporter(SingleFile, ActionOptions):
             self.hip.location = self.scale*self.hlockeys[t]
             self.hip.keyframe_insert("location", frame=frame, group="hip")
         if self.useHeadRot:
-            self.setRotation(self.head, self.hrotkeys[t], frame)
+            self.setRotation(self.head, self.hrotkeys[t], frame, self.headDist)
+            self.setRotation(self.neckUpper, self.hrotkeys[t], frame, self.neckUpperDist)
+            self.setRotation(self.neckLower, self.hrotkeys[t], frame, self.neckLowerDist)
+            self.setRotation(self.abdomen, self.hrotkeys[t], frame, self.abdomenDist)
         if self.useEyesRot:
             self.setRotation(self.leye, self.leyekeys[t], frame)
             self.setRotation(self.reye, self.reyekeys[t], frame)
 
 
-    def setRotation(self, pb, euler, frame):
+    def setRotation(self, pb, euler, frame, fraction=None):
+        if fraction == 0 or pb is None:
+            return
+        elif fraction is not None:
+            euler = Euler(fraction*Vector(euler))
         mat = euler.to_matrix()
         if pb.rotation_mode == 'QUATERNION':
             pb.rotation_quaternion = mat.to_quaternion()
@@ -159,7 +211,8 @@ class FACSImporter(SingleFile, ActionOptions):
             pb = self.getBone(bname, rig)
             if pb:
                 return pb
-        raise DazError("Did not find bones: %s" % bnames)
+        print("Did not find bones: %s" % bnames)
+        return None
 
 
     def getBone(self, bname, rig):
