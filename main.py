@@ -424,8 +424,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         self.layout.prop(self, "useFavoMorphs")
         if self.useFavoMorphs:
             self.layout.prop(self, "favoPath")
-        else:
-            MorphTypeOptions.draw(self, context)
+        MorphTypeOptions.draw(self, context)
         if self.useFavoMorphs or self.jcms or self.flexions:
             self.layout.prop(self, "useTransferShapes")
         self.layout.prop(self, "useMergeGeografts")
@@ -576,7 +575,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
             if self.useFavoMorphs:
                 if activateObject(context, mainRig) and self.favoPath:
                     bpy.ops.daz.load_favo_morphs(filepath = self.favoPath)
-            elif (self.units or
+            if (self.units or
                   self.expressions or
                   self.visemes or
                   self.facs or
