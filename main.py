@@ -382,6 +382,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         description = "Merge separate eyelash mesh to character.\nShapekeys are always transferred first",
         default = False)
 
+    useConvertWidgets : BoolProperty(
+        name = "Convert To Widgets",
+        description = "Convert widget mesh to bone custom shapes",
+        default = False)
+
     useMakeAllBonesPoseable : BoolProperty(
         name = "Make All Bones Poseable",
         description = "Add an extra layer of driven bones, to make them poseable",
@@ -429,6 +434,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
             self.layout.prop(self, "useTransferShapes")
         self.layout.prop(self, "useMergeGeografts")
         self.layout.prop(self, "useMergeLashes")
+        self.layout.prop(self, "useConvertWidgets")
         self.layout.prop(self, "useMakeAllBonesPoseable")
         self.layout.prop(self, "useConvertHair")
         self.layout.prop(self, "rigType")
@@ -506,6 +512,7 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
 
 
     def treatRig(self, context, rigname):
+        from .finger import isCharacter, getFingerPrint
         rigs = self.rigs[rigname]
         meshes = self.meshes[rigname]
         objects = self.objects[rigname]
@@ -520,7 +527,6 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         else:
             mainMesh = None
         if mainRig:
-            from .finger import isCharacter
             mainChar = isCharacter(mainRig)
         else:
             mainChar = None
@@ -532,9 +538,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         geografts = {}
         lashes = []
         clothes = []
+        widgetMesh = None
         if mainMesh and mainRig:
             lmeshes = self.getLashes(mainRig, mainMesh)
             for ob in meshes[1:]:
+                finger = getFingerPrint(ob)
                 if ob.data.DazGraftGroup:
                     cob = self.getGraftParent(ob, meshes)
                     if cob:
@@ -543,6 +551,8 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
                         geografts[cob.name][0].append(ob)
                     else:
                         clothes.append(ob)
+                elif self.useConvertWidgets and finger == "1778-3059-1366":
+                    widgetMesh = ob
                 elif ob in lmeshes:
                     lashes.append(ob)
                 else:
@@ -630,6 +640,11 @@ class EasyImportDAZ(DazOperator, DazOptions, MorphTypeOptions, MultiFile):
         # Transfer shapekeys to clothes
         if self.useTransferShapes:
             self.transferShapes(context, mainMesh, clothes, False, "Body")
+
+        # Convert widget mesh to widgets
+        if widgetMesh and mainRig and activateObject(context, widgetMesh):
+            print("Convert to widgets")
+            bpy.ops.daz.convert_widgets()
 
         if mainRig and activateObject(context, mainRig):
             # Make all bones poseable

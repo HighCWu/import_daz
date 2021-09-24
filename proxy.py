@@ -1828,6 +1828,9 @@ class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
         rig = ob.parent
         if rig is None or not rig.type == 'ARMATURE':
             raise DazError("Object has no armature parent")
+        for pb in rig.pose.bones:
+            if isDrvBone(pb.name):
+                raise DazError("Cannot convert widgets if bones have been made poseable.    ")
         coll = context.scene.collection
         hidden = createHiddenCollection(context, rig)
         rig.data.layers[self.usedLayer-1] = True
@@ -1887,7 +1890,6 @@ class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
                 eb = rig.data.edit_bones[bname]
                 rig.data.edit_bones.remove(eb)
             setMode('OBJECT')
-
 
 
     def inheritLimits(self, pb, pb2, rig):
