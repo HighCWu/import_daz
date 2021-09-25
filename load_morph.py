@@ -1051,7 +1051,7 @@ class LoadMorph(DriverUser):
         for bvar in bvars:
             var = fcu.driver.variables.new()
             bvar.create(var)
-        if GS.useMakeHiddenSliders and isPath(path):
+        if GS.useMakeHiddenSliders and isPath(path) and "u" not in vvars.keys():
             final = unPath(path)
             if isFinal(final):
                 raw = baseProp(final)
