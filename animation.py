@@ -2051,6 +2051,16 @@ class DAZ_OT_BakeToFkRig(DazOperator, IsArmature):
     BakeBones = {
         "rigify2" : {
             "chest" : ["spine_fk.001", "spine_fk.002", "spine_fk.003", "spine_fk.004"],
+            "thumb.01_master.L" : ["thumb.02.L", "thumb.03.L"],
+            "f_index.01_master.L" : ["f_index.01.L", "f_index.02.L", "f_index.03.L"],
+            "f_middle.01_master.L" : ["f_middle.01.L", "f_middle.02.L", "f_middle.03.L"],
+            "f_ring.01_master.L" : ["f_ring.01.L", "f_ring.02.L", "f_ring.03.L"],
+            "f_pinky.01_master.L" : ["f_pinky.01.L", "f_pinky.02.L", "f_pinky.03.L"],
+            "thumb.01_master.R" : ["thumb.02.R", "thumb.03.R"],
+            "f_index.01_master.R" : ["f_index.01.R", "f_index.02.R", "f_index.03.R"],
+            "f_middle.01_master.R" : ["f_middle.01.R", "f_middle.02.R", "f_middle.03.R"],
+            "f_ring.01_master.R" : ["f_ring.01.R", "f_ring.02.R", "f_ring.03.R"],
+            "f_pinky.01_master.R" : ["f_pinky.01.R", "f_pinky.02.R", "f_pinky.03.R"],
         },
         "mhx" : {
             "back" : ["spine", "spine-1", "chest", "chest-1"],
@@ -2085,6 +2095,7 @@ class DAZ_OT_BakeToFkRig(DazOperator, IsArmature):
             if maxdiff < 1e-5:
                 return
         else:
+            print("Missing bone:", baker)
             return
         mats = []
         for bname in baked:
