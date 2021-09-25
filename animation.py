@@ -2039,6 +2039,67 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
         return nrots
 
 #----------------------------------------------------------
+#   Bake to FK
+#----------------------------------------------------------
+
+class DAZ_OT_BakeToFkRig(DazOperator, IsArmature):
+    bl_idname = "daz.bake_pose_to_fk_rig"
+    bl_label = "Bake Pose To FK Rig"
+    bl_description = "Bake pose to the FK rig before saving pose preset.\nIK arms and legs must be baked separately"
+    bl_options = {'UNDO'}
+
+    BakeBones = {
+        "rigify2" : {
+            "chest" : ["spine_fk.001", "spine_fk.002", "spine_fk.003", "spine_fk.004"],
+        },
+        "mhx" : {
+            "back" : ["spine", "spine-1", "chest", "chest-1"],
+            "neckhead" : ["neck", "neck-1", "head"],
+            "thumb.L" : ["thumb.02.L", "thumb.03.L"],
+            "index.L" : ["f_index.01.L", "f_index.02.L", "f_index.03.L"],
+            "middle.L" : ["f_middle.01.L", "f_middle.02.L", "f_middle.03.L"],
+            "ring.L" : ["f_ring.01.L", "f_ring.02.L", "f_ring.03.L"],
+            "pinky.L" : ["f_pinky.01.L", "f_pinky.02.L", "f_pinky.03.L"],
+            "thumb.R" : ["thumb.02.R", "thumb.03.R"],
+            "index.R" : ["f_index.01.R", "f_index.02.R", "f_index.03.R"],
+            "middle.R" : ["f_middle.01.R", "f_middle.02.R", "f_middle.03.R"],
+            "ring.R" : ["f_ring.01.R", "f_ring.02.R", "f_ring.03.R"],
+            "pinky.R" : ["f_pinky.01.R", "f_pinky.02.R", "f_pinky.03.R"],
+        },
+    }
+
+    def run(self, context):
+        rig = context.object
+        if rig.DazRig in self.BakeBones.keys():
+            for baker,baked in self.BakeBones[rig.DazRig].items():
+                self.bake(baker, baked, rig, context)
+        else:
+            print("Nothing to bake for %s rig" % rig.DazRig)
+
+
+    def bake(self, baker, baked, rig, context):
+        if baker in rig.pose.bones.keys():
+            pb = rig.pose.bones[baker]
+            diff = pb.matrix_basis - Matrix()
+            maxdiff = max([row.length for row in diff])
+            if maxdiff < 1e-5:
+                return
+        else:
+            return
+        mats = []
+        for bname in baked:
+            if bname in rig.pose.bones.keys():
+                pb = rig.pose.bones[bname]
+                mats.append((pb, pb.matrix.copy()))
+        if baker in rig.pose.bones.keys():
+            pb = rig.pose.bones[baker]
+            pb.matrix_basis = Matrix()
+            context.view_layer.update()
+        for pb,mat in mats:
+            pb.matrix = mat
+            context.view_layer.update()
+
+#----------------------------------------------------------
 #   Import locks and limits
 #----------------------------------------------------------
 
@@ -2150,6 +2211,7 @@ classes = [
     DAZ_OT_PruneAction,
     DAZ_OT_SavePoses,
     DAZ_OT_LoadPoses,
+    DAZ_OT_BakeToFkRig,
     DAZ_OT_SavePosePreset,
     DAZ_OT_ImposeLocksLimits,
 ]
