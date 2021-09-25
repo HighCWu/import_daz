@@ -959,7 +959,8 @@ class LoadMorph(DriverUser):
                 if bname2:
                     pb2 = self.rig.pose.bones[bname2]
                     factor2 = expr["factor2"]
-                    uvec2 = unit*getBoneVector(factor2, comp, pb2)
+                    comp2 = expr["comp2"]
+                    uvec2 = unit*getBoneVector(factor2, comp2, pb2)
             self.makeSimpleBoneDriver(path, uvec, rna, channel, -1, bname, keep, bname2, uvec2)
 
     #-------------------------------------------------------------
@@ -1032,10 +1033,14 @@ class LoadMorph(DriverUser):
                     string0 = self.extractBoneExpression(fcu0.driver.expression, varname)
                     for _,_,var0 in btargets:
                         bvars.append(Variable(var0))
-                    vname = nextLetter(varname)
-                    string = string0 + string.replace(varname, vname)
-                    vars = [(idx, varname.replace(varname, vname), prop)
-                        for (idx, varname, prop) in  vars]
+                    nvars = []
+                    vname = varname
+                    for (n, varname, prop) in vars:
+                        vname = nextLetter(vname)
+                        string = string.replace(varname, vname)
+                        nvars.append((n, vname, prop))
+                    vars = nvars
+                    string = string0 + string
                 for vname,_,var0 in vtargets:
                     vvars[vname] = Variable(var0)
 

@@ -167,6 +167,7 @@ class Formula:
                 "bone2" : None,
                 "path" : None,
                 "comp" : -1,
+                "comp2" : -1,
                 "mult" : None}
         expr = exprs[output][path][idx]
         if "stage" in formula.keys():
@@ -192,11 +193,12 @@ class Formula:
                 expr["prop"] = prop
         elif expr["bone"] is None:
             expr["bone"] = prop
+            expr["comp"] = comp
         else:
             expr["bone2"] = prop
             factor = "factor2"
+            expr["comp2"] = comp
         expr["path"] = path
-        expr["comp"] = comp
         self.evalMainOper(opers, expr, factor)
 
 
