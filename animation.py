@@ -2042,7 +2042,7 @@ class DAZ_OT_SavePosePreset(HideOperator, SingleFile, DufFile, FrameConverter, I
 #   Bake to FK
 #----------------------------------------------------------
 
-class DAZ_OT_BakeToFkRig(DazOperator, IsArmature):
+class DAZ_OT_BakeToFkRig(HideOperator):
     bl_idname = "daz.bake_pose_to_fk_rig"
     bl_label = "Bake Pose To FK Rig"
     bl_description = "Bake pose to the FK rig before saving pose preset.\nIK arms and legs must be baked separately"
@@ -2080,35 +2080,111 @@ class DAZ_OT_BakeToFkRig(DazOperator, IsArmature):
 
     def run(self, context):
         rig = context.object
+        scn = context.scene
         if rig.DazRig in self.BakeBones.keys():
+            self.bones = {}
             for baker,baked in self.BakeBones[rig.DazRig].items():
-                self.bake(baker, baked, rig, context)
+                self.getBones(rig, baker, baked)
+            if rig.animation_data and rig.animation_data.action:
+                act = rig.animation_data.action
+                self.removeFromAction(act, rig)
+                first,last = self.getRange(act)
+                print("RANGE", first, last)
+                matrices = []
+                for frame in range(first, last+1):
+                    scn.frame_current = frame
+                    updateScene(context)
+                    matrices.append((frame, self.addMats()))
+                for frame,mats in matrices:
+                    scn.frame_current = frame
+                    updateScene(context)
+                    self.bake(mats, act, context)
+            else:
+                for bname in list(self.bones.keys()):
+                    self.removeFromPose(bname, rig)
+                mats = self.addMats()
+                self.bake(mats, None, context)
         else:
             print("Nothing to bake for %s rig" % rig.DazRig)
 
 
-    def bake(self, baker, baked, rig, context):
+    def getBones(self, rig, baker, baked):
         if baker in rig.pose.bones.keys():
             pb = rig.pose.bones[baker]
-            diff = pb.matrix_basis - Matrix()
-            maxdiff = max([row.length for row in diff])
-            if maxdiff < 1e-5:
-                return
+            bakedBones = []
+            self.bones[baker] = (pb, bakedBones)
         else:
             print("Missing bone:", baker)
             return
-        mats = []
         for bname in baked:
             if bname in rig.pose.bones.keys():
                 pb = rig.pose.bones[bname]
-                mats.append((pb, pb.matrix.copy()))
-        if baker in rig.pose.bones.keys():
-            pb = rig.pose.bones[baker]
+                bakedBones.append(pb)
+
+
+    def getRange(self, act):
+        maxs = []
+        mins = []
+        for fcu in act.fcurves:
+            times = [kp.co[0] for kp in fcu.keyframe_points]
+            maxs.append(max(times))
+            mins.append(min(times))
+        return int(min(mins)), int(max(maxs))
+
+
+    def addMats(self):
+        mats = []
+        for bname,bones in self.bones.items():
+            bmats = []
+            mats.append((bones[0], bmats))
+            for pb in bones[1]:
+                bmats.append((pb, pb.matrix.copy()))
+        return mats
+
+
+    def removeFromPose(self, bname, rig):
+        pb = rig.pose.bones[bname]
+        diff = pb.matrix_basis - Matrix()
+        maxdiff = max([row.length for row in diff])
+        if maxdiff < 1e-5:
+            del self.bones[bname]
+            print("REM", bname)
+
+
+    def removeFromAction(self, act, rig):
+        used = {}
+        for fcu in act.fcurves:
+            words = fcu.data_path.split('"')
+            if words[0] == "pose.bones[":
+                used[words[1]] = True
+        for bname in list(self.bones.keys()):
+            if bname not in used.keys():
+                self.removeFromPose(bname, rig)
+
+
+    def bake(self, mats, act, context):
+        for pb,bmats in mats:
             pb.matrix_basis = Matrix()
+            if act:
+                self.insertKeys(pb)
             context.view_layer.update()
-        for pb,mat in mats:
-            pb.matrix = mat
-            context.view_layer.update()
+            for pb,mat in bmats:
+                pb.matrix = mat
+                if act:
+                    self.insertKeys(pb)
+                context.view_layer.update()
+                if not isLocationUnlocked(pb):
+                    pb.location = Zero
+
+
+    def insertKeys(self, pb):
+        if isLocationUnlocked(pb):
+            pb.keyframe_insert("location", group=pb.name)
+        if pb.rotation_mode == 'QUATERNION':
+            pb.keyframe_insert("rotation_quaternion", group=pb.name)
+        else:
+            pb.keyframe_insert("rotation_euler", group=pb.name)
+        pb.keyframe_insert("scale", group=pb.name)
 
 #----------------------------------------------------------
 #   Import locks and limits
