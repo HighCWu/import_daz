@@ -1828,9 +1828,6 @@ class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
         rig = ob.parent
         if rig is None or not rig.type == 'ARMATURE':
             raise DazError("Object has no armature parent")
-        for pb in rig.pose.bones:
-            if isDrvBone(pb.name):
-                raise DazError("Cannot convert widgets if bones have been made poseable.    ")
         coll = context.scene.collection
         hidden = createHiddenCollection(context, rig)
         rig.data.layers[self.usedLayer-1] = True
@@ -1960,7 +1957,7 @@ class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
             for var in fcu.driver.variables:
                 if var.type == 'TRANSFORMS':
                     for trg in var.targets:
-                        bname = trg.bone_target
+                        bname = baseBone(trg.bone_target)
                         if bname not in self.drivers.keys():
                             self.drivers[bname] = []
                         self.drivers[bname].append(fcu)
@@ -1971,6 +1968,10 @@ class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
             pb.bone.layers = self.usedLayers
             if not pb.custom_shape:
                 self.modifyDriver(pb, rig)
+        elif isDrvBone(pb.name) or isFinal(pb.name):
+            bname = baseBone(pb.name)
+            if bname not in self.drivers.keys():
+                self.unused[pb.name] = True
         else:
             pb.bone.layers = self.unusedLayers
             if pb.name not in self.drivers.keys():

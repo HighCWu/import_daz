@@ -270,6 +270,11 @@ def baseProp(string):
 def isDrvBone(string):
     return (string[-3:] == "Drv" or string[-5:] == "(drv)")
 
+def baseBone(string):
+    if string[-5:] in ["(fin)", "(drv)"]:
+        return string[:-5]
+    return string
+
 def isFinal(string):
     return (string[-5:] == "(fin)")
 
