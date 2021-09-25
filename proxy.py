@@ -1964,7 +1964,7 @@ class DAZ_OT_ConvertWidgets(DazPropsOperator, IsMesh):
 
 
     def assignLayer(self, pb, rig):
-        if pb.name in self.drivers.keys():
+        if pb.name in self.drivers.keys() or len(pb.children) > 3:
             pb.bone.layers = self.usedLayers
             if not pb.custom_shape:
                 self.modifyDriver(pb, rig)
