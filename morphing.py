@@ -2635,10 +2635,11 @@ class DAZ_OT_LoadFavoMorphs(DazOperator, MorphLoader, SingleFile, JsonFile, IsMe
     def loadPreset(self, ob, rig, struct, context):
         from urllib.parse import quote
         from .finger import getFingerPrint
-        url = quote(ob.DazUrl)
-        if url not in struct.keys():
+        url = quote(ob.DazUrl).lower()
+        lstruct = dict([(key.lower(),value) for key,value in struct.items()])
+        if url not in lstruct.keys():
             return
-        ustruct = struct[url]
+        ustruct = lstruct[url]
         if (ob.type == 'MESH' and
             "finger_print" in ustruct.keys() and
             not self.ignoreFinger):
