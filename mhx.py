@@ -355,6 +355,11 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         type = DazPairGroup,
         name = "Bone Groups")
 
+    useRaiseError : BoolProperty(
+        name = "Missing Bone Errors",
+        description = "Raise error for missing bones",
+        default = True
+    )
 
     @classmethod
     def poll(self, context):
@@ -428,7 +433,7 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         self.layout.prop(self, "elbowParent")
         self.layout.prop(self, "kneeParent")
         self.layout.prop(self, "useRenameBones")
-
+        self.layout.prop(self, "useRaiseError")
 
     def invoke(self, context, event):
         self.createBoneGroups(context.object)
@@ -861,17 +866,27 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
         NeckBones = ["neck", "neckLower", "neckUpper", "head"]
 
         setMode('EDIT')
-        spine = rig.data.edit_bones["spine"]
+        if "spine" in rig.data.edit_bones:
+            spine = rig.data.edit_bones["spine"]
+        else:
+            return self.raiseError("spine")
         if "chest-1" in rig.data.edit_bones:
             chest = rig.data.edit_bones["chest-1"]
-        else:
+        elif "chest" in rig.data.edit_bones:
             chest = rig.data.edit_bones["chest"]
+        else:
+            return self.raiseError("chest")
         makeBone("back", rig, spine.head, chest.tail, 0, L_MAIN, spine.parent)
         if "neck" in rig.data.edit_bones:
             neck = rig.data.edit_bones["neck"]
-        else:
+        elif "neckLower" in rig.data.edit_bones:
             neck = rig.data.edit_bones["neckLower"]
-        head = rig.data.edit_bones["head"]
+        else:
+            return self.raiseError("neck")
+        if "head" in rig.data.edit_bones:
+            head = rig.data.edit_bones["head"]
+        else:
+            return self.raiseError("head")
         makeBone("neckhead", rig, neck.head, head.tail, 0, L_MAIN, neck.parent)
         setMode('POSE')
         self.addBackWinder(rig, "back", BackBones)
@@ -985,12 +1000,27 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             hand = rig.data.edit_bones["hand"+suffix]
             for m in range(5):
                 if m == 0:
-                    fing1 = rig.data.edit_bones[self.linkName(0, 1, suffix)]
-                    palm = rig.data.edit_bones[self.linkName(0, 0, suffix)]
+                    fing1Name = self.linkName(0, 1, suffix)
+                    palmName = self.linkName(0, 0, suffix)
                 else:
-                    fing1 = rig.data.edit_bones[self.linkName(m, 0, suffix)]
-                    palm = rig.data.edit_bones[self.palmName(m, suffix)]
-                fing3 = rig.data.edit_bones[self.linkName(m, 2, suffix)]
+                    fing1Name = self.linkName(m, 0, suffix)
+                    palmName = self.palmName(m, suffix)
+                if fing1Name in rig.data.edit_bones.keys():
+                    fing1 = rig.data.edit_bones[fing1Name]
+                else:
+                    self.raiseError(fing1Name)
+                    continue
+                if palmName in rig.data.edit_bones.keys():
+                    palm = rig.data.edit_bones[palmName]
+                else:
+                    self.raiseError(palmName)
+                    continue
+                fing3Name = self.linkName(m, 2, suffix)
+                if fing3Name in rig.data.edit_bones.keys():
+                    fing3 = rig.data.edit_bones[fing3Name]
+                else:
+                    self.raiseError(fing3Name)
+                    continue
                 makeBone(self.longName(m, suffix), rig, fing1.head, fing3.tail, fing1.roll, L_LHAND+dlayer, palm)
                 vec = fing3.tail - fing3.head
                 makeBone("ik_" + self.longName(m, suffix), rig, fing3.tail, fing3.tail+vec, fing3.roll, L_LFINGER+dlayer, hand)
@@ -1007,7 +1037,12 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             else:
                 props = prop1
                 expr = "not(x)"
-            thumb1 = rig.data.bones[self.linkName(0, 0, suffix)]
+            thumb1Name = self.linkName(0, 0, suffix)
+            if thumb1Name in rig.data.bones.keys():
+                thumb1 = rig.data.bones[thumb1Name]
+            else:
+                self.raiseError(thumb1Name)
+                continue
             thumb1.layers[L_LHAND+dlayer] = True
             for m in range(5):
                 if m == 0:
@@ -1534,6 +1569,17 @@ class DAZ_OT_ConvertToMhx(DazPropsOperator, ConstraintStore, BendTwists, Fixer, 
             clavicle = rig.data.bones["clavicle"+suffix]
             clavicle.layers[L_SPINE] = True
             clavicle.layers[L_LARMIK+dlayer] = True
+
+    #-------------------------------------------------------------
+    #   Error on missing bone
+    #-------------------------------------------------------------
+
+    def raiseError(self, bname):
+        msg = "No %s bone" % bname
+        if self.useRaiseError:
+            raise DazError(msg)
+        else:
+            print(msg)
 
 #-------------------------------------------------------------
 #   getBoneLayer, connectToParent used by Rigify
