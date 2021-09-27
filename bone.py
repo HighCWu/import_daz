@@ -722,6 +722,8 @@ class BoneInstance(Instance):
         else:
             pb.rotation_mode = self.getRotationMode(pb, False)
         pb.DazRotMode = self.rotation_order
+        pb.DazHeadLocal = pb.bone.head_local
+        pb.DazTailLocal = pb.bone.tail_local
 
         tchildren = self.targetTransform(pb, node, targets, rig)
         self.setRotationLockDaz(pb)

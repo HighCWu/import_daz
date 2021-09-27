@@ -1723,6 +1723,38 @@ class DAZ_OT_CategorizeObjects(DazOperator, IsMeshArmature):
             linkObjects(root, coll)
 
 #-------------------------------------------------------------
+#   Morph armature
+#-------------------------------------------------------------
+
+class DAZ_OT_MorphArmature(DazOperator, IsArmature):
+    bl_idname = "daz.morph_armature"
+    bl_label = "Morph Armature"
+    bl_description = "Update the armature for ECR morphs"
+
+    def run(self, context):
+        rig = context.object
+        LS.scale = rig.DazScale
+        heads = {}
+        tails = {}
+        offsets = {}
+        for pb in rig.pose.bones:
+            if not nonzero(pb.DazHeadLocal):
+                pb.DazHeadLocal = pb.bone.head_local
+            if not nonzero(pb.DazTailLocal):
+                pb.DazTailLocal = pb.bone.tail_local
+            heads[pb.name] = Vector(pb.DazHeadLocal)
+            tails[pb.name] = Vector(pb.DazTailLocal)
+            offsets[pb.name] = d2b90(pb.HOffset)
+        bpy.ops.object.mode_set(mode='EDIT')
+        for eb in rig.data.edit_bones:
+            head = heads[eb.name] + offsets[eb.name]
+            if eb.use_connect and eb.parent:
+                eb.parent.tail = head
+            eb.head = head
+            eb.tail = tails[eb.name] + offsets[eb.name]
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+#-------------------------------------------------------------
 #   For debugging
 #-------------------------------------------------------------
 
@@ -1769,6 +1801,7 @@ classes = [
     DAZ_OT_LockBones,
     DAZ_OT_CopyDazProps,
     DAZ_OT_CategorizeObjects,
+    DAZ_OT_MorphArmature,
     DAZ_OT_InspectWorldMatrix,
     DAZ_OT_EnableAllLayers,
 ]

@@ -309,7 +309,10 @@ class LoadMorph(DriverUser):
                         self.makeTransFormula(output, idx, expr)
                     elif key == "scale":
                         self.makeScaleFormula(output, idx, expr)
-                    elif key in ["center_point", "end_point"]:
+                    elif key == "center_point":
+                        self.ecr = True
+                        self.makeCenterFormula(output, idx, expr)
+                    elif key == "end_point":
                         self.ecr = True
 
 
@@ -551,6 +554,15 @@ class LoadMorph(DriverUser):
         tfm.setScale(factor, True, prop, index=idx)
         self.addPoseboneDriver(pb, tfm)
 
+
+    def makeCenterFormula(self, bname, idx, expr):
+        _tfm,pb,prop,factor = self.getBoneData(bname, expr)
+        if "HOffset" not in pb.keys():
+            pb.HOffset = Zero
+        vec = Vector((0,0,0))
+        vec[idx] = factor
+        self.setFcurves(pb, vec, prop, "HOffset", "pose")
+
     #-------------------------------------------------------------
     #   Add posebone driver
     #-------------------------------------------------------------
@@ -583,10 +595,9 @@ class LoadMorph(DriverUser):
         return success
 
 
-    def setFcurves(self, pb, vec, prop, channel):
+    def setFcurves(self, pb, vec, prop, channel, pose="pose"):
         def getBoneFcurves(pb, channel):
-            dot = ("" if channel[0] == "[" else ".")
-            path = 'pose.bones["%s"]%s%s' % (pb.name, dot, channel)
+            path = '%s.bones["%s"].%s' % (pose, pb.name, channel)
             fcurves = {}
             if self.rig.animation_data:
                 for fcu in self.rig.animation_data.drivers:
@@ -602,7 +613,6 @@ class LoadMorph(DriverUser):
                 fcu = None
             bname,drivers = self.findSumDriver(pb, channel, idx, (pb, fcu, {}))
             drivers[prop] = factor
-        pb.DazDriven = True
 
 
     def getFactors(self, vec):

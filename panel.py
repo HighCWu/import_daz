@@ -625,6 +625,7 @@ class DAZ_PT_MorphGroup(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
         else:
             self.layout.operator("daz.disable_drivers")
         self.preamble(self.layout, rig)
+        self.layout.operator("daz.morph_armature")
 
 
 class DAZ_PT_Standard(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
