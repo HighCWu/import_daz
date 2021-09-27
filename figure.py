@@ -1732,7 +1732,7 @@ class DAZ_OT_MorphArmature(DazOperator, IsArmature):
     bl_description = "Update the armature for ECR morphs"
 
     def run(self, context):
-        from .runtime.update import getEditBones, morphArmature
+        from .runtime.morph_armature import getEditBones, morphArmature
         rig = context.object
         mode = rig.mode
         heads, tails, offsets = getEditBones(rig)

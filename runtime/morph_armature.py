@@ -24,6 +24,21 @@
 # The views and conclusions contained in the software and documentation are those
 # of the authors and should not be interpreted as representing official policies,
 # either expressed or implied, of the FreeBSD Project.
+#
+# ---------------------------------------------------------------------------
+#
+# The purpose of this file is to make morphing armatures work even if the
+# import_daz add-on is not available. A typical situation might be if you send
+# the blend file to an external rendering service.
+#
+# 1. Disable the import_daz add-on and press Save User Settings.
+# 2. Open this file (runtime/update.py) in a text editor window.
+# 3. Enable the Text > Register checkbox.
+# 4. Run the script (Run Script)
+# 5. Save the blend file.
+# 6. Reload the blend file.
+#
+# ---------------------------------------------------------------------------
 
 import bpy
 from bpy.app.handlers import persistent
