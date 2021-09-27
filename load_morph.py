@@ -557,11 +557,11 @@ class LoadMorph(DriverUser):
 
     def makeCenterFormula(self, bname, idx, expr):
         _tfm,pb,prop,factor = self.getBoneData(bname, expr)
-        if "HOffset" not in pb.keys():
-            pb.HOffset = Zero
+        if "HdOffset" not in pb.keys():
+            pb.HdOffset = Zero
         vec = Vector((0,0,0))
         vec[idx] = factor
-        self.setFcurves(pb, vec, prop, "HOffset", "pose")
+        self.setFcurves(pb, vec, prop, "HdOffset", "pose")
 
     #-------------------------------------------------------------
     #   Add posebone driver

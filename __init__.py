@@ -63,7 +63,7 @@ def importModules():
                     "guess", "convert", "files", "main", "finger",
                     "matedit", "tables", "proxy", "rigify", "merge", "hide",
                     "mhx", "layers", "hair", "transfer", "dforce",
-                    "hdmorphs", "facecap", "api"]
+                    "hdmorphs", "facecap", "api", "runtime.update"]
         if bpy.app.version >= (2,82,0):
             modnames += ["udim"]
         anchor = os.path.basename(__file__[0:-12])
@@ -112,6 +112,7 @@ def register():
         facecap.register()
     hdmorphs.register()
     dforce.register()
+    runtime.update.register()
 
     settings.GS.loadDefaults()
 
@@ -147,6 +148,7 @@ def unregister():
         facecap.unregister()
     hdmorphs.unregister()
     dforce.unregister()
+    runtime.update.unregister()
 
 
 if __name__ == "__main__":
