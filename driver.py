@@ -239,7 +239,8 @@ def getBoneDrivers(rig, pb):
     if rig.animation_data:
         path = 'pose.bones["%s"]' % pb.name
         return [fcu for fcu in rig.animation_data.drivers
-                if fcu.data_path.startswith(path)]
+                if (fcu.data_path.startswith(path) and
+                    not fcu.data_path.endswith("HdOffset"))]
     else:
         return []
 

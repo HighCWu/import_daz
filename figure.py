@@ -647,7 +647,7 @@ class ExtraBones(DriverUser):
             pb.DazLocLocks = db.DazLocLocks
 
 
-        from .driver import getBoneDrivers, getPropDrivers, getShapekeyDriver, removeDriverFCurves
+        from .driver import getShapekeyDriver
         from .fix import ConstraintStore
         if getattr(rig.data, self.attr):
             msg = "Rig %s already has extra %s bones" % (rig.name, self.type)
@@ -768,7 +768,6 @@ class DAZ_OT_SetAddExtraFaceBones(DazOperator, ExtraBones, IsArmature):
 
 
 def getAnchoredBoneNames(rig, anchors):
-    from .driver import isBoneDriven
     bnames = []
     keys = rig.pose.bones.keys()
     for anchor in anchors:
