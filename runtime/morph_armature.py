@@ -31,12 +31,11 @@
 # import_daz add-on is not available. A typical situation might be if you send
 # the blend file to an external rendering service.
 #
-# 1. Disable the import_daz add-on and press Save User Settings.
-# 2. Open this file (runtime/update.py) in a text editor window.
-# 3. Enable the Text > Register checkbox.
-# 4. Run the script (Run Script)
-# 5. Save the blend file.
-# 6. Reload the blend file.
+# 1. Open this file (runtime/morph_armature.py) in a text editor window.
+# 2. Enable the Text > Register checkbox.
+# 3. Run the script (Run Script)
+# 4. Save the blend file.
+# 5. Reload the blend file.
 #
 # ---------------------------------------------------------------------------
 

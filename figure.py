@@ -1729,7 +1729,7 @@ class DAZ_OT_CategorizeObjects(DazOperator, IsMeshArmature):
 class DAZ_OT_MorphArmature(DazOperator, IsArmature):
     bl_idname = "daz.morph_armature"
     bl_label = "Morph Armature"
-    bl_description = "Update the armature for ECR morphs"
+    bl_description = "Update the armature for ERC morphs"
 
     def run(self, context):
         from .runtime.morph_armature import getEditBones, morphArmature
