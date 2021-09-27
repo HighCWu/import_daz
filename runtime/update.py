@@ -29,7 +29,7 @@ import bpy
 from bpy.app.handlers import persistent
 from mathutils import Vector
 
-def morphArmature(rig):
+def getEditBones(rig):
     def d2b90(v):
         return scale*Vector((v[0], -v[2], v[1]))
 
@@ -48,15 +48,16 @@ def morphArmature(rig):
         heads[pb.name] = Vector(pb.DazHeadLocal)
         tails[pb.name] = Vector(pb.DazTailLocal)
         offsets[pb.name] = d2b90(pb.HdOffset)
-    bpy.ops.object.mode_set(mode='EDIT')
+    return heads, tails, offsets
+
+
+def morphArmature(rig, heads, tails, offsets):
     for eb in rig.data.edit_bones:
         head = heads[eb.name] + offsets[eb.name]
         if eb.use_connect and eb.parent:
             eb.parent.tail = head
         eb.head = head
         eb.tail = tails[eb.name] + offsets[eb.name]
-    bpy.ops.object.mode_set(mode='OBJECT')
-
 
 #----------------------------------------------------------
 #   Register
@@ -64,11 +65,20 @@ def morphArmature(rig):
 
 @persistent
 def updateHandler(scn):
+    data = []
     for ob in scn.objects:
         if (ob.type == 'ARMATURE' and
+            ob.select_get() and
             not ob.hide_get() and
             not ob.hide_viewport):
-            morphArmature(ob)
+            mode = ob.mode
+            heads, tails, offsets = getEditBones(ob)
+            data.append((ob, heads, tails, offsets))
+    if data:
+        bpy.ops.object.mode_set(mode='EDIT')
+        for ob, heads, tails, offsets in data:
+            morphArmature(ob, heads, tails, offsets)
+        bpy.ops.object.mode_set(mode=mode)
 
 
 def register():
