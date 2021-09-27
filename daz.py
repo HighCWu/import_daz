@@ -258,6 +258,7 @@ class DAZ_OT_GlobalSettings(DazOperator):
         box.prop(scn, "DazCustomMin")
         box.prop(scn, "DazCustomMax")
         box.prop(scn, "DazShowFinalProps")
+        box.prop(scn, "DazUseERC")
         box.prop(scn, "DazStripCategory")
         box.prop(scn, "DazUseModifiedMesh")
 
@@ -392,6 +393,10 @@ def register():
     bpy.types.Scene.DazShowFinalProps = BoolProperty(
         name = "Show Final Morph Values",
         description = "Display the \"final\" values of morphs")
+
+    bpy.types.Scene.DazUseERC = BoolProperty(
+        name = "ERC Morphs",
+        description = "Load support for ERC morphs that change the rest pose")
 
     bpy.types.Scene.DazStripCategory = BoolProperty(
         name = "Strip Category",

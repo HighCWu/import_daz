@@ -44,7 +44,6 @@ class LoadMorph(DriverUser):
     morphset = None
     usePropDrivers = True
     treatHD = 'ERROR'
-    useERC = False
 
     def __init__(self, rig, mesh):
         self.rig = rig
@@ -312,7 +311,7 @@ class LoadMorph(DriverUser):
                         self.makeScaleFormula(output, idx, expr)
                     elif key == "center_point":
                         self.erc = True
-                        if self.useERC:
+                        if GS.useERC:
                             self.makeCenterFormula(output, idx, expr)
                     elif key == "end_point":
                         self.erc = True

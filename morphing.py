@@ -1153,12 +1153,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, CustomMorphLoader, DazImageFile, Mu
         default = 'ERROR'
     )
 
-    useERC : BoolProperty(
-        name = "Load ERC morphs",
-        description = "Load support for ERC morphs that change the rest pose",
-        default = False)
-
-
     def draw(self, context):
         self.layout.prop(self, "usePropDrivers")
         if self.usePropDrivers:
@@ -1169,7 +1163,6 @@ class DAZ_OT_ImportCustomMorphs(DazOperator, CustomMorphLoader, DazImageFile, Mu
                 self.layout.prop(self, "category")
         self.layout.prop(self, "bodypart")
         self.layout.prop(self, "treatHD")
-        self.layout.prop(self, "useERC")
 
 
     def invoke(self, context, event):
