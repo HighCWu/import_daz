@@ -2754,7 +2754,8 @@ def register():
 
     bpy.types.Object.DazMorphPrefixes = BoolProperty(default = True)
     for morphset in theMorphSets:
-        setattr(bpy.types.Object, "Daz"+morphset, CollectionProperty(type = DazTextGroup))
+        setattr(bpy.types.Object, "Daz%s" % morphset, CollectionProperty(type = DazTextGroup))
+        setattr(bpy.types.Armature, "Daz%sIndex" % morphset, IntProperty(default=0))
     bpy.types.Object.DazMorphUrls = CollectionProperty(type = DazMorphInfoGroup)
     bpy.types.Object.DazAutoFollow = CollectionProperty(type = DazTextGroup)
     bpy.types.Object.DazAlias = CollectionProperty(type = DazStringGroup)
