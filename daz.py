@@ -489,12 +489,6 @@ def register():
     bpy.types.Scene.DazShowCloudDirs = BoolProperty(name = "Cloud Directories", default = False)
 
 
-    bpy.types.Scene.DazFilter = StringProperty(
-        name = "Filter",
-        description = "Filter string",
-        default = ""
-    )
-
     bpy.types.Scene.DazMaterialMethod = EnumProperty(
         items = EnumsMaterials,
         name = "Method",
