@@ -208,6 +208,7 @@ if bpy.app.version < (2,90,0):
         custom : StringProperty()
         morphs : CollectionProperty(type = DazTextGroup)
         active : BoolProperty(default=False)
+        index : IntProperty(default=0)
 
     class DazActiveGroup(bpy.types.PropertyGroup):
         active : BoolProperty(default=True)
@@ -216,6 +217,7 @@ else:
         custom : StringProperty()
         morphs : CollectionProperty(type = DazTextGroup)
         active : BoolProperty(default=False, override={'LIBRARY_OVERRIDABLE'})
+        index : IntProperty(default=0)
 
     class DazActiveGroup(bpy.types.PropertyGroup):
         active : BoolProperty(default=True, override={'LIBRARY_OVERRIDABLE'})
@@ -2748,7 +2750,7 @@ def register():
     bpy.types.Object.DazMorphPrefixes = BoolProperty(default = True)
     for morphset in theMorphSets:
         setattr(bpy.types.Object, "Daz%s" % morphset, CollectionProperty(type = DazTextGroup))
-        setattr(bpy.types.Armature, "Daz%sIndex" % morphset, IntProperty(default=0))
+        setattr(bpy.types.Armature, "DazIndex%s" % morphset, IntProperty(default=0))
     bpy.types.Object.DazMorphUrls = CollectionProperty(type = DazMorphInfoGroup)
     bpy.types.Object.DazAutoFollow = CollectionProperty(type = DazTextGroup)
     bpy.types.Object.DazAlias = CollectionProperty(type = DazStringGroup)
