@@ -121,13 +121,6 @@ def getMorphList(ob, morphset, sets=None):
     return mlist
 
 
-def getMorphCategory(rig, prop):
-    for cat in rig.DazMorphCats:
-        if prop in cat.morphs.keys():
-            return cat.name
-    return "Shapes"
-
-
 def getMorphsExternal(ob, morphset, category, activeOnly):
     def isActiveKey(key, rig):
         if rig:

@@ -621,68 +621,6 @@ class DAZ_OT_UpdateAll(DazOperator):
         updateAll(context)
 
 #----------------------------------------------------------
-#   Retarget mesh drivers
-#----------------------------------------------------------
-
-class DAZ_OT_RetargetDrivers(DazOperator, IsArmature):
-    bl_idname = "daz.retarget_mesh_drivers"
-    bl_label = "Retarget Mesh Drivers"
-    bl_description = "Retarget drivers of selected objects to active object"
-    bl_options = {'UNDO'}
-
-    def run(self, context):
-        rig = context.object
-        for ob in getSelectedObjects(context):
-            if ob != rig:
-                self.retargetRna(ob, rig)
-                if ob.data:
-                    self.retargetRna(ob.data, rig)
-                if ob.type == 'MESH' and ob.data.shape_keys:
-                    self.retargetRna(ob.data.shape_keys, rig)
-
-
-    def retargetRna(self, rna, rig):
-        from .morphing import addToCategories
-        if rna and rna.animation_data:
-            props = {}
-            for fcu in rna.animation_data.drivers:
-                for var in fcu.driver.variables:
-                    if var.type == 'SINGLE_PROP':
-                        trg = var.targets[0]
-                        words = trg.data_path.split('"')
-                        if len(words) == 3:
-                            prop = words[1]
-                            if prop not in rig.keys():
-                                min,max,cat = self.getOldData(trg, prop)
-                                if cat not in props.keys():
-                                    props[cat] = []
-                                props[cat].append(prop)
-                                setFloatProp(rig, prop, 0.0, min, max)
-                    for trg in var.targets:
-                        if trg.id_type == getIdType(rig):
-                            trg.id = rig
-            if props:
-                for cat,cprops in props.items():
-                    addToCategories(rig, cprops, cat)
-                rig.DazCustomMorphs = True
-            updateDrivers(rig)
-
-
-    def getOldData(self, trg, prop):
-        from .morphing import getMorphCategory
-        if not trg.id:
-            return GS.customMin, GS.customMax, "Shapes"
-        min = GS.customMin
-        max = GS.customMax
-        rna_ui = trg.id.get('_RNA_UI')
-        if rna_ui and "min" in rna_ui.keys():
-            min = rna_ui["min"]
-        if rna_ui and "max" in rna_ui.keys():
-            max = rna_ui["max"]
-        cat = getMorphCategory(trg.id, prop)
-        return min, max, cat
-
-#----------------------------------------------------------
 #   Copy props
 #----------------------------------------------------------
 
@@ -806,7 +744,6 @@ class DAZ_OT_EnableDrivers(DazOperator):
 #----------------------------------------------------------
 
 classes = [
-    DAZ_OT_RetargetDrivers,
     DAZ_OT_CopyProps,
     DAZ_OT_CopyBoneDrivers,
     DAZ_OT_UpdateAll,
