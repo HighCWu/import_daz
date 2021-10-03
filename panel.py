@@ -533,9 +533,19 @@ class DAZ_UL_CustomMorphs(DAZ_UL_MorphList):
         return "Custom", cat.name
 
 
-class DAZ_UL_Shapekeys(DAZ_UL_Morphs):
-    def getAmt(self, ob):
-        return ob.data.shape_keys
+class DAZ_UL_Shapekeys(DAZ_UL_MorphList):
+    def draw_item(self, context, layout, cat, morph, icon, active, indexProp):
+        ob = context.object
+        skeys = ob.data.shape_keys
+        key = morph.name
+        if skeys and key in skeys.key_blocks.keys():
+            skey = skeys.key_blocks[key]
+            row = layout.split(factor=0.8)
+            row.prop(skey, "value", text=morph.text)
+            self.showBool(row, ob, key)
+            op = row.operator("daz.pin_shape", icon='UNPINNED')
+            op.key = key
+            op.category = cat.name
 
 
 class DAZ_PT_Morphs:
@@ -623,32 +633,6 @@ class DAZ_PT_Morphs:
         self.layout.template_list( "DAZ_UL_Morphs", "",
                                    rig, "Daz%s" % self.morphset,
                                    rig.data, "DazIndex%s" % self.morphset )
-
-    def showBool(self, layout, ob, key, text=""):
-        from .morphing import getExistingActivateGroup
-        pg = getExistingActivateGroup(ob, key)
-        if pg is not None:
-            layout.prop(pg, "active", text=text)
-
-
-    def displayProp(self, morph, category, rig, amt, layout):
-        key = morph.name
-        if key not in rig.keys():
-            return
-        split = layout.split(factor=0.8)
-        final = finalProp(key)
-        if GS.showFinalProps and final in amt.keys():
-            split2 = split.split(factor=0.8)
-            split2.prop(rig, propRef(key), text=morph.text)
-            split2.label(text = "%.3f" % amt[final])
-        else:
-            split.prop(rig, propRef(key), text=morph.text)
-        row = split.row()
-        self.showBool(row, rig, key)
-        op = row.operator("daz.pin_prop_custom", icon='UNPINNED')
-        op.key = key
-        op.morphset = self.morphset
-        op.category = category
 
 
 class DAZ_PT_MorphGroup(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs):
@@ -786,12 +770,6 @@ class DAZ_PT_CustomMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, CustomDra
         self.activateLayout(box, cat.name, rig)
         self.keyLayout(box, cat.name, rig)
         self.layout.template_list("DAZ_UL_CustomMorphs", "", cat, "morphs", cat, "index")
-        return
-        box.prop(scn, "DazFilter", icon='VIEWZOOM', text="")
-        for morph in cat.morphs:
-            if (morph.name in rig.keys() and
-                filter in morph.text.lower()):
-                self.displayProp(morph, cat.name, rig, rig.data, box)
 
 
 class DAZ_PT_CustomMeshMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, CustomDrawItems):
@@ -862,21 +840,7 @@ class DAZ_PT_CustomMeshMorphs(DAZ_PT_Base, bpy.types.Panel, DAZ_PT_Morphs, Custo
             return
         self.activateLayout(box, cat.name, ob)
         self.keyLayout(box, cat.name, ob)
-        for morph in cat.morphs:
-            if (morph.name in skeys.key_blocks.keys() and
-                filter in morph.text.lower()):
-                skey = skeys.key_blocks[morph.name]
-                self.displayProp(morph, cat.name, ob, skey, box)
-
-
-    def displayProp(self, morph, category, ob, skey, layout):
-        key = morph.name
-        row = layout.split(factor=0.8)
-        row.prop(skey, "value", text=morph.text)
-        self.showBool(row, ob, key)
-        op = row.operator("daz.pin_shape", icon='UNPINNED')
-        op.key = key
-        op.category = category
+        self.layout.template_list("DAZ_UL_Shapekeys", "", cat, "morphs", cat, "index")
 
 #------------------------------------------------------------------------
 #    Simple IK Panel
@@ -1056,6 +1020,7 @@ classes = [
 
     DAZ_UL_Morphs,
     DAZ_UL_CustomMorphs,
+    DAZ_UL_Shapekeys,
 
     DAZ_PT_MorphGroup,
     DAZ_PT_Standard,
