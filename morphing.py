@@ -166,11 +166,59 @@ def getMorphsExternal(ob, morphset, category, activeOnly):
 #   Classes
 #-------------------------------------------------------------
 
-class MorphsetString:
+class MorphGroup:
     morphset : StringProperty(default = "")
     category : StringProperty(default = "")
     prefix : StringProperty(default = "")
     filter : StringProperty(default="")
+
+    def getRelevantMorphs(self, scn, rig):
+        filter = self.filter.lower()
+        morphs = []
+        if rig is None:
+            return morphs
+        if self.morphset == "Custom":
+            return self.getCustomMorphs(scn, rig)
+        elif rig.DazMorphPrefixes:
+            for key in rig.keys():
+                if key[0:2] == "Dz":
+                    raise DazError("OLD morphs", rig, key)
+        elif self.morphset == "All":
+            for mset in theStandardMorphSets:
+                pgs = getattr(rig, "Daz%s" % mset)
+                morphs += [key for key in pgs.keys() if filter in key.lower()]
+            for cat in rig.DazMorphCats:
+                morphs += [morph.name for morph in cat.morphs if filter in morph.name.lower()]
+        else:
+            pgs = getattr(rig, "Daz%s" % self.morphset)
+            morphs += [key for key in pgs.keys() if filter in key.lower()]
+        return morphs
+
+
+    def getCustomMorphs(self, scn, ob):
+        filter = self.filter.lower()
+        morphs = []
+        if self.category:
+            for cat in ob.DazMorphCats:
+                if cat.name == self.category:
+                    morphs = [morph.name for morph in cat.morphs if filter in morph.name.lower()]
+                    return morphs
+        else:
+            for cat in ob.DazMorphCats:
+                morphs += [morph.name for morph in cat.morphs if filter in morph.name.lower()]
+        return morphs
+
+
+    def getRelevantShapes(self, ob):
+        filter = self.filter.lower()
+        if self.category:
+            cats = [ob.DazMorphCats[self.category]]
+        else:
+            cats = ob.DazMorphCats
+        morphs = []
+        for cat in cats:
+            morphs += [morph for morph in cat.morphs if filter in morph.text.lower()]
+        return morphs
 
 
 class CategoryString:
@@ -1451,17 +1499,17 @@ def removeDrivingProps(rig, props):
 #   Select and unselect all
 #------------------------------------------------------------------------
 
-class Activator(MorphsetString):
+class Activator(MorphGroup):
     useMesh : BoolProperty(default=False)
 
     def run(self, context):
         scn = context.scene
         if self.useMesh:
             ob = context.object
-            morphs = getCustomMorphs(scn, ob, self.category, self.filter)
+            morphs = self.getCustomMorphs(scn, ob)
         else:
             ob = getRigFromObject(context.object)
-            morphs = getRelevantMorphs(scn, ob, self.morphset, self.category, self.filter)
+            morphs = self.getRelevantMorphs(scn, ob)
         for morph in morphs:
            setActivated(ob, morph, self.activate)
 
@@ -1559,57 +1607,8 @@ class DAZ_OT_Prettify(DazOperator):
 #   Clear morphs
 #------------------------------------------------------------------
 
-def getRelevantMorphs(scn, rig, morphset, category, filter):
-    filter = filter.lower()
-    morphs = []
-    if rig is None:
-        return morphs
-    if morphset == "Custom":
-        return getCustomMorphs(scn, rig, category, filter)
-    elif rig.DazMorphPrefixes:
-        for key in rig.keys():
-            if key[0:2] == "Dz":
-                raise DazError("OLD morphs", rig, key)
-    elif morphset == "All":
-        for mset in theStandardMorphSets:
-            pgs = getattr(rig, "Daz"+mset)
-            morphs += [key for key in pgs.keys() if filter in key.lower()]
-        for cat in rig.DazMorphCats:
-            morphs += [morph.name for morph in cat.morphs if filter in morph.name.lower()]
-    else:
-        pgs = getattr(rig, "Daz"+morphset)
-        morphs += [key for key in pgs.keys() if filter in key.lower()]
-    return morphs
-
-
-def getCustomMorphs(scn, ob, category, filter):
-    filter = filter.lower()
-    morphs = []
-    if category:
-        for cat in ob.DazMorphCats:
-            if cat.name == category:
-                morphs = [morph.name for morph in cat.morphs if filter in morph.name.lower()]
-                return morphs
-    else:
-        for cat in ob.DazMorphCats:
-            morphs += [morph.name for morph in cat.morphs if filter in morph.name.lower()]
-    return morphs
-
-
-def getRelevantShapes(ob, category, filter):
-    filter = filter.lower()
-    if category:
-        cats = [ob.DazMorphCats[category]]
-    else:
-        cats = ob.DazMorphCats
-    morphs = []
-    for cat in cats:
-        morphs += [morph for morph in cat.morphs if filter in morph.text.lower()]
-    return morphs
-
-
-def setMorphs(value, rig, morphset, category, filter, scn, frame, force):
-    morphs = getRelevantMorphs(scn, rig, morphset, category, filter)
+def setMorphs(value, rig, mgrp, scn, frame, force):
+    morphs = mgrp.getRelevantMorphs(scn, rig)
     for morph in morphs:
         if (getActivated(rig, rig, morph, force) and
             isinstance(rig[morph], float)):
@@ -1617,18 +1616,18 @@ def setMorphs(value, rig, morphset, category, filter, scn, frame, force):
             autoKeyProp(rig, morph, scn, frame, force)
 
 
-def setShapes(value, ob, category, filter, scn, frame):
+def setShapes(value, ob, mgrp, scn, frame):
     skeys = ob.data.shape_keys
     if skeys is None:
         return
-    morphs = getRelevantShapes(ob, category, filter)
+    morphs = mgrp.getRelevantShapes(ob)
     for morph in morphs:
         if getActivated(ob, skeys.key_blocks, morph.name):
             skeys.key_blocks[morph.name].value = value
             autoKeyShape(skeys, morph.name, scn, frame)
 
 
-class DAZ_OT_ClearMorphs(DazOperator, MorphsetString, IsMeshArmature):
+class DAZ_OT_ClearMorphs(DazOperator, MorphGroup, IsMeshArmature):
     bl_idname = "daz.clear_morphs"
     bl_label = "Clear Morphs"
     bl_description = "Set all selected morphs of specified type to zero.\nDoes not affect integer properties"
@@ -1638,11 +1637,11 @@ class DAZ_OT_ClearMorphs(DazOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            setMorphs(0.0, rig, self.morphset, self.category, self.filter, scn, scn.frame_current, False)
+            setMorphs(0.0, rig, self, scn, scn.frame_current, False)
             updateRigDrivers(context, rig)
 
 
-class DAZ_OT_SetMorphs(DazPropsOperator, MorphsetString, IsMeshArmature):
+class DAZ_OT_SetMorphs(DazPropsOperator, MorphGroup, IsMeshArmature):
     bl_idname = "daz.set_morphs"
     bl_label = "Set Morphs"
     bl_description = "Set all selected morphs of specified type to given value.\nDoes not affect integer properties"
@@ -1660,11 +1659,11 @@ class DAZ_OT_SetMorphs(DazPropsOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            setMorphs(self.value, rig, self.morphset, self.category, self.filter, scn, scn.frame_current, False)
+            setMorphs(self.value, rig, self, scn, scn.frame_current, False)
             updateRigDrivers(context, rig)
 
 
-class DAZ_OT_ClearShapes(DazOperator, MorphsetString, IsMesh):
+class DAZ_OT_ClearShapes(DazOperator, MorphGroup, IsMesh):
     bl_idname = "daz.clear_shapes"
     bl_label = "Clear Shapes"
     bl_description = "Set all selected shapekey values of specified type to zero"
@@ -1672,10 +1671,10 @@ class DAZ_OT_ClearShapes(DazOperator, MorphsetString, IsMesh):
 
     def run(self, context):
         scn = context.scene
-        setShapes(0.0, context.object, self.category, self.filter, scn, scn.frame_current)
+        setShapes(0.0, context.object, self, scn, scn.frame_current)
 
 
-class DAZ_OT_SetShapes(DazPropsOperator, MorphsetString, IsMesh):
+class DAZ_OT_SetShapes(DazPropsOperator, MorphGroup, IsMesh):
     bl_idname = "daz.set_shapes"
     bl_label = "Set Shapes"
     bl_description = "Set all selected shapekey values of specified type to given value.\nDoes not affect integer properties"
@@ -1691,13 +1690,13 @@ class DAZ_OT_SetShapes(DazPropsOperator, MorphsetString, IsMesh):
 
     def run(self, context):
         scn = context.scene
-        setShapes(self.value, context.object, self.category, self.filter, scn, scn.frame_current)
+        setShapes(self.value, context.object, self, scn, scn.frame_current)
 
 #------------------------------------------------------------------
 #   Add morphs to keyset
 #------------------------------------------------------------------
 
-class DAZ_OT_AddKeysets(DazOperator, MorphsetString, IsMeshArmature):
+class DAZ_OT_AddKeysets(DazOperator, MorphGroup, IsMeshArmature):
     bl_idname = "daz.add_keyset"
     bl_label = "Keyset"
     bl_description = "Add selected morphs to active custom keying set, or make new one"
@@ -1711,7 +1710,7 @@ class DAZ_OT_AddKeysets(DazOperator, MorphsetString, IsMeshArmature):
             if aksi <= -1:
                 aks = scn.keying_sets.new(idname = "daz_morphs", name = "daz_morphs")
             aks = scn.keying_sets.active
-            morphs = getRelevantMorphs(scn, rig, self.morphset, self.category, self.filter)
+            morphs = self.getRelevantMorphs(scn, rig)
             for morph in morphs:
                 if getActivated(rig, rig, morph):
                     aks.paths.add(rig.id_data, propRef(morph))
@@ -1721,7 +1720,7 @@ class DAZ_OT_AddKeysets(DazOperator, MorphsetString, IsMeshArmature):
 #   Set morph keys
 #------------------------------------------------------------------
 
-class DAZ_OT_KeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
+class DAZ_OT_KeyMorphs(DazOperator, MorphGroup, IsMeshArmature):
     bl_idname = "daz.key_morphs"
     bl_label = "Set Keys"
     bl_description = "Set keys for all selected morphs of specified type at current frame"
@@ -1731,14 +1730,14 @@ class DAZ_OT_KeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig:
             scn = context.scene
-            morphs = getRelevantMorphs(scn, rig, self.morphset, self.category, self.filter)
+            morphs = self.getRelevantMorphs(scn, rig)
             for morph in morphs:
                 if getActivated(rig, rig, morph):
                     keyProp(rig, morph, scn.frame_current)
             updateRigDrivers(context, rig)
 
 
-class DAZ_OT_KeyShapes(DazOperator, MorphsetString, IsMesh):
+class DAZ_OT_KeyShapes(DazOperator, MorphGroup, IsMesh):
     bl_idname = "daz.key_shapes"
     bl_label = "Set Keys"
     bl_description = "Set keys for all shapes of specified type at current frame"
@@ -1749,7 +1748,7 @@ class DAZ_OT_KeyShapes(DazOperator, MorphsetString, IsMesh):
         skeys = ob.data.shape_keys
         if skeys:
             scn = context.scene
-            morphs = getRelevantShapes(ob, self.category, self.filter)
+            morphs = self.getRelevantShapes(ob)
             for morph in morphs:
                 if getActivated(ob, skeys.key_blocks, morph.name):
                     keyShape(skeys, morph.name, scn.frame_current)
@@ -1758,7 +1757,7 @@ class DAZ_OT_KeyShapes(DazOperator, MorphsetString, IsMesh):
 #   Remove morph keys
 #------------------------------------------------------------------
 
-class DAZ_OT_UnkeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
+class DAZ_OT_UnkeyMorphs(DazOperator, MorphGroup, IsMeshArmature):
     bl_idname = "daz.unkey_morphs"
     bl_label = "Remove Keys"
     bl_description = "Remove keys from all selected morphs of specified type at current frame"
@@ -1768,14 +1767,14 @@ class DAZ_OT_UnkeyMorphs(DazOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         if rig and rig.animation_data and rig.animation_data.action:
             scn = context.scene
-            morphs = getRelevantMorphs(scn, rig, self.morphset, self.category, self.filter)
+            morphs = self.getRelevantMorphs(scn, rig)
             for morph in morphs:
                 if getActivated(rig, rig, morph):
                     unkeyProp(rig, morph, scn.frame_current)
             updateRigDrivers(context, rig)
 
 
-class DAZ_OT_UnkeyShapes(DazOperator, MorphsetString, IsMesh):
+class DAZ_OT_UnkeyShapes(DazOperator, MorphGroup, IsMesh):
     bl_idname = "daz.unkey_shapes"
     bl_label = "Remove Keys"
     bl_description = "Remove keys from all shapekeys of specified type at current frame"
@@ -1786,7 +1785,7 @@ class DAZ_OT_UnkeyShapes(DazOperator, MorphsetString, IsMesh):
         skeys = ob.data.shape_keys
         if skeys and skeys.animation_data and skeys.animation_data.action:
             scn = context.scene
-            morphs = getRelevantShapes(ob, self.category, self.filter)
+            morphs = self.getRelevantShapes(ob)
             for morph in morphs:
                 if getActivated(ob, skeys.key_blocks, morph.name):
                     unkeyShape(skeys, morph.name, scn.frame_current)
@@ -2264,22 +2263,22 @@ def autoKeyShape(skeys, key, scn, frame):
         keyShape(skeys, key, frame)
 
 
-def pinProp(rig, scn, key, morphset, category, filter, frame, value=1.0):
+def pinProp(rig, scn, key, mgrp, frame, value=1.0):
     if rig:
-        setMorphs(0.0, rig, morphset, category, filter, scn, frame, True)
+        setMorphs(0.0, rig, mgrp, scn, frame, True)
         rig[key] = value
         autoKeyProp(rig, key, scn, frame, True)
 
 
-def pinShape(ob, scn, key, category, filter, frame):
+def pinShape(ob, scn, key, mgrp, frame):
     skeys = ob.data.shape_keys
     if skeys:
-        clearShapes(ob, category, filter, scn, frame)
+        clearShapes(ob, mgrp, scn, frame)
         skeys.key_blocks[key].value = 1.0
         autoKeyShape(skeys, key, scn, frame)
 
 
-class DAZ_OT_PinProp(DazOperator, MorphsetString, IsMeshArmature):
+class DAZ_OT_PinProp(DazOperator, MorphGroup, IsMeshArmature):
     bl_idname = "daz.pin_prop"
     bl_label = ""
     bl_description = "Pin property"
@@ -2291,11 +2290,11 @@ class DAZ_OT_PinProp(DazOperator, MorphsetString, IsMeshArmature):
         rig = getRigFromObject(context.object)
         scn = context.scene
         setupMorphPaths(False)
-        pinProp(rig, scn, self.key, self.morphset, self.category, self.filter, scn.frame_current)
+        pinProp(rig, scn, self.key, self, scn.frame_current)
         updateRigDrivers(context, rig)
 
 
-class DAZ_OT_PinShape(DazOperator, MorphsetString, IsMesh):
+class DAZ_OT_PinShape(DazOperator, MorphGroup, IsMesh):
     bl_idname = "daz.pin_shape"
     bl_label = ""
     bl_description = "Pin shapekey value"
@@ -2306,7 +2305,7 @@ class DAZ_OT_PinShape(DazOperator, MorphsetString, IsMesh):
     def run(self, context):
         ob = context.object
         scn = context.scene
-        pinShape(ob, scn, self.key, self.category, self.filter, scn.frame_current)
+        pinShape(ob, scn, self.key, self, scn.frame_current)
 
 # ---------------------------------------------------------------------
 #   Load Moho
@@ -2376,12 +2375,14 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile, IsMeshArm
             frames = self.improveMoho(frames)
             if self.useUpdateLimits:
                 self.updateLimits(rig)
+        mgrp = MorphGroup()
+        mgrp.morphgroup = "Visemes"
         for frame,moho,value in frames:
             if moho == "rest":
-                setMorphs(0.0, rig, "Visemes", "", "", scn, frame, True)
+                setMorphs(0.0, rig, mgrp, scn, frame, True)
             else:
                 prop = self.getMohoKey(moho, rig)
-                pinProp(rig, scn, prop, "Visemes", "", "", frame+frame0, value=value)
+                pinProp(rig, scn, prop, mgrp, frame+frame0, value=value)
         self.nameAction(rig)
         print("Moho file %s loaded" % self.filepath)
 
