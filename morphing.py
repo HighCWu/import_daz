@@ -170,10 +170,22 @@ class MorphGroup:
     morphset : StringProperty(default = "")
     category : StringProperty(default = "")
     prefix : StringProperty(default = "")
-    filter : StringProperty(default="")
+    filterType : IntProperty(default = 0)
+
+    def init(self, morphset, category, prefix, filterType):
+        self.morphset = morphset
+        self.category = category
+        self.prefix = prefix
+        self.filterType = filterType
+
+
+    def getFiltered(self):
+        from .panel import filterFlags
+        return filterFlags[self.filterType]
+
 
     def getRelevantMorphs(self, scn, rig):
-        filter = self.filter.lower()
+        filtered = self.getFiltered()
         morphs = []
         if rig is None:
             return morphs
@@ -186,38 +198,38 @@ class MorphGroup:
         elif self.morphset == "All":
             for mset in theStandardMorphSets:
                 pgs = getattr(rig, "Daz%s" % mset)
-                morphs += [key for key in pgs.keys() if filter in key.lower()]
+                morphs += [key for key in pgs.keys()]
             for cat in rig.DazMorphCats:
-                morphs += [morph.name for morph in cat.morphs if filter in morph.name.lower()]
+                morphs += [morph.name for morph in cat.morphs]
         else:
             pgs = getattr(rig, "Daz%s" % self.morphset)
-            morphs += [key for key in pgs.keys() if filter in key.lower()]
+            morphs += [key for key,on in zip(pgs.keys(), filtered) if on]
         return morphs
 
 
     def getCustomMorphs(self, scn, ob):
-        filter = self.filter.lower()
+        filtered = self.getFiltered()
         morphs = []
         if self.category:
             for cat in ob.DazMorphCats:
                 if cat.name == self.category:
-                    morphs = [morph.name for morph in cat.morphs if filter in morph.name.lower()]
+                    morphs = [morph.name for morph,on in zip(cat.morphs, filtered) if on]
                     return morphs
         else:
             for cat in ob.DazMorphCats:
-                morphs += [morph.name for morph in cat.morphs if filter in morph.name.lower()]
+                morphs += [morph.name for morph,on in zip(cat.morphs, filtered) if on]
         return morphs
 
 
     def getRelevantShapes(self, ob):
-        filter = self.filter.lower()
+        filtered = self.getFiltered()
         if self.category:
             cats = [ob.DazMorphCats[self.category]]
         else:
             cats = ob.DazMorphCats
         morphs = []
         for cat in cats:
-            morphs += [morph for morph in cat.morphs if filter in morph.text.lower()]
+            morphs += [morph for morph,on in zip(cat.morphs, filtered) if on]
         return morphs
 
 
@@ -2376,7 +2388,7 @@ class DAZ_OT_LoadMoho(DazOperator, DatFile, ActionOptions, SingleFile, IsMeshArm
             if self.useUpdateLimits:
                 self.updateLimits(rig)
         mgrp = MorphGroup()
-        mgrp.morphgroup = "Visemes"
+        mgrp.init("Visemes", "", "", 0)
         for frame,moho,value in frames:
             if moho == "rest":
                 setMorphs(0.0, rig, mgrp, scn, frame, True)
