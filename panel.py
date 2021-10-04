@@ -485,6 +485,7 @@ class DAZ_PT_Posing(DAZ_PT_Base, bpy.types.Panel):
 #----------------------------------------------------------
 
 filterFlags = {0: [], 1: [], 2: []}
+filterInvert = {0: False, 1: False, 2: False}
 
 class DAZ_UL_MorphList(bpy.types.UIList):
     def draw_item(self, context, layout, data, morph, icon, active, indexProp):
@@ -526,17 +527,18 @@ class DAZ_UL_MorphList(bpy.types.UIList):
 
 
     def filter_items(self, context, data, propname):
-        global filterFlags
+        global filterFlags, filterInvert
         morphs = getattr(data, propname)
         helper_funcs = bpy.types.UI_UL_list
         flt_flags = []
         if self.filter_name:
             flt_flags = helper_funcs.filter_items_by_name(
-                self.filter_name, self.bitflag_filter_item, morphs, "text", reverse=self.use_filter_invert)
+                self.filter_name, self.bitflag_filter_item, morphs, "text")
         if not flt_flags:
             flt_flags = [self.bitflag_filter_item] * len(morphs)
         flt_neworder = helper_funcs.sort_items_by_name(morphs, "text")
         filterFlags[self.filterType] = flt_flags
+        filterInvert[self.filterType] = self.use_filter_invert
         return flt_flags, flt_neworder
 
 

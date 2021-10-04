@@ -180,8 +180,11 @@ class MorphGroup:
 
 
     def getFiltered(self):
-        from .panel import filterFlags
-        return filterFlags[self.filterType]
+        from .panel import filterFlags, filterInvert
+        if filterInvert[self.filterType]:
+            return [(f == 0) for f in filterFlags[self.filterType]]
+        else:
+            return filterFlags[self.filterType]
 
 
     def getRelevantMorphs(self, scn, rig):
