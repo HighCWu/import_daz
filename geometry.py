@@ -240,6 +240,7 @@ class GeoNode(Node, SimNode):
 
 
     def finishHD(self, context, ob, hdob, inst):
+        from .finger import getFingerPrint
         if hdob != ob:
             self.copyHDMaterials(ob, hdob, context, inst)
         if LS.hdcollection is None:
@@ -251,6 +252,9 @@ class GeoNode(Node, SimNode):
         LS.hdcollection.objects.link(hdob)
         if hdob.parent and hdob.parent.name not in LS.hdcollection.objects:
             LS.hdcollection.objects.link(hdob.parent)
+        hdob.data.DazFingerPrint = getFingerPrint(hdob)
+        if hdob.data.DazFingerPrint == ob.data.DazFingerPrint:
+            hdob.DazMesh = ob.DazMesh
         if hdob == ob:
             return
         hdob.parent = ob.parent
