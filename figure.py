@@ -977,12 +977,24 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
         "and the bones have been made poseable")
     bl_options = {'UNDO'}
 
+    useArms : BoolProperty(
+        name = "Arm IK",
+        description = "Add IK to arms",
+        default = True)
+
+    useLegs : BoolProperty(
+        name = "Leg IK",
+        description = "Add IK to legs",
+        default = True)
+
     usePoleTargets : BoolProperty(
         name = "Pole Targets",
         description = "Add pole targets to the IK chains.\nPoses will not be loaded correctly.",
         default = False)
 
     def draw(self, context):
+        self.layout.prop(self, "useArms")
+        self.layout.prop(self, "useLegs")
         self.layout.prop(self, "usePoleTargets")
 
 
@@ -1032,102 +1044,114 @@ class DAZ_OT_AddSimpleIK(DazPropsOperator, IsArmature):
         setMode('EDIT')
         ebones = rig.data.edit_bones
         for prefix in ["l", "r"]:
-            hand = ebones[prefix+"Hand"]
-            handIK = makeBone(prefix+"HandIK", rig, hand.head, hand.tail, hand.roll, 0, None)
-            foot = ebones[prefix+"Foot"]
-            footIK = makeBone(prefix+"FootIK", rig, foot.head, foot.tail, foot.roll, 0, None)
-            if genesis == "G38":
-                forearm = ebones[prefix+"ForearmBend"]
-            else:
-                forearm = ebones[prefix+"ForeArm"]
-            collar = ebones[prefix+"Collar"]
-            shin = ebones[prefix+"Shin"]
-            hip = ebones["hip"]
-            if IK.usePoleTargets:
-                elbow = makePole(prefix+"Elbow", rig, forearm, collar)
-                knee = makePole(prefix+"Knee", rig, shin, hip)
+            if self.useArms:
+                hand = ebones[prefix+"Hand"]
+                handIK = makeBone(prefix+"HandIK", rig, hand.head, hand.tail, hand.roll, 0, None)
+                if genesis == "G38":
+                    forearm = ebones[prefix+"ForearmBend"]
+                else:
+                    forearm = ebones[prefix+"ForeArm"]
+                collar = ebones[prefix+"Collar"]
+                if IK.usePoleTargets:
+                    elbow = makePole(prefix+"Elbow", rig, forearm, collar)
+
+            if self.useLegs:
+                foot = ebones[prefix+"Foot"]
+                footIK = makeBone(prefix+"FootIK", rig, foot.head, foot.tail, foot.roll, 0, None)
+                shin = ebones[prefix+"Shin"]
+                hip = ebones["hip"]
+                if IK.usePoleTargets:
+                    knee = makePole(prefix+"Knee", rig, shin, hip)
 
         setMode('OBJECT')
         rpbs = rig.pose.bones
         for prefix in ["l", "r"]:
             suffix = prefix.upper()
-            armProp = "DazArmIK_" + suffix
-            hand = rpbs[prefix+"Hand"]
-            driveConstraint(hand, 'LIMIT_ROTATION', rig, armProp, "1-x")
-            handIK = getBoneCopy(prefix+"HandIK", hand, rpbs)
-            copyRotation(hand, handIK, rig, prop=armProp, space='WORLD')
-            handIK.custom_shape = csHandIk
-            addToLayer(handIK, "IK Arm", rig, "IK")
-
-            legProp = "DazLegIK_" + suffix
-            foot = rpbs[prefix+"Foot"]
-            driveConstraint(foot, 'LIMIT_ROTATION', rig, legProp, "1-x")
-            footIK = getBoneCopy(prefix+"FootIK", foot, rpbs)
-            copyRotation(foot, footIK, rig, prop=legProp, space='WORLD')
-            footIK.custom_shape = csFootIk
-            addToLayer(footIK, "IK Leg", rig, "IK")
+            if self.useArms:
+                armProp = "DazArmIK_" + suffix
+                hand = rpbs[prefix+"Hand"]
+                driveConstraint(hand, 'LIMIT_ROTATION', rig, armProp, "1-x")
+                handIK = getBoneCopy(prefix+"HandIK", hand, rpbs)
+                copyRotation(hand, handIK, rig, prop=armProp, space='WORLD')
+                handIK.custom_shape = csHandIk
+                addToLayer(handIK, "IK Arm", rig, "IK")
+            if self.useLegs:
+                legProp = "DazLegIK_" + suffix
+                foot = rpbs[prefix+"Foot"]
+                driveConstraint(foot, 'LIMIT_ROTATION', rig, legProp, "1-x")
+                footIK = getBoneCopy(prefix+"FootIK", foot, rpbs)
+                copyRotation(foot, footIK, rig, prop=legProp, space='WORLD')
+                footIK.custom_shape = csFootIk
+                addToLayer(footIK, "IK Leg", rig, "IK")
 
             if genesis == "G38":
-                setCustomShapeScale(handIK, 1.5)
-                shldrBend = rpbs[prefix+"ShldrBend"]
-                IK.limitBone(shldrBend, False, rig, armProp)
-                shldrTwist = rpbs[prefix+"ShldrTwist"]
-                IK.limitBone(shldrTwist, True, rig, armProp)
-                forearmBend = rpbs[prefix+"ForearmBend"]
-                IK.limitBone(forearmBend, False, rig, armProp)
-                forearmTwist = rpbs[prefix+"ForearmTwist"]
-                IK.limitBone(forearmTwist, True, rig, armProp)
-
-                setCustomShapeScale(footIK, 3.0)
-                thighBend = rpbs[prefix+"ThighBend"]
-                IK.limitBone(thighBend, False, rig, legProp, stiffness=(0,0,0.326))
-                thighTwist = rpbs[prefix+"ThighTwist"]
-                IK.limitBone(thighTwist, True, rig, legProp, stiffness=(0,0.160,0))
-                shin = rpbs[prefix+"Shin"]
-                IK.limitBone(shin, False, rig, legProp, stiffness=(0.068,0,0.517))
-                fixIk(rig, [shin.name])
+                if self.useArms:
+                    setCustomShapeScale(handIK, 1.5)
+                    shldrBend = rpbs[prefix+"ShldrBend"]
+                    IK.limitBone(shldrBend, False, rig, armProp)
+                    shldrTwist = rpbs[prefix+"ShldrTwist"]
+                    IK.limitBone(shldrTwist, True, rig, armProp)
+                    forearmBend = rpbs[prefix+"ForearmBend"]
+                    IK.limitBone(forearmBend, False, rig, armProp)
+                    forearmTwist = rpbs[prefix+"ForearmTwist"]
+                    IK.limitBone(forearmTwist, True, rig, armProp)
+                if self.useLegs:
+                    setCustomShapeScale(footIK, 3.0)
+                    thighBend = rpbs[prefix+"ThighBend"]
+                    IK.limitBone(thighBend, False, rig, legProp, stiffness=(0,0,0.326))
+                    thighTwist = rpbs[prefix+"ThighTwist"]
+                    IK.limitBone(thighTwist, True, rig, legProp, stiffness=(0,0.160,0))
+                    shin = rpbs[prefix+"Shin"]
+                    IK.limitBone(shin, False, rig, legProp, stiffness=(0.068,0,0.517))
+                    fixIk(rig, [shin.name])
 
             elif genesis == "G12":
-                setCustomShapeScale(handIK, 3.0)
-                shldr = rpbs[prefix+"Shldr"]
-                IK.limitBone(shldr, False, rig, armProp)
-                forearm = rpbs[prefix+"ForeArm"]
-                IK.limitBone(forearm, False, rig, armProp)
-
-                setCustomShapeScale(footIK, 1.5)
-                thigh = rpbs[prefix+"Thigh"]
-                IK.limitBone(thigh, False, rig, legProp)
-                shin = rpbs[prefix+"Shin"]
-                IK.limitBone(shin, False, rig, legProp)
-                fixIk(rig, [shin.name])
+                if self.useArms:
+                    setCustomShapeScale(handIK, 3.0)
+                    shldr = rpbs[prefix+"Shldr"]
+                    IK.limitBone(shldr, False, rig, armProp)
+                    forearm = rpbs[prefix+"ForeArm"]
+                    IK.limitBone(forearm, False, rig, armProp)
+                if self.useLegs:
+                    setCustomShapeScale(footIK, 1.5)
+                    thigh = rpbs[prefix+"Thigh"]
+                    IK.limitBone(thigh, False, rig, legProp)
+                    shin = rpbs[prefix+"Shin"]
+                    IK.limitBone(shin, False, rig, legProp)
+                    fixIk(rig, [shin.name])
 
             if IK.usePoleTargets:
-                elbow = rpbs[prefix+"Elbow"]
-                elbow.lock_rotation = (True,True,True)
-                elbow.custom_shape = csCube
-                addToLayer(elbow, "IK Arm", rig, "IK")
-                stretch = rpbs[stretchName(elbow.name)]
-                stretchTo(stretch, elbow, rig)
-                addToLayer(stretch, "IK Arm", rig, "IK")
-                stretch.lock_rotation = stretch.lock_location = (True,True,True)
-
-                knee = rpbs[prefix+"Knee"]
-                knee.lock_rotation = (True,True,True)
-                knee.custom_shape = csCube
-                addToLayer(knee, "IK Leg", rig, "IK")
-                stretch = rpbs[stretchName(knee.name)]
-                stretchTo(stretch, knee, rig)
-                addToLayer(stretch, "IK Leg", rig, "IK")
-                stretch.lock_rotation = stretch.lock_location = (True,True,True)
+                if self.useArms:
+                    elbow = rpbs[prefix+"Elbow"]
+                    elbow.lock_rotation = (True,True,True)
+                    elbow.custom_shape = csCube
+                    addToLayer(elbow, "IK Arm", rig, "IK")
+                    stretch = rpbs[stretchName(elbow.name)]
+                    stretchTo(stretch, elbow, rig)
+                    addToLayer(stretch, "IK Arm", rig, "IK")
+                    stretch.lock_rotation = stretch.lock_location = (True,True,True)
+                if self.useLegs:
+                    knee = rpbs[prefix+"Knee"]
+                    knee.lock_rotation = (True,True,True)
+                    knee.custom_shape = csCube
+                    addToLayer(knee, "IK Leg", rig, "IK")
+                    stretch = rpbs[stretchName(knee.name)]
+                    stretchTo(stretch, knee, rig)
+                    addToLayer(stretch, "IK Leg", rig, "IK")
+                    stretch.lock_rotation = stretch.lock_location = (True,True,True)
             else:
                 elbow = knee = None
 
             if genesis == "G38":
-                ikConstraint(forearmTwist, handIK, elbow, -90, 4, rig, prop=armProp)
-                ikConstraint(shin, footIK, knee, -90, 3, rig, prop=legProp)
+                if self.useArms:
+                    ikConstraint(forearmTwist, handIK, elbow, -90, 4, rig, prop=armProp)
+                if self.useLegs:
+                    ikConstraint(shin, footIK, knee, -90, 3, rig, prop=legProp)
             else:
-                ikConstraint(forearm, handIK, elbow, -90, 2, rig, prop=armProp)
-                ikConstraint(shin, footIK, knee, -90, 2, rig, prop=legProp)
+                if self.useArms:
+                    ikConstraint(forearm, handIK, elbow, -90, 2, rig, prop=armProp)
+                if self.useLegs:
+                    ikConstraint(shin, footIK, knee, -90, 2, rig, prop=legProp)
 
         from .node import createHiddenCollection
         hidden = createHiddenCollection(context, rig)
