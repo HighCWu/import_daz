@@ -26,6 +26,7 @@
 # either expressed or implied, of the FreeBSD Project.
 
 from . import globvars as G
+from .error import DazError
 
 #----------------------------------------------------------
 #   Api functions available for external scripting
@@ -114,7 +115,23 @@ def set_selection(files):
     if isinstance(files, list):
         G.theFilePaths = files
     else:
-        raise DazError("File paths must be a list of strings")
+        try:
+            raise DazError("File paths must be a list of strings")
+        except:
+            pass
+
+
+def update_drivers(ob):
+    """update_drivers(ob)
+
+    Update drivers of the active armature
+
+    Arguments:
+    ?ob: Active object
+    """
+    from .utils import updateDrivers
+    updateDrivers(ob)
+    updateDrivers(ob.data)
 
 #-------------------------------------------------------------
 #   Paths used by Xin's HD-morphs add-on
