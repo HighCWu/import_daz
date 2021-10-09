@@ -63,12 +63,8 @@ class MeshSelector(Selector):
         return self.invokeDialog(context)
 
 
-    def getMeshSelection(self, context):
-        meshes = []
-        for item in self.getSelectedItems():
-            ob = bpy.data.objects[item.name]
-            meshes.append(ob)
-        return meshes
+    def getMeshSelection(self):
+        return [bpy.data.objects[item.name] for item in self.getSelectedItems()]
 
 #------------------------------------------------------------------------
 #    Setup: Add and remove hide drivers
@@ -108,7 +104,7 @@ class DAZ_OT_AddVisibility(DazOperator, MeshSelector, SingleGroup, IsArmature):
     def run(self, context):
         rig = context.object
         print("Create visibility drivers for %s:" % rig.name)
-        selected = self.getMeshSelection(context)
+        selected = self.getMeshSelection()
         if self.singleGroup:
             obnames = [self.groupName]
             for ob in selected:
@@ -304,7 +300,7 @@ class DAZ_OT_CreateMasks(DazOperator, MeshSelector, SingleGroup, IsMesh):
             print("  ", modname)
             self.createMask(context.object, modname)
         else:
-            for ob in self.getMeshSelection(context):
+            for ob in self.getMeshSelection():
                 modname = getMaskName(ob.name)
                 print("  ", ob.name, modname)
                 self.createMask(context.object, modname)
@@ -366,7 +362,7 @@ class DAZ_OT_AddShrinkwrap(DazOperator, MeshSelector, IsMesh):
 
     def run(self, context):
         hum = context.object
-        for ob in self.getMeshSelection(context):
+        for ob in self.getMeshSelection():
             activateObject(context, ob)
             self.makeShrinkwrap(ob, hum)
             if self.useSolidify:
