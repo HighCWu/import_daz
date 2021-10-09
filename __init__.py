@@ -92,7 +92,6 @@ def register():
     fix.register()
     geometry.register()
     guess.register()
-    hide.register()
     layers.register()
     main.register()
     material.register()
@@ -106,6 +105,7 @@ def register():
     objfile.register()
     proxy.register()
     rigify.register()
+    hide.register()
     transfer.register()
     panel.register()
     if bpy.app.version >= (2,82,0):
@@ -128,7 +128,6 @@ def unregister():
     fix.unregister()
     geometry.unregister()
     guess.unregister()
-    hide.unregister()
     layers.unregister()
     main.unregister()
     material.unregister()
@@ -141,6 +140,7 @@ def unregister():
     objfile.unregister()
     proxy.unregister()
     rigify.unregister()
+    hide.unregister()
     transfer.unregister()
     panel.unregister()
     if bpy.app.version >= (2,82,0):

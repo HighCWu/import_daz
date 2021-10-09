@@ -2812,14 +2812,6 @@ def register():
         name = "New Name",
         default = "Name")
 
-    bpy.types.Scene.DazSelector = CollectionProperty(type = DazSelectGroup)
-
-    bpy.types.Scene.DazFilter = StringProperty(
-        name = "Filter",
-        description = "Filter string",
-        default = ""
-    )
-
 
 def unregister():
     for cls in classes:
