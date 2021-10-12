@@ -139,7 +139,7 @@ class GeoNode(Node, SimNode):
             if not (GS.useMultires and GS.useMultiUvLayers):
                 self.addHDUvs(ob, hdob)
             if GS.useMultires:
-                multi = addMultires(context, hdob, False)
+                multi = addMultires(context, ob, hdob, False)
             if multi:
                 if GS.useMultiUvLayers:
                     copyUvLayers(ob, hdob)
@@ -373,21 +373,30 @@ def isEmpty(vgrp, ob):
 #   Add multires
 #-------------------------------------------------------------
 
-def addMultires(context, hdob, strict):
+def addMultires(context, ob, hdob, strict):
+    from .finger import getFingerPrint
     if bpy.app.version < (2,90,0):
         print("Cannot rebuild subdiv in Blender %d.%d.%d" % bpy.app.version)
         return False
     activateObject(context, hdob)
+    hdme = hdob.data.copy()
     setMode('EDIT')
     bpy.ops.mesh.delete_loose()
     setMode('OBJECT')
     mod = hdob.modifiers.new("Multires", 'MULTIRES')
     try:
         bpy.ops.object.multires_rebuild_subdiv(modifier="Multires")
-        msg = None
+        finger = getFingerPrint(hdob)
+        if finger != ob.data.DazFingerPrint:
+            failed
+        failtype = None
     except RuntimeError:
         msg = ('Cannot rebuild subdivisions for "%s"' % hdob.name)
-    if msg is None:
+        failtype = "Runtime"
+    except NameError:
+        msg = ('Multires mesh "%s" does not match "%s"' % (hdob.name, ob.name))
+        failtype = "Finger"
+    if failtype is None:
         hdob.DazMultires = True
         return True
     elif strict:
@@ -396,6 +405,8 @@ def addMultires(context, hdob, strict):
         reportError(msg, trigger=(2,4))
         hdob.modifiers.remove(mod)
         LS.hdFailures.append(hdob.name)
+        if failtype == "Finger":
+            hdob.data = hdme
         return False
 
 
@@ -420,7 +431,7 @@ class DAZ_OT_MakeMultires(DazOperator, IsMesh):
                     hdob = ob
                     baseob = context.object
                 break
-        addMultires(context, hdob, True)
+        addMultires(context, baseob, hdob, True)
         copyUvLayers(baseob, hdob)
         rig = baseob.parent
         if not (rig and rig.type == 'ARMATURE'):
