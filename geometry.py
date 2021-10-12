@@ -388,14 +388,13 @@ def addMultires(context, ob, hdob, strict):
         bpy.ops.object.multires_rebuild_subdiv(modifier="Multires")
         finger = getFingerPrint(hdob)
         if finger != ob.data.DazFingerPrint:
-            failed
-        failtype = None
+            msg = ('Multires mesh "%s" does not match "%s"' % (hdob.name, ob.name))
+            failtype = "Finger"
+        else:
+            failtype = None
     except RuntimeError:
         msg = ('Cannot rebuild subdivisions for "%s"' % hdob.name)
         failtype = "Runtime"
-    except NameError:
-        msg = ('Multires mesh "%s" does not match "%s"' % (hdob.name, ob.name))
-        failtype = "Finger"
     if failtype is None:
         hdob.DazMultires = True
         return True
